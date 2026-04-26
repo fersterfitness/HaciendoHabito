@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronLeft } from 'lucide-react'
+import { Bell, ChevronLeft, Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useTheme } from '@/contexts/ThemeContext'
 import { getInitials } from '@/lib/utils'
 
 interface HeaderProps {
@@ -15,6 +15,7 @@ interface HeaderProps {
 export function Header({ title, showBack = false, actions }: HeaderProps) {
   const navigate = useNavigate()
   const { profile, user } = useAuthStore()
+  const { theme, toggleTheme } = useTheme()
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
       {showBack && (
         <button
           onClick={() => navigate(-1)}
-          className="p-1 rounded-lg text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+          className="p-1.5 rounded-lg text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -58,8 +59,20 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
 
       <h1 className="flex-1 text-base font-semibold text-ink-primary truncate">{title}</h1>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         {actions}
+
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+          title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </button>
 
         <button
           onClick={() => navigate('/notifications')}
@@ -75,7 +88,7 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
 
         <button
           onClick={() => navigate('/profile')}
-          className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center"
+          className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center ml-1 ring-2 ring-brand-primary/20 hover:ring-brand-primary/40 transition-all"
         >
           <span className="text-white text-xs font-bold">
             {profile ? getInitials(profile.full_name) : '?'}

@@ -11,12 +11,12 @@ import {
   Settings,
   LogOut,
   Salad,
-  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FEATURE_NUTRITION } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useTheme } from '@/contexts/ThemeContext'
 import { getInitials } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -42,6 +42,7 @@ const nutritionItems = [
 export function Sidebar() {
   const { profile, reset } = useAuthStore()
   const navigate = useNavigate()
+  const { theme } = useTheme()
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -53,20 +54,26 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-surface-card border-r border-surface-border min-h-screen">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-surface-border">
-        <div className="w-9 h-9 rounded-xl bg-brand-primary flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">FF</span>
-        </div>
+      <div className="flex items-center gap-2.5 px-4 h-14 border-b border-surface-border shrink-0">
+        <img
+          src={
+            theme === 'dark'
+              ? '/logo_mark_original_white_transparent.png'
+              : '/logo_mark_original_black_square.png'
+          }
+          alt="HH"
+          className="w-8 h-8 object-contain rounded-lg shrink-0"
+        />
         <div className="min-w-0">
-          <p className="text-xs font-bold text-brand-primary leading-none uppercase tracking-widest">
-            Ferster
+          <p className="text-sm font-bold text-ink-primary leading-none">Haciéndolo Hábito</p>
+          <p className="text-[10px] text-ink-muted leading-none mt-0.5 font-medium tracking-wide uppercase">
+            Ferster Fitness
           </p>
-          <p className="text-xs text-ink-muted leading-none mt-0.5">Haciéndolo Hábito</p>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-hide space-y-0.5">
         {navItems.map((item) => (
           <SidebarItem key={item.href} {...item} />
         ))}
@@ -86,15 +93,15 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* Profile & Logout */}
-      <div className="px-3 py-4 border-t border-surface-border space-y-1">
+      {/* Bottom */}
+      <div className="px-3 pb-4 pt-3 border-t border-surface-border space-y-0.5">
         <NavLink
           to="/settings"
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-150',
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
               isActive
-                ? 'bg-brand-primary/10 text-brand-primary'
+                ? 'bg-brand-primary/10 text-brand-primary font-medium'
                 : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated'
             )
           }
@@ -103,24 +110,27 @@ export function Sidebar() {
           <span>Configuración</span>
         </NavLink>
 
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl">
-          <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">
+        {/* User row */}
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-surface-elevated transition-colors group">
+          <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center shrink-0 ring-2 ring-brand-primary/20">
+            <span className="text-white text-[10px] font-bold">
               {profile ? getInitials(profile.full_name) : '?'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-ink-primary truncate">
+            <p className="text-xs font-semibold text-ink-primary truncate">
               {profile?.full_name ?? 'Cargando...'}
             </p>
-            <p className="text-xs text-ink-muted capitalize">{profile?.role}</p>
+            <p className="text-[10px] text-ink-muted capitalize leading-none mt-0.5">
+              {profile?.role}
+            </p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-ink-muted hover:text-status-expired transition-colors"
+            className="text-ink-muted hover:text-status-expired transition-colors opacity-0 group-hover:opacity-100"
             title="Cerrar sesión"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -142,18 +152,25 @@ function SidebarItem({
       to={href}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-150 group',
+          'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
           isActive
-            ? 'bg-brand-primary/10 text-brand-primary font-medium'
+            ? 'bg-brand-primary/10 text-brand-primary font-semibold'
             : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated'
         )
       }
     >
       {({ isActive }) => (
         <>
-          <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-brand-primary')} />
-          <span className="flex-1">{label}</span>
-          {isActive && <ChevronRight className="h-3 w-3 text-brand-primary" />}
+          <Icon
+            className={cn(
+              'h-4 w-4 shrink-0 transition-colors',
+              isActive ? 'text-brand-primary' : 'text-ink-muted'
+            )}
+          />
+          <span className="flex-1 truncate">{label}</span>
+          {isActive && (
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary shrink-0" />
+          )}
         </>
       )}
     </NavLink>
@@ -162,8 +179,8 @@ function SidebarItem({
 
 function SidebarSection({ label }: { label: string }) {
   return (
-    <div className="px-3 pt-4 pb-1">
-      <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest">{label}</p>
+    <div className="px-3 pt-5 pb-1.5">
+      <p className="text-[10px] font-bold text-ink-muted uppercase tracking-widest">{label}</p>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthInit } from '@/hooks/useAuth'
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthGuard } from '@/components/layout/AuthGuard'
 import { LoginPage } from '@/pages/auth/LoginPage'
@@ -89,28 +90,42 @@ function AppRoutes() {
   )
 }
 
+function ThemedToaster() {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        style: {
+          background: isDark ? '#1E1E1E' : '#FFFFFF',
+          color: isDark ? '#F5F5F5' : '#0F0F23',
+          border: isDark ? '1px solid #2A2A2A' : '1px solid #E2E2EC',
+          borderRadius: '12px',
+          fontSize: '14px',
+          boxShadow: isDark
+            ? '0 4px 12px rgb(0 0 0 / 0.4)'
+            : '0 4px 12px rgb(0 0 0 / 0.08)',
+        },
+        success: {
+          iconTheme: { primary: '#FF8C00', secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
+        },
+        error: {
+          iconTheme: { primary: '#EF4444', secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
+        },
+      }}
+    />
+  )
+}
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#1E1E1E',
-            color: '#F5F5F5',
-            border: '1px solid #2A2A2A',
-            borderRadius: '12px',
-            fontSize: '14px',
-          },
-          success: {
-            iconTheme: { primary: '#FF8C00', secondary: '#1E1E1E' },
-          },
-          error: {
-            iconTheme: { primary: '#EF4444', secondary: '#1E1E1E' },
-          },
-        }}
-      />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AppRoutes />
+        <ThemedToaster />
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }

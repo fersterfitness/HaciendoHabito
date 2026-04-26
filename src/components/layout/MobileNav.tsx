@@ -12,8 +12,8 @@ const mobileNavItems = [
 
 export function MobileNav() {
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border px-2 pb-safe-area-inset-bottom">
-      <div className="flex items-center justify-around h-16">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border shadow-[0_-1px_0_0_rgb(var(--surface-border))]">
+      <div className="flex items-center justify-around h-16 px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon
           return (
@@ -22,15 +22,22 @@ export function MobileNav() {
               to={item.href}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors',
-                  isActive ? 'text-brand-primary' : 'text-ink-muted'
+                  'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-150',
+                  isActive ? 'text-brand-primary' : 'text-ink-muted hover:text-ink-secondary'
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={cn('h-5 w-5', isActive && 'text-brand-primary')} />
-                  <span className="text-[10px] font-medium">{item.label}</span>
+                  <div
+                    className={cn(
+                      'p-1.5 rounded-lg transition-colors',
+                      isActive ? 'bg-brand-primary/10' : ''
+                    )}
+                  >
+                    <Icon className={cn('h-4 w-4', isActive && 'text-brand-primary')} />
+                  </div>
+                  <span className="text-[10px] font-medium leading-none">{item.label}</span>
                 </>
               )}
             </NavLink>

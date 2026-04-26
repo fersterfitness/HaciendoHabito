@@ -18,7 +18,9 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
     <div
       className={cn(
         'bg-surface-card rounded-2xl border border-surface-border',
-        hover && 'hover:border-brand-primary/30 hover:shadow-lg hover:shadow-brand-primary/5 transition-all duration-200 cursor-pointer',
+        'shadow-card dark:shadow-none',
+        hover &&
+          'hover:border-brand-primary/30 hover:shadow-card-md dark:hover:shadow-brand-primary/5 dark:hover:shadow-lg transition-all duration-200 cursor-pointer',
         paddingStyles[padding],
         className
       )}
@@ -39,7 +41,7 @@ export function CardHeader({ className, children, ...props }: HTMLAttributes<HTM
 
 export function CardTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={cn('text-base font-semibold text-ink-primary', className)} {...props}>
+    <h3 className={cn('text-sm font-semibold text-ink-primary', className)} {...props}>
       {children}
     </h3>
   )

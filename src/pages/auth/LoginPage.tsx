@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Mail, Lock, ArrowRight } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Zap, Sun, Moon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -20,9 +21,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export function LoginPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
-  const [magicEmail, setMagicEmail] = useState('')
-  const [magicLoading, setMagicLoading] = useState(false)
+  const { theme, toggleTheme } = useTheme()
   const [tab, setTab] = useState<'password' | 'magic'>('password')
 
   const {
@@ -49,31 +48,28 @@ export function LoginPage() {
     }
   }
 
-  async function sendMagicLink() {
-    if (!magicEmail) { toast.error('Ingresá tu email'); return }
-    setMagicLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: magicEmail,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
-    })
-    setMagicLoading(false)
-    if (error) { toast.error(error.message) }
-    else { setMagicLinkSent(true) }
-  }
-
   return (
-    <div className="min-h-screen bg-surface-base flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 relative">
+      <button
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 p-2 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-card border border-transparent hover:border-surface-border transition-all"
+        title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+      >
+        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
+
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-brand-primary flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-black text-xl">FF</span>
-          </div>
-          <h1 className="text-2xl font-bold text-ink-primary">Haciéndolo Hábito</h1>
-          <p className="text-sm text-ink-secondary mt-1">Panel de entrenador</p>
+          <img
+            src="/app_icon_original_1024.png"
+            alt="Haciéndolo Hábito"
+            className="w-28 h-28 object-contain mx-auto mb-4"
+          />
+          <p className="text-sm text-ink-secondary">Panel de entrenador</p>
         </div>
 
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-6 shadow-card dark:shadow-none">
           {/* Tabs */}
           <div className="flex rounded-xl bg-surface-elevated p-1 mb-6">
             <button
@@ -126,48 +122,22 @@ export function LoginPage() {
                 Ingresar
               </Button>
             </form>
-          ) : magicLinkSent ? (
-            <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-2xl bg-status-generated/10 flex items-center justify-center mx-auto mb-3">
-                <Mail className="h-6 w-6 text-status-generated" />
-              </div>
-              <h3 className="font-semibold text-ink-primary">¡Link enviado!</h3>
-              <p className="text-sm text-ink-secondary mt-1">
-                Revisá tu email <strong className="text-ink-primary">{magicEmail}</strong> y hacé
-                click en el link para ingresar.
-              </p>
-              <button
-                onClick={() => setMagicLinkSent(false)}
-                className="mt-4 text-xs text-ink-muted hover:text-brand-primary transition-colors"
-              >
-                ¿No llegó? Reintentar
-              </button>
-            </div>
           ) : (
-            <div className="space-y-4">
-              <Input
-                label="Email"
-                type="email"
-                placeholder="tu@email.com"
-                leftIcon={<Mail className="h-4 w-4" />}
-                value={magicEmail}
-                onChange={(e) => setMagicEmail(e.target.value)}
-              />
-              <Button
-                className="w-full"
-                onClick={sendMagicLink}
-                loading={magicLoading}
-                icon={<ArrowRight className="h-4 w-4" />}
-                iconPosition="right"
-              >
-                Enviar Magic Link
-              </Button>
+            <div className="text-center py-6">
+              <div className="w-12 h-12 rounded-2xl bg-surface-elevated flex items-center justify-center mx-auto mb-3">
+                <Zap className="h-6 w-6 text-ink-muted" />
+              </div>
+              <h3 className="font-semibold text-ink-primary">Actualmente deshabilitado</h3>
+              <p className="text-sm text-ink-secondary mt-2 leading-relaxed">
+                El acceso por Magic Link no está disponible por el momento.<br />
+                Usá la pestaña <strong className="text-ink-primary">Contraseña</strong> para ingresar.
+              </p>
             </div>
           )}
         </div>
 
         <p className="text-center text-xs text-ink-muted mt-6">
-          Haciéndolo Hábito · Ferster Fitness · {new Date().getFullYear()}
+          Haciéndolo Hábito · fitness · hábitos · progreso · {new Date().getFullYear()}
         </p>
       </div>
     </div>

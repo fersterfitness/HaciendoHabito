@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { Card } from './Card'
 
 interface StatCardProps {
   title: string
@@ -8,6 +7,7 @@ interface StatCardProps {
   subtitle?: string
   icon: ReactNode
   iconColor?: string
+  iconBg?: string
   trend?: { value: number; label: string }
   onClick?: () => void
   className?: string
@@ -19,44 +19,59 @@ export function StatCard({
   subtitle,
   icon,
   iconColor = 'text-brand-primary',
+  iconBg = 'bg-brand-primary/10',
   trend,
   onClick,
   className,
 }: StatCardProps) {
   return (
-    <Card
-      hover={!!onClick}
+    <div
       onClick={onClick}
-      className={cn('flex flex-col gap-3', className)}
+      className={cn(
+        'bg-surface-card rounded-2xl border border-surface-border p-4',
+        'shadow-card dark:shadow-none',
+        'flex flex-col gap-3',
+        onClick &&
+          'cursor-pointer hover:border-brand-primary/30 hover:shadow-card-md dark:hover:shadow-lg dark:hover:border-brand-primary/20 transition-all duration-200',
+        className
+      )}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wider">{title}</p>
-          <p className="text-3xl font-bold text-ink-primary tabular-nums">{value}</p>
-          {subtitle && <p className="text-xs text-ink-secondary">{subtitle}</p>}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1 min-w-0">
+          <p className="text-xs font-medium text-ink-muted uppercase tracking-wider truncate">
+            {title}
+          </p>
+          <p className="text-3xl font-bold text-ink-primary tabular-nums leading-none">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-ink-secondary mt-0.5">{subtitle}</p>
+          )}
         </div>
         <div
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center bg-surface-elevated',
+            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+            iconBg,
             iconColor
           )}
         >
           {icon}
         </div>
       </div>
+
       {trend && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 pt-1 border-t border-surface-border">
           <span
             className={cn(
-              'text-xs font-medium',
+              'text-xs font-semibold',
               trend.value >= 0 ? 'text-status-generated' : 'text-status-expired'
             )}
           >
-            {trend.value >= 0 ? '+' : ''}{trend.value}%
+            {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}%
           </span>
           <span className="text-xs text-ink-muted">{trend.label}</span>
         </div>
       )}
-    </Card>
+    </div>
   )
 }
