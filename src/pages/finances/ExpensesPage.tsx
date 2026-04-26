@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, TrendingDown, Search } from 'lucide-react'
+import { Plus, TrendingDown, Search, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import type { Expense } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -19,20 +20,36 @@ export function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return
-    const { data, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('expense_date', { ascending: false })
-    if (error) toast.error(error.message)
-    else setExpenses(data ?? [])
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('expense_date', { ascending: false })
+      if (error) toast.error(error.message)
+      else setExpenses(data ?? [])
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const { error } = await supabase.from('expenses').delete().eq('id', deleteTarget.id)
+    setDeleting(false)
+    if (error) { toast.error(error.message); return }
+    toast.success('Gasto eliminado')
+    setDeleteTarget(null)
+    fetchExpenses()
+  }
 
   const filtered = expenses.filter((e) =>
     e.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,7 +70,7 @@ export function ExpensesPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 max-w-3xl space-y-5">
+      <div className="px-4 lg:px-6 py-6 space-y-5">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-surface-card border border-surface-border rounded-2xl p-4">
             <p className="text-xs text-ink-muted mb-1">Gastos fijos</p>
@@ -106,11 +123,38 @@ export function ExpensesPage() {
                   <span>{expense.payment_method.replace('_', '/')}</span>
                   {expense.subcategory && <span>{expense.subcategory}</span>}
                 </div>
+                <div className="flex items-center gap-1 pt-2 mt-1 border-t border-surface-border">
+                  <button
+                    onClick={() => navigate(`/finances/expenses/${expense.id}/edit`)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors px-2 py-1.5 rounded-lg"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => setDeleteTarget(expense)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors px-2 py-1.5 rounded-lg"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar
+                  </button>
+                </div>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="¿Eliminar gasto?"
+        description={`Se eliminará "${deleteTarget?.description}". Esta acción no se puede deshacer.`}
+        confirmLabel="Sí, eliminar"
+        loading={deleting}
+      />
     </div>
   )
 }

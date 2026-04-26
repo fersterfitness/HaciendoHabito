@@ -84,7 +84,7 @@ export function ExerciseFormPage() {
       if (error) { toast.error(error.message); return }
       toast.success('Ejercicio actualizado')
     } else {
-      const { error } = await supabase.from('exercise_library').insert({ ...payload, owner_id: user.id, is_system: false })
+      const { error } = await supabase.from('exercise_library').insert({ ...payload, owner_id: user.id, is_system: false, is_active: values.is_active })
       if (error) { toast.error(error.message); return }
       toast.success('Ejercicio creado')
     }

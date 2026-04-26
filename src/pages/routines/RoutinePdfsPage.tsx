@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileText, RefreshCw, Send } from 'lucide-react'
+import { FileText, RefreshCw, Send, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { formatDate } from '@/lib/utils'
+import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
 import type { RoutinePdf, Routine, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -36,27 +37,15 @@ export function RoutinePdfsPage() {
 
   useEffect(() => { fetchPdfs() }, [fetchPdfs])
 
-  async function generatePdf(routineId: string, pdfId: string) {
+  async function handleGeneratePdf(routineId: string, pdfId: string) {
     setGenerating(pdfId)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-routine-pdf`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ routine_id: routineId, pdf_id: pdfId }),
-        }
-      )
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error ?? 'Error generando PDF')
+      await generateRoutinePdf(routineId, pdfId)
       toast.success('PDF generado correctamente')
       fetchPdfs()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error desconocido')
+      toast.error(err instanceof Error ? err.message : 'Error generando PDF')
+      fetchPdfs() // recargar para mostrar estado de error
     } finally {
       setGenerating(null)
     }
@@ -78,17 +67,24 @@ export function RoutinePdfsPage() {
     return data
   }
 
-  async function viewPdf(filePath: string) {
-    const { data } = await supabase.storage.from('routine-pdfs').createSignedUrl(filePath, 60)
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-    else toast.error('No se pudo obtener el PDF')
+  async function downloadPdf(filePath: string) {
+    const { data } = await supabase.storage.from('routine-pdfs').createSignedUrl(filePath, 120)
+    if (!data?.signedUrl) { toast.error('No se pudo obtener el PDF'); return }
+    window.open(data.signedUrl, '_blank')
   }
 
   return (
     <div>
-      <Header title="PDFs de Rutina" />
+      <Header
+        title="PDFs de Rutina"
+        actions={
+          <Button size="sm" variant="secondary" icon={<FileText className="h-4 w-4" />} onClick={() => navigate('/routines')}>
+            Ir a rutinas
+          </Button>
+        }
+      />
 
-      <div className="px-4 lg:px-6 py-6 max-w-3xl space-y-4">
+      <div className="px-4 lg:px-6 py-6 space-y-4">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : pdfs.length === 0 ? (
@@ -129,20 +125,32 @@ export function RoutinePdfsPage() {
                     variant="secondary"
                     icon={<RefreshCw className="h-3.5 w-3.5" />}
                     loading={generating === pdf.id}
-                    onClick={() => generatePdf(pdf.routine_id, pdf.id)}
+                    onClick={() => handleGeneratePdf(pdf.routine_id, pdf.id)}
                   >
                     {pdf.status === 'error' ? 'Reintentar' : 'Generar PDF'}
                   </Button>
+                )}
+                {pdf.status === 'en_proceso' && (
+                  <Button size="sm" variant="secondary" loading>Generando...</Button>
                 )}
                 {pdf.status === 'generado' && pdf.file_path && (
                   <>
                     <Button
                       size="sm"
                       variant="secondary"
-                      icon={<FileText className="h-3.5 w-3.5" />}
-                      onClick={() => viewPdf(pdf.file_path!)}
+                      icon={<Download className="h-3.5 w-3.5" />}
+                      onClick={() => downloadPdf(pdf.file_path!)}
                     >
-                      Ver PDF
+                      Descargar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<RefreshCw className="h-3.5 w-3.5" />}
+                      loading={generating === pdf.id}
+                      onClick={() => handleGeneratePdf(pdf.routine_id, pdf.id)}
+                    >
+                      Regenerar
                     </Button>
                     <Button
                       size="sm"

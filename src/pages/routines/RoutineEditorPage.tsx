@@ -29,27 +29,30 @@ export function RoutineEditorPage() {
   const fetchData = useCallback(async () => {
     if (!id) return
     setLoading(true)
-    const [routineRes, blocksRes] = await Promise.all([
-      supabase.from('routines').select('*, student:students(full_name)').eq('id', id).single(),
-      supabase
-        .from('routine_blocks')
-        .select(`*, days:routine_days(*, exercises:routine_exercises(*, exercise:exercise_library(*)))`)
-        .eq('routine_id', id)
-        .order('sort_order'),
-    ])
-    if (routineRes.data) setRoutine(routineRes.data as unknown as RoutineFull)
-    if (blocksRes.data) {
-      const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
-        ...b,
-        days: [...(b.days ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((d) => ({
-          ...d,
-          exercises: [...(d.exercises ?? [])].sort((a, b) => a.sort_order - b.sort_order),
-        })),
-      }))
-      setBlocks(sorted)
-      setExpandedBlocks(new Set(sorted.map((b) => b.id)))
+    try {
+      const [routineRes, blocksRes] = await Promise.all([
+        supabase.from('routines').select('*, student:students(full_name)').eq('id', id).single(),
+        supabase
+          .from('routine_blocks')
+          .select(`*, days:routine_days(*, exercises:routine_exercises(*, exercise:exercise_library(*)))`)
+          .eq('routine_id', id)
+          .order('sort_order'),
+      ])
+      if (routineRes.data) setRoutine(routineRes.data as unknown as RoutineFull)
+      if (blocksRes.data) {
+        const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
+          ...b,
+          days: [...(b.days ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((d) => ({
+            ...d,
+            exercises: [...(d.exercises ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+          })),
+        }))
+        setBlocks(sorted)
+        setExpandedBlocks(new Set(sorted.map((b) => b.id)))
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [id])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -161,7 +164,7 @@ export function RoutineEditorPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 max-w-3xl space-y-4">
+      <div className="px-4 lg:px-6 py-6 space-y-4">
         {routine && (
           <div className="bg-surface-card border border-surface-border rounded-2xl px-4 py-3 flex items-center gap-3">
             <span className="text-xs text-ink-muted">Rutina:</span>

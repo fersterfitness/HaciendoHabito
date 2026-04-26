@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { Mail, Lock, ArrowRight, Zap, Sun, Moon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -30,6 +30,12 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
 
+  // Navigate once the auth store confirms the user is set.
+  // Do NOT navigate inside onSubmit — the store isn't updated yet at that point.
+  useEffect(() => {
+    if (user) navigate('/dashboard', { replace: true })
+  }, [user])
+
   if (user) return <Navigate to="/dashboard" replace />
 
   async function onSubmit(data: LoginForm) {
@@ -43,9 +49,8 @@ export function LoginPage() {
           ? 'Email o contraseña incorrectos'
           : error.message
       )
-    } else {
-      navigate('/dashboard')
     }
+    // Navigation is handled by the useEffect above when user is set in the store
   }
 
   return (

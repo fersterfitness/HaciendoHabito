@@ -36,8 +36,8 @@ export function NotificationsPage() {
       .limit(50)
       .then(({ data }) => {
         setNotifications(data ?? [])
-        setLoading(false)
       })
+      .finally(() => setLoading(false))
   }, [user])
 
   async function markAllRead() {
@@ -70,7 +70,7 @@ export function NotificationsPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 space-y-3 max-w-2xl">
+      <div className="px-4 lg:px-6 py-6 space-y-3">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : notifications.length === 0 ? (

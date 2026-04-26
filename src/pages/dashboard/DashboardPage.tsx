@@ -46,31 +46,34 @@ export function DashboardPage() {
 
   async function loadDashboard() {
     setLoading(true)
-    const [
-      { count: activeStudents },
-      { count: activeRoutines },
-      { count: pendingPdfs },
-      { count: openQuestions },
-      { data: expiringData },
-      { data: notifData },
-    ] = await Promise.all([
-      supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
-      supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activa'),
-      supabase.from('routine_pdfs').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['pendiente', 'en_proceso']),
-      supabase.from('routine_questions').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['recibida', 'en_revision']),
-      supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5),
-      supabase.from('notifications').select('*').eq('user_id', user!.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
-    ])
+    try {
+      const [
+        { count: activeStudents },
+        { count: activeRoutines },
+        { count: pendingPdfs },
+        { count: openQuestions },
+        { data: expiringData },
+        { data: notifData },
+      ] = await Promise.all([
+        supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
+        supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activa'),
+        supabase.from('routine_pdfs').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['pendiente', 'en_proceso']),
+        supabase.from('routine_questions').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['recibida', 'en_revision']),
+        supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5),
+        supabase.from('notifications').select('*').eq('user_id', user!.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
+      ])
 
-    setStats({
-      activeStudents: activeStudents ?? 0,
-      activeRoutines: activeRoutines ?? 0,
-      pendingPdfs: pendingPdfs ?? 0,
-      openQuestions: openQuestions ?? 0,
-    })
-    setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
-    setNotifications(notifData ?? [])
-    setLoading(false)
+      setStats({
+        activeStudents: activeStudents ?? 0,
+        activeRoutines: activeRoutines ?? 0,
+        pendingPdfs: pendingPdfs ?? 0,
+        openQuestions: openQuestions ?? 0,
+      })
+      setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
+      setNotifications(notifData ?? [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (loading) {
@@ -88,7 +91,7 @@ export function DashboardPage() {
     <div>
       <Header title="Inicio" />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6 max-w-6xl">
+      <div className="px-4 lg:px-6 py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard

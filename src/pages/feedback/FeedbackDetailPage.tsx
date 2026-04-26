@@ -51,8 +51,7 @@ export function FeedbackDetailPage() {
     ]).then(([qRes, fRes]) => {
       if (qRes.data) setQuestion(qRes.data as unknown as QuestionFull)
       if (fRes.data) setFeedbacks(fRes.data)
-      setLoading(false)
-    })
+    }).finally(() => setLoading(false))
   }, [id])
 
   async function onSubmit(values: FormValues) {
@@ -110,7 +109,7 @@ export function FeedbackDetailPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 max-w-2xl space-y-5">
+      <div className="px-4 lg:px-6 py-6 space-y-5">
         {/* Datos de la consulta */}
         <Card>
           <div className="flex items-start justify-between gap-3 mb-3">

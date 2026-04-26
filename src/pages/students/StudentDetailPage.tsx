@@ -31,8 +31,7 @@ export function StudentDetailPage() {
     ]).then(([{ data: s }, { data: r }]) => {
       setStudent(s)
       setRoutines(r ?? [])
-      setLoading(false)
-    })
+    }).finally(() => setLoading(false))
   }, [id])
 
   async function handleDelete() {
@@ -50,63 +49,64 @@ export function StudentDetailPage() {
 
   return (
     <div>
-      <Header
-        title={student.full_name}
-        showBack
-        actions={
-          <div className="flex gap-2">
+      <Header title={student.full_name} showBack />
+
+      <div className="px-4 lg:px-6 py-6 space-y-6">
+        {/* Perfil */}
+        <Card>
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-brand-primary font-bold text-xl">
+                {getInitials(student.full_name)}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-xl font-bold text-ink-primary">{student.full_name}</h2>
+                <Badge status={student.status} size="md" />
+                <Badge status={student.level} size="md" />
+              </div>
+              <div className="flex flex-wrap gap-4 mt-2">
+                {student.email && (
+                  <a href={`mailto:${student.email}`} className="flex items-center gap-1.5 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
+                    <Mail className="h-3 w-3" />
+                    {student.email}
+                  </a>
+                )}
+                {student.phone && (
+                  <a href={`tel:${student.phone}`} className="flex items-center gap-1.5 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
+                    <Phone className="h-3 w-3" />
+                    {student.phone}
+                  </a>
+                )}
+                {student.birth_date && (
+                  <span className="flex items-center gap-1.5 text-xs text-ink-secondary">
+                    <Calendar className="h-3 w-3" />
+                    {formatDate(student.birth_date)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Acciones del perfil */}
+          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-surface-border">
             <Button
               variant="secondary"
               size="sm"
               icon={<Pencil className="h-3.5 w-3.5" />}
               onClick={() => navigate(`/students/${id}/edit`)}
             >
-              Editar
+              Editar perfil
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              icon={<Trash2 className="h-3.5 w-3.5" />}
+            <div className="flex-1" />
+            <button
               onClick={() => setShowDelete(true)}
-            />
-          </div>
-        }
-      />
-
-      <div className="px-4 lg:px-6 py-6 space-y-6 max-w-3xl">
-        {/* Perfil */}
-        <Card className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-brand-primary font-bold text-xl">
-              {getInitials(student.full_name)}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-xl font-bold text-ink-primary">{student.full_name}</h2>
-              <Badge status={student.status} size="md" />
-              <Badge status={student.level} size="md" />
-            </div>
-            <div className="flex flex-wrap gap-4 mt-2">
-              {student.email && (
-                <a href={`mailto:${student.email}`} className="flex items-center gap-1.5 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                  <Mail className="h-3 w-3" />
-                  {student.email}
-                </a>
-              )}
-              {student.phone && (
-                <a href={`tel:${student.phone}`} className="flex items-center gap-1.5 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                  <Phone className="h-3 w-3" />
-                  {student.phone}
-                </a>
-              )}
-              {student.birth_date && (
-                <span className="flex items-center gap-1.5 text-xs text-ink-secondary">
-                  <Calendar className="h-3 w-3" />
-                  {formatDate(student.birth_date)}
-                </span>
-              )}
-            </div>
+              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired transition-colors px-2 py-1.5 rounded-lg hover:bg-status-expired/8"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar alumno
+            </button>
           </div>
         </Card>
 

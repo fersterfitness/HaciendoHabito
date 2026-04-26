@@ -24,14 +24,17 @@ export function FeedbackPage() {
 
   const fetchQuestions = useCallback(async () => {
     if (!user) return
-    const { data, error } = await supabase
-      .from('routine_questions')
-      .select('*, student:students(full_name), routine:routines(name)')
-      .eq('owner_id', user.id)
-      .order('received_at', { ascending: false })
-    if (error) toast.error(error.message)
-    else setQuestions((data as unknown as QuestionFull[]) ?? [])
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('routine_questions')
+        .select('*, student:students(full_name), routine:routines(name)')
+        .eq('owner_id', user.id)
+        .order('received_at', { ascending: false })
+      if (error) toast.error(error.message)
+      else setQuestions((data as unknown as QuestionFull[]) ?? [])
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   useEffect(() => { fetchQuestions() }, [fetchQuestions])
@@ -48,7 +51,7 @@ export function FeedbackPage() {
     <div>
       <Header title="Devoluciones" />
 
-      <div className="px-4 lg:px-6 py-6 max-w-3xl space-y-5">
+      <div className="px-4 lg:px-6 py-6 space-y-5">
         <Input
           placeholder="Buscar por alumno o consulta..."
           leftIcon={<Search className="h-4 w-4" />}

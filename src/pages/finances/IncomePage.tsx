@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, TrendingUp, Search } from 'lucide-react'
+import { Plus, TrendingUp, Search, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import type { Income, Student } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -22,20 +23,36 @@ export function IncomePage() {
   const [incomes, setIncomes] = useState<IncomeWithStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<IncomeWithStudent | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchIncomes = useCallback(async () => {
     if (!user) return
-    const { data, error } = await supabase
-      .from('income')
-      .select('*, student:students(full_name)')
-      .eq('owner_id', user.id)
-      .order('income_date', { ascending: false })
-    if (error) toast.error(error.message)
-    else setIncomes((data as unknown as IncomeWithStudent[]) ?? [])
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('income')
+        .select('*, student:students(full_name)')
+        .eq('owner_id', user.id)
+        .order('income_date', { ascending: false })
+      if (error) toast.error(error.message)
+      else setIncomes((data as unknown as IncomeWithStudent[]) ?? [])
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   useEffect(() => { fetchIncomes() }, [fetchIncomes])
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const { error } = await supabase.from('income').delete().eq('id', deleteTarget.id)
+    setDeleting(false)
+    if (error) { toast.error(error.message); return }
+    toast.success('Ingreso eliminado')
+    setDeleteTarget(null)
+    fetchIncomes()
+  }
 
   const filtered = incomes.filter((i) =>
     i.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -57,7 +74,7 @@ export function IncomePage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 max-w-3xl space-y-5">
+      <div className="px-4 lg:px-6 py-6 space-y-5">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-surface-card border border-surface-border rounded-2xl p-4">
             <p className="text-xs text-ink-muted mb-1">Total cobrado</p>
@@ -106,11 +123,38 @@ export function IncomePage() {
                   <span>{income.payment_method.replace('_', '/')}</span>
                   {income.notes && <span className="truncate">📝 {income.notes}</span>}
                 </div>
+                <div className="flex items-center gap-1 pt-2 mt-1 border-t border-surface-border">
+                  <button
+                    onClick={() => navigate(`/finances/income/${income.id}/edit`)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors px-2 py-1.5 rounded-lg"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => setDeleteTarget(income)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors px-2 py-1.5 rounded-lg"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar
+                  </button>
+                </div>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="¿Eliminar ingreso?"
+        description={`Se eliminará el ingreso de ${deleteTarget ? formatCurrency(deleteTarget.amount) : ''}. Esta acción no se puede deshacer.`}
+        confirmLabel="Sí, eliminar"
+        loading={deleting}
+      />
     </div>
   )
 }

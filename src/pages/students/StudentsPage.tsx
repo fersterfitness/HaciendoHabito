@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Users } from 'lucide-react'
+import { Plus, Search, Users, Pencil, Trash2 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { Card } from '@/components/ui/Card'
-import { getInitials, formatDate } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { getInitials, cn } from '@/lib/utils'
 import type { Student } from '@/types/database'
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -20,8 +20,10 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export function StudentsPage() {
   const navigate = useNavigate()
-  const { students, loading, fetchStudents } = useStudents()
+  const { students, loading, fetchStudents, deleteStudent } = useStudents()
   const [search, setSearch] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { fetchStudents() }, [fetchStudents])
 
@@ -32,6 +34,17 @@ export function StudentsPage() {
     },
     [fetchStudents]
   )
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const ok = await deleteStudent(deleteTarget.id)
+    setDeleting(false)
+    if (ok) {
+      setDeleteTarget(null)
+      fetchStudents(search)
+    }
+  }
 
   const grouped = {
     activo: students.filter((s) => s.status === 'activo'),
@@ -53,8 +66,7 @@ export function StudentsPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6 max-w-5xl">
-        {/* Search */}
+      <div className="px-4 lg:px-6 py-6 space-y-6">
         <Input
           placeholder="Buscar alumno..."
           leftIcon={<Search className="h-4 w-4" />}
@@ -78,57 +90,132 @@ export function StudentsPage() {
             }}
           />
         ) : (
-          <>
+          <div className="space-y-8">
             {grouped.activo.length > 0 && (
-              <section>
-                <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">
-                  Activos ({grouped.activo.length})
-                </h2>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {grouped.activo.map((s) => (
-                    <StudentCard key={s.id} student={s} onClick={() => navigate(`/students/${s.id}`)} />
-                  ))}
-                </div>
-              </section>
+              <StudentTable
+                label={`Activos (${grouped.activo.length})`}
+                students={grouped.activo}
+                onRowClick={(id) => navigate(`/students/${id}`)}
+                onEdit={(id) => navigate(`/students/${id}/edit`)}
+                onDelete={(s) => setDeleteTarget(s)}
+              />
             )}
-
             {grouped.inactivo.length > 0 && (
-              <section>
-                <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">
-                  Inactivos / Baja ({grouped.inactivo.length})
-                </h2>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {grouped.inactivo.map((s) => (
-                    <StudentCard key={s.id} student={s} onClick={() => navigate(`/students/${s.id}`)} />
-                  ))}
-                </div>
-              </section>
+              <StudentTable
+                label={`Inactivos / Baja (${grouped.inactivo.length})`}
+                students={grouped.inactivo}
+                onRowClick={(id) => navigate(`/students/${id}`)}
+                onEdit={(id) => navigate(`/students/${id}/edit`)}
+                onDelete={(s) => setDeleteTarget(s)}
+              />
             )}
-          </>
+          </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title={`¿Eliminar a ${deleteTarget?.full_name}?`}
+        description="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al alumno."
+        confirmLabel="Sí, eliminar"
+        loading={deleting}
+      />
     </div>
   )
 }
 
-function StudentCard({ student, onClick }: { student: Student; onClick: () => void }) {
+function StudentTable({
+  label,
+  students,
+  onRowClick,
+  onEdit,
+  onDelete,
+}: {
+  label: string
+  students: Student[]
+  onRowClick: (id: string) => void
+  onEdit: (id: string) => void
+  onDelete: (student: Student) => void
+}) {
   return (
-    <Card hover onClick={onClick} className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-        <span className="text-brand-primary font-bold text-sm">
-          {getInitials(student.full_name)}
-        </span>
+    <section>
+      <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">
+        {label}
+      </h2>
+
+      <div className="w-full overflow-x-auto rounded-2xl border border-surface-border bg-surface-card">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-surface-border">
+              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[35%]">
+                Alumno
+              </th>
+              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[15%] hidden sm:table-cell">
+                Nivel
+              </th>
+              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[15%]">
+                Estado
+              </th>
+              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest hidden md:table-cell">
+                Email
+              </th>
+              <th className="w-24" />
+            </tr>
+          </thead>
+          <tbody>
+            {students.map((student, i) => (
+              <tr
+                key={student.id}
+                onClick={() => onRowClick(student.id)}
+                className={cn(
+                  'cursor-pointer group transition-colors hover:bg-surface-elevated',
+                  i !== students.length - 1 && 'border-b border-surface-border'
+                )}
+              >
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-brand-primary font-bold text-xs">
+                        {getInitials(student.full_name)}
+                      </span>
+                    </div>
+                    <span className="font-semibold text-ink-primary">{student.full_name}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-3.5 text-ink-secondary hidden sm:table-cell">
+                  {LEVEL_LABELS[student.level] ?? student.level}
+                </td>
+                <td className="px-5 py-3.5">
+                  <Badge status={student.status} />
+                </td>
+                <td className="px-5 py-3.5 text-ink-muted hidden md:table-cell">
+                  {student.email ?? '—'}
+                </td>
+                <td className="pr-3">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
+                      className="p-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-border transition-colors opacity-0 group-hover:opacity-100"
+                      title="Editar"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDelete(student) }}
+                      className="p-1.5 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-semibold text-ink-primary truncate">{student.full_name}</p>
-          <Badge status={student.status} />
-        </div>
-        <p className="text-xs text-ink-muted mt-0.5">{LEVEL_LABELS[student.level]}</p>
-        {student.email && (
-          <p className="text-xs text-ink-secondary mt-1 truncate">{student.email}</p>
-        )}
-      </div>
-    </Card>
+    </section>
   )
 }

@@ -88,7 +88,7 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
 
         <button
           onClick={() => navigate('/profile')}
-          className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center ml-1 ring-2 ring-brand-primary/20 hover:ring-brand-primary/40 transition-all"
+          className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center ml-1 hover:opacity-85 transition-all"
         >
           <span className="text-white text-xs font-bold">
             {profile ? getInitials(profile.full_name) : '?'}
