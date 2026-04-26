@@ -1,0 +1,116 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import { useAuthInit } from '@/hooks/useAuth'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { AuthGuard } from '@/components/layout/AuthGuard'
+import { LoginPage } from '@/pages/auth/LoginPage'
+import { DashboardPage } from '@/pages/dashboard/DashboardPage'
+import { StudentsPage } from '@/pages/students/StudentsPage'
+import { StudentFormPage } from '@/pages/students/StudentFormPage'
+import { StudentDetailPage } from '@/pages/students/StudentDetailPage'
+import { RoutinesPage } from '@/pages/routines/RoutinesPage'
+import { RoutineFormPage } from '@/pages/routines/RoutineFormPage'
+import { RoutineDetailPage } from '@/pages/routines/RoutineDetailPage'
+import { RoutineEditorPage } from '@/pages/routines/RoutineEditorPage'
+import { RoutinePdfsPage } from '@/pages/routines/RoutinePdfsPage'
+import { FeedbackPage } from '@/pages/feedback/FeedbackPage'
+import { FeedbackDetailPage } from '@/pages/feedback/FeedbackDetailPage'
+import { ExercisesPage } from '@/pages/exercises/ExercisesPage'
+import { ExerciseFormPage } from '@/pages/exercises/ExerciseFormPage'
+import { IncomePage } from '@/pages/finances/IncomePage'
+import { IncomeFormPage } from '@/pages/finances/IncomeFormPage'
+import { ExpensesPage } from '@/pages/finances/ExpensesPage'
+import { ExpenseFormPage } from '@/pages/finances/ExpenseFormPage'
+import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
+import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { PlaceholderPage } from '@/pages/PlaceholderPage'
+
+function AppRoutes() {
+  useAuthInit()
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route element={<AuthGuard />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+
+          {/* Alumnos */}
+          <Route path="/students" element={<StudentsPage />} />
+          <Route path="/students/new" element={<StudentFormPage />} />
+          <Route path="/students/:id" element={<StudentDetailPage />} />
+          <Route path="/students/:id/edit" element={<StudentFormPage />} />
+
+          {/* Rutinas */}
+          <Route path="/routines" element={<RoutinesPage />} />
+          <Route path="/routines/new" element={<RoutineFormPage />} />
+          <Route path="/routines/:id" element={<RoutineDetailPage />} />
+          <Route path="/routines/:id/edit" element={<RoutineFormPage />} />
+          <Route path="/routines/:id/editor" element={<RoutineEditorPage />} />
+
+          {/* PDFs */}
+          <Route path="/routine-pdfs" element={<RoutinePdfsPage />} />
+
+          {/* Devoluciones */}
+          <Route path="/feedback" element={<FeedbackPage />} />
+          <Route path="/feedback/:id" element={<FeedbackDetailPage />} />
+
+          {/* Ejercicios */}
+          <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="/exercises/new" element={<ExerciseFormPage />} />
+          <Route path="/exercises/:id/edit" element={<ExerciseFormPage />} />
+
+          {/* Nutrición (placeholders hasta activar feature flag) */}
+          <Route path="/nutrition" element={<PlaceholderPage title="Nutrición" />} />
+          <Route path="/nutrition/new" element={<PlaceholderPage title="Nuevo Plan Alimentario" />} />
+          <Route path="/nutrition/:id/editor" element={<PlaceholderPage title="Editor de Plan" />} />
+          <Route path="/nutrition-pdfs" element={<PlaceholderPage title="PDFs de Nutrición" />} />
+
+          {/* Finanzas */}
+          <Route path="/finances" element={<Navigate to="/finances/income" replace />} />
+          <Route path="/finances/income" element={<IncomePage />} />
+          <Route path="/finances/income/new" element={<IncomeFormPage />} />
+          <Route path="/finances/income/:id/edit" element={<IncomeFormPage />} />
+          <Route path="/finances/expenses" element={<ExpensesPage />} />
+          <Route path="/finances/expenses/new" element={<ExpenseFormPage />} />
+          <Route path="/finances/expenses/:id/edit" element={<ExpenseFormPage />} />
+
+          {/* Sistema */}
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/profile" element={<PlaceholderPage title="Perfil" />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#1E1E1E',
+            color: '#F5F5F5',
+            border: '1px solid #2A2A2A',
+            borderRadius: '12px',
+            fontSize: '14px',
+          },
+          success: {
+            iconTheme: { primary: '#FF8C00', secondary: '#1E1E1E' },
+          },
+          error: {
+            iconTheme: { primary: '#EF4444', secondary: '#1E1E1E' },
+          },
+        }}
+      />
+    </BrowserRouter>
+  )
+}
