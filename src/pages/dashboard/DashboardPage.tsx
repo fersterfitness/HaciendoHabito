@@ -28,8 +28,8 @@ interface Stats {
   openQuestions: number
 }
 
-interface ExpiringRoutine extends Routine {
-  student: { full_name: string }
+interface ExpiringRoutine extends Omit<Routine, 'student'> {
+  student: { full_name: string } | null
 }
 
 const MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']

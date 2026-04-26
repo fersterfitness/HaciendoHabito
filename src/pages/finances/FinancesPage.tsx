@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, TrendingUp, TrendingDown, Search, Pencil, Trash2, Wallet } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, Search, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'

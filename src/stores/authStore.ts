@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { UseBoundStore, StoreApi } from 'zustand'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Profile } from '@/types/database'
 
@@ -14,7 +15,7 @@ interface AuthState {
   reset: () => void
 }
 
-type AuthStore = ReturnType<typeof create<AuthState>>
+type AuthStore = UseBoundStore<StoreApi<AuthState>>
 
 // Only show the loading spinner if there's an existing session token to restore.
 const hasStoredSession = (() => {
