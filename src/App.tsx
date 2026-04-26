@@ -18,9 +18,8 @@ import { FeedbackPage } from '@/pages/feedback/FeedbackPage'
 import { FeedbackDetailPage } from '@/pages/feedback/FeedbackDetailPage'
 import { ExercisesPage } from '@/pages/exercises/ExercisesPage'
 import { ExerciseFormPage } from '@/pages/exercises/ExerciseFormPage'
-import { IncomePage } from '@/pages/finances/IncomePage'
+import { FinancesPage } from '@/pages/finances/FinancesPage'
 import { IncomeFormPage } from '@/pages/finances/IncomeFormPage'
-import { ExpensesPage } from '@/pages/finances/ExpensesPage'
 import { ExpenseFormPage } from '@/pages/finances/ExpenseFormPage'
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
@@ -70,11 +69,11 @@ function AppRoutes() {
           <Route path="/nutrition-pdfs" element={<PlaceholderPage title="PDFs de Nutrición" />} />
 
           {/* Finanzas */}
-          <Route path="/finances" element={<Navigate to="/finances/income" replace />} />
-          <Route path="/finances/income" element={<IncomePage />} />
+          <Route path="/finances" element={<FinancesPage />} />
+          <Route path="/finances/income" element={<Navigate to="/finances?tab=income" replace />} />
+          <Route path="/finances/expenses" element={<Navigate to="/finances?tab=expenses" replace />} />
           <Route path="/finances/income/new" element={<IncomeFormPage />} />
           <Route path="/finances/income/:id/edit" element={<IncomeFormPage />} />
-          <Route path="/finances/expenses" element={<ExpensesPage />} />
           <Route path="/finances/expenses/new" element={<ExpenseFormPage />} />
           <Route path="/finances/expenses/:id/edit" element={<ExpenseFormPage />} />
 

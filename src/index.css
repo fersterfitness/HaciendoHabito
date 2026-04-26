@@ -20,9 +20,9 @@
     --status-pending: 255 179 71;
 
     /* Light mode */
-    --surface-base: 246 246 251;
+    --surface-base: 255 255 255;
     --surface-card: 255 255 255;
-    --surface-elevated: 241 241 248;
+    --surface-elevated: 248 248 252;
     --surface-input: 255 255 255;
     --surface-border: 226 226 236;
     --surface-input-border: 206 206 218;
@@ -35,12 +35,12 @@
 
   .dark {
     /* Dark mode */
-    --surface-base: 18 18 18;
-    --surface-card: 30 30 30;
-    --surface-elevated: 37 37 37;
-    --surface-input: 30 30 30;
-    --surface-border: 42 42 42;
-    --surface-input-border: 58 42 26;
+    --surface-base: 22 22 30;
+    --surface-card: 28 28 38;
+    --surface-elevated: 36 36 48;
+    --surface-input: 28 28 38;
+    --surface-border: 48 48 64;
+    --surface-input-border: 62 50 32;
 
     --ink-primary: 245 245 245;
     --ink-secondary: 163 163 163;

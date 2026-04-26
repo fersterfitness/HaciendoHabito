@@ -2,8 +2,10 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Moon, Sun } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useTheme } from '@/contexts/ThemeContext'
 import { Header } from '@/components/layout/Header'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -21,6 +23,7 @@ type FormValues = z.infer<typeof schema>
 
 export function SettingsPage() {
   const { profile, setProfile } = useAuthStore()
+  const { theme, toggleTheme } = useTheme()
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -52,6 +55,31 @@ export function SettingsPage() {
     <div>
       <Header title="Configuración" />
       <div className="px-4 lg:px-6 py-6 max-w-lg space-y-6">
+
+        {/* Apariencia */}
+        <Card>
+          <FormSection title="Apariencia">
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm font-medium text-ink-primary">Tema</p>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  {theme === 'dark' ? 'Modo oscuro activo' : 'Modo claro activo'}
+                </p>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-border/60 transition-colors text-sm font-medium text-ink-secondary"
+              >
+                {theme === 'dark'
+                  ? <><Sun className="h-4 w-4 text-brand-primary" /> Claro</>
+                  : <><Moon className="h-4 w-4 text-brand-primary" /> Oscuro</>
+                }
+              </button>
+            </div>
+          </FormSection>
+        </Card>
+
+        {/* Perfil */}
         <Card>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <FormSection title="Perfil">
@@ -62,6 +90,7 @@ export function SettingsPage() {
             <Button type="submit" loading={isSubmitting}>Guardar cambios</Button>
           </form>
         </Card>
+
       </div>
     </div>
   )

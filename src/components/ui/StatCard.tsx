@@ -28,20 +28,19 @@ export function StatCard({
     <div
       onClick={onClick}
       className={cn(
-        'bg-surface-card rounded-2xl border border-surface-border p-4',
-        'shadow-card dark:shadow-none',
-        'flex flex-col gap-3',
+        'bg-surface-card rounded-2xl border border-surface-border/70 p-3.5',
+        'flex flex-col gap-2.5',
         onClick &&
-          'cursor-pointer hover:border-brand-primary/30 hover:shadow-card-md dark:hover:shadow-lg dark:hover:border-brand-primary/20 transition-all duration-200',
+          'cursor-pointer hover:border-brand-primary/25 transition-colors duration-200',
         className
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1 min-w-0">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wider truncate">
+          <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide truncate">
             {title}
           </p>
-          <p className="text-3xl font-bold text-ink-primary tabular-nums leading-none">
+          <p className="text-[34px] font-semibold text-ink-primary tabular-nums leading-none">
             {value}
           </p>
           {subtitle && (
@@ -50,7 +49,7 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
             iconBg,
             iconColor
           )}
@@ -60,11 +59,13 @@ export function StatCard({
       </div>
 
       {trend && (
-        <div className="flex items-center gap-1.5 pt-1 border-t border-surface-border">
+        <div className="flex items-center gap-1.5 pt-1">
           <span
             className={cn(
-              'text-xs font-semibold',
-              trend.value >= 0 ? 'text-status-generated' : 'text-status-expired'
+              'text-[11px] font-semibold px-2 py-0.5 rounded-md',
+              trend.value >= 0
+                ? 'text-status-generated bg-status-generated/10'
+                : 'text-status-expired bg-status-expired/10'
             )}
           >
             {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}%

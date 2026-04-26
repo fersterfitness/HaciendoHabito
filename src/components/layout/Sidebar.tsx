@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   Home,
   Users,
@@ -6,8 +6,7 @@ import {
   FileText,
   MessageSquare,
   BookOpen,
-  TrendingUp,
-  TrendingDown,
+  Wallet,
   Settings,
   LogOut,
   Salad,
@@ -18,194 +17,68 @@ import { cn } from '@/lib/utils'
 import { FEATURE_NUTRITION } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { useTheme } from '@/contexts/ThemeContext'
 import { useSidebar } from '@/contexts/SidebarContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import { getInitials } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
+// ─── Colors ──────────────────────────────────────────────────────────────────
+const SIDEBAR_BG = '#0d0f14'
+// ACTIVE_BG and active text color are resolved at runtime via CSS variables
+// so the notch always matches the content area regardless of theme.
+const ACTIVE_BG  = 'rgb(var(--surface-base))'
+const NOTCH_R    = 14
+
+// ─── Nav groups ──────────────────────────────────────────────────────────────
 const navItems = [
-  { label: 'Inicio', href: '/dashboard', icon: Home },
-  { label: 'Alumnos', href: '/students', icon: Users },
-  { label: 'Rutinas', href: '/routines', icon: Dumbbell },
-  { label: 'PDFs Rutina', href: '/routine-pdfs', icon: FileText },
-  { label: 'Devoluciones', href: '/feedback', icon: MessageSquare },
-  { label: 'Ejercicios', href: '/exercises', icon: BookOpen },
+  { label: 'Inicio',       href: '/dashboard',     icon: Home },
+  { label: 'Alumnos',      href: '/students',      icon: Users },
+  { label: 'Rutinas',      href: '/routines',      icon: Dumbbell },
+  { label: 'PDFs Rutina',  href: '/routine-pdfs',  icon: FileText },
+  { label: 'Devoluciones', href: '/feedback',      icon: MessageSquare },
+  { label: 'Ejercicios',   href: '/exercises',     icon: BookOpen },
 ]
 
 const financeItems = [
-  { label: 'Ingresos', href: '/finances/income', icon: TrendingUp },
-  { label: 'Gastos', href: '/finances/expenses', icon: TrendingDown },
+  { label: 'Finanzas', href: '/finances', icon: Wallet },
 ]
 
 const nutritionItems = [
-  { label: 'Nutrición', href: '/nutrition', icon: Salad },
+  { label: 'Nutrición',      href: '/nutrition',      icon: Salad },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
 
-export function Sidebar() {
-  const { collapsed, toggle } = useSidebar()
-  const { profile, reset } = useAuthStore()
-  const navigate = useNavigate()
-  const { theme } = useTheme()
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    reset()
-    navigate('/login')
-    toast.success('Sesión cerrada')
-  }
-
+// ─── Concave notch ───────────────────────────────────────────────────────────
+function Notch({ side, visible }: { side: 'above' | 'below'; visible: boolean }) {
   return (
-    <aside
-      className={cn(
-        'hidden lg:flex flex-col shrink-0 bg-surface-card border-r border-surface-border h-screen sticky top-0 transition-all duration-200',
-        collapsed ? 'w-16' : 'w-52'
-      )}
+    <div
+      aria-hidden
+      style={{
+        position: 'absolute',
+        right: 0,
+        ...(side === 'above' ? { bottom: '100%' } : { top: '100%' }),
+        width: NOTCH_R,
+        height: NOTCH_R,
+        background: visible ? ACTIVE_BG : 'transparent',
+        zIndex: 2,
+        pointerEvents: 'none',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 150ms ease-out',
+      }}
     >
-      {/* Logo */}
       <div
-        className={cn(
-          'flex items-center h-14 border-b border-surface-border shrink-0',
-          collapsed ? 'justify-center px-0' : 'gap-2.5 px-4'
-        )}
-      >
-        <img
-          src={
-            theme === 'dark'
-              ? '/logo_mark_original_white_transparent.png'
-              : '/logo_mark_original_black_square.png'
-          }
-          alt="HH"
-          className={cn(
-            'object-contain shrink-0 transition-all duration-200',
-            collapsed ? 'w-10 h-10 rounded-xl ring-2 ring-brand-primary/25 shadow-md shadow-brand-primary/10' : 'w-10 h-10 rounded-xl'
-          )}
-        />
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-ink-primary leading-none">Haciéndolo Hábito</p>
-            <p className="text-[10px] text-ink-muted leading-none mt-0.5 font-medium tracking-wide uppercase">
-              Ferster Fitness
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav
-        className={cn(
-          'flex-1 py-4 overflow-y-auto scrollbar-hide space-y-0.5',
-          collapsed ? 'px-2' : 'px-3'
-        )}
-      >
-        {navItems.map((item) => (
-          <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-        ))}
-
-        {!collapsed && <SidebarSection label="Finanzas" />}
-        {collapsed && <div className="my-2 border-t border-surface-border" />}
-        {financeItems.map((item) => (
-          <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-        ))}
-
-        {FEATURE_NUTRITION && (
-          <>
-            {!collapsed && <SidebarSection label="Nutrición" />}
-            {collapsed && <div className="my-2 border-t border-surface-border" />}
-            {nutritionItems.map((item) => (
-              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-            ))}
-          </>
-        )}
-
-      </nav>
-
-      {/* Collapse toggle */}
-      <div className={cn('flex py-2', collapsed ? 'justify-center' : 'justify-end px-3')}>
-        <button
-          onClick={toggle}
-          title={collapsed ? 'Expandir' : 'Colapsar'}
-          className="p-1.5 text-ink-muted hover:text-ink-primary transition-colors"
-        >
-          {collapsed
-            ? <ChevronRight className="h-4 w-4" />
-            : <ChevronLeft className="h-4 w-4" />
-          }
-        </button>
-      </div>
-
-      {/* Bottom */}
-      <div
-        className={cn(
-          'pb-4 pt-3 border-t border-surface-border space-y-0.5',
-          collapsed ? 'px-2' : 'px-3'
-        )}
-      >
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            cn(
-              'flex items-center rounded-xl py-2.5 text-sm transition-all duration-150',
-              collapsed ? 'justify-center px-0' : 'gap-3 px-3',
-              isActive
-                ? 'bg-brand-primary/10 text-brand-primary font-medium'
-                : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated'
-            )
-          }
-          title={collapsed ? 'Configuración' : undefined}
-        >
-          <Settings className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Configuración</span>}
-        </NavLink>
-
-        {/* User row */}
-        <div
-          className={cn(
-            'flex items-center rounded-xl py-2.5 hover:bg-surface-elevated transition-colors group',
-            collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'
-          )}
-          title={collapsed ? (profile?.full_name ?? '') : undefined}
-        >
-          <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center shrink-0">
-            <span className="text-white text-[10px] font-bold">
-              {profile ? getInitials(profile.full_name) : '?'}
-            </span>
-          </div>
-          {!collapsed && (
-            <>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-ink-primary truncate">
-                  {profile?.full_name ?? 'Cargando...'}
-                </p>
-                <p className="text-[10px] text-ink-muted capitalize leading-none mt-0.5">
-                  {profile?.role}
-                </p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-ink-muted hover:text-status-expired transition-colors opacity-0 group-hover:opacity-100"
-                title="Cerrar sesión"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {collapsed && (
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center w-full rounded-xl py-2.5 text-ink-muted hover:text-status-expired hover:bg-surface-elevated transition-all duration-150"
-            title="Cerrar sesión"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-          </button>
-        )}
-      </div>
-    </aside>
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: SIDEBAR_BG,
+          borderRadius: side === 'above' ? `0 0 ${NOTCH_R}px 0` : `0 ${NOTCH_R}px 0 0`,
+        }}
+      />
+    </div>
   )
 }
 
+// ─── Sidebar item ─────────────────────────────────────────────────────────────
 function SidebarItem({
   label,
   href,
@@ -217,42 +90,248 @@ function SidebarItem({
   icon: React.ElementType
   collapsed: boolean
 }) {
+  const { pathname } = useLocation()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  const isActive = href === '/dashboard'
+    ? pathname === '/dashboard' || pathname === '/'
+    : href === '/finances'
+    ? pathname === '/finances' || pathname.startsWith('/finances/')
+    : pathname.startsWith(href)
+
+  // In light mode the active item sits on a white bg → dark ink.
+  // In dark mode it sits on the dark surface-base → light ink.
+  const activeTextColor = isDark ? 'rgb(var(--ink-primary))' : '#0d0f14'
+
   return (
-    <NavLink
-      to={href}
-      title={collapsed ? label : undefined}
-      className={({ isActive }) =>
-        cn(
-          'flex items-center rounded-xl py-2.5 text-sm transition-all duration-150',
-          collapsed ? 'justify-center px-0' : 'gap-3 px-3',
-          isActive
-            ? 'bg-brand-primary/10 text-brand-primary font-semibold'
-            : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated'
-        )
-      }
-    >
-      {({ isActive }) => (
-        <>
+    <div style={{ position: 'relative', marginBottom: 2, zIndex: isActive ? 10 : 1 }}>
+      <Notch side="above" visible={isActive} />
+
+      <NavLink
+        to={href}
+        title={collapsed ? label : undefined}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          height: 40,
+          marginLeft: 8,
+          marginRight: 0,
+          paddingLeft: collapsed ? 0 : 10,
+          paddingRight: collapsed ? 0 : 10,
+          justifyContent: collapsed ? 'center' : undefined,
+          borderTopLeftRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderTopRightRadius: isActive ? 0 : 12,
+          borderBottomRightRadius: isActive ? 0 : 12,
+          background: isActive ? ACTIVE_BG : 'transparent',
+          position: 'relative',
+          zIndex: 1,
+          color: isActive ? activeTextColor : 'rgba(255,255,255,0.55)',
+          textDecoration: 'none',
+          transition: 'color 150ms',
+        }}
+        className={cn(
+          'group',
+          !isActive && 'hover:!bg-white/[0.07] hover:!text-white/80',
+        )}
+      >
+        {/* Icon wrapper */}
+        <span
+          className="flex items-center justify-center shrink-0 rounded-lg transition-colors"
+          style={{
+            width: 28,
+            height: 28,
+            background: isActive ? 'rgba(255,140,0,0.12)' : 'transparent',
+          }}
+        >
           <Icon
-            className={cn(
-              'h-4 w-4 shrink-0 transition-colors',
-              isActive ? 'text-brand-primary' : 'text-ink-muted'
-            )}
+            style={{
+              width: 15,
+              height: 15,
+              color: isActive ? 'rgb(255 140 0)' : 'inherit',
+              transition: 'color 150ms',
+            }}
           />
-          {!collapsed && <span className="flex-1 truncate">{label}</span>}
-          {!collapsed && isActive && (
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary shrink-0" />
-          )}
-        </>
-      )}
-    </NavLink>
+        </span>
+
+        {!collapsed && (
+          <span
+            className="ml-2.5 text-[13px] truncate flex-1 select-none"
+            style={{ fontWeight: isActive ? 600 : 500 }}
+          >
+            {label}
+          </span>
+        )}
+      </NavLink>
+
+      <Notch side="below" visible={isActive} />
+    </div>
   )
 }
 
+// ─── Section label ────────────────────────────────────────────────────────────
 function SidebarSection({ label }: { label: string }) {
   return (
-    <div className="px-3 pt-5 pb-1.5">
-      <p className="text-[10px] font-bold text-ink-muted uppercase tracking-widest">{label}</p>
+    <div className="px-4 pt-5 pb-1.5">
+      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{label}</p>
     </div>
+  )
+}
+
+// ─── Main sidebar ─────────────────────────────────────────────────────────────
+export function Sidebar() {
+  const { collapsed, toggle } = useSidebar()
+  const { profile, reset } = useAuthStore()
+  const { theme } = useTheme()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    reset()
+    navigate('/login')
+    toast.success('Sesión cerrada')
+  }
+
+  return (
+    <aside
+      className={cn(
+        'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-200',
+        collapsed ? 'w-[62px]' : 'w-[176px]',
+      )}
+      style={{
+        background: SIDEBAR_BG,
+        borderRight: theme === 'dark'
+          ? '1px solid rgba(255,255,255,0.06)'
+          : 'none',
+      }}
+    >
+      {/* Logo */}
+      <div
+        className={cn(
+          'flex items-center shrink-0 border-b',
+          collapsed ? 'justify-center h-14 px-0' : 'gap-3 px-4 py-3',
+        )}
+        style={{ borderColor: 'rgba(255,255,255,0.07)' }}
+      >
+        <img
+          src="/logo_mark_original_white_transparent.png"
+          alt="HH"
+          className={cn(
+            'object-contain shrink-0 rounded-xl',
+            collapsed ? 'w-9 h-9' : 'w-14 h-14',
+          )}
+        />
+        {!collapsed && (
+          <p className="text-[13px] font-extrabold text-white leading-snug tracking-wide uppercase">
+            Haciendo<br />Habito
+          </p>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav
+        className={cn(
+          'flex-1 py-3 overflow-y-auto overflow-x-visible scrollbar-hide',
+          collapsed ? 'px-0' : 'px-0',
+        )}
+        style={{ paddingTop: NOTCH_R, paddingBottom: NOTCH_R }}
+      >
+        {navItems.map((item) => (
+          <SidebarItem key={item.href} {...item} collapsed={collapsed} />
+        ))}
+
+        {!collapsed && <SidebarSection label="Finanzas" />}
+        {collapsed && (
+          <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+        )}
+        {financeItems.map((item) => (
+          <SidebarItem key={item.href} {...item} collapsed={collapsed} />
+        ))}
+
+        {FEATURE_NUTRITION && (
+          <>
+            {!collapsed && <SidebarSection label="Nutrición" />}
+            {collapsed && (
+              <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+            )}
+            {nutritionItems.map((item) => (
+              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
+            ))}
+          </>
+        )}
+      </nav>
+
+      {/* Bottom */}
+      <div
+        className="shrink-0 pb-3 pt-2"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+      >
+        {/* Settings */}
+        <SidebarItem
+          label="Configuración"
+          href="/settings"
+          icon={Settings}
+          collapsed={collapsed}
+        />
+
+        {/* User row */}
+        <div
+          className={cn(
+            'flex items-center rounded-xl mt-1 group cursor-default transition-colors hover:bg-white/[0.07]',
+            collapsed ? 'justify-center py-2.5 mx-1' : 'gap-2.5 py-2.5 mx-2 px-2',
+          )}
+          title={collapsed ? (profile?.full_name ?? '') : undefined}
+        >
+          <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center shrink-0">
+            <span className="text-white text-[10px] font-bold">
+              {profile ? getInitials(profile.full_name) : '?'}
+            </span>
+          </div>
+          {!collapsed && (
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-white truncate leading-none">
+                  {profile?.full_name ?? 'Cargando...'}
+                </p>
+                <p className="text-[10px] text-white/40 capitalize leading-none mt-0.5">
+                  {profile?.role}
+                </p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-white/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                title="Cerrar sesión"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+
+        {collapsed && (
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center w-full rounded-xl py-2 text-white/30 hover:text-red-400 hover:bg-white/[0.07] transition-all duration-150 mt-1"
+            title="Cerrar sesión"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        )}
+
+        {/* Collapse toggle */}
+        <button
+          onClick={toggle}
+          title={collapsed ? 'Expandir' : 'Colapsar'}
+          className={cn(
+            'flex items-center w-full rounded-xl py-2 mt-1 text-white/25 hover:text-white/50 hover:bg-white/[0.07] transition-all duration-150',
+            collapsed ? 'justify-center' : 'px-2 gap-2',
+          )}
+        >
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          {!collapsed && <span className="text-[11px]">Colapsar</span>}
+        </button>
+      </div>
+    </aside>
   )
 }

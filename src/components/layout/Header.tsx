@@ -47,24 +47,24 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
   }, [user])
 
   return (
-    <header className="sticky top-0 z-30 flex items-center h-14 px-4 lg:px-6 bg-surface-card border-b border-surface-border gap-3">
+    <header className="sticky top-0 z-30 flex items-center h-16 px-4 lg:px-6 bg-surface-base gap-3">
       {showBack && (
         <button
           onClick={() => navigate(-1)}
-          className="p-1.5 rounded-lg text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+          className="p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
       )}
 
-      <h1 className="flex-1 text-base font-semibold text-ink-primary truncate">{title}</h1>
+      <h1 className="flex-1 text-lg font-semibold text-ink-primary truncate">{title}</h1>
 
       <div className="flex items-center gap-1">
         {actions}
 
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+          className="p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors"
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
           {theme === 'dark' ? (
@@ -76,7 +76,7 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
 
         <button
           onClick={() => navigate('/notifications')}
-          className="relative p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+          className="relative p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors"
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
@@ -88,7 +88,7 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
 
         <button
           onClick={() => navigate('/profile')}
-          className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center ml-1 hover:opacity-85 transition-all"
+          className="w-9 h-9 rounded-xl bg-brand-primary flex items-center justify-center ml-1 hover:opacity-85 transition-all shadow-[0_8px_20px_rgba(255,140,0,0.35)]"
         >
           <span className="text-white text-xs font-bold">
             {profile ? getInitials(profile.full_name) : '?'}
