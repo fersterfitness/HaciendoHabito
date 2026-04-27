@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
-  Copy, X, Pencil, FileText, Calendar, Clock,
+  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink,
 } from 'lucide-react'
+import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
 import { useRoutines } from '@/hooks/useRoutines'
 import { useAuthStore } from '@/stores/authStore'
@@ -609,6 +610,29 @@ function BlockCard({
 
 // ─── DayCard ──────────────────────────────────────────────────────────────────
 
+// ─── DayCard helpers ──────────────────────────────────────────────────────────
+
+type RenderGroup =
+  | { type: 'single'; exercise: ExWithExercise }
+  | { type: 'superset'; groupId: number; exercises: ExWithExercise[] }
+
+function groupExercises(exercises: ExWithExercise[]): RenderGroup[] {
+  const result: RenderGroup[] = []
+  const seen = new Set<string>()
+  for (const ex of exercises) {
+    if (seen.has(ex.id)) continue
+    if (ex.is_superset && ex.superset_group !== null) {
+      const members = exercises.filter(e => e.superset_group === ex.superset_group)
+      members.forEach(m => seen.add(m.id))
+      result.push({ type: 'superset', groupId: ex.superset_group, exercises: members })
+    } else {
+      seen.add(ex.id)
+      result.push({ type: 'single', exercise: ex })
+    }
+  }
+  return result
+}
+
 function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExercise, onUpdateExercise, onDeleteExercise }: {
   day: DayWithEx; expanded: boolean
   onToggle: () => void
@@ -618,13 +642,46 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
   onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void
   onDeleteExercise: (exId: string) => void
 }) {
-  const [showDelete, setShowDelete] = useState(false)
+  const [showDelete, setShowDelete]     = useState(false)
+  const [dayName, setDayName]           = useState(day.day_name)
+  const [focus, setFocus]               = useState(day.muscle_focus ?? '')
+  const [warmup, setWarmup]             = useState(day.warmup_notes ?? '')
+  const [circuitMode, setCircuitMode]   = useState(false)
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
+
+  const saveDay = useDebounce(onUpdateDay, 600)
+
+  // Freestanding (non-superset) exercises available for circuit selection
+  const freeExercises = day.exercises.filter(e => !e.is_superset)
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function confirmCircuit() {
+    if (selectedIds.size < 2) { toast.error('Seleccioná al menos 2 ejercicios'); return }
+    const groupId = Date.now()
+    selectedIds.forEach(id => onUpdateExercise(id, { is_superset: true, superset_group: groupId }))
+    setCircuitMode(false)
+    setSelectedIds(new Set())
+    toast.success('Circuito creado')
+  }
+
+  function dissolveCircuit(groupId: number) {
+    day.exercises
+      .filter(e => e.superset_group === groupId)
+      .forEach(e => onUpdateExercise(e.id, { is_superset: false, superset_group: null }))
+  }
 
   return (
     <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
-        <span className="flex-1 text-sm font-medium text-ink-primary">{day.day_name}</span>
-        {day.muscle_focus && <span className="text-xs text-ink-muted">{day.muscle_focus}</span>}
+        <span className="flex-1 text-sm font-medium text-ink-primary">{dayName}</span>
+        {focus && <span className="text-xs text-ink-muted">{focus}</span>}
         <span className="text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
         <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors ml-1">
@@ -635,21 +692,119 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
       {expanded && (
         <div className="px-3 pb-3 space-y-2 border-t border-surface-border pt-2">
           <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="Nombre del día" value={day.day_name} onChange={(e) => onUpdateDay({ day_name: e.target.value })} className="text-xs h-8" />
-            <Input placeholder="Foco muscular" value={day.muscle_focus ?? ''} onChange={(e) => onUpdateDay({ muscle_focus: e.target.value || null })} className="text-xs h-8" />
+            <Input placeholder="Nombre del día" value={dayName} onChange={(e) => { setDayName(e.target.value); saveDay({ day_name: e.target.value }) }} className="text-xs h-8" />
+            <Input placeholder="Foco muscular" value={focus} onChange={(e) => { setFocus(e.target.value); saveDay({ muscle_focus: e.target.value || null }) }} className="text-xs h-8" />
           </div>
-          <Textarea placeholder="Entrada en calor..." value={day.warmup_notes ?? ''} onChange={(e) => onUpdateDay({ warmup_notes: e.target.value || null })} rows={2} className="text-xs" />
+          <Textarea placeholder="Entrada en calor..." value={warmup} onChange={(e) => { setWarmup(e.target.value); saveDay({ warmup_notes: e.target.value || null }) }} rows={2} className="text-xs" />
 
-          {day.exercises.map((ex) => (
-            <ExerciseRow key={ex.id} exercise={ex} onUpdate={(patch) => onUpdateExercise(ex.id, patch)} onDelete={() => onDeleteExercise(ex.id)} />
-          ))}
+          {/* Modo selección de circuito */}
+          {circuitMode && (
+            <div className="rounded-xl border border-brand-primary/40 bg-brand-primary/5 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-brand-primary/20">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-3.5 w-3.5 text-brand-primary" />
+                  <span className="text-xs font-bold text-brand-primary">Seleccioná los ejercicios del circuito</span>
+                </div>
+                <button onClick={() => { setCircuitMode(false); setSelectedIds(new Set()) }} className="text-ink-muted hover:text-ink-primary">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="divide-y divide-brand-primary/10">
+                {freeExercises.length === 0 && (
+                  <p className="px-3 py-3 text-xs text-ink-muted">No hay ejercicios disponibles para combinar.</p>
+                )}
+                {freeExercises.map(ex => (
+                  <button
+                    key={ex.id}
+                    onClick={() => toggleSelect(ex.id)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',
+                      selectedIds.has(ex.id) ? 'bg-brand-primary/15' : 'hover:bg-brand-primary/8'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors',
+                      selectedIds.has(ex.id) ? 'bg-brand-primary border-brand-primary' : 'border-surface-border'
+                    )}>
+                      {selectedIds.has(ex.id) && <span className="text-white text-[10px] font-bold">✓</span>}
+                    </div>
+                    <span className="flex-1 text-sm font-medium text-ink-primary">{ex.exercise?.name ?? 'Ejercicio'}</span>
+                    <span className="text-[10px] text-ink-muted">{(ex.exercise?.muscle_group as { name: string } | undefined)?.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="px-3 py-2 border-t border-brand-primary/20 flex items-center justify-between gap-2">
+                <span className="text-xs text-ink-muted">{selectedIds.size} seleccionado{selectedIds.size !== 1 ? 's' : ''}</span>
+                <button
+                  onClick={confirmCircuit}
+                  disabled={selectedIds.size < 2}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity"
+                >
+                  <Link2 className="h-3 w-3" /> Crear circuito
+                </button>
+              </div>
+            </div>
+          )}
 
-          <button
-            onClick={onAddExercise}
-            className="w-full flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-brand-primary py-1.5 border border-dashed border-surface-border rounded-lg hover:border-brand-primary/50 transition-colors"
-          >
-            <Plus className="h-3 w-3" /> Agregar ejercicio
-          </button>
+          {/* Ejercicios renderizados */}
+          {!circuitMode && groupExercises(day.exercises).map((group) => {
+            if (group.type === 'single') {
+              return (
+                <ExerciseRow
+                  key={group.exercise.id}
+                  exercise={group.exercise}
+                  onUpdate={(patch) => onUpdateExercise(group.exercise.id, patch)}
+                  onDelete={() => onDeleteExercise(group.exercise.id)}
+                />
+              )
+            }
+            return (
+              <div key={group.groupId} className="border border-brand-primary/30 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-brand-primary/5 border-b border-brand-primary/20">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-3 w-3 text-brand-primary" />
+                    <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider">
+                      Circuito · {group.exercises.length} ejercicios
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => dissolveCircuit(group.groupId)}
+                    className="flex items-center gap-1 text-[10px] text-ink-muted hover:text-status-expired transition-colors"
+                    title="Disolver circuito"
+                  >
+                    <Unlink className="h-3 w-3" /> Disolver
+                  </button>
+                </div>
+                {group.exercises.map((ex, i) => (
+                  <div key={ex.id} className={i < group.exercises.length - 1 ? 'border-b border-brand-primary/15' : ''}>
+                    <ExerciseRow
+                      exercise={ex}
+                      onUpdate={(patch) => onUpdateExercise(ex.id, patch)}
+                      onDelete={() => onDeleteExercise(ex.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+
+          {/* Acciones del día */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onAddExercise}
+              className="flex-1 flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-brand-primary py-1.5 border border-dashed border-surface-border rounded-lg hover:border-brand-primary/50 transition-colors"
+            >
+              <Plus className="h-3 w-3" /> Agregar ejercicio
+            </button>
+            {freeExercises.length >= 2 && !circuitMode && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setCircuitMode(true) }}
+                className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-brand-primary px-3 py-1.5 border border-dashed border-surface-border rounded-lg hover:border-brand-primary/50 transition-colors"
+              >
+                <Link2 className="h-3 w-3" /> Crear circuito
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -657,7 +812,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
         open={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={onDeleteDay}
-        title={`¿Eliminar "${day.day_name}"?`}
+        title={`¿Eliminar "${dayName}"?`}
         description="Se eliminarán todos los ejercicios de este día."
         confirmLabel="Eliminar"
       />
@@ -667,11 +822,27 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ exercise, onUpdate, onDelete }: {
+function ExerciseRow({ exercise, onUpdate, onDelete, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
   onUpdate: (patch: Partial<RoutineExercise>) => void
   onDelete: () => void
+  canCombine?: boolean
+  onCombineWithNext?: () => void
+  isSeparable?: boolean
+  onSeparate?: () => void
 }) {
+  // Local state — updates UI instantly
+  const [sets, setSets]           = useState<number | null>(exercise.sets ?? null)
+  const [reps, setReps]           = useState(exercise.reps_scheme ?? '')
+  const [rest, setRest]           = useState<number | null>(exercise.rest_seconds ?? null)
+  const [weight, setWeight]       = useState<number | null>(exercise.weight_kg ?? null)
+  const [rir, setRir]             = useState<number | null>(exercise.rir ?? null)
+  const [rpe, setRpe]             = useState<number | null>(exercise.rpe ?? null)
+  const [notes, setNotes]         = useState(exercise.technical_notes ?? '')
+
+  // Debounced save — fires 600ms after last keystroke
+  const save = useDebounce(onUpdate, 600)
+
   return (
     <div className="bg-surface-card rounded-xl p-3 space-y-2">
       <div className="flex items-center gap-2">
@@ -684,55 +855,86 @@ function ExerciseRow({ exercise, onUpdate, onDelete }: {
             {(exercise.exercise.muscle_group as unknown as { name: string }).name}
           </span>
         )}
+        {isSeparable && (
+          <button
+            onClick={onSeparate}
+            title="Separar del circuito"
+            className="text-orange-400/60 hover:text-orange-400 transition-colors"
+          >
+            <Unlink className="h-3 w-3" />
+          </button>
+        )}
+        {canCombine && (
+          <button
+            onClick={onCombineWithNext}
+            title="Combinar con siguiente"
+            className="text-ink-muted hover:text-brand-primary transition-colors"
+          >
+            <Link2 className="h-3 w-3" />
+          </button>
+        )}
         <button onClick={onDelete} className="text-ink-muted hover:text-status-expired transition-colors">
           <Trash2 className="h-3 w-3" />
         </button>
       </div>
 
       <div className="grid grid-cols-2 gap-1.5">
-        <NumInput label="Series" value={exercise.sets} onChange={(v) => onUpdate({ sets: v })} />
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">Series</label>
+          <input
+            type="number" min={0}
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            value={sets ?? ''}
+            onChange={(e) => {
+              const v = e.target.value === '' ? null : Number(e.target.value)
+              setSets(v); save({ sets: v })
+            }}
+          />
+        </div>
         <div>
           <label className="block text-[10px] text-ink-muted mb-0.5">Reps por serie</label>
           <input
             type="text"
             placeholder="ej: 8 / 6 / 5"
             className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
-            value={exercise.reps_scheme ?? ''}
-            onChange={(e) => onUpdate({ reps_scheme: e.target.value || null })}
+            value={reps}
+            onChange={(e) => { setReps(e.target.value); save({ reps_scheme: e.target.value || null }) }}
           />
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-1.5">
-        <NumInput label="Descanso s" value={exercise.rest_seconds} onChange={(v) => onUpdate({ rest_seconds: v })} />
-        <NumInput label="Peso kg"    value={exercise.weight_kg}    onChange={(v) => onUpdate({ weight_kg: v })} />
-        <NumInput label="RIR"        value={exercise.rir}          onChange={(v) => onUpdate({ rir: v })} />
-        <NumInput label="RPE"        value={exercise.rpe}          onChange={(v) => onUpdate({ rpe: v })} />
+        {[
+          { label: 'Descanso s', val: rest,   set: setRest,   key: 'rest_seconds' as const },
+          { label: 'Peso kg',    val: weight,  set: setWeight, key: 'weight_kg'    as const },
+          { label: 'RIR',        val: rir,     set: setRir,    key: 'rir'          as const },
+          { label: 'RPE',        val: rpe,     set: setRpe,    key: 'rpe'          as const },
+        ].map(({ label, val, set, key }) => (
+          <div key={key}>
+            <label className="block text-[10px] text-ink-muted mb-0.5">{label}</label>
+            <input
+              type="number" min={0}
+              className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+              value={val ?? ''}
+              onChange={(e) => {
+                const v = e.target.value === '' ? null : Number(e.target.value)
+                set(v); save({ [key]: v })
+              }}
+            />
+          </div>
+        ))}
       </div>
 
       <input
         className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
         placeholder="Notas técnicas..."
-        value={exercise.technical_notes ?? ''}
-        onChange={(e) => onUpdate({ technical_notes: e.target.value || null })}
+        value={notes}
+        onChange={(e) => { setNotes(e.target.value); save({ technical_notes: e.target.value || null }) }}
       />
     </div>
   )
 }
 
-function NumInput({ label, value, onChange }: { label: string; value: number | null | undefined; onChange: (v: number | null) => void }) {
-  return (
-    <div>
-      <label className="block text-[10px] text-ink-muted mb-0.5">{label}</label>
-      <input
-        type="number" min={0}
-        className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-      />
-    </div>
-  )
-}
 
 // ─── ExercisePicker ───────────────────────────────────────────────────────────
 
@@ -744,11 +946,13 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
   const [search, setSearch]         = useState('')
   const [loading, setLoading]       = useState(true)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
-  const [showNewForm, setShowNewForm] = useState(false)
+  const [showNewForm, setShowNewForm] = useState<null | 'exercise' | 'category'>(null)
   const [newName, setNewName]             = useState('')
   const [newGroupId, setNewGroupId]       = useState('')
   const [newDifficulty, setNewDifficulty] = useState<'basico' | 'intermedio' | 'avanzado'>('basico')
   const [creating, setCreating]           = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [creatingCategory, setCreatingCategory] = useState(false)
 
   useEffect(() => {
     supabase.from('exercise_library').select('*, muscle_group:muscle_groups(id, name, sort_order)').eq('is_active', true).order('name')
@@ -787,6 +991,26 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
     if (error) { toast.error('Error al crear ejercicio'); return }
     toast.success('Ejercicio creado')
     onSelect(data as Exercise)
+  }
+
+  async function createCategory() {
+    if (!newCategoryName.trim()) return
+    const upperName = newCategoryName.trim().toUpperCase()
+    const exists = groups.some((g) => g.name.toUpperCase() === upperName)
+    if (exists) { toast.error(`La categoría "${upperName}" ya existe`); return }
+    setCreatingCategory(true)
+    const slug = newCategoryName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now()
+    const { error } = await supabase
+      .from('muscle_groups')
+      .insert({ name: upperName, slug, sort_order: 99 })
+    setCreatingCategory(false)
+    if (error) { toast.error('Error al crear categoría'); return }
+    const { data: refreshed } = await supabase
+      .from('exercise_library').select('*, muscle_group:muscle_groups(id, name, sort_order)').eq('is_active', true).order('name')
+    if (refreshed) setExercises(refreshed as ExerciseWithGroup[])
+    toast.success('Categoría creada')
+    setNewCategoryName('')
+    setShowNewForm(null)
   }
 
   return (
@@ -838,18 +1062,26 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
           )}
         </div>
         <div className="border-t border-surface-border px-4 py-3">
-          {!showNewForm ? (
-            <button
-              onClick={() => setShowNewForm(true)}
-              className="w-full flex items-center justify-center gap-2 text-xs text-brand-primary hover:text-brand-primary/80 py-2 border border-dashed border-brand-primary/30 rounded-xl hover:border-brand-primary/60 transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" /> ¿No está en el listado? Crear ejercicio nuevo
-            </button>
-          ) : (
+          {showNewForm === null ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowNewForm('exercise')}
+                className="flex-1 flex items-center justify-center gap-2 text-xs text-brand-primary hover:text-brand-primary/80 py-2 border border-dashed border-brand-primary/30 rounded-xl hover:border-brand-primary/60 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" /> Crear ejercicio nuevo
+              </button>
+              <button
+                onClick={() => setShowNewForm('category')}
+                className="flex-1 flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-ink-primary py-2 border border-dashed border-surface-border rounded-xl hover:border-surface-border/80 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" /> Nueva categoría
+              </button>
+            </div>
+          ) : showNewForm === 'exercise' ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-semibold text-ink-primary">Nuevo ejercicio</span>
-                <button onClick={() => setShowNewForm(false)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
               </div>
               <input
                 autoFocus
@@ -879,6 +1111,23 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
               </div>
               <Button className="w-full" size="sm" loading={creating} disabled={!newName.trim() || !newGroupId} onClick={createExercise}>
                 Crear y agregar
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-ink-primary">Nueva categoría</span>
+                <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+              </div>
+              <input
+                autoFocus
+                placeholder="Nombre de la categoría *"
+                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+              />
+              <Button className="w-full" size="sm" loading={creatingCategory} disabled={!newCategoryName.trim()} onClick={createCategory}>
+                Crear categoría
               </Button>
             </div>
           )}
