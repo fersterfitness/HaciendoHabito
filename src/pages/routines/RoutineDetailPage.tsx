@@ -1,47 +1,91 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Pencil, Trash2, Dumbbell, FileText } from 'lucide-react'
+import {
+  Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
+  Copy, X, Pencil, FileText, Calendar, Clock,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRoutines } from '@/hooks/useRoutines'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
+import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Spinner } from '@/components/ui/Spinner'
-import { Select } from '@/components/ui/Input'
-import { formatDate, daysUntil } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
-import type { Routine } from '@/types/database'
+import { formatDate, daysUntil, cn } from '@/lib/utils'
 import { ROUTINE_STATUSES } from '@/lib/constants'
+import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
-type RoutineFull = Routine & { student?: { full_name: string; level: string } }
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ExWithExercise  = RoutineExercise & { exercise?: Exercise }
+type DayWithEx       = RoutineDay      & { exercises: ExWithExercise[] }
+type BlockWithDays   = RoutineBlock    & { days: DayWithEx[] }
+type RoutineFull     = Routine         & { student?: Student }
+type ExerciseWithGroup = Exercise & { muscle_group?: { id: string; name: string; sort_order: number } }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function RoutineDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { deleteRoutine, updateRoutine } = useRoutines()
   const { user } = useAuthStore()
-  const [routine, setRoutine] = useState<RoutineFull | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [showDelete, setShowDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [generatingPdf, setGeneratingPdf] = useState(false)
 
-  useEffect(() => {
+  const [routine, setRoutine]   = useState<RoutineFull | null>(null)
+  const [blocks, setBlocks]     = useState<BlockWithDays[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [showDelete, setShowDelete]   = useState(false)
+  const [deleting, setDeleting]       = useState(false)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set())
+  const [expandedDays, setExpandedDays]     = useState<Set<string>>(new Set())
+  const [showExercisePicker, setShowExercisePicker] = useState<{ dayId: string } | null>(null)
+  const [copyMenuBlock, setCopyMenuBlock] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
     if (!id) return
-    supabase
-      .from('routines')
-      .select('*, student:students(full_name, level)')
-      .eq('id', id)
-      .single()
-      .then(({ data }) => {
-        setRoutine(data as unknown as RoutineFull)
-        setLoading(false)
-      })
+    setLoading(true)
+    try {
+      const [routineRes, blocksRes] = await Promise.all([
+        supabase.from('routines').select('*, student:students(*)').eq('id', id).single(),
+        supabase
+          .from('routine_blocks')
+          .select('*, days:routine_days(*, exercises:routine_exercises(*, exercise:exercise_library(*)))')
+          .eq('routine_id', id)
+          .order('sort_order'),
+      ])
+      if (routineRes.data) setRoutine(routineRes.data as unknown as RoutineFull)
+      if (blocksRes.data) {
+        const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
+          ...b,
+          days: [...(b.days ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((d) => ({
+            ...d,
+            exercises: [...(d.exercises ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+          })),
+        }))
+        setBlocks(sorted)
+        setExpandedBlocks(new Set(sorted.map((b) => b.id)))
+      }
+    } finally {
+      setLoading(false)
+    }
   }, [id])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // ── Status ────────────────────────────────────────────────────────────────
+
+  async function handleStatusChange(newStatus: string) {
+    if (!id) return
+    await updateRoutine(id, { status: newStatus as Routine['status'], last_status_change: new Date().toISOString() })
+    setRoutine((prev) => prev ? { ...prev, status: newStatus as Routine['status'] } : prev)
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
 
   async function handleDelete() {
     if (!id) return
@@ -51,56 +95,40 @@ export function RoutineDetailPage() {
     if (ok) navigate('/routines')
   }
 
+  // ── PDF ───────────────────────────────────────────────────────────────────
+
   async function handleGeneratePdf() {
     if (!id || !user || !routine) return
     setGeneratingPdf(true)
     const toastId = toast.loading('Generando PDF...')
     try {
-      // Crear o reusar solicitud de PDF
       const { data: existing } = await supabase
-        .from('routine_pdfs')
-        .select('id')
-        .eq('routine_id', id)
-        .in('status', ['pendiente', 'error', 'generado'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+        .from('routine_pdfs').select('id')
+        .eq('routine_id', id).in('status', ['pendiente', 'error', 'generado'])
+        .order('created_at', { ascending: false }).limit(1).single()
 
       let pdfId = existing?.id
-
       if (!pdfId) {
         const { data: created, error } = await supabase
           .from('routine_pdfs')
           .insert({ owner_id: user.id, routine_id: id, student_id: routine.student_id, status: 'pendiente' })
-          .select('id')
-          .single()
-        if (error || !created) {
-          console.error('[PDF] Insert error full:', JSON.stringify(error))
-          console.error('[PDF] user.id:', user.id, 'routine.student_id:', routine.student_id)
-          throw new Error(error?.message ?? 'No se pudo crear la solicitud')
-        }
+          .select('id').single()
+        if (error || !created) throw new Error(error?.message ?? 'No se pudo crear la solicitud')
         pdfId = created.id
       }
 
       await generateRoutinePdf(id, pdfId)
 
-      // Descargar directamente
       const { data: pdfRecord } = await supabase
-        .from('routine_pdfs')
-        .select('file_path')
-        .eq('id', pdfId)
-        .single()
+        .from('routine_pdfs').select('file_path').eq('id', pdfId).single()
 
       if (pdfRecord?.file_path) {
-        const { data: signedUrl } = await supabase.storage
-          .from('routine-pdfs')
-          .createSignedUrl(pdfRecord.file_path, 120)
-        if (signedUrl?.signedUrl) {
-          window.open(signedUrl.signedUrl, '_blank')
-        }
+        const { data: signed } = await supabase.storage
+          .from('routine-pdfs').createSignedUrl(pdfRecord.file_path, 120)
+        if (signed?.signedUrl) window.open(signed.signedUrl, '_blank')
       }
 
-      toast.success('PDF generado y descargado', { id: toastId })
+      toast.success('PDF generado', { id: toastId })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error generando PDF', { id: toastId })
     } finally {
@@ -108,115 +136,316 @@ export function RoutineDetailPage() {
     }
   }
 
-  async function handleStatusChange(newStatus: string) {
+  // ── Blocks ────────────────────────────────────────────────────────────────
+
+  async function addBlock() {
     if (!id) return
-    const result = await updateRoutine(id, {
-      status: newStatus as Routine['status'],
-      last_status_change: new Date().toISOString(),
-    })
-    if (result) setRoutine((prev) => prev ? { ...prev, status: newStatus as Routine['status'] } : prev)
+    const { data, error } = await supabase
+      .from('routine_blocks')
+      .insert({ routine_id: id, name: `Semana ${blocks.length + 1}`, sort_order: blocks.length })
+      .select().single()
+    if (error) { toast.error(error.message); return }
+    const newBlock = { ...data, days: [] } as BlockWithDays
+    setBlocks((prev) => [...prev, newBlock])
+    setExpandedBlocks((prev) => new Set([...prev, data.id]))
   }
 
-  if (loading) return <div><Header title="Rutina" showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
-  if (!routine) return <div><Header title="Rutina" showBack /><p className="p-6 text-ink-muted">Rutina no encontrada.</p></div>
+  async function updateBlock(blockId: string, patch: Partial<RoutineBlock>) {
+    await supabase.from('routine_blocks').update(patch).eq('id', blockId)
+    setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, ...patch } : b))
+  }
+
+  async function deleteBlock(blockId: string) {
+    const { error } = await supabase.from('routine_blocks').delete().eq('id', blockId)
+    if (error) { toast.error(error.message); return }
+    setBlocks((prev) => prev.filter((b) => b.id !== blockId))
+    toast.success('Semana eliminada')
+  }
+
+  async function copyBlock(sourceId: string, targetId: string) {
+    const source = blocks.find((b) => b.id === sourceId)
+    const target = blocks.find((b) => b.id === targetId)
+    if (!source || !target) return
+    setCopyMenuBlock(null)
+    const loadingId = toast.loading('Copiando semana...')
+    try {
+      for (const day of source.days) {
+        const { data: newDay, error: dayErr } = await supabase
+          .from('routine_days')
+          .insert({ block_id: targetId, day_name: day.day_name, muscle_focus: day.muscle_focus, warmup_notes: day.warmup_notes, sort_order: target.days.length + day.sort_order })
+          .select().single()
+        if (dayErr || !newDay) continue
+        for (const ex of day.exercises) {
+          await supabase.from('routine_exercises').insert({
+            day_id: newDay.id, exercise_id: ex.exercise_id, sort_order: ex.sort_order,
+            sets: ex.sets, reps_min: ex.reps_min, reps_max: ex.reps_max, reps_scheme: ex.reps_scheme,
+            weight_kg: ex.weight_kg, rir: ex.rir, rpe: ex.rpe, rest_seconds: ex.rest_seconds,
+            tempo: ex.tempo, technical_notes: ex.technical_notes, is_superset: ex.is_superset, superset_group: ex.superset_group,
+          })
+        }
+      }
+      toast.dismiss(loadingId)
+      toast.success(`Semana copiada a "${target.name}"`)
+      fetchData()
+    } catch {
+      toast.dismiss(loadingId)
+      toast.error('Error al copiar semana')
+    }
+  }
+
+  // ── Days ──────────────────────────────────────────────────────────────────
+
+  async function addDay(blockId: string) {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const { data, error } = await supabase
+      .from('routine_days')
+      .insert({ block_id: blockId, day_name: `Día ${block.days.length + 1}`, sort_order: block.days.length })
+      .select().single()
+    if (error) { toast.error(error.message); return }
+    const newDay = { ...data, exercises: [] } as DayWithEx
+    setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, days: [...b.days, newDay] } : b))
+    setExpandedDays((prev) => new Set([...prev, data.id]))
+  }
+
+  async function updateDay(blockId: string, dayId: string, patch: Partial<RoutineDay>) {
+    await supabase.from('routine_days').update(patch).eq('id', dayId)
+    setBlocks((prev) => prev.map((b) =>
+      b.id === blockId ? { ...b, days: b.days.map((d) => d.id === dayId ? { ...d, ...patch } : d) } : b
+    ))
+  }
+
+  async function deleteDay(blockId: string, dayId: string) {
+    const { error } = await supabase.from('routine_days').delete().eq('id', dayId)
+    if (error) { toast.error(error.message); return }
+    setBlocks((prev) => prev.map((b) =>
+      b.id === blockId ? { ...b, days: b.days.filter((d) => d.id !== dayId) } : b
+    ))
+    toast.success('Día eliminado')
+  }
+
+  // ── Exercises ─────────────────────────────────────────────────────────────
+
+  async function addExercise(dayId: string, exercise: Exercise) {
+    const block = blocks.find((b) => b.days.some((d) => d.id === dayId))
+    const day = block?.days.find((d) => d.id === dayId)
+    const sortOrder = day?.exercises.length ?? 0
+    const { data, error } = await supabase
+      .from('routine_exercises')
+      .insert({ day_id: dayId, exercise_id: exercise.id, sort_order: sortOrder, sets: 3, reps_scheme: null, reps_min: null, reps_max: null, is_superset: false })
+      .select('*, exercise:exercise_library(*)')
+      .single()
+    if (error) { toast.error(error.message); return }
+    const newEx = data as unknown as ExWithExercise
+    setBlocks((prev) => prev.map((b) => ({
+      ...b,
+      days: b.days.map((d) => d.id === dayId ? { ...d, exercises: [...d.exercises, newEx] } : d),
+    })))
+    setShowExercisePicker(null)
+  }
+
+  async function updateExercise(dayId: string, exId: string, patch: Partial<RoutineExercise>) {
+    await supabase.from('routine_exercises').update(patch).eq('id', exId)
+    setBlocks((prev) => prev.map((b) => ({
+      ...b,
+      days: b.days.map((d) => d.id === dayId ? {
+        ...d,
+        exercises: d.exercises.map((e) => e.id === exId ? { ...e, ...patch } : e),
+      } : d),
+    })))
+  }
+
+  async function deleteExercise(dayId: string, exId: string) {
+    const { error } = await supabase.from('routine_exercises').delete().eq('id', exId)
+    if (error) { toast.error(error.message); return }
+    setBlocks((prev) => prev.map((b) => ({
+      ...b,
+      days: b.days.map((d) => d.id === dayId ? { ...d, exercises: d.exercises.filter((e) => e.id !== exId) } : d),
+    })))
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  if (loading) return (
+    <div>
+      <Header title="Rutina" showBack />
+      <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+    </div>
+  )
+
+  if (!routine) return (
+    <div>
+      <Header title="Rutina" showBack />
+      <p className="p-6 text-ink-muted">Rutina no encontrada.</p>
+    </div>
+  )
 
   const days = daysUntil(routine.end_date)
+  const totalExercises = blocks.reduce((sum, b) => sum + b.days.reduce((s, d) => s + d.exercises.length, 0), 0)
 
   return (
     <div>
-      <Header title={routine.student?.full_name ?? 'Rutina'} showBack />
+      <Header
+        title={routine.student?.full_name ?? 'Rutina'}
+        showBack
+        actions={
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => navigate(`/routines/${id}/edit`)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
+              title="Editar datos de la rutina"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Editar datos</span>
+            </button>
+            <button
+              onClick={handleGeneratePdf}
+              disabled={generatingPdf}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary text-xs font-medium transition-colors disabled:opacity-50"
+              title="Generar PDF"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{generatingPdf ? 'Generando...' : 'PDF'}</span>
+            </button>
+            <button
+              onClick={() => setShowDelete(true)}
+              className="p-1.5 rounded-xl text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
+              title="Eliminar rutina"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        }
+      />
 
-      <div className="px-4 lg:px-6 py-6 space-y-5">
-        {/* Cabecera */}
-        <Card>
-          <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="px-4 lg:px-6 py-4 space-y-4">
+
+        {/* Info barra compacta */}
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs text-ink-muted uppercase tracking-wider mb-1">{routine.name}</p>
-              <h2 className="text-xl font-bold text-ink-primary">
+              <p className="text-xs text-ink-muted mb-0.5">{routine.name}</p>
+              <h2 className="text-lg font-bold text-ink-primary truncate">
                 {routine.student?.full_name ?? '—'}
               </h2>
             </div>
             <Badge status={routine.status} size="md" />
           </div>
 
-          {/* Métricas */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <MetricBox label="Inicio" value={formatDate(routine.start_date)} />
-            <MetricBox label="Vencimiento" value={formatDate(routine.end_date)} />
-            <MetricBox
-              label="Días restantes"
-              value={days <= 0 ? 'Vencida' : `${days}`}
-              highlight={days <= 10 && days > 0}
-            />
+          <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
+              <Calendar className="h-3.5 w-3.5 text-ink-muted mb-0.5" />
+              <span className="text-[10px] text-ink-muted">Inicio</span>
+              <span className="text-xs font-semibold text-ink-primary">{formatDate(routine.start_date)}</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
+              <Calendar className="h-3.5 w-3.5 text-ink-muted mb-0.5" />
+              <span className="text-[10px] text-ink-muted">Vence</span>
+              <span className="text-xs font-semibold text-ink-primary">{formatDate(routine.end_date)}</span>
+            </div>
+            <div className={cn(
+              'flex flex-col items-center gap-0.5 rounded-xl p-2.5',
+              days <= 0 ? 'bg-status-expired/10' :
+              days <= 7 ? 'bg-status-expiring/10' : 'bg-surface-elevated'
+            )}>
+              <Clock className={cn(
+                'h-3.5 w-3.5 mb-0.5',
+                days <= 0 ? 'text-status-expired' :
+                days <= 7 ? 'text-status-expiring' : 'text-ink-muted'
+              )} />
+              <span className="text-[10px] text-ink-muted">Restantes</span>
+              <span className={cn(
+                'text-xs font-semibold',
+                days <= 0 ? 'text-status-expired' :
+                days <= 7 ? 'text-status-expiring' : 'text-ink-primary'
+              )}>
+                {days <= 0 ? 'Vencida' : `${days}d`}
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
+              <span className="text-[10px] text-ink-muted mt-1">Ejercicios</span>
+              <span className="text-xs font-semibold text-ink-primary">{totalExercises}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <MetricBox label="Duración" value={`${routine.duration_days} días`} />
-            <MetricBox label="Nivel" value={routine.level.charAt(0).toUpperCase() + routine.level.slice(1)} />
-          </div>
-
-          {/* Cambiar estado */}
           <Select
-            label="Estado de la rutina"
+            label="Estado"
             options={ROUTINE_STATUSES}
             value={routine.status}
             onChange={(e) => handleStatusChange(e.target.value)}
           />
-
-          {/* Acciones */}
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-surface-border">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Pencil className="h-3.5 w-3.5" />}
-              onClick={() => navigate(`/routines/${id}/edit`)}
-            >
-              Editar rutina
-            </Button>
-            <div className="flex-1" />
-            <button
-              onClick={() => setShowDelete(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired transition-colors px-2 py-1.5 rounded-lg hover:bg-status-expired/8"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Eliminar
-            </button>
-          </div>
-        </Card>
+        </div>
 
         {/* Objetivo */}
-        <Card>
-          <CardTitle className="text-sm mb-2">Objetivo del Coach</CardTitle>
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap">{routine.objective}</p>
-          {routine.notes && (
-            <>
-              <CardTitle className="text-sm mb-2 mt-4">Aclaraciones importantes</CardTitle>
-              <p className="text-sm text-ink-secondary whitespace-pre-wrap">{routine.notes}</p>
-            </>
-          )}
-        </Card>
+        {(routine.objective || routine.notes) && (
+          <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3">
+            {routine.objective && (
+              <div>
+                <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">Objetivo del Coach</p>
+                <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.objective}</p>
+              </div>
+            )}
+            {routine.notes && (
+              <div className="pt-3 border-t border-surface-border">
+                <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">Aclaraciones</p>
+                <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Acciones */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="secondary"
-            icon={<Dumbbell className="h-4 w-4" />}
-            onClick={() => navigate(`/routines/${id}/editor`)}
-            className="w-full"
-          >
-            Armar rutina
-          </Button>
-          <Button
-            variant="secondary"
-            icon={<FileText className="h-4 w-4" />}
-            loading={generatingPdf}
-            onClick={handleGeneratePdf}
-            className="w-full"
-          >
-            Generar PDF
-          </Button>
+        {/* Divisor semanas */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wider">
+            Semanas / Bloques ({blocks.length})
+          </span>
+          <div className="flex-1 h-px bg-surface-border" />
         </div>
+
+        {/* Editor de bloques */}
+        {blocks.map((block) => (
+          <BlockCard
+            key={block.id}
+            block={block}
+            allBlocks={blocks}
+            expanded={expandedBlocks.has(block.id)}
+            expandedDays={expandedDays}
+            showCopyMenu={copyMenuBlock === block.id}
+            onToggle={() => setExpandedBlocks((prev) => {
+              const next = new Set(prev)
+              next.has(block.id) ? next.delete(block.id) : next.add(block.id)
+              return next
+            })}
+            onToggleDay={(dayId) => setExpandedDays((prev) => {
+              const next = new Set(prev)
+              next.has(dayId) ? next.delete(dayId) : next.add(dayId)
+              return next
+            })}
+            onUpdateBlock={(patch) => updateBlock(block.id, patch)}
+            onDeleteBlock={() => deleteBlock(block.id)}
+            onAddDay={() => addDay(block.id)}
+            onUpdateDay={(dayId, patch) => updateDay(block.id, dayId, patch)}
+            onDeleteDay={(dayId) => deleteDay(block.id, dayId)}
+            onAddExercise={(dayId) => setShowExercisePicker({ dayId })}
+            onUpdateExercise={updateExercise}
+            onDeleteExercise={deleteExercise}
+            onOpenCopyMenu={() => setCopyMenuBlock(copyMenuBlock === block.id ? null : block.id)}
+            onCloseCopyMenu={() => setCopyMenuBlock(null)}
+            onCopyTo={(targetId) => copyBlock(block.id, targetId)}
+          />
+        ))}
+
+        <Button variant="secondary" className="w-full" icon={<Plus className="h-4 w-4" />} onClick={addBlock}>
+          Agregar semana / bloque
+        </Button>
       </div>
+
+      {showExercisePicker && (
+        <ExercisePicker
+          onSelect={(ex) => addExercise(showExercisePicker.dayId, ex)}
+          onClose={() => setShowExercisePicker(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={showDelete}
@@ -231,11 +460,452 @@ export function RoutineDetailPage() {
   )
 }
 
-function MetricBox({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+// ─── BlockCard ────────────────────────────────────────────────────────────────
+
+function BlockCard({
+  block, allBlocks, expanded, expandedDays, showCopyMenu,
+  onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onAddDay,
+  onUpdateDay, onDeleteDay, onAddExercise, onUpdateExercise, onDeleteExercise,
+  onOpenCopyMenu, onCloseCopyMenu, onCopyTo,
+}: {
+  block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
+  expandedDays: Set<string>; showCopyMenu: boolean
+  onToggle: () => void; onToggleDay: (id: string) => void
+  onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onAddDay: () => void
+  onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
+  onDeleteDay: (dayId: string) => void; onAddExercise: (dayId: string) => void
+  onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void
+  onDeleteExercise: (dayId: string, exId: string) => void
+  onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
+}) {
+  const [showDelete, setShowDelete] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [name, setName] = useState(block.name)
+  const otherBlocks = allBlocks.filter((b) => b.id !== block.id)
+
   return (
-    <div className="bg-surface-elevated rounded-xl p-3 text-center">
-      <p className="text-xs text-ink-muted mb-0.5">{label}</p>
-      <p className={`text-sm font-semibold ${highlight ? 'text-status-expiring' : 'text-ink-primary'}`}>{value}</p>
+    <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
+      <div
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors"
+        onClick={onToggle}
+      >
+        <GripVertical className="h-4 w-4 text-ink-muted shrink-0" />
+
+        {editingName ? (
+          <input
+            autoFocus
+            className="flex-1 bg-surface-elevated text-ink-primary text-sm font-semibold rounded-lg px-2 py-1 border border-surface-border focus:border-brand-primary outline-none"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => { onUpdateBlock({ name }); setEditingName(false) }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { onUpdateBlock({ name }); setEditingName(false) } }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <div className="flex-1 min-w-0">
+            <span
+              className="text-sm font-semibold text-ink-primary hover:text-brand-primary transition-colors"
+              onDoubleClick={(e) => { e.stopPropagation(); setEditingName(true) }}
+            >
+              {block.name}
+            </span>
+            {(block.start_date || block.end_date) && (
+              <p className="text-[10px] text-ink-muted mt-0.5">
+                {block.start_date ? new Date(block.start_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
+                {' → '}
+                {block.end_date ? new Date(block.end_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
+              </p>
+            )}
+          </div>
+        )}
+
+        <span className="text-xs text-ink-muted">{block.days.length} días</span>
+        {expanded ? <ChevronDown className="h-4 w-4 text-ink-muted" /> : <ChevronRight className="h-4 w-4 text-ink-muted" />}
+
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button title="Copiar días a otra semana" onClick={onOpenCopyMenu} className="text-ink-muted hover:text-brand-primary transition-colors">
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          {showCopyMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={onCloseCopyMenu} />
+              <div className="absolute right-0 top-6 z-40 bg-surface-card border border-surface-border rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
+                <p className="px-3 py-1.5 text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Copiar días a…</p>
+                {otherBlocks.length === 0
+                  ? <p className="px-3 py-2 text-xs text-ink-muted">No hay otras semanas</p>
+                  : otherBlocks.map((b) => (
+                      <button key={b.id} onClick={() => onCopyTo(b.id)} className="w-full text-left px-3 py-2 text-xs text-ink-primary hover:bg-surface-elevated transition-colors">
+                        {b.name}
+                      </button>
+                    ))
+                }
+              </div>
+            </>
+          )}
+        </div>
+
+        <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3">
+          {/* Fechas del bloque */}
+          <div className="grid grid-cols-2 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Fecha inicio</label>
+              <input
+                type="date"
+                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none"
+                value={block.start_date ?? ''}
+                onChange={(e) => onUpdateBlock({ start_date: e.target.value || null })}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Fecha fin</label>
+              <input
+                type="date"
+                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none"
+                value={block.end_date ?? ''}
+                onChange={(e) => onUpdateBlock({ end_date: e.target.value || null })}
+              />
+            </div>
+          </div>
+
+          {block.days.map((day) => (
+            <DayCard
+              key={day.id}
+              day={day}
+              expanded={expandedDays.has(day.id)}
+              onToggle={() => onToggleDay(day.id)}
+              onUpdateDay={(patch) => onUpdateDay(day.id, patch)}
+              onDeleteDay={() => onDeleteDay(day.id)}
+              onAddExercise={() => onAddExercise(day.id)}
+              onUpdateExercise={(exId, patch) => onUpdateExercise(day.id, exId, patch)}
+              onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
+            />
+          ))}
+          <button
+            onClick={onAddDay}
+            className="w-full flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-brand-primary py-2 border border-dashed border-surface-border rounded-xl hover:border-brand-primary/50 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" /> Agregar día
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={onDeleteBlock}
+        title={`¿Eliminar "${block.name}"?`}
+        description="Se eliminarán todos los días y ejercicios de esta semana."
+        confirmLabel="Eliminar"
+      />
     </div>
+  )
+}
+
+// ─── DayCard ──────────────────────────────────────────────────────────────────
+
+function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExercise, onUpdateExercise, onDeleteExercise }: {
+  day: DayWithEx; expanded: boolean
+  onToggle: () => void
+  onUpdateDay: (patch: Partial<RoutineDay>) => void
+  onDeleteDay: () => void
+  onAddExercise: () => void
+  onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void
+  onDeleteExercise: (exId: string) => void
+}) {
+  const [showDelete, setShowDelete] = useState(false)
+
+  return (
+    <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
+        <span className="flex-1 text-sm font-medium text-ink-primary">{day.day_name}</span>
+        {day.muscle_focus && <span className="text-xs text-ink-muted">{day.muscle_focus}</span>}
+        <span className="text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
+        {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
+        <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors ml-1">
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2 border-t border-surface-border pt-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="Nombre del día" value={day.day_name} onChange={(e) => onUpdateDay({ day_name: e.target.value })} className="text-xs h-8" />
+            <Input placeholder="Foco muscular" value={day.muscle_focus ?? ''} onChange={(e) => onUpdateDay({ muscle_focus: e.target.value || null })} className="text-xs h-8" />
+          </div>
+          <Textarea placeholder="Entrada en calor..." value={day.warmup_notes ?? ''} onChange={(e) => onUpdateDay({ warmup_notes: e.target.value || null })} rows={2} className="text-xs" />
+
+          {day.exercises.map((ex) => (
+            <ExerciseRow key={ex.id} exercise={ex} onUpdate={(patch) => onUpdateExercise(ex.id, patch)} onDelete={() => onDeleteExercise(ex.id)} />
+          ))}
+
+          <button
+            onClick={onAddExercise}
+            className="w-full flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-brand-primary py-1.5 border border-dashed border-surface-border rounded-lg hover:border-brand-primary/50 transition-colors"
+          >
+            <Plus className="h-3 w-3" /> Agregar ejercicio
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={onDeleteDay}
+        title={`¿Eliminar "${day.day_name}"?`}
+        description="Se eliminarán todos los ejercicios de este día."
+        confirmLabel="Eliminar"
+      />
+    </div>
+  )
+}
+
+// ─── ExerciseRow ──────────────────────────────────────────────────────────────
+
+function ExerciseRow({ exercise, onUpdate, onDelete }: {
+  exercise: ExWithExercise
+  onUpdate: (patch: Partial<RoutineExercise>) => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="bg-surface-card rounded-xl p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <GripVertical className="h-3.5 w-3.5 text-ink-muted shrink-0" />
+        <span className="flex-1 text-xs font-semibold text-ink-primary truncate">
+          {exercise.exercise?.name ?? 'Ejercicio'}
+        </span>
+        {exercise.exercise?.muscle_group && (
+          <span className="text-[10px] text-ink-muted shrink-0">
+            {(exercise.exercise.muscle_group as unknown as { name: string }).name}
+          </span>
+        )}
+        <button onClick={onDelete} className="text-ink-muted hover:text-status-expired transition-colors">
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5">
+        <NumInput label="Series" value={exercise.sets} onChange={(v) => onUpdate({ sets: v })} />
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">Reps por serie</label>
+          <input
+            type="text"
+            placeholder="ej: 8 / 6 / 5"
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            value={exercise.reps_scheme ?? ''}
+            onChange={(e) => onUpdate({ reps_scheme: e.target.value || null })}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-1.5">
+        <NumInput label="Descanso s" value={exercise.rest_seconds} onChange={(v) => onUpdate({ rest_seconds: v })} />
+        <NumInput label="Peso kg"    value={exercise.weight_kg}    onChange={(v) => onUpdate({ weight_kg: v })} />
+        <NumInput label="RIR"        value={exercise.rir}          onChange={(v) => onUpdate({ rir: v })} />
+        <NumInput label="RPE"        value={exercise.rpe}          onChange={(v) => onUpdate({ rpe: v })} />
+      </div>
+
+      <input
+        className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+        placeholder="Notas técnicas..."
+        value={exercise.technical_notes ?? ''}
+        onChange={(e) => onUpdate({ technical_notes: e.target.value || null })}
+      />
+    </div>
+  )
+}
+
+function NumInput({ label, value, onChange }: { label: string; value: number | null | undefined; onChange: (v: number | null) => void }) {
+  return (
+    <div>
+      <label className="block text-[10px] text-ink-muted mb-0.5">{label}</label>
+      <input
+        type="number" min={0}
+        className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+      />
+    </div>
+  )
+}
+
+// ─── ExercisePicker ───────────────────────────────────────────────────────────
+
+type MuscleGroupOption = { id: string; name: string }
+
+function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => void; onClose: () => void }) {
+  const { user } = useAuthStore()
+  const [exercises, setExercises]   = useState<ExerciseWithGroup[]>([])
+  const [search, setSearch]         = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  const [showNewForm, setShowNewForm] = useState(false)
+  const [newName, setNewName]             = useState('')
+  const [newGroupId, setNewGroupId]       = useState('')
+  const [newDifficulty, setNewDifficulty] = useState<'basico' | 'intermedio' | 'avanzado'>('basico')
+  const [creating, setCreating]           = useState(false)
+
+  useEffect(() => {
+    supabase.from('exercise_library').select('*, muscle_group:muscle_groups(id, name, sort_order)').eq('is_active', true).order('name')
+      .then(({ data }) => { setExercises((data as ExerciseWithGroup[]) ?? []); setLoading(false) })
+  }, [])
+
+  const groups = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; sort_order: number; exercises: ExerciseWithGroup[] }>()
+    for (const ex of exercises) {
+      const mg = ex.muscle_group as { id: string; name: string; sort_order: number } | undefined
+      const gid = mg?.id ?? 'other'; const gname = mg?.name ?? 'Sin categoría'; const gorder = mg?.sort_order ?? 99
+      if (!map.has(gid)) map.set(gid, { id: gid, name: gname, sort_order: gorder, exercises: [] })
+      map.get(gid)!.exercises.push(ex)
+    }
+    return Array.from(map.values()).sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+  }, [exercises])
+
+  const muscleGroupOptions: MuscleGroupOption[] = useMemo(() => groups.map((g) => ({ id: g.id, name: g.name })), [groups])
+
+  const filtered = search.trim()
+    ? exercises.filter((e) =>
+        e.name.toLowerCase().includes(search.toLowerCase()) ||
+        (e.muscle_group as { name: string } | undefined)?.name?.toLowerCase().includes(search.toLowerCase())
+      )
+    : null
+
+  async function createExercise() {
+    if (!newName.trim() || !newGroupId) return
+    setCreating(true)
+    const slug = newName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now()
+    const { data, error } = await supabase
+      .from('exercise_library')
+      .insert({ name: newName.trim(), slug, muscle_group_id: newGroupId, difficulty: newDifficulty, is_active: true, is_system: false, owner_id: user?.id ?? null })
+      .select('*, muscle_group:muscle_groups(id, name, sort_order)').single()
+    setCreating(false)
+    if (error) { toast.error('Error al crear ejercicio'); return }
+    toast.success('Ejercicio creado')
+    onSelect(data as Exercise)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
+          <h3 className="text-sm font-semibold text-ink-primary">Seleccionar ejercicio</h3>
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="px-4 py-3">
+          <input
+            autoFocus
+            placeholder="Buscar por nombre o grupo muscular..."
+            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="overflow-y-auto flex-1 px-4 pb-2">
+          {loading ? (
+            <div className="flex justify-center py-8"><Spinner /></div>
+          ) : filtered !== null ? (
+            filtered.length === 0
+              ? <p className="text-center text-ink-muted text-sm py-8">Sin resultados para "{search}"</p>
+              : <div className="space-y-1">{filtered.map((ex) => <ExerciseItem key={ex.id} ex={ex} onSelect={onSelect} />)}</div>
+          ) : (
+            <div className="space-y-1.5">
+              {groups.map((group) => (
+                <div key={group.id} className="border border-surface-border rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setOpenGroups((prev) => { const next = new Set(prev); next.has(group.id) ? next.delete(group.id) : next.add(group.id); return next })}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-surface-elevated hover:bg-surface-card transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-ink-primary">{group.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-ink-muted">{group.exercises.length}</span>
+                      {openGroups.has(group.id) ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
+                    </div>
+                  </button>
+                  {openGroups.has(group.id) && (
+                    <div className="divide-y divide-surface-border">
+                      {group.exercises.map((ex) => <ExerciseItem key={ex.id} ex={ex} onSelect={onSelect} inGroup />)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="border-t border-surface-border px-4 py-3">
+          {!showNewForm ? (
+            <button
+              onClick={() => setShowNewForm(true)}
+              className="w-full flex items-center justify-center gap-2 text-xs text-brand-primary hover:text-brand-primary/80 py-2 border border-dashed border-brand-primary/30 rounded-xl hover:border-brand-primary/60 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> ¿No está en el listado? Crear ejercicio nuevo
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-ink-primary">Nuevo ejercicio</span>
+                <button onClick={() => setShowNewForm(false)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+              </div>
+              <input
+                autoFocus
+                placeholder="Nombre del ejercicio *"
+                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                  value={newGroupId}
+                  onChange={(e) => setNewGroupId(e.target.value)}
+                >
+                  <option value="">Grupo muscular *</option>
+                  {muscleGroupOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+                <select
+                  className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                  value={newDifficulty}
+                  onChange={(e) => setNewDifficulty(e.target.value as 'basico' | 'intermedio' | 'avanzado')}
+                >
+                  <option value="basico">Básico</option>
+                  <option value="intermedio">Intermedio</option>
+                  <option value="avanzado">Avanzado</option>
+                </select>
+              </div>
+              <Button className="w-full" size="sm" loading={creating} disabled={!newName.trim() || !newGroupId} onClick={createExercise}>
+                Crear y agregar
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ExerciseItem({ ex, onSelect, inGroup }: { ex: ExerciseWithGroup; onSelect: (ex: Exercise) => void; inGroup?: boolean }) {
+  return (
+    <button
+      onClick={() => onSelect(ex)}
+      className={cn('w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors', inGroup ? 'hover:bg-surface-elevated' : 'hover:bg-surface-elevated rounded-xl')}
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-ink-primary truncate">{ex.name}</p>
+        {!inGroup && <p className="text-xs text-ink-muted">{(ex.muscle_group as { name: string } | undefined)?.name}</p>}
+      </div>
+      <span className={cn(
+        'text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0',
+        ex.difficulty === 'basico'     ? 'bg-status-generated/10 text-status-generated' :
+        ex.difficulty === 'intermedio' ? 'bg-status-expiring/10 text-status-expiring'   :
+                                         'bg-status-expired/10 text-status-expired'
+      )}>
+        {ex.difficulty}
+      </span>
+    </button>
   )
 }

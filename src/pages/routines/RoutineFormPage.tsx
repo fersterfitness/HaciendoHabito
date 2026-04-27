@@ -113,7 +113,7 @@ export function RoutineFormPage() {
         objective: values.objective,
         notes: values.notes || undefined,
       })
-      if (result) navigate(`/routines/${result.id}/editor`)
+      if (result) navigate(`/routines/${result.id}`)
     }
   }
 

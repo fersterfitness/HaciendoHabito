@@ -169,6 +169,8 @@ export interface RoutineBlock {
   name: string
   sort_order: number
   notes: string | null
+  start_date: string | null
+  end_date: string | null
 }
 
 export interface RoutineDay {
@@ -189,6 +191,7 @@ export interface RoutineExercise {
   sets: number | null
   reps_min: number | null
   reps_max: number | null
+  reps_scheme: string | null   // e.g. "8 / 6 / 5" — free-text reps per set
   weight_kg: number | null
   rir: number | null
   rpe: number | null

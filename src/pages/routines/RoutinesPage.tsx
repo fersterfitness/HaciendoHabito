@@ -172,7 +172,7 @@ function RoutineCard({
           className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors px-2 py-1.5 rounded-lg"
         >
           <Pencil className="h-3.5 w-3.5" />
-          Editar
+          Datos
         </button>
         <div className="flex-1" />
         <button

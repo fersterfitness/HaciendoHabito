@@ -210,7 +210,7 @@ export function Sidebar() {
       <div
         className={cn(
           'flex items-center shrink-0 border-b',
-          collapsed ? 'justify-center h-14 px-0' : 'gap-3 px-4 py-3',
+          collapsed ? 'justify-center h-14 px-0' : 'gap-3 px-4 py-4',
         )}
         style={{ borderColor: 'rgba(255,255,255,0.07)' }}
       >
@@ -223,8 +223,8 @@ export function Sidebar() {
           )}
         />
         {!collapsed && (
-          <p className="text-[13px] font-extrabold text-white leading-snug tracking-wide uppercase">
-            Haciendo<br />Habito
+          <p className="text-[11px] font-extrabold text-white leading-snug tracking-wide uppercase ml-1 mr-[11px]">
+            Haciéndolo<br />Hábito
           </p>
         )}
       </div>

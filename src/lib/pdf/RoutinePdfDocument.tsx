@@ -251,6 +251,7 @@ const LEVEL_LABEL: Record<string, string> = {
 }
 
 function formatReps(ex: ExerciseFull) {
+  if (ex.reps_scheme) return ex.reps_scheme
   if (!ex.reps_min && !ex.reps_max) return '—'
   if (ex.reps_min === ex.reps_max) return `${ex.reps_min}`
   return `${ex.reps_min ?? '?'}–${ex.reps_max ?? '?'}`

@@ -63,10 +63,17 @@ export const EXPENSE_CATEGORIES = [
   'Otros',
 ]
 
+export const STUDENT_PLANS = [
+  'HÁBITOS SEDENTARIO',
+  'HÁBITOS AVANZADO',
+  'HÁBITOS PROGRESIÓN',
+  'HÁBITOS DEPORTISTA',
+  'HÁBITOS PLATINO',
+  'HÁBITOS PREMIUM',
+] as const
+
 export const INCOME_TYPES = [
-  'Plan entrenamiento',
-  'Plan alimentario',
-  'Plan combo',
+  ...STUDENT_PLANS,
   'Consulta suelta',
   'Devolución / Corrección',
   'Otro',
