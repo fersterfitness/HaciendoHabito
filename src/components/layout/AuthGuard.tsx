@@ -5,7 +5,7 @@ import { Spinner } from '@/components/ui/Spinner'
 
 // Hard cap: never show spinner for more than this long.
 // If auth hasn't resolved by then, send user to login.
-const MAX_LOADING_MS = 10000
+const MAX_LOADING_MS = 6000
 
 export function AuthGuard() {
   const { user, loading } = useAuth()
