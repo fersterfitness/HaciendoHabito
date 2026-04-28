@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
-  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink,
+  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -27,6 +27,74 @@ type DayWithEx       = RoutineDay      & { exercises: ExWithExercise[] }
 type BlockWithDays   = RoutineBlock    & { days: DayWithEx[] }
 type RoutineFull     = Routine         & { student?: Student }
 type ExerciseWithGroup = Exercise & { muscle_group?: { id: string; name: string; sort_order: number } }
+type ExerciseMeta = { restText?: string; rpeText?: string; percent1rm?: string }
+const WARMUP_PRESETS = [
+  {
+    label: 'Día de empuje',
+    text: `2/3 vueltas
+1) Movilidad torácica x10 por lado
+2) Movilidad de hombros con palo x10
+3) Manguito rotador con bandas x10 por lado
+4) Plancha estática 30-40''`,
+  },
+  {
+    label: 'Día de piernas',
+    text: `1) Movilidad cadera 90/90 x10 por lado
+2) Movilidad de tobillo x10 por lado
+3) Movilidad de cadera parado x10 por lado
+4) Activación zona media`,
+  },
+  {
+    label: 'Día de tracción',
+    text: `1) Movilidad dorso-lumbar en cuadrupedia x10 por lado
+2) Retracciones escapulares x12
+3) Movilidad torácica en plancha x10 por lado
+4) Activación zona media`,
+  },
+]
+
+function parseExerciseMeta(technicalNotes: string | null | undefined): { userNotes: string; meta: ExerciseMeta } {
+  const raw = technicalNotes ?? ''
+  const match = raw.match(/^\[\[META\]\]\n([\s\S]*?)\n\[\[\/META\]\]\n?([\s\S]*)$/)
+  if (!match) return { userNotes: raw, meta: {} }
+  try {
+    const meta = JSON.parse(match[1]) as ExerciseMeta
+    return { userNotes: match[2] ?? '', meta }
+  } catch {
+    return { userNotes: raw, meta: {} }
+  }
+}
+
+function buildExerciseTechnicalNotes(userNotes: string, meta: ExerciseMeta): string {
+  const hasMeta = Boolean(meta.restText || meta.rpeText || meta.percent1rm)
+  const cleanUserNotes = userNotes.trim()
+  if (!hasMeta) return cleanUserNotes
+  const payload = JSON.stringify(meta)
+  return `[[META]]\n${payload}\n[[/META]]\n${cleanUserNotes}`.trim()
+}
+
+function parseRestToSeconds(value: string): number | null {
+  const v = value.trim().toLowerCase()
+  if (!v) return null
+  if (/^\d+$/.test(v)) return Number(v)
+  const minMatch = v.match(/^(\d+(?:[.,]\d+)?)\s*(m|min|')$/)
+  if (minMatch) return Math.round(Number(minMatch[1].replace(',', '.')) * 60)
+  const secMatch = v.match(/^(\d+(?:[.,]\d+)?)\s*(s|seg|sec|''|")$/)
+  if (secMatch) return Math.round(Number(secMatch[1].replace(',', '.')))
+  const mmssMatch = v.match(/^(\d{1,2}):(\d{1,2})$/)
+  if (mmssMatch) return Number(mmssMatch[1]) * 60 + Number(mmssMatch[2])
+  return null
+}
+
+function parseRpeToNumber(value: string): number | null {
+  const v = value.trim().replace(',', '.')
+  if (!v) return null
+  const match = v.match(/(\d+(?:\.\d+)?)/)
+  if (!match) return null
+  const n = Number(match[1])
+  if (Number.isNaN(n) || n < 1 || n > 10) return null
+  return n
+}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +114,7 @@ export function RoutineDetailPage() {
   const [expandedDays, setExpandedDays]     = useState<Set<string>>(new Set())
   const [showExercisePicker, setShowExercisePicker] = useState<{ dayId: string } | null>(null)
   const [copyMenuBlock, setCopyMenuBlock] = useState<string | null>(null)
+  const [rmByExerciseId, setRmByExerciseId] = useState<Map<string, number>>(new Map())
 
   const fetchData = useCallback(async () => {
     if (!id) return
@@ -60,6 +129,21 @@ export function RoutineDetailPage() {
           .order('sort_order'),
       ])
       if (routineRes.data) setRoutine(routineRes.data as unknown as RoutineFull)
+      const routineData = routineRes.data as unknown as RoutineFull | null
+      if (routineData?.student_id) {
+        const { data: rmRecords } = await supabase
+          .from('student_rm_records')
+          .select('exercise_id, rm_kg, tested_at')
+          .eq('student_id', routineData.student_id)
+          .order('tested_at', { ascending: false })
+        const map = new Map<string, number>()
+        for (const row of (rmRecords ?? []) as Array<{ exercise_id: string; rm_kg: number }>) {
+          if (!map.has(row.exercise_id)) map.set(row.exercise_id, row.rm_kg)
+        }
+        setRmByExerciseId(map)
+      } else {
+        setRmByExerciseId(new Map())
+      }
       if (blocksRes.data) {
         const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
           ...b,
@@ -163,6 +247,20 @@ export function RoutineDetailPage() {
     toast.success('Semana eliminada')
   }
 
+  async function moveBlock(blockId: string, direction: 'up' | 'down') {
+    const currentIndex = blocks.findIndex((b) => b.id === blockId)
+    if (currentIndex < 0) return
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= blocks.length) return
+
+    const reordered = [...blocks]
+    const [moved] = reordered.splice(currentIndex, 1)
+    reordered.splice(targetIndex, 0, moved)
+
+    await Promise.all(reordered.map((block, idx) => supabase.from('routine_blocks').update({ sort_order: idx }).eq('id', block.id)))
+    setBlocks(reordered.map((b, idx) => ({ ...b, sort_order: idx })))
+  }
+
   async function copyBlock(sourceId: string, targetId: string) {
     const source = blocks.find((b) => b.id === sourceId)
     const target = blocks.find((b) => b.id === targetId)
@@ -191,6 +289,89 @@ export function RoutineDetailPage() {
     } catch {
       toast.dismiss(loadingId)
       toast.error('Error al copiar semana')
+    }
+  }
+
+  async function duplicateRoutine() {
+    if (!id || !routine || !user) return
+    const loadingId = toast.loading('Duplicando rutina...')
+    try {
+      const { data: newRoutine, error: routineErr } = await supabase
+        .from('routines')
+        .insert({
+          owner_id: user.id,
+          student_id: routine.student_id,
+          student_plan_id: routine.student_plan_id ?? null,
+          name: `${routine.name} (copia)`,
+          objective: routine.objective,
+          level: routine.level,
+          start_date: routine.start_date,
+          end_date: routine.end_date,
+          duration_days: routine.duration_days,
+          price: routine.price,
+          status: 'activa',
+          notes: routine.notes,
+        })
+        .select('id')
+        .single()
+      if (routineErr || !newRoutine) throw new Error(routineErr?.message ?? 'No se pudo duplicar la rutina')
+
+      for (const block of blocks) {
+        const { data: newBlock, error: blockErr } = await supabase
+          .from('routine_blocks')
+          .insert({
+            routine_id: newRoutine.id,
+            name: block.name,
+            sort_order: block.sort_order,
+            notes: block.notes,
+            start_date: block.start_date,
+            end_date: block.end_date,
+          })
+          .select('id')
+          .single()
+        if (blockErr || !newBlock) throw new Error(blockErr?.message ?? 'No se pudo copiar un bloque')
+
+        for (const day of block.days) {
+          const { data: newDay, error: dayErr } = await supabase
+            .from('routine_days')
+            .insert({
+              block_id: newBlock.id,
+              day_name: day.day_name,
+              day_of_week: day.day_of_week,
+              muscle_focus: day.muscle_focus,
+              warmup_notes: day.warmup_notes,
+              sort_order: day.sort_order,
+            })
+            .select('id')
+            .single()
+          if (dayErr || !newDay) throw new Error(dayErr?.message ?? 'No se pudo copiar un día')
+
+          for (const ex of day.exercises) {
+            const { error: exErr } = await supabase.from('routine_exercises').insert({
+              day_id: newDay.id,
+              exercise_id: ex.exercise_id,
+              sort_order: ex.sort_order,
+              sets: ex.sets,
+              reps_min: ex.reps_min,
+              reps_max: ex.reps_max,
+              reps_scheme: ex.reps_scheme,
+              weight_kg: ex.weight_kg,
+              rir: ex.rir,
+              rpe: ex.rpe,
+              rest_seconds: ex.rest_seconds,
+              tempo: ex.tempo,
+              technical_notes: ex.technical_notes,
+              is_superset: ex.is_superset,
+              superset_group: ex.superset_group,
+            })
+            if (exErr) throw new Error(exErr.message)
+          }
+        }
+      }
+      toast.success('Rutina duplicada', { id: loadingId })
+      navigate(`/routines/${newRoutine.id}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo duplicar la rutina', { id: loadingId })
     }
   }
 
@@ -223,6 +404,71 @@ export function RoutineDetailPage() {
       b.id === blockId ? { ...b, days: b.days.filter((d) => d.id !== dayId) } : b
     ))
     toast.success('Día eliminado')
+  }
+
+  async function moveDay(blockId: string, dayId: string, direction: 'up' | 'down') {
+    const block = blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const currentIndex = block.days.findIndex((d) => d.id === dayId)
+    if (currentIndex < 0) return
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= block.days.length) return
+
+    const reorderedDays = [...block.days]
+    const [moved] = reorderedDays.splice(currentIndex, 1)
+    reorderedDays.splice(targetIndex, 0, moved)
+
+    await Promise.all(reorderedDays.map((day, idx) => supabase.from('routine_days').update({ sort_order: idx }).eq('id', day.id)))
+
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === blockId ? { ...b, days: reorderedDays.map((d, idx) => ({ ...d, sort_order: idx })) } : b))
+    )
+  }
+
+  async function duplicateDay(blockId: string, dayId: string) {
+    const block = blocks.find((b) => b.id === blockId)
+    const sourceDay = block?.days.find((d) => d.id === dayId)
+    if (!block || !sourceDay) return
+    const loadingId = toast.loading('Duplicando día...')
+    try {
+      const { data: createdDay, error: dayErr } = await supabase
+        .from('routine_days')
+        .insert({
+          block_id: blockId,
+          day_name: `${sourceDay.day_name} (copia)`,
+          day_of_week: sourceDay.day_of_week,
+          muscle_focus: sourceDay.muscle_focus,
+          warmup_notes: sourceDay.warmup_notes,
+          sort_order: block.days.length,
+        })
+        .select()
+        .single()
+      if (dayErr || !createdDay) throw new Error(dayErr?.message ?? 'No se pudo duplicar el día')
+
+      for (const ex of sourceDay.exercises) {
+        await supabase.from('routine_exercises').insert({
+          day_id: createdDay.id,
+          exercise_id: ex.exercise_id,
+          sort_order: ex.sort_order,
+          sets: ex.sets,
+          reps_min: ex.reps_min,
+          reps_max: ex.reps_max,
+          reps_scheme: ex.reps_scheme,
+          weight_kg: ex.weight_kg,
+          rir: ex.rir,
+          rpe: ex.rpe,
+          rest_seconds: ex.rest_seconds,
+          tempo: ex.tempo,
+          technical_notes: ex.technical_notes,
+          is_superset: ex.is_superset,
+          superset_group: ex.superset_group,
+        })
+      }
+      toast.success('Día duplicado', { id: loadingId })
+      fetchData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo duplicar el día', { id: loadingId })
+    }
   }
 
   // ── Exercises ─────────────────────────────────────────────────────────────
@@ -265,6 +511,32 @@ export function RoutineDetailPage() {
     })))
   }
 
+  async function moveExercise(dayId: string, exId: string, direction: 'up' | 'down') {
+    const block = blocks.find((b) => b.days.some((d) => d.id === dayId))
+    const day = block?.days.find((d) => d.id === dayId)
+    if (!day) return
+    const currentIndex = day.exercises.findIndex((e) => e.id === exId)
+    if (currentIndex < 0) return
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= day.exercises.length) return
+
+    const reordered = [...day.exercises]
+    const [moved] = reordered.splice(currentIndex, 1)
+    reordered.splice(targetIndex, 0, moved)
+
+    const updates = reordered.map((exercise, idx) =>
+      supabase.from('routine_exercises').update({ sort_order: idx }).eq('id', exercise.id)
+    )
+    await Promise.all(updates)
+
+    setBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        days: b.days.map((d) => (d.id === dayId ? { ...d, exercises: reordered.map((e, idx) => ({ ...e, sort_order: idx })) } : d)),
+      }))
+    )
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) return (
@@ -298,6 +570,14 @@ export function RoutineDetailPage() {
             >
               <Pencil className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Editar datos</span>
+            </button>
+            <button
+              onClick={duplicateRoutine}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
+              title="Duplicar rutina completa"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Duplicar</span>
             </button>
             <button
               onClick={handleGeneratePdf}
@@ -424,12 +704,16 @@ export function RoutineDetailPage() {
             })}
             onUpdateBlock={(patch) => updateBlock(block.id, patch)}
             onDeleteBlock={() => deleteBlock(block.id)}
+            onMoveBlock={(direction) => moveBlock(block.id, direction)}
             onAddDay={() => addDay(block.id)}
             onUpdateDay={(dayId, patch) => updateDay(block.id, dayId, patch)}
             onDeleteDay={(dayId) => deleteDay(block.id, dayId)}
+            onDuplicateDay={(dayId) => duplicateDay(block.id, dayId)}
+            onMoveDay={(dayId, direction) => moveDay(block.id, dayId, direction)}
             onAddExercise={(dayId) => setShowExercisePicker({ dayId })}
             onUpdateExercise={updateExercise}
             onDeleteExercise={deleteExercise}
+            onMoveExercise={moveExercise}
             onOpenCopyMenu={() => setCopyMenuBlock(copyMenuBlock === block.id ? null : block.id)}
             onCloseCopyMenu={() => setCopyMenuBlock(null)}
             onCopyTo={(targetId) => copyBlock(block.id, targetId)}
@@ -465,18 +749,18 @@ export function RoutineDetailPage() {
 
 function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu,
-  onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onAddDay,
-  onUpdateDay, onDeleteDay, onAddExercise, onUpdateExercise, onDeleteExercise,
-  onOpenCopyMenu, onCloseCopyMenu, onCopyTo,
+  onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
+  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onDeleteExercise, onMoveExercise,
+  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, rmByExerciseId,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   expandedDays: Set<string>; showCopyMenu: boolean
   onToggle: () => void; onToggleDay: (id: string) => void
-  onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onAddDay: () => void
+  onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
   onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
-  onDeleteDay: (dayId: string) => void; onAddExercise: (dayId: string) => void
+  onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void; onAddExercise: (dayId: string) => void
   onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void
-  onDeleteExercise: (dayId: string, exId: string) => void
+  onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
 }) {
   const [showDelete, setShowDelete] = useState(false)
@@ -545,6 +829,21 @@ function BlockCard({
           )}
         </div>
 
+        <button
+          onClick={(e) => { e.stopPropagation(); onMoveBlock('up') }}
+          title="Mover semana arriba"
+          className="text-ink-muted hover:text-ink-primary transition-colors"
+        >
+          <ArrowUp className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onMoveBlock('down') }}
+          title="Mover semana abajo"
+          className="text-ink-muted hover:text-ink-primary transition-colors"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+        </button>
+
         <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -574,6 +873,17 @@ function BlockCard({
             </div>
           </div>
 
+          <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+            <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Aclaración general del bloque</label>
+            <Textarea
+              placeholder="Ej: Intermitente HIIT corto 20x20'' x 4 vueltas. Descanso entre vueltas: 3'."
+              rows={2}
+              value={block.notes ?? ''}
+              onChange={(e) => onUpdateBlock({ notes: e.target.value || null })}
+              className="text-xs"
+            />
+          </div>
+
           {block.days.map((day) => (
             <DayCard
               key={day.id}
@@ -582,9 +892,13 @@ function BlockCard({
               onToggle={() => onToggleDay(day.id)}
               onUpdateDay={(patch) => onUpdateDay(day.id, patch)}
               onDeleteDay={() => onDeleteDay(day.id)}
+              onDuplicateDay={() => onDuplicateDay(day.id)}
+              onMoveDay={(direction) => onMoveDay(day.id, direction)}
               onAddExercise={() => onAddExercise(day.id)}
               onUpdateExercise={(exId, patch) => onUpdateExercise(day.id, exId, patch)}
               onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
+              onMoveExercise={(exId, direction) => onMoveExercise(day.id, exId, direction)}
+              rmByExerciseId={rmByExerciseId}
             />
           ))}
           <button
@@ -633,14 +947,18 @@ function groupExercises(exercises: ExWithExercise[]): RenderGroup[] {
   return result
 }
 
-function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExercise, onUpdateExercise, onDeleteExercise }: {
+function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onDeleteExercise, onMoveExercise, rmByExerciseId = new Map<string, number>() }: {
   day: DayWithEx; expanded: boolean
   onToggle: () => void
   onUpdateDay: (patch: Partial<RoutineDay>) => void
   onDeleteDay: () => void
+  onDuplicateDay: () => void
+  onMoveDay: (direction: 'up' | 'down') => void
   onAddExercise: () => void
   onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void
   onDeleteExercise: (exId: string) => void
+  onMoveExercise: (exId: string, direction: 'up' | 'down') => void
+  rmByExerciseId: Map<string, number>
 }) {
   const [showDelete, setShowDelete]     = useState(false)
   const [dayName, setDayName]           = useState(day.day_name)
@@ -680,10 +998,19 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
   return (
     <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
-        <span className="flex-1 text-sm font-medium text-ink-primary">{dayName}</span>
+        <span className="flex-1 text-base font-bold text-ink-primary tracking-wide">{dayName}</span>
         {focus && <span className="text-xs text-ink-muted">{focus}</span>}
         <span className="text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
+        <button onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="text-ink-muted hover:text-ink-primary transition-colors ml-1" title="Mover día arriba">
+          <ArrowUp className="h-3 w-3" />
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="text-ink-muted hover:text-ink-primary transition-colors ml-1" title="Mover día abajo">
+          <ArrowDown className="h-3 w-3" />
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="text-ink-muted hover:text-brand-primary transition-colors ml-1" title="Duplicar día">
+          <Copy className="h-3 w-3" />
+        </button>
         <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors ml-1">
           <Trash2 className="h-3 w-3" />
         </button>
@@ -695,7 +1022,24 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
             <Input placeholder="Nombre del día" value={dayName} onChange={(e) => { setDayName(e.target.value); saveDay({ day_name: e.target.value }) }} className="text-xs h-8" />
             <Input placeholder="Foco muscular" value={focus} onChange={(e) => { setFocus(e.target.value); saveDay({ muscle_focus: e.target.value || null }) }} className="text-xs h-8" />
           </div>
-          <Textarea placeholder="Entrada en calor..." value={warmup} onChange={(e) => { setWarmup(e.target.value); saveDay({ warmup_notes: e.target.value || null }) }} rows={2} className="text-xs" />
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              {WARMUP_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    setWarmup(preset.text)
+                    saveDay({ warmup_notes: preset.text })
+                  }}
+                  className="text-[10px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary hover:border-brand-primary/50 transition-colors"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <Textarea placeholder="Entrada en calor..." value={warmup} onChange={(e) => { setWarmup(e.target.value); saveDay({ warmup_notes: e.target.value || null }) }} rows={3} className="text-xs" />
+          </div>
 
           {/* Modo selección de circuito */}
           {circuitMode && (
@@ -755,6 +1099,9 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
                   exercise={group.exercise}
                   onUpdate={(patch) => onUpdateExercise(group.exercise.id, patch)}
                   onDelete={() => onDeleteExercise(group.exercise.id)}
+                  onMoveUp={() => onMoveExercise(group.exercise.id, 'up')}
+                  onMoveDown={() => onMoveExercise(group.exercise.id, 'down')}
+                  rmKg={rmByExerciseId.get(group.exercise.exercise_id)}
                 />
               )
             }
@@ -781,6 +1128,9 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
                       exercise={ex}
                       onUpdate={(patch) => onUpdateExercise(ex.id, patch)}
                       onDelete={() => onDeleteExercise(ex.id)}
+                      onMoveUp={() => onMoveExercise(ex.id, 'up')}
+                      onMoveDown={() => onMoveExercise(ex.id, 'down')}
+                      rmKg={rmByExerciseId.get(ex.exercise_id)}
                     />
                   </div>
                 ))}
@@ -822,10 +1172,13 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ exercise, onUpdate, onDelete, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
+function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
   onUpdate: (patch: Partial<RoutineExercise>) => void
   onDelete: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  rmKg?: number
   canCombine?: boolean
   onCombineWithNext?: () => void
   isSeparable?: boolean
@@ -834,14 +1187,22 @@ function ExerciseRow({ exercise, onUpdate, onDelete, canCombine, onCombineWithNe
   // Local state — updates UI instantly
   const [sets, setSets]           = useState<number | null>(exercise.sets ?? null)
   const [reps, setReps]           = useState(exercise.reps_scheme ?? '')
-  const [rest, setRest]           = useState<number | null>(exercise.rest_seconds ?? null)
+  const initialMeta = parseExerciseMeta(exercise.technical_notes)
+  const [restText, setRestText]   = useState(initialMeta.meta.restText ?? (exercise.rest_seconds !== null ? String(exercise.rest_seconds) : ''))
   const [weight, setWeight]       = useState<number | null>(exercise.weight_kg ?? null)
   const [rir, setRir]             = useState<number | null>(exercise.rir ?? null)
-  const [rpe, setRpe]             = useState<number | null>(exercise.rpe ?? null)
-  const [notes, setNotes]         = useState(exercise.technical_notes ?? '')
+  const [rpeText, setRpeText]     = useState(initialMeta.meta.rpeText ?? (exercise.rpe !== null ? String(exercise.rpe) : ''))
+  const [percent1rm, setPercent1rm] = useState(initialMeta.meta.percent1rm ?? '')
+  const [notes, setNotes]         = useState(initialMeta.userNotes)
 
   // Debounced save — fires 600ms after last keystroke
   const save = useDebounce(onUpdate, 600)
+  const suggestedWeight = rmKg && percent1rm ? Math.round((rmKg * Number(percent1rm) / 100) * 10) / 10 : null
+
+  function saveMeta(nextMeta: ExerciseMeta, overrides?: Partial<RoutineExercise>) {
+    const technicalNotes = buildExerciseTechnicalNotes(notes, nextMeta)
+    save({ technical_notes: technicalNotes || null, ...overrides })
+  }
 
   return (
     <div className="bg-surface-card rounded-xl p-3 space-y-2">
@@ -873,6 +1234,12 @@ function ExerciseRow({ exercise, onUpdate, onDelete, canCombine, onCombineWithNe
             <Link2 className="h-3 w-3" />
           </button>
         )}
+        <button onClick={onMoveUp} title="Subir" className="text-ink-muted hover:text-ink-primary transition-colors">
+          <ArrowUp className="h-3 w-3" />
+        </button>
+        <button onClick={onMoveDown} title="Bajar" className="text-ink-muted hover:text-ink-primary transition-colors">
+          <ArrowDown className="h-3 w-3" />
+        </button>
         <button onClick={onDelete} className="text-ink-muted hover:text-status-expired transition-colors">
           <Trash2 className="h-3 w-3" />
         </button>
@@ -904,32 +1271,103 @@ function ExerciseRow({ exercise, onUpdate, onDelete, canCombine, onCombineWithNe
       </div>
 
       <div className="grid grid-cols-4 gap-1.5">
-        {[
-          { label: 'Descanso s', val: rest,   set: setRest,   key: 'rest_seconds' as const },
-          { label: 'Peso kg',    val: weight,  set: setWeight, key: 'weight_kg'    as const },
-          { label: 'RIR',        val: rir,     set: setRir,    key: 'rir'          as const },
-          { label: 'RPE',        val: rpe,     set: setRpe,    key: 'rpe'          as const },
-        ].map(({ label, val, set, key }) => (
-          <div key={key}>
-            <label className="block text-[10px] text-ink-muted mb-0.5">{label}</label>
-            <input
-              type="number" min={0}
-              className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
-              value={val ?? ''}
-              onChange={(e) => {
-                const v = e.target.value === '' ? null : Number(e.target.value)
-                set(v); save({ [key]: v })
-              }}
-            />
-          </div>
-        ))}
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">Descanso</label>
+          <input
+            type="text"
+            placeholder="20'' / 2'"
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            value={restText}
+            onChange={(e) => {
+              const v = e.target.value
+              setRestText(v)
+              const parsed = parseRestToSeconds(v)
+              saveMeta({ ...initialMeta.meta, restText: v || undefined, rpeText, percent1rm: percent1rm || undefined }, { rest_seconds: parsed })
+            }}
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">Peso kg</label>
+          <input
+            type="number" min={0}
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            value={weight ?? ''}
+            onChange={(e) => {
+              const v = e.target.value === '' ? null : Number(e.target.value)
+              setWeight(v); save({ weight_kg: v })
+            }}
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">RIR</label>
+          <input
+            type="number" min={0}
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            value={rir ?? ''}
+            onChange={(e) => {
+              const v = e.target.value === '' ? null : Number(e.target.value)
+              setRir(v); save({ rir: v })
+            }}
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">RPE / RIR</label>
+          <input
+            type="text"
+            placeholder="RIR 8/9"
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            value={rpeText}
+            onChange={(e) => {
+              const v = e.target.value
+              setRpeText(v)
+              const parsed = parseRpeToNumber(v)
+              saveMeta({ ...initialMeta.meta, restText: restText || undefined, rpeText: v || undefined, percent1rm: percent1rm || undefined }, { rpe: parsed })
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">% del 1RM</label>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            placeholder="80"
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            value={percent1rm}
+            onChange={(e) => {
+              const v = e.target.value
+              setPercent1rm(v)
+              saveMeta({ ...initialMeta.meta, restText: restText || undefined, rpeText: rpeText || undefined, percent1rm: v || undefined })
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          disabled={!suggestedWeight}
+          onClick={() => {
+            if (!suggestedWeight) return
+            setWeight(suggestedWeight)
+            save({ weight_kg: suggestedWeight })
+          }}
+          className="h-8 px-2.5 rounded-lg border border-surface-border text-[11px] text-ink-secondary hover:text-ink-primary disabled:opacity-40"
+        >
+          {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : 'Sin 1RM'}
+        </button>
       </div>
 
       <input
         className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
         placeholder="Notas técnicas..."
         value={notes}
-        onChange={(e) => { setNotes(e.target.value); save({ technical_notes: e.target.value || null }) }}
+        onChange={(e) => {
+          const v = e.target.value
+          setNotes(v)
+          const technicalNotes = buildExerciseTechnicalNotes(v, { restText: restText || undefined, rpeText: rpeText || undefined, percent1rm: percent1rm || undefined })
+          save({ technical_notes: technicalNotes || null })
+        }}
       />
     </div>
   )

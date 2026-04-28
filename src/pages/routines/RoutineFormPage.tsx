@@ -13,6 +13,7 @@ import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS } from '@/lib/constants'
 import type { Student, Plan } from '@/types/database'
+import toast from 'react-hot-toast'
 
 const schema = z.object({
   student_id: z.string().uuid('Seleccioná un alumno'),
@@ -36,6 +37,8 @@ export function RoutineFormPage() {
   const { createRoutine, updateRoutine } = useRoutines()
   const [students, setStudents] = useState<Student[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
+  const [routineTemplates, setRoutineTemplates] = useState<Array<{ id: string; name: string; student_name?: string | null }>>([])
+  const [templateRoutineId, setTemplateRoutineId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
 
   const {
@@ -69,6 +72,20 @@ export function RoutineFormPage() {
     if (!user) return
     supabase.from('students').select('id, full_name, level').eq('owner_id', user.id).eq('status', 'activo').order('full_name').then(({ data }) => setStudents((data as Student[]) ?? []))
     supabase.from('plans').select('*').eq('owner_id', user.id).eq('is_active', true).then(({ data }) => setPlans(data ?? []))
+    supabase
+      .from('routines')
+      .select('id, name, student:students(full_name)')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        const items = ((data as Array<{ id: string; name: string; student?: { full_name?: string | null } | null }>) ?? []).map((r) => ({
+          id: r.id,
+          name: r.name,
+          student_name: r.student?.full_name ?? null,
+        }))
+        setRoutineTemplates(items)
+      })
   }, [user])
 
   useEffect(() => {
@@ -88,6 +105,99 @@ export function RoutineFormPage() {
   }, [id, isEditing, reset])
 
   async function onSubmit(values: FormValues) {
+    async function copyStructureFromTemplate(sourceRoutineId: string, targetRoutineId: string) {
+      const { data: templateBlocks, error: blocksError } = await supabase
+        .from('routine_blocks')
+        .select('*, days:routine_days(*, exercises:routine_exercises(*))')
+        .eq('routine_id', sourceRoutineId)
+        .order('sort_order')
+      if (blocksError) throw new Error(blocksError.message)
+
+      for (const block of (templateBlocks ?? []) as Array<{
+        name: string
+        sort_order: number
+        notes: string | null
+        start_date: string | null
+        end_date: string | null
+        days?: Array<{
+          day_name: string
+          day_of_week: number | null
+          muscle_focus: string | null
+          warmup_notes: string | null
+          sort_order: number
+          exercises?: Array<{
+            exercise_id: string
+            sort_order: number
+            sets: number | null
+            reps_min: number | null
+            reps_max: number | null
+            reps_scheme: string | null
+            weight_kg: number | null
+            rir: number | null
+            rpe: number | null
+            rest_seconds: number | null
+            tempo: string | null
+            video_url: string | null
+            technical_notes: string | null
+            is_superset: boolean
+            superset_group: number | null
+          }>
+        }>
+      }>) {
+        const { data: createdBlock, error: blockError } = await supabase
+          .from('routine_blocks')
+          .insert({
+            routine_id: targetRoutineId,
+            name: block.name,
+            sort_order: block.sort_order,
+            notes: block.notes,
+            start_date: block.start_date,
+            end_date: block.end_date,
+          })
+          .select('id')
+          .single()
+        if (blockError || !createdBlock) throw new Error(blockError?.message ?? 'No se pudo copiar bloque')
+
+        for (const day of block.days ?? []) {
+          const { data: createdDay, error: dayError } = await supabase
+            .from('routine_days')
+            .insert({
+              block_id: createdBlock.id,
+              day_name: day.day_name,
+              day_of_week: day.day_of_week,
+              muscle_focus: day.muscle_focus,
+              warmup_notes: day.warmup_notes,
+              sort_order: day.sort_order,
+            })
+            .select('id')
+            .single()
+          if (dayError || !createdDay) throw new Error(dayError?.message ?? 'No se pudo copiar día')
+
+          for (const ex of day.exercises ?? []) {
+            const { error: exerciseError } = await supabase.from('routine_exercises').insert({
+              day_id: createdDay.id,
+              exercise_id: ex.exercise_id,
+              sort_order: ex.sort_order,
+              sets: ex.sets,
+              reps_min: ex.reps_min,
+              reps_max: ex.reps_max,
+              reps_scheme: ex.reps_scheme,
+              weight_kg: ex.weight_kg,
+              rir: ex.rir,
+              rpe: ex.rpe,
+              rest_seconds: ex.rest_seconds,
+              tempo: ex.tempo,
+              video_url: ex.video_url,
+              technical_notes: ex.technical_notes,
+              is_superset: ex.is_superset,
+              superset_group: ex.superset_group,
+            })
+            if (exerciseError) throw new Error(exerciseError.message)
+          }
+        }
+      }
+    }
+
     if (isEditing) {
       const end_date = format(addDays(new Date(values.start_date), values.duration_days - 1), 'yyyy-MM-dd')
       const result = await updateRoutine(id!, {
@@ -113,7 +223,18 @@ export function RoutineFormPage() {
         objective: values.objective,
         notes: values.notes || undefined,
       })
-      if (result) navigate(`/routines/${result.id}`)
+      if (result) {
+        if (templateRoutineId) {
+          const loadingId = toast.loading('Copiando estructura de rutina...')
+          try {
+            await copyStructureFromTemplate(templateRoutineId, result.id)
+            toast.success('Rutina creada con estructura copiada', { id: loadingId })
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'No se pudo copiar la estructura', { id: loadingId })
+          }
+        }
+        navigate(`/routines/${result.id}`)
+      }
     }
   }
 
@@ -141,6 +262,23 @@ export function RoutineFormPage() {
               error={errors.plan_name?.message}
               {...register('plan_name')}
             />
+            {!isEditing && (
+              <div>
+                <label className="block text-sm font-medium text-ink-primary mb-1.5">Copiar estructura desde otra rutina (opcional)</label>
+                <select
+                  value={templateRoutineId}
+                  onChange={(e) => setTemplateRoutineId(e.target.value)}
+                  className="w-full bg-surface-input border border-surface-inputBorder text-ink-primary rounded-xl px-3 py-2.5 text-sm"
+                >
+                  <option value="">Comenzar desde cero</option>
+                  {routineTemplates.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}{r.student_name ? ` · ${r.student_name}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </FormSection>
 
           <FormSection title="Período">
