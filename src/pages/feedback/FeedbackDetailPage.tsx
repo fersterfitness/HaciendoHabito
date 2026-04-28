@@ -88,14 +88,28 @@ export function FeedbackDetailPage() {
     toast.success('Devolución enviada')
   }
 
-  async function closeQuestion() {
-    await supabase.from('routine_questions').update({ status: 'cerrada', closed_at: new Date().toISOString() }).eq('id', id)
-    setQuestion((prev) => prev ? { ...prev, status: 'cerrada' } : prev)
-    toast.success('Consulta cerrada')
+  async function changeStatus(newStatus: RoutineQuestion['status']) {
+    const patch: Partial<RoutineQuestion> = { status: newStatus }
+    if (newStatus === 'cerrada') patch.closed_at = new Date().toISOString()
+    await supabase.from('routine_questions').update(patch).eq('id', id)
+    setQuestion((prev) => prev ? { ...prev, ...patch } : prev)
+    const labels: Record<string, string> = {
+      en_revision: 'Marcada en revisión',
+      devuelta:    'Marcada como devuelta',
+      cerrada:     'Consulta cerrada',
+      recibida:    'Estado actualizado',
+    }
+    toast.success(labels[newStatus] ?? 'Estado actualizado')
   }
 
   if (loading) return <div><Header title="Devolución" showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
   if (!question) return <div><Header title="Devolución" showBack /><p className="p-6 text-ink-muted">Consulta no encontrada.</p></div>
+
+  const statusActions: { label: string; status: RoutineQuestion['status'] }[] =
+    question.status === 'recibida'    ? [{ label: 'Marcar en revisión', status: 'en_revision' }, { label: 'Cerrar', status: 'cerrada' }] :
+    question.status === 'en_revision' ? [{ label: 'Marcar como devuelta', status: 'devuelta' }, { label: 'Cerrar', status: 'cerrada' }] :
+    question.status === 'devuelta'    ? [{ label: 'Cerrar consulta', status: 'cerrada' }] :
+    []
 
   return (
     <div>
@@ -103,8 +117,19 @@ export function FeedbackDetailPage() {
         title="Consulta"
         showBack
         actions={
-          question.status !== 'cerrada' && (
-            <Button size="sm" variant="secondary" onClick={closeQuestion}>Cerrar consulta</Button>
+          statusActions.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              {statusActions.map(({ label, status }) => (
+                <Button
+                  key={status}
+                  size="sm"
+                  variant={status === 'cerrada' ? 'secondary' : 'primary'}
+                  onClick={() => changeStatus(status)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
           )
         }
       />

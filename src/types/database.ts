@@ -311,6 +311,55 @@ export interface Expense {
   updated_at: string
 }
 
+export interface MenstrualCycle {
+  id: string
+  owner_id: string
+  student_id: string
+  cycle_start_date: string
+  cycle_length: number
+  notes: string | null
+  created_at: string
+}
+
+export interface Habit {
+  id: string
+  owner_id: string
+  name: string
+  emoji: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface StudentHabitSelection {
+  student_id: string
+  habit_id: string
+  owner_id: string
+  created_at: string
+}
+
+export interface HabitLog {
+  id: string
+  owner_id: string
+  student_id: string
+  habit_id: string
+  log_date: string
+  created_at: string
+}
+
+export interface StudentRmRecord {
+  id: string
+  owner_id: string
+  student_id: string
+  exercise_id: string
+  rm_kg: number
+  tested_at: string
+  source: 'test' | 'epley'
+  notes: string | null
+  created_at: string
+  exercise?: Pick<Exercise, 'id' | 'name'>
+}
+
 export interface Notification {
   id: string
   user_id: string

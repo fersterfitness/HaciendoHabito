@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users,
@@ -11,6 +11,10 @@ import {
   TrendingDown,
   BarChart3,
 } from 'lucide-react'
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+  Tooltip, CartesianGrid,
+} from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -50,148 +54,96 @@ function buildChartData(rows: { income_date: string; amount: number }[]) {
   })
 }
 
-// ─── MonthlyAreaChart (setto-toolkit style) ────────────────────────────────
+// ─── MonthlyAreaChart (Recharts) ──────────────────────────────────────────────
 interface ChartPoint { label: string; value: number; change: number }
 
-function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
-  const rawId = useId()
-  const gid = rawId.replace(/:/g, '')
-  const [hovered, setHovered] = useState<string | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
-
-  const values = data.map((d) => d.value)
-  const maxVal = Math.max(...values, 1)
-  const W = 1000, H = 220, padTop = 24, padBot = 0
-  const chartH = H - padTop - padBot
-
-  const slotW = W / data.length
-  const pts = data.map((d, i) => ({
-    label: d.label,
-    x: slotW * 0.5 + i * slotW,
-    y: padTop + chartH - (d.value / maxVal) * chartH,
-    pct: (slotW * 0.5 + i * slotW) / W,
-    val: d.value,
-    change: d.change,
-  }))
-
-  function smoothPath(points: { x: number; y: number }[]) {
-    if (points.length < 2) return ''
-    let d = `M ${points[0].x} ${points[0].y}`
-    for (let i = 1; i < points.length; i++) {
-      const cp = (points[i - 1].x + points[i].x) / 2
-      d += ` C ${cp} ${points[i - 1].y} ${cp} ${points[i].y} ${points[i].x} ${points[i].y}`
-    }
-    return d
-  }
-
-  const line = smoothPath(pts)
-  const first = pts[0], last = pts[pts.length - 1]
-  const lineFull = `M 0 ${first.y} L ${first.x} ${first.y} ${line.slice(line.indexOf(' '))} L ${W} ${last.y}`
-  const area = `${lineFull} L ${W} ${H} L 0 ${H} Z`
-
-  const active   = hovered ?? selected
-  const activePt = pts.find((p) => p.label === active)
-
-  // Maps a y-coordinate in SVG viewBox space to a CSS top % of the container div
-  const svgYtoCss = (svgY: number) => `${(svgY / H) * 100}%`
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const { value, change } = payload[0].payload as ChartPoint
   return (
-    <div className="flex w-full flex-col">
-      <div className="relative w-full" style={{ height: 160 }}>
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full">
+    <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
+      <p className="font-bold text-ink-primary">{label}</p>
+      <p className="text-brand-primary font-semibold text-sm mt-0.5">
+        ${value.toLocaleString('es-AR')}
+      </p>
+      {change !== 0 && (
+        <p className={`font-semibold mt-0.5 ${change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          {change > 0 ? '+' : ''}{change}% vs mes ant.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomXTick({ x, y, payload }: any) {
+  const d = payload.value as string
+  return (
+    <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="rgba(255,255,255,0.35)" fontWeight={600}>
+      {d}
+    </text>
+  )
+}
+
+function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
+  return (
+    <div className="w-full px-1 pb-2">
+      <ResponsiveContainer width="100%" height={180}>
+        <AreaChart data={data} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
           <defs>
-            <linearGradient id={`stroke-${gid}`} x1="0" y1="0" x2="1" y2="0"
-              gradientUnits="objectBoundingBox">
-              <stop offset="0%"   stopColor="#FF8C00" />
-              <stop offset="50%"  stopColor="#FF5500" />
-              <stop offset="100%" stopColor="#FF8C00" stopOpacity="0.7" />
-            </linearGradient>
-            <linearGradient id={`area-${gid}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="#FF8C00" stopOpacity={0.35} />
-              <stop offset="70%"  stopColor="#FF8C00" stopOpacity={0.08} />
+              <stop offset="75%"  stopColor="#FF8C00" stopOpacity={0.05} />
               <stop offset="100%" stopColor="#FF8C00" stopOpacity={0}    />
             </linearGradient>
           </defs>
 
-          {/* Grid lines */}
-          {[0.33, 0.66].map((t) => {
-            const y = padTop + chartH * (1 - t)
-            return (
-              <line key={t} x1={0} y1={y} x2={W} y2={y}
-                stroke="currentColor" strokeOpacity={0.06}
-                strokeWidth={1} strokeDasharray="8 6"
-                vectorEffect="non-scaling-stroke" className="text-ink-muted" />
-            )
-          })}
+          <CartesianGrid
+            vertical={false}
+            stroke="rgba(255,255,255,0.05)"
+            strokeDasharray="4 4"
+          />
 
-          {/* Active band */}
-          {activePt && (
-            <rect x={activePt.x - slotW / 2} y={0}
-              width={slotW} height={H}
-              fill="white" fillOpacity={0.03} />
-          )}
+          <XAxis
+            dataKey="label"
+            tick={<CustomXTick />}
+            axisLine={false}
+            tickLine={false}
+            height={24}
+          />
 
-          <path d={area} fill={`url(#area-${gid})`} />
-          <path d={lineFull} fill="none" stroke={`url(#stroke-${gid})`}
-            strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke" />
+          <YAxis
+            tickFormatter={(v) => v === 0 ? '' : `$${(v / 1000).toFixed(0)}k`}
+            tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }}
+            axisLine={false}
+            tickLine={false}
+            width={36}
+          />
 
-          {/* Click zones */}
-          {data.map((d, i) => (
-            <rect key={d.label} x={i * slotW} y={0} width={slotW} height={H}
-              fill="transparent" style={{ cursor: 'pointer' }}
-              onMouseEnter={() => setHovered(d.label)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={(e) => { e.stopPropagation(); setSelected((s) => s === d.label ? null : d.label) }} />
-          ))}
-        </svg>
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#FF8C00', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.5 }} />
 
-        {/* Hover/active dot */}
-        {activePt && activePt.val > 0 && (
-          <div className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-150"
-            style={{ left: `${activePt.pct * 100}%`, top: svgYtoCss(activePt.y) }}>
-            <div className="absolute -inset-2 rounded-full border border-brand-primary/30" />
-            <div className="h-2.5 w-2.5 rounded-full bg-brand-primary shadow shadow-brand-primary/50" />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="#FF8C00"
+            strokeWidth={2.5}
+            fill="url(#incomeGradient)"
+            dot={false}
+            activeDot={{ r: 4, fill: '#FF8C00', stroke: '#FF8C00', strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+
+      {/* % change row */}
+      <div className="flex mt-1 px-9">
+        {data.map((d) => (
+          <div key={d.label} className="flex-1 flex justify-center">
+            <span className={`text-[9px] font-semibold ${d.change > 0 ? 'text-emerald-500' : d.change < 0 ? 'text-red-400' : 'text-ink-muted/40'}`}>
+              {d.change > 0 ? '+' : ''}{d.change !== 0 ? `${d.change}%` : '—'}
+            </span>
           </div>
-        )}
-
-        {/* Tooltip */}
-        {activePt && activePt.val > 0 && (
-          <div className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
-            style={{
-              left: `${Math.max(6, Math.min(94, activePt.pct * 100))}%`,
-              top: svgYtoCss(activePt.y),
-            }}>
-            <div className="mb-2 rounded-lg border border-white/10 bg-[#1a1c28] px-3 py-1.5 text-[12px] font-bold text-white shadow-xl whitespace-nowrap">
-              {activePt.val}
-              <span className={`ml-2 text-[10px] font-semibold ${activePt.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {activePt.change >= 0 ? '+' : ''}{activePt.change}%
-              </span>
-              <span className="ml-1.5 text-[9px] font-normal text-white/40">{activePt.label}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Month labels */}
-      <div className="flex shrink-0 pb-2 pt-1">
-        {data.map((d) => {
-          const isAct = d.label === active
-          return (
-            <button key={d.label} type="button"
-              onClick={() => setSelected((s) => s === d.label ? null : d.label)}
-              className={[
-                'flex-1 flex flex-col items-center gap-0.5 py-1 transition-all duration-150',
-                isAct ? 'text-brand-primary' : 'text-ink-muted/60 hover:text-ink-muted',
-              ].join(' ')}>
-              <span className="text-[9px] font-bold uppercase tracking-widest">{d.label}</span>
-              <span className={`text-[9px] font-semibold ${d.change >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
-                {d.change >= 0 ? '+' : ''}{d.change}%
-              </span>
-            </button>
-          )
-        })}
+        ))}
       </div>
     </div>
   )

@@ -14,8 +14,10 @@ import { RoutineFormPage } from '@/pages/routines/RoutineFormPage'
 import { RoutineDetailPage } from '@/pages/routines/RoutineDetailPage'
 import { RoutineEditorPage } from '@/pages/routines/RoutineEditorPage'
 import { RoutinePdfsPage } from '@/pages/routines/RoutinePdfsPage'
+import { HabitsPage } from '@/pages/habits/HabitsPage'
 import { FeedbackPage } from '@/pages/feedback/FeedbackPage'
 import { FeedbackDetailPage } from '@/pages/feedback/FeedbackDetailPage'
+import { FeedbackFormPage } from '@/pages/feedback/FeedbackFormPage'
 import { ExercisesPage } from '@/pages/exercises/ExercisesPage'
 import { ExerciseFormPage } from '@/pages/exercises/ExerciseFormPage'
 import { FinancesPage } from '@/pages/finances/FinancesPage'
@@ -53,9 +55,13 @@ function AppRoutes() {
           {/* PDFs */}
           <Route path="/routine-pdfs" element={<RoutinePdfsPage />} />
 
+          {/* Hábitos */}
+          <Route path="/habits" element={<HabitsPage />} />
+
           {/* Devoluciones */}
-          <Route path="/feedback" element={<FeedbackPage />} />
-          <Route path="/feedback/:id" element={<FeedbackDetailPage />} />
+          <Route path="/feedback" element={<PlaceholderPage title="Devoluciones" />} />
+          <Route path="/feedback/new" element={<PlaceholderPage title="Devoluciones" />} />
+          <Route path="/feedback/:id" element={<PlaceholderPage title="Devoluciones" />} />
 
           {/* Ejercicios */}
           <Route path="/exercises" element={<ExercisesPage />} />

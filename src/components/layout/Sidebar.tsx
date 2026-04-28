@@ -12,6 +12,7 @@ import {
   Salad,
   ChevronLeft,
   ChevronRight,
+  CalendarCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FEATURE_NUTRITION } from '@/lib/constants'
@@ -35,6 +36,7 @@ const navItems = [
   { label: 'Alumnos',      href: '/students',      icon: Users },
   { label: 'Rutinas',      href: '/routines',      icon: Dumbbell },
   { label: 'PDFs Rutina',  href: '/routine-pdfs',  icon: FileText },
+  { label: 'Hábitos',       href: '/habits',        icon: CalendarCheck },
   { label: 'Devoluciones', href: '/feedback',      icon: MessageSquare },
   { label: 'Ejercicios',   href: '/exercises',     icon: BookOpen },
 ]
@@ -157,7 +159,7 @@ function SidebarItem({
 
         {!collapsed && (
           <span
-            className="ml-2.5 text-[13px] truncate flex-1 select-none"
+            className="ml-2.5 mr-3 text-[13px] truncate flex-1 select-none"
             style={{ fontWeight: isActive ? 600 : 500 }}
           >
             {label}
@@ -197,7 +199,7 @@ export function Sidebar() {
     <aside
       className={cn(
         'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-200',
-        collapsed ? 'w-[62px]' : 'w-[176px]',
+        collapsed ? 'w-[62px]' : 'w-[196px]',
       )}
       style={{
         background: SIDEBAR_BG,
@@ -223,7 +225,7 @@ export function Sidebar() {
           )}
         />
         {!collapsed && (
-          <p className="text-[11px] font-extrabold text-white leading-snug tracking-wide uppercase ml-1 mr-[11px]">
+          <p className="text-[11px] font-extrabold text-white leading-snug tracking-wide uppercase ml-1 mr-4">
             Haciéndolo<br />Hábito
           </p>
         )}

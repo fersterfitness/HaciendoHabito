@@ -1,36 +1,62 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Pencil, Trash2, Dumbbell, FileText, Plus, Mail, Phone, Calendar } from 'lucide-react'
+import {
+  Pencil, Trash2, Dumbbell, FileText, Plus,
+  Mail, Phone, Calendar, Zap, X, ChevronDown,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
+import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { getInitials, formatDate, daysUntil } from '@/lib/utils'
-import type { Student, Routine } from '@/types/database'
+import { Spinner } from '@/components/ui/Spinner'
+import { cn, getInitials, formatDate, daysUntil } from '@/lib/utils'
+import { CicloTab } from './CicloTab'
+import type { Student, Routine, Exercise, StudentRmRecord } from '@/types/database'
+import toast from 'react-hot-toast'
 
+type Tab = 'resumen' | 'fuerza' | 'ciclo'
+
+// ─── Epley formula ────────────────────────────────────────────────────────────
+function epley1RM(weight: number, reps: number): number {
+  return Math.round(weight * (1 + reps / 30) * 10) / 10
+}
+
+// ─── RM percentages table ─────────────────────────────────────────────────────
+const RM_PERCENTS = [100, 95, 90, 85, 80, 75, 70, 65, 60]
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export function StudentDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const { id }     = useParams<{ id: string }>()
+  const navigate   = useNavigate()
   const { deleteStudent } = useStudents()
-  const [student, setStudent] = useState<Student | null>(null)
-  const [routines, setRoutines] = useState<Routine[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user }   = useAuthStore()
+
+  const [student,    setStudent]    = useState<Student | null>(null)
+  const [routines,   setRoutines]   = useState<Routine[]>([])
+  const [rmRecords,  setRmRecords]  = useState<StudentRmRecord[]>([])
+  const [loading,    setLoading]    = useState(true)
   const [showDelete, setShowDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
+  const [tab,        setTab]        = useState<Tab>('resumen')
 
   useEffect(() => {
     if (!id) return
     Promise.all([
       supabase.from('students').select('*').eq('id', id).single(),
       supabase.from('routines').select('*').eq('student_id', id).order('created_at', { ascending: false }),
-    ]).then(([{ data: s }, { data: r }]) => {
+      supabase.from('student_rm_records')
+        .select('*, exercise:exercise_library(id, name)')
+        .eq('student_id', id)
+        .order('tested_at', { ascending: false }),
+    ]).then(([{ data: s }, { data: r }, { data: rm }]) => {
       setStudent(s)
       setRoutines(r ?? [])
+      setRmRecords((rm as unknown as StudentRmRecord[]) ?? [])
     }).finally(() => setLoading(false))
   }, [id])
 
@@ -42,6 +68,24 @@ export function StudentDetailPage() {
     if (ok) navigate('/students')
   }
 
+  async function addRmRecord(record: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) {
+    if (!user || !id) return
+    const { data, error } = await supabase
+      .from('student_rm_records')
+      .insert({ ...record, owner_id: user.id, student_id: id })
+      .select('*, exercise:exercise_library(id, name)')
+      .single()
+    if (error) { toast.error(error.message); return }
+    setRmRecords((prev) => [data as unknown as StudentRmRecord, ...prev])
+    toast.success('RM registrado')
+  }
+
+  async function deleteRmRecord(recordId: string) {
+    const { error } = await supabase.from('student_rm_records').delete().eq('id', recordId)
+    if (error) { toast.error(error.message); return }
+    setRmRecords((prev) => prev.filter((r) => r.id !== recordId))
+  }
+
   if (loading) return <div><Header title="Alumno" showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
   if (!student) return <div><Header title="Alumno" showBack /><p className="p-6 text-ink-muted">Alumno no encontrado.</p></div>
 
@@ -51,160 +95,163 @@ export function StudentDetailPage() {
     <div>
       <Header title={student.full_name} showBack />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6">
-        {/* Perfil */}
+      <div className="px-4 lg:px-6 py-4 space-y-4">
+
+        {/* Perfil compacto */}
         <Card>
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-brand-primary font-bold text-xl">
-                {getInitials(student.full_name)}
-              </span>
+            <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-brand-primary font-bold text-lg">{getInitials(student.full_name)}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="text-xl font-bold text-ink-primary">{student.full_name}</h2>
-                <Badge status={student.status} size="md" />
-                <Badge status={student.level} size="md" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-bold text-ink-primary">{student.full_name}</h2>
+                <Badge status={student.status} />
+                <Badge status={student.level} />
               </div>
-              <div className="flex flex-wrap gap-4 mt-2">
+              <div className="flex flex-wrap gap-3 mt-1.5">
                 {student.email && (
-                  <a href={`mailto:${student.email}`} className="flex items-center gap-1.5 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                    <Mail className="h-3 w-3" />
-                    {student.email}
+                  <a href={`mailto:${student.email}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
+                    <Mail className="h-3 w-3" />{student.email}
                   </a>
                 )}
                 {student.phone && (
-                  <a href={`tel:${student.phone}`} className="flex items-center gap-1.5 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                    <Phone className="h-3 w-3" />
-                    {student.phone}
+                  <a href={`tel:${student.phone}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
+                    <Phone className="h-3 w-3" />{student.phone}
                   </a>
                 )}
                 {student.birth_date && (
-                  <span className="flex items-center gap-1.5 text-xs text-ink-secondary">
-                    <Calendar className="h-3 w-3" />
-                    {formatDate(student.birth_date)}
+                  <span className="flex items-center gap-1 text-xs text-ink-secondary">
+                    <Calendar className="h-3 w-3" />{formatDate(student.birth_date)}
                   </span>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Acciones del perfil */}
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-surface-border">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Pencil className="h-3.5 w-3.5" />}
-              onClick={() => navigate(`/students/${id}/edit`)}
-            >
-              Editar perfil
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-surface-border">
+            <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
+              Editar
             </Button>
             <div className="flex-1" />
             <button
               onClick={() => setShowDelete(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired transition-colors px-2 py-1.5 rounded-lg hover:bg-status-expired/8"
+              className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-status-expired transition-colors px-2 py-1.5 rounded-lg"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Eliminar alumno
+              <Trash2 className="h-3.5 w-3.5" /> Eliminar
             </button>
           </div>
         </Card>
 
-        {student.notes && (
-          <Card>
-            <CardTitle className="text-sm mb-2">Observaciones</CardTitle>
-            <p className="text-sm text-ink-secondary whitespace-pre-wrap">{student.notes}</p>
-          </Card>
-        )}
-
-        {/* Rutina activa */}
-        {activeRoutine && (
-          <Card className="border-brand-primary/20">
-            <CardHeader>
-              <div>
-                <p className="text-xs text-brand-primary font-medium uppercase tracking-wider mb-0.5">Rutina activa</p>
-                <CardTitle>{activeRoutine.name}</CardTitle>
-              </div>
-              <Badge status={activeRoutine.status} size="md" />
-            </CardHeader>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-surface-elevated rounded-xl p-3">
-                <p className="text-xs text-ink-muted">Inicio</p>
-                <p className="text-sm font-semibold text-ink-primary">{formatDate(activeRoutine.start_date)}</p>
-              </div>
-              <div className="bg-surface-elevated rounded-xl p-3">
-                <p className="text-xs text-ink-muted">Vencimiento</p>
-                <p className="text-sm font-semibold text-ink-primary">{formatDate(activeRoutine.end_date)}</p>
-              </div>
-              <div className="bg-surface-elevated rounded-xl p-3">
-                <p className="text-xs text-ink-muted">Días restantes</p>
-                <p className={`text-sm font-semibold ${daysUntil(activeRoutine.end_date) <= 7 ? 'text-status-expiring' : 'text-ink-primary'}`}>
-                  {Math.max(0, daysUntil(activeRoutine.end_date))}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Dumbbell className="h-3.5 w-3.5" />}
-                onClick={() => navigate(`/routines/${activeRoutine.id}/editor`)}
-                className="flex-1"
-              >
-                Editor de rutina
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<FileText className="h-3.5 w-3.5" />}
-                onClick={() => navigate(`/routine-pdfs`)}
-                className="flex-1"
-              >
-                Ver PDF
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Historial de rutinas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Historial de rutinas</CardTitle>
-            <Button
-              size="sm"
-              icon={<Plus className="h-3.5 w-3.5" />}
-              onClick={() => navigate(`/routines/new?student=${id}`)}
+        {/* Tabs */}
+        <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">
+          {([
+            { value: 'resumen', label: 'Resumen' },
+            { value: 'fuerza',  label: '💪 Fuerza / 1RM' },
+            ...(student.gender === 'F' ? [{ value: 'ciclo' as Tab, label: '🌸 Ciclo' }] : []),
+          ] as { value: Tab; label: string }[]).map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setTab(value)}
+              className={cn(
+                'flex-1 py-2 text-xs font-semibold rounded-lg transition-colors',
+                tab === value
+                  ? 'bg-surface-card text-ink-primary shadow-sm'
+                  : 'text-ink-muted hover:text-ink-secondary',
+              )}
             >
-              Nueva
-            </Button>
-          </CardHeader>
+              {label}
+            </button>
+          ))}
+        </div>
 
-          {routines.length === 0 ? (
-            <EmptyState
-              icon={<Dumbbell className="h-6 w-6" />}
-              title="Sin rutinas"
-              description="Este alumno todavía no tiene rutinas registradas."
-            />
-          ) : (
-            <div className="space-y-2">
-              {routines.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => navigate(`/routines/${r.id}`)}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors text-left"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-primary truncate">{r.name}</p>
-                    <p className="text-xs text-ink-muted">
-                      {formatDate(r.start_date)} → {formatDate(r.end_date)}
+        {/* ── Resumen tab ── */}
+        {tab === 'resumen' && (
+          <div className="space-y-4">
+            {student.notes && (
+              <Card>
+                <CardTitle className="text-sm mb-2">Observaciones</CardTitle>
+                <p className="text-sm text-ink-secondary whitespace-pre-wrap">{student.notes}</p>
+              </Card>
+            )}
+
+            {activeRoutine && (
+              <Card className="border-brand-primary/20">
+                <CardHeader>
+                  <div>
+                    <p className="text-xs text-brand-primary font-medium uppercase tracking-wider mb-0.5">Rutina activa</p>
+                    <CardTitle>{activeRoutine.name}</CardTitle>
+                  </div>
+                  <Badge status={activeRoutine.status} size="md" />
+                </CardHeader>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-surface-elevated rounded-xl p-3">
+                    <p className="text-xs text-ink-muted">Inicio</p>
+                    <p className="text-sm font-semibold text-ink-primary">{formatDate(activeRoutine.start_date)}</p>
+                  </div>
+                  <div className="bg-surface-elevated rounded-xl p-3">
+                    <p className="text-xs text-ink-muted">Vencimiento</p>
+                    <p className="text-sm font-semibold text-ink-primary">{formatDate(activeRoutine.end_date)}</p>
+                  </div>
+                  <div className="bg-surface-elevated rounded-xl p-3">
+                    <p className="text-xs text-ink-muted">Días restantes</p>
+                    <p className={cn('text-sm font-semibold', daysUntil(activeRoutine.end_date) <= 7 ? 'text-status-expiring' : 'text-ink-primary')}>
+                      {Math.max(0, daysUntil(activeRoutine.end_date))}
                     </p>
                   </div>
-                  <Badge status={r.status} />
-                </button>
-              ))}
-            </div>
-          )}
-        </Card>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="secondary" size="sm" icon={<Dumbbell className="h-3.5 w-3.5" />} onClick={() => navigate(`/routines/${activeRoutine.id}`)} className="flex-1">
+                    Ver rutina
+                  </Button>
+                  <Button variant="secondary" size="sm" icon={<FileText className="h-3.5 w-3.5" />} onClick={() => navigate('/routine-pdfs')} className="flex-1">
+                    Ver PDF
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Historial de rutinas</CardTitle>
+                <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate(`/routines/new?student=${id}`)}>
+                  Nueva
+                </Button>
+              </CardHeader>
+              {routines.length === 0 ? (
+                <EmptyState icon={<Dumbbell className="h-6 w-6" />} title="Sin rutinas" description="Este alumno todavía no tiene rutinas registradas." />
+              ) : (
+                <div className="space-y-2">
+                  {routines.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate(`/routines/${r.id}`)}
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors text-left"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink-primary truncate">{r.name}</p>
+                        <p className="text-xs text-ink-muted">{formatDate(r.start_date)} → {formatDate(r.end_date)}</p>
+                      </div>
+                      <Badge status={r.status} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* ── Ciclo Menstrual tab ── */}
+        {tab === 'ciclo' && <CicloTab studentId={id!} />}
+
+        {/* ── Fuerza / 1RM tab ── */}
+        {tab === 'fuerza' && (
+          <FuerzaTab
+            studentId={id!}
+            records={rmRecords}
+            onAdd={addRmRecord}
+            onDelete={deleteRmRecord}
+          />
+        )}
       </div>
 
       <ConfirmDialog
@@ -212,10 +259,360 @@ export function StudentDetailPage() {
         onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
         title="¿Eliminar alumno?"
-        description="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al alumno."
+        description="Esta acción no se puede deshacer."
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
+    </div>
+  )
+}
+
+// ─── FuerzaTab ────────────────────────────────────────────────────────────────
+
+function FuerzaTab({
+  studentId,
+  records,
+  onAdd,
+  onDelete,
+}: {
+  studentId: string
+  records: StudentRmRecord[]
+  onAdd: (r: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) => Promise<void>
+  onDelete: (id: string) => Promise<void>
+}) {
+  // Latest RM per exercise
+  const latestByExercise = useMemo(() => {
+    const map = new Map<string, StudentRmRecord>()
+    for (const r of records) {
+      if (!map.has(r.exercise_id)) map.set(r.exercise_id, r)
+    }
+    return Array.from(map.values())
+  }, [records])
+
+  const [showAddForm,    setShowAddForm]    = useState(false)
+  const [calcExerciseId, setCalcExerciseId] = useState('')
+  const [calcPercent,    setCalcPercent]    = useState(80)
+  const [showHistory,    setShowHistory]    = useState<string | null>(null)
+
+  const calcRecord  = latestByExercise.find((r) => r.exercise_id === calcExerciseId)
+  const calcWeight  = calcRecord ? Math.round(calcRecord.rm_kg * (calcPercent / 100) * 10) / 10 : null
+
+  return (
+    <div className="space-y-4">
+
+      {/* ── Calculadora de % ── */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="h-4 w-4 text-brand-primary" />
+          <CardTitle className="text-sm">Calculadora de porcentaje</CardTitle>
+        </div>
+
+        {latestByExercise.length === 0 ? (
+          <p className="text-xs text-ink-muted">Registrá el 1RM de al menos un ejercicio para usar la calculadora.</p>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Ejercicio</label>
+              <select
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                value={calcExerciseId}
+                onChange={(e) => setCalcExerciseId(e.target.value)}
+              >
+                <option value="">Seleccioná un ejercicio...</option>
+                {latestByExercise.map((r) => (
+                  <option key={r.exercise_id} value={r.exercise_id}>
+                    {r.exercise?.name ?? r.exercise_id} — 1RM: {r.rm_kg} kg
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {calcRecord && (
+              <>
+                <div>
+                  <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">
+                    Porcentaje: {calcPercent}%
+                  </label>
+                  <input
+                    type="range" min={50} max={100} step={5}
+                    value={calcPercent}
+                    onChange={(e) => setCalcPercent(Number(e.target.value))}
+                    className="w-full accent-brand-primary"
+                  />
+                </div>
+
+                {/* Resultado destacado */}
+                <div className="flex items-center justify-between bg-brand-primary/10 border border-brand-primary/20 rounded-xl px-4 py-3">
+                  <div>
+                    <p className="text-[10px] text-brand-primary uppercase tracking-wide font-semibold">Peso estimado</p>
+                    <p className="text-2xl font-bold text-brand-primary">{calcWeight} kg</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-ink-muted">1RM base</p>
+                    <p className="text-sm font-semibold text-ink-primary">{calcRecord.rm_kg} kg</p>
+                    <p className="text-[10px] text-ink-muted mt-1">al {calcPercent}%</p>
+                  </div>
+                </div>
+
+                {/* Tabla completa de porcentajes */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {RM_PERCENTS.map((pct) => {
+                    const w = Math.round(calcRecord.rm_kg * (pct / 100) * 10) / 10
+                    const isSelected = pct === calcPercent
+                    return (
+                      <button
+                        key={pct}
+                        onClick={() => setCalcPercent(pct)}
+                        className={cn(
+                          'flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-colors',
+                          isSelected
+                            ? 'bg-brand-primary/20 border border-brand-primary/40 text-brand-primary font-semibold'
+                            : 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/50',
+                        )}
+                      >
+                        <span>{pct}%</span>
+                        <span className="font-medium">{w} kg</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {/* ── Registros de 1RM ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Registros de 1RM</CardTitle>
+          <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
+            Agregar
+          </Button>
+        </CardHeader>
+
+        {latestByExercise.length === 0 ? (
+          <EmptyState
+            icon={<Dumbbell className="h-6 w-6" />}
+            title="Sin registros"
+            description="Agregá el 1RM de cada ejercicio para calcular porcentajes."
+          />
+        ) : (
+          <div className="space-y-2">
+            {latestByExercise.map((r) => {
+              const history = records.filter((x) => x.exercise_id === r.exercise_id)
+              const isOpen  = showHistory === r.exercise_id
+              return (
+                <div key={r.exercise_id} className="bg-surface-elevated rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink-primary truncate">{r.exercise?.name ?? '—'}</p>
+                      <p className="text-[10px] text-ink-muted">
+                        {formatDate(r.tested_at)} · {r.source === 'epley' ? 'Estimado (Epley)' : 'Testeado'}
+                      </p>
+                    </div>
+                    <span className="text-base font-bold text-brand-primary shrink-0">{r.rm_kg} kg</span>
+                    {history.length > 1 && (
+                      <button
+                        onClick={() => setShowHistory(isOpen ? null : r.exercise_id)}
+                        className="text-ink-muted hover:text-ink-primary transition-colors"
+                      >
+                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
+                      </button>
+                    )}
+                    <button onClick={() => onDelete(r.id)} className="text-ink-muted hover:text-status-expired transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {isOpen && history.length > 1 && (
+                    <div className="border-t border-surface-border divide-y divide-surface-border/50">
+                      {history.slice(1).map((h) => (
+                        <div key={h.id} className="flex items-center justify-between px-3 py-2">
+                          <span className="text-xs text-ink-muted">{formatDate(h.tested_at)} · {h.source === 'epley' ? 'Epley' : 'Test'}</span>
+                          <span className="text-xs font-medium text-ink-secondary">{h.rm_kg} kg</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      {/* ── Add form modal ── */}
+      {showAddForm && (
+        <AddRmModal
+          onClose={() => setShowAddForm(false)}
+          onSave={async (record) => { await onAdd(record); setShowAddForm(false) }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── AddRmModal ───────────────────────────────────────────────────────────────
+
+type AddMode = 'test' | 'epley'
+
+function AddRmModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void
+  onSave: (r: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) => Promise<void>
+}) {
+  const [exercises,   setExercises]   = useState<Pick<Exercise, 'id' | 'name'>[]>([])
+  const [exerciseId,  setExerciseId]  = useState('')
+  const [mode,        setMode]        = useState<AddMode>('test')
+  const [rmKg,        setRmKg]        = useState('')          // mode=test
+  const [epleyWeight, setEpleyWeight] = useState('')         // mode=epley
+  const [epleyReps,   setEpleyReps]   = useState('')         // mode=epley
+  const [testedAt,    setTestedAt]    = useState(new Date().toISOString().split('T')[0])
+  const [notes,       setNotes]       = useState('')
+  const [saving,      setSaving]      = useState(false)
+
+  useEffect(() => {
+    supabase.from('exercise_library').select('id, name').eq('is_active', true).order('name')
+      .then(({ data }) => setExercises((data as Pick<Exercise, 'id' | 'name'>[]) ?? []))
+  }, [])
+
+  const estimatedRm = mode === 'epley' && epleyWeight && epleyReps
+    ? epley1RM(Number(epleyWeight), Number(epleyReps))
+    : null
+
+  async function handleSave() {
+    if (!exerciseId) { toast.error('Seleccioná un ejercicio'); return }
+    const finalRm = mode === 'test' ? Number(rmKg) : estimatedRm
+    if (!finalRm || finalRm <= 0) { toast.error('Ingresá los datos del RM'); return }
+    setSaving(true)
+    await onSave({
+      exercise_id: exerciseId,
+      rm_kg: finalRm,
+      tested_at: testedAt,
+      source: mode,
+      notes: notes || null,
+    })
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
+          <h3 className="text-sm font-semibold text-ink-primary">Registrar 1RM</h3>
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="px-4 py-4 space-y-4">
+          {/* Ejercicio */}
+          <div>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Ejercicio *</label>
+            <select
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+              value={exerciseId}
+              onChange={(e) => setExerciseId(e.target.value)}
+            >
+              <option value="">Seleccioná un ejercicio...</option>
+              {exercises.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          </div>
+
+          {/* Modo */}
+          <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">
+            {([
+              { value: 'test',   label: 'RM real (testeado)' },
+              { value: 'epley',  label: 'Estimar con Epley' },
+            ] as { value: AddMode; label: string }[]).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setMode(value)}
+                className={cn(
+                  'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                  mode === value ? 'bg-surface-card text-ink-primary shadow-sm' : 'text-ink-muted',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'test' ? (
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
+              <input
+                type="number" min={0} step={0.5} placeholder="ej: 120"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center font-bold"
+                value={rmKg}
+                onChange={(e) => setRmKg(e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-ink-secondary mb-1">Peso usado (kg) *</label>
+                  <input
+                    type="number" min={0} step={0.5} placeholder="ej: 100"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+                    value={epleyWeight}
+                    onChange={(e) => setEpleyWeight(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-secondary mb-1">Reps realizadas *</label>
+                  <input
+                    type="number" min={1} max={10} placeholder="ej: 5"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+                    value={epleyReps}
+                    onChange={(e) => setEpleyReps(e.target.value)}
+                  />
+                </div>
+              </div>
+              {estimatedRm && (
+                <div className="flex items-center justify-between bg-brand-primary/10 border border-brand-primary/20 rounded-xl px-4 py-3">
+                  <div>
+                    <p className="text-[10px] text-brand-primary uppercase tracking-wide font-semibold">1RM estimado (Epley)</p>
+                    <p className="text-2xl font-bold text-brand-primary">{estimatedRm} kg</p>
+                  </div>
+                  <p className="text-xs text-ink-muted text-right">
+                    Fórmula:<br />
+                    <span className="font-mono">peso × (1 + reps/30)</span>
+                  </p>
+                </div>
+              )}
+              <p className="text-[10px] text-ink-muted">La fórmula de Epley es más precisa con 1-6 repeticiones.</p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
+            <input
+              type="date"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+              value={testedAt}
+              onChange={(e) => setTestedAt(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
+            <input
+              placeholder="ej: con cinturón, post competencia..."
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+
+          <Button className="w-full" loading={saving} onClick={handleSave}>
+            Guardar registro
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
