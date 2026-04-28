@@ -27,7 +27,7 @@ type DayWithEx       = RoutineDay      & { exercises: ExWithExercise[] }
 type BlockWithDays   = RoutineBlock    & { days: DayWithEx[] }
 type RoutineFull     = Routine         & { student?: Student }
 type ExerciseWithGroup = Exercise & { muscle_group?: { id: string; name: string; sort_order: number } }
-type ExerciseMeta = { restText?: string; rpeText?: string; percent1rm?: string }
+type ExerciseMeta = { restText?: string; rpeText?: string; percent1rm?: string; circuitNote?: string }
 const WARMUP_PRESETS = [
   {
     label: 'Día de empuje',
@@ -995,6 +995,17 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
       .forEach(e => onUpdateExercise(e.id, { is_superset: false, superset_group: null }))
   }
 
+  function updateCircuitNote(groupId: number, value: string) {
+    day.exercises
+      .filter((e) => e.superset_group === groupId)
+      .forEach((e) => {
+        const { userNotes, meta } = parseExerciseMeta(e.technical_notes)
+        const nextMeta: ExerciseMeta = { ...meta, circuitNote: value || undefined }
+        const technicalNotes = buildExerciseTechnicalNotes(userNotes, nextMeta)
+        onUpdateExercise(e.id, { technical_notes: technicalNotes || null })
+      })
+  }
+
   return (
     <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
@@ -1122,6 +1133,18 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                     <Unlink className="h-3 w-3" /> Disolver
                   </button>
                 </div>
+                <div className="px-3 py-2 border-b border-brand-primary/15 bg-brand-primary/5">
+                  <label className="block text-[10px] text-brand-primary font-semibold uppercase tracking-wide mb-1">
+                    Aclaración del circuito
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: descanso entre vueltas 3' · intermitente 20x20'' x 4"
+                    className="w-full bg-surface-card text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                    value={parseExerciseMeta(group.exercises[0]?.technical_notes).meta.circuitNote ?? ''}
+                    onChange={(e) => updateCircuitNote(group.groupId, e.target.value)}
+                  />
+                </div>
                 {group.exercises.map((ex, i) => (
                   <div key={ex.id} className={i < group.exercises.length - 1 ? 'border-b border-brand-primary/15' : ''}>
                     <ExerciseRow
@@ -1197,7 +1220,8 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
 
   // Debounced save — fires 600ms after last keystroke
   const save = useDebounce(onUpdate, 600)
-  const suggestedWeight = rmKg && percent1rm ? Math.round((rmKg * Number(percent1rm) / 100) * 10) / 10 : null
+  const hasPercent = percent1rm.trim().length > 0
+  const suggestedWeight = rmKg && hasPercent ? Math.round((rmKg * Number(percent1rm) / 100) * 10) / 10 : null
 
   function saveMeta(nextMeta: ExerciseMeta, overrides?: Partial<RoutineExercise>) {
     const technicalNotes = buildExerciseTechnicalNotes(notes, nextMeta)
@@ -1354,9 +1378,12 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
           }}
           className="h-8 px-2.5 rounded-lg border border-surface-border text-[11px] text-ink-secondary hover:text-ink-primary disabled:opacity-40"
         >
-          {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : 'Sin 1RM'}
+          {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : rmKg ? 'Ingresá %' : 'Sin 1RM'}
         </button>
       </div>
+      {rmKg && (
+        <p className="text-[10px] text-ink-muted -mt-1">1RM cargado: {rmKg} kg</p>
+      )}
 
       <input
         className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
