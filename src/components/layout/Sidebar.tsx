@@ -13,9 +13,11 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarCheck,
+  LineChart,
+  CalendarClock,
+  Library,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { FEATURE_NUTRITION } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useSidebar } from '@/contexts/SidebarContext'
@@ -32,8 +34,10 @@ const ACTIVE_BG  = 'rgb(var(--surface-base))'
 const NOTCH_R    = 14
 
 // ─── Nav groups ──────────────────────────────────────────────────────────────
+const homeItem = { label: 'Inicio', href: '/dashboard', icon: Home }
+const appointmentsItem = { label: 'Turnos', href: '/appointments', icon: CalendarClock }
+
 const navItems = [
-  { label: 'Inicio',       href: '/dashboard',     icon: Home },
   { label: 'Alumnos',      href: '/students',      icon: Users },
   { label: 'Rutinas',      href: '/routines',      icon: Dumbbell },
   { label: 'PDFs Rutina',  href: '/routine-pdfs',  icon: FileText },
@@ -47,7 +51,9 @@ const financeItems = [
 ]
 
 const nutritionItems = [
-  { label: 'Nutrición',      href: '/nutrition',      icon: Salad },
+  { label: 'Nutrición',      href: '/nutrition',      icon: Salad, exactMatch: true },
+  { label: 'Evolución',      href: '/nutrition/evolution', icon: LineChart },
+  { label: 'Plantillas',     href: '/nutrition/templates', icon: Library },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
 
@@ -97,27 +103,31 @@ function Notch({ side, visible }: { side: 'above' | 'below'; visible: boolean })
   )
 }
 
+function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
+  if (exactMatch) return pathname === href
+  if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 // ─── Sidebar item ─────────────────────────────────────────────────────────────
 function SidebarItem({
   label,
   href,
   icon: Icon,
   collapsed,
+  exactMatch,
 }: {
   label: string
   href: string
   icon: React.ElementType
   collapsed: boolean
+  exactMatch?: boolean
 }) {
   const { pathname } = useLocation()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 
-  const isActive = href === '/dashboard'
-    ? pathname === '/dashboard' || pathname === '/'
-    : href === '/finances'
-    ? pathname === '/finances' || pathname.startsWith('/finances/')
-    : pathname.startsWith(href)
+  const isActive = isPathActive(pathname, href, exactMatch)
 
   // In light mode the active item sits on a white bg → dark ink.
   // In dark mode it sits on the dark surface-base → light ink.
@@ -259,6 +269,13 @@ export function Sidebar() {
         )}
         style={{ paddingTop: NOTCH_R, paddingBottom: NOTCH_R }}
       >
+        <SidebarItem key={homeItem.href} {...homeItem} collapsed={collapsed} />
+        <SidebarItem key={appointmentsItem.href} {...appointmentsItem} collapsed={collapsed} />
+
+        {(showTraining || showNutrition) && (
+          <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+        )}
+
         {showTraining && navItems.map((item) => (
           <SidebarItem key={item.href} {...item} collapsed={collapsed} />
         ))}
@@ -275,7 +292,7 @@ export function Sidebar() {
           </>
         )}
 
-        {FEATURE_NUTRITION && showNutrition && (
+        {showNutrition && (
           <>
             {!collapsed && <SidebarSection label="Nutrición" />}
             {collapsed && (

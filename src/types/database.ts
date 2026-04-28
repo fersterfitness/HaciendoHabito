@@ -11,6 +11,10 @@ export type IncomeStatus = 'pendiente' | 'cobrado' | 'cancelado'
 export type ExpenseType = 'fijo' | 'variable'
 export type PaymentMethod = 'efectivo_debito' | 'tarjeta_credito' | 'transferencia' | 'otro'
 export type PlanType = 'entrenamiento' | 'nutricion' | 'combo'
+export type NutritionAttendanceStatus = 'P' | 'A' | 'ST'
+export type NutritionDocumentCategory = 'antropometria' | 'anamnesis'
+export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+export type ReminderChannel = 'app' | 'email' | 'whatsapp'
 export type FormStatus = 'recibido' | 'revisado' | 'en_proceso'
 export type NotificationType =
   | 'rutina_por_vencer'
@@ -84,6 +88,36 @@ export interface Database {
         Insert: Omit<RoutineFeedback, 'id' | 'responded_at'>
         Update: Partial<Omit<RoutineFeedback, 'id'>>
       }
+      nutrition_patient_followups: {
+        Row: NutritionPatientFollowup
+        Insert: Omit<NutritionPatientFollowup, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionPatientFollowup, 'id' | 'created_at'>>
+      }
+      nutrition_patient_documents: {
+        Row: NutritionPatientDocument
+        Insert: Omit<NutritionPatientDocument, 'id' | 'uploaded_at'>
+        Update: Partial<Omit<NutritionPatientDocument, 'id' | 'uploaded_at'>>
+      }
+      nutrition_plan_notes: {
+        Row: NutritionPlanNote
+        Insert: Omit<NutritionPlanNote, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionPlanNote, 'id' | 'created_at'>>
+      }
+      nutrition_measurements: {
+        Row: NutritionMeasurement
+        Insert: Omit<NutritionMeasurement, 'id' | 'created_at'>
+        Update: Partial<Omit<NutritionMeasurement, 'id' | 'created_at'>>
+      }
+      appointments: {
+        Row: Appointment
+        Insert: Omit<Appointment, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Appointment, 'id' | 'created_at'>>
+      }
+      appointment_reminders: {
+        Row: AppointmentReminder
+        Insert: Omit<AppointmentReminder, 'id' | 'created_at'>
+        Update: Partial<Omit<AppointmentReminder, 'id' | 'created_at'>>
+      }
       income: {
         Row: Income
         Insert: Omit<Income, 'id' | 'created_at' | 'updated_at'>
@@ -108,6 +142,7 @@ export interface Profile {
   full_name: string
   avatar_url: string | null
   role: AppRole
+  google_calendar_id: string | null
   phone: string | null
   bio: string | null
   created_at: string
@@ -274,6 +309,80 @@ export interface RoutineFeedback {
   video_url_external: string | null
   pdf_path: string | null
   responded_at: string
+}
+
+export interface NutritionPatientFollowup {
+  id: string
+  owner_id: string
+  student_id: string
+  last_consultation_date: string | null
+  next_consultation_date: string | null
+  attendance_status: NutritionAttendanceStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionPatientDocument {
+  id: string
+  owner_id: string
+  student_id: string
+  category: NutritionDocumentCategory
+  title: string
+  file_path: string
+  document_date: string
+  uploaded_at: string
+}
+
+export interface NutritionPlanNote {
+  id: string
+  owner_id: string
+  student_id: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionMeasurement {
+  id: string
+  owner_id: string
+  student_id: string
+  measured_at: string
+  weight_kg: number | null
+  bmi: number | null
+  body_fat_pct: number | null
+  muscle_mass_kg: number | null
+  perimeters_notes: string | null
+  skinfolds_notes: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface Appointment {
+  id: string
+  owner_id: string
+  student_id: string
+  profile_type: 'trainer' | 'nutritionist'
+  starts_at: string
+  ends_at: string | null
+  status: AppointmentStatus
+  title: string
+  notes: string | null
+  location: string | null
+  google_event_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AppointmentReminder {
+  id: string
+  owner_id: string
+  appointment_id: string
+  channel: ReminderChannel
+  scheduled_for: string
+  sent_at: string | null
+  status: 'pending' | 'sent' | 'failed'
+  error_message: string | null
+  created_at: string
 }
 
 export interface Income {

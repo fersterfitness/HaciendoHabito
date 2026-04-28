@@ -10,6 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
+  Salad,
 } from 'lucide-react'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
@@ -30,6 +31,8 @@ interface Stats {
   activeRoutines: number
   pendingPdfs: number
   openQuestions: number
+  activeNutritionPlans: number
+  nutritionDocuments: number
 }
 
 interface ExpiringRoutine extends Omit<Routine, 'student'> {
@@ -150,9 +153,19 @@ function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
 }
 
 export function DashboardPage() {
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const navigate = useNavigate()
-  const [stats, setStats] = useState<Stats>({ activeStudents: 0, activeRoutines: 0, pendingPdfs: 0, openQuestions: 0 })
+  const role = profile?.role
+  const canSeeTraining = role === 'admin' || role === 'trainer' || !role
+  const canSeeNutrition = role === 'admin' || role === 'nutritionist'
+  const [stats, setStats] = useState<Stats>({
+    activeStudents: 0,
+    activeRoutines: 0,
+    pendingPdfs: 0,
+    openQuestions: 0,
+    activeNutritionPlans: 0,
+    nutritionDocuments: 0,
+  })
   const [expiring, setExpiring] = useState<ExpiringRoutine[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [growthData, setGrowthData] = useState<{ label: string; value: number; change: number }[]>([])
@@ -177,17 +190,35 @@ export function DashboardPage() {
         { count: activeRoutines },
         { count: pendingPdfs },
         { count: openQuestions },
+        { count: activeNutritionPlans },
+        { count: nutritionDocuments },
         { data: expiringData },
         { data: notifData },
         { data: incomeRows },
       ] = await Promise.all([
         supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
-        supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']),
-        supabase.from('routine_pdfs').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id),
-        supabase.from('routine_questions').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).neq('status', 'cerrada'),
-        supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5),
+        canSeeTraining
+          ? supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
+          : Promise.resolve({ count: 0 } as { count: number | null }),
+        canSeeTraining
+          ? supabase.from('routine_pdfs').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
+          : Promise.resolve({ count: 0 } as { count: number | null }),
+        canSeeTraining
+          ? supabase.from('routine_questions').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).neq('status', 'cerrada')
+          : Promise.resolve({ count: 0 } as { count: number | null }),
+        canSeeNutrition
+          ? supabase.from('nutrition_plans').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
+          : Promise.resolve({ count: 0 } as { count: number | null }),
+        canSeeNutrition
+          ? supabase.from('nutrition_patient_documents').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
+          : Promise.resolve({ count: 0 } as { count: number | null }),
+        canSeeTraining
+          ? supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5)
+          : Promise.resolve({ data: [] } as { data: unknown[] }),
         supabase.from('notifications').select('*').eq('user_id', user!.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
-        supabase.from('income').select('income_date, amount').eq('owner_id', user!.id).eq('status', 'cobrado').gte('income_date', sinceStr),
+        canSeeTraining
+          ? supabase.from('income').select('income_date, amount').eq('owner_id', user!.id).eq('status', 'cobrado').gte('income_date', sinceStr)
+          : Promise.resolve({ data: [] } as { data: { income_date: string; amount: number }[] }),
       ])
 
       setStats({
@@ -195,10 +226,12 @@ export function DashboardPage() {
         activeRoutines: activeRoutines ?? 0,
         pendingPdfs: pendingPdfs ?? 0,
         openQuestions: openQuestions ?? 0,
+        activeNutritionPlans: activeNutritionPlans ?? 0,
+        nutritionDocuments: nutritionDocuments ?? 0,
       })
       setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
       setNotifications(notifData ?? [])
-      setGrowthData(buildChartData((incomeRows ?? []) as { income_date: string; amount: number }[]))
+      setGrowthData(canSeeTraining ? buildChartData((incomeRows ?? []) as { income_date: string; amount: number }[]) : [])
     } finally {
       setLoading(false)
     }
@@ -228,27 +261,53 @@ export function DashboardPage() {
             icon={<Users className="h-5 w-5" />}
             onClick={() => navigate('/students')}
           />
-          <StatCard
-            title="Rutinas vigentes"
-            value={stats.activeRoutines}
-            icon={<Dumbbell className="h-5 w-5" />}
-            onClick={() => navigate('/routines')}
-          />
-          <StatCard
-            title="PDFs generados"
-            value={stats.pendingPdfs}
-            icon={<FileText className="h-5 w-5" />}
-            onClick={() => navigate('/routine-pdfs')}
-          />
-          <StatCard
-            title="Consultas abiertas"
-            value={stats.openQuestions}
-            icon={<MessageSquare className="h-5 w-5" />}
-            iconColor={stats.openQuestions > 0 ? 'text-status-expiring' : 'text-brand-primary'}
-            onClick={() => navigate('/feedback')}
-          />
+          {canSeeTraining ? (
+            <>
+              <StatCard
+                title="Rutinas vigentes"
+                value={stats.activeRoutines}
+                icon={<Dumbbell className="h-5 w-5" />}
+                onClick={() => navigate('/routines')}
+              />
+              <StatCard
+                title="PDFs generados"
+                value={stats.pendingPdfs}
+                icon={<FileText className="h-5 w-5" />}
+                onClick={() => navigate('/routine-pdfs')}
+              />
+              <StatCard
+                title="Consultas abiertas"
+                value={stats.openQuestions}
+                icon={<MessageSquare className="h-5 w-5" />}
+                iconColor={stats.openQuestions > 0 ? 'text-status-expiring' : 'text-brand-primary'}
+                onClick={() => navigate('/feedback')}
+              />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Planes nutrición"
+                value={stats.activeNutritionPlans}
+                icon={<Salad className="h-5 w-5" />}
+                onClick={() => navigate('/nutrition')}
+              />
+              <StatCard
+                title="PDFs antropometría"
+                value={stats.nutritionDocuments}
+                icon={<FileText className="h-5 w-5" />}
+                onClick={() => navigate('/nutrition')}
+              />
+              <StatCard
+                title="Diagnósticos"
+                value={stats.nutritionDocuments}
+                icon={<MessageSquare className="h-5 w-5" />}
+                onClick={() => navigate('/nutrition-pdfs')}
+              />
+            </>
+          )}
         </div>
 
+        {canSeeTraining && (
         <Card className="overflow-hidden p-0">
           <CardHeader className="px-5 pt-4 pb-0">
             <div className="flex items-center gap-2">
@@ -279,9 +338,11 @@ export function DashboardPage() {
             }
           </div>
         </Card>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-4">
           {/* Rutinas por vencer */}
+          {canSeeTraining && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -336,6 +397,7 @@ export function DashboardPage() {
               </div>
             )}
           </Card>
+          )}
 
           {/* Acciones rápidas */}
           <Card>
@@ -344,11 +406,13 @@ export function DashboardPage() {
             </CardHeader>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Nuevo alumno', icon: Users, href: '/students/new' },
-                { label: 'Nueva rutina', icon: Dumbbell, href: '/routines/new' },
-                { label: 'Ver PDFs', icon: FileText, href: '/routine-pdfs' },
-                { label: 'Ver dudas', icon: MessageSquare, href: '/feedback' },
-              ].map(({ label, icon: Icon, href }) => (
+                { label: 'Nuevo alumno', icon: Users, href: '/students/new', show: true },
+                { label: 'Nueva rutina', icon: Dumbbell, href: '/routines/new', show: canSeeTraining },
+                { label: 'Nutrición', icon: Salad, href: '/nutrition', show: canSeeNutrition },
+                { label: 'Diagnóstico PDF', icon: FileText, href: '/nutrition-pdfs', show: canSeeNutrition },
+                { label: 'Ver PDFs', icon: FileText, href: '/routine-pdfs', show: canSeeTraining },
+                { label: 'Ver dudas', icon: MessageSquare, href: '/feedback', show: canSeeTraining },
+              ].filter((item) => item.show).map(({ label, icon: Icon, href }) => (
                 <button
                   key={href}
                   onClick={() => navigate(href)}

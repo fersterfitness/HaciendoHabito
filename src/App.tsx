@@ -27,12 +27,19 @@ import { ExpenseFormPage } from '@/pages/finances/ExpenseFormPage'
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
+import { NutritionPage } from '@/pages/nutrition/NutritionPage'
+import { NutritionPatientDetailPage } from '@/pages/nutrition/NutritionPatientDetailPage'
+import { NutritionComparativePage } from '@/pages/nutrition/NutritionComparativePage'
+import { NutritionEvolutionPage } from '@/pages/nutrition/NutritionEvolutionPage'
+import { NutritionAppointmentsPage } from '@/pages/nutrition/NutritionAppointmentsPage'
+import { NutritionTemplatesPage } from '@/pages/nutrition/NutritionTemplatesPage'
 
 function AppRoutes() {
   useAuthInit()
   const role = useAuthStore((state) => state.profile?.role)
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
+  const canSeeAppointments = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
 
   return (
     <Routes>
@@ -73,10 +80,15 @@ function AppRoutes() {
           <Route path="/exercises/:id/edit" element={canSeeTraining ? <ExerciseFormPage /> : <Navigate to="/dashboard" replace />} />
 
           {/* Nutrición (placeholders hasta activar feature flag) */}
-          <Route path="/nutrition" element={canSeeNutrition ? <PlaceholderPage title="Nutrición" /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/nutrition/new" element={canSeeNutrition ? <PlaceholderPage title="Nuevo Plan Alimentario" /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/nutrition/:id/editor" element={canSeeNutrition ? <PlaceholderPage title="Editor de Plan" /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/nutrition-pdfs" element={canSeeNutrition ? <PlaceholderPage title="PDFs de Nutrición" /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition" element={canSeeNutrition ? <NutritionPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition/evolution" element={canSeeNutrition ? <NutritionEvolutionPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition/appointments" element={<Navigate to="/appointments" replace />} />
+          <Route path="/nutrition/templates" element={canSeeNutrition ? <NutritionTemplatesPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition/:id" element={canSeeNutrition ? <NutritionPatientDetailPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition-pdfs" element={canSeeNutrition ? <NutritionComparativePage /> : <Navigate to="/dashboard" replace />} />
+
+          {/* Turnos compartidos */}
+          <Route path="/appointments" element={canSeeAppointments ? <NutritionAppointmentsPage /> : <Navigate to="/dashboard" replace />} />
 
           {/* Finanzas */}
           <Route path="/finances" element={canSeeTraining ? <FinancesPage /> : <Navigate to="/dashboard" replace />} />
