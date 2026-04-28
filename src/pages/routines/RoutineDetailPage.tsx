@@ -664,7 +664,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onAddExerc
 
   function confirmCircuit() {
     if (selectedIds.size < 2) { toast.error('Seleccioná al menos 2 ejercicios'); return }
-    const groupId = Date.now()
+    const groupId = Math.floor(Math.random() * 2_000_000_000)
     selectedIds.forEach(id => onUpdateExercise(id, { is_superset: true, superset_group: groupId }))
     setCircuitMode(false)
     setSelectedIds(new Set())

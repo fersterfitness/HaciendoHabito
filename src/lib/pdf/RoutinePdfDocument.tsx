@@ -261,9 +261,75 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+// ─── Grouping helper ──────────────────────────────────────────────────────────
+
+type RenderGroup =
+  | { type: 'single';   exercise: ExerciseFull }
+  | { type: 'circuit';  groupId: number; exercises: ExerciseFull[] }
+
+function groupExercises(exercises: ExerciseFull[]): RenderGroup[] {
+  const result: RenderGroup[] = []
+  const seen = new Set<string>()
+  for (const ex of exercises) {
+    if (seen.has(ex.id)) continue
+    if (ex.is_superset && ex.superset_group !== null) {
+      const members = exercises.filter((e) => e.superset_group === ex.superset_group)
+      members.forEach((m) => seen.add(m.id))
+      result.push({ type: 'circuit', groupId: ex.superset_group, exercises: members })
+    } else {
+      seen.add(ex.id)
+      result.push({ type: 'single', exercise: ex })
+    }
+  }
+  return result
+}
+
 // ─── Componentes internos ─────────────────────────────────────────────────────
 
+const sc = StyleSheet.create({
+  circuitWrapper: {
+    borderWidth: 1,
+    borderColor: C.brand,
+    borderRadius: 6,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  circuitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 5,
+  },
+  circuitDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.brand,
+  },
+  circuitLabel: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.brand,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  circuitRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderTopWidth: 0.5,
+    borderTopColor: '#FFE0B2',
+    alignItems: 'center',
+  },
+  circuitRowAlt: { backgroundColor: '#FFFBF5' },
+})
+
 function ExerciseTable({ exercises }: { exercises: ExerciseFull[] }) {
+  const groups = groupExercises(exercises)
+  let rowIndex = 0
+
   return (
     <View style={s.table}>
       <View style={s.tableHead}>
@@ -275,17 +341,44 @@ function ExerciseTable({ exercises }: { exercises: ExerciseFull[] }) {
         <Text style={s.thSmall}>TEMPO</Text>
         <Text style={s.thNotes}>NOTAS</Text>
       </View>
-      {exercises.map((ex, i) => (
-        <View key={ex.id} style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]} wrap={false}>
-          <Text style={s.tdName}>{ex.exercise?.name ?? '—'}</Text>
-          <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
-          <Text style={s.tdSmall}>{formatReps(ex)}</Text>
-          <Text style={s.tdSmall}>{ex.weight_kg ? `${ex.weight_kg} kg` : '—'}</Text>
-          <Text style={s.tdSmall}>{ex.rest_seconds ? `${ex.rest_seconds}″` : '—'}</Text>
-          <Text style={s.tdSmall}>{ex.tempo ?? '—'}</Text>
-          <Text style={s.tdNotes}>{ex.technical_notes ?? ''}</Text>
-        </View>
-      ))}
+
+      {groups.map((group) => {
+        if (group.type === 'single') {
+          const idx = rowIndex++
+          return (
+            <View key={group.exercise.id} style={[s.tableRow, idx % 2 === 1 ? s.tableRowAlt : {}]} wrap={false}>
+              <Text style={s.tdName}>{group.exercise.exercise?.name ?? '—'}</Text>
+              <Text style={s.tdSmall}>{group.exercise.sets ?? '—'}</Text>
+              <Text style={s.tdSmall}>{formatReps(group.exercise)}</Text>
+              <Text style={s.tdSmall}>{group.exercise.weight_kg ? `${group.exercise.weight_kg} kg` : '—'}</Text>
+              <Text style={s.tdSmall}>{group.exercise.rest_seconds ? `${group.exercise.rest_seconds}″` : '—'}</Text>
+              <Text style={s.tdSmall}>{group.exercise.tempo ?? '—'}</Text>
+              <Text style={s.tdNotes}>{group.exercise.technical_notes ?? ''}</Text>
+            </View>
+          )
+        }
+
+        rowIndex += group.exercises.length
+        return (
+          <View key={group.groupId} style={sc.circuitWrapper} wrap={false}>
+            <View style={sc.circuitHeader}>
+              <View style={sc.circuitDot} />
+              <Text style={sc.circuitLabel}>Circuito · {group.exercises.length} ejercicios</Text>
+            </View>
+            {group.exercises.map((ex, i) => (
+              <View key={ex.id} style={[sc.circuitRow, i % 2 === 1 ? sc.circuitRowAlt : {}]}>
+                <Text style={s.tdName}>{ex.exercise?.name ?? '—'}</Text>
+                <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
+                <Text style={s.tdSmall}>{formatReps(ex)}</Text>
+                <Text style={s.tdSmall}>{ex.weight_kg ? `${ex.weight_kg} kg` : '—'}</Text>
+                <Text style={s.tdSmall}>{ex.rest_seconds ? `${ex.rest_seconds}″` : '—'}</Text>
+                <Text style={s.tdSmall}>{ex.tempo ?? '—'}</Text>
+                <Text style={s.tdNotes}>{ex.technical_notes ?? ''}</Text>
+              </View>
+            ))}
+          </View>
+        )
+      })}
     </View>
   )
 }
