@@ -22,6 +22,7 @@ import { useSidebar } from '@/contexts/SidebarContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getInitials } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import type { AppRole } from '@/types/database'
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 const SIDEBAR_BG = '#0d0f14'
@@ -49,6 +50,22 @@ const nutritionItems = [
   { label: 'Nutrición',      href: '/nutrition',      icon: Salad },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
+
+function canSeeTraining(role: AppRole | undefined) {
+  return role === 'admin' || role === 'trainer'
+}
+
+function canSeeNutrition(role: AppRole | undefined) {
+  return role === 'admin' || role === 'nutritionist'
+}
+
+function roleLabel(role: AppRole | undefined) {
+  if (role === 'nutritionist') return 'Nutricionista'
+  if (role === 'trainer') return 'Entrenador'
+  if (role === 'admin') return 'Admin'
+  if (role === 'student') return 'Alumno'
+  return 'Sin perfil'
+}
 
 // ─── Concave notch ───────────────────────────────────────────────────────────
 function Notch({ side, visible }: { side: 'above' | 'below'; visible: boolean }) {
@@ -144,14 +161,14 @@ function SidebarItem({
           style={{
             width: 28,
             height: 28,
-            background: isActive ? 'rgba(255,140,0,0.12)' : 'transparent',
+            background: isActive ? 'rgb(var(--brand-primary) / 0.12)' : 'transparent',
           }}
         >
           <Icon
             style={{
               width: 15,
               height: 15,
-              color: isActive ? 'rgb(255 140 0)' : 'inherit',
+              color: isActive ? 'rgb(var(--brand-primary))' : 'inherit',
               transition: 'color 150ms',
             }}
           />
@@ -187,6 +204,9 @@ export function Sidebar() {
   const { profile, reset } = useAuthStore()
   const { theme } = useTheme()
   const navigate = useNavigate()
+  const role = profile?.role
+  const showTraining = canSeeTraining(role)
+  const showNutrition = canSeeNutrition(role)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -239,19 +259,23 @@ export function Sidebar() {
         )}
         style={{ paddingTop: NOTCH_R, paddingBottom: NOTCH_R }}
       >
-        {navItems.map((item) => (
+        {showTraining && navItems.map((item) => (
           <SidebarItem key={item.href} {...item} collapsed={collapsed} />
         ))}
 
-        {!collapsed && <SidebarSection label="Finanzas" />}
-        {collapsed && (
-          <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+        {showTraining && (
+          <>
+            {!collapsed && <SidebarSection label="Finanzas" />}
+            {collapsed && (
+              <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+            )}
+            {financeItems.map((item) => (
+              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
+            ))}
+          </>
         )}
-        {financeItems.map((item) => (
-          <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-        ))}
 
-        {FEATURE_NUTRITION && (
+        {FEATURE_NUTRITION && showNutrition && (
           <>
             {!collapsed && <SidebarSection label="Nutrición" />}
             {collapsed && (
@@ -297,7 +321,7 @@ export function Sidebar() {
                   {profile?.full_name ?? 'Cargando...'}
                 </p>
                 <p className="text-[10px] text-white/40 capitalize leading-none mt-0.5">
-                  {profile?.role}
+                  {roleLabel(profile?.role)}
                 </p>
               </div>
               <button

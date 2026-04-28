@@ -71,7 +71,7 @@ export function LoginPage() {
             alt="Haciéndolo Hábito"
             className="w-28 h-28 object-contain mx-auto mb-4"
           />
-          <p className="text-sm text-ink-secondary">Panel de entrenador</p>
+          <p className="text-sm text-ink-secondary">Panel de acceso</p>
         </div>
 
         <div className="bg-surface-card border border-surface-border rounded-2xl p-6 shadow-card dark:shadow-none">
@@ -81,7 +81,7 @@ export function LoginPage() {
               onClick={() => setTab('password')}
               className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 tab === 'password'
-                  ? 'bg-brand-primary text-white'
+                  ? 'bg-black text-white dark:bg-white dark:text-black'
                   : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
@@ -91,7 +91,7 @@ export function LoginPage() {
               onClick={() => setTab('magic')}
               className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 tab === 'magic'
-                  ? 'bg-brand-primary text-white'
+                  ? 'bg-black text-white dark:bg-white dark:text-black'
                   : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
@@ -119,7 +119,7 @@ export function LoginPage() {
               />
               <Button
                 type="submit"
-                className="w-full mt-2"
+                className="w-full mt-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-none"
                 loading={isSubmitting}
                 icon={<ArrowRight className="h-4 w-4" />}
                 iconPosition="right"

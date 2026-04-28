@@ -48,6 +48,13 @@
     --ink-muted: 107 107 107;
   }
 
+  :root[data-role-theme='nutritionist'] {
+    --brand-primary: 34 197 94;
+    --brand-hover: 74 222 128;
+    --status-active: 34 197 94;
+    --status-pending: 134 239 172;
+  }
+
   * {
     box-sizing: border-box;
   }

@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Users, Dumbbell, Wallet, MessageSquare } from 'lucide-react'
+import { Home, Users, Dumbbell, Wallet, MessageSquare, Salad } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
+import { FEATURE_NUTRITION } from '@/lib/constants'
 
-const mobileNavItems = [
+const trainerNavItems = [
   { label: 'Inicio',    href: '/dashboard', icon: Home },
   { label: 'Alumnos',  href: '/students',  icon: Users },
   { label: 'Rutinas',  href: '/routines',  icon: Dumbbell },
@@ -10,11 +12,27 @@ const mobileNavItems = [
   { label: 'Dudas',    href: '/feedback',  icon: MessageSquare },
 ]
 
+const nutritionistNavItems = [
+  { label: 'Inicio', href: '/dashboard', icon: Home },
+  { label: 'Nutrición', href: '/nutrition', icon: Salad },
+  { label: 'Alumnos', href: '/students', icon: Users },
+]
+
 export function MobileNav() {
+  const role = useAuthStore((state) => state.profile?.role)
+  const mobileNavItems = role === 'nutritionist'
+    ? nutritionistNavItems
+    : trainerNavItems
+
+  const visibleItems = mobileNavItems.filter((item) => {
+    if (!FEATURE_NUTRITION && item.href.startsWith('/nutrition')) return false
+    return true
+  })
+
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border">
       <div className="flex items-center justify-around h-16 px-2">
-        {mobileNavItems.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon
           return (
             <NavLink
