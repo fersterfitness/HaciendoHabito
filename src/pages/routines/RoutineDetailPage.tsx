@@ -717,6 +717,7 @@ export function RoutineDetailPage() {
             onOpenCopyMenu={() => setCopyMenuBlock(copyMenuBlock === block.id ? null : block.id)}
             onCloseCopyMenu={() => setCopyMenuBlock(null)}
             onCopyTo={(targetId) => copyBlock(block.id, targetId)}
+            rmByExerciseId={rmByExerciseId}
           />
         ))}
 
@@ -762,6 +763,7 @@ function BlockCard({
   onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
+  rmByExerciseId: Map<string, number>
 }) {
   const [showDelete, setShowDelete] = useState(false)
   const [editingName, setEditingName] = useState(false)
