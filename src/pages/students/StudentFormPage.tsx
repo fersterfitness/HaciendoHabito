@@ -10,8 +10,12 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS, STUDENT_STATUSES } from '@/lib/constants'
+import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 
-const schema = z.object({
+const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT} (solo dígitos, +54, espacios entre bloques).`
+
+const schema = z
+  .object({
   full_name: z.string().min(2, 'Mínimo 2 caracteres').max(100),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
@@ -20,6 +24,16 @@ const schema = z.object({
   gender: z.enum(['M', 'F', 'otro']).optional(),
   status: z.enum(['activo', 'inactivo', 'pausado', 'baja']),
   notes: z.string().optional().or(z.literal('')),
+})
+.superRefine((data, ctx) => {
+  if (!data.phone?.trim()) return
+  if (!canonicalizeArgentinaStudentPhone(data.phone)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: PHONE_HINT,
+      path: ['phone'],
+    })
+  }
 })
 
 type FormValues = z.infer<typeof schema>
@@ -64,10 +78,17 @@ export function StudentFormPage() {
   }, [id, isEditing, reset])
 
   async function onSubmit(values: FormValues) {
+    let phoneCanon: string | null = null
+    if (values.phone?.trim()) {
+      const canon = canonicalizeArgentinaStudentPhone(values.phone)
+      if (!canon) return
+      phoneCanon = canon
+    }
+
     const payload = {
       full_name: values.full_name,
       email: values.email || null,
-      phone: values.phone || null,
+      phone: phoneCanon,
       birth_date: values.birth_date || null,
       level: values.level,
       gender: values.gender ?? null,
@@ -113,7 +134,10 @@ export function StudentFormPage() {
               <Input
                 label="Teléfono"
                 type="tel"
-                placeholder="+54 11 1234-5678"
+                placeholder={STUDENT_PHONE_FORMAT_HINT}
+                hint={PHONE_HINT}
+                autoComplete="tel"
+                error={errors.phone?.message}
                 {...register('phone')}
               />
             </div>

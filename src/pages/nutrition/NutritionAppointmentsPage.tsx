@@ -3,7 +3,12 @@ import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import { CalendarClock, ChevronLeft, ChevronRight, Grid2x2, List } from 'lucide-react'
+import { CalendarClock, ChevronLeft, ChevronRight, Grid2x2, List, MessageCircle } from 'lucide-react'
+import {
+  buildAppointmentConfirmationWaUrl,
+  buildAppointmentFeedbackWaUrl,
+} from '@/lib/whatsapp'
+import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { Appointment, Student, AppointmentStatus } from '@/types/database'
@@ -27,7 +32,39 @@ async function parseFunctionErrorMessage(error: unknown) {
   }
 }
 
-type AppointmentRow = Appointment & { student?: Pick<Student, 'full_name'> | null }
+type AppointmentRow = Appointment & { student?: Pick<Student, 'full_name' | 'phone'> | null }
+
+function whatsappToast(title: string, whatsappUrl: string, dismissLabel = 'Listo') {
+  toast.custom(
+    (t) => (
+      <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 flex flex-col gap-2">
+        <p className="text-sm text-ink-primary font-medium leading-snug">{title}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 shadow-sm"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+            Abrir WhatsApp
+          </a>
+          <button type="button" className="text-xs text-ink-muted hover:text-ink-secondary px-2 py-1" onClick={() => toast.dismiss(t.id)}>
+            {dismissLabel}
+          </button>
+        </div>
+      </div>
+    ),
+    { duration: 45000 },
+  )
+}
+
+function appointmentPhoneRaw(a: AppointmentRow, studentsById: Map<string, Student>): string | undefined {
+  const fromJoin = a.student?.phone?.trim()
+  if (fromJoin) return fromJoin
+  return studentsById.get(a.student_id)?.phone?.trim() || undefined
+}
 type ViewMode = 'week' | 'agenda'
 
 const STATUS_BADGE: Record<AppointmentStatus, string> = {
@@ -37,6 +74,9 @@ const STATUS_BADGE: Record<AppointmentStatus, string> = {
   cancelled: 'bg-rose-500/10 text-rose-300 border-rose-500/40',
   no_show: 'bg-amber-500/10 text-amber-300 border-amber-500/40',
 }
+
+/** Opciones de duración del turno (minutos, de 15 en 15 hasta 8 h). */
+const APPOINTMENT_DURATION_OPTIONS_MINUTES = Array.from({ length: 32 }, (_, i) => (i + 1) * 15)
 
 export function NutritionAppointmentsPage() {
   const { user, profile } = useAuthStore()
@@ -49,13 +89,15 @@ export function NutritionAppointmentsPage() {
   const [form, setForm] = useState({
     student_id: '',
     starts_at: '',
-    ends_at: '',
+    duration_minutes: 45 as number,
     title: '',
     location: '',
     notes: '',
   })
 
   const profileType = profile?.role === 'nutritionist' ? 'nutritionist' : 'trainer'
+
+  const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students])
 
   useEffect(() => {
     if (!user) return
@@ -65,7 +107,7 @@ export function NutritionAppointmentsPage() {
         supabase.from('students').select('*').eq('owner_id', user.id).order('full_name'),
         supabase
           .from('appointments')
-          .select('*, student:students(full_name)')
+          .select('*, student:students(full_name, phone)')
           .eq('owner_id', user.id)
           .order('starts_at', { ascending: true }),
       ])
@@ -90,6 +132,45 @@ export function NutritionAppointmentsPage() {
     [appointments]
   )
 
+  function openAppointmentConfirmationWa(a: AppointmentRow) {
+    const phoneRaw = appointmentPhoneRaw(a, studentById)
+    const url = buildAppointmentConfirmationWaUrl({
+      phoneRaw,
+      studentName: a.student?.full_name ?? 'Paciente',
+      title: a.title,
+      startsAtIso: a.starts_at,
+      location: a.location,
+    })
+    if (!phoneRaw?.trim()) {
+      toast.error('Sin teléfono del alumno: cargalo en la ficha para usar WhatsApp.')
+      return
+    }
+    if (!url) {
+      toast.error(`Teléfono inválido. Usá el formato ${STUDENT_PHONE_FORMAT_HINT}`)
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  function openAppointmentFeedbackWa(a: AppointmentRow) {
+    const phoneRaw = appointmentPhoneRaw(a, studentById)
+    const url = buildAppointmentFeedbackWaUrl({
+      phoneRaw,
+      studentName: a.student?.full_name ?? 'Paciente',
+      title: a.title,
+      startsAtIso: a.starts_at,
+    })
+    if (!phoneRaw?.trim()) {
+      toast.error('Sin teléfono del alumno: cargalo en la ficha para usar WhatsApp.')
+      return
+    }
+    if (!url) {
+      toast.error(`Teléfono inválido. Usá el formato ${STUDENT_PHONE_FORMAT_HINT}`)
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   async function createAppointment() {
     if (!user) return
     if (!form.student_id || !form.starts_at || !form.title.trim()) {
@@ -98,8 +179,14 @@ export function NutritionAppointmentsPage() {
     }
     setCreating(true)
     try {
-      const startsAtIso = new Date(form.starts_at).toISOString()
-      const endsAtIso = form.ends_at ? new Date(form.ends_at).toISOString() : null
+      const startMs = new Date(form.starts_at).getTime()
+      const mins = APPOINTMENT_DURATION_OPTIONS_MINUTES.includes(form.duration_minutes)
+        ? form.duration_minutes
+        : 45
+      const endMs = startMs + mins * 60 * 1000
+      const startsAtIso = new Date(startMs).toISOString()
+      const endsAtIso = new Date(endMs).toISOString()
+
       const { data, error } = await supabase
         .from('appointments')
         .insert({
@@ -113,7 +200,7 @@ export function NutritionAppointmentsPage() {
           notes: form.notes.trim() || null,
           status: 'scheduled',
         })
-        .select('*, student:students(full_name)')
+        .select('*, student:students(full_name, phone)')
         .single()
 
       if (error) {
@@ -154,7 +241,35 @@ export function NutritionAppointmentsPage() {
       }
 
       setAppointments((prev) => [...prev, appointment].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
-      setForm({ student_id: '', starts_at: '', ends_at: '', title: '', location: '', notes: '' })
+      setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
+
+      const studentName = appointment.student?.full_name ?? '—'
+      const phoneRaw = appointment.student?.phone ?? students.find((s) => s.id === appointment.student_id)?.phone
+      const confirmUrl = buildAppointmentConfirmationWaUrl({
+        phoneRaw,
+        studentName,
+        title: appointment.title,
+        startsAtIso: appointment.starts_at,
+        location: appointment.location,
+      })
+      if (!phoneRaw?.trim()) {
+        toast.custom(
+          (t) => (
+            <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 text-sm text-ink-secondary">
+              Para pedir confirmación por WhatsApp, agregá el teléfono del alumno en su ficha.
+              <button type="button" className="mt-2 text-xs font-medium text-brand-primary" onClick={() => toast.dismiss(t.id)}>
+                Entendido
+              </button>
+            </div>
+          ),
+          { duration: 8000 },
+        )
+      } else if (!confirmUrl) {
+        toast.error(`Teléfono del alumno: actualizalo en la ficha con formato tipo ${STUDENT_PHONE_FORMAT_HINT}`)
+      } else {
+        whatsappToast('Pedí confirmación por WhatsApp (podés repetir desde la lista de Agenda)', confirmUrl)
+      }
+
       if (!calendarData?.googleEventId && !calendarError) {
         toast.success('Turno agendado')
       }
@@ -164,12 +279,41 @@ export function NutritionAppointmentsPage() {
   }
 
   async function updateStatus(id: string, status: AppointmentStatus) {
+    const prev = appointments.find((a) => a.id === id)
     const { error } = await supabase.from('appointments').update({ status }).eq('id', id)
     if (error) {
       toast.error(error.message)
       return
     }
-    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)))
+    setAppointments((prevList) => prevList.map((a) => (a.id === id ? { ...a, status } : a)))
+
+    if (status === 'completed' && prev) {
+      const studentName = prev.student?.full_name ?? '—'
+      const phoneRaw = prev.student?.phone ?? students.find((s) => s.id === prev.student_id)?.phone
+      const feedbackUrl = buildAppointmentFeedbackWaUrl({
+        phoneRaw,
+        studentName,
+        title: prev.title,
+        startsAtIso: prev.starts_at,
+      })
+      if (!phoneRaw?.trim()) {
+        toast.custom(
+          (t) => (
+            <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 text-sm text-ink-secondary">
+              Sesión marcada como completada. Para pedir feedback por WhatsApp, cargá el teléfono en la ficha del alumno.
+              <button type="button" className="mt-2 text-xs font-medium text-brand-primary" onClick={() => toast.dismiss(t.id)}>
+                Entendido
+              </button>
+            </div>
+          ),
+          { duration: 8000 },
+        )
+      } else if (!feedbackUrl) {
+        toast.error(`Sesión guardada — el teléfono del alumno no sirve para WhatsApp (usá ${STUDENT_PHONE_FORMAT_HINT} en la ficha).`)
+      } else {
+        whatsappToast('Pedí cómo fue hoy por WhatsApp (desde Agenda o Historial podés repetir)', feedbackUrl)
+      }
+    }
   }
 
   if (loading) {
@@ -220,13 +364,21 @@ export function NutritionAppointmentsPage() {
               />
             </label>
             <label className="text-xs text-ink-secondary">
-              Fin (opcional)
-              <input
-                type="datetime-local"
-                value={form.ends_at}
-                onChange={(e) => setForm((prev) => ({ ...prev, ends_at: e.target.value }))}
+              Duración
+              <select
+                value={form.duration_minutes}
+                onChange={(e) => setForm((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))}
                 className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              />
+              >
+                {APPOINTMENT_DURATION_OPTIONS_MINUTES.map((m) => (
+                  <option key={m} value={m}>
+                    {m} min{m >= 60 ? ` (${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''})` : ''}
+                  </option>
+                ))}
+              </select>
+              <span className="block text-[10px] text-ink-muted mt-1 leading-snug">
+                El horario de fin se calcula desde el inicio (de 15 en 15 minutos).
+              </span>
             </label>
             <label className="text-xs text-ink-secondary">
               Ubicación
@@ -324,6 +476,17 @@ export function NutritionAppointmentsPage() {
                             <p className="text-[11px] text-ink-secondary">
                               {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                             </p>
+                            {(a.status === 'scheduled' || a.status === 'confirmed') && (
+                              <button
+                                type="button"
+                                title="Pedir confirmación por WhatsApp"
+                                onClick={() => openAppointmentConfirmationWa(a)}
+                                className="mt-1 w-full inline-flex items-center justify-center gap-1 rounded-md border border-emerald-600/35 bg-emerald-600/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600/15"
+                              >
+                                <MessageCircle className="h-3 w-3 shrink-0" />
+                                WhatsApp
+                              </button>
+                            )}
                           </div>
                         ))
                       )}
@@ -350,7 +513,7 @@ export function NutritionAppointmentsPage() {
                         {a.status}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => updateStatus(a.id, 'confirmed')}
@@ -371,6 +534,15 @@ export function NutritionAppointmentsPage() {
                         className="text-[11px] px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired"
                       >
                         Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openAppointmentConfirmationWa(a)}
+                        title="Abre WhatsApp con mensaje para confirmar el turno (misma plantilla que al crear)."
+                        className="text-[11px] px-2 py-1 rounded-lg border border-emerald-600/40 text-emerald-700 dark:text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/15 inline-flex items-center gap-1"
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        Confirmación WA
                       </button>
                     </div>
                   </div>
@@ -397,6 +569,17 @@ export function NutritionAppointmentsPage() {
                   <p className="text-xs text-ink-secondary mt-0.5">
                     {a.student?.full_name ?? 'Paciente'} · {new Date(a.starts_at).toLocaleString('es-AR')}
                   </p>
+                  {a.status === 'completed' && (
+                    <button
+                      type="button"
+                      onClick={() => openAppointmentFeedbackWa(a)}
+                      title="Pedir feedback por WhatsApp (misma plantilla que al completar)."
+                      className="mt-2 text-[11px] px-2 py-1 rounded-lg border border-emerald-600/40 text-emerald-700 dark:text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/15 inline-flex items-center gap-1"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      Feedback WA
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
