@@ -34,7 +34,9 @@ export function StudentDetailPage() {
   const { id }     = useParams<{ id: string }>()
   const navigate   = useNavigate()
   const { deleteStudent } = useStudents()
-  const { user }   = useAuthStore()
+  const { user, profile }   = useAuthStore()
+  const entitySingularCapitalized = profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno'
+  const entitySingular = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
 
   const [student,    setStudent]    = useState<Student | null>(null)
   const [routines,   setRoutines]   = useState<Routine[]>([])
@@ -86,8 +88,8 @@ export function StudentDetailPage() {
     setRmRecords((prev) => prev.filter((r) => r.id !== recordId))
   }
 
-  if (loading) return <div><Header title="Alumno" showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
-  if (!student) return <div><Header title="Alumno" showBack /><p className="p-6 text-ink-muted">Alumno no encontrado.</p></div>
+  if (loading) return <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
+  if (!student) return <div><Header title={entitySingularCapitalized} showBack /><p className="p-6 text-ink-muted">{entitySingularCapitalized} no encontrado.</p></div>
 
   const activeRoutine = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
 
@@ -218,7 +220,7 @@ export function StudentDetailPage() {
                 </Button>
               </CardHeader>
               {routines.length === 0 ? (
-                <EmptyState icon={<Dumbbell className="h-6 w-6" />} title="Sin rutinas" description="Este alumno todavía no tiene rutinas registradas." />
+                <EmptyState icon={<Dumbbell className="h-6 w-6" />} title="Sin rutinas" description={`Este ${entitySingular} todavía no tiene rutinas registradas.`} />
               ) : (
                 <div className="space-y-2">
                   {routines.map((r) => (
@@ -258,7 +260,7 @@ export function StudentDetailPage() {
         open={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
-        title="¿Eliminar alumno?"
+        title={`¿Eliminar ${entitySingular}?`}
         description="Esta acción no se puede deshacer."
         confirmLabel="Sí, eliminar"
         loading={deleting}

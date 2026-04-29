@@ -83,7 +83,8 @@ function AppRoutes() {
           <Route path="/nutrition" element={canSeeNutrition ? <NutritionPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/nutrition/evolution" element={canSeeNutrition ? <NutritionEvolutionPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/nutrition/appointments" element={<Navigate to="/appointments" replace />} />
-          <Route path="/nutrition/templates" element={canSeeNutrition ? <NutritionTemplatesPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition/plans" element={canSeeNutrition ? <NutritionTemplatesPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/nutrition/templates" element={<Navigate to="/nutrition/plans" replace />} />
           <Route path="/nutrition/:id" element={canSeeNutrition ? <NutritionPatientDetailPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/nutrition-pdfs" element={canSeeNutrition ? <NutritionComparativePage /> : <Navigate to="/dashboard" replace />} />
 

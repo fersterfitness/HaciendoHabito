@@ -32,108 +32,161 @@ export interface Database {
         Row: Profile
         Insert: Omit<Profile, 'created_at' | 'updated_at'>
         Update: Partial<Omit<Profile, 'id'>>
+        Relationships: []
       }
       students: {
         Row: Student
         Insert: Omit<Student, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Student, 'id' | 'created_at'>>
+        Relationships: []
       }
       plans: {
         Row: Plan
         Insert: Omit<Plan, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Plan, 'id' | 'created_at'>>
+        Relationships: []
       }
       routines: {
         Row: Routine
         Insert: Omit<Routine, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Routine, 'id' | 'created_at'>>
+        Relationships: []
       }
       routine_blocks: {
         Row: RoutineBlock
         Insert: Omit<RoutineBlock, 'id'>
         Update: Partial<Omit<RoutineBlock, 'id'>>
+        Relationships: []
       }
       routine_days: {
         Row: RoutineDay
         Insert: Omit<RoutineDay, 'id'>
         Update: Partial<Omit<RoutineDay, 'id'>>
+        Relationships: []
       }
       routine_exercises: {
         Row: RoutineExercise
         Insert: Omit<RoutineExercise, 'id'>
         Update: Partial<Omit<RoutineExercise, 'id'>>
+        Relationships: []
       }
       exercise_library: {
         Row: Exercise
         Insert: Omit<Exercise, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Exercise, 'id' | 'created_at'>>
+        Relationships: []
       }
       muscle_groups: {
         Row: MuscleGroup
         Insert: Omit<MuscleGroup, 'id'>
         Update: Partial<Omit<MuscleGroup, 'id'>>
+        Relationships: []
       }
       routine_pdfs: {
         Row: RoutinePdf
         Insert: Omit<RoutinePdf, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<RoutinePdf, 'id' | 'created_at'>>
+        Relationships: []
       }
       routine_questions: {
         Row: RoutineQuestion
         Insert: Omit<RoutineQuestion, 'id' | 'received_at'>
         Update: Partial<Omit<RoutineQuestion, 'id'>>
+        Relationships: []
       }
       routine_feedback: {
         Row: RoutineFeedback
         Insert: Omit<RoutineFeedback, 'id' | 'responded_at'>
         Update: Partial<Omit<RoutineFeedback, 'id'>>
+        Relationships: []
       }
       nutrition_patient_followups: {
         Row: NutritionPatientFollowup
         Insert: Omit<NutritionPatientFollowup, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<NutritionPatientFollowup, 'id' | 'created_at'>>
+        Relationships: []
       }
       nutrition_patient_documents: {
         Row: NutritionPatientDocument
         Insert: Omit<NutritionPatientDocument, 'id' | 'uploaded_at'>
         Update: Partial<Omit<NutritionPatientDocument, 'id' | 'uploaded_at'>>
+        Relationships: []
       }
       nutrition_plan_notes: {
         Row: NutritionPlanNote
         Insert: Omit<NutritionPlanNote, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<NutritionPlanNote, 'id' | 'created_at'>>
+        Relationships: []
       }
       nutrition_measurements: {
         Row: NutritionMeasurement
         Insert: Omit<NutritionMeasurement, 'id' | 'created_at'>
         Update: Partial<Omit<NutritionMeasurement, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_anamnesis: {
+        Row: NutritionAnamnesis
+        Insert: Omit<NutritionAnamnesis, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionAnamnesis, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_week_schedules: {
+        Row: NutritionWeekSchedule
+        Insert: Omit<NutritionWeekSchedule, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionWeekSchedule, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_week_plan_templates: {
+        Row: NutritionWeekPlanTemplate
+        Insert: Omit<NutritionWeekPlanTemplate, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionWeekPlanTemplate, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_plan_library: {
+        Row: NutritionPlanLibrary
+        Insert: Omit<NutritionPlanLibrary, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionPlanLibrary, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_patient_plan_versions: {
+        Row: NutritionPatientPlanVersion
+        Insert: Omit<NutritionPatientPlanVersion, 'id' | 'created_at' | 'updated_at' | 'imported_at'>
+        Update: Partial<Omit<NutritionPatientPlanVersion, 'id' | 'created_at' | 'imported_at'>>
+        Relationships: []
       }
       appointments: {
         Row: Appointment
         Insert: Omit<Appointment, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Appointment, 'id' | 'created_at'>>
+        Relationships: []
       }
       appointment_reminders: {
         Row: AppointmentReminder
         Insert: Omit<AppointmentReminder, 'id' | 'created_at'>
         Update: Partial<Omit<AppointmentReminder, 'id' | 'created_at'>>
+        Relationships: []
       }
       income: {
         Row: Income
         Insert: Omit<Income, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Income, 'id' | 'created_at'>>
+        Relationships: []
       }
       expenses: {
         Row: Expense
         Insert: Omit<Expense, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Expense, 'id' | 'created_at'>>
+        Relationships: []
       }
       notifications: {
         Row: Notification
         Insert: Omit<Notification, 'id' | 'created_at'>
         Update: Partial<Omit<Notification, 'id' | 'created_at'>>
+        Relationships: []
       }
     }
+    Views: {}
+    Functions: {}
   }
 }
 
@@ -355,6 +408,70 @@ export interface NutritionMeasurement {
   skinfolds_notes: string | null
   notes: string | null
   created_at: string
+}
+
+export interface NutritionAnamnesis {
+  id: string
+  owner_id: string
+  student_id: string
+  payload: Json
+  schema_version: number
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionWeekSchedule {
+  id: string
+  owner_id: string
+  student_id: string
+  total_kcal: number | null
+  next_consultation_date: string | null
+  merge_weekends: boolean
+  grid: Json
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionWeekPlanTemplate {
+  id: string
+  owner_id: string
+  name: string
+  merge_weekends: boolean
+  grid: Json
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionPlanLibrary {
+  id: string
+  owner_id: string
+  name: string
+  objective: string | null
+  notes: string | null
+  tags: string[]
+  merge_weekends: boolean
+  grid: Json
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionPatientPlanVersion {
+  id: string
+  owner_id: string
+  student_id: string
+  source_library_id: string | null
+  version_number: number
+  is_active: boolean
+  imported_at: string
+  replaced_version_id: string | null
+  title: string
+  total_kcal: number | null
+  next_consultation_date: string | null
+  merge_weekends: boolean
+  grid: Json
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Appointment {

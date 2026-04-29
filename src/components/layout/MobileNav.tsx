@@ -16,7 +16,7 @@ const nutritionistNavItems = [
   { label: 'Inicio', href: '/dashboard', icon: Home },
   { label: 'Turnos', href: '/appointments', icon: CalendarClock },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
-  { label: 'Alumnos', href: '/students', icon: Users },
+  { label: 'Pacientes', href: '/students', icon: Users },
 ]
 
 const adminNavItems = [

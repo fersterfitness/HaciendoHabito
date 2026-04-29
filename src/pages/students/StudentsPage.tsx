@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getInitials, cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import type { Student } from '@/types/database'
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -20,6 +21,9 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export function StudentsPage() {
   const navigate = useNavigate()
+  const role = useAuthStore((state) => state.profile?.role)
+  const entityLabel = role === 'nutritionist' ? 'Pacientes' : 'Alumnos'
+  const entityLabelSingular = role === 'nutritionist' ? 'paciente' : 'alumno'
   const { students, loading, fetchStudents, deleteStudent } = useStudents()
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
@@ -54,7 +58,7 @@ export function StudentsPage() {
   return (
     <div>
       <Header
-        title="Alumnos"
+        title={entityLabel}
         actions={
           <Button
             size="sm"
@@ -68,7 +72,7 @@ export function StudentsPage() {
 
       <div className="px-4 lg:px-6 py-6 space-y-6">
         <Input
-          placeholder="Buscar alumno..."
+          placeholder={`Buscar ${entityLabelSingular}...`}
           leftIcon={<Search className="h-4 w-4" />}
           value={search}
           onChange={(e) => handleSearch(e.target.value)}
@@ -81,10 +85,10 @@ export function StudentsPage() {
         ) : students.length === 0 ? (
           <EmptyState
             icon={<Users className="h-8 w-8" />}
-            title="No hay alumnos todavía"
-            description="Creá tu primer alumno para comenzar a gestionar rutinas y planes."
+            title={`No hay ${entityLabelSingular}s todavía`}
+            description={`Creá tu primer ${entityLabelSingular} para comenzar a gestionar rutinas y planes.`}
             action={{
-              label: 'Nuevo alumno',
+              label: `Nuevo ${entityLabelSingular}`,
               onClick: () => navigate('/students/new'),
               icon: <Plus className="h-4 w-4" />,
             }}
@@ -94,6 +98,7 @@ export function StudentsPage() {
             {grouped.activo.length > 0 && (
               <StudentTable
                 label={`Activos (${grouped.activo.length})`}
+                entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 students={grouped.activo}
                 onRowClick={(id) => navigate(`/students/${id}`)}
                 onEdit={(id) => navigate(`/students/${id}/edit`)}
@@ -103,6 +108,7 @@ export function StudentsPage() {
             {grouped.inactivo.length > 0 && (
               <StudentTable
                 label={`Inactivos / Baja (${grouped.inactivo.length})`}
+                entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 students={grouped.inactivo}
                 onRowClick={(id) => navigate(`/students/${id}`)}
                 onEdit={(id) => navigate(`/students/${id}/edit`)}
@@ -118,7 +124,7 @@ export function StudentsPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title={`¿Eliminar a ${deleteTarget?.full_name}?`}
-        description="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al alumno."
+        description={`Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al ${entityLabelSingular}.`}
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
@@ -128,12 +134,14 @@ export function StudentsPage() {
 
 function StudentTable({
   label,
+  entityLabelColumn,
   students,
   onRowClick,
   onEdit,
   onDelete,
 }: {
   label: string
+  entityLabelColumn: string
   students: Student[]
   onRowClick: (id: string) => void
   onEdit: (id: string) => void
@@ -150,7 +158,7 @@ function StudentTable({
           <thead>
             <tr className="border-b border-surface-border">
               <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[35%]">
-                Alumno
+                {entityLabelColumn}
               </th>
               <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[15%] hidden sm:table-cell">
                 Nivel

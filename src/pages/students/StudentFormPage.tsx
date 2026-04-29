@@ -11,6 +11,7 @@ import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS, STUDENT_STATUSES } from '@/lib/constants'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import { useAuthStore } from '@/stores/authStore'
 
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT} (solo dígitos, +54, espacios entre bloques).`
 
@@ -42,6 +43,8 @@ export function StudentFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEditing = !!id
   const navigate = useNavigate()
+  const role = useAuthStore((state) => state.profile?.role)
+  const entitySingular = role === 'nutritionist' ? 'paciente' : 'alumno'
   const { createStudent, updateStudent } = useStudents()
 
   const {
@@ -109,7 +112,7 @@ export function StudentFormPage() {
   return (
     <div>
       <Header
-        title={isEditing ? 'Editar alumno' : 'Nuevo alumno'}
+        title={isEditing ? `Editar ${entitySingular}` : `Nuevo ${entitySingular}`}
         showBack
       />
 
@@ -197,7 +200,7 @@ export function StudentFormPage() {
               Cancelar
             </Button>
             <Button type="submit" className="flex-1" loading={isSubmitting}>
-              {isEditing ? 'Guardar cambios' : 'Crear alumno'}
+              {isEditing ? 'Guardar cambios' : `Crear ${entitySingular}`}
             </Button>
           </div>
         </form>

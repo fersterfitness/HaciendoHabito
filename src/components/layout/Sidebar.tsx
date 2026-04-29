@@ -53,7 +53,7 @@ const financeItems = [
 const nutritionItems = [
   { label: 'Nutrición',      href: '/nutrition',      icon: Salad, exactMatch: true },
   { label: 'Evolución',      href: '/nutrition/evolution', icon: LineChart },
-  { label: 'Plantillas',     href: '/nutrition/templates', icon: Library },
+  { label: 'Planes',         href: '/nutrition/plans', icon: Library },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
 

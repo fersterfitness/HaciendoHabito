@@ -156,6 +156,7 @@ export function DashboardPage() {
   const { user, profile } = useAuthStore()
   const navigate = useNavigate()
   const role = profile?.role
+  const activePeopleLabel = role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
   const [stats, setStats] = useState<Stats>({
@@ -256,7 +257,7 @@ export function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard
-            title="Alumnos activos"
+            title={activePeopleLabel}
             value={stats.activeStudents}
             icon={<Users className="h-5 w-5" />}
             onClick={() => navigate('/students')}

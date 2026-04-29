@@ -9,6 +9,8 @@ import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
+import { NutritionAnamnesisSection } from '@/components/nutrition/NutritionAnamnesisSection'
+import { NutritionWeeklyPlanSection } from '@/components/nutrition/NutritionWeeklyPlanSection'
 import { slugify } from '@/lib/utils'
 import type {
   Student,
@@ -327,33 +329,84 @@ export function NutritionPatientDetailPage() {
       } />
 
       <div className="px-4 lg:px-6 py-6 space-y-6">
-        {CATEGORIES.map((category) => (
-          <Card key={category.key}>
-            <div className="flex items-center justify-between mb-4">
-              <CardTitle>{category.title}</CardTitle>
-              <label className="inline-flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-brand-primary/50 transition-colors">
-                <Upload className="h-3.5 w-3.5" />
-                Subir PDF(s)
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => uploadPdf(category.key, e.target.files)}
-                />
-              </label>
-            </div>
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle>{CATEGORIES[0].title}</CardTitle>
+            <label className="inline-flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-brand-primary/50 transition-colors">
+              <Upload className="h-3.5 w-3.5" />
+              Subir PDF(s)
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => uploadPdf('antropometria', e.target.files)}
+              />
+            </label>
+          </div>
+          <div className="space-y-2">
+            {antropometrias.map((doc) => (
+              <div
+                key={doc.id}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors"
+              >
+                <button onClick={() => openDocument(doc.file_path)} className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-brand-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-primary truncate">{doc.title}</p>
+                      <p className="text-xs text-ink-muted capitalize">{monthLabel(doc.document_date)}</p>
+                    </div>
+                  </div>
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-ink-muted hidden sm:inline">Abrir PDF</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteDocument(doc)}
+                    disabled={deletingDocId === doc.id}
+                    className="p-1.5 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors disabled:opacity-40"
+                    title="Eliminar PDF"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {antropometrias.length === 0 && (
+              <p className="text-sm text-ink-muted py-2">Todavía no hay archivos en esta sección.</p>
+            )}
+          </div>
+        </Card>
 
+        <Card>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <CardTitle>Anamnesis alimentaria</CardTitle>
+              <p className="text-sm text-ink-muted mt-1">Formulario digital y PDFs de respaldo.</p>
+            </div>
+            <label className="inline-flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-brand-primary/50 transition-colors shrink-0">
+              <Upload className="h-3.5 w-3.5" />
+              Subir PDF(s)
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => uploadPdf('anamnesis', e.target.files)}
+              />
+            </label>
+          </div>
+          <NutritionAnamnesisSection studentId={student.id} />
+          <div className="border-t border-surface-border mt-8 pt-6">
+            <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide mb-3">PDFs adjuntos</p>
             <div className="space-y-2">
-              {(category.key === 'antropometria' ? antropometrias : anamnesis).map((doc) => (
+              {anamnesis.map((doc) => (
                 <div
                   key={doc.id}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors"
                 >
-                  <button
-                    onClick={() => openDocument(doc.file_path)}
-                    className="flex-1 min-w-0 text-left"
-                  >
+                  <button onClick={() => openDocument(doc.file_path)} className="flex-1 min-w-0 text-left">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-brand-primary shrink-0" />
                       <div className="min-w-0">
@@ -376,12 +429,12 @@ export function NutritionPatientDetailPage() {
                   </div>
                 </div>
               ))}
-              {(category.key === 'antropometria' ? antropometrias : anamnesis).length === 0 && (
-                <p className="text-sm text-ink-muted py-2">Todavía no hay archivos en esta sección.</p>
+              {anamnesis.length === 0 && (
+                <p className="text-sm text-ink-muted py-2">Todavía no hay PDFs en esta carpeta.</p>
               )}
             </div>
-          </Card>
-        ))}
+          </div>
+        </Card>
 
         <Card>
           <div className="flex items-center justify-between mb-3">
@@ -494,21 +547,30 @@ export function NutritionPatientDetailPage() {
         </Card>
 
         <Card>
-          <div className="flex items-center justify-between mb-3">
-            <CardTitle>Plan de alimentación</CardTitle>
-            <span className="text-xs text-ink-muted">{savingPlan ? 'Guardando...' : 'Guardado automático'}</span>
+          <div className="mb-4">
+            <CardTitle className="mb-1">Plan de alimentación</CardTitle>
+            <p className="text-sm text-ink-muted">
+              Plan semanal por columnas con exportación a PDF moderno (formato habitual lun–vie + finde unificado opcional).
+            </p>
           </div>
-          <textarea
-            value={planText}
-            onChange={(e) => {
-              const next = e.target.value
-              setPlanText(next)
-              schedulePlanAutosave(next)
-            }}
-            rows={12}
-            placeholder="Escribí el plan en lenguaje claro para paciente y profesional..."
-            className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary placeholder:text-ink-muted px-3 py-2.5 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-          />
+          <NutritionWeeklyPlanSection student={student} measurements={measurements} />
+          <div className="border-t border-surface-border pt-6 mt-8 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-ink-primary">Notas libres complementarias</span>
+              <span className="text-xs text-ink-muted">{savingPlan ? 'Guardando...' : 'Guardado automático'}</span>
+            </div>
+            <textarea
+              value={planText}
+              onChange={(e) => {
+                const next = e.target.value
+                setPlanText(next)
+                schedulePlanAutosave(next)
+              }}
+              rows={10}
+              placeholder="Recordatorios, generalidades que no están en la grilla, comunicación informal al paciente…"
+              className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary placeholder:text-ink-muted px-3 py-2.5 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </div>
         </Card>
       </div>
     </div>
