@@ -17,6 +17,11 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
 import { formatDate, daysUntil, cn } from '@/lib/utils'
 import { ROUTINE_STATUSES } from '@/lib/constants'
+import {
+  type ExerciseMeta,
+  parseExerciseMeta,
+  buildExerciseTechnicalNotes,
+} from '@/lib/routine/exerciseMeta'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -27,7 +32,6 @@ type DayWithEx       = RoutineDay      & { exercises: ExWithExercise[] }
 type BlockWithDays   = RoutineBlock    & { days: DayWithEx[] }
 type RoutineFull     = Routine         & { student?: Student }
 type ExerciseWithGroup = Exercise & { muscle_group?: { id: string; name: string; sort_order: number } }
-type ExerciseMeta = { restText?: string; rpeText?: string; percent1rm?: string; circuitNote?: string }
 const WARMUP_PRESETS = [
   {
     label: 'Día de empuje',
@@ -52,26 +56,6 @@ const WARMUP_PRESETS = [
 4) Activación zona media`,
   },
 ]
-
-function parseExerciseMeta(technicalNotes: string | null | undefined): { userNotes: string; meta: ExerciseMeta } {
-  const raw = technicalNotes ?? ''
-  const match = raw.match(/^\[\[META\]\]\n([\s\S]*?)\n\[\[\/META\]\]\n?([\s\S]*)$/)
-  if (!match) return { userNotes: raw, meta: {} }
-  try {
-    const meta = JSON.parse(match[1]) as ExerciseMeta
-    return { userNotes: match[2] ?? '', meta }
-  } catch {
-    return { userNotes: raw, meta: {} }
-  }
-}
-
-function buildExerciseTechnicalNotes(userNotes: string, meta: ExerciseMeta): string {
-  const hasMeta = Boolean(meta.restText || meta.rpeText || meta.percent1rm)
-  const cleanUserNotes = userNotes.trim()
-  if (!hasMeta) return cleanUserNotes
-  const payload = JSON.stringify(meta)
-  return `[[META]]\n${payload}\n[[/META]]\n${cleanUserNotes}`.trim()
-}
 
 function parseRestToSeconds(value: string): number | null {
   const v = value.trim().toLowerCase()
@@ -1366,7 +1350,23 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
             onChange={(e) => {
               const v = e.target.value
               setPercent1rm(v)
-              saveMeta({ ...initialMeta.meta, restText: restText || undefined, rpeText: rpeText || undefined, percent1rm: v || undefined })
+              const pctNum = Number(v)
+              const suggested =
+                rmKg &&
+                v.trim().length > 0 &&
+                !Number.isNaN(pctNum)
+                  ? Math.round(rmKg * (pctNum / 100) * 10) / 10
+                  : null
+              saveMeta(
+                {
+                  ...initialMeta.meta,
+                  restText: restText || undefined,
+                  rpeText: rpeText || undefined,
+                  percent1rm: v || undefined,
+                },
+                suggested !== null && weight === null ? { weight_kg: suggested } : {},
+              )
+              if (suggested !== null && weight === null) setWeight(suggested)
             }}
           />
         </div>

@@ -33,6 +33,7 @@ import { NutritionComparativePage } from '@/pages/nutrition/NutritionComparative
 import { NutritionEvolutionPage } from '@/pages/nutrition/NutritionEvolutionPage'
 import { NutritionAppointmentsPage } from '@/pages/nutrition/NutritionAppointmentsPage'
 import { NutritionTemplatesPage } from '@/pages/nutrition/NutritionTemplatesPage'
+import { PublicIntakeFormPage } from '@/pages/public/PublicIntakeFormPage'
 
 function AppRoutes() {
   useAuthInit()
@@ -44,6 +45,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
+      <Route path="/form" element={<PublicIntakeFormPage />} />
 
       <Route element={<AuthGuard />}>
         <Route element={<AppLayout />}>

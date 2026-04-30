@@ -1,5 +1,5 @@
 import { pdf } from '@react-pdf/renderer'
-import { createElement } from 'react'
+import { createElement, type ReactElement } from 'react'
 import { supabase } from '@/lib/supabase'
 import { RoutinePdfDocument } from './RoutinePdfDocument'
 import type { BlockFull, RoutineFull } from './RoutinePdfDocument'
@@ -39,6 +39,20 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
 
     if (blocksError) throw new Error(blocksError.message)
 
+    const studentId = (routine as { student_id?: string }).student_id
+    const rmByExerciseId: Record<string, number> = {}
+    if (studentId) {
+      const { data: rmRows } = await supabase
+        .from('student_rm_records')
+        .select('exercise_id, rm_kg, tested_at')
+        .eq('student_id', studentId)
+        .order('tested_at', { ascending: false })
+      for (const row of rmRows ?? []) {
+        const r = row as { exercise_id: string; rm_kg: number }
+        if (!(r.exercise_id in rmByExerciseId)) rmByExerciseId[r.exercise_id] = r.rm_kg
+      }
+    }
+
     // Ordenar días y ejercicios por sort_order
     const sortedBlocks = (blocks ?? []).map((block) => ({
       ...block,
@@ -53,9 +67,10 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
       routine: routine as unknown as RoutineFull,
       blocks: sortedBlocks as unknown as BlockFull[],
       generatedAt: new Date(),
+      rmByExerciseId: Object.keys(rmByExerciseId).length ? rmByExerciseId : undefined,
     })
 
-    const blob = await pdf(doc).toBlob()
+    const blob = await pdf(doc as ReactElement).toBlob()
     const sizeKb = Math.round(blob.size / 1024)
 
     // 5. Subir a Supabase Storage

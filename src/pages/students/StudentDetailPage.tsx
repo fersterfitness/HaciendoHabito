@@ -14,9 +14,11 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, getInitials, formatDate, daysUntil } from '@/lib/utils'
+import { cn, formatDate, daysUntil } from '@/lib/utils'
 import { CicloTab } from './CicloTab'
-import type { Student, Routine, Exercise, StudentRmRecord } from '@/types/database'
+import { StudentAvatar } from '@/components/students/StudentAvatar'
+import { StudentNotesCard } from '@/components/students/StudentNotesCard'
+import type { Student, Routine, Exercise, StudentRmRecord, FersterIntakeStored } from '@/types/database'
 import toast from 'react-hot-toast'
 
 type Tab = 'resumen' | 'fuerza' | 'ciclo'
@@ -28,6 +30,252 @@ function epley1RM(weight: number, reps: number): number {
 
 // ─── RM percentages table ─────────────────────────────────────────────────────
 const RM_PERCENTS = [100, 95, 90, 85, 80, 75, 70, 65, 60]
+
+function fersterTrainingSinceLabel(v: string): string {
+  const m: Record<string, string> = {
+    never: 'No entrenaba',
+    less_than_1y: 'Hace menos de 1 año',
+    '1_to_3y': 'Entre 1 y 3 años',
+    more_than_3y: 'Más de 3 años',
+  }
+  return m[v] ?? v
+}
+
+function fersterLifestyleLabel(v: string): string {
+  const m: Record<string, string> = {
+    sedentary: 'Sedentario',
+    light: 'Poco activo',
+    active: 'Activo',
+    very_active: 'Muy activo',
+  }
+  return m[v] ?? v
+}
+
+function fersterIntensityLabel(v: string): string {
+  const m: Record<string, string> = {
+    light: 'Liviano',
+    moderate: 'Moderado',
+    intense: 'Intenso',
+    very_intense: 'Muy intenso',
+  }
+  return m[v] ?? v
+}
+
+function fersterSessionLabel(v: string): string {
+  const m: Record<string, string> = {
+    '30': '30 minutos',
+    '60': '1 hora',
+    '90': '1,5 horas',
+    '120_plus': '2 horas o más',
+  }
+  return m[v] ?? v
+}
+
+function fersterEquipmentLabel(v: string): string {
+  const m: Record<string, string> = {
+    none: 'Sin equipo',
+    home: 'Equipo en casa',
+    gym_basic: 'Gimnasio básico',
+    gym_advanced: 'Gimnasio avanzado',
+  }
+  return m[v] ?? v
+}
+
+function fersterGoalLabel(v: string): string {
+  const m: Record<string, string> = {
+    healthy_life: 'Vida saludable',
+    sport: 'Mejorar en mi deporte',
+    cut_lean: 'Descenso de peso y ganancia magra',
+    bulk: 'Aumento de masa muscular',
+  }
+  return m[v] ?? v
+}
+
+function fersterMealsLabel(v: string): string {
+  const m: Record<string, string> = { yes: 'Sí', no: 'No', rarely: 'Con poca frecuencia' }
+  return m[v] ?? v
+}
+
+function fersterSleepLabel(v: string): string {
+  const m: Record<string, string> = {
+    lt5: 'Menos de 5 h',
+    '5_6': '5 a 6 h',
+    '6_7': '6 a 7 h',
+    '8_plus': '8 h o más',
+  }
+  return m[v] ?? v
+}
+
+function FersterIntakeSection({ student }: { student: Student }) {
+  const intake = student.intake_ferster as FersterIntakeStored | null | undefined
+  const hasExtra =
+    student.document_id ||
+    student.address ||
+    student.weight_kg != null ||
+    student.height_cm != null ||
+    (intake && Object.keys(intake).length > 0)
+  if (!hasExtra) return null
+
+  const [fileUrls, setFileUrls] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const uploads = intake?.uploads
+    if (!uploads || Object.keys(uploads).length === 0) {
+      setFileUrls({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const next: Record<string, string> = {}
+      for (const [key, path] of Object.entries(uploads)) {
+        const { data, error } = await supabase.storage.from('student-intake').createSignedUrl(path, 3600)
+        if (!error && data?.signedUrl) next[key] = data.signedUrl
+      }
+      if (!cancelled) setFileUrls(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [student.id, intake?.uploads])
+
+  return (
+    <Card>
+      <CardTitle className="text-sm mb-3">Registro web (Ferster /form)</CardTitle>
+      <dl className="grid gap-2 text-sm">
+        {student.document_id ? (
+          <>
+            <dt className="text-ink-muted text-xs">Documento</dt>
+            <dd className="text-ink-primary">{student.document_id}</dd>
+          </>
+        ) : null}
+        {student.address ? (
+          <>
+            <dt className="text-ink-muted text-xs">Dirección</dt>
+            <dd className="text-ink-primary whitespace-pre-wrap">{student.address}</dd>
+          </>
+        ) : null}
+        {student.weight_kg != null ? (
+          <>
+            <dt className="text-ink-muted text-xs">Peso</dt>
+            <dd className="text-ink-primary">{student.weight_kg} kg</dd>
+          </>
+        ) : null}
+        {student.height_cm != null ? (
+          <>
+            <dt className="text-ink-muted text-xs">Altura</dt>
+            <dd className="text-ink-primary">{student.height_cm} cm</dd>
+          </>
+        ) : null}
+        {intake?.training_since ? (
+          <>
+            <dt className="text-ink-muted text-xs">Antigüedad entrenando</dt>
+            <dd className="text-ink-primary">{fersterTrainingSinceLabel(intake.training_since)}</dd>
+          </>
+        ) : null}
+        {intake?.days_per_week != null ? (
+          <>
+            <dt className="text-ink-muted text-xs">Días por semana</dt>
+            <dd className="text-ink-primary">{intake.days_per_week} x semana</dd>
+          </>
+        ) : null}
+        {intake?.lifestyle ? (
+          <>
+            <dt className="text-ink-muted text-xs">Estilo de vida</dt>
+            <dd className="text-ink-primary">{fersterLifestyleLabel(intake.lifestyle)}</dd>
+          </>
+        ) : null}
+        {intake?.training_intensity ? (
+          <>
+            <dt className="text-ink-muted text-xs">Intensidad</dt>
+            <dd className="text-ink-primary">{fersterIntensityLabel(intake.training_intensity)}</dd>
+          </>
+        ) : null}
+        {intake?.session_duration ? (
+          <>
+            <dt className="text-ink-muted text-xs">Tiempo por sesión</dt>
+            <dd className="text-ink-primary">{fersterSessionLabel(intake.session_duration)}</dd>
+          </>
+        ) : null}
+        {intake?.equipment ? (
+          <>
+            <dt className="text-ink-muted text-xs">Equipo</dt>
+            <dd className="text-ink-primary">{fersterEquipmentLabel(intake.equipment)}</dd>
+          </>
+        ) : null}
+        {intake?.main_goal ? (
+          <>
+            <dt className="text-ink-muted text-xs">Objetivo principal</dt>
+            <dd className="text-ink-primary">{fersterGoalLabel(intake.main_goal)}</dd>
+          </>
+        ) : null}
+        {intake?.pathology ? (
+          <>
+            <dt className="text-ink-muted text-xs">Patología / medicación</dt>
+            <dd className="text-ink-primary">
+              {intake.pathology === 'yes' ? 'Sí' : 'No'}
+              {intake.pathology_detail ? ` — ${intake.pathology_detail}` : ''}
+            </dd>
+          </>
+        ) : null}
+        {intake?.discomfort_exercises ? (
+          <>
+            <dt className="text-ink-muted text-xs">Ejercicios incómodos / no puede</dt>
+            <dd className="text-ink-primary whitespace-pre-wrap">{intake.discomfort_exercises}</dd>
+          </>
+        ) : null}
+        {intake?.four_meals ? (
+          <>
+            <dt className="text-ink-muted text-xs">4 comidas al día</dt>
+            <dd className="text-ink-primary">{fersterMealsLabel(intake.four_meals)}</dd>
+          </>
+        ) : null}
+        {intake?.sleep_hours ? (
+          <>
+            <dt className="text-ink-muted text-xs">Sueño habitual</dt>
+            <dd className="text-ink-primary">{fersterSleepLabel(intake.sleep_hours)}</dd>
+          </>
+        ) : null}
+        {intake?.supplements ? (
+          <>
+            <dt className="text-ink-muted text-xs">Suplementos</dt>
+            <dd className="text-ink-primary">{intake.supplements === 'yes' ? 'Sí' : 'No'}</dd>
+          </>
+        ) : null}
+        {intake?.gender_other ? (
+          <>
+            <dt className="text-ink-muted text-xs">Género (detalle)</dt>
+            <dd className="text-ink-primary">{intake.gender_other}</dd>
+          </>
+        ) : null}
+        {intake?.submitted_at ? (
+          <>
+            <dt className="text-ink-muted text-xs">Enviado</dt>
+            <dd className="text-ink-primary">{formatDate(intake.submitted_at.slice(0, 10))}</dd>
+          </>
+        ) : null}
+      </dl>
+      {Object.keys(fileUrls).length > 0 ? (
+        <div className="mt-4 pt-4 border-t border-surface-border">
+          <p className="text-xs text-ink-muted mb-2">Archivos adjuntos (enlaces temporales)</p>
+          <ul className="flex flex-wrap gap-2">
+            {Object.entries(fileUrls).map(([key, href]) => (
+              <li key={key}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-medium text-brand-primary hover:underline"
+                >
+                  {key.startsWith('progress_') ? `Foto ${key.replace('progress_', '')}` : key === 'profile' ? 'Foto perfil' : key === 'medical' ? 'Estudios médicos' : key}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </Card>
+  )
+}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function StudentDetailPage() {
@@ -99,13 +347,10 @@ export function StudentDetailPage() {
 
       <div className="px-4 lg:px-6 py-4 space-y-4">
 
-        {/* Perfil compacto */}
+        {/* Perfil compacto: datos a la izquierda, foto grande a la derecha (o iniciales) */}
         <Card>
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-brand-primary font-bold text-lg">{getInitials(student.full_name)}</span>
-            </div>
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+            <div className="flex-1 min-w-0 order-2 sm:order-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-ink-primary">{student.full_name}</h2>
                 <Badge status={student.status} />
@@ -129,6 +374,18 @@ export function StudentDetailPage() {
                 )}
               </div>
             </div>
+            <div className="flex justify-center sm:justify-end shrink-0 order-1 sm:order-2">
+              <StudentAvatar
+                studentId={student.id}
+                fullName={student.full_name}
+                avatarPath={student.avatar_path ?? null}
+                size="lg"
+                allowRemove
+                onPathChange={(path) =>
+                  setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))
+                }
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-surface-border">
             <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
@@ -143,6 +400,8 @@ export function StudentDetailPage() {
             </button>
           </div>
         </Card>
+
+        <FersterIntakeSection student={student} />
 
         {/* Tabs */}
         <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">
@@ -169,12 +428,7 @@ export function StudentDetailPage() {
         {/* ── Resumen tab ── */}
         {tab === 'resumen' && (
           <div className="space-y-4">
-            {student.notes && (
-              <Card>
-                <CardTitle className="text-sm mb-2">Observaciones</CardTitle>
-                <p className="text-sm text-ink-secondary whitespace-pre-wrap">{student.notes}</p>
-              </Card>
-            )}
+            {student.notes ? <StudentNotesCard notes={student.notes} /> : null}
 
             {activeRoutine && (
               <Card className="border-brand-primary/20">

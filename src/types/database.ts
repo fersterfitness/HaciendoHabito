@@ -36,7 +36,18 @@ export interface Database {
       }
       students: {
         Row: Student
-        Insert: Omit<Student, 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<Student, 'id' | 'created_at' | 'updated_at'> &
+          Partial<
+            Pick<
+              Student,
+              | 'document_id'
+              | 'address'
+              | 'weight_kg'
+              | 'height_cm'
+              | 'intake_ferster'
+              | 'avatar_path'
+            >
+          >
         Update: Partial<Omit<Student, 'id' | 'created_at'>>
         Relationships: []
       }
@@ -202,6 +213,27 @@ export interface Profile {
   updated_at: string
 }
 
+/** Cuestionario web Ferster (/form); `uploads` mapea clave → ruta en bucket `student-intake`. */
+export type FersterIntakeStored = {
+  version: number
+  training_since: string
+  days_per_week: number
+  lifestyle: string
+  training_intensity: string
+  session_duration: string
+  equipment: string
+  main_goal: string
+  pathology: string
+  pathology_detail?: string | null
+  discomfort_exercises: string
+  four_meals: string
+  sleep_hours: string
+  supplements: string
+  gender_other?: string | null
+  submitted_at?: string
+  uploads?: Record<string, string>
+}
+
 export interface Student {
   id: string
   owner_id: string
@@ -214,6 +246,13 @@ export interface Student {
   gender: 'M' | 'F' | 'otro' | null
   status: StudentStatus
   notes: string | null
+  document_id: string | null
+  address: string | null
+  weight_kg: number | null
+  height_cm: number | null
+  intake_ferster: FersterIntakeStored | null
+  /** Ruta dentro del bucket `student-avatars` (p. ej. `{uuid}/avatar.jpg`). */
+  avatar_path: string | null
   created_at: string
   updated_at: string
 }

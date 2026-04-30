@@ -1,0 +1,601 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Link } from 'react-router-dom'
+import { cn } from '@/lib/utils'
+import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import toast from 'react-hot-toast'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  fersterIntakeSchema,
+  fersterDefaults,
+  type FersterIntakeFormValues,
+} from '@/lib/intake/fersterIntakeSchema'
+
+const ACCENT = '#7C5DFA'
+const MAX_BYTES = 10 * 1024 * 1024
+const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
+
+const intakeSecret =
+  typeof import.meta.env.VITE_PUBLIC_INTAKE_SECRET === 'string'
+    ? import.meta.env.VITE_PUBLIC_INTAKE_SECRET
+    : ''
+
+const STEP_FIELDS: (keyof FersterIntakeFormValues)[][] = [
+  [
+    'first_name',
+    'last_name',
+    'document_id',
+    'phone',
+    'birth_date',
+    'gender',
+    'gender_other',
+    'weight_kg',
+    'height_cm',
+    'email',
+    'address',
+  ],
+  [
+    'training_since',
+    'days_per_week',
+    'lifestyle',
+    'training_intensity',
+    'session_duration',
+    'equipment',
+    'main_goal',
+  ],
+  [
+    'pathology',
+    'pathology_detail',
+    'discomfort_exercises',
+    'four_meals',
+    'sleep_hours',
+    'supplements',
+  ],
+  ['accept_privacy'],
+]
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+      {children}
+      {required ? <span style={{ color: ACCENT }}>*</span> : null}
+    </label>
+  )
+}
+
+const inputClass = (err?: string) =>
+  cn(
+    'w-full rounded-xl border px-4 py-3 text-sm transition-shadow',
+    'bg-surface-input border-surface-inputBorder text-ink-primary placeholder:text-ink-muted',
+    'focus:outline-none focus:ring-2 focus:ring-[#7C5DFA]/55 focus:border-transparent',
+    err && 'border-status-expired focus:ring-status-expired/35',
+  )
+
+function checkFileSize(f: File): boolean {
+  if (f.size > MAX_BYTES) {
+    toast.error(`${f.name}: máximo 10 MB`)
+    return false
+  }
+  return true
+}
+
+type Props = {
+  onSuccess: () => void
+}
+
+export function IntakeFersterForm({ onSuccess }: Props) {
+  const [step, setStep] = useState(0)
+  const [progressFiles, setProgressFiles] = useState<File[]>([])
+  const [profileFile, setProfileFile] = useState<File | null>(null)
+  const [medicalFile, setMedicalFile] = useState<File | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    trigger,
+    formState: { errors, isSubmitting },
+  } = useForm<FersterIntakeFormValues>({
+    resolver: zodResolver(fersterIntakeSchema),
+    defaultValues: fersterDefaults() as FersterIntakeFormValues,
+  })
+
+  const pathology = watch('pathology')
+  const gender = watch('gender')
+
+  async function goNext() {
+    const fields = STEP_FIELDS[step]
+    const ok = await trigger(fields, { shouldFocus: true })
+    if (ok) setStep((s) => Math.min(s + 1, STEP_FIELDS.length - 1))
+  }
+
+  async function onSubmit(values: FersterIntakeFormValues) {
+    const phone = canonicalizeArgentinaStudentPhone(values.phone)
+    if (!phone) return
+
+    if (progressFiles.length < 1 || progressFiles.length > 5) {
+      toast.error('Adjuntá entre 1 y 5 fotos de cuerpo completo (frontal, lateral, espalda).')
+      return
+    }
+    if (!profileFile) {
+      toast.error('Adjuntá una foto reciente para el registro visual.')
+      return
+    }
+    if (values.pathology === 'yes' && !medicalFile) {
+      toast.error('Con patología o medicación tenés que adjuntar estudios médicos.')
+      return
+    }
+    for (const f of [...progressFiles, profileFile, ...(medicalFile ? [medicalFile] : [])]) {
+      if (!checkFileSize(f)) return
+    }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+    if (!supabaseUrl || !anon) {
+      toast.error('Falta configuración del sitio')
+      return
+    }
+
+    const payload = {
+      ...values,
+      phone,
+      website: '',
+    }
+
+    const formData = new FormData()
+    formData.append('payload', JSON.stringify(payload))
+    for (const f of progressFiles) {
+      formData.append('progress', f)
+    }
+    formData.append('profile', profileFile)
+    if (medicalFile) formData.append('medical', medicalFile)
+
+    const headers: Record<string, string> = {
+      apikey: anon,
+      Authorization: `Bearer ${anon}`,
+    }
+    if (intakeSecret) headers['x-intake-secret'] = intakeSecret
+
+    let res: Response
+    try {
+      res = await fetch(`${supabaseUrl}/functions/v1/public-intake-form`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+    } catch {
+      toast.error('No se pudo conectar. Probá más tarde.')
+      return
+    }
+
+    let body: { ok?: boolean; error?: string }
+    try {
+      body = (await res.json()) as { ok?: boolean; error?: string }
+    } catch {
+      toast.error('Respuesta inválida del servidor')
+      return
+    }
+
+    if (!res.ok || body.error) {
+      toast.error(body.error || 'Error al enviar')
+      return
+    }
+    if (!body.ok) {
+      toast.error('No se pudo completar el registro')
+      return
+    }
+
+    toast.success('¡Listo!')
+    onSuccess()
+  }
+
+  const stepTitles = ['Tus datos', 'Entrenamiento', 'Salud y hábitos', 'Fotos y documentos']
+
+  return (
+    <div className="max-w-md mx-auto lg:mx-0">
+      <h1 className="text-2xl sm:text-[1.65rem] font-bold text-ink-primary tracking-tight mb-1">
+        Formulario de registro
+      </h1>
+      <p className="text-sm text-ink-secondary mb-2">
+        Plan personalizado Ferster Fitness — <span className="font-medium">Haciéndolo hábito</span>
+      </p>
+      <p className="text-xs text-ink-muted mb-6">
+        ¿Ya tenés cuenta?{' '}
+        <Link to="/login" className="font-medium hover:underline" style={{ color: ACCENT }}>
+          Iniciar sesión
+        </Link>
+      </p>
+
+      <div className="flex gap-1 mb-6">
+        {stepTitles.map((t, i) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setStep(i)}
+            className={cn(
+              'flex-1 rounded-lg py-2 px-1 text-[10px] sm:text-xs font-semibold transition-colors text-center leading-tight',
+              step === i ? 'text-white shadow-sm' : 'bg-surface-elevated text-ink-muted hover:text-ink-secondary',
+            )}
+            style={step === i ? { backgroundColor: ACCENT } : undefined}
+          >
+            {i + 1}. {t}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {step === 0 && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel required>Nombre</FieldLabel>
+                <input
+                  type="text"
+                  autoComplete="given-name"
+                  className={inputClass(errors.first_name?.message)}
+                  {...register('first_name')}
+                />
+                {errors.first_name?.message ? (
+                  <p className="mt-1 text-xs text-red-400">{errors.first_name.message}</p>
+                ) : null}
+              </div>
+              <div>
+                <FieldLabel required>Apellido</FieldLabel>
+                <input
+                  type="text"
+                  autoComplete="family-name"
+                  className={inputClass(errors.last_name?.message)}
+                  {...register('last_name')}
+                />
+                {errors.last_name?.message ? (
+                  <p className="mt-1 text-xs text-red-400">{errors.last_name.message}</p>
+                ) : null}
+              </div>
+            </div>
+            <div>
+              <FieldLabel required>Documento</FieldLabel>
+              <input type="text" className={inputClass(errors.document_id?.message)} {...register('document_id')} />
+              {errors.document_id?.message ? (
+                <p className="mt-1 text-xs text-red-400">{errors.document_id.message}</p>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel required>Teléfono</FieldLabel>
+              <input type="tel" autoComplete="tel" className={inputClass(errors.phone?.message)} {...register('phone')} />
+              {errors.phone?.message ? (
+                <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>
+              ) : (
+                <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>
+              )}
+            </div>
+            <div>
+              <FieldLabel required>Fecha de nacimiento</FieldLabel>
+              <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
+              {errors.birth_date?.message ? (
+                <p className="mt-1 text-xs text-red-400">{errors.birth_date.message}</p>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel required>Género</FieldLabel>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
+                  <input type="radio" value="M" className="accent-[#7C5DFA]" {...register('gender')} />
+                  Masculino
+                </label>
+                <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
+                  <input type="radio" value="F" className="accent-[#7C5DFA]" {...register('gender')} />
+                  Femenino
+                </label>
+                <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
+                  <input type="radio" value="otro" className="accent-[#7C5DFA]" {...register('gender')} />
+                  Otros
+                </label>
+              </div>
+              {gender === 'otro' ? (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    placeholder="Especificar"
+                    className={inputClass(errors.gender_other?.message)}
+                    {...register('gender_other')}
+                  />
+                  {errors.gender_other?.message ? (
+                    <p className="mt-1 text-xs text-red-400">{errors.gender_other.message}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel required>Peso (kg)</FieldLabel>
+                <input
+                  type="number"
+                  step="0.1"
+                  className={inputClass(errors.weight_kg?.message)}
+                  {...register('weight_kg', { valueAsNumber: true })}
+                />
+                {errors.weight_kg?.message ? (
+                  <p className="mt-1 text-xs text-red-400">{String(errors.weight_kg.message)}</p>
+                ) : null}
+              </div>
+              <div>
+                <FieldLabel required>Altura (cm)</FieldLabel>
+                <input
+                  type="number"
+                  className={inputClass(errors.height_cm?.message)}
+                  {...register('height_cm', { valueAsNumber: true })}
+                />
+                {errors.height_cm?.message ? (
+                  <p className="mt-1 text-xs text-red-400">{String(errors.height_cm.message)}</p>
+                ) : null}
+              </div>
+            </div>
+            <div>
+              <FieldLabel required>Correo electrónico</FieldLabel>
+              <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
+              {errors.email?.message ? <p className="mt-1 text-xs text-red-400">{errors.email.message}</p> : null}
+            </div>
+            <div>
+              <FieldLabel required>Dirección completa</FieldLabel>
+              <textarea rows={2} className={cn(inputClass(errors.address?.message), 'resize-y min-h-[72px]')} {...register('address')} />
+              {errors.address?.message ? <p className="mt-1 text-xs text-red-400">{errors.address.message}</p> : null}
+            </div>
+          </>
+        )}
+
+        {step === 1 && (
+          <>
+            <div>
+              <FieldLabel required>¿Hace cuánto entrenás?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('training_since')}>
+                <option value="never">No entrenaba</option>
+                <option value="less_than_1y">Hace menos de 1 año</option>
+                <option value="1_to_3y">Entre 1 y 3 años</option>
+                <option value="more_than_3y">Más de 3 años</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>¿Cuántos días podés entrenar?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('days_per_week', { valueAsNumber: true })}>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} x semana
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>¿Cómo calificarías tu estilo de vida?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('lifestyle')}>
+                <option value="sedentary">Sedentario</option>
+                <option value="light">Poco activo</option>
+                <option value="active">Activo</option>
+                <option value="very_active">Muy activo</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>Nivel de intensidad de entrenamiento</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('training_intensity')}>
+                <option value="light">Liviano</option>
+                <option value="moderate">Moderado</option>
+                <option value="intense">Intenso</option>
+                <option value="very_intense">Muy intenso</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>¿Cuánto tiempo tenés para entrenar?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('session_duration')}>
+                <option value="30">30 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="90">1,5 horas</option>
+                <option value="120_plus">2 horas o más</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>¿Qué equipo tenés disponible?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('equipment')}>
+                <option value="none">Sin equipo</option>
+                <option value="home">Equipo en casa</option>
+                <option value="gym_basic">Gimnasio básico</option>
+                <option value="gym_advanced">Gimnasio avanzado</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>Objetivo principal</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('main_goal')}>
+                <option value="healthy_life">Vida saludable</option>
+                <option value="sport">Mejorar en mi deporte</option>
+                <option value="cut_lean">Descenso de peso y ganancia magra</option>
+                <option value="bulk">Aumento de masa muscular</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div>
+              <FieldLabel required>¿Patología o medicamentos?</FieldLabel>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" value="no" className="accent-[#7C5DFA]" {...register('pathology')} />
+                  No
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" value="yes" className="accent-[#7C5DFA]" {...register('pathology')} />
+                  Sí (detallar abajo y adjuntar estudios en el último paso)
+                </label>
+              </div>
+            </div>
+            {pathology === 'yes' ? (
+              <div>
+                <FieldLabel required>Detalle</FieldLabel>
+                <textarea
+                  rows={3}
+                  className={cn(inputClass(errors.pathology_detail?.message), 'resize-y min-h-[88px]')}
+                  {...register('pathology_detail')}
+                />
+                {errors.pathology_detail?.message ? (
+                  <p className="mt-1 text-xs text-red-400">{errors.pathology_detail.message}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <div>
+              <FieldLabel required>¿Algún ejercicio que te incomode o no puedas hacer?</FieldLabel>
+              <textarea
+                rows={2}
+                className={cn(inputClass(errors.discomfort_exercises?.message), 'resize-y min-h-[72px]')}
+                placeholder="Ej.: Ninguno / evito impacto en rodilla…"
+                {...register('discomfort_exercises')}
+              />
+              {errors.discomfort_exercises?.message ? (
+                <p className="mt-1 text-xs text-red-400">{errors.discomfort_exercises.message}</p>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel required>¿Respetás tus 4 comidas al día?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('four_meals')}>
+                <option value="yes">Sí</option>
+                <option value="no">No</option>
+                <option value="rarely">Con poca frecuencia</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>¿Cuántas horas dormís habitualmente?</FieldLabel>
+              <select className={cn(inputClass(), 'cursor-pointer')} {...register('sleep_hours')}>
+                <option value="lt5">Menos de 5</option>
+                <option value="5_6">5 a 6 horas</option>
+                <option value="6_7">6 a 7 horas</option>
+                <option value="8_plus">8 horas o más</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel required>¿Consumís suplementos?</FieldLabel>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" value="no" className="accent-[#7C5DFA]" {...register('supplements')} />
+                  No
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" value="yes" className="accent-[#7C5DFA]" {...register('supplements')} />
+                  Sí
+                </label>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <p className="text-xs text-ink-secondary leading-relaxed">
+              Subí imágenes claras y bien iluminadas: frontal, lateral y espalda (hasta 5 archivos, 10 MB c/u). Una foto
+              reciente servirá como imagen de registro.
+            </p>
+            {pathology === 'yes' ? (
+              <div>
+                <FieldLabel required>Estudios médicos (PDF o imagen)</FieldLabel>
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null
+                    setMedicalFile(f)
+                  }}
+                />
+              </div>
+            ) : (
+              <div>
+                <FieldLabel>Estudios médicos (opcional)</FieldLabel>
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
+                  onChange={(e) => setMedicalFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+            )}
+            <div>
+              <FieldLabel required>Fotografías análisis (1 a 5)</FieldLabel>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
+                onChange={(e) => {
+                  const list = Array.from(e.target.files ?? []).slice(0, 5)
+                  setProgressFiles(list)
+                }}
+              />
+              <p className="mt-1 text-[11px] text-ink-muted">{progressFiles.length} archivo(s) seleccionados</p>
+            </div>
+            <div>
+              <FieldLabel required>Foto para registro visual</FieldLabel>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
+                onChange={(e) => setProfileFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card"
+                style={{ accentColor: ACCENT }}
+                {...register('accept_privacy')}
+              />
+              <span className="text-sm text-ink-secondary leading-snug">
+                Acepto el envío de mis datos y archivos según la política del estudio. Entiendo que las fotos y datos se
+                usan para el plan personalizado.
+              </span>
+            </label>
+            {errors.accept_privacy?.message ? (
+              <p className="text-xs text-red-400">{errors.accept_privacy.message}</p>
+            ) : null}
+            <input type="text" tabIndex={-1} autoComplete="off" className="sr-only" aria-hidden {...register('website')} />
+          </>
+        )}
+
+        <div className="flex gap-3 pt-2">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStep((s) => s - 1)}
+              className="inline-flex items-center justify-center gap-1 rounded-xl border border-surface-border px-4 py-3 text-sm font-medium text-ink-secondary hover:bg-surface-elevated"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Atrás
+            </button>
+          ) : (
+            <span className="w-24" />
+          )}
+          <div className="flex-1" />
+          {step < STEP_FIELDS.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => void goNext()}
+              className="inline-flex items-center justify-center gap-1 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              style={{ backgroundColor: ACCENT, boxShadow: `0 8px 24px -4px ${ACCENT}66` }}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-60"
+              style={{ backgroundColor: ACCENT, boxShadow: `0 8px 24px -4px ${ACCENT}66` }}
+            >
+              {isSubmitting ? 'Enviando…' : 'Enviar registro'}
+            </button>
+          )}
+        </div>
+
+        <p className="text-center text-[11px] text-ink-muted pt-2">Ferster Fitness · Haciéndolo hábito</p>
+      </form>
+    </div>
+  )
+}

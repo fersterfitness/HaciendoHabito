@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { getInitials, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { useAuthStore } from '@/stores/authStore'
 import type { Student } from '@/types/database'
 
@@ -98,6 +99,7 @@ export function StudentsPage() {
             {grouped.activo.length > 0 && (
               <StudentTable
                 label={`Activos (${grouped.activo.length})`}
+                onAvatarUpdated={() => { void fetchStudents(search) }}
                 entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 students={grouped.activo}
                 onRowClick={(id) => navigate(`/students/${id}`)}
@@ -108,6 +110,7 @@ export function StudentsPage() {
             {grouped.inactivo.length > 0 && (
               <StudentTable
                 label={`Inactivos / Baja (${grouped.inactivo.length})`}
+                onAvatarUpdated={() => { void fetchStudents(search) }}
                 entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 students={grouped.inactivo}
                 onRowClick={(id) => navigate(`/students/${id}`)}
@@ -136,6 +139,7 @@ function StudentTable({
   label,
   entityLabelColumn,
   students,
+  onAvatarUpdated,
   onRowClick,
   onEdit,
   onDelete,
@@ -143,6 +147,7 @@ function StudentTable({
   label: string
   entityLabelColumn: string
   students: Student[]
+  onAvatarUpdated: () => void
   onRowClick: (id: string) => void
   onEdit: (id: string) => void
   onDelete: (student: Student) => void
@@ -184,11 +189,14 @@ function StudentTable({
               >
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-brand-primary font-bold text-xs">
-                        {getInitials(student.full_name)}
-                      </span>
-                    </div>
+                    <StudentAvatar
+                      studentId={student.id}
+                      fullName={student.full_name}
+                      avatarPath={student.avatar_path ?? null}
+                      size="sm"
+                      stopRowNavigation
+                      onPathChange={() => onAvatarUpdated()}
+                    />
                     <span className="font-semibold text-ink-primary">{student.full_name}</span>
                   </div>
                 </td>

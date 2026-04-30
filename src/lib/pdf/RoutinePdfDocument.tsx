@@ -7,6 +7,7 @@ import {
   Image,
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
+import { pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ export interface RoutinePdfData {
   routine: RoutineFull
   blocks: BlockFull[]
   generatedAt: Date
+  /** Último 1RM por ejercicio (kg) para convertir %1RM → kg en el PDF */
+  rmByExerciseId?: Record<string, number>
 }
 
 // ─── Paleta ───────────────────────────────────────────────────────────────────
@@ -326,7 +329,13 @@ const sc = StyleSheet.create({
   circuitRowAlt: { backgroundColor: '#FFFBF5' },
 })
 
-function ExerciseTable({ exercises }: { exercises: ExerciseFull[] }) {
+function ExerciseTable({
+  exercises,
+  rmByExerciseId,
+}: {
+  exercises: ExerciseFull[]
+  rmByExerciseId?: Record<string, number>
+}) {
   const groups = groupExercises(exercises)
   let rowIndex = 0
 
@@ -345,15 +354,17 @@ function ExerciseTable({ exercises }: { exercises: ExerciseFull[] }) {
       {groups.map((group) => {
         if (group.type === 'single') {
           const idx = rowIndex++
+          const rmKg = rmByExerciseId?.[group.exercise.exercise_id]
+          const pdfRow = pdfExerciseDisplay(group.exercise, rmKg)
           return (
             <View key={group.exercise.id} style={[s.tableRow, idx % 2 === 1 ? s.tableRowAlt : {}]} wrap={false}>
               <Text style={s.tdName}>{group.exercise.exercise?.name ?? '—'}</Text>
               <Text style={s.tdSmall}>{group.exercise.sets ?? '—'}</Text>
               <Text style={s.tdSmall}>{formatReps(group.exercise)}</Text>
-              <Text style={s.tdSmall}>{group.exercise.weight_kg ? `${group.exercise.weight_kg} kg` : '—'}</Text>
+              <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
               <Text style={s.tdSmall}>{group.exercise.rest_seconds ? `${group.exercise.rest_seconds}″` : '—'}</Text>
               <Text style={s.tdSmall}>{group.exercise.tempo ?? '—'}</Text>
-              <Text style={s.tdNotes}>{group.exercise.technical_notes ?? ''}</Text>
+              <Text style={s.tdNotes}>{pdfRow.notesClean}</Text>
             </View>
           )
         }
@@ -365,17 +376,21 @@ function ExerciseTable({ exercises }: { exercises: ExerciseFull[] }) {
               <View style={sc.circuitDot} />
               <Text style={sc.circuitLabel}>Circuito · {group.exercises.length} ejercicios</Text>
             </View>
-            {group.exercises.map((ex, i) => (
-              <View key={ex.id} style={[sc.circuitRow, i % 2 === 1 ? sc.circuitRowAlt : {}]}>
-                <Text style={s.tdName}>{ex.exercise?.name ?? '—'}</Text>
-                <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
-                <Text style={s.tdSmall}>{formatReps(ex)}</Text>
-                <Text style={s.tdSmall}>{ex.weight_kg ? `${ex.weight_kg} kg` : '—'}</Text>
-                <Text style={s.tdSmall}>{ex.rest_seconds ? `${ex.rest_seconds}″` : '—'}</Text>
-                <Text style={s.tdSmall}>{ex.tempo ?? '—'}</Text>
-                <Text style={s.tdNotes}>{ex.technical_notes ?? ''}</Text>
-              </View>
-            ))}
+            {group.exercises.map((ex, i) => {
+              const rmKg = rmByExerciseId?.[ex.exercise_id]
+              const pdfRow = pdfExerciseDisplay(ex, rmKg)
+              return (
+                <View key={ex.id} style={[sc.circuitRow, i % 2 === 1 ? sc.circuitRowAlt : {}]}>
+                  <Text style={s.tdName}>{ex.exercise?.name ?? '—'}</Text>
+                  <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
+                  <Text style={s.tdSmall}>{formatReps(ex)}</Text>
+                  <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
+                  <Text style={s.tdSmall}>{ex.rest_seconds ? `${ex.rest_seconds}″` : '—'}</Text>
+                  <Text style={s.tdSmall}>{ex.tempo ?? '—'}</Text>
+                  <Text style={s.tdNotes}>{pdfRow.notesClean}</Text>
+                </View>
+              )
+            })}
           </View>
         )
       })}
@@ -383,7 +398,15 @@ function ExerciseTable({ exercises }: { exercises: ExerciseFull[] }) {
   )
 }
 
-function DaySection({ day, index }: { day: DayFull; index: number }) {
+function DaySection({
+  day,
+  index,
+  rmByExerciseId,
+}: {
+  day: DayFull
+  index: number
+  rmByExerciseId?: Record<string, number>
+}) {
   return (
     <View style={s.daySection} wrap={false}>
       <View style={s.dayHeader}>
@@ -398,14 +421,14 @@ function DaySection({ day, index }: { day: DayFull; index: number }) {
           <Text style={s.warmupText}>Entrada en calor: {day.warmup_notes}</Text>
         </View>
       )}
-      <ExerciseTable exercises={day.exercises} />
+      <ExerciseTable exercises={day.exercises} rmByExerciseId={rmByExerciseId} />
     </View>
   )
 }
 
 // ─── Documento principal ──────────────────────────────────────────────────────
 
-export function RoutinePdfDocument({ routine, blocks, generatedAt }: RoutinePdfData) {
+export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseId }: RoutinePdfData) {
   const student = routine.student
   const logoUrl = `${window.location.origin}/logo_mark_original_black_square.png`
 
@@ -478,7 +501,7 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt }: RoutinePdfD
               )}
             </View>
             {block.days.map((day, di) => (
-              <DaySection key={day.id} day={day} index={di} />
+              <DaySection key={day.id} day={day} index={di} rmByExerciseId={rmByExerciseId} />
             ))}
           </View>
         ))}

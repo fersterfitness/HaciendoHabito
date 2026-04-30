@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { Mail, Lock, ArrowRight, Zap, Sun, Moon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -54,14 +54,24 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 relative">
-      <button
-        onClick={toggleTheme}
-        className="absolute top-4 right-4 p-2 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-card border border-transparent hover:border-surface-border transition-all"
-        title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-      >
-        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      </button>
+    <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 pt-16 sm:pt-4 relative">
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <Link
+          to="/form"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-surface-border bg-surface-card px-3 py-2 text-xs font-medium text-ink-secondary hover:text-ink-primary hover:border-brand-primary/40 transition-colors shadow-sm"
+        >
+          Inscripción
+          <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        </Link>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="p-2 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-card border border-surface-border transition-all"
+          title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+      </div>
 
       <div className="w-full max-w-sm">
         {/* Logo */}
