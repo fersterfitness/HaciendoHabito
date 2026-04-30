@@ -1,12 +1,12 @@
 /**
- * Proxy same-origin → Supabase Edge Function para evitar CORS en el navegador.
- * El cliente en producción llama a `/api/intake` (mismo origen que Vercel).
+ * Proxy same-origin → Supabase Edge Function (evita CORS en el navegador).
+ * Usamos runtime **Node** porque Edge limita ~4 MB el cuerpo; fotos del celular rompen multipart.
  *
- * Variables en Vercel (mismas que el build): VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
- * opcional VITE_PUBLIC_INTAKE_SECRET.
+ * Vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, opcional VITE_PUBLIC_INTAKE_SECRET.
  */
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
+  maxDuration: 60,
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -35,24 +35,44 @@ export default async function handler(request: Request): Promise<Response> {
     return Response.json({ error: 'Falta configuración del servidor' }, { status: 500 })
   }
 
-  const target = `${base.replace(/\/$/, '')}/functions/v1/public-intake-form`
-  const body = await request.arrayBuffer()
-  const contentType = request.headers.get('content-type') || 'application/json'
+  try {
+    const target = `${base.replace(/\/$/, '')}/functions/v1/public-intake-form`
+    const body = Buffer.from(await request.arrayBuffer())
+    const contentType = request.headers.get('content-type') || 'application/json'
 
-  const upstream = await fetch(target, {
-    method: 'POST',
-    headers: {
-      'Content-Type': contentType,
-      apikey: anon,
-      Authorization: `Bearer ${anon}`,
-      ...(secret ? { 'x-intake-secret': secret } : {}),
-    },
-    body,
-  })
+    const upstream = await fetch(target, {
+      method: 'POST',
+      headers: {
+        'Content-Type': contentType,
+        apikey: anon,
+        Authorization: `Bearer ${anon}`,
+        ...(secret ? { 'x-intake-secret': secret } : {}),
+      },
+      body,
+    })
 
-  const text = await upstream.text()
-  return new Response(text, {
-    status: upstream.status,
-    headers: { 'Content-Type': 'application/json' },
-  })
+    const text = await upstream.text().catch(() => '')
+    try {
+      JSON.parse(text)
+    } catch {
+      console.error('[api/intake] upstream non-JSON', upstream.status, text.slice(0, 500))
+      return Response.json(
+        {
+          error:
+            upstream.status === 413
+              ? 'Archivo demasiado grande. Probá fotos más chicas.'
+              : 'El servidor devolvió una respuesta inesperada. Probá fotos más livianas o sin adjuntos.',
+        },
+        { status: upstream.status >= 400 ? upstream.status : 502 },
+      )
+    }
+
+    return new Response(text, {
+      status: upstream.status,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch (e) {
+    console.error('[api/intake]', e)
+    return Response.json({ error: 'Error al enviar el formulario. Probá más tarde.' }, { status: 500 })
+  }
 }

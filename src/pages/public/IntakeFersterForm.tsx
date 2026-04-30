@@ -11,6 +11,7 @@ import {
   fersterDefaults,
   type FersterIntakeFormValues,
 } from '@/lib/intake/fersterIntakeSchema'
+import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 
 const ACCENT = '#7C5DFA'
 const MAX_BYTES = 10 * 1024 * 1024
@@ -165,13 +166,22 @@ export function IntakeFersterForm({ onSuccess }: Props) {
           body: JSON.stringify(payload),
         })
       } else {
+        const compressedProgress = await Promise.all(
+          progressFiles.map((f) => compressImageFileForUpload(f)),
+        )
+        const profilePrepared = profileFile ? await compressImageFileForUpload(profileFile) : null
+        const medicalPrepared =
+          medicalFile && medicalFile.type.startsWith('image/')
+            ? await compressImageFileForUpload(medicalFile)
+            : medicalFile
+
         const formData = new FormData()
         formData.append('payload', JSON.stringify(payload))
-        for (const f of progressFiles) {
+        for (const f of compressedProgress) {
           formData.append('progress', f)
         }
-        if (profileFile) formData.append('profile', profileFile)
-        if (medicalFile) formData.append('medical', medicalFile)
+        if (profilePrepared) formData.append('profile', profilePrepared)
+        if (medicalPrepared) formData.append('medical', medicalPrepared)
         res = await fetch(endpoint, {
           method: 'POST',
           headers: useProxy ? {} : directHeaders,
@@ -183,11 +193,16 @@ export function IntakeFersterForm({ onSuccess }: Props) {
       return
     }
 
+    const rawText = await res.text()
     let body: { ok?: boolean; error?: string }
     try {
-      body = (await res.json()) as { ok?: boolean; error?: string }
+      body = JSON.parse(rawText) as { ok?: boolean; error?: string }
     } catch {
-      toast.error('Respuesta inválida del servidor')
+      toast.error(
+        res.status === 413
+          ? 'Los archivos pesan demasiado. Probá fotos más chicas.'
+          : `El servidor no respondió bien (${res.status}). Si adjuntaste fotos, probá reducir su tamaño.`,
+      )
       return
     }
 
