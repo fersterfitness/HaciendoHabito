@@ -29,7 +29,7 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   activo: {
     label: 'Activo',
-    className: 'bg-brand-primary/10 text-brand-primary border border-brand-primary/30',
+    className: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
   },
   por_vencer: {
     label: 'Por vencer',
@@ -49,7 +49,7 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   inactivo: {
     label: 'Inactivo',
-    className: 'bg-surface-border/30 text-ink-muted border border-surface-border/50',
+    className: 'bg-slate-500/10 text-slate-400 border border-slate-500/25',
   },
   pendiente: {
     label: 'Pendiente',
@@ -97,7 +97,7 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   pausado: {
     label: 'Pausado',
-    className: 'bg-surface-border/50 text-ink-muted border border-surface-border',
+    className: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
   },
   baja: {
     label: 'Baja',

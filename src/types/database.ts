@@ -253,6 +253,8 @@ export interface Student {
   intake_ferster: FersterIntakeStored | null
   /** Ruta dentro del bucket `student-avatars` (p. ej. `{uuid}/avatar.jpg`). */
   avatar_path: string | null
+  /** Fecha de vencimiento del plan activo (ISO date YYYY-MM-DD). */
+  plan_end_date: string | null
   created_at: string
   updated_at: string
 }

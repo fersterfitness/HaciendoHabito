@@ -29,15 +29,15 @@ const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
  *   "+54 11 ..."    → sin cambios (normaliza espacios extras)
  */
 function formatArgPhoneInput(raw: string): string {
-  const trimmed = raw.trim()
+  const trimmed = raw.trim().replace(/\s+/g, ' ')
   if (!trimmed) return trimmed
 
-  // Si ya viene con + respetamos lo que escribió, solo normalizamos espacios múltiples
-  if (trimmed.startsWith('+')) {
-    return trimmed.replace(/\s+/g, ' ')
+  // Si ya tiene + Y espacios, está bien formateado → lo dejamos
+  if (trimmed.startsWith('+') && trimmed.includes(' ')) {
+    return trimmed
   }
 
-  // Extraemos solo dígitos
+  // En cualquier otro caso (con o sin +, con o sin espacios) extraemos solo dígitos
   const digits = trimmed.replace(/\D/g, '')
   if (!digits) return trimmed
 
@@ -45,14 +45,11 @@ function formatArgPhoneInput(raw: string): string {
   if (digits.startsWith('54')) {
     rest = digits.slice(2)
   } else if (digits.startsWith('0')) {
-    // formato viejo: 0-11-... → quitar el 0 inicial
+    // formato viejo: 011... → quitar el 0 inicial
     rest = digits.slice(1)
   }
 
   if (!rest) return '+54'
-  // Heurística: código de área = 2 primeros dígitos (cubre 11, 12, 15, etc.)
-  // Para Buenos Aires (11) esto es exacto; para otras zonas (221, 2254…)
-  // el usuario puede editar manualmente luego.
   if (rest.length <= 2) return `+54 ${rest}`
   const area = rest.slice(0, 2)
   const local = rest.slice(2)

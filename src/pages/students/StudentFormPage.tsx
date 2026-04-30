@@ -24,6 +24,7 @@ const schema = z
   level: z.enum(['inicial', 'intermedio', 'avanzado']),
   gender: z.enum(['M', 'F', 'otro']).optional(),
   status: z.enum(['activo', 'inactivo', 'pausado', 'baja']),
+  plan_end_date: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
 })
 .superRefine((data, ctx) => {
@@ -74,6 +75,7 @@ export function StudentFormPage() {
             level: data.level,
             gender: data.gender ?? undefined,
             status: data.status,
+            plan_end_date: data.plan_end_date ?? '',
             notes: data.notes ?? '',
           })
         }
@@ -96,6 +98,7 @@ export function StudentFormPage() {
       level: values.level,
       gender: values.gender ?? null,
       status: values.status,
+      plan_end_date: values.plan_end_date || null,
       notes: values.notes || null,
       profile_id: null,
     }
@@ -163,7 +166,7 @@ export function StudentFormPage() {
             </div>
           </FormSection>
 
-          <FormSection title="Estado y nivel">
+          <FormSection title="Estado y plan">
             <div className="grid grid-cols-2 gap-4">
               <Select
                 label="Nivel"
@@ -180,6 +183,12 @@ export function StudentFormPage() {
                 {...register('status')}
               />
             </div>
+            <Input
+              label="Vencimiento del plan"
+              type="date"
+              hint="Opcional — se muestra en la lista de alumnos como días restantes"
+              {...register('plan_end_date')}
+            />
           </FormSection>
 
           <FormSection title="Notas">
