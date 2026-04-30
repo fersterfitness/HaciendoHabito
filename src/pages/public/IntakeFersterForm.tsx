@@ -17,6 +17,48 @@ const ACCENT = '#7C5DFA'
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
 
+/**
+ * Formatea un número argentino al formato canónico "+54 [área] [número]"
+ * sin importar si el usuario escribió todo junto o sin el prefijo.
+ *
+ * Ejemplos:
+ *   "541159059170"  → "+54 11 59059170"
+ *   "01159059170"   → "+54 11 59059170"
+ *   "1159059170"    → "+54 11 59059170"
+ *   "+5411..."      → "+54 11 ..."
+ *   "+54 11 ..."    → sin cambios (normaliza espacios extras)
+ */
+function formatArgPhoneInput(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return trimmed
+
+  // Si ya viene con + respetamos lo que escribió, solo normalizamos espacios múltiples
+  if (trimmed.startsWith('+')) {
+    return trimmed.replace(/\s+/g, ' ')
+  }
+
+  // Extraemos solo dígitos
+  const digits = trimmed.replace(/\D/g, '')
+  if (!digits) return trimmed
+
+  let rest = digits
+  if (digits.startsWith('54')) {
+    rest = digits.slice(2)
+  } else if (digits.startsWith('0')) {
+    // formato viejo: 0-11-... → quitar el 0 inicial
+    rest = digits.slice(1)
+  }
+
+  if (!rest) return '+54'
+  // Heurística: código de área = 2 primeros dígitos (cubre 11, 12, 15, etc.)
+  // Para Buenos Aires (11) esto es exacto; para otras zonas (221, 2254…)
+  // el usuario puede editar manualmente luego.
+  if (rest.length <= 2) return `+54 ${rest}`
+  const area = rest.slice(0, 2)
+  const local = rest.slice(2)
+  return `+54 ${area} ${local}`
+}
+
 const intakeSecret =
   typeof import.meta.env.VITE_PUBLIC_INTAKE_SECRET === 'string'
     ? import.meta.env.VITE_PUBLIC_INTAKE_SECRET
@@ -96,6 +138,7 @@ export function IntakeFersterForm({ onSuccess }: Props) {
     handleSubmit,
     watch,
     trigger,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FersterIntakeFormValues>({
     resolver: zodResolver(fersterIntakeSchema),
@@ -293,7 +336,19 @@ export function IntakeFersterForm({ onSuccess }: Props) {
             </div>
             <div>
               <FieldLabel required>Teléfono</FieldLabel>
-              <input type="tel" autoComplete="tel" className={inputClass(errors.phone?.message)} {...register('phone')} />
+              <input
+                type="tel"
+                autoComplete="tel"
+                className={inputClass(errors.phone?.message)}
+                {...register('phone', {
+                  onBlur: (e) => {
+                    const formatted = formatArgPhoneInput(e.target.value)
+                    if (formatted !== e.target.value) {
+                      setValue('phone', formatted, { shouldValidate: true })
+                    }
+                  },
+                })}
+              />
               {errors.phone?.message ? (
                 <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>
               ) : (
