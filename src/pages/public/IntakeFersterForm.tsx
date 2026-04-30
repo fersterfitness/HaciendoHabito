@@ -114,20 +114,14 @@ export function IntakeFersterForm({ onSuccess }: Props) {
     const phone = canonicalizeArgentinaStudentPhone(values.phone)
     if (!phone) return
 
-    if (progressFiles.length < 1 || progressFiles.length > 5) {
-      toast.error('Adjuntá entre 1 y 5 fotos de cuerpo completo (frontal, lateral, espalda).')
-      return
-    }
-    if (!profileFile) {
-      toast.error('Adjuntá una foto reciente para el registro visual.')
-      return
-    }
-    if (values.pathology === 'yes' && !medicalFile) {
-      toast.error('Con patología o medicación tenés que adjuntar estudios médicos.')
-      return
-    }
-    for (const f of [...progressFiles, profileFile, ...(medicalFile ? [medicalFile] : [])]) {
+    const filesToCheck = [...progressFiles, ...(profileFile ? [profileFile] : []), ...(medicalFile ? [medicalFile] : [])]
+    for (const f of filesToCheck) {
       if (!checkFileSize(f)) return
+    }
+
+    if (progressFiles.length > 5) {
+      toast.error('Como máximo 5 fotos corporales.')
+      return
     }
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
@@ -143,27 +137,47 @@ export function IntakeFersterForm({ onSuccess }: Props) {
       website: '',
     }
 
-    const formData = new FormData()
-    formData.append('payload', JSON.stringify(payload))
-    for (const f of progressFiles) {
-      formData.append('progress', f)
-    }
-    formData.append('profile', profileFile)
-    if (medicalFile) formData.append('medical', medicalFile)
+    /** Build de producción + host público → proxy same-origin `/api/intake` (sin CORS). Dev / preview en localhost → directo a Supabase. */
+    const isLocalHost = (h: string) => h === 'localhost' || h.startsWith('127.') || h === '[::1]'
+    const useProxy =
+      import.meta.env.PROD &&
+      typeof window !== 'undefined' &&
+      !isLocalHost(window.location.hostname)
+    const endpoint = useProxy ? `${window.location.origin}/api/intake` : `${supabaseUrl}/functions/v1/public-intake-form`
 
-    const headers: Record<string, string> = {
+    const directHeaders: Record<string, string> = {
       apikey: anon,
       Authorization: `Bearer ${anon}`,
     }
-    if (intakeSecret) headers['x-intake-secret'] = intakeSecret
+    if (intakeSecret) directHeaders['x-intake-secret'] = intakeSecret
+
+    const hasFiles = progressFiles.length > 0 || profileFile !== null || medicalFile !== null
 
     let res: Response
     try {
-      res = await fetch(`${supabaseUrl}/functions/v1/public-intake-form`, {
-        method: 'POST',
-        headers,
-        body: formData,
-      })
+      if (!hasFiles) {
+        res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            ...(useProxy ? {} : directHeaders),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        const formData = new FormData()
+        formData.append('payload', JSON.stringify(payload))
+        for (const f of progressFiles) {
+          formData.append('progress', f)
+        }
+        if (profileFile) formData.append('profile', profileFile)
+        if (medicalFile) formData.append('medical', medicalFile)
+        res = await fetch(endpoint, {
+          method: 'POST',
+          headers: useProxy ? {} : directHeaders,
+          body: formData,
+        })
+      }
     } catch {
       toast.error('No se pudo conectar. Probá más tarde.')
       return
@@ -489,35 +503,20 @@ export function IntakeFersterForm({ onSuccess }: Props) {
         {step === 3 && (
           <>
             <p className="text-xs text-ink-secondary leading-relaxed">
-              Subí imágenes claras y bien iluminadas: frontal, lateral y espalda (hasta 5 archivos, 10 MB c/u). Una foto
-              reciente servirá como imagen de registro.
+              Las fotos y estudios son <span className="font-medium">opcionales</span>. Si querés, subí imágenes claras
+              (frontal, lateral, espalda, hasta 5, 10 MB c/u) y una foto para el registro visual.
             </p>
-            {pathology === 'yes' ? (
-              <div>
-                <FieldLabel required>Estudios médicos (PDF o imagen)</FieldLabel>
-                <input
-                  type="file"
-                  accept=".pdf,image/*"
-                  className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null
-                    setMedicalFile(f)
-                  }}
-                />
-              </div>
-            ) : (
-              <div>
-                <FieldLabel>Estudios médicos (opcional)</FieldLabel>
-                <input
-                  type="file"
-                  accept=".pdf,image/*"
-                  className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                  onChange={(e) => setMedicalFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
-            )}
             <div>
-              <FieldLabel required>Fotografías análisis (1 a 5)</FieldLabel>
+              <FieldLabel>Estudios médicos (PDF o imagen, opcional)</FieldLabel>
+              <input
+                type="file"
+                accept=".pdf,image/*"
+                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
+                onChange={(e) => setMedicalFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <div>
+              <FieldLabel>Fotografías análisis (opcional, hasta 5)</FieldLabel>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -531,7 +530,7 @@ export function IntakeFersterForm({ onSuccess }: Props) {
               <p className="mt-1 text-[11px] text-ink-muted">{progressFiles.length} archivo(s) seleccionados</p>
             </div>
             <div>
-              <FieldLabel required>Foto para registro visual</FieldLabel>
+              <FieldLabel>Foto para registro visual (opcional)</FieldLabel>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
