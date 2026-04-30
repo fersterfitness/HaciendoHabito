@@ -186,8 +186,10 @@ export function IntakeFersterForm({ onSuccess }: Props) {
           body: formData,
         })
       }
-    } catch {
-      toast.error('No se pudo conectar con el servidor. Probá más tarde.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'desconocido'
+      console.error('[intake] fetch failed', err, { endpoint })
+      toast.error(`No se pudo conectar (${msg}). Si seguís el problema, recargá la página.`)
       return
     }
 
