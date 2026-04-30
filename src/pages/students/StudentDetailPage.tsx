@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Pencil, Trash2, Dumbbell, FileText, Plus,
   Mail, Phone, Calendar, Zap, X, ChevronDown,
+  StickyNote, Check, DollarSign,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
@@ -19,10 +20,10 @@ import { CicloTab } from './CicloTab'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
-import type { Student, Routine, Exercise, StudentRmRecord } from '@/types/database'
+import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog } from '@/types/database'
 import toast from 'react-hot-toast'
 
-type Tab = 'resumen' | 'fuerza' | 'ciclo'
+type Tab = 'resumen' | 'fuerza' | 'ciclo' | 'peso'
 
 // ─── Epley formula ────────────────────────────────────────────────────────────
 function epley1RM(weight: number, reps: number): number {
@@ -48,6 +49,15 @@ export function StudentDetailPage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
   const [tab,        setTab]        = useState<Tab>('resumen')
+
+  // Notas rápidas
+  const [editingNotes,  setEditingNotes]  = useState(false)
+  const [notesValue,    setNotesValue]    = useState('')
+  const [savingNotes,   setSavingNotes]   = useState(false)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+
+  // Pago rápido
+  const [showPayModal,  setShowPayModal]  = useState(false)
 
   useEffect(() => {
     if (!id || !user) return
@@ -101,6 +111,27 @@ export function StudentDetailPage() {
       setRmRecords(prev)          // ← rollback si falla
       toast.error(error.message)
     }
+  }
+
+  async function saveNotes() {
+    if (!user || !id) return
+    setSavingNotes(true)
+    const { error } = await supabase
+      .from('students')
+      .update({ notes: notesValue || null })
+      .eq('id', id)
+      .eq('owner_id', user.id)
+    setSavingNotes(false)
+    if (error) { toast.error(error.message); return }
+    setStudent((prev) => prev ? { ...prev, notes: notesValue || null } : null)
+    setEditingNotes(false)
+    toast.success('Notas guardadas')
+  }
+
+  function startEditNotes() {
+    setNotesValue(student?.notes ?? '')
+    setEditingNotes(true)
+    setTimeout(() => notesRef.current?.focus(), 50)
   }
 
   if (loading) return <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
@@ -158,6 +189,9 @@ export function StudentDetailPage() {
             <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
               Editar
             </Button>
+            <Button size="sm" icon={<DollarSign className="h-3.5 w-3.5" />} onClick={() => setShowPayModal(true)}>
+              Registrar pago
+            </Button>
             <div className="flex-1" />
             <button
               onClick={() => setShowDelete(true)}
@@ -174,7 +208,8 @@ export function StudentDetailPage() {
         <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">
           {([
             { value: 'resumen', label: 'Resumen' },
-            { value: 'fuerza',  label: '💪 Fuerza / 1RM' },
+            { value: 'peso',    label: '⚖️ Peso' },
+            { value: 'fuerza',  label: '💪 Fuerza' },
             ...(student.gender === 'F' ? [{ value: 'ciclo' as Tab, label: '🌸 Ciclo' }] : []),
           ] as { value: Tab; label: string }[]).map(({ value, label }) => (
             <button
@@ -195,7 +230,59 @@ export function StudentDetailPage() {
         {/* ── Resumen tab ── */}
         {tab === 'resumen' && (
           <div className="space-y-4">
-            {student.notes ? <StudentNotesCard notes={student.notes} /> : null}
+
+            {/* Notas rápidas */}
+            {editingNotes ? (
+              <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <StickyNote className="h-4 w-4 text-brand-primary" />
+                  <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
+                </div>
+                <textarea
+                  ref={notesRef}
+                  value={notesValue}
+                  onChange={(e) => setNotesValue(e.target.value)}
+                  rows={5}
+                  className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none resize-none placeholder:text-ink-muted"
+                  placeholder="Observaciones, lesiones, objetivos..."
+                />
+                <div className="flex items-center gap-2 justify-end">
+                  <button
+                    onClick={() => setEditingNotes(false)}
+                    className="text-xs text-ink-muted hover:text-ink-primary px-3 py-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={saveNotes}
+                    disabled={savingNotes}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary/90 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    {savingNotes ? 'Guardando…' : 'Guardar'}
+                  </button>
+                </div>
+              </div>
+            ) : student.notes ? (
+              <div className="relative group">
+                <StudentNotesCard notes={student.notes} />
+                <button
+                  onClick={startEditNotes}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors opacity-0 group-hover:opacity-100"
+                  title="Editar notas"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={startEditNotes}
+                className="w-full flex items-center gap-2 px-4 py-3 rounded-2xl border border-dashed border-surface-border text-ink-muted hover:text-ink-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors text-sm"
+              >
+                <StickyNote className="h-4 w-4" />
+                Agregar observaciones...
+              </button>
+            )}
 
             {activeRoutine && (
               <Card className="border-brand-primary/20">
@@ -266,6 +353,9 @@ export function StudentDetailPage() {
         {/* ── Ciclo Menstrual tab ── */}
         {tab === 'ciclo' && <CicloTab studentId={id!} />}
 
+        {/* ── Peso tab ── */}
+        {tab === 'peso' && <PesoTab studentId={id!} />}
+
         {/* ── Fuerza / 1RM tab ── */}
         {tab === 'fuerza' && (
           <FuerzaTab
@@ -286,6 +376,14 @@ export function StudentDetailPage() {
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
+
+      {showPayModal && student && (
+        <QuickPayModal
+          studentId={student.id}
+          studentName={student.full_name}
+          onClose={() => setShowPayModal(false)}
+        />
+      )}
     </div>
   )
 }
@@ -633,6 +731,327 @@ function AddRmModal({
 
           <Button className="w-full" loading={saving} onClick={handleSave}>
             Guardar registro
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── PesoTab ──────────────────────────────────────────────────────────────────
+
+function PesoTab({ studentId }: { studentId: string }) {
+  const { user } = useAuthStore()
+  const [logs,    setLogs]    = useState<StudentWeightLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [weight,   setWeight]  = useState('')
+  const [fat,      setFat]     = useState('')
+  const [noteVal,  setNoteVal] = useState('')
+  const [dateVal,  setDateVal] = useState(new Date().toISOString().split('T')[0])
+  const [saving,   setSaving]  = useState(false)
+
+  const fetchLogs = useCallback(async () => {
+    if (!user) return
+    const { data, error } = await supabase
+      .from('student_weight_logs')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('owner_id', user.id)
+      .order('logged_at', { ascending: false })
+    if (!error) setLogs((data as StudentWeightLog[]) ?? [])
+    setLoading(false)
+  }, [user, studentId])
+
+  useEffect(() => { void fetchLogs() }, [fetchLogs])
+
+  async function handleSave() {
+    if (!user) return
+    const w = Number(weight)
+    if (!w || w <= 0) { toast.error('Ingresá un peso válido'); return }
+    setSaving(true)
+    const { error } = await supabase.from('student_weight_logs').insert({
+      owner_id:     user.id,
+      student_id:   studentId,
+      logged_at:    dateVal,
+      weight_kg:    w,
+      body_fat_pct: fat ? Number(fat) : null,
+      notes:        noteVal || null,
+    })
+    setSaving(false)
+    if (error) { toast.error(error.message); return }
+    toast.success('Peso registrado')
+    setWeight(''); setFat(''); setNoteVal('')
+    setDateVal(new Date().toISOString().split('T')[0])
+    setShowForm(false)
+    void fetchLogs()
+  }
+
+  async function handleDelete(logId: string) {
+    if (!user) return
+    const prev = logs
+    setLogs((p) => p.filter((l) => l.id !== logId))
+    const { error } = await supabase
+      .from('student_weight_logs')
+      .delete()
+      .eq('id', logId)
+      .eq('owner_id', user.id)
+    if (error) { setLogs(prev); toast.error(error.message) }
+  }
+
+  // Simple sparkline data: sort ascending for chart
+  const chartData = [...logs].sort((a, b) => a.logged_at.localeCompare(b.logged_at))
+  const minW = Math.min(...chartData.map((l) => l.weight_kg))
+  const maxW = Math.max(...chartData.map((l) => l.weight_kg))
+  const range = maxW - minW || 1
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Historial de peso</CardTitle>
+          <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowForm((v) => !v)}>
+            Registrar
+          </Button>
+        </CardHeader>
+
+        {/* Quick-add form */}
+        {showForm && (
+          <div className="mb-4 p-3 rounded-xl bg-surface-elevated space-y-3 border border-surface-border">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Peso (kg) *</label>
+                <input
+                  type="number" min={0} step={0.1} placeholder="ej: 75.5"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none text-center font-bold"
+                  value={weight} onChange={(e) => setWeight(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Grasa corporal %</label>
+                <input
+                  type="number" min={0} max={100} step={0.1} placeholder="opcional"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none text-center"
+                  value={fat} onChange={(e) => setFat(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Fecha</label>
+                <input
+                  type="date"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                  value={dateVal} onChange={(e) => setDateVal(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Notas</label>
+                <input
+                  placeholder="opcional"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                  value={noteVal} onChange={(e) => setNoteVal(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowForm(false)} className="text-xs text-ink-muted hover:text-ink-primary px-3 py-1.5 rounded-lg hover:bg-surface-card transition-colors">
+                Cancelar
+              </button>
+              <Button size="sm" loading={saving} onClick={handleSave}>Guardar</Button>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-8"><Spinner size="md" /></div>
+        ) : logs.length === 0 ? (
+          <EmptyState
+            icon={<span className="text-2xl">⚖️</span>}
+            title="Sin registros de peso"
+            description="Registrá el peso periódicamente para ver la evolución."
+          />
+        ) : (
+          <>
+            {/* Sparkline chart */}
+            {chartData.length >= 2 && (
+              <div className="mb-4">
+                <div className="flex items-end gap-1 h-16 px-1">
+                  {chartData.map((l, i) => {
+                    const h = Math.round(((l.weight_kg - minW) / range) * 48 + 8)
+                    const isLast = i === chartData.length - 1
+                    return (
+                      <div key={l.id} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                        <div
+                          title={`${l.weight_kg} kg — ${l.logged_at}`}
+                          className={cn(
+                            'w-full rounded-sm transition-all',
+                            isLast ? 'bg-brand-primary' : 'bg-brand-primary/30',
+                          )}
+                          style={{ height: `${h}px` }}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-between text-[10px] text-ink-muted mt-1 px-1">
+                  <span>{chartData[0].logged_at.slice(5)}</span>
+                  <span className="font-semibold text-brand-primary">{chartData[chartData.length - 1].weight_kg} kg</span>
+                  <span>{chartData[chartData.length - 1].logged_at.slice(5)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Log list */}
+            <div className="space-y-1.5">
+              {logs.map((l) => (
+                <div key={l.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-elevated group">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold text-ink-primary">{l.weight_kg} kg</span>
+                    {l.body_fat_pct != null && (
+                      <span className="ml-2 text-xs text-ink-muted">{l.body_fat_pct}% grasa</span>
+                    )}
+                    {l.notes && <p className="text-xs text-ink-muted truncate mt-0.5">{l.notes}</p>}
+                  </div>
+                  <span className="text-xs text-ink-muted shrink-0">{l.logged_at}</span>
+                  <button
+                    onClick={() => handleDelete(l.id)}
+                    className="text-ink-muted hover:text-status-expired transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+// ─── QuickPayModal ────────────────────────────────────────────────────────────
+
+function QuickPayModal({
+  studentId,
+  studentName,
+  onClose,
+}: {
+  studentId: string
+  studentName: string
+  onClose: () => void
+}) {
+  const { user } = useAuthStore()
+  const [amount,  setAmount]  = useState('')
+  const [method,  setMethod]  = useState('efectivo_debito')
+  const [type,    setType]    = useState('mensualidad')
+  const [date,    setDate]    = useState(new Date().toISOString().split('T')[0])
+  const [notes,   setNotes]   = useState('')
+  const [saving,  setSaving]  = useState(false)
+
+  async function handleSave() {
+    if (!user) return
+    const amt = Number(amount)
+    if (!amt || amt <= 0) { toast.error('Ingresá un monto válido'); return }
+    setSaving(true)
+    const { error } = await supabase.from('income').insert({
+      owner_id:       user.id,
+      student_id:     studentId,
+      amount:         amt,
+      payment_method: method,
+      income_type:    type,
+      income_date:    date,
+      description:    `Pago de ${studentName}`,
+      category:       'entrenamiento',
+      status:         'cobrado',
+      notes:          notes || null,
+    })
+    setSaving(false)
+    if (error) { toast.error(error.message); return }
+    toast.success('Pago registrado ✓')
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
+          <div>
+            <h3 className="text-sm font-semibold text-ink-primary">Registrar pago</h3>
+            <p className="text-xs text-ink-muted">{studentName}</p>
+          </div>
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="px-4 py-4 space-y-3">
+          {/* Monto */}
+          <div>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Monto *</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">$</span>
+              <input
+                type="number" min={0} step={100} placeholder="0"
+                className="w-full bg-surface-elevated text-ink-primary text-lg font-bold rounded-xl pl-7 pr-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Tipo */}
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo</label>
+              <select
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                value={type} onChange={(e) => setType(e.target.value)}
+              >
+                <option value="mensualidad">Mensualidad</option>
+                <option value="clase_suelta">Clase suelta</option>
+                <option value="plan_nutricional">Plan nutricional</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            {/* Método */}
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
+              <select
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                value={method} onChange={(e) => setMethod(e.target.value)}
+              >
+                <option value="efectivo_debito">Efectivo / Débito</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="tarjeta_credito">Tarjeta crédito</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Fecha */}
+          <div>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
+            <input
+              type="date"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+              value={date} onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
+            <input
+              placeholder="ej: mes de mayo..."
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+              value={notes} onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+
+          <Button className="w-full" loading={saving} onClick={handleSave}>
+            Confirmar pago
           </Button>
         </div>
       </div>

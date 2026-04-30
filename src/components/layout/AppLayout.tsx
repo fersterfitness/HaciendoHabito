@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { MobileNav } from './MobileNav'
+import { GlobalSearch } from './GlobalSearch'
 import { SidebarProvider } from '@/contexts/SidebarContext'
 
 export function AppLayout() {
@@ -15,6 +16,7 @@ export function AppLayout() {
         </div>
         <MobileNav />
       </div>
+      <GlobalSearch />
     </SidebarProvider>
   )
 }

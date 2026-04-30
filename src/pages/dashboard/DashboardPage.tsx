@@ -22,7 +22,7 @@ import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
+import { StatCardSkeleton, CardSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { daysUntil } from '@/lib/utils'
 import type { Routine, Notification } from '@/types/database'
 
@@ -37,6 +37,13 @@ interface Stats {
 
 interface ExpiringRoutine extends Omit<Routine, 'student'> {
   student: { full_name: string } | null
+}
+
+interface ExpiringPlan {
+  id: string
+  full_name: string
+  plan_end_date: string
+  status: string
 }
 
 const MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -168,6 +175,7 @@ export function DashboardPage() {
     nutritionDocuments: 0,
   })
   const [expiring, setExpiring] = useState<ExpiringRoutine[]>([])
+  const [expiringPlans, setExpiringPlans] = useState<ExpiringPlan[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [growthData, setGrowthData] = useState<{ label: string; value: number; change: number }[]>([])
   const [loading, setLoading] = useState(true)
@@ -196,6 +204,7 @@ export function DashboardPage() {
         { data: expiringData },
         { data: notifData },
         { data: incomeRows },
+        { data: expiringPlansData },
       ] = await Promise.all([
         supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
         canSeeTraining
@@ -220,6 +229,15 @@ export function DashboardPage() {
         canSeeTraining
           ? supabase.from('income').select('income_date, amount').eq('owner_id', user!.id).eq('status', 'cobrado').gte('income_date', sinceStr)
           : Promise.resolve({ data: [] } as { data: { income_date: string; amount: number }[] }),
+        // Alumnos con plan por vencer (próximos 14 días) o ya vencido
+        supabase.from('students')
+          .select('id, full_name, plan_end_date, status')
+          .eq('owner_id', user!.id)
+          .eq('status', 'activo')
+          .not('plan_end_date', 'is', null)
+          .lte('plan_end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0])
+          .order('plan_end_date', { ascending: true })
+          .limit(5),
       ])
 
       setStats({
@@ -231,6 +249,7 @@ export function DashboardPage() {
         nutritionDocuments: nutritionDocuments ?? 0,
       })
       setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
+      setExpiringPlans((expiringPlansData as unknown as ExpiringPlan[]) ?? [])
       setNotifications(notifData ?? [])
       setGrowthData(canSeeTraining ? buildChartData((incomeRows ?? []) as { income_date: string; amount: number }[]) : [])
     } finally {
@@ -242,8 +261,18 @@ export function DashboardPage() {
     return (
       <div>
         <Header title="Inicio" />
-        <div className="flex items-center justify-center h-64">
-          <Spinner size="lg" />
+        <div className="px-4 lg:px-6 py-6 space-y-6">
+          {/* Stat cards skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+          </div>
+          {/* Chart skeleton */}
+          <ChartSkeleton />
+          {/* Cards skeleton */}
+          <div className="grid lg:grid-cols-2 gap-4">
+            <CardSkeleton rows={3} />
+            <CardSkeleton rows={4} />
+          </div>
         </div>
       </div>
     )
@@ -397,6 +426,44 @@ export function DashboardPage() {
                 })}
               </div>
             )}
+          </Card>
+          )}
+
+          {/* Planes por vencer */}
+          {expiringPlans.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-400" />
+                <CardTitle>Planes por vencer</CardTitle>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>
+                Ver todos
+              </Button>
+            </CardHeader>
+            <div className="space-y-2">
+              {expiringPlans.map((s) => {
+                const days = daysUntil(s.plan_end_date)
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => navigate(`/students/${s.id}`)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors text-left group"
+                  >
+                    <p className="text-sm font-medium text-ink-primary truncate">{s.full_name}</p>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg shrink-0 ml-2 ${
+                      days < 0
+                        ? 'bg-red-500/10 text-red-400'
+                        : days <= 3
+                        ? 'bg-status-expired/10 text-status-expired'
+                        : 'bg-amber-500/10 text-amber-400'
+                    }`}>
+                      {days < 0 ? 'Vencido' : days === 0 ? 'Hoy' : `${days}d`}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </Card>
           )}
 

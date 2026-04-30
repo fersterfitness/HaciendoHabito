@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, TrendingUp, TrendingDown, Search, Pencil, Trash2 } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, Search, Pencil, Trash2, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -145,18 +145,88 @@ export function FinancesPage() {
     e.category.toLowerCase().includes(search.toLowerCase())
   )
 
+  // ── CSV export ──
+  function exportCSV() {
+    const isIncome = tab === 'income'
+
+    const STATUS_LABEL: Record<string, string> = {
+      cobrado:   'Cobrado',
+      pendiente: 'Pendiente',
+      cancelado: 'Cancelado',
+    }
+    const METHOD_LABEL: Record<string, string> = {
+      efectivo_debito: 'Efectivo / Débito',
+      tarjeta_credito: 'Tarjeta crédito',
+      transferencia:   'Transferencia',
+      otro:            'Otro',
+    }
+    const EXPENSE_TYPE_LABEL: Record<string, string> = {
+      fijo:     'Fijo',
+      variable: 'Variable',
+    }
+
+    const rows = isIncome
+      ? [
+          // Orden: lo más útil para analizar primero
+          ['Fecha', 'Monto', 'Estado', 'Alumno', 'Tipo', 'Categoría', 'Método de pago', 'Descripción', 'Notas'],
+          ...filteredIncomes.map((i) => [
+            i.income_date,
+            String(i.amount),
+            STATUS_LABEL[i.status] ?? i.status,
+            i.student?.full_name ?? '',
+            i.income_type,
+            i.category,
+            METHOD_LABEL[i.payment_method] ?? i.payment_method,
+            i.description,
+            i.notes ?? '',
+          ]),
+        ]
+      : [
+          ['Fecha', 'Monto', 'Tipo', 'Descripción', 'Categoría', 'Subcategoría', 'Método de pago', 'Notas'],
+          ...filteredExpenses.map((e) => [
+            e.expense_date,
+            String(e.amount),
+            EXPENSE_TYPE_LABEL[e.expense_type] ?? e.expense_type,
+            e.description,
+            e.category,
+            e.subcategory ?? '',
+            METHOD_LABEL[e.payment_method] ?? e.payment_method,
+            e.notes ?? '',
+          ]),
+        ]
+    // sep=; le indica a Excel (locale español) que use punto y coma como separador
+    const csv = 'sep=;\n' + rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url
+    a.download = `${isIncome ? 'ingresos' : 'gastos'}_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <Header
         title="Finanzas"
         actions={
-          <Button
-            size="sm"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => navigate(tab === 'income' ? '/finances/income/new' : '/finances/expenses/new')}
-          >
-            {tab === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCSV}
+              title="Exportar CSV"
+              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated px-2.5 py-1.5 rounded-lg transition-colors border border-surface-border"
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </button>
+            <Button
+              size="sm"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => navigate(tab === 'income' ? '/finances/income/new' : '/finances/expenses/new')}
+            >
+              {tab === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto'}
+            </Button>
+          </div>
         }
       />
 

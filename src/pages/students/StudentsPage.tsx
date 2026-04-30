@@ -1,18 +1,18 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Users, Pencil, Trash2, ChevronDown } from 'lucide-react'
+import { Plus, Search, Users, Pencil, Trash2, ChevronDown, Filter } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 import toast from 'react-hot-toast'
 import type { Student, StudentStatus } from '@/types/database'
 
@@ -156,6 +156,9 @@ function StatusToggle({
   )
 }
 
+type LevelFilter  = '' | 'inicial' | 'intermedio' | 'avanzado'
+type StatusFilter = '' | StudentStatus
+
 export function StudentsPage() {
   const navigate = useNavigate()
   const role = useAuthStore((state) => state.profile?.role)
@@ -164,6 +167,8 @@ export function StudentsPage() {
   const { students, loading, fetchStudents, deleteStudent } = useStudents()
   const [localStudents, setLocalStudents] = useState<Student[]>([])
   const [search, setSearch] = useState('')
+  const [filterLevel,  setFilterLevel]  = useState<LevelFilter>('')
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>('')
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -196,10 +201,18 @@ export function StudentsPage() {
     )
   }
 
+  const filtered = useMemo(() => localStudents.filter((s) => {
+    if (filterLevel  && s.level  !== filterLevel)  return false
+    if (filterStatus && s.status !== filterStatus) return false
+    return true
+  }), [localStudents, filterLevel, filterStatus])
+
   const grouped = {
-    activo: localStudents.filter((s) => s.status === 'activo'),
-    inactivo: localStudents.filter((s) => s.status !== 'activo'),
+    activo:   filtered.filter((s) => s.status === 'activo'),
+    inactivo: filtered.filter((s) => s.status !== 'activo'),
   }
+
+  const hasFilters = filterLevel !== '' || filterStatus !== ''
 
   return (
     <div>
@@ -224,9 +237,59 @@ export function StudentsPage() {
           onChange={(e) => handleSearch(e.target.value)}
         />
 
+        {/* ── Filtros ── */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="h-3.5 w-3.5 text-ink-muted shrink-0" />
+          {/* Nivel */}
+          {(['', 'inicial', 'intermedio', 'avanzado'] as LevelFilter[]).map((v) => (
+            <button
+              key={v || 'all-nivel'}
+              onClick={() => setFilterLevel(v)}
+              className={cn(
+                'px-3 py-1 rounded-lg text-xs font-medium transition-colors border',
+                filterLevel === v
+                  ? 'bg-brand-primary text-white border-brand-primary'
+                  : 'bg-surface-elevated text-ink-muted border-surface-border hover:text-ink-primary',
+              )}
+            >
+              {v === '' ? 'Todos los niveles' : LEVEL_LABELS[v]}
+            </button>
+          ))}
+          <span className="w-px h-4 bg-surface-border" />
+          {/* Estado */}
+          {([
+            { value: '' as StatusFilter, label: 'Todos' },
+            ...STATUS_OPTIONS,
+          ]).map((opt) => (
+            <button
+              key={opt.value || 'all-status'}
+              onClick={() => setFilterStatus(opt.value)}
+              className={cn(
+                'px-3 py-1 rounded-lg text-xs font-medium transition-colors border',
+                filterStatus === opt.value
+                  ? 'bg-brand-primary text-white border-brand-primary'
+                  : 'bg-surface-elevated text-ink-muted border-surface-border hover:text-ink-primary',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {hasFilters && (
+            <button
+              onClick={() => { setFilterLevel(''); setFilterStatus('') }}
+              className="ml-1 text-xs text-ink-muted hover:text-status-expired transition-colors underline underline-offset-2"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Spinner size="lg" />
+          <div className="space-y-6">
+            <div>
+              <div className="h-3 w-20 rounded bg-surface-elevated mb-3 animate-pulse" />
+              <TableSkeleton rows={4} cols={4} />
+            </div>
           </div>
         ) : localStudents.length === 0 ? (
           <EmptyState
@@ -238,6 +301,12 @@ export function StudentsPage() {
               onClick: () => navigate('/students/new'),
               icon: <Plus className="h-4 w-4" />,
             }}
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Filter className="h-8 w-8" />}
+            title="Sin resultados para los filtros"
+            description="Probá con otros filtros o limpiá la selección."
           />
         ) : (
           <div className="space-y-8">

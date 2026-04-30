@@ -627,6 +627,17 @@ export interface StudentRmRecord {
   exercise?: Pick<Exercise, 'id' | 'name'>
 }
 
+export interface StudentWeightLog {
+  id: string
+  owner_id: string
+  student_id: string
+  logged_at: string      // ISO date YYYY-MM-DD
+  weight_kg: number
+  body_fat_pct: number | null
+  notes: string | null
+  created_at: string
+}
+
 export interface Notification {
   id: string
   user_id: string
