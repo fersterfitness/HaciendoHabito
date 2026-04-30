@@ -1,6 +1,8 @@
 /**
- * Proxy same-origin → Supabase Edge Function (evita CORS en el navegador).
- * Usamos runtime **Node** porque Edge limita ~4 MB el cuerpo; fotos del celular rompen multipart.
+ * Proxy opcional same-origin → Edge Function (ej. si CORS/JWT fallaran en el navegador).
+ *
+ * El formulario público **ya no usa** esta ruta por defecto: en Vercel el proxy sumaba latencia y **504**
+ * (timeout en Hobby) con multipart. El cliente llama directo a Supabase.
  *
  * Vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, opcional VITE_PUBLIC_INTAKE_SECRET.
  */

@@ -138,19 +138,17 @@ export function IntakeFersterForm({ onSuccess }: Props) {
       website: '',
     }
 
-    /** Build de producción + host público → proxy same-origin `/api/intake` (sin CORS). Dev / preview en localhost → directo a Supabase. */
-    const isLocalHost = (h: string) => h === 'localhost' || h.startsWith('127.') || h === '[::1]'
-    const useProxy =
-      import.meta.env.PROD &&
-      typeof window !== 'undefined' &&
-      !isLocalHost(window.location.hostname)
-    const endpoint = useProxy ? `${window.location.origin}/api/intake` : `${supabaseUrl}/functions/v1/public-intake-form`
-
-    const directHeaders: Record<string, string> = {
+    /**
+     * Siempre llamamos directo a la Edge Function de Supabase. El proxy `/api/intake` en Vercel
+     * intermediaba multipart y suele hacer **504** (timeout ~10 s en Hobby) porque suma tiempo de proxy + uploads.
+     * Con JWT desactivado y CORS en la función, el navegador puede postear cross-origin bien.
+     */
+    const endpoint = `${supabaseUrl}/functions/v1/public-intake-form`
+    const fnHeaders: Record<string, string> = {
       apikey: anon,
       Authorization: `Bearer ${anon}`,
     }
-    if (intakeSecret) directHeaders['x-intake-secret'] = intakeSecret
+    if (intakeSecret) fnHeaders['x-intake-secret'] = intakeSecret
 
     const hasFiles = progressFiles.length > 0 || profileFile !== null || medicalFile !== null
 
@@ -160,7 +158,7 @@ export function IntakeFersterForm({ onSuccess }: Props) {
         res = await fetch(endpoint, {
           method: 'POST',
           headers: {
-            ...(useProxy ? {} : directHeaders),
+            ...fnHeaders,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
@@ -184,12 +182,12 @@ export function IntakeFersterForm({ onSuccess }: Props) {
         if (medicalPrepared) formData.append('medical', medicalPrepared)
         res = await fetch(endpoint, {
           method: 'POST',
-          headers: useProxy ? {} : directHeaders,
+          headers: fnHeaders,
           body: formData,
         })
       }
     } catch {
-      toast.error('No se pudo conectar. Probá más tarde.')
+      toast.error('No se pudo conectar con el servidor. Probá más tarde.')
       return
     }
 
@@ -201,7 +199,9 @@ export function IntakeFersterForm({ onSuccess }: Props) {
       toast.error(
         res.status === 413
           ? 'Los archivos pesan demasiado. Probá fotos más chicas.'
-          : `El servidor no respondió bien (${res.status}). Si adjuntaste fotos, probá reducir su tamaño.`,
+          : res.status === 504
+            ? 'El envío tardó demasiado. Probá con fotos más chicas o sin adjuntos para probar.'
+            : `El servidor no respondió bien (${res.status}). Si adjuntaste fotos, probá reducir su tamaño.`,
       )
       return
     }
