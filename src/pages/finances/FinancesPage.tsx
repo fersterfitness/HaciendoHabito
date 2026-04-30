@@ -98,9 +98,13 @@ export function FinancesPage() {
 
   // ── Delete income ──
   async function handleDeleteIncome() {
-    if (!deleteIncomeTarget) return
+    if (!deleteIncomeTarget || !user) return
     setDeleting(true)
-    const { error } = await supabase.from('income').delete().eq('id', deleteIncomeTarget.id)
+    const { error } = await supabase
+      .from('income')
+      .delete()
+      .eq('id', deleteIncomeTarget.id)
+      .eq('owner_id', user.id)
     setDeleting(false)
     if (error) { toast.error(error.message); return }
     toast.success('Ingreso eliminado')
@@ -110,9 +114,13 @@ export function FinancesPage() {
 
   // ── Delete expense ──
   async function handleDeleteExpense() {
-    if (!deleteExpenseTarget) return
+    if (!deleteExpenseTarget || !user) return
     setDeleting(true)
-    const { error } = await supabase.from('expenses').delete().eq('id', deleteExpenseTarget.id)
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', deleteExpenseTarget.id)
+      .eq('owner_id', user.id)
     setDeleting(false)
     if (error) { toast.error(error.message); return }
     toast.success('Gasto eliminado')

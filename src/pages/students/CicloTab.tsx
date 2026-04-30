@@ -102,12 +102,21 @@ export function CicloTab({ studentId }: { studentId: string }) {
     toast.success('Ciclo registrado')
   }
 
-  async function deleteCycle(id: string) {
-    setDeleting(id)
-    const { error } = await supabase.from('menstrual_cycles').delete().eq('id', id)
+  async function deleteCycle(cycleId: string) {
+    if (!user) return
+    setDeleting(cycleId)
+    const prev = cycles
+    setCycles((p) => p.filter((c) => c.id !== cycleId)) // optimistic
+    const { error } = await supabase
+      .from('menstrual_cycles')
+      .delete()
+      .eq('id', cycleId)
+      .eq('owner_id', user.id)
     setDeleting(null)
-    if (error) { toast.error(error.message); return }
-    setCycles((prev) => prev.filter((c) => c.id !== id))
+    if (error) {
+      setCycles(prev)              // rollback
+      toast.error(error.message)
+    }
   }
 
   // ── Derived state ───────────────────────────────────────────────────────────

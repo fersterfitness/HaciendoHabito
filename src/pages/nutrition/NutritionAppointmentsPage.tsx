@@ -279,8 +279,9 @@ export function NutritionAppointmentsPage() {
   }
 
   async function updateStatus(id: string, status: AppointmentStatus) {
+    if (!user) return
     const prev = appointments.find((a) => a.id === id)
-    const { error } = await supabase.from('appointments').update({ status }).eq('id', id)
+    const { error } = await supabase.from('appointments').update({ status }).eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
       return

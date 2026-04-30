@@ -68,23 +68,30 @@ export function useRoutines() {
   )
 
   const updateRoutine = useCallback(async (id: string, payload: Partial<Routine>) => {
+    if (!user) return null
     const { data, error } = await supabase
       .from('routines')
       .update(payload)
       .eq('id', id)
+      .eq('owner_id', user.id)
       .select()
       .single()
     if (error) { toast.error(error.message); return null }
     toast.success('Rutina actualizada')
     return data
-  }, [])
+  }, [user])
 
   const deleteRoutine = useCallback(async (id: string) => {
-    const { error } = await supabase.from('routines').delete().eq('id', id)
+    if (!user) return false
+    const { error } = await supabase
+      .from('routines')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', user.id)
     if (error) { toast.error(error.message); return false }
     toast.success('Rutina eliminada')
     return true
-  }, [])
+  }, [user])
 
   return { routines, loading, fetchRoutines, createRoutine, updateRoutine, deleteRoutine }
 }

@@ -51,25 +51,32 @@ export function useStudents() {
 
   const updateStudent = useCallback(
     async (id: string, payload: Partial<Student>) => {
+      if (!user) return null
       const { data, error } = await supabase
         .from('students')
         .update(payload)
         .eq('id', id)
+        .eq('owner_id', user.id)   // ← solo puede editar sus propios alumnos
         .select()
         .single()
       if (error) { toast.error(error.message); return null }
       toast.success('Alumno actualizado')
       return data
     },
-    []
+    [user]
   )
 
   const deleteStudent = useCallback(async (id: string) => {
-    const { error } = await supabase.from('students').delete().eq('id', id)
+    if (!user) return false
+    const { error } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', user.id)   // ← solo puede eliminar sus propios alumnos
     if (error) { toast.error(error.message); return false }
     toast.success('Alumno eliminado')
     return true
-  }, [])
+  }, [user])
 
   return { students, loading, error, fetchStudents, createStudent, updateStudent, deleteStudent }
 }

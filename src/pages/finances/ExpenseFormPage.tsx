@@ -66,7 +66,7 @@ export function ExpenseFormPage() {
       notes: values.notes || null,
     }
     if (isEditing) {
-      const { error } = await supabase.from('expenses').update(payload).eq('id', id)
+      const { error } = await supabase.from('expenses').update(payload).eq('id', id).eq('owner_id', user.id)
       if (error) { toast.error(error.message); return }
       toast.success('Gasto actualizado')
     } else {

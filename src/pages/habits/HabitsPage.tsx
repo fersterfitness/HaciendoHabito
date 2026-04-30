@@ -116,8 +116,19 @@ export function HabitsPage() {
 
     // Optimistic
     if (isDone) {
+      const snapshot = logs
       setLogs((prev) => prev.filter((l) => !(l.habit_id === habitId && l.log_date === dateStr)))
-      await supabase.from('habit_logs').delete().eq('student_id', selectedStudent).eq('habit_id', habitId).eq('log_date', dateStr)
+      const { error } = await supabase
+        .from('habit_logs')
+        .delete()
+        .eq('student_id', selectedStudent)
+        .eq('habit_id', habitId)
+        .eq('log_date', dateStr)
+        .eq('owner_id', user.id)   // ← solo elimina los propios
+      if (error) {
+        setLogs(snapshot)           // ← rollback
+        toast.error(error.message)
+      }
     } else {
       const tempLog: HabitLog = { id: crypto.randomUUID(), owner_id: user.id, student_id: selectedStudent, habit_id: habitId, log_date: dateStr, created_at: new Date().toISOString() }
       setLogs((prev) => [...prev, tempLog])
@@ -396,7 +407,11 @@ function HabitLibraryModal({
   }
 
   async function deleteHabit(id: string) {
-    const { error } = await supabase.from('habits').update({ is_active: false }).eq('id', id)
+    const { error } = await supabase
+      .from('habits')
+      .update({ is_active: false })
+      .eq('id', id)
+      .eq('owner_id', userId)  // ← solo el dueño puede desactivar
     if (error) { toast.error(error.message); return }
     onHabitsChange(habits.filter((h) => h.id !== id))
     const next = new Set(selectedIds); next.delete(id); onSelectionsChange(next)
@@ -406,10 +421,20 @@ function HabitLibraryModal({
     setToggling(habitId)
     const isSelected = selectedIds.has(habitId)
     if (isSelected) {
-      await supabase.from('student_habit_selections').delete().eq('student_id', studentId).eq('habit_id', habitId)
+      const prevIds = new Set(selectedIds)
       const next = new Set(selectedIds); next.delete(habitId); onSelectionsChange(next)
+      const { error } = await supabase
+        .from('student_habit_selections')
+        .delete()
+        .eq('student_id', studentId)
+        .eq('habit_id', habitId)
+        .eq('owner_id', userId)  // ← solo el dueño
+      if (error) { onSelectionsChange(prevIds); toast.error(error.message) }
     } else {
-      await supabase.from('student_habit_selections').insert({ student_id: studentId, habit_id: habitId, owner_id: userId })
+      const { error } = await supabase
+        .from('student_habit_selections')
+        .insert({ student_id: studentId, habit_id: habitId, owner_id: userId })
+      if (error) { toast.error(error.message); setToggling(null); return }
       const next = new Set(selectedIds); next.add(habitId); onSelectionsChange(next)
     }
     setToggling(null)

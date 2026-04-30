@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Dumbbell, Trash2, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -28,6 +29,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 
 export function ExercisesPage() {
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [exercises, setExercises] = useState<ExerciseWithGroup[]>([])
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,9 +69,13 @@ export function ExercisesPage() {
   })
 
   async function handleDelete() {
-    if (!deleteTarget) return
+    if (!deleteTarget || !user) return
     setDeleting(true)
-    const { error } = await supabase.from('exercise_library').delete().eq('id', deleteTarget.id)
+    const { error } = await supabase
+      .from('exercise_library')
+      .delete()
+      .eq('id', deleteTarget.id)
+      .eq('owner_id', user.id)   // ← solo el dueño puede eliminar
     setDeleting(false)
     if (error) { toast.error(error.message); return }
     toast.success('Ejercicio eliminado')

@@ -50,20 +50,21 @@ export function StudentDetailPage() {
   const [tab,        setTab]        = useState<Tab>('resumen')
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !user) return
     Promise.all([
-      supabase.from('students').select('*').eq('id', id).single(),
-      supabase.from('routines').select('*').eq('student_id', id).order('created_at', { ascending: false }),
+      supabase.from('students').select('*').eq('id', id).eq('owner_id', user.id).single(),
+      supabase.from('routines').select('*').eq('student_id', id).eq('owner_id', user.id).order('created_at', { ascending: false }),
       supabase.from('student_rm_records')
         .select('*, exercise:exercise_library(id, name)')
         .eq('student_id', id)
+        .eq('owner_id', user.id)
         .order('tested_at', { ascending: false }),
     ]).then(([{ data: s }, { data: r }, { data: rm }]) => {
       setStudent(s)
       setRoutines(r ?? [])
       setRmRecords((rm as unknown as StudentRmRecord[]) ?? [])
     }).finally(() => setLoading(false))
-  }, [id])
+  }, [id, user])
 
   async function handleDelete() {
     if (!id) return
@@ -81,14 +82,25 @@ export function StudentDetailPage() {
       .select('*, exercise:exercise_library(id, name)')
       .single()
     if (error) { toast.error(error.message); return }
+    // Solo actualizamos el estado DESPUÉS de confirmar el servidor
     setRmRecords((prev) => [data as unknown as StudentRmRecord, ...prev])
     toast.success('RM registrado')
   }
 
   async function deleteRmRecord(recordId: string) {
-    const { error } = await supabase.from('student_rm_records').delete().eq('id', recordId)
-    if (error) { toast.error(error.message); return }
-    setRmRecords((prev) => prev.filter((r) => r.id !== recordId))
+    if (!user) return
+    // Optimistic: guardamos estado anterior para rollback
+    const prev = rmRecords
+    setRmRecords((p) => p.filter((r) => r.id !== recordId))
+    const { error } = await supabase
+      .from('student_rm_records')
+      .delete()
+      .eq('id', recordId)
+      .eq('owner_id', user.id)   // ← solo el dueño puede eliminar
+    if (error) {
+      setRmRecords(prev)          // ← rollback si falla
+      toast.error(error.message)
+    }
   }
 
   if (loading) return <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>

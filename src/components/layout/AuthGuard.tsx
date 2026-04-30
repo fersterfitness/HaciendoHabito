@@ -3,9 +3,8 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Spinner } from '@/components/ui/Spinner'
 
-// Hard cap: never show spinner for more than this long.
-// If auth hasn't resolved by then, send user to login.
-const MAX_LOADING_MS = 12000
+// Hard cap: si la verificación de auth tarda más que esto, redirige a login
+const MAX_LOADING_MS = 8000
 
 export function AuthGuard() {
   const { user, loading } = useAuth()
@@ -13,8 +12,16 @@ export function AuthGuard() {
 
   useEffect(() => {
     if (!loading) return
-    const t = setTimeout(() => setTimedOut(true), MAX_LOADING_MS)
+    const t = setTimeout(() => {
+      console.warn('[AuthGuard] auth check timed out after', MAX_LOADING_MS, 'ms — redirecting to login')
+      setTimedOut(true)
+    }, MAX_LOADING_MS)
     return () => clearTimeout(t)
+  }, [loading])
+
+  // Reset timeout si loading termina antes
+  useEffect(() => {
+    if (!loading) setTimedOut(false)
   }, [loading])
 
   if (loading && !timedOut) {

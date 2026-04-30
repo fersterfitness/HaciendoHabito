@@ -80,7 +80,11 @@ export function ExerciseFormPage() {
     }
 
     if (isEditing) {
-      const { error } = await supabase.from('exercise_library').update(payload).eq('id', id)
+      const { error } = await supabase
+        .from('exercise_library')
+        .update(payload)
+        .eq('id', id)
+        .eq('owner_id', user.id)   // ← solo el dueño puede editar
       if (error) { toast.error(error.message); return }
       toast.success('Ejercicio actualizado')
     } else {
@@ -92,9 +96,13 @@ export function ExerciseFormPage() {
   }
 
   async function handleDelete() {
-    if (!id) return
+    if (!id || !user) return
     setDeleting(true)
-    const { error } = await supabase.from('exercise_library').delete().eq('id', id)
+    const { error } = await supabase
+      .from('exercise_library')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', user.id)   // ← solo el dueño puede eliminar
     setDeleting(false)
     if (error) { toast.error(error.message); return }
     toast.success('Ejercicio eliminado')
