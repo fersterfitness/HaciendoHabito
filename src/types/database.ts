@@ -213,6 +213,53 @@ export interface Profile {
   updated_at: string
 }
 
+/** Cuestionario nutricional (/form → nutrición); `uploads` mapea clave → ruta en bucket `student-intake`. */
+export type NutritionIntakeStored = {
+  version: number
+  form_type: 'nutrition'
+  motivo_consulta: string
+  profession: string
+  work_hours: string
+  marital_status: string
+  family_composition: string
+  hobbies: string
+  pathologies: string
+  medications: string
+  supplementation: string
+  symptoms: string
+  family_history: string
+  smoking: string
+  has_physical_activity: string
+  activity_type: string
+  activity_since: string
+  activity_frequency: string
+  activity_duration: string
+  activity_intensity: string
+  first_meal_time: string
+  meals_per_day: string
+  skipped_meal: string
+  last_meal_time: string
+  digestive_intolerances: string
+  common_preparations: string
+  record_breakfast: string
+  record_lunch: string
+  record_snack: string
+  record_dinner: string
+  record_collations: string
+  food_freq: Record<string, { tipo: string; frecuencia: string; cantidad: string }>
+  frequent_vegetables: string
+  frequent_fruits: string
+  good_habit_1: string
+  good_habit_2: string
+  good_habit_3: string
+  bad_habit_1: string
+  bad_habit_2: string
+  bad_habit_3: string
+  other_notes: string
+  submitted_at: string
+  uploads: Record<string, string>
+}
+
 /** Cuestionario web Ferster (/form); `uploads` mapea clave → ruta en bucket `student-intake`. */
 export type FersterIntakeStored = {
   version: number
@@ -251,6 +298,8 @@ export interface Student {
   weight_kg: number | null
   height_cm: number | null
   intake_ferster: FersterIntakeStored | null
+  /** Cuestionario nutricional web. */
+  intake_nutrition: NutritionIntakeStored | null
   /** Ruta dentro del bucket `student-avatars` (p. ej. `{uuid}/avatar.jpg`). */
   avatar_path: string | null
   /** Fecha de vencimiento del plan activo (ISO date YYYY-MM-DD). */

@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Sun, Moon } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Sun, Moon, Dumbbell, Salad } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
+import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
+
+type FormType = 'entrenamiento' | 'nutricion' | null
 
 const ACCENT = '#7C5DFA'
 
@@ -135,7 +138,8 @@ function LeftBrandPanel({ theme }: { theme: 'light' | 'dark' }) {
 
 export function PublicIntakeFormPage() {
   const { theme } = useTheme()
-  const [done, setDone] = useState(false)
+  const [done,      setDone]      = useState(false)
+  const [formType,  setFormType]  = useState<FormType>(null)
 
   if (done) {
     return (
@@ -167,11 +171,73 @@ export function PublicIntakeFormPage() {
       <div className="w-full max-w-[960px] rounded-3xl overflow-hidden border border-surface-border bg-surface-card shadow-card dark:shadow-2xl flex flex-col lg:flex-row">
         <LeftBrandPanel theme={theme} />
 
-        {/* Panel derecho — formulario Ferster */}
+        {/* Panel derecho — selector de tipo o formulario */}
         <div className="flex-1 px-6 sm:px-10 py-10 lg:py-12 lg:pl-10 lg:pr-12 max-h-[calc(100vh-5rem)] overflow-y-auto">
-          <IntakeFersterForm onSuccess={() => setDone(true)} />
+          {formType === null ? (
+            <FormTypeSelector onSelect={setFormType} />
+          ) : formType === 'nutricion' ? (
+            <IntakeNutritionForm onSuccess={() => setDone(true)} />
+          ) : (
+            <IntakeFersterForm onSuccess={() => setDone(true)} />
+          )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Selector de tipo de formulario ──────────────────────────────────────────
+
+function FormTypeSelector({ onSelect }: { onSelect: (t: NonNullable<FormType>) => void }) {
+  return (
+    <div className="max-w-md mx-auto lg:mx-0 flex flex-col justify-center h-full py-4">
+      <h1 className="text-2xl sm:text-[1.65rem] font-bold text-ink-primary tracking-tight mb-2">
+        Formulario de registro
+      </h1>
+      <p className="text-sm text-ink-secondary mb-8">
+        Seleccioná el tipo de consulta para comenzar con el cuestionario correspondiente.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={() => onSelect('entrenamiento')}
+          className="group flex flex-col items-center gap-4 rounded-2xl border-2 border-surface-border bg-surface-card p-8 text-center transition-all hover:border-[#7C5DFA]/60 hover:shadow-lg hover:shadow-[#7C5DFA]/10 hover:-translate-y-0.5"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#7C5DFA]/10 text-[#7C5DFA] transition-transform group-hover:scale-110">
+            <Dumbbell className="h-7 w-7" />
+          </span>
+          <div>
+            <p className="text-base font-bold text-ink-primary">Entrenamiento</p>
+            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+              Plan personalizado, rutinas y seguimiento físico.
+            </p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onSelect('nutricion')}
+          className="group flex flex-col items-center gap-4 rounded-2xl border-2 border-surface-border bg-surface-card p-8 text-center transition-all hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-0.5"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 transition-transform group-hover:scale-110">
+            <Salad className="h-7 w-7" />
+          </span>
+          <div>
+            <p className="text-base font-bold text-ink-primary">Nutrición</p>
+            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+              Plan nutricional personalizado y seguimiento alimentario.
+            </p>
+          </div>
+        </button>
+      </div>
+
+      <p className="text-center text-xs text-ink-muted mt-8">
+        ¿Ya tenés cuenta?{' '}
+        <Link to="/login" className="font-medium hover:underline" style={{ color: ACCENT }}>
+          Iniciar sesión
+        </Link>
+      </p>
     </div>
   )
 }
