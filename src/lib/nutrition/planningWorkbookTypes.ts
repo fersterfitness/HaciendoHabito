@@ -48,6 +48,8 @@ export interface PlanningWorkbookStateV1 {
     sex: '' | 'M' | 'F'
     weightKg: string
   }
+  /** Alumno/paciente usado solo para rellenar referencia (peso, sexo, etc.). null = plantilla genérica. */
+  personReferenceStudentId?: string | null
   objectives: string
   proposedKcal: string
   macroInputs: {

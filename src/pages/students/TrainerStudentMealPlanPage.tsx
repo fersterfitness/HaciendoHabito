@@ -1,0 +1,124 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, FileDown } from 'lucide-react'
+import { Header } from '@/components/layout/Header'
+import { Button } from '@/components/ui/Button'
+import { Spinner } from '@/components/ui/Spinner'
+import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWorkbookReadonlyView'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
+import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
+import type { PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
+import { parsePlanningData } from '@/lib/nutrition/planningWorkbookTypes'
+import type { Json, TrainerStudentMealPlan } from '@/types/database'
+import toast from 'react-hot-toast'
+import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
+
+/** Vista del plan asignado (entrenador / admin) desde la ficha del alumno. */
+export function TrainerStudentMealPlanPage() {
+  const { id: studentId, planId } = useParams<{ id: string; planId: string }>()
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
+  const [wb, setWb] = useState<PlanningWorkbookStateV1 | null>(null)
+  const [planRow, setPlanRow] = useState<TrainerStudentMealPlan | null>(null)
+  const [title, setTitle] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [pdfBusy, setPdfBusy] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id || !planId || !studentId) return
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('trainer_student_meal_plans')
+        .select('*')
+        .eq('id', planId)
+        .eq('student_id', studentId)
+        .eq('owner_id', user.id)
+        .maybeSingle()
+      if (cancelled) return
+      if (error || !data) {
+        setWb(null)
+        setPlanRow(null)
+        setLoading(false)
+        return
+      }
+      const row = data as TrainerStudentMealPlan
+      setPlanRow(row)
+      setTitle(row.title)
+      const parsed = parsePlanningData(row.data as Json)
+      setWb(parsed ?? createInitialPlanningWorkbook())
+      setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, planId, studentId])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner />
+      </div>
+    )
+  }
+
+  if (!wb) {
+    return (
+      <div className="pb-24 lg:pb-10 px-4">
+        <Header title="Plan" />
+        <p className="text-sm text-ink-muted mt-6">No encontramos este plan.</p>
+        <Button variant="secondary" className="mt-4" onClick={() => navigate(studentId ? `/students/${studentId}` : '/students')}>
+          Volver al alumno
+        </Button>
+      </div>
+    )
+  }
+
+  async function handlePdf() {
+    if (!planRow) return
+    setPdfBusy(true)
+    try {
+      await downloadTrainerStudentMealPlanPdf(planRow, { professionalName: profile?.full_name })
+      toast.success('PDF descargado.')
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo generar el PDF.')
+    } finally {
+      setPdfBusy(false)
+    }
+  }
+
+  return (
+    <div className="pb-24 lg:pb-10">
+      <Header
+        title={title || 'Plan de alimentación'}
+        actions={
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              loading={pdfBusy}
+              icon={<FileDown className="h-4 w-4" />}
+              onClick={() => void handlePdf()}
+            >
+              PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<ArrowLeft className="h-4 w-4" />}
+              onClick={() => navigate(studentId ? `/students/${studentId}` : '/students')}
+            >
+              Alumno
+            </Button>
+          </div>
+        }
+      />
+      <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 lg:px-6 pt-2">
+        <PlanningWorkbookReadonlyView wb={wb} />
+      </div>
+    </div>
+  )
+}

@@ -173,6 +173,12 @@ export interface Database {
         Update: Partial<Omit<NutritionPlanningWorkbook, 'id' | 'created_at'>>
         Relationships: []
       }
+      trainer_student_meal_plans: {
+        Row: TrainerStudentMealPlan
+        Insert: Omit<TrainerStudentMealPlan, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TrainerStudentMealPlan, 'id' | 'created_at'>>
+        Relationships: []
+      }
       nutrition_patient_plan_versions: {
         Row: NutritionPatientPlanVersion
         Insert: Omit<NutritionPatientPlanVersion, 'id' | 'created_at' | 'updated_at' | 'imported_at'>
@@ -566,6 +572,18 @@ export interface NutritionPlanningWorkbook {
   owner_id: string
   title: string
   data: Json
+  created_at: string
+  updated_at: string
+}
+
+/** Plan Excel HH asignado por entrenador a un alumno (varios por alumno). */
+export interface TrainerStudentMealPlan {
+  id: string
+  owner_id: string
+  student_id: string
+  title: string
+  data: Json
+  cloned_from_id: string | null
   created_at: string
   updated_at: string
 }

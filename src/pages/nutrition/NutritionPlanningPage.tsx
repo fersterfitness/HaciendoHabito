@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, Lightbulb, Loader2, RotateCcw } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  Apple,
+  BookOpen,
+  ChevronDown,
+  FileDown,
+  Lightbulb,
+  Loader2,
+  RotateCcw,
+  Search,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -19,12 +31,19 @@ import {
 } from '@/lib/nutrition/planningCalculations'
 import type { PlanningFoodRowState, PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
 import { parsePlanningData, planningDataToJson } from '@/lib/nutrition/planningWorkbookTypes'
-import type { Json, NutritionPlanningWorkbook } from '@/types/database'
+import { downloadPlanningWorkbookPdf } from '@/lib/nutrition/downloadPlanningWorkbookPdf'
+import type { Json, NutritionFoodLibrary, NutritionPlanningWorkbook, Student } from '@/types/database'
 import { cn } from '@/lib/utils'
 
 function fmt1(n: number): string {
   if (!Number.isFinite(n)) return '—'
   return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
+}
+
+/** Valores por 100 g guardados en Guía → columnas HC/P/G/kcal del plan */
+function formatLibNutrientForPlanning(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return '0'
+  return String(n)
 }
 
 function TotalsBadge({ label, ...t }: MacroTotals & { label: string }) {
@@ -45,7 +64,9 @@ function TotalsBadge({ label, ...t }: MacroTotals & { label: string }) {
 }
 
 export function NutritionPlanningPage() {
+  const location = useLocation()
   const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
   const [loading, setLoading] = useState(true)
   const [rowPk, setRowPk] = useState<string | null>(null)
   const [wb, setWb] = useState<PlanningWorkbookStateV1>(() => createInitialPlanningWorkbook())
@@ -56,6 +77,144 @@ export function NutritionPlanningPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('saved')
   const [resetOpen, setResetOpen] = useState(false)
+  const [libraryFoods, setLibraryFoods] = useState<NutritionFoodLibrary[]>([])
+  const [libraryPicker, setLibraryPicker] = useState<{ secKey: string; rowId: string } | null>(null)
+  const [libraryQuery, setLibraryQuery] = useState('')
+  const [libraryRefreshing, setLibraryRefreshing] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignSaving, setAssignSaving] = useState(false)
+  const [assignStudentId, setAssignStudentId] = useState('')
+  const [assignTitle, setAssignTitle] = useState('Plan de alimentación')
+  const [assignStudents, setAssignStudents] = useState<Pick<Student, 'id' | 'full_name'>[]>([])
+  /** Lista para rellenar «persona» desde ficha (misma fuente que asignar plan). */
+  const [referenceStudents, setReferenceStudents] = useState<Pick<Student, 'id' | 'full_name'>[]>([])
+  const [referenceStudentsLoading, setReferenceStudentsLoading] = useState(true)
+  /** Primera carga de Mi lista terminada (vacío ≠ cargando). */
+  const [libraryHydrated, setLibraryHydrated] = useState(false)
+  /** Desde la tarjeta: elegir en qué fila del plan aplicar el alimento. */
+  const [tableTargetLib, setTableTargetLib] = useState<NutritionFoodLibrary | null>(null)
+  const [tableTargetSecKey, setTableTargetSecKey] = useState('')
+  const [tableTargetRowId, setTableTargetRowId] = useState('')
+
+  const loadLibraryFoods = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) return false
+    try {
+      const { data, error } = await supabase
+        .from('nutrition_food_library')
+        .select(
+          'id, owner_id, display_name, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, portion_basis, source_label, notes, created_at, updated_at',
+        )
+        .eq('owner_id', user.id)
+        .order('display_name')
+      if (error) {
+        toast.error(error.message || 'No se pudo cargar Mi lista.')
+        return false
+      }
+      setLibraryFoods((data ?? []) as NutritionFoodLibrary[])
+      return true
+    } finally {
+      setLibraryHydrated(true)
+    }
+  }, [user?.id])
+
+  /** Al entrar a esta pantalla o volver desde la Guía, lista fresca (antes solo dependía de user). */
+  useEffect(() => {
+    if (!user?.id || location.pathname !== '/nutrition/planning') return
+    void loadLibraryFoods()
+  }, [user?.id, location.pathname, location.key, loadLibraryFoods])
+
+  /** Si guardaste un alimento en otra pestaña y volvés acá. */
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState !== 'visible' || !user?.id) return
+      void loadLibraryFoods()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [user?.id, loadLibraryFoods])
+
+  const canAssignToStudent = profile?.role === 'trainer' || profile?.role === 'admin'
+  const referenceEntityLabel = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
+
+  useEffect(() => {
+    if (!user?.id) {
+      setReferenceStudents([])
+      setReferenceStudentsLoading(false)
+      return
+    }
+    let cancelled = false
+    setReferenceStudentsLoading(true)
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, full_name')
+        .eq('owner_id', user.id)
+        .order('full_name')
+      if (cancelled) return
+      if (error) {
+        console.error(error)
+        setReferenceStudents([])
+      } else {
+        setReferenceStudents((data ?? []) as Pick<Student, 'id' | 'full_name'>[])
+      }
+      setReferenceStudentsLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
+  /** Si el plan guardaba un id que ya no existe en la lista, limpiar vínculo. */
+  useEffect(() => {
+    if (!hydrated.current || referenceStudentsLoading) return
+    const id = wb.personReferenceStudentId
+    if (!id) return
+    if (!referenceStudents.some((s) => s.id === id)) {
+      userHasEdited.current = true
+      setWb((p) => ({ ...p, personReferenceStudentId: null }))
+    }
+  }, [referenceStudents, referenceStudentsLoading, wb.personReferenceStudentId])
+
+  useEffect(() => {
+    if (!assignOpen || !user?.id) return
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('students')
+        .select('id, full_name')
+        .eq('owner_id', user.id)
+        .order('full_name')
+      if (cancelled) return
+      const list = (data ?? []) as Pick<Student, 'id' | 'full_name'>[]
+      setAssignStudents(list)
+      setAssignStudentId((prev) => {
+        if (prev && list.some((s) => s.id === prev)) return prev
+        return list[0]?.id ?? ''
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [assignOpen, user?.id])
+
+  useEffect(() => {
+    if (!libraryPicker && !tableTargetLib && !assignOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      setLibraryPicker(null)
+      setLibraryQuery('')
+      setTableTargetLib(null)
+      setAssignOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [libraryPicker, tableTargetLib, assignOpen])
+
+  const libraryFiltered = useMemo(() => {
+    const q = libraryQuery.trim().toLowerCase()
+    if (!q) return libraryFoods
+    return libraryFoods.filter((f) => f.display_name.toLowerCase().includes(q))
+  }, [libraryFoods, libraryQuery])
 
   const persist = useCallback(async () => {
     if (!user?.id || !rowPk) return
@@ -221,6 +380,69 @@ export function NutritionPlanningPage() {
     setWb((prev) => ({ ...prev, macroInputs: { ...prev.macroInputs, [k]: v } }))
   }
 
+  const applyReferenceStudent = useCallback(
+    async (studentId: string | null) => {
+      if (!user?.id) return
+      userHasEdited.current = true
+      if (!studentId) {
+        setWb((p) => ({ ...p, personReferenceStudentId: null }))
+        return
+      }
+
+      const { data: st, error: stErr } = await supabase
+        .from('students')
+        .select('weight_kg, gender, intake_ferster')
+        .eq('id', studentId)
+        .eq('owner_id', user.id)
+        .maybeSingle()
+
+      if (stErr || !st) {
+        toast.error(stErr?.message ?? 'No se encontró la ficha.')
+        return
+      }
+
+      const { data: meas } = await supabase
+        .from('nutrition_measurements')
+        .select('weight_kg')
+        .eq('owner_id', user.id)
+        .eq('student_id', studentId)
+        .order('measured_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let weightNum = st.weight_kg
+      if (meas?.weight_kg != null && Number.isFinite(meas.weight_kg)) {
+        weightNum = meas.weight_kg
+      }
+
+      const sex: PlanningWorkbookStateV1['person']['sex'] =
+        st.gender === 'M' ? 'M' : st.gender === 'F' ? 'F' : ''
+
+      setWb((prev) => {
+        const fromIntake = st.intake_ferster?.main_goal?.trim()
+        const nextObjectives =
+          !prev.objectives.trim() && fromIntake ? fromIntake : prev.objectives
+
+        return {
+          ...prev,
+          personReferenceStudentId: studentId,
+          person: {
+            ...prev.person,
+            weightKg:
+              weightNum != null && Number.isFinite(weightNum)
+                ? String(weightNum)
+                : prev.person.weightKg,
+            sex: sex || prev.person.sex,
+          },
+          objectives: nextObjectives,
+        }
+      })
+
+      toast.success('Datos de referencia cargados desde la ficha (podés editarlos).')
+    },
+    [user?.id],
+  )
+
   function patchRow(secKey: string, rowId: string, patch: Partial<PlanningFoodRowState>) {
     userHasEdited.current = true
     setWb((prev) => ({
@@ -234,6 +456,80 @@ export function NutritionPlanningPage() {
             },
       ),
     }))
+  }
+
+  function applyFoodToPlanRow(lib: NutritionFoodLibrary, secKey: string, rowId: string) {
+    patchRow(secKey, rowId, {
+      name: lib.display_name,
+      refCarbs: formatLibNutrientForPlanning(lib.carbs_g_per_100g),
+      refProt: formatLibNutrientForPlanning(lib.protein_g_per_100g),
+      refFat: formatLibNutrientForPlanning(lib.fat_g_per_100g),
+      refKcal: formatLibNutrientForPlanning(lib.energy_kcal_per_100g),
+      hint: undefined,
+    })
+    const sec = wb.sections.find((s) => s.key === secKey)
+    toast.success(`${lib.display_name} · ${sec?.title ?? 'tabla'}`)
+  }
+
+  function applyFoodFromLibrary(lib: NutritionFoodLibrary) {
+    if (!libraryPicker) return
+    applyFoodToPlanRow(lib, libraryPicker.secKey, libraryPicker.rowId)
+    setLibraryPicker(null)
+    setLibraryQuery('')
+  }
+
+  function openTableTargetModal(lib: NutritionFoodLibrary) {
+    const first = wb.sections[0]
+    setTableTargetLib(lib)
+    setTableTargetSecKey(first?.key ?? '')
+    setTableTargetRowId(first?.rows[0]?.id ?? '')
+  }
+
+  function confirmTableTargetApply() {
+    if (!tableTargetLib || !tableTargetSecKey || !tableTargetRowId) return
+    applyFoodToPlanRow(tableTargetLib, tableTargetSecKey, tableTargetRowId)
+    setTableTargetLib(null)
+  }
+
+  const rowsForTableTarget = useMemo(() => {
+    return wb.sections.find((s) => s.key === tableTargetSecKey)?.rows ?? []
+  }, [wb.sections, tableTargetSecKey])
+
+  const selectPlanClasses =
+    'flex h-10 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20'
+
+  async function handleAssignToStudent() {
+    if (!assignStudentId || !user?.id) {
+      toast.error('Elegí un alumno.')
+      return
+    }
+    setAssignSaving(true)
+    const { error } = await supabase.from('trainer_student_meal_plans').insert({
+      owner_id: user.id,
+      student_id: assignStudentId,
+      title: assignTitle.trim() || 'Plan de alimentación',
+      data: planningDataToJson(wbRef.current) as Json,
+    })
+    setAssignSaving(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Plan asignado. El alumno lo ve en «Mi plan de alimentación» si tiene la cuenta vinculada.')
+    setAssignOpen(false)
+  }
+
+  async function handleExportPdf() {
+    try {
+      await downloadPlanningWorkbookPdf(wbRef.current, {
+        professionalName: profile?.full_name,
+        fileBaseName: 'plan-alimentacion',
+      })
+      toast.success('PDF descargado.')
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo generar el PDF.')
+    }
   }
 
   async function handleResetConfirm() {
@@ -266,7 +562,7 @@ export function NutritionPlanningPage() {
   return (
     <div className="pb-24 lg:pb-10">
       <Header
-        title="Plan ejemplo de comidas"
+        title="Plan de alimentación"
         actions={
           <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5 shrink-0 min-w-0">
             {saveState === 'saving' && (
@@ -280,6 +576,31 @@ export function NutritionPlanningPage() {
             {saveState === 'dirty' && (
               <span className="text-[11px] text-ink-muted whitespace-nowrap shrink-0">Guardando cambios…</span>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={<FileDown className="h-4 w-4" aria-hidden />}
+              className="h-9 shrink-0 rounded-xl"
+              onClick={() => void handleExportPdf()}
+            >
+              PDF
+            </Button>
+            {canAssignToStudent ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={<UserPlus className="h-4 w-4" aria-hidden />}
+                className="h-9 shrink-0 rounded-xl"
+                onClick={() => {
+                  setAssignTitle('Plan de alimentación')
+                  setAssignOpen(true)
+                }}
+              >
+                Asignar a alumno
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="secondary"
@@ -355,6 +676,34 @@ export function NutritionPlanningPage() {
               Para muchos entrenadores alcanza con completar gramajes en las tablas de más abajo.
             </p>
           </div>
+
+          <label className="text-sm space-y-1 block">
+            <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">
+              Referencia desde tu lista ({referenceEntityLabel})
+            </span>
+            <select
+              className={selectPlanClasses}
+              disabled={referenceStudentsLoading}
+              value={wb.personReferenceStudentId ?? ''}
+              onChange={(e) => {
+                const v = e.target.value
+                void applyReferenceStudent(v || null)
+              }}
+            >
+              <option value="">Ninguno — plantilla genérica</option>
+              {referenceStudents.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name}
+                </option>
+              ))}
+            </select>
+            <span className="text-[11px] text-ink-muted leading-snug inline-block mt-1">
+              Al elegir un {referenceEntityLabel}, se completan peso (prioriza la última medición nutricional si existe) y sexo para la referencia TDEE.&nbsp;
+              Si el objetivo en texto está vacío y hay objetivo en el formulario Ferster, se copia ahí.&nbsp;
+              TDEE y kcal diarias ejemplo siguen siendo manuales: en la ficha no hay un único número guardado para eso.
+            </span>
+          </label>
+
           <div className="rounded-lg bg-surface-muted/35 border border-surface-border/80 px-3 py-2 text-xs text-ink-secondary leading-relaxed">
             <strong className="text-ink-primary">TDEE:</strong> calorías aproximadas de mantención (<em>esto no es historia clínica</em>; valores orientativos del Excel HH).
           </div>
@@ -486,8 +835,110 @@ export function NutritionPlanningPage() {
         <p className="text-sm text-ink-muted leading-relaxed">
           Tablas por tipo de comida como en HH: cargá <strong>cantidad en gramos</strong> donde querés.&nbsp;
           HC / prot / grasa / kcal por 100 g son editables si tu marca cambia.&nbsp;
-          Tip: no hace falta rellenar todo — solo los alimentos del ejemplo que quieras mostrar.
+          Tip: tocá «Mi lista» (<BookOpen className="inline-block h-3.5 w-3.5 align-text-bottom mx-px text-brand-primary" aria-hidden />) junto al alimento para traer algo que hayas guardado en{' '}
+          <Link to="/nutrition/foods" className="text-brand-primary hover:underline font-medium">
+            Guía de alimentos
+          </Link>{' '}
+          cuando la plantilla no alcanza.
         </p>
+
+        <section className="rounded-2xl border border-surface-border bg-surface-card overflow-hidden w-full">
+          <div className="border-b border-surface-border bg-surface-muted/40 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-ink-primary uppercase tracking-wide flex items-center gap-2">
+                <Apple className="w-4 h-4 text-brand-primary shrink-0" aria-hidden />
+                Alimentos personalizados
+              </h2>
+              <p className="text-[11px] text-ink-muted mt-1 leading-relaxed max-w-[640px]">
+                Desde <strong>Mi lista</strong> en la{' '}
+                <Link to="/nutrition/foods" className="text-brand-primary hover:underline font-medium">
+                  Guía de alimentos
+                </Link>
+                . Misma grilla que abajo: referencias por 100 g; tocá <strong>Usar</strong> para copiar a una fila del plan o <strong>Lista</strong> en las tablas.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              loading={libraryRefreshing}
+              onClick={() => void loadLibraryFoods()}
+            >
+              Actualizar lista
+            </Button>
+          </div>
+
+          {!libraryHydrated ? (
+            <div className="flex justify-center py-10">
+              <Spinner />
+            </div>
+          ) : libraryFoods.length === 0 ? (
+            <div className="px-4 py-6 text-sm text-ink-secondary space-y-2 border-t border-surface-border/80 bg-surface-muted/20">
+              <p>Aún no aparece ningún alimento de tu lista.</p>
+              <p className="text-xs text-ink-muted leading-relaxed">
+                Guardá en la Guía y tocá <strong>Actualizar lista</strong>. Si ya guardaste y sigue vacío, revisá la cuenta o errores al guardar.
+              </p>
+              <Link to="/nutrition/foods" className="inline-flex text-brand-primary font-medium hover:underline">
+                Ir a Guía de alimentos
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[960px]">
+                <thead>
+                  <tr className="border-b border-surface-border text-left bg-surface-muted/30">
+                    <th className="px-3 py-2 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[260px]">Alimento</th>
+                    <th className="px-2 py-2 font-semibold w-[76px]">Cant. g</th>
+                    <th className="px-2 py-2 font-semibold w-[64px]">HC /100</th>
+                    <th className="px-2 py-2 font-semibold w-[64px]">P /100</th>
+                    <th className="px-2 py-2 font-semibold w-[64px]">G /100</th>
+                    <th className="px-2 py-2 font-semibold w-[72px]">kcal /100</th>
+                    <th className="px-2 py-2 font-semibold w-[72px]">HC</th>
+                    <th className="px-2 py-2 font-semibold w-[72px]">P</th>
+                    <th className="px-2 py-2 font-semibold w-[72px]">G</th>
+                    <th className="px-2 py-2 font-semibold w-[80px]">kcal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {libraryFoods.map((lib) => (
+                    <tr key={lib.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
+                      <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-ink-primary font-medium break-words">{lib.display_name}</p>
+                          </div>
+                          <button
+                            type="button"
+                            title="Copiar a una fila del plan"
+                            onClick={() => openTableTargetModal(lib)}
+                            className={cn(
+                              'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
+                              'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-brand-primary',
+                              'hover:border-brand-primary/40 hover:bg-surface-elevated transition-colors',
+                            )}
+                          >
+                            <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
+                            <span>Usar</span>
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 align-middle text-ink-muted tabular-nums text-center">—</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-secondary align-middle">{fmt1(lib.carbs_g_per_100g ?? NaN)}</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-secondary align-middle">{fmt1(lib.protein_g_per_100g ?? NaN)}</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-secondary align-middle">{fmt1(lib.fat_g_per_100g ?? NaN)}</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-secondary align-middle">{fmt1(lib.energy_kcal_per_100g ?? NaN)}</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-muted align-middle text-center">—</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-muted align-middle text-center">—</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-muted align-middle text-center">—</td>
+                      <td className="px-2 py-2 tabular-nums text-ink-muted align-middle text-center">—</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
         <div className="space-y-8 pb-12">
           {wb.sections.map((sec) => {
@@ -542,9 +993,35 @@ export function NutritionPlanningPage() {
                         const out = q > 0 ? scaledFromRefs(q, refVals) : ZERO_TOTALS
                         return (
                           <tr key={r.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
-                            <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50">
-                              <p className="text-ink-primary font-medium">{r.name}</p>
-                              {r.hint ? <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-snug">{r.hint}</p> : null}
+                            <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
+                              <div className="flex items-start gap-2 min-w-0">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-ink-primary font-medium break-words">{r.name}</p>
+                                  {r.hint ? (
+                                    <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-snug">{r.hint}</p>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  title="Mi lista · traer desde Guía de alimentos"
+                                  aria-label={`Abrir Mi lista para la fila ${r.name}`}
+                                  onClick={async () => {
+                                    setLibraryQuery('')
+                                    setLibraryPicker({ secKey: sec.key, rowId: r.id })
+                                    setLibraryRefreshing(true)
+                                    await loadLibraryFoods()
+                                    setLibraryRefreshing(false)
+                                  }}
+                                  className={cn(
+                                    'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
+                                    'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-brand-primary',
+                                    'hover:border-brand-primary/40 hover:bg-surface-elevated transition-colors',
+                                  )}
+                                >
+                                  <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
+                                  <span>Lista</span>
+                                </button>
+                              </div>
                             </td>
                             <td className="px-2 py-1 align-top">
                               <Input
@@ -601,6 +1078,188 @@ export function NutritionPlanningPage() {
           })}
         </div>
       </div>
+
+      {tableTargetLib ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            role="presentation"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setTableTargetLib(null)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-ink-primary pr-8">
+              ¿En qué fila va «{tableTargetLib.display_name}»?
+            </h3>
+            <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
+              Se cargan nombre y macros por 100 g en esa fila de la tabla (podés cambiar los gramos después).
+            </p>
+            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Momento</label>
+            <select
+              className={cn(selectPlanClasses, 'mb-4')}
+              value={tableTargetSecKey}
+              onChange={(e) => {
+                const k = e.target.value
+                setTableTargetSecKey(k)
+                const sec = wb.sections.find((s) => s.key === k)
+                setTableTargetRowId(sec?.rows[0]?.id ?? '')
+              }}
+            >
+              {wb.sections.map((sec) => (
+                <option key={sec.key} value={sec.key}>
+                  {sec.title}
+                </option>
+              ))}
+            </select>
+            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Fila de la plantilla</label>
+            <select className={cn(selectPlanClasses, 'mb-5')} value={tableTargetRowId} onChange={(e) => setTableTargetRowId(e.target.value)}>
+              {rowsForTableTarget.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button variant="secondary" type="button" onClick={() => setTableTargetLib(null)}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={confirmTableTargetApply}>
+                Aplicar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {libraryPicker ? (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+          <div
+            role="presentation"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              setLibraryPicker(null)
+              setLibraryQuery('')
+            }}
+          />
+          <div
+            role="dialog"
+            aria-labelledby="library-picker-title"
+            className="relative flex max-h-[min(85vh,640px)] w-full sm:max-w-lg flex-col rounded-t-2xl sm:rounded-2xl border border-surface-border bg-surface-card shadow-2xl"
+          >
+            <div className="flex shrink-0 items-start justify-between gap-2 border-b border-surface-border p-4">
+              <div>
+                <h2 id="library-picker-title" className="text-base font-semibold text-ink-primary">
+                  Mi lista · Guía de alimentos
+                </h2>
+                <p className="text-xs text-ink-muted mt-1 leading-snug">
+                  Elegí un alimento guardado: se cargan nombre y valores por 100 g en esta fila.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg p-2 text-ink-muted hover:bg-surface-muted hover:text-ink-primary shrink-0"
+                onClick={() => {
+                  setLibraryPicker(null)
+                  setLibraryQuery('')
+                }}
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            <div className="shrink-0 p-4 pt-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
+                <Input
+                  className="pl-10 h-10"
+                  placeholder="Buscar por nombre..."
+                  value={libraryQuery}
+                  onChange={(e) => setLibraryQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+              {libraryRefreshing ? (
+                <div className="flex justify-center py-12">
+                  <Spinner />
+                </div>
+              ) : libraryFoods.length === 0 ? (
+                <p className="text-sm text-ink-muted leading-relaxed">
+                  Todavía no tenés alimentos en Mi lista.&nbsp;
+                  <Link to="/nutrition/foods" className="text-brand-primary font-medium hover:underline">
+                    Abrí la Guía
+                  </Link>{' '}
+                  y guardá desde el catálogo o USDA.
+                </p>
+              ) : libraryFiltered.length === 0 ? (
+                <p className="text-sm text-ink-muted">No coincide ningún nombre con «{libraryQuery}».</p>
+              ) : (
+                <ul className="space-y-2">
+                  {libraryFiltered.map((lib) => (
+                    <li key={lib.id}>
+                      <button
+                        type="button"
+                        onClick={() => applyFoodFromLibrary(lib)}
+                        className={cn(
+                          'w-full rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-left',
+                          'hover:border-brand-primary/40 hover:bg-surface-muted/50 transition-colors',
+                        )}
+                      >
+                        <span className="font-medium text-ink-primary block text-sm">{lib.display_name}</span>
+                        <span className="text-[11px] text-ink-muted tabular-nums mt-1 inline-block">
+                          HC {formatLibNutrientForPlanning(lib.carbs_g_per_100g)} · P {formatLibNutrientForPlanning(lib.protein_g_per_100g)} · G{' '}
+                          {formatLibNutrientForPlanning(lib.fat_g_per_100g)} · {formatLibNutrientForPlanning(lib.energy_kcal_per_100g)} kcal /100 g
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {assignOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            role="presentation"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !assignSaving && setAssignOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-ink-primary">Asignar plan a un alumno</h3>
+            <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
+              Se guarda una copia del contenido actual del plan. El alumno la ve en su cuenta si su usuario está vinculado en la ficha.
+            </p>
+            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Alumno</label>
+            <select
+              className={cn(selectPlanClasses, 'mb-4')}
+              value={assignStudentId}
+              onChange={(e) => setAssignStudentId(e.target.value)}
+            >
+              {assignStudents.length === 0 ? (
+                <option value="">No hay alumnos cargados</option>
+              ) : (
+                assignStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.full_name}
+                  </option>
+                ))
+              )}
+            </select>
+            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Título del plan</label>
+            <Input className="mb-5" value={assignTitle} onChange={(e) => setAssignTitle(e.target.value)} placeholder="Ej. Plan marzo · déficit" />
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button variant="secondary" type="button" disabled={assignSaving} onClick={() => setAssignOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" loading={assignSaving} disabled={!assignStudentId} onClick={() => void handleAssignToStudent()}>
+                Asignar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={resetOpen}

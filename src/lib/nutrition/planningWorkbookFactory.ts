@@ -31,6 +31,7 @@ export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
       sex: '',
       weightKg: '',
     },
+    personReferenceStudentId: null,
     objectives: '',
     proposedKcal: '',
     macroInputs: {

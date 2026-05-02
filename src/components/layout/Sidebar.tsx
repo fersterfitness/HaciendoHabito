@@ -18,6 +18,7 @@ import {
   Library,
   Apple,
   ClipboardList,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -42,6 +43,7 @@ const appointmentsItem = { label: 'Turnos', href: '/appointments', icon: Calenda
 const navItems = [
   { label: 'Alumnos',      href: '/students',      icon: Users },
   { label: 'Rutinas',      href: '/routines',      icon: Dumbbell },
+  { label: 'Planes alimentación', href: '/meal-plans', icon: UtensilsCrossed },
   { label: 'PDFs Rutina',  href: '/routine-pdfs',  icon: FileText },
   { label: 'Hábitos',       href: '/habits',        icon: CalendarCheck },
   { label: 'Devoluciones', href: '/feedback',      icon: MessageSquare },
@@ -54,15 +56,18 @@ const financeItems = [
 
 /** Nutrición básica guiada por el entrenador (macros / referencias para alumnos). */
 const trainerNutritionGuideItems = [
-  { label: 'Plan ejemplo (comidas)', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
 ]
+
+/** Alumno con cuenta vinculada: ve planes que el entrenador asignó. */
+const studentMealPlanItems = [{ label: 'Mi plan de alimentación', href: '/my/meal-plans', icon: ClipboardList }]
 
 const nutritionItems = [
   { label: 'Nutrición',      href: '/nutrition',      icon: Salad, exactMatch: true },
   { label: 'Evolución',      href: '/nutrition/evolution', icon: LineChart },
   { label: 'Planes',         href: '/nutrition/plans', icon: Library },
-  { label: 'Plan ejemplo HH', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
@@ -281,6 +286,15 @@ export function Sidebar() {
       >
         <SidebarItem key={homeItem.href} {...homeItem} collapsed={collapsed} />
         <SidebarItem key={appointmentsItem.href} {...appointmentsItem} collapsed={collapsed} />
+
+        {role === 'student' && (
+          <>
+            {!collapsed && <SidebarSection label="Tu entrenador" />}
+            {studentMealPlanItems.map((item) => (
+              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
+            ))}
+          </>
+        )}
 
         {(showTraining || showNutrition) && (
           <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />

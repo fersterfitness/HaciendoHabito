@@ -1,5 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Users, Dumbbell, Wallet, MessageSquare, Salad, CalendarClock, Apple, ClipboardList } from 'lucide-react'
+import { Home, Users, Dumbbell, Wallet, MessageSquare, Salad, CalendarClock, Apple, ClipboardList, UtensilsCrossed } from 'lucide-react'
+
+const studentNavItems = [
+  { label: 'Inicio', href: '/dashboard', icon: Home },
+  { label: 'Mi plan', href: '/my/meal-plans', icon: ClipboardList },
+  { label: 'Turnos', href: '/appointments', icon: CalendarClock },
+]
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -8,7 +14,8 @@ const trainerNavItems = [
   { label: 'Turnos',   href: '/appointments', icon: CalendarClock },
   { label: 'Alumnos',  href: '/students',  icon: Users },
   { label: 'Rutinas',  href: '/routines',  icon: Dumbbell },
-  { label: 'Plan HH', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Planes', href: '/meal-plans', icon: UtensilsCrossed },
+  { label: 'Plan alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Alimentos', href: '/nutrition/foods', icon: Apple },
   { label: 'Finanzas', href: '/finances',  icon: Wallet },
   { label: 'Dudas',    href: '/feedback',  icon: MessageSquare },
@@ -18,7 +25,7 @@ const nutritionistNavItems = [
   { label: 'Inicio', href: '/dashboard', icon: Home },
   { label: 'Turnos', href: '/appointments', icon: CalendarClock },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
-  { label: 'Plan HH', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Plan alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Pacientes', href: '/students', icon: Users },
 ]
 
@@ -27,8 +34,9 @@ const adminNavItems = [
   { label: 'Turnos', href: '/appointments', icon: CalendarClock },
   { label: 'Alumnos', href: '/students', icon: Users },
   { label: 'Rutinas', href: '/routines', icon: Dumbbell },
+  { label: 'Planes', href: '/meal-plans', icon: UtensilsCrossed },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
-  { label: 'Plan HH', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Plan alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Finanzas', href: '/finances', icon: Wallet },
 ]
 
@@ -41,11 +49,13 @@ export function MobileNav() {
   const { pathname } = useLocation()
   const role = useAuthStore((state) => state.profile?.role)
   const mobileNavItems =
-    role === 'admin'
-      ? adminNavItems
-      : role === 'nutritionist'
-      ? nutritionistNavItems
-      : trainerNavItems
+    role === 'student'
+      ? studentNavItems
+      : role === 'admin'
+        ? adminNavItems
+        : role === 'nutritionist'
+          ? nutritionistNavItems
+          : trainerNavItems
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border">

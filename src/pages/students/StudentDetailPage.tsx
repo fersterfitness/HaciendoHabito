@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Pencil, Trash2, Dumbbell, FileText, Plus,
+  Pencil, Trash2, Dumbbell, FileText, FileDown, Plus,
   Mail, Phone, Calendar, Zap, X, ChevronDown,
-  StickyNote, Check, DollarSign,
+  StickyNote, Check, DollarSign, ClipboardList, Copy,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
@@ -20,7 +20,8 @@ import { CicloTab } from './CicloTab'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
-import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog } from '@/types/database'
+import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan } from '@/types/database'
+import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
 
 type Tab = 'resumen' | 'fuerza' | 'ciclo' | 'peso'
@@ -59,6 +60,9 @@ export function StudentDetailPage() {
   // Pago rápido
   const [showPayModal,  setShowPayModal]  = useState(false)
 
+  const [mealPlans, setMealPlans] = useState<TrainerStudentMealPlan[]>([])
+  const [mealPlanPdfBusy, setMealPlanPdfBusy] = useState<string | null>(null)
+
   useEffect(() => {
     if (!id || !user) return
     Promise.all([
@@ -75,6 +79,58 @@ export function StudentDetailPage() {
       setRmRecords((rm as unknown as StudentRmRecord[]) ?? [])
     }).finally(() => setLoading(false))
   }, [id, user])
+
+  useEffect(() => {
+    if (!id || !user?.id) return
+    if (profile?.role !== 'trainer' && profile?.role !== 'admin') return
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('trainer_student_meal_plans')
+        .select('*')
+        .eq('student_id', id)
+        .eq('owner_id', user.id)
+        .order('updated_at', { ascending: false })
+      if (!cancelled) setMealPlans((data ?? []) as TrainerStudentMealPlan[])
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id, user?.id, profile?.role])
+
+  async function downloadMealPlanPdf(plan: TrainerStudentMealPlan) {
+    setMealPlanPdfBusy(plan.id)
+    try {
+      await downloadTrainerStudentMealPlanPdf(plan, { professionalName: profile?.full_name })
+      toast.success('PDF descargado.')
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo generar el PDF.')
+    } finally {
+      setMealPlanPdfBusy(null)
+    }
+  }
+
+  async function cloneMealPlan(plan: TrainerStudentMealPlan) {
+    if (!user?.id || !id) return
+    const { data, error } = await supabase
+      .from('trainer_student_meal_plans')
+      .insert({
+        owner_id: user.id,
+        student_id: id,
+        title: `Copia · ${plan.title}`.slice(0, 200),
+        data: plan.data,
+        cloned_from_id: plan.id,
+      })
+      .select('*')
+      .single()
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Plan clonado en este alumno.')
+    setMealPlans((prev) => [data as TrainerStudentMealPlan, ...prev])
+  }
 
   async function handleDelete() {
     if (!id) return
@@ -347,6 +403,72 @@ export function StudentDetailPage() {
                 </div>
               )}
             </Card>
+
+            {(profile?.role === 'trainer' || profile?.role === 'admin') && (
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4 text-brand-primary shrink-0" aria-hidden />
+                        <CardTitle>Planes de alimentación</CardTitle>
+                      </div>
+                      <p className="text-xs text-ink-muted mt-1 font-normal">
+                        Planillas tipo Excel que asignaste desde Plan de alimentación. El alumno las ve si su usuario está vinculado en la ficha.&nbsp;
+                        <button
+                          type="button"
+                          className="text-brand-primary hover:underline font-medium"
+                          onClick={() => navigate('/meal-plans')}
+                        >
+                          Ver todos los planes
+                        </button>
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                {mealPlans.length === 0 ? (
+                  <p className="text-sm text-ink-muted px-4 pb-4">
+                    Todavía no hay planes asignados a este alumno.
+                  </p>
+                ) : (
+                  <div className="space-y-2 px-4 pb-4">
+                    {mealPlans.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex flex-wrap items-center gap-2 justify-between rounded-xl border border-surface-border bg-surface-elevated p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-ink-primary truncate">{p.title}</p>
+                          <p className="text-[11px] text-ink-muted">Actualizado {formatDate(p.updated_at)}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            loading={mealPlanPdfBusy === p.id}
+                            icon={<FileDown className="h-3.5 w-3.5" />}
+                            onClick={() => void downloadMealPlanPdf(p)}
+                          >
+                            PDF
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<Copy className="h-3.5 w-3.5" />}
+                            onClick={() => void cloneMealPlan(p)}
+                          >
+                            Clonar
+                          </Button>
+                          <Button size="sm" onClick={() => navigate(`/students/${id}/meal-plan/${p.id}`)}>
+                            Ver
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
           </div>
         )}
 

@@ -35,6 +35,10 @@ import { NutritionAppointmentsPage } from '@/pages/nutrition/NutritionAppointmen
 import { NutritionTemplatesPage } from '@/pages/nutrition/NutritionTemplatesPage'
 import { NutritionFoodsPage } from '@/pages/nutrition/NutritionFoodsPage'
 import { NutritionPlanningPage } from '@/pages/nutrition/NutritionPlanningPage'
+import { StudentMealPlansPage } from '@/pages/student/StudentMealPlansPage'
+import { StudentMealPlanDetailPage } from '@/pages/student/StudentMealPlanDetailPage'
+import { TrainerStudentMealPlanPage } from '@/pages/students/TrainerStudentMealPlanPage'
+import { MealPlansPage } from '@/pages/meal-plans/MealPlansPage'
 import { PublicIntakeFormPage } from '@/pages/public/PublicIntakeFormPage'
 
 function AppRoutes() {
@@ -46,6 +50,11 @@ function AppRoutes() {
   const canSeeNutritionFoodsGuide =
     role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const canSeeAppointments = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
+
+  /** Lista de planes HH asignados: mismo alcance que Plan de alimentación + entrenadores (no alumnos). */
+  const canSeeTrainerAssignedMealPlansPage =
+    role !== 'student' &&
+    (role == null || role === 'admin' || role === 'trainer' || role === 'nutritionist')
 
   return (
     <Routes>
@@ -61,10 +70,40 @@ function AppRoutes() {
           {/* Alumnos */}
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/students/new" element={<StudentFormPage />} />
+          <Route
+            path="/students/:id/meal-plan/:planId"
+            element={
+              role === 'trainer' || role === 'admin' ? (
+                <TrainerStudentMealPlanPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
           <Route path="/students/:id" element={<StudentDetailPage />} />
           <Route path="/students/:id/edit" element={<StudentFormPage />} />
 
+          {/* Alumno: planes asignados por el entrenador (Excel HH) */}
+          <Route
+            path="/my/meal-plans/:planId"
+            element={role === 'student' ? <StudentMealPlanDetailPage /> : <Navigate to="/dashboard" replace />}
+          />
+          <Route
+            path="/my/meal-plans"
+            element={role === 'student' ? <StudentMealPlansPage /> : <Navigate to="/dashboard" replace />}
+          />
+
           {/* Rutinas */}
+          <Route
+            path="/meal-plans"
+            element={
+              canSeeTrainerAssignedMealPlansPage ? (
+                <MealPlansPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
           <Route path="/routines" element={canSeeTraining ? <RoutinesPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/routines/new" element={canSeeTraining ? <RoutineFormPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/routines/:id" element={canSeeTraining ? <RoutineDetailPage /> : <Navigate to="/dashboard" replace />} />
