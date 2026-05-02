@@ -33,6 +33,8 @@ import { NutritionComparativePage } from '@/pages/nutrition/NutritionComparative
 import { NutritionEvolutionPage } from '@/pages/nutrition/NutritionEvolutionPage'
 import { NutritionAppointmentsPage } from '@/pages/nutrition/NutritionAppointmentsPage'
 import { NutritionTemplatesPage } from '@/pages/nutrition/NutritionTemplatesPage'
+import { NutritionFoodsPage } from '@/pages/nutrition/NutritionFoodsPage'
+import { NutritionPlanningPage } from '@/pages/nutrition/NutritionPlanningPage'
 import { PublicIntakeFormPage } from '@/pages/public/PublicIntakeFormPage'
 
 function AppRoutes() {
@@ -40,6 +42,9 @@ function AppRoutes() {
   const role = useAuthStore((state) => state.profile?.role)
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
+  /** Guía de alimentos / macros orientativa (entrenador ofrece a alumnos; también nutrición clínica). */
+  const canSeeNutritionFoodsGuide =
+    role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const canSeeAppointments = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
 
   return (
@@ -87,6 +92,14 @@ function AppRoutes() {
           <Route path="/nutrition/evolution" element={canSeeNutrition ? <NutritionEvolutionPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/nutrition/appointments" element={<Navigate to="/appointments" replace />} />
           <Route path="/nutrition/plans" element={canSeeNutrition ? <NutritionTemplatesPage /> : <Navigate to="/dashboard" replace />} />
+          <Route
+            path="/nutrition/foods"
+            element={canSeeNutritionFoodsGuide ? <NutritionFoodsPage /> : <Navigate to="/dashboard" replace />}
+          />
+          <Route
+            path="/nutrition/planning"
+            element={canSeeNutritionFoodsGuide ? <NutritionPlanningPage /> : <Navigate to="/dashboard" replace />}
+          />
           <Route path="/nutrition/templates" element={<Navigate to="/nutrition/plans" replace />} />
           <Route path="/nutrition/:id" element={canSeeNutrition ? <NutritionPatientDetailPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/nutrition-pdfs" element={canSeeNutrition ? <NutritionComparativePage /> : <Navigate to="/dashboard" replace />} />

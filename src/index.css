@@ -65,6 +65,31 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Controles nativos acordes al tema (evita select / scrollbars «claros» en oscuro). */
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
+  }
+
+  /* Autofill del navegador suele pintar fondo blanco: alinearlo a surface-input e ink */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: rgb(var(--ink-primary));
+    caret-color: rgb(var(--ink-primary));
+    transition: background-color 999999s ease-out;
+    box-shadow: inset 0 0 0 100vmax rgb(var(--surface-input));
+  }
+
   /* Scrollbar - light */
   ::-webkit-scrollbar {
     width: 4px;

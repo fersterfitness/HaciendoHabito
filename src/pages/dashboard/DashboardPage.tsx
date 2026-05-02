@@ -11,6 +11,8 @@ import {
   TrendingDown,
   BarChart3,
   Salad,
+  Apple,
+  ClipboardList,
 } from 'lucide-react'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
@@ -166,6 +168,8 @@ export function DashboardPage() {
   const activePeopleLabel = role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
+  const canSeeNutritionFoodsGuide =
+    role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [stats, setStats] = useState<Stats>({
     activeStudents: 0,
     activeRoutines: 0,
@@ -477,6 +481,18 @@ export function DashboardPage() {
                 { label: 'Nuevo alumno', icon: Users, href: '/students/new', show: true },
                 { label: 'Nueva rutina', icon: Dumbbell, href: '/routines/new', show: canSeeTraining },
                 { label: 'Nutrición', icon: Salad, href: '/nutrition', show: canSeeNutrition },
+                {
+                  label: 'Guía de alimentos',
+                  icon: Apple,
+                  href: '/nutrition/foods',
+                  show: canSeeNutritionFoodsGuide,
+                },
+                {
+                  label: 'Plan ejemplo comidas',
+                  icon: ClipboardList,
+                  href: '/nutrition/planning',
+                  show: canSeeNutritionFoodsGuide,
+                },
                 { label: 'Diagnóstico PDF', icon: FileText, href: '/nutrition-pdfs', show: canSeeNutrition },
                 { label: 'Ver PDFs', icon: FileText, href: '/routine-pdfs', show: canSeeTraining },
                 { label: 'Ver dudas', icon: MessageSquare, href: '/feedback', show: canSeeTraining },

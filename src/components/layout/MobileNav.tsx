@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Users, Dumbbell, Wallet, MessageSquare, Salad, CalendarClock } from 'lucide-react'
+import { Home, Users, Dumbbell, Wallet, MessageSquare, Salad, CalendarClock, Apple, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -8,6 +8,8 @@ const trainerNavItems = [
   { label: 'Turnos',   href: '/appointments', icon: CalendarClock },
   { label: 'Alumnos',  href: '/students',  icon: Users },
   { label: 'Rutinas',  href: '/routines',  icon: Dumbbell },
+  { label: 'Plan HH', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Alimentos', href: '/nutrition/foods', icon: Apple },
   { label: 'Finanzas', href: '/finances',  icon: Wallet },
   { label: 'Dudas',    href: '/feedback',  icon: MessageSquare },
 ]
@@ -16,6 +18,7 @@ const nutritionistNavItems = [
   { label: 'Inicio', href: '/dashboard', icon: Home },
   { label: 'Turnos', href: '/appointments', icon: CalendarClock },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
+  { label: 'Plan HH', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Pacientes', href: '/students', icon: Users },
 ]
 
@@ -25,6 +28,7 @@ const adminNavItems = [
   { label: 'Alumnos', href: '/students', icon: Users },
   { label: 'Rutinas', href: '/routines', icon: Dumbbell },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
+  { label: 'Plan HH', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Finanzas', href: '/finances', icon: Wallet },
 ]
 

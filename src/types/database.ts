@@ -13,6 +13,8 @@ export type PaymentMethod = 'efectivo_debito' | 'tarjeta_credito' | 'transferenc
 export type PlanType = 'entrenamiento' | 'nutricion' | 'combo'
 export type NutritionAttendanceStatus = 'P' | 'A' | 'ST'
 export type NutritionDocumentCategory = 'antropometria' | 'anamnesis'
+export type NutritionFoodPortionBasis = 'crudo' | 'cocido' | 'no_especificado'
+export type NutritionFoodExternalSource = 'manual' | 'usda_fdc'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type ReminderChannel = 'app' | 'email' | 'whatsapp'
 export type FormStatus = 'recibido' | 'revisado' | 'en_proceso'
@@ -157,6 +159,18 @@ export interface Database {
         Row: NutritionPlanLibrary
         Insert: Omit<NutritionPlanLibrary, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<NutritionPlanLibrary, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_food_library: {
+        Row: NutritionFoodLibrary
+        Insert: Omit<NutritionFoodLibrary, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionFoodLibrary, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_planning_workbooks: {
+        Row: NutritionPlanningWorkbook
+        Insert: Omit<NutritionPlanningWorkbook, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionPlanningWorkbook, 'id' | 'created_at'>>
         Relationships: []
       }
       nutrition_patient_plan_versions: {
@@ -541,6 +555,35 @@ export interface NutritionPlanLibrary {
   tags: string[]
   merge_weekends: boolean
   grid: Json
+  created_at: string
+  updated_at: string
+}
+
+/** Alimentos propios del nutricionista con macros típicamente por 100 g. */
+/** Planificación tipo Excel (macros + grillas); una fila por usuario. */
+export interface NutritionPlanningWorkbook {
+  id: string
+  owner_id: string
+  title: string
+  data: Json
+  created_at: string
+  updated_at: string
+}
+
+export interface NutritionFoodLibrary {
+  id: string
+  owner_id: string
+  display_name: string
+  external_source: NutritionFoodExternalSource
+  external_fdc_id: number | null
+  protein_g_per_100g: number | null
+  fat_g_per_100g: number | null
+  carbs_g_per_100g: number | null
+  fiber_g_per_100g: number | null
+  energy_kcal_per_100g: number | null
+  portion_basis: NutritionFoodPortionBasis
+  source_label: string | null
+  notes: string | null
   created_at: string
   updated_at: string
 }

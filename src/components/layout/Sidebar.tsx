@@ -16,6 +16,8 @@ import {
   LineChart,
   CalendarClock,
   Library,
+  Apple,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -50,10 +52,18 @@ const financeItems = [
   { label: 'Finanzas', href: '/finances', icon: Wallet },
 ]
 
+/** Nutrición básica guiada por el entrenador (macros / referencias para alumnos). */
+const trainerNutritionGuideItems = [
+  { label: 'Plan ejemplo (comidas)', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
+]
+
 const nutritionItems = [
   { label: 'Nutrición',      href: '/nutrition',      icon: Salad, exactMatch: true },
   { label: 'Evolución',      href: '/nutrition/evolution', icon: LineChart },
   { label: 'Planes',         href: '/nutrition/plans', icon: Library },
+  { label: 'Plan ejemplo HH', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
 
@@ -287,6 +297,18 @@ export function Sidebar() {
               <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
             )}
             {financeItems.map((item) => (
+              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
+            ))}
+          </>
+        )}
+
+        {role === 'trainer' && (
+          <>
+            {!collapsed && <SidebarSection label="Nutrición (guía alumno)" />}
+            {collapsed && (
+              <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+            )}
+            {trainerNutritionGuideItems.map((item) => (
               <SidebarItem key={item.href} {...item} collapsed={collapsed} />
             ))}
           </>
