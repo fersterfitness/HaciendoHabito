@@ -64,7 +64,10 @@ export function MealPlansPage() {
   async function handlePdf(p: PlanRow) {
     setPdfBusyId(p.id)
     try {
-      await downloadTrainerStudentMealPlanPdf(p, { professionalName: profile?.full_name })
+      await downloadTrainerStudentMealPlanPdf(p, {
+        professionalName: profile?.full_name,
+        studentName: p.student?.full_name ?? null,
+      })
       toast.success('PDF descargado.')
     } catch (e) {
       console.error(e)

@@ -488,7 +488,7 @@ export function DashboardPage() {
                   show: canSeeNutritionFoodsGuide,
                 },
                 {
-                  label: 'Plan de alimentación',
+                  label: 'Armar plan de alimentación',
                   icon: ClipboardList,
                   href: '/nutrition/planning',
                   show: canSeeNutritionFoodsGuide,

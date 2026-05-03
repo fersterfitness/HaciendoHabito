@@ -1,81 +1,25 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import type { PlanningFoodRowState, PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
+import { Document, Image, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { fersterGoalLabel } from '@/lib/fersterIntakeLabels'
 import {
-  parseLocaleNumberOrZero,
-  scaledFromRefs,
-  sumTotals,
-  ZERO_TOTALS,
-  type MacroTotals,
-} from '@/lib/nutrition/planningCalculations'
-
-/** Referencia didáctica: ~15 g por cucharada sopera (varía mucho según alimento). */
-const GRAMOS_POR_CUCHARADA_SOPERA = 15
-
-function fmt(n: number): string {
-  if (!Number.isFinite(n)) return '—'
-  return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
-}
-
-/** Aproximación orientativa de cucharadas soperas a partir de gramos. */
-function approxCucharadasSoperas(grams: number): string {
-  if (!Number.isFinite(grams) || grams <= 0) return '—'
-  const n = grams / GRAMOS_POR_CUCHARADA_SOPERA
-  if (n < 0.35) return '< ½ cda.'
-  if (n < 1) return '~1 cda.'
-  return `~${Math.round(n)} cdas.`
-}
-
-/** Etiqueta corta si el texto sugiere crudo/cocido (plantilla o nota). */
-function etiquetaPreparacion(name: string, hint?: string): string | null {
-  const t = `${name} ${hint ?? ''}`.toLowerCase()
-  const hasCrudo = /\bcrudo\b/.test(t)
-  const hasCocido = /\bcocido\b/.test(t)
-  if (hasCrudo && hasCocido) return 'Crudo / cocido'
-  if (hasCrudo) return 'Referencia crudo'
-  if (hasCocido) return 'Referencia cocido'
-  return null
-}
-
-function rowsInformados(rows: PlanningFoodRowState[]): PlanningFoodRowState[] {
-  return rows.filter((r) => parseLocaleNumberOrZero(r.qtyG) > 0)
-}
-
-function grandTotals(wb: PlanningWorkbookStateV1): MacroTotals {
-  let acc = ZERO_TOTALS
-  for (const sec of wb.sections) {
-    for (const r of rowsInformados(sec.rows)) {
-      const q = parseLocaleNumberOrZero(r.qtyG)
-      acc = sumTotals(
-        acc,
-        scaledFromRefs(q, {
-          carbs: parseLocaleNumberOrZero(r.refCarbs),
-          protein: parseLocaleNumberOrZero(r.refProt),
-          fat: parseLocaleNumberOrZero(r.refFat),
-          kcal: parseLocaleNumberOrZero(r.refKcal),
-        }),
-      )
-    }
-  }
-  return acc
-}
-
-function sectionTotalsRows(rows: PlanningFoodRowState[]): MacroTotals {
-  let acc = ZERO_TOTALS
-  for (const r of rows) {
-    const q = parseLocaleNumberOrZero(r.qtyG)
-    if (q <= 0) continue
-    acc = sumTotals(
-      acc,
-      scaledFromRefs(q, {
-        carbs: parseLocaleNumberOrZero(r.refCarbs),
-        protein: parseLocaleNumberOrZero(r.refProt),
-        fat: parseLocaleNumberOrZero(r.refFat),
-        kcal: parseLocaleNumberOrZero(r.refKcal),
-      }),
-    )
-  }
-  return acc
-}
+  buildStudentQuantitySummaryLines,
+  fmtGramOrDash,
+  GRAMOS_POR_CUCHARADA_SOPERA,
+  approxCucharadasSoperasLabel,
+  preparacionAlumnoLine,
+} from '@/lib/nutrition/mealPickPresentation'
+import { parseLocaleNumberOrZero } from '@/lib/nutrition/planningCalculations'
+import type {
+  MealDistributionState,
+  MealSlotKey,
+  MealSlotPick,
+  PlanningFoodRowState,
+  PlanningWorkbookStateV1,
+} from '@/lib/nutrition/planningWorkbookTypes'
+import {
+  DEFAULT_MEAL_DISTRIBUTION,
+  MEAL_SLOT_LABELS,
+  mealDistributionHasMealPicks,
+} from '@/lib/nutrition/planningWorkbookTypes'
 
 function truncate(str: string, max: number): string {
   const t = str.trim()
@@ -83,452 +27,587 @@ function truncate(str: string, max: number): string {
   return `${t.slice(0, max - 1)}…`
 }
 
+const C = {
+  /** Acento marca en PDF de alimentación (verde esmeralda). */
+  brand: '#059669',
+  brandSoftBg: '#f0fdf4',
+  brandMutedBg: '#ecfdf5',
+  brandBorder: '#a7f3d0',
+  brandDarkText: '#065f46',
+  dark: '#0f172a',
+  body: '#334155',
+  muted: '#64748b',
+  border: '#e2e8f0',
+  bgSoft: '#f8fafc',
+}
+
 const styles = StyleSheet.create({
-  pagePortraitEmpty: {
-    paddingTop: 28,
-    paddingHorizontal: 24,
-    paddingBottom: 36,
-    fontSize: 9,
+  page: {
+    paddingTop: 22,
+    paddingHorizontal: 28,
+    paddingBottom: 38,
+    fontSize: 8.5,
     fontFamily: 'Helvetica',
-    color: '#0f172a',
-    backgroundColor: '#f8fafc',
-  },
-  pageLandscape: {
-    paddingTop: 18,
-    paddingHorizontal: 14,
-    paddingBottom: 32,
-    fontSize: 7.5,
-    fontFamily: 'Helvetica',
-    color: '#0f172a',
-    backgroundColor: '#f8fafc',
-  },
-  splitRow: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  sidebar: {
-    width: '23%',
-    minWidth: 115,
-    marginRight: 10,
-  },
-  sidebarInner: {
+    color: C.dark,
     backgroundColor: '#ffffff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 10,
-    height: '100%',
   },
-  sidebarBrand: {
-    backgroundColor: '#0f172a',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
-  },
-  sidebarTitle: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#ffffff',
-  },
-  sidebarSub: {
-    fontSize: 6.5,
-    color: '#94a3b8',
-    marginTop: 4,
-    lineHeight: 1.35,
-  },
-  sidebarBadge: {
-    marginTop: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  sidebarBadgeTxt: {
-    fontSize: 6,
-    color: '#fdba74',
-    fontFamily: 'Helvetica-Bold',
-  },
-  kvTiny: {
+  header: {
     flexDirection: 'row',
-    marginBottom: 4,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  kvTinyLabel: {
-    width: '52%',
-    fontSize: 6.5,
-    color: '#64748b',
-  },
-  kvTinyVal: {
-    flex: 1,
-    fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
-  },
-  objTiny: {
-    fontSize: 6.8,
-    color: '#475569',
-    lineHeight: 1.35,
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  totalSidebar: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-  },
-  totalSidebarLabel: {
-    fontSize: 6.5,
-    fontFamily: 'Helvetica-Bold',
-    color: '#047857',
-    marginBottom: 4,
-  },
-  totalSidebarNums: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#065f46',
-    backgroundColor: '#ecfdf5',
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    lineHeight: 1.35,
-  },
-  mainPanel: {
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
     minWidth: 0,
+    paddingRight: 8,
   },
-  secCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    paddingBottom: 8,
-    flex: 1,
+  headerBrandBar: {
+    width: 3,
+    height: 36,
+    backgroundColor: C.brand,
+    borderRadius: 2,
+    marginRight: 10,
   },
-  secHeadRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  secTitle: {
-    fontSize: 10,
+  logoImg: { width: 34, height: 34, marginRight: 10, borderRadius: 6 },
+  brandTitle: {
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
+    color: C.dark,
+    lineHeight: 1.2,
+  },
+  brandSub: {
+    fontSize: 7.5,
+    color: C.muted,
+    marginTop: 3,
+    lineHeight: 1.35,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    maxWidth: 120,
+  },
+  headerDate: {
+    fontSize: 7,
+    color: C.muted,
+    textAlign: 'right',
+  },
+  personStrip: {
+    backgroundColor: C.bgSoft,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  personStripText: {
+    fontSize: 7.8,
+    color: C.body,
+    lineHeight: 1.35,
+  },
+  objectivesBox: {
+    backgroundColor: C.brandSoftBg,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: C.brand,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  objectivesLabel: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.muted,
     textTransform: 'uppercase',
+    marginBottom: 3,
     letterSpacing: 0.5,
   },
-  secCount: {
-    fontSize: 7,
-    color: '#64748b',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  secHint: {
-    fontSize: 6.8,
-    color: '#64748b',
-    paddingHorizontal: 10,
-    paddingBottom: 6,
-    lineHeight: 1.3,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    marginHorizontal: 6,
-    borderRadius: 6,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 5,
-    paddingHorizontal: 6,
-    marginHorizontal: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  tableRowAlt: {
-    backgroundColor: '#fafafa',
-  },
-  th: { fontSize: 6, fontFamily: 'Helvetica-Bold', color: '#475569' },
-  td: { fontSize: 6.8, color: '#0f172a' },
-  tdNum: { fontSize: 6.8, color: '#334155', fontFamily: 'Helvetica' },
-  tdMuted: { fontSize: 6.2, color: '#64748b', fontFamily: 'Helvetica' },
-  subtotal: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 6,
-    marginHorizontal: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-  },
-  subtotalText: {
-    fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
-    color: '#334155',
-  },
-  footerNote: {
-    position: 'absolute',
-    bottom: 12,
-    left: 14,
-    right: 14,
-    fontSize: 6,
-    color: '#94a3b8',
-    textAlign: 'center',
+  objectivesText: {
+    fontSize: 8.5,
+    color: C.body,
     lineHeight: 1.35,
   },
   hintBox: {
-    backgroundColor: '#fff7ed',
+    backgroundColor: C.brandMutedBg,
     borderWidth: 1,
-    borderColor: '#fed7aa',
-    borderRadius: 8,
+    borderColor: C.brandBorder,
+    borderRadius: 6,
     padding: 8,
-    marginBottom: 10,
   },
   hintText: {
     fontSize: 8,
-    color: '#9a3412',
-    lineHeight: 1.45,
+    color: C.brandDarkText,
+    lineHeight: 1.35,
   },
-  emptySection: {
-    fontSize: 9,
-    color: '#9a3412',
-    lineHeight: 1.45,
+  footer: {
+    position: 'absolute',
+    bottom: 14,
+    left: 28,
+    right: 28,
+    fontSize: 6.5,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 1.3,
+  },
+  sectionHeading: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.muted,
+    marginBottom: 4,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  sectionIntro: {
+    fontSize: 6.8,
+    color: C.muted,
+    marginBottom: 7,
+    lineHeight: 1.35,
+  },
+  appendixTitle: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.dark,
+    marginTop: 4,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  appendixHint: {
+    fontSize: 7,
+    color: C.muted,
+    marginBottom: 5,
+    lineHeight: 1.35,
+  },
+  secAppendixTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#475569',
+    marginTop: 6,
+    marginBottom: 3,
+  },
+  mealMomentOuter: {
+    marginBottom: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+  },
+  mealHeaderStrip: {
+    backgroundColor: '#eef2f7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#dce3ec',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  mealTitle: {
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  mealBody: {
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    backgroundColor: '#fafafa',
+  },
+  pickCard: {
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  pickCardLast: {
+    marginBottom: 0,
+    paddingBottom: 0,
+    borderBottomWidth: 0,
+  },
+  pickTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  pickColFood: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  pickColQty: {
+    width: '34%',
+    maxWidth: 148,
+    flexShrink: 0,
+  },
+  pickFoodName: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.dark,
+    lineHeight: 1.25,
+  },
+  pickQtyLine: {
+    fontSize: 7,
+    color: '#475569',
+    lineHeight: 1.3,
+    textAlign: 'right',
+  },
+  pickDetailBlock: {
+    width: '100%',
+    marginTop: 4,
+  },
+  pickPrepLine: {
+    fontSize: 6.8,
+    color: '#047857',
+    lineHeight: 1.3,
+  },
+  pickHintLine: {
+    fontSize: 6.5,
+    color: C.muted,
+    marginTop: 3,
+    lineHeight: 1.28,
+    fontStyle: 'italic',
+  },
+  notesWrap: {
+    marginTop: 8,
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#dce3ec',
+    borderStyle: 'solid',
+    backgroundColor: '#f8fafc',
+  },
+  notesSectionLabel: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.muted,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  notesSectionBody: {
+    fontSize: 8,
+    color: '#475569',
+    lineHeight: 1.35,
+  },
+  appendixFoodBlock: {
+    marginBottom: 6,
+  },
+  appendixRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  appendixFoodName: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.dark,
+    lineHeight: 1.25,
+  },
+  appendixQtyCell: {
+    fontSize: 7,
+    color: '#475569',
+    lineHeight: 1.3,
+    textAlign: 'right',
   },
 })
 
-/** Anchos tabla principal (suman ~100% del panel derecho). */
-const W = {
-  alimento: '17%',
-  g: '6%',
-  cda: '9%',
-  nota: '13%',
-  r1: '6%',
-  r2: '6%',
-  r3: '6%',
-  r4: '7%',
-  o1: '7%',
-  o2: '7%',
-  o3: '7%',
-  o4: '8%',
+function mealNotesHaveText(md: MealDistributionState): boolean {
+  const parts = [
+    md.desayuno,
+    md.mediaManana,
+    md.almuerzo,
+    md.mediaTarde,
+    md.merienda,
+    md.cena,
+  ]
+  return parts.some((p) => (p ?? '').trim().length > 0)
 }
 
-function TableHeaderRow() {
-  return (
-    <View style={styles.tableHeader}>
-      <Text style={[styles.th, { width: W.alimento }]}>Alimento</Text>
-      <Text style={[styles.th, { width: W.g }]}>g</Text>
-      <Text style={[styles.th, { width: W.cda }]}>~cdas.</Text>
-      <Text style={[styles.th, { width: W.nota }]}>Nota / prep.</Text>
-      <Text style={[styles.th, { width: W.r1 }]}>HC/100</Text>
-      <Text style={[styles.th, { width: W.r2 }]}>P/100</Text>
-      <Text style={[styles.th, { width: W.r3 }]}>G/100</Text>
-      <Text style={[styles.th, { width: W.r4 }]}>kcal/100</Text>
-      <Text style={[styles.th, { width: W.o1 }]}>HC</Text>
-      <Text style={[styles.th, { width: W.o2 }]}>P</Text>
-      <Text style={[styles.th, { width: W.o3 }]}>G</Text>
-      <Text style={[styles.th, { width: W.o4 }]}>kcal</Text>
-    </View>
-  )
+function distributionMomentsHaveContent(md: MealDistributionState): boolean {
+  return mealNotesHaveText(md) || mealDistributionHasMealPicks(md)
 }
 
-function FoodRows({
-  activeRows,
-}: {
-  activeRows: PlanningFoodRowState[]
-}) {
-  return (
-    <>
-      {activeRows.map((r, idx) => {
-        const q = parseLocaleNumberOrZero(r.qtyG)
-        const refVals = {
-          carbs: parseLocaleNumberOrZero(r.refCarbs),
-          protein: parseLocaleNumberOrZero(r.refProt),
-          fat: parseLocaleNumberOrZero(r.refFat),
-          kcal: parseLocaleNumberOrZero(r.refKcal),
-        }
-        const out = scaledFromRefs(q, refVals)
-        const prepAuto = etiquetaPreparacion(r.name, r.hint)
-        const hintT = r.hint?.trim()
-        const notaParts = [prepAuto, hintT].filter(Boolean)
-        const uniqueNota = [...new Set(notaParts)].join(' · ')
-        return (
-          <View key={r.id} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]} wrap={false}>
-            <Text style={[styles.td, { width: W.alimento }]}>{r.name}</Text>
-            <Text style={[styles.tdNum, { width: W.g }]}>{r.qtyG}</Text>
-            <View style={{ width: W.cda }}>
-              <Text style={styles.tdMuted}>{approxCucharadasSoperas(q)}</Text>
-              <Text style={{ fontSize: 5.5, color: '#94a3b8', marginTop: 1 }}>
-                ≈{GRAMOS_POR_CUCHARADA_SOPERA} g/cda.
-              </Text>
-            </View>
-            <Text style={[styles.tdMuted, { width: W.nota }]}>{uniqueNota || '—'}</Text>
-            <Text style={[styles.tdNum, { width: W.r1 }]}>{r.refCarbs}</Text>
-            <Text style={[styles.tdNum, { width: W.r2 }]}>{r.refProt}</Text>
-            <Text style={[styles.tdNum, { width: W.r3 }]}>{r.refFat}</Text>
-            <Text style={[styles.tdNum, { width: W.r4 }]}>{r.refKcal}</Text>
-            <Text style={[styles.tdNum, { width: W.o1 }]}>{fmt(out.carbsG)}</Text>
-            <Text style={[styles.tdNum, { width: W.o2 }]}>{fmt(out.proteinG)}</Text>
-            <Text style={[styles.tdNum, { width: W.o3 }]}>{fmt(out.fatG)}</Text>
-            <Text style={[styles.tdNum, { width: W.o4 }]}>{fmt(out.kcal)}</Text>
-          </View>
-        )
-      })}
-    </>
-  )
+function rowsWithGrams(rows: PlanningFoodRowState[]): PlanningFoodRowState[] {
+  return rows.filter((r) => parseLocaleNumberOrZero(r.qtyG) > 0)
+}
+
+/** Objetivo en texto libre o código Ferster copiado desde la ficha → etiqueta legible en PDF. */
+function objectiveTextForPdf(raw: string): string {
+  const t = raw.trim()
+  if (!t) return ''
+  return fersterGoalLabel(t)
+}
+
+function hintForPick(p: MealSlotPick, wb: PlanningWorkbookStateV1): string | undefined {
+  const snap = p.hintSnapshot?.trim()
+  if (snap) return snap
+  if (p.kind === 'plan_row') {
+    const sec = wb.sections.find((s) => s.key === p.secKey)
+    const row = sec?.rows.find((r) => r.id === p.rowId)
+    return row?.hint?.trim()
+  }
+  return undefined
+}
+
+/** Primera línea (cantidades) alineada a la derecha; resto debajo a ancho completo. */
+function splitMultilineBody(text: string): { first: string; rest: string[] } {
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  return { first: lines[0] ?? '', rest: lines.slice(1) }
+}
+
+/** Versión corta para el cuerpo compacto del PDF. */
+function appendixDetailLinesCompact(row: PlanningFoodRowState): string {
+  const q = parseLocaleNumberOrZero(row.qtyG)
+  const cdas = approxCucharadasSoperasLabel(q)
+  const prep = preparacionAlumnoLine(row.name, row.hint)
+  const hint = row.hint?.trim()
+  const base = `${fmtGramOrDash(q)} g · ~${cdas}`
+  const lines = [base]
+  if (prep) lines.push(prep)
+  else if (hint) lines.push(truncate(`Nota: ${hint}`, 140))
+  return lines.join('\n')
+}
+
+function formatGeneratedDate(d: Date): string {
+  try {
+    return new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(d)
+  } catch {
+    return ''
+  }
+}
+
+/** Una línea con datos de referencia del alumno (workbook + nombre opcional). */
+function formatPersonStrip(wb: PlanningWorkbookStateV1, studentName?: string | null): string | null {
+  const p = wb.person
+  const bits: string[] = []
+  const sn = studentName?.trim()
+  if (sn) bits.push(`Alumno/a: ${sn}`)
+  const w = p.weightKg?.trim()
+  if (w) bits.push(`${w} kg`)
+  if (p.sex === 'M') bits.push('M')
+  else if (p.sex === 'F') bits.push('F')
+  const pk = wb.proposedKcal?.trim()
+  if (pk) bits.push(`Meta ~${pk} kcal`)
+  const tm = p.tdeeMale?.trim()
+  const tf = p.tdeeFemale?.trim()
+  if (p.sex === 'M' && tm) bits.push(`Mant. ref. ~${tm} kcal`)
+  else if (p.sex === 'F' && tf) bits.push(`Mant. ref. ~${tf} kcal`)
+  else if (tm || tf) bits.push(`Mant. ref. ~${tm ?? '—'} / ~${tf ?? '—'} kcal (h/m)`)
+  if (bits.length === 0) return null
+  return bits.join(' · ')
 }
 
 export function PlanningWorkbookPdfDocument({
   wb,
   professionalName,
+  studentName,
+  brandLogoSrc,
+  generatedAt,
 }: {
   wb: PlanningWorkbookStateV1
   professionalName?: string | null
+  /** Nombre para la franja del alumno (además de peso / sexo / kcal del workbook). */
+  studentName?: string | null
+  brandLogoSrc?: string | null
+  generatedAt?: Date
 }) {
-  const g = grandTotals(wb)
-  const sectionsWithData = wb.sections
+  const issued = generatedAt ?? new Date()
+  const personLine = formatPersonStrip(wb, studentName)
+  const md = wb.mealDistribution ?? DEFAULT_MEAL_DISTRIBUTION
+  const objectivesRaw = wb.objectives?.trim() ?? ''
+  const objectivesDisplay = objectiveTextForPdf(objectivesRaw)
+  const hasDistMoments = distributionMomentsHaveContent(md)
+  const hasObjective = objectivesDisplay.length > 0
+
+  const sectionsWithGrams = wb.sections
     .map((sec) => ({
       sec,
-      activeRows: rowsInformados(sec.rows),
+      rows: rowsWithGrams(sec.rows),
     }))
-    .filter((x) => x.activeRows.length > 0)
+    .filter((x) => x.rows.length > 0)
 
-  const firstBlock = sectionsWithData[0]
-  const restSections = sectionsWithData.slice(1)
-  const firstSub = firstBlock ? sectionTotalsRows(firstBlock.activeRows) : ZERO_TOTALS
+  const hasGramPlan = sectionsWithGrams.length > 0
+
+  const hasPdfBody = hasDistMoments || hasObjective || hasGramPlan
+
+  const mealLayout: { slot: MealSlotKey; title: string; notes: string }[] = [
+    { slot: 'desayuno', title: MEAL_SLOT_LABELS.desayuno, notes: md.desayuno },
+    ...(md.includeMidMorning
+      ? [{ slot: 'mediaManana' as const, title: MEAL_SLOT_LABELS.mediaManana, notes: md.mediaManana }]
+      : []),
+    { slot: 'almuerzo', title: MEAL_SLOT_LABELS.almuerzo, notes: md.almuerzo },
+    ...(md.includeMidAfternoon
+      ? [{ slot: 'mediaTarde' as const, title: MEAL_SLOT_LABELS.mediaTarde, notes: md.mediaTarde }]
+      : []),
+    { slot: 'merienda', title: MEAL_SLOT_LABELS.merienda, notes: md.merienda },
+    { slot: 'cena', title: MEAL_SLOT_LABELS.cena, notes: md.cena },
+  ]
+
+  const profBit = professionalName?.trim()
+    ? ` · Prof.: ${truncate(professionalName.trim(), 36)}`
+    : ''
 
   return (
     <Document>
-      {sectionsWithData.length === 0 ? (
-        <Page size="A4" style={styles.pagePortraitEmpty}>
+      <Page size="A4" style={styles.page} wrap>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.headerBrandBar} />
+            {brandLogoSrc ? <Image src={brandLogoSrc} style={styles.logoImg} /> : null}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.brandTitle}>Haciéndolo Hábito</Text>
+              <Text style={styles.brandSub}>Plan de alimentación{profBit}</Text>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            <Text style={styles.headerDate}>{formatGeneratedDate(issued)}</Text>
+          </View>
+        </View>
+
+        {personLine ? (
+          <View style={styles.personStrip}>
+            <Text style={styles.personStripText}>{personLine}</Text>
+          </View>
+        ) : null}
+
+        {!hasPdfBody ? (
           <View style={styles.hintBox}>
-            <Text style={styles.emptySection}>
-              No hay cantidades en gramos cargadas: no se puede armar la tabla. Completá el plan y volvé a generar el PDF.
+            <Text style={styles.hintText}>
+              Completá al menos una de estas opciones en la app y volvé a generar el PDF: texto en «Distribución del día»
+              (desayuno, almuerzo, etc.), un objetivo, o cantidades en gramos en las tablas del plan.
             </Text>
           </View>
-          <Text style={styles.footerNote} fixed>
-            Haciendo Hábito
-          </Text>
-        </Page>
-      ) : (
-        <Page size="A4" orientation="landscape" style={styles.pageLandscape}>
-          <View style={styles.splitRow}>
-            <View style={styles.sidebar}>
-              <View style={styles.sidebarInner}>
-                <View style={styles.sidebarBrand}>
-                  <Text style={styles.sidebarTitle}>Plan HH</Text>
-                  <Text style={styles.sidebarSub}>
-                    {professionalName ? `${truncate(professionalName, 42)}\n` : ''}
-                    Tabla principal →
-                  </Text>
-                  <View style={styles.sidebarBadge}>
-                    <Text style={styles.sidebarBadgeTxt}>Solo ítems con gramos</Text>
-                  </View>
-                </View>
+        ) : (
+          <>
+            {hasObjective ? (
+              <View style={styles.objectivesBox}>
+                <Text style={styles.objectivesLabel}>Objetivo</Text>
+                <Text style={styles.objectivesText}>{objectivesDisplay}</Text>
+              </View>
+            ) : null}
 
-                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#64748b', marginBottom: 4 }}>
-                  Persona · ref.
+            {hasDistMoments ? (
+              <>
+                <Text style={styles.sectionHeading}>Distribución por momentos</Text>
+                <Text style={styles.sectionIntro}>
+                  Gramos y cdas. (~{GRAMOS_POR_CUCHARADA_SOPERA} g/cda.) orientativas; crudo/cocido cuando corresponda.
                 </Text>
-                <View style={styles.kvTiny}>
-                  <Text style={styles.kvTinyLabel}>TDEE M / F</Text>
-                  <Text style={styles.kvTinyVal}>
-                    {wb.person.tdeeMale || '—'} / {wb.person.tdeeFemale || '—'}
-                  </Text>
-                </View>
-                <View style={styles.kvTiny}>
-                  <Text style={styles.kvTinyLabel}>Peso · sexo</Text>
-                  <Text style={styles.kvTinyVal}>
-                    {wb.person.weightKg || '—'} kg ·{' '}
-                    {wb.person.sex === 'M' ? 'M' : wb.person.sex === 'F' ? 'F' : '—'}
-                  </Text>
-                </View>
-                <View style={styles.kvTiny}>
-                  <Text style={styles.kvTinyLabel}>Kcal ej.</Text>
-                  <Text style={styles.kvTinyVal}>{wb.proposedKcal || '—'}</Text>
-                </View>
-                <View style={styles.kvTiny}>
-                  <Text style={styles.kvTinyLabel}>P / C / G g/kg</Text>
-                  <Text style={styles.kvTinyVal}>
-                    {wb.macroInputs.proteinGPerKg} · {wb.macroInputs.carbGPerKg} · {wb.macroInputs.fatGPerKg}
-                  </Text>
-                </View>
+                {mealLayout
+                  .filter((b) => {
+                    const picks = md.picksByMeal?.[b.slot] ?? []
+                    return picks.length > 0 || b.notes.trim().length > 0
+                  })
+                  .map((b) => {
+                    const picks = md.picksByMeal?.[b.slot] ?? []
+                    return (
+                      <View key={b.slot} style={styles.mealMomentOuter}>
+                        <View style={styles.mealHeaderStrip}>
+                          <Text style={styles.mealTitle}>{b.title}</Text>
+                        </View>
+                        <View style={styles.mealBody}>
+                          {picks.map((p, pi) => {
+                            const hint = hintForPick(p, wb)
+                            const { gramsLine, prepLine } = buildStudentQuantitySummaryLines({
+                              gramsStr: p.qtyG,
+                              nameSnapshot: p.nameSnapshot,
+                              hint,
+                              preparation: p.preparation,
+                              compact: true,
+                            })
+                            const last = pi === picks.length - 1 && !b.notes.trim()
+                            return (
+                              <View key={p.id} style={[styles.pickCard, last ? styles.pickCardLast : {}]}>
+                                <View style={styles.pickTopRow}>
+                                  <View style={styles.pickColFood}>
+                                    <Text style={styles.pickFoodName}>{p.nameSnapshot}</Text>
+                                  </View>
+                                  <View style={styles.pickColQty}>
+                                    <Text style={styles.pickQtyLine}>{gramsLine}</Text>
+                                  </View>
+                                </View>
+                                <View style={styles.pickDetailBlock}>
+                                  {prepLine ? <Text style={styles.pickPrepLine}>{prepLine}</Text> : null}
+                                  {hint ? (
+                                    <Text style={styles.pickHintLine}>Tip / unidad: {truncate(hint, 160)}</Text>
+                                  ) : null}
+                                </View>
+                              </View>
+                            )
+                          })}
+                          {b.notes.trim() ? (
+                            <View style={styles.notesWrap}>
+                              <Text style={styles.notesSectionLabel}>Observaciones</Text>
+                              <Text style={styles.notesSectionBody}>{b.notes.trim()}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+                    )
+                  })}
+              </>
+            ) : null}
 
-                <Text style={styles.objTiny}>{truncate(wb.objectives?.trim() || '—', 420)}</Text>
-
-                <View style={styles.totalSidebar}>
-                  <Text style={styles.totalSidebarLabel}>Total día</Text>
-                  <Text style={styles.totalSidebarNums}>
-                    HC {fmt(g.carbsG)} g{'\n'}Prot {fmt(g.proteinG)} g{'\n'}Grasas {fmt(g.fatG)} g{'\n'}
-                    {fmt(g.kcal)} kcal
-                  </Text>
-                </View>
+            {hasGramPlan ? (
+              <View>
+                {sectionsWithGrams.length > 0 ? (
+                  <>
+                    <Text style={styles.appendixTitle}>Alimentos del plan (gramos)</Text>
+                    <Text style={styles.appendixHint}>
+                      Tablas del armado en la app; podés cruzarlo con la distribución por momentos arriba.
+                    </Text>
+                    {sectionsWithGrams.map(({ sec, rows }) => (
+                      <View key={sec.key}>
+                        <Text style={styles.secAppendixTitle}>{sec.title}</Text>
+                        {rows.map((r) => {
+                          const appBody = splitMultilineBody(appendixDetailLinesCompact(r))
+                          return (
+                            <View key={r.id} style={styles.appendixFoodBlock}>
+                              <View style={styles.appendixRow}>
+                                <View style={styles.pickColFood}>
+                                  <Text style={styles.appendixFoodName}>{r.name}</Text>
+                                </View>
+                                <View style={styles.pickColQty}>
+                                  <Text style={styles.appendixQtyCell}>{appBody.first}</Text>
+                                </View>
+                              </View>
+                              {appBody.rest.map((line, li) => (
+                                <Text
+                                  key={li}
+                                  style={[styles.pickPrepLine, li === 0 ? { marginTop: 3 } : { marginTop: 2 }]}
+                                >
+                                  {line}
+                                </Text>
+                              ))}
+                            </View>
+                          )
+                        })}
+                      </View>
+                    ))}
+                  </>
+                ) : null}
               </View>
-            </View>
+            ) : null}
+          </>
+        )}
 
-            <View style={styles.mainPanel}>
-              <View style={styles.secCard}>
-                <View style={styles.secHeadRow}>
-                  <Text style={styles.secTitle}>{firstBlock.sec.title}</Text>
-                  <Text style={styles.secCount}>
-                    {firstBlock.activeRows.length} ítem{firstBlock.activeRows.length !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-                <Text style={styles.secHint}>{firstBlock.sec.quantityColumnHint}</Text>
-                <TableHeaderRow />
-                <FoodRows activeRows={firstBlock.activeRows} />
-                <View style={styles.subtotal}>
-                  <Text style={styles.subtotalText}>
-                    Subtotal · HC {fmt(firstSub.carbsG)} · P {fmt(firstSub.proteinG)} · G {fmt(firstSub.fatG)} ·{' '}
-                    {fmt(firstSub.kcal)} kcal
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.footerNote} fixed>
-            ~Cdas. ≈ {GRAMOS_POR_CUCHARADA_SOPERA} g/cucharada sopera (orientativo; depende del alimento). Nota/prep.: texto de
-            la planilla o detección crudo/cocido en nombre · HH
-          </Text>
-        </Page>
-      )}
-
-      {restSections.map(({ sec, activeRows }) => {
-        const st = sectionTotalsRows(activeRows)
-        return (
-          <Page key={sec.key} size="A4" orientation="landscape" style={styles.pageLandscape}>
-            <View style={styles.secCard}>
-              <View style={styles.secHeadRow}>
-                <Text style={styles.secTitle}>{sec.title}</Text>
-                <Text style={styles.secCount}>
-                  {activeRows.length} ítem{activeRows.length !== 1 ? 's' : ''}
-                </Text>
-              </View>
-              <Text style={styles.secHint}>{sec.quantityColumnHint}</Text>
-              <TableHeaderRow />
-              <FoodRows activeRows={activeRows} />
-              <View style={styles.subtotal}>
-                <Text style={styles.subtotalText}>
-                  Subtotal · HC {fmt(st.carbsG)} · P {fmt(st.proteinG)} · G {fmt(st.fatG)} · {fmt(st.kcal)} kcal
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.footerNote} fixed>
-              ~Cdas. ≈ {GRAMOS_POR_CUCHARADA_SOPERA} g/cda. sopera · HH
-            </Text>
-          </Page>
-        )
-      })}
+        <Text style={styles.footer} fixed>
+          Orientación general: ajustá con tu entrenador o nutricionista. Macros detallados solo en la app del profesional.
+        </Text>
+      </Page>
     </Document>
   )
 }

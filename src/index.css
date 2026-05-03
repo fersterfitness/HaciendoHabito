@@ -105,6 +105,13 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--brand-primary));
   }
+
+  @media print {
+    body {
+      background: white !important;
+      color: rgb(var(--ink-primary));
+    }
+  }
 }
 
 @layer utilities {

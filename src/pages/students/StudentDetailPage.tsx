@@ -101,7 +101,10 @@ export function StudentDetailPage() {
   async function downloadMealPlanPdf(plan: TrainerStudentMealPlan) {
     setMealPlanPdfBusy(plan.id)
     try {
-      await downloadTrainerStudentMealPlanPdf(plan, { professionalName: profile?.full_name })
+      await downloadTrainerStudentMealPlanPdf(plan, {
+        professionalName: profile?.full_name,
+        studentName: student?.full_name ?? null,
+      })
       toast.success('PDF descargado.')
     } catch (e) {
       console.error(e)

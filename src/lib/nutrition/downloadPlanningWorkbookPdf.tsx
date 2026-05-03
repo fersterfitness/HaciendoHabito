@@ -7,14 +7,31 @@ function sanitizeFilename(base: string): string {
   return base.replace(/[^\w\s\-_.áéíóúÁÉÍÓÚñÑ]/g, '').trim().slice(0, 80) || 'plan-alimentacion'
 }
 
+/** Logo oscuro legible sobre papel blanco (misma convención que PDF de rutinas). */
+function defaultBrandLogoSrc(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  return `${window.location.origin}/logo_mark_original_black_square.png`
+}
+
 export async function downloadPlanningWorkbookPdf(
   wb: PlanningWorkbookStateV1,
-  options?: { professionalName?: string | null; fileBaseName?: string },
+  options?: {
+    professionalName?: string | null
+    /** Nombre del alumno (referencia en ficha o plan asignado). */
+    studentName?: string | null
+    fileBaseName?: string
+    /** Logo marca en cabecera PDF (URL absoluta). Por defecto mark oscuro en `/public`. */
+    brandLogoSrc?: string | null
+    generatedAt?: Date
+  },
 ): Promise<void> {
   const blob = await pdf(
     createElement(PlanningWorkbookPdfDocument, {
       wb,
       professionalName: options?.professionalName,
+      studentName: options?.studentName,
+      brandLogoSrc: options?.brandLogoSrc ?? defaultBrandLogoSrc(),
+      generatedAt: options?.generatedAt ?? new Date(),
     }),
   ).toBlob()
   const url = URL.createObjectURL(blob)

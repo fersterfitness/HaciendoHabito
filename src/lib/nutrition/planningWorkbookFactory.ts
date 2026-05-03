@@ -1,6 +1,6 @@
 import { EXCEL_PLANNING_BLUEPRINT } from '@/lib/nutrition/excelPlanningBlueprint'
 import { resolveRefForPlanningRow } from '@/lib/nutrition/planningRefResolve'
-import type { PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
+import { DEFAULT_MEAL_DISTRIBUTION, type PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
 
 export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
   return {
@@ -39,6 +39,9 @@ export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
       carbGPerKg: '4',
       fatGPerKg: '0.9',
     },
+    libraryQtyDraft: {},
+    libraryFoodRefsById: {},
+    mealDistribution: { ...DEFAULT_MEAL_DISTRIBUTION },
     sections: EXCEL_PLANNING_BLUEPRINT.map((sec) => ({
       key: sec.key,
       title: sec.title,

@@ -15,7 +15,7 @@ const trainerNavItems = [
   { label: 'Alumnos',  href: '/students',  icon: Users },
   { label: 'Rutinas',  href: '/routines',  icon: Dumbbell },
   { label: 'Planes', href: '/meal-plans', icon: UtensilsCrossed },
-  { label: 'Plan alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Armar plan', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Alimentos', href: '/nutrition/foods', icon: Apple },
   { label: 'Finanzas', href: '/finances',  icon: Wallet },
   { label: 'Dudas',    href: '/feedback',  icon: MessageSquare },
@@ -25,7 +25,7 @@ const nutritionistNavItems = [
   { label: 'Inicio', href: '/dashboard', icon: Home },
   { label: 'Turnos', href: '/appointments', icon: CalendarClock },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
-  { label: 'Plan alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Armar plan', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Pacientes', href: '/students', icon: Users },
 ]
 
@@ -36,7 +36,7 @@ const adminNavItems = [
   { label: 'Rutinas', href: '/routines', icon: Dumbbell },
   { label: 'Planes', href: '/meal-plans', icon: UtensilsCrossed },
   { label: 'Nutrición', href: '/nutrition', icon: Salad },
-  { label: 'Plan alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Armar plan', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Finanzas', href: '/finances', icon: Wallet },
 ]
 
@@ -58,7 +58,7 @@ export function MobileNav() {
           : trainerNavItems
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border print:hidden">
       <div className="flex items-center justify-around h-16 px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon

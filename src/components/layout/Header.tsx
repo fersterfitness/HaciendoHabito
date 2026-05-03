@@ -4,15 +4,16 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
-import { getInitials } from '@/lib/utils'
+import { cn, getInitials } from '@/lib/utils'
 
 interface HeaderProps {
   title: string
   showBack?: boolean
   actions?: React.ReactNode
+  className?: string
 }
 
-export function Header({ title, showBack = false, actions }: HeaderProps) {
+export function Header({ title, showBack = false, actions, className }: HeaderProps) {
   const navigate = useNavigate()
   const { profile, user } = useAuthStore()
   const { theme, toggleTheme } = useTheme()
@@ -47,7 +48,12 @@ export function Header({ title, showBack = false, actions }: HeaderProps) {
   }, [user])
 
   return (
-    <header className="sticky top-0 z-30 flex items-center h-16 px-4 lg:px-6 bg-surface-base gap-3">
+    <header
+      className={cn(
+        'sticky top-0 z-30 flex items-center h-16 px-4 lg:px-6 bg-surface-base gap-3',
+        className,
+      )}
+    >
       {showBack && (
         <button
           onClick={() => navigate(-1)}

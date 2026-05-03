@@ -56,7 +56,7 @@ const financeItems = [
 
 /** Nutrición básica guiada por el entrenador (macros / referencias para alumnos). */
 const trainerNutritionGuideItems = [
-  { label: 'Plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
 ]
 
@@ -67,7 +67,7 @@ const nutritionItems = [
   { label: 'Nutrición',      href: '/nutrition',      icon: Salad, exactMatch: true },
   { label: 'Evolución',      href: '/nutrition/evolution', icon: LineChart },
   { label: 'Planes',         href: '/nutrition/plans', icon: Library },
-  { label: 'Plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
@@ -158,11 +158,13 @@ function SidebarItem({
         style={{
           display: 'flex',
           alignItems: 'center',
-          height: 40,
+          minHeight: 40,
           marginLeft: 8,
           marginRight: 0,
           paddingLeft: collapsed ? 0 : 10,
           paddingRight: collapsed ? 0 : 10,
+          paddingTop: 8,
+          paddingBottom: 8,
           justifyContent: collapsed ? 'center' : undefined,
           borderTopLeftRadius: 12,
           borderBottomLeftRadius: 12,
@@ -201,7 +203,7 @@ function SidebarItem({
 
         {!collapsed && (
           <span
-            className="ml-2.5 mr-3 text-[13px] truncate flex-1 select-none"
+            className="ml-2.5 mr-3 text-[13px] flex-1 select-none leading-snug break-words text-left min-w-0"
             style={{ fontWeight: isActive ? 600 : 500 }}
           >
             {label}
@@ -243,7 +245,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-200',
+        'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-200 print:hidden',
         collapsed ? 'w-[62px]' : 'w-[196px]',
       )}
       style={{

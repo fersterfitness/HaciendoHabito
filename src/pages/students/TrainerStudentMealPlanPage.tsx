@@ -14,6 +14,10 @@ import type { Json, TrainerStudentMealPlan } from '@/types/database'
 import toast from 'react-hot-toast'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 
+type MealPlanRow = TrainerStudentMealPlan & {
+  student?: { full_name: string } | null
+}
+
 /** Vista del plan asignado (entrenador / admin) desde la ficha del alumno. */
 export function TrainerStudentMealPlanPage() {
   const { id: studentId, planId } = useParams<{ id: string; planId: string }>()
@@ -21,7 +25,7 @@ export function TrainerStudentMealPlanPage() {
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
   const [wb, setWb] = useState<PlanningWorkbookStateV1 | null>(null)
-  const [planRow, setPlanRow] = useState<TrainerStudentMealPlan | null>(null)
+  const [planRow, setPlanRow] = useState<MealPlanRow | null>(null)
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(true)
   const [pdfBusy, setPdfBusy] = useState(false)
@@ -32,7 +36,7 @@ export function TrainerStudentMealPlanPage() {
     ;(async () => {
       const { data, error } = await supabase
         .from('trainer_student_meal_plans')
-        .select('*')
+        .select('*, student:students(full_name)')
         .eq('id', planId)
         .eq('student_id', studentId)
         .eq('owner_id', user.id)
@@ -44,7 +48,7 @@ export function TrainerStudentMealPlanPage() {
         setLoading(false)
         return
       }
-      const row = data as TrainerStudentMealPlan
+      const row = data as MealPlanRow
       setPlanRow(row)
       setTitle(row.title)
       const parsed = parsePlanningData(row.data as Json)
@@ -80,7 +84,10 @@ export function TrainerStudentMealPlanPage() {
     if (!planRow) return
     setPdfBusy(true)
     try {
-      await downloadTrainerStudentMealPlanPdf(planRow, { professionalName: profile?.full_name })
+      await downloadTrainerStudentMealPlanPdf(planRow, {
+        professionalName: profile?.full_name,
+        studentName: planRow.student?.full_name ?? null,
+      })
       toast.success('PDF descargado.')
     } catch (e) {
       console.error(e)
@@ -91,11 +98,12 @@ export function TrainerStudentMealPlanPage() {
   }
 
   return (
-    <div className="pb-24 lg:pb-10">
+    <div className="pb-24 lg:pb-10 print:pb-4">
       <Header
+        className="print:hidden"
         title={title || 'Plan de alimentación'}
         actions={
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 print:hidden">
             <Button
               variant="outline"
               size="sm"
@@ -116,8 +124,11 @@ export function TrainerStudentMealPlanPage() {
           </div>
         }
       />
-      <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 lg:px-6 pt-2">
-        <PlanningWorkbookReadonlyView wb={wb} />
+      <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 lg:px-6 pt-2 print:max-w-none print:px-4">
+        <h1 className="hidden print:block print:text-center print:text-lg print:font-semibold print:text-ink-primary print:mb-3 print:pb-2 print:border-b print:border-surface-border">
+          {title || 'Plan de alimentación'}
+        </h1>
+        <PlanningWorkbookReadonlyView wb={wb} documentUpdatedAt={planRow?.updated_at ?? null} />
       </div>
     </div>
   )
