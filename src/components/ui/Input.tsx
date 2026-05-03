@@ -105,7 +105,8 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
   hint?: string
-  options: { value: string; label: string }[]
+  /** Acepta `as const` y listas solo lectura desde constantes compartidas. */
+  options: ReadonlyArray<{ readonly value: string; readonly label: string }>
   placeholder?: string
 }
 

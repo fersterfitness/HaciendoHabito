@@ -216,8 +216,8 @@ export interface Database {
         Relationships: []
       }
     }
-    Views: {}
-    Functions: {}
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }
 
@@ -721,6 +721,16 @@ export interface HabitLog {
   student_id: string
   habit_id: string
   log_date: string
+  created_at: string
+}
+
+/** Cuándo se asignó o quitó un hábito al alumno (auditoría / evolución). */
+export interface StudentHabitSelectionEvent {
+  id: string
+  owner_id: string
+  student_id: string
+  habit_id: string
+  action: 'assigned' | 'removed'
   created_at: string
 }
 

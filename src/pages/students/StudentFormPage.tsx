@@ -101,6 +101,13 @@ export function StudentFormPage() {
       plan_end_date: values.plan_end_date || null,
       notes: values.notes || null,
       profile_id: null,
+      document_id: null,
+      address: null,
+      weight_kg: null,
+      height_cm: null,
+      intake_ferster: null,
+      intake_nutrition: null,
+      avatar_path: null,
     }
 
     if (isEditing) {

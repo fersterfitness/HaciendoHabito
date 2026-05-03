@@ -27,9 +27,11 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
 import {
-  grandTotalsFromWorkbook,
+  diffTotals,
   pctKcalMacros,
+  parseLocaleNumber,
   parseLocaleNumberOrZero,
+  plannedNutritionTotalsFromWorkbook,
   scaledFromRefs,
   sumTotals,
   ZERO_TOTALS,
@@ -63,10 +65,28 @@ import {
   saveMealDistributionTemplate,
   type MealDistributionTemplate,
 } from '@/lib/nutrition/mealDistributionTemplates'
+import {
+  ACTIVITY_FACTOR_GUIDE_ROWS,
+  mifflinStJeorBmrFemale,
+  mifflinStJeorBmrMale,
+  tdeeFromBmr,
+} from '@/lib/nutrition/tdeeCalculator'
 
 function fmt1(n: number): string {
   if (!Number.isFinite(n)) return '—'
   return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
+}
+
+function approxAgeFromBirthDate(birthIso: string | null | undefined): number | null {
+  if (!birthIso || typeof birthIso !== 'string') return null
+  const d = new Date(birthIso.length === 10 ? `${birthIso}T12:00:00` : birthIso)
+  if (Number.isNaN(d.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - d.getFullYear()
+  const m = today.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age -= 1
+  if (age < 0 || age > 124) return null
+  return age
 }
 
 /** Valores por 100 g guardados en Guía → columnas HC/P/G/kcal del plan */
@@ -75,15 +95,26 @@ function formatLibNutrientForPlanning(n: number | null | undefined): string {
   return String(n)
 }
 
-function TotalsBadge({ label, ...t }: MacroTotals & { label: string }) {
+function TotalsBadge({
+  label,
+  compact,
+  ...t
+}: MacroTotals & { label: string; compact?: boolean }) {
   const pct = pctKcalMacros(t)
   return (
-    <div className="rounded-xl border border-surface-border bg-surface-muted/40 px-4 py-3 text-sm">
-      <p className="text-[10px] uppercase tracking-wide text-ink-muted font-bold">{label}</p>
-      <p className="tabular-nums text-ink-secondary mt-1">
-        HC {fmt1(t.carbsG)} g · Prot {fmt1(t.proteinG)} g · Grasas {fmt1(t.fatG)} g · {fmt1(t.kcal)} kcal
+    <div
+      className={cn(
+        'rounded-xl border border-surface-border bg-surface-muted/40 text-sm',
+        compact ? 'px-3 py-2' : 'px-4 py-3',
+      )}
+    >
+      <p className={cn('uppercase tracking-wide text-ink-muted font-bold', compact ? 'text-[9px]' : 'text-[10px]')}>
+        {label}
       </p>
-      {pct && (
+      <p className={cn('tabular-nums text-ink-secondary', compact ? 'text-xs mt-0.5 leading-snug' : 'mt-1')}>
+        HC {fmt1(t.carbsG)} · P {fmt1(t.proteinG)} · G {fmt1(t.fatG)} · {fmt1(t.kcal)} kcal
+      </p>
+      {pct && !compact && (
         <p className="text-[11px] text-ink-muted mt-1 tabular-nums">
           Distribución aprox.: P {pct.p.toFixed(0)} % · HC {pct.c.toFixed(0)} % · G {pct.f.toFixed(0)} %
         </p>
@@ -478,7 +509,43 @@ export function NutritionPlanningPage() {
 
   const macrosKcalGuess = weightKg * (pPerKg * 4 + cPerKg * 4 + fPerKg * 9)
 
-  const foodGrand = useMemo(() => grandTotalsFromWorkbook(wb), [wb])
+  const heightCmNum = parseLocaleNumberOrZero(wb.person.heightCm)
+  const ageYearsNum = parseLocaleNumberOrZero(wb.person.ageYears)
+  const activityFac = parseLocaleNumber(wb.person.activityFactor)
+  const activityOk = Number.isFinite(activityFac) && activityFac > 0
+
+  const calcBmrMale = useMemo(
+    () =>
+      weightKg > 0 && heightCmNum > 0 && ageYearsNum > 0
+        ? mifflinStJeorBmrMale(weightKg, heightCmNum, ageYearsNum)
+        : NaN,
+    [weightKg, heightCmNum, ageYearsNum],
+  )
+  const calcBmrFemale = useMemo(
+    () =>
+      weightKg > 0 && heightCmNum > 0 && ageYearsNum > 0
+        ? mifflinStJeorBmrFemale(weightKg, heightCmNum, ageYearsNum)
+        : NaN,
+    [weightKg, heightCmNum, ageYearsNum],
+  )
+  const calcTdeeMale = useMemo(
+    () => (activityOk ? tdeeFromBmr(calcBmrMale, activityFac) : NaN),
+    [calcBmrMale, activityOk, activityFac],
+  )
+  const calcTdeeFemale = useMemo(
+    () => (activityOk ? tdeeFromBmr(calcBmrFemale, activityFac) : NaN),
+    [calcBmrFemale, activityOk, activityFac],
+  )
+
+  const intakeTotals = useMemo(() => plannedNutritionTotalsFromWorkbook(wb), [wb])
+  const remainderVsGuide =
+    weightKg > 0 && (guideTotals.carbsG > 0 || guideTotals.proteinG > 0 || guideTotals.fatG > 0)
+      ? diffTotals(guideTotals, intakeTotals)
+      : null
+  const remainderKcalTarget =
+    targetKcal > 0 ? { ...ZERO_TOTALS, kcal: targetKcal - intakeTotals.kcal } : null
+
+  const foodGrand = intakeTotals
 
   const mealDistribution = normalizeMealDistribution(wb.mealDistribution)
 
@@ -570,10 +637,10 @@ export function NutritionPlanningPage() {
         return { ...x, hintSnapshot: hintStr } as MealSlotPick
       }
       if (x.kind === 'plan_row') {
-        const { hintSnapshot: _h, ...rest } = x
+        const { hintSnapshot: _s, ...rest } = x
         return rest as MealSlotPick
       }
-      const { hintSnapshot: _h, ...rest } = x
+      const { hintSnapshot: _s2, ...rest } = x
       return rest as MealSlotPick
     })
     patchPicksForSlot(slot, list)
@@ -690,8 +757,9 @@ export function NutritionPlanningPage() {
         toast.error('Elegí un alimento de Mi lista o actualizá la Guía.')
         return
       }
+      const slot = mealPickSlot
       const notesSnap = lib.notes?.trim()
-      appendMealPick(mealPickSlot, {
+      const pick: MealSlotPick = {
         id: newMealPickId(),
         kind: 'library',
         libraryFoodId: lib.id,
@@ -699,6 +767,27 @@ export function NutritionPlanningPage() {
         nameSnapshot: lib.display_name,
         ...(notesSnap ? { hintSnapshot: notesSnap } : {}),
         ...(mealPickPreparation !== 'infer' ? { preparation: mealPickPreparation } : {}),
+      }
+      userHasEdited.current = true
+      setWb((prev) => {
+        const cur = normalizeMealDistribution(prev.mealDistribution)
+        const curList = [...(cur.picksByMeal?.[slot] ?? []), pick]
+        const nextMap: NonNullable<MealDistributionState['picksByMeal']> = { ...(cur.picksByMeal ?? {}) }
+        nextMap[slot] = curList
+        const nextRefs = {
+          ...(prev.libraryFoodRefsById ?? {}),
+          [lib.id]: {
+            c: lib.carbs_g_per_100g ?? 0,
+            p: lib.protein_g_per_100g ?? 0,
+            f: lib.fat_g_per_100g ?? 0,
+            k: lib.energy_kcal_per_100g ?? 0,
+          },
+        }
+        return {
+          ...prev,
+          libraryFoodRefsById: nextRefs,
+          mealDistribution: { ...cur, picksByMeal: nextMap },
+        }
       })
     }
     setMealPickSlot(null)
@@ -729,7 +818,7 @@ export function NutritionPlanningPage() {
 
       const { data: st, error: stErr } = await supabase
         .from('students')
-        .select('weight_kg, gender, intake_ferster')
+        .select('weight_kg, height_cm, birth_date, gender, intake_ferster')
         .eq('id', studentId)
         .eq('owner_id', user.id)
         .maybeSingle()
@@ -756,6 +845,10 @@ export function NutritionPlanningPage() {
       const sex: PlanningWorkbookStateV1['person']['sex'] =
         st.gender === 'M' ? 'M' : st.gender === 'F' ? 'F' : ''
 
+      const ageYears = approxAgeFromBirthDate(st.birth_date)
+      const heightCm =
+        st.height_cm != null && Number.isFinite(st.height_cm) ? String(Math.round(st.height_cm)) : ''
+
       setWb((prev) => {
         const fromIntake = st.intake_ferster?.main_goal?.trim()
         const nextObjectives =
@@ -771,6 +864,8 @@ export function NutritionPlanningPage() {
                 ? String(weightNum)
                 : prev.person.weightKg,
             sex: sex || prev.person.sex,
+            ...(heightCm ? { heightCm } : {}),
+            ...(ageYears != null ? { ageYears: String(ageYears) } : {}),
           },
           objectives: nextObjectives,
         }
@@ -989,54 +1084,394 @@ export function NutritionPlanningPage() {
           </div>
         }
       />
-      <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 lg:px-6 pt-2">
-        <div className="space-y-4">
-        <p className="text-sm leading-relaxed text-ink-secondary">
-          Completá la <strong>distribución del día</strong> para el PDF y el alumno; más abajo tenés tablas tipo Excel HH para trabajar con{' '}
-          <strong>gramos y macros</strong> — eso queda solo en tu cuenta (no va al PDF).
-        </p>
-        <p className="text-sm leading-relaxed text-ink-muted">
-          Los valores técnicos los ves solo vos acá; pueden ser orientativos y conviene ajustarlos con el equipo y cada alumno.
-        </p>
+      <div className="mx-auto w-full max-w-[1200px] space-y-5 px-4 lg:px-6 pt-2">
+        <section
+          className="rounded-2xl border border-surface-border bg-surface-card w-full shadow-sm overflow-hidden"
+          aria-labelledby="principal-plan-heading"
+        >
+          <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-surface-border/80 bg-surface-muted/20">
+            <h2 id="principal-plan-heading" className="text-base font-semibold text-ink-primary">
+              Datos del plan
+            </h2>
+            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+              Primero ves el <strong>seguimiento</strong>, después ajustás <strong>objetivos</strong>; la{' '}
+              <strong>calculadora TDEE</strong> queda disponible cuando la necesités. Abajo: distribución para el alumno/PDF y tablas de trabajo.
+            </p>
+          </div>
 
-        <div className="rounded-2xl border border-brand-primary/30 bg-brand-primary/[0.07] px-4 py-3.5 dark:bg-brand-primary/[0.12] space-y-2 w-full">
-          <p className="font-semibold text-ink-primary flex items-center gap-2 text-[15px]">
-            <Lightbulb className="w-4 h-4 shrink-0 text-brand-primary" aria-hidden />
-            Cómo usarlo paso a paso
-          </p>
-          <ol className="list-decimal pl-5 space-y-1.5 text-sm text-ink-secondary leading-relaxed">
+          <div className="p-4 sm:p-5 space-y-4">
+            {/* 1 · Seguimiento — siempre visible */}
+            <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/[0.04] dark:bg-brand-primary/[0.07] p-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">1 · Seguimiento</p>
+                  <p className="text-xs text-ink-muted mt-0.5">
+                    Compará tus objetivos con lo sumado en tablas, Mi lista y comidas del día.
+                  </p>
+                </div>
+                <div className="w-full sm:max-w-[min(100%,20rem)] shrink-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">{referenceEntityLabel}</label>
+                  <select
+                    className={selectPlanClasses}
+                    disabled={referenceStudentsLoading}
+                    value={wb.personReferenceStudentId ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      void applyReferenceStudent(v || null)
+                    }}
+                  >
+                    <option value="">Sin referencia · plantilla</option>
+                    {referenceStudents.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-ink-muted mt-1 block leading-snug">
+                    Opcional · trae peso, sexo, altura y edad si están en la ficha.
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
+                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Meta kcal</p>
+                  <p className="text-lg font-bold tabular-nums text-ink-primary">{targetKcal > 0 ? fmt1(targetKcal) : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
+                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Consumido</p>
+                  <p className="text-lg font-bold tabular-nums text-ink-primary">{fmt1(intakeTotals.kcal)}</p>
+                </div>
+                <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
+                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Restante kcal</p>
+                  <p
+                    className={cn(
+                      'text-lg font-bold tabular-nums',
+                      remainderKcalTarget && remainderKcalTarget.kcal < 0 ? 'text-amber-700 dark:text-amber-300' : 'text-ink-primary',
+                    )}
+                  >
+                    {remainderKcalTarget ? fmt1(remainderKcalTarget.kcal) : targetKcal > 0 ? fmt1(targetKcal - intakeTotals.kcal) : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
+                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Del objetivo</p>
+                  <p className="text-lg font-bold tabular-nums text-ink-primary">
+                    {targetKcal > 0 ? `${Math.round((100 * intakeTotals.kcal) / targetKcal)} %` : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <TotalsBadge compact label="Ya sumaste (macros)" {...foodGrand} />
+
+              {remainderVsGuide ? (
+                <div className="rounded-lg border border-surface-border bg-surface-card px-3 py-2 text-[11px]">
+                  <p className="text-[9px] uppercase font-bold text-ink-muted mb-1">Gramos restantes vs objetivo (g/kg × peso)</p>
+                  <p className="tabular-nums text-ink-secondary leading-relaxed">
+                    Prot {fmt1(remainderVsGuide.proteinG)} g · HC {fmt1(remainderVsGuide.carbsG)} g · Grasas {fmt1(remainderVsGuide.fatG)} g · negativo =
+                    fuiste pasado · orientativo
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-ink-muted">Cargá peso en la calculadora y g/kg más abajo para ver gramos restantes.</p>
+              )}
+            </div>
+
+            {/* 2 · Objetivos — abierto por defecto */}
+            <details
+              open
+              className="group rounded-xl border border-surface-border bg-surface-muted/10 overflow-hidden"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
+                <span className="text-sm font-medium text-ink-primary">2 · Objetivos, calorías y macros</span>
+                <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
+              </summary>
+              <div className="p-4 space-y-4 border-t border-surface-border/40">
+                <p className="text-[11px] text-ink-muted -mt-1">
+                  Como la segunda solapa del Excel HH: texto de objetivo, calorías del día target y targets en g/kg.
+                </p>
+                <label className="text-sm space-y-1 block max-w-[12rem]">
+                  <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Peso (kg)</span>
+                  <Input value={wb.person.weightKg} onChange={(e) => patchPerson('weightKg', e.target.value)} inputMode="decimal" />
+                  <span className="text-[10px] text-ink-muted leading-snug inline-block mt-1">
+                    Para g/kg y para la calculadora TDEE; también desde «{referenceEntityLabel}» en el punto 1.
+                  </span>
+                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm space-y-1">
+                    <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Objetivo en texto</span>
+                    <textarea
+                      className="flex min-h-[64px] w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                      value={wb.objectives}
+                      onChange={(e) => {
+                        userHasEdited.current = true
+                        setWb((p) => ({ ...p, objectives: e.target.value }))
+                      }}
+                      placeholder="Ej. déficit ligero…"
+                    />
+                  </label>
+                  <label className="text-sm space-y-1">
+                    <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Calorías propuestas · meta del día</span>
+                    <Input
+                      value={wb.proposedKcal}
+                      onChange={(e) => {
+                        userHasEdited.current = true
+                        setWb((p) => ({ ...p, proposedKcal: e.target.value }))
+                      }}
+                      inputMode="decimal"
+                      placeholder="Ej. 2700"
+                    />
+                    <span className="text-[10px] text-ink-muted">Base para «restante» en el cuadro 1 (TDEE ± ajuste o manual).</span>
+                  </label>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-ink-primary mb-2">Macros · g/kg de peso</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="text-sm space-y-1">
+                      <span className="text-ink-muted text-[10px]">Proteína</span>
+                      <Input
+                        value={wb.macroInputs.proteinGPerKg}
+                        onChange={(e) => patchMacroInputs('proteinGPerKg', e.target.value)}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label className="text-sm space-y-1">
+                      <span className="text-ink-muted text-[10px]">Carbohidratos</span>
+                      <Input value={wb.macroInputs.carbGPerKg} onChange={(e) => patchMacroInputs('carbGPerKg', e.target.value)} inputMode="decimal" />
+                    </label>
+                    <label className="text-sm space-y-1">
+                      <span className="text-ink-muted text-[10px]">Grasas</span>
+                      <Input value={wb.macroInputs.fatGPerKg} onChange={(e) => patchMacroInputs('fatGPerKg', e.target.value)} inputMode="decimal" />
+                    </label>
+                  </div>
+                </div>
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <TotalsBadge label="Objetivo · gramos (peso × g/kg)" {...guideTotals} compact />
+                  <div className="rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-sm space-y-1.5">
+                    <p className="text-[9px] uppercase tracking-wide text-ink-muted font-bold">Total cantidad · kcal desde esos macros</p>
+                    <p className="text-base font-semibold tabular-nums text-ink-primary">
+                      {weightKg > 0 ? `${macrosKcalGuess.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
+                    </p>
+                    {weightKg > 0 && targetKcal > 0 ? (
+                      <p className="text-[11px] text-ink-secondary tabular-nums">
+                        vs {targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal meta · Δ{' '}
+                        {(macrosKcalGuess - targetKcal).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                      </p>
+                    ) : null}
+                    {weightKg > 0 && targetKcal > 0 && guidePctVsTarget ? (
+                      <p className="text-[10px] text-ink-muted tabular-nums">
+                        % sobre meta: HC {guidePctVsTarget.c.toFixed(0)} · P {guidePctVsTarget.p.toFixed(0)} · G{' '}
+                        {guidePctVsTarget.f.toFixed(0)}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            {/* 3 · TDEE colapsado por defecto */}
+            <details className="group rounded-xl border border-surface-border bg-surface-muted/10 overflow-hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
+                <div className="min-w-0 text-left space-y-0.5">
+                  <span className="text-sm font-medium text-ink-primary block">3 · Calculadora TMB / TDEE</span>
+                  <span className="text-[10px] text-ink-muted block tabular-nums">
+                    Mifflin–St Jeor ·{' '}
+                    {Number.isFinite(calcTdeeMale) && Number.isFinite(calcTdeeFemale)
+                      ? `TDEE ejemplo H ${fmt1(calcTdeeMale)} · M ${fmt1(calcTdeeFemale)} kcal`
+                      : 'Completa datos y factor cuando la abras'}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
+              </summary>
+              <div className="p-4 space-y-4 border-t border-surface-border/40">
+                <p className="text-[11px] text-amber-800 dark:text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 leading-relaxed">
+                  Orientación pedagógica (plantilla tipo HH); no sustituye criterio clínico.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <label className="text-sm space-y-1">
+                    <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Altura (cm)</span>
+                    <Input value={wb.person.heightCm} onChange={(e) => patchPerson('heightCm', e.target.value)} inputMode="decimal" />
+                  </label>
+                  <label className="text-sm space-y-1">
+                    <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Edad (años)</span>
+                    <Input value={wb.person.ageYears} onChange={(e) => patchPerson('ageYears', e.target.value)} inputMode="decimal" />
+                  </label>
+                  <label className="text-sm space-y-1 lg:col-span-2">
+                    <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Sexo · copiar TDEE</span>
+                    <select
+                      className={selectPlanClasses}
+                      value={wb.person.sex}
+                      onChange={(e) => patchPerson('sex', e.target.value as PlanningWorkbookStateV1['person']['sex'])}
+                    >
+                      <option value="">—</option>
+                      <option value="M">Hombre</option>
+                      <option value="F">Mujer</option>
+                    </select>
+                  </label>
+                </div>
+                <details className="group/actguide rounded-lg border border-surface-border bg-surface-card text-[11px] overflow-hidden">
+                  <summary className="cursor-pointer px-3 py-2 font-medium text-ink-secondary hover:bg-surface-muted/40 list-none flex justify-between items-center [&::-webkit-details-marker]:hidden">
+                    Tabla de factores de actividad (guía)
+                    <ChevronDown className="h-3.5 w-3.5 text-ink-muted transition-transform [.group\\/actguide:not([open])_&]:-rotate-90" aria-hidden />
+                  </summary>
+                  <div className="border-t border-surface-border overflow-x-auto px-2 pb-2 pt-2">
+                    <table className="w-full border-collapse min-w-[320px]">
+                      <thead className="bg-surface-muted/50 text-ink-muted text-[9px] uppercase">
+                        <tr>
+                          <th className="text-left px-2 py-1 border-b border-surface-border">Nivel</th>
+                          <th className="text-left px-2 py-1 border-b border-surface-border w-16">Factor</th>
+                          <th className="text-left px-2 py-1 border-b border-surface-border">Notas</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-ink-secondary">
+                        {ACTIVITY_FACTOR_GUIDE_ROWS.map((r) => (
+                          <tr key={r.label} className="border-b border-surface-border/60">
+                            <td className="px-2 py-1.5 font-medium text-ink-primary">{r.label}</td>
+                            <td className="px-2 py-1.5 tabular-nums">{r.range}</td>
+                            <td className="px-2 py-1.5 leading-snug">{r.detail}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+                <label className="block max-w-[11rem] space-y-1">
+                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Actividad estimada ×</span>
+                  <Input
+                    value={wb.person.activityFactor}
+                    onChange={(e) => patchPerson('activityFactor', e.target.value)}
+                    inputMode="decimal"
+                    placeholder="Ej. 1,7"
+                  />
+                </label>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ['TMB · H', calcBmrMale],
+                    ['TMB · M', calcBmrFemale],
+                    ['TDEE · H', calcTdeeMale],
+                    ['TDEE · M', calcTdeeFemale],
+                  ].map(([label, val]) => (
+                    <div key={String(label)} className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-2.5 py-2">
+                      <p className="text-[9px] uppercase text-ink-muted font-bold">{label}</p>
+                      <p className="text-base font-semibold tabular-nums text-ink-primary">
+                        {Number.isFinite(val as number) ? `${fmt1(val as number)} kcal` : '—'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={!Number.isFinite(calcTdeeMale) || !Number.isFinite(calcTdeeFemale)}
+                    onClick={() => {
+                      if (!Number.isFinite(calcTdeeMale) || !Number.isFinite(calcTdeeFemale)) return
+                      userHasEdited.current = true
+                      const m = String(Math.round(calcTdeeMale * 10) / 10)
+                      const f = String(Math.round(calcTdeeFemale * 10) / 10)
+                      setWb((p) => ({ ...p, person: { ...p.person, tdeeMale: m, tdeeFemale: f } }))
+                      toast.success('Mantención manual actualizada con el TDEE calculado.')
+                    }}
+                  >
+                    Guardar TDEE en PDF (h/m)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={wb.person.sex !== 'M' || !Number.isFinite(calcTdeeMale)}
+                    title={wb.person.sex !== 'M' ? 'Elegí hombre en Sexo.' : ''}
+                    onClick={() => {
+                      if (!Number.isFinite(calcTdeeMale)) return
+                      userHasEdited.current = true
+                      setWb((p) => ({ ...p, proposedKcal: String(Math.round(calcTdeeMale * 10) / 10) }))
+                      toast.success('Calorías propuestas = TDEE hombre.')
+                    }}
+                  >
+                    TDEE H → meta kcal
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={wb.person.sex !== 'F' || !Number.isFinite(calcTdeeFemale)}
+                    title={wb.person.sex !== 'F' ? 'Elegí mujer en Sexo.' : ''}
+                    onClick={() => {
+                      if (!Number.isFinite(calcTdeeFemale)) return
+                      userHasEdited.current = true
+                      setWb((p) => ({ ...p, proposedKcal: String(Math.round(calcTdeeFemale * 10) / 10) }))
+                      toast.success('Calorías propuestas = TDEE mujer.')
+                    }}
+                  >
+                    TDEE M → meta kcal
+                  </Button>
+                </div>
+                <div className="rounded-lg bg-surface-muted/50 border border-surface-border px-3 py-2 text-[11px] text-ink-secondary flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <span className="tabular-nums shrink-0">Mantención PDF (manual):</span>
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <span className="text-ink-muted whitespace-nowrap">H</span>
+                    <Input
+                      className="h-8 w-[4.5rem] text-xs"
+                      aria-label="Mantención hombre kcal"
+                      value={wb.person.tdeeMale}
+                      onChange={(e) => patchPerson('tdeeMale', e.target.value)}
+                    />
+                    <span className="text-ink-muted whitespace-nowrap">M</span>
+                    <Input
+                      className="h-8 w-[4.5rem] text-xs"
+                      aria-label="Mantención mujer kcal"
+                      value={wb.person.tdeeFemale}
+                      onChange={(e) => patchPerson('tdeeFemale', e.target.value)}
+                    />
+                  </span>
+                  <span className="text-ink-muted">kcal</span>
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <details className="rounded-2xl border border-surface-border bg-surface-card p-4 group w-full">
+          <summary className="cursor-pointer flex items-start gap-2 text-sm font-semibold text-ink-primary list-none [&::-webkit-details-marker]:hidden">
+            <Lightbulb className="w-4 h-4 shrink-0 text-brand-primary mt-0.5" aria-hidden />
+            Cómo usar la pantalla (paso a paso)
+          </summary>
+          <ol className="mt-3 list-decimal pl-5 space-y-1.5 text-sm text-ink-secondary leading-relaxed">
             <li>
-              Esta tarjeta de <strong>persona</strong> abajo sirve solo si querés jugar con peso / kcal; si solo armás ejemplo con las tablas, podés ignorarla.
+              <strong>1 · Seguimiento</strong> te dice si ya llegaste a tus kcal/meta y macros; <strong>2 · Objetivos</strong> donde cargás texto, calorías y g/kg (podés tenerlo siempre abierto).
             </li>
             <li>
-              En las tablas cargás los <strong>gramos por alimento</strong>; la app cuenta carbos, prot, grasa y kcal usando la columna &quot;por 100 g&quot;.
+              Abrí <strong>3 · TDEE</strong> solo cuando quieras Mifflin–St Jeor + factor de actividad; la tabla larga está anidada para no ocupar lugar.
             </li>
             <li>
-              Los totales muestran <strong>solo las filas con cantidad</strong>; así podés dejar líneas sin usar sin ensuciar el total.
+              <strong>Distribución del día</strong> va al alumno/PDF; las <strong>tablas HH</strong> más abajo son tu hoja de trabajo con macros por 100 g.
             </li>
             <li>
-              <strong>Guardado automático</strong>—no hace falta botón guardar.&nbsp;
-              «Restaurar plantilla» vuelve todo al formato inicial HH (borra tus gramos editados).
+              Todo se <strong>guarda solo</strong>; «Restaurar plantilla» vuelve al formato inicial HH en tu cuenta.
             </li>
           </ol>
-          <p className="text-[11px] text-ink-muted pt-2 border-t border-surface-border/70">
-            Orientación práctica HH: si tu alumno trabaja con un nutricionista, estos números no reemplazan ese plan — sirven como apoyo pedagógico.
+          <p className="text-[11px] text-ink-muted pt-3 mt-2 border-t border-surface-border/70 leading-relaxed">
+            Si el alumno tiene plan con nutricionista, estos números sirven como apoyo; no los sustituyan sin consenso profesional.
           </p>
-        </div>
-        </div>
+        </details>
 
         <section
           className="rounded-2xl border border-surface-border bg-surface-card p-5 space-y-4 w-full"
           aria-labelledby="meal-dist-heading"
         >
           <div>
-            <h2 id="meal-dist-heading" className="text-lg font-semibold text-ink-primary">
-              Distribución del día
-            </h2>
+            <div className="flex flex-wrap items-baseline gap-2 gap-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-primary">4 · Para el alumno</span>
+              <h2 id="meal-dist-heading" className="text-lg font-semibold text-ink-primary">
+                Distribución del día
+              </h2>
+            </div>
             <p className="text-sm text-ink-muted mt-1 leading-relaxed">
-              Armá cada momento con <strong>alimentos de las tablas</strong> (macros por 100 g) o de <strong>Mi lista</strong>.
-              Ajustá los gramos por momento; podés sumar notas libres abajo. Esto va al <strong>PDF</strong> y a la vista del
-              alumno. Activá <strong>media mañana</strong> / <strong>media tarde</strong> si las usás.
+              Lo principal que ven en <strong>PDF</strong> / app: momentos del día con alimentos (desde tablas abajo o <strong>Mi lista</strong>) y sus gramos. Notas opcionales. Activá{' '}
+              <strong>media mañana / tarde</strong> si aplican.
             </p>
           </div>
           {orphanLibDraftIds.length > 0 ? (
@@ -1366,144 +1801,6 @@ export function NutritionPlanningPage() {
           </div>
         </details>
 
-        <section className="rounded-2xl border border-surface-border bg-surface-card p-5 space-y-4 w-full">
-          <div>
-            <h2 className="text-lg font-semibold text-ink-primary">Tu ejemplo · persona</h2>
-            <p className="text-sm text-ink-muted mt-1 leading-relaxed">
-              Acá cargás datos <strong>solo si</strong> querés sumar gasto calórico y macros por peso.&nbsp;
-              Para muchos entrenadores alcanza con completar gramajes en las tablas de más abajo.
-            </p>
-          </div>
-
-          <label className="text-sm space-y-1 block">
-            <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">
-              Referencia desde tu lista ({referenceEntityLabel})
-            </span>
-            <select
-              className={selectPlanClasses}
-              disabled={referenceStudentsLoading}
-              value={wb.personReferenceStudentId ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                void applyReferenceStudent(v || null)
-              }}
-            >
-              <option value="">Ninguno — plantilla genérica</option>
-              {referenceStudents.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name}
-                </option>
-              ))}
-            </select>
-            <span className="text-[11px] text-ink-muted leading-snug inline-block mt-1">
-              Al elegir un {referenceEntityLabel}, se completan peso (prioriza la última medición nutricional si existe) y sexo para la referencia TDEE.&nbsp;
-              Si el objetivo en texto está vacío y hay objetivo en el formulario Ferster, se copia ahí.&nbsp;
-              TDEE y kcal diarias ejemplo siguen siendo manuales: en la ficha no hay un único número guardado para eso.
-            </span>
-          </label>
-
-          <div className="rounded-lg bg-surface-muted/35 border border-surface-border/80 px-3 py-2 text-xs text-ink-secondary leading-relaxed">
-            <strong className="text-ink-primary">TDEE:</strong> calorías aproximadas de mantención (<em>esto no es historia clínica</em>; valores orientativos del Excel HH).
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="text-sm space-y-1">
-              <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Mantención típ · hombre (kcal)</span>
-              <Input value={wb.person.tdeeMale} onChange={(e) => patchPerson('tdeeMale', e.target.value)} />
-            </label>
-            <label className="text-sm space-y-1">
-              <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Mantención típ · mujer (kcal)</span>
-              <Input value={wb.person.tdeeFemale} onChange={(e) => patchPerson('tdeeFemale', e.target.value)} />
-            </label>
-            <label className="text-sm space-y-1">
-              <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Peso ejemplo (kg)</span>
-              <Input value={wb.person.weightKg} onChange={(e) => patchPerson('weightKg', e.target.value)} inputMode="decimal" />
-            </label>
-            <label className="text-sm space-y-1">
-              <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Sexo · referencia TDEE</span>
-              <select
-                className="flex h-10 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                value={wb.person.sex}
-                onChange={(e) => patchPerson('sex', e.target.value as PlanningWorkbookStateV1['person']['sex'])}
-              >
-                <option value="">—</option>
-                <option value="M">Hombre</option>
-                <option value="F">Mujer</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm space-y-1">
-              <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Objetivo (texto libre)</span>
-              <textarea
-                className="flex min-h-[72px] w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                value={wb.objectives}
-                onChange={(e) => {
-                  userHasEdited.current = true
-                  setWb((p) => ({ ...p, objectives: e.target.value }))
-                }}
-                placeholder="Ej. mantener masa en déficit ligero · más energía los días de pierna..."
-              />
-            </label>
-            <label className="text-sm space-y-1">
-              <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Calorías diarias ejemplo (meta)</span>
-              <Input
-                value={wb.proposedKcal}
-                onChange={(e) => {
-                  userHasEdited.current = true
-                  setWb((p) => ({ ...p, proposedKcal: e.target.value }))
-                }}
-                inputMode="decimal"
-              />
-              <span className="text-[11px] text-ink-muted leading-snug inline-block mt-1">
-                Si cargaste peso y los g/kg de abajo, acá ves si esos macros se parecen más o menos al total de calorías que querés usar de ejemplo.
-              </span>
-            </label>
-          </div>
-
-          <div className="rounded-xl bg-surface-muted/50 border border-dashed border-surface-border p-4">
-            <h3 className="text-sm font-semibold text-ink-primary mb-1">Macros por kg de peso (ejemplo pedagógico)</h3>
-            <p className="text-xs text-ink-muted mb-3 leading-relaxed">
-              Pensá estos números como &quot;hábito de clase&quot;: combinados con el peso de arriba te da gramos objetivo orientativos. Si no cargaste peso, esta zona no cuenta para mucho — no pasa nada.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="text-sm space-y-1">
-                <span className="text-ink-muted text-xs">Proteína</span>
-                <Input
-                  value={wb.macroInputs.proteinGPerKg}
-                  onChange={(e) => patchMacroInputs('proteinGPerKg', e.target.value)}
-                  inputMode="decimal"
-                />
-              </label>
-              <label className="text-sm space-y-1">
-                <span className="text-ink-muted text-xs">Carbohidratos</span>
-                <Input value={wb.macroInputs.carbGPerKg} onChange={(e) => patchMacroInputs('carbGPerKg', e.target.value)} inputMode="decimal" />
-              </label>
-              <label className="text-sm space-y-1">
-                <span className="text-ink-muted text-xs">Grasas</span>
-                <Input value={wb.macroInputs.fatGPerKg} onChange={(e) => patchMacroInputs('fatGPerKg', e.target.value)} inputMode="decimal" />
-              </label>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <TotalsBadge label="Gramos ejemplo (peso × g/kg cargados)" {...guideTotals} />
-              <div className="rounded-xl border border-surface-border bg-surface-muted/40 px-4 py-3 text-sm">
-                <p className="text-[10px] uppercase tracking-wide text-ink-muted font-bold">¿Encaja con las kcal ejemplo?</p>
-                {weightKg <= 0 || targetKcal <= 0 ? (
-                  <p className="text-ink-muted mt-2 text-sm">Pone peso + calorías diarias ejemplo arriba para ver una chequeo rápido.</p>
-                ) : guidePctVsTarget ? (
-                  <p className="tabular-nums text-ink-secondary mt-2">
-                    HC {guidePctVsTarget.c.toFixed(0)} % · Prot {guidePctVsTarget.p.toFixed(0)} % · Grasas{' '}
-                    {guidePctVsTarget.f.toFixed(0)} % (macros ≈ {macrosKcalGuess.toFixed(0)} kcal vs objetivo {targetKcal.toFixed(0)} kcal)
-                  </p>
-                ) : (
-                  <p className="text-ink-muted mt-2 text-sm">Podés subir/bajar los g/kg de arriba hasta que coincida mejor con tus kcal ejemplo — es orientativo.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
         <details className="rounded-2xl border border-surface-border bg-surface-card p-5 group w-full">
           <summary className="cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none [&::-webkit-details-marker]:hidden outline-none select-none">
             <ChevronDown className="w-5 h-5 shrink-0 text-ink-muted mt-0.5 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
@@ -1525,10 +1822,9 @@ export function NutritionPlanningPage() {
           </div>
         </details>
 
-        <div className="rounded-xl border border-surface-border bg-surface-card px-4 py-3 text-sm space-y-2 w-full">
-          <p className="font-medium text-ink-primary">Total del día modelo (solo lo que cargaste en gramos)</p>
-          <TotalsBadge label="Tablas del plan + Mi lista (alimentos personalizados) · sin gramos cuenta 0" {...foodGrand} />
-        </div>
+        <p className="text-xs text-ink-muted leading-relaxed italic">
+          El cuadro <strong className="not-italic">1 · Seguimiento</strong> arriba resume consumido y restante antes de llegar al PDF y a las tablas.
+        </p>
 
         <p className="text-sm text-ink-muted leading-relaxed">
           Tablas por tipo de comida como en HH: cargá <strong>cantidad en gramos</strong> donde querés.&nbsp;
@@ -1670,7 +1966,11 @@ export function NutritionPlanningPage() {
           )}
         </section>
 
-        <div className="space-y-8 pb-12">
+        <div className="rounded-lg border border-dashed border-surface-border bg-surface-muted/15 px-3 py-2 text-xs text-ink-secondary">
+          <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por 100 g para copiar o ajustar rápido al armar el día; el seguimiento contra objetivos está arriba.
+        </div>
+
+        <div className="space-y-5 pb-12">
           {wb.sections.map((sec) => {
             let secTotals = ZERO_TOTALS
             for (const r of sec.rows) {
@@ -1685,30 +1985,30 @@ export function NutritionPlanningPage() {
               secTotals = sumTotals(secTotals, scaledFromRefs(q, refVals))
             }
             return (
-              <section key={sec.key} className="rounded-2xl border border-surface-border bg-surface-card overflow-hidden w-full">
-                <div className="border-b border-surface-border bg-surface-muted/40 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <section key={sec.key} className="rounded-xl border border-surface-border bg-surface-card overflow-hidden w-full">
+                <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
-                    <p className="text-[11px] text-ink-muted mt-0.5">{sec.quantityColumnHint}</p>
+                    <h3 className="text-xs font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
+                    <p className="text-[10px] text-ink-muted mt-0.5 leading-snug">{sec.quantityColumnHint}</p>
                   </div>
-                  <p className="text-[11px] text-ink-secondary tabular-nums shrink-0">
+                  <p className="text-[10px] text-ink-secondary tabular-nums shrink-0">
                     Subtotal: HC {fmt1(secTotals.carbsG)} · P {fmt1(secTotals.proteinG)} · G {fmt1(secTotals.fatG)} · {fmt1(secTotals.kcal)} kcal
                   </p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs min-w-[960px]">
+                  <table className="w-full text-[11px] min-w-[880px]">
                     <thead>
                       <tr className="border-b border-surface-border text-left bg-surface-muted/30">
-                        <th className="px-3 py-2 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[260px]">Alimento</th>
-                        <th className="px-2 py-2 font-semibold w-[76px]">Cant. g</th>
-                        <th className="px-2 py-2 font-semibold w-[64px]">HC /100</th>
-                        <th className="px-2 py-2 font-semibold w-[64px]">P /100</th>
-                        <th className="px-2 py-2 font-semibold w-[64px]">G /100</th>
-                        <th className="px-2 py-2 font-semibold w-[72px]">kcal /100</th>
-                        <th className="px-2 py-2 font-semibold w-[72px]">HC</th>
-                        <th className="px-2 py-2 font-semibold w-[72px]">P</th>
-                        <th className="px-2 py-2 font-semibold w-[72px]">G</th>
-                        <th className="px-2 py-2 font-semibold w-[80px]">kcal</th>
+                        <th className="px-2 py-1.5 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[220px]">Alimento</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[68px]">Cant. g</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[56px]">HC /100</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[56px]">P /100</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[56px]">G /100</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[64px]">kcal /100</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[64px]">HC</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[64px]">P</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[64px]">G</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[72px]">kcal</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1723,10 +2023,10 @@ export function NutritionPlanningPage() {
                         const out = q > 0 ? scaledFromRefs(q, refVals) : ZERO_TOTALS
                         return (
                           <tr key={r.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
-                            <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
-                              <div className="flex items-start gap-2 min-w-0">
+                            <td className="px-2 py-1.5 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[240px]">
+                              <div className="flex items-start gap-1.5 min-w-0">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-ink-primary font-medium break-words">{r.name}</p>
+                                  <p className="text-ink-primary font-medium break-words leading-snug text-[11px]">{r.name}</p>
                                   {r.hint ? (
                                     <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-snug">{r.hint}</p>
                                   ) : null}
@@ -1755,48 +2055,48 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-2 py-1 align-top">
                               <Input
-                                className="h-9 text-xs"
+                                className="h-8 text-[11px]"
                                 inputMode="decimal"
                                 value={r.qtyG}
                                 onChange={(e) => patchRow(sec.key, r.id, { qtyG: e.target.value })}
                               />
                             </td>
-                            <td className="px-2 py-1 align-top">
+                            <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-9 text-xs"
+                                className="h-8 text-[11px]"
                                 inputMode="decimal"
                                 value={r.refCarbs}
                                 onChange={(e) => patchRow(sec.key, r.id, { refCarbs: e.target.value })}
                               />
                             </td>
-                            <td className="px-2 py-1 align-top">
+                            <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-9 text-xs"
+                                className="h-8 text-[11px]"
                                 inputMode="decimal"
                                 value={r.refProt}
                                 onChange={(e) => patchRow(sec.key, r.id, { refProt: e.target.value })}
                               />
                             </td>
-                            <td className="px-2 py-1 align-top">
+                            <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-9 text-xs"
+                                className="h-8 text-[11px]"
                                 inputMode="decimal"
                                 value={r.refFat}
                                 onChange={(e) => patchRow(sec.key, r.id, { refFat: e.target.value })}
                               />
                             </td>
-                            <td className="px-2 py-1 align-top">
+                            <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-9 text-xs"
+                                className="h-8 text-[11px]"
                                 inputMode="decimal"
                                 value={r.refKcal}
                                 onChange={(e) => patchRow(sec.key, r.id, { refKcal: e.target.value })}
                               />
                             </td>
-                            <td className="px-2 py-2 tabular-nums text-ink-secondary">{fmt1(out.carbsG)}</td>
-                            <td className="px-2 py-2 tabular-nums text-ink-secondary">{fmt1(out.proteinG)}</td>
-                            <td className="px-2 py-2 tabular-nums text-ink-secondary">{fmt1(out.fatG)}</td>
-                            <td className="px-2 py-2 tabular-nums text-ink-secondary">{fmt1(out.kcal)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.carbsG)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.proteinG)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.fatG)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.kcal)}</td>
                           </tr>
                         )
                       })}

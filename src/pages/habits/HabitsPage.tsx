@@ -1,12 +1,22 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Settings2, Plus, Trash2, X, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, Settings2, Plus, Trash2, X, Check, TrendingUp } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { cn } from '@/lib/utils'
-import type { Student, Habit, HabitLog } from '@/types/database'
+import { cn, formatDate } from '@/lib/utils'
+import { buildMonthlyEvolutionPayload } from '@/lib/habits/habitSelectionHistory'
+import type { Student, Habit, HabitLog, StudentHabitSelectionEvent } from '@/types/database'
 import toast from 'react-hot-toast'
 
 // ─── Default habits to seed on first use ─────────────────────────────────────
@@ -45,10 +55,13 @@ export function HabitsPage() {
   const [selectedStudent,  setSelectedStudent]  = useState<string>('')
   const [habits,           setHabits]           = useState<Habit[]>([])
   const [selectedHabitIds, setSelectedHabitIds] = useState<Set<string>>(new Set())
-  const [logs,             setLogs]             = useState<HabitLog[]>([])
+  const [historicalLogs,   setHistoricalLogs]   = useState<HabitLog[]>([])
+  const [selectionEvents,  setSelectionEvents]  = useState<StudentHabitSelectionEvent[]>([])
   const [loadingData,      setLoadingData]      = useState(false)
   const [showLibrary,      setShowLibrary]      = useState(false)
   const [seeding,          setSeeding]          = useState(false)
+  /** Gráfico de evolución visible al entrar (se puede plegar). */
+  const [evolutionOpen,    setEvolutionOpen]    = useState(true)
 
   const days = daysInMonth(year, month)
 
@@ -81,18 +94,55 @@ export function HabitsPage() {
   const loadStudentData = useCallback(async () => {
     if (!selectedStudent || !user) return
     setLoadingData(true)
-    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
-    const endDate   = `${year}-${String(month + 1).padStart(2, '0')}-${String(days).padStart(2, '0')}`
-    const [{ data: sels }, { data: lg }] = await Promise.all([
+    const monthEndStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(days).padStart(2, '0')}`
+    /** Ventana de 12 meses terminando en el mes que estás mirando (gráfico + filtros locales). */
+    const winStart = new Date(year, month - 11, 1)
+    const histStartStr = `${winStart.getFullYear()}-${String(winStart.getMonth() + 1).padStart(2, '0')}-01`
+
+    const [selsRes, lgRes, evRes] = await Promise.all([
       supabase.from('student_habit_selections').select('habit_id').eq('student_id', selectedStudent),
-      supabase.from('habit_logs').select('*').eq('student_id', selectedStudent).gte('log_date', startDate).lte('log_date', endDate),
+      supabase.from('habit_logs').select('*').eq('student_id', selectedStudent).gte('log_date', histStartStr).lte('log_date', monthEndStr),
+      supabase
+        .from('student_habit_selection_events')
+        .select('*')
+        .eq('student_id', selectedStudent)
+        .order('created_at', { ascending: true }),
     ])
-    setSelectedHabitIds(new Set((sels ?? []).map((s: { habit_id: string }) => s.habit_id)))
-    setLogs((lg as HabitLog[]) ?? [])
+    setSelectedHabitIds(new Set((selsRes.data ?? []).map((s: { habit_id: string }) => s.habit_id)))
+
+    if (lgRes.error) {
+      toast.error(lgRes.error.message ?? 'No se pudieron cargar registros.')
+      setHistoricalLogs([])
+    } else {
+      setHistoricalLogs((lgRes.data as HabitLog[]) ?? [])
+    }
+
+    if (evRes.error) {
+      setSelectionEvents([])
+    } else {
+      setSelectionEvents((evRes.data as StudentHabitSelectionEvent[]) ?? [])
+    }
+
     setLoadingData(false)
   }, [selectedStudent, year, month, days, user])
 
   useEffect(() => { loadStudentData() }, [loadStudentData])
+
+  const reloadSelectionEvents = useCallback(async () => {
+    if (!selectedStudent || !user) return
+    const { data, error } = await supabase
+      .from('student_habit_selection_events')
+      .select('*')
+      .eq('student_id', selectedStudent)
+      .order('created_at', { ascending: true })
+    if (!error && data) setSelectionEvents(data as StudentHabitSelectionEvent[])
+  }, [selectedStudent, user])
+
+  const logs = useMemo(() => {
+    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(days).padStart(2, '0')}`
+    return historicalLogs.filter((l) => l.log_date >= startDate && l.log_date <= endDate)
+  }, [historicalLogs, year, month, days])
 
   // ── Log set for fast lookup ───────────────────────────────────────────────
   const logSet = useMemo(() => {
@@ -100,6 +150,12 @@ export function HabitsPage() {
     logs.forEach((l) => s.add(`${l.habit_id}:${l.log_date}`))
     return s
   }, [logs])
+
+  const evolutionMonthly = useMemo(() => {
+    return buildMonthlyEvolutionPayload(year, month, 12, selectionEvents, historicalLogs, daysInMonth)
+  }, [selectionEvents, historicalLogs, year, month])
+
+  const evolutionEventsSortedDesc = useMemo(() => [...selectionEvents].sort((a, b) => b.created_at.localeCompare(a.created_at)), [selectionEvents])
 
   // ── Active habits for this student (ordered) ──────────────────────────────
   const activeHabits = useMemo(
@@ -116,8 +172,8 @@ export function HabitsPage() {
 
     // Optimistic
     if (isDone) {
-      const snapshot = logs
-      setLogs((prev) => prev.filter((l) => !(l.habit_id === habitId && l.log_date === dateStr)))
+      const snapshot = historicalLogs
+      setHistoricalLogs((prev) => prev.filter((l) => !(l.habit_id === habitId && l.log_date === dateStr)))
       const { error } = await supabase
         .from('habit_logs')
         .delete()
@@ -126,28 +182,37 @@ export function HabitsPage() {
         .eq('log_date', dateStr)
         .eq('owner_id', user.id)   // ← solo elimina los propios
       if (error) {
-        setLogs(snapshot)           // ← rollback
+        setHistoricalLogs(snapshot)
         toast.error(error.message)
       }
     } else {
-      const tempLog: HabitLog = { id: crypto.randomUUID(), owner_id: user.id, student_id: selectedStudent, habit_id: habitId, log_date: dateStr, created_at: new Date().toISOString() }
-      setLogs((prev) => [...prev, tempLog])
-      const { error } = await supabase.from('habit_logs').insert({ owner_id: user.id, student_id: selectedStudent, habit_id: habitId, log_date: dateStr })
+      const tempLog: HabitLog = {
+        id: crypto.randomUUID(),
+        owner_id: user.id,
+        student_id: selectedStudent,
+        habit_id: habitId,
+        log_date: dateStr,
+        created_at: new Date().toISOString(),
+      }
+      setHistoricalLogs((prev) => [...prev, tempLog])
+      const { error } = await supabase
+        .from('habit_logs')
+        .insert({ owner_id: user.id, student_id: selectedStudent, habit_id: habitId, log_date: dateStr })
       if (error) {
-        setLogs((prev) => prev.filter((l) => l.id !== tempLog.id))
+        setHistoricalLogs((prev) => prev.filter((l) => l.id !== tempLog.id))
         toast.error(error.message)
       }
     }
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────
+  /** El % siempre es sobre los días del mes (28–31), no sobre el día corriente. */
   const stats = useMemo(() => {
-    const todayDay = year === today.getFullYear() && month === today.getMonth() ? today.getDate() : days
     return activeHabits.map((h) => {
       const done = logs.filter((l) => l.habit_id === h.id).length
-      return { habit: h, done, total: todayDay, pct: pct(done, todayDay) }
+      return { habit: h, done, total: days, pct: pct(done, days) }
     })
-  }, [activeHabits, logs, year, month, days, today])
+  }, [activeHabits, logs, days])
 
   const overallPct = stats.length
     ? Math.round(stats.reduce((s, x) => s + x.pct, 0) / stats.length)
@@ -216,6 +281,110 @@ export function HabitsPage() {
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
+
+            <details
+              open={evolutionOpen}
+              onToggle={(e) => setEvolutionOpen(e.currentTarget.open)}
+              className="group rounded-2xl border border-surface-border bg-surface-card overflow-hidden"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/30 [&::-webkit-details-marker]:hidden">
+                <div className="flex items-center gap-2 min-w-0">
+                  <TrendingUp className="h-4 w-4 text-brand-primary shrink-0" aria-hidden />
+                  <div className="min-w-0">
+                    <span className="text-sm font-semibold text-ink-primary block">Evolución mensual y cambios</span>
+                    <span className="text-[10px] text-ink-muted block">
+                      12 meses hasta {monthLabel(year, month)} · ideal para mostrar al alumno cómo avanzó el seguimiento.
+                    </span>
+                  </div>
+                </div>
+                <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
+              </summary>
+              <div className="px-4 pb-4 pt-2 space-y-4 border-t border-surface-border/70">
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  El <strong>promedio</strong> es el % del mes de cada hábito activo ese mes (según registro de alta/baja; si todavía no hay
+                  historial, inferimos los hábitos por los días marcados en el calendario). Al <strong>gestionar hábitos</strong> se guarda cada
+                  alta y baja desde ahora.
+                </p>
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={evolutionMonthly.map((row) => ({
+                        ...row,
+                        barValue: row.avgPct ?? 0,
+                      }))}
+                      margin={{ top: 4, right: 8, bottom: 24, left: -16 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-surface-border opacity-50" />
+                      <XAxis dataKey="labelShort" tick={{ fontSize: 9, fill: 'var(--muted-foreground, #888)' }} interval={0} angle={-35} textAnchor="end" height={54} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} width={36} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null
+                          const p = payload[0].payload as typeof evolutionMonthly[number]
+                          return (
+                            <div className="rounded-xl border border-surface-border bg-surface-card px-3 py-2 shadow-lg text-xs">
+                              <p className="font-semibold text-ink-primary">{p.labelShort}</p>
+                              <p className="text-ink-muted mt-1">
+                                Hábitos en seguimiento ese mes: <span className="text-ink-secondary font-medium">{p.activeCount}</span>
+                              </p>
+                              <p className="text-ink-muted">
+                                Promedio cumplimiento:{' '}
+                                <span className="text-ink-secondary font-medium tabular-nums">{p.avgPct != null ? `${p.avgPct} %` : '—'}</span>
+                              </p>
+                            </div>
+                          )
+                        }}
+                      />
+                      <Bar dataKey="barValue" radius={[4, 4, 0, 0]} name="Promedio %" fill="rgb(var(--brand-primary) / 0.92)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-2">Últimos cambios (alta / baja)</p>
+                  <div className="max-h-48 overflow-y-auto rounded-xl border border-surface-border">
+                    {evolutionEventsSortedDesc.length === 0 ? (
+                      <p className="text-xs text-ink-muted p-3 leading-relaxed">
+                        Todavía no hay altas ni bajas registradas desde esta versión de la app. Cada cambio desde «Gestionar hábitos» queda acá para
+                        contar la evolución. Si cargaste hábitos hace tiempo, el gráfico puede usar igual los registros del calendario.
+                      </p>
+                    ) : (
+                      <table className="w-full text-xs">
+                        <thead className="bg-surface-muted/50 text-ink-muted">
+                          <tr>
+                            <th className="text-left font-semibold px-3 py-2">Fecha</th>
+                            <th className="text-left font-semibold px-3 py-2">Cambio</th>
+                            <th className="text-left font-semibold px-3 py-2">Hábito</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {evolutionEventsSortedDesc.slice(0, 40).map((ev) => {
+                            const habit = habits.find((h) => h.id === ev.habit_id)
+                            return (
+                              <tr key={ev.id} className="border-t border-surface-border/80">
+                                <td className="px-3 py-2 tabular-nums text-ink-muted whitespace-nowrap">{formatDate(ev.created_at, 'dd/MM/yyyy HH:mm')}</td>
+                                <td className={cn('px-3 py-2 font-medium whitespace-nowrap', ev.action === 'assigned' ? 'text-emerald-600' : 'text-amber-700')}>
+                                  {ev.action === 'assigned' ? 'Agregado' : 'Quitado'}
+                                </td>
+                                <td className="px-3 py-2 text-ink-primary">
+                                  {habit ? (
+                                    <>
+                                      <span className="mr-1">{habit.emoji}</span>
+                                      {habit.name}
+                                    </>
+                                  ) : (
+                                    <span className="text-ink-muted italic">Hábito (papelera / desactivado)</span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </details>
 
             {/* Sin hábitos asignados */}
             {activeHabits.length === 0 ? (
@@ -342,11 +511,7 @@ export function HabitsPage() {
                       </div>
                       <div className="h-1.5 bg-surface-elevated rounded-full overflow-hidden">
                         <div
-                          className={cn(
-                            'h-full rounded-full transition-all',
-                            p >= 80 ? 'bg-brand-primary' :
-                            p >= 50 ? 'bg-status-expiring' : 'bg-status-expired',
-                          )}
+                          className="h-full rounded-full transition-all bg-emerald-600 dark:bg-emerald-400"
                           style={{ width: `${p}%` }}
                         />
                       </div>
@@ -368,6 +533,7 @@ export function HabitsPage() {
           onClose={() => setShowLibrary(false)}
           onHabitsChange={setHabits}
           onSelectionsChange={setSelectedHabitIds}
+          onSelectionEventLogged={reloadSelectionEvents}
         />
       )}
     </div>
@@ -378,7 +544,7 @@ export function HabitsPage() {
 
 function HabitLibraryModal({
   habits, selectedIds, studentId, userId,
-  onClose, onHabitsChange, onSelectionsChange,
+  onClose, onHabitsChange, onSelectionsChange, onSelectionEventLogged,
 }: {
   habits: Habit[]
   selectedIds: Set<string>
@@ -387,6 +553,7 @@ function HabitLibraryModal({
   onClose: () => void
   onHabitsChange: (h: Habit[]) => void
   onSelectionsChange: (s: Set<string>) => void
+  onSelectionEventLogged?: () => void
 }) {
   const [newName,  setNewName]  = useState('')
   const [newEmoji, setNewEmoji] = useState('✅')
@@ -429,13 +596,39 @@ function HabitLibraryModal({
         .eq('student_id', studentId)
         .eq('habit_id', habitId)
         .eq('owner_id', userId)  // ← solo el dueño
-      if (error) { onSelectionsChange(prevIds); toast.error(error.message) }
+      if (error) {
+        onSelectionsChange(prevIds)
+        toast.error(error.message)
+      } else {
+        const { error: logErr } = await supabase.from('student_habit_selection_events').insert({
+          owner_id: userId,
+          student_id: studentId,
+          habit_id: habitId,
+          action: 'removed',
+        })
+        if (logErr) console.warn('[habits]', logErr.message)
+        else onSelectionEventLogged?.()
+      }
     } else {
       const { error } = await supabase
         .from('student_habit_selections')
         .insert({ student_id: studentId, habit_id: habitId, owner_id: userId })
-      if (error) { toast.error(error.message); setToggling(null); return }
-      const next = new Set(selectedIds); next.add(habitId); onSelectionsChange(next)
+      if (error) {
+        toast.error(error.message)
+        setToggling(null)
+        return
+      }
+      const next = new Set(selectedIds)
+      next.add(habitId)
+      onSelectionsChange(next)
+      const { error: logErr } = await supabase.from('student_habit_selection_events').insert({
+        owner_id: userId,
+        student_id: studentId,
+        habit_id: habitId,
+        action: 'assigned',
+      })
+      if (logErr) console.warn('[habits]', logErr.message)
+      else onSelectionEventLogged?.()
     }
     setToggling(null)
   }

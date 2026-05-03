@@ -51,22 +51,6 @@ export function RoutinePdfsPage() {
     }
   }
 
-  async function createPdfRequest(routineId: string) {
-    if (!user) return
-    const routine = await supabase.from('routines').select('student_id').eq('id', routineId).single()
-    if (routine.error) { toast.error(routine.error.message); return }
-    const { data, error } = await supabase.from('routine_pdfs').insert({
-      owner_id: user.id,
-      routine_id: routineId,
-      student_id: routine.data.student_id,
-      status: 'pendiente',
-    }).select().single()
-    if (error) { toast.error(error.message); return }
-    toast.success('Solicitud de PDF creada')
-    fetchPdfs()
-    return data
-  }
-
   async function downloadPdf(filePath: string) {
     const { data } = await supabase.storage.from('routine-pdfs').createSignedUrl(filePath, 120)
     if (!data?.signedUrl) { toast.error('No se pudo obtener el PDF'); return }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -77,7 +78,8 @@ export function IntakeNutritionForm({ onSuccess }: Props) {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<NutritionIntakeFormValues>({
-    resolver: zodResolver(nutritionIntakeSchema),
+    resolver:
+      zodResolver(nutritionIntakeSchema) as Resolver<NutritionIntakeFormValues>,
     defaultValues: nutritionDefaults() as NutritionIntakeFormValues,
   })
 

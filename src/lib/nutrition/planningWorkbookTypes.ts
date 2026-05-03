@@ -206,6 +206,12 @@ export interface PlanningWorkbookStateV1 {
     tdeeFemale: string
     sex: '' | 'M' | 'F'
     weightKg: string
+    /** cm — para Mifflin–St Jeor */
+    heightCm: string
+    /** años cumplidos */
+    ageYears: string
+    /** Multiplicador de actividad (ej. 1,5 — TDEE = TMB × factor) */
+    activityFactor: string
   }
   /** Alumno/paciente usado solo para rellenar referencia (peso, sexo, etc.). null = plantilla genérica. */
   personReferenceStudentId?: string | null
@@ -246,7 +252,7 @@ export function parsePlanningData(raw: Json | undefined): PlanningWorkbookStateV
 
   /** jsonb a veces devuelve números u omite tipos; normalizamos para que los gramos persistan al cargar. */
   const qtyRaw = o.libraryQtyDraft
-  let libraryQtyDraft: Record<string, string> = {}
+  const libraryQtyDraft: Record<string, string> = {}
   if (qtyRaw && typeof qtyRaw === 'object' && !Array.isArray(qtyRaw)) {
     for (const [k, v] of Object.entries(qtyRaw)) {
       if (typeof v === 'string') libraryQtyDraft[k] = v
@@ -257,15 +263,49 @@ export function parsePlanningData(raw: Json | undefined): PlanningWorkbookStateV
   const refsRaw = o.libraryFoodRefsById
   let libraryFoodRefsById = wb.libraryFoodRefsById ?? {}
   if (refsRaw && typeof refsRaw === 'object' && !Array.isArray(refsRaw)) {
-    libraryFoodRefsById = refsRaw as PlanningWorkbookStateV1['libraryFoodRefsById']
+    libraryFoodRefsById =
+      refsRaw as NonNullable<PlanningWorkbookStateV1['libraryFoodRefsById']>
   }
 
   const mealDistribution = normalizeMealDistribution(
     o.mealDistribution as Partial<MealDistributionState> | undefined,
   )
 
+  const basePerson = {
+    tdeeMale: '',
+    tdeeFemale: '',
+    sex: '' as PlanningWorkbookStateV1['person']['sex'],
+    weightKg: '',
+    heightCm: '',
+    ageYears: '',
+    activityFactor: '',
+  }
+  const pr = wb.person && typeof wb.person === 'object' ? wb.person : {}
+  const person: PlanningWorkbookStateV1['person'] = {
+    ...basePerson,
+    ...pr,
+    tdeeMale: typeof (pr as { tdeeMale?: unknown }).tdeeMale === 'string' ? (pr as { tdeeMale: string }).tdeeMale : '',
+    tdeeFemale:
+      typeof (pr as { tdeeFemale?: unknown }).tdeeFemale === 'string' ? (pr as { tdeeFemale: string }).tdeeFemale : '',
+    sex:
+      (pr as { sex?: unknown }).sex === 'M' || (pr as { sex?: unknown }).sex === 'F'
+        ? ((pr as { sex: 'M' | 'F' }).sex as 'M' | 'F')
+        : '',
+    weightKg:
+      typeof (pr as { weightKg?: unknown }).weightKg === 'string' ? (pr as { weightKg: string }).weightKg : '',
+    heightCm:
+      typeof (pr as { heightCm?: unknown }).heightCm === 'string' ? (pr as { heightCm: string }).heightCm : '',
+    ageYears:
+      typeof (pr as { ageYears?: unknown }).ageYears === 'string' ? (pr as { ageYears: string }).ageYears : '',
+    activityFactor:
+      typeof (pr as { activityFactor?: unknown }).activityFactor === 'string'
+        ? (pr as { activityFactor: string }).activityFactor
+        : '',
+  }
+
   return {
     ...wb,
+    person,
     libraryQtyDraft,
     libraryFoodRefsById,
     mealDistribution,

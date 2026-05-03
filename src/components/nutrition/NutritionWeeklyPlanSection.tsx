@@ -170,14 +170,17 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
         return
       }
 
-      let { data, error } = await supabase
+      const fetchResult = await supabase
         .from('nutrition_week_schedules')
         .select('*')
         .eq('owner_id', user.id)
         .eq('student_id', sid)
         .maybeSingle()
 
-      if (!data && !error) {
+      let rowData = fetchResult.data
+      const { error } = fetchResult
+
+      if (!rowData && !error) {
         const baseline = createEmptyWeeklyGrid(true)
         const insertRow = await supabase
           .from('nutrition_week_schedules')
@@ -195,12 +198,12 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
         if (insertRow.error) {
           toast.error(insertRow.error.message)
         }
-        data = insertRow.data
+        rowData = insertRow.data
       }
       if (error) toast.error(error.message)
 
-      if (data) {
-        const row = data as NutritionWeekSchedule
+      if (rowData) {
+        const row = rowData as NutritionWeekSchedule
         setUsingLegacyStore(true)
         setActiveVersionId(null)
         const mw = !!row.merge_weekends

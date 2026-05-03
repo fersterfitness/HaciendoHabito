@@ -25,15 +25,14 @@ export async function downloadPlanningWorkbookPdf(
     generatedAt?: Date
   },
 ): Promise<void> {
-  const blob = await pdf(
-    createElement(PlanningWorkbookPdfDocument, {
-      wb,
-      professionalName: options?.professionalName,
-      studentName: options?.studentName,
-      brandLogoSrc: options?.brandLogoSrc ?? defaultBrandLogoSrc(),
-      generatedAt: options?.generatedAt ?? new Date(),
-    }),
-  ).toBlob()
+  const pdfDoc = createElement(PlanningWorkbookPdfDocument, {
+    wb,
+    professionalName: options?.professionalName,
+    studentName: options?.studentName,
+    brandLogoSrc: options?.brandLogoSrc ?? defaultBrandLogoSrc(),
+    generatedAt: options?.generatedAt ?? new Date(),
+  }) as NonNullable<Parameters<typeof pdf>[0]>
+  const blob = await pdf(pdfDoc).toBlob()
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

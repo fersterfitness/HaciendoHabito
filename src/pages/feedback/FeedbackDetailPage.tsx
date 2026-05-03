@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Send, Video, Paperclip } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -31,7 +31,6 @@ type FormValues = z.infer<typeof schema>
 
 export function FeedbackDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const { user } = useAuthStore()
   const [question, setQuestion] = useState<QuestionFull | null>(null)
   const [feedbacks, setFeedbacks] = useState<RoutineFeedback[]>([])

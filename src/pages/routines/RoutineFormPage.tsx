@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS } from '@/lib/constants'
-import type { Student, Plan } from '@/types/database'
+import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
@@ -36,7 +36,6 @@ export function RoutineFormPage() {
   const { user } = useAuthStore()
   const { createRoutine, updateRoutine } = useRoutines()
   const [students, setStudents] = useState<Student[]>([])
-  const [plans, setPlans] = useState<Plan[]>([])
   const [routineTemplates, setRoutineTemplates] = useState<Array<{ id: string; name: string; student_name?: string | null }>>([])
   const [templateRoutineId, setTemplateRoutineId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
@@ -71,7 +70,6 @@ export function RoutineFormPage() {
   useEffect(() => {
     if (!user) return
     supabase.from('students').select('id, full_name, level').eq('owner_id', user.id).eq('status', 'activo').order('full_name').then(({ data }) => setStudents((data as Student[]) ?? []))
-    supabase.from('plans').select('*').eq('owner_id', user.id).eq('is_active', true).then(({ data }) => setPlans(data ?? []))
     supabase
       .from('routines')
       .select('id, name, student:students(full_name)')

@@ -46,6 +46,7 @@ export function StudentNotesCard({ notes, className }: Props) {
   const rows = useMemo(() => parseStudentNotesDisplay(notes), [notes])
   const structured = rows.some((r) => r.kind === 'pair' || r.kind === 'meta')
   const hasOnlyFree = rows.length > 0 && rows.every((r) => r.kind === 'free')
+  const batches = useMemo(() => batchRows(rows), [rows])
 
   if (hasOnlyFree || !structured) {
     return (
@@ -60,8 +61,6 @@ export function StudentNotesCard({ notes, className }: Props) {
       </Card>
     )
   }
-
-  const batches = useMemo(() => batchRows(rows), [rows])
 
   return (
     <Card className={cn('overflow-hidden', className)}>

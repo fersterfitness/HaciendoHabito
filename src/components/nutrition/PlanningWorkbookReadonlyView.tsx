@@ -91,7 +91,8 @@ export function PlanningWorkbookReadonlyView({
           </div>
           <div className="space-y-4">
             {layout.map((b) => {
-              const picks = md.picksByMeal?.[b.slot] ?? []
+              const picks: MealSlotPick[] =
+                (md.picksByMeal?.[b.slot as MealSlotKey] as MealSlotPick[] | undefined) ?? []
               const hasSlot = picks.length > 0 || b.notes.trim().length > 0
               if (!hasSlot) return null
               return (

@@ -1,6 +1,10 @@
 /** Número con coma o punto decimal */
 
-import type { PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
+import {
+  MEAL_SLOT_KEYS,
+  normalizeMealDistribution,
+  type PlanningWorkbookStateV1,
+} from '@/lib/nutrition/planningWorkbookTypes'
 
 export function parseLocaleNumber(raw: string): number {
   const t = raw.trim().replace(/\s+/g, '').replace(',', '.')
@@ -81,6 +85,62 @@ export function grandTotalsFromWorkbook(wb: PlanningWorkbookStateV1): MacroTotal
     )
   }
   return acc
+}
+
+/** Macros de los ítems con gramos en la distribución del día (PDF/alumno). */
+export function mealDistributionPicksTotals(wb: PlanningWorkbookStateV1): MacroTotals {
+  let acc = ZERO_TOTALS
+  const md = normalizeMealDistribution(wb.mealDistribution)
+  const picksByMeal = md.picksByMeal ?? {}
+  for (const slot of MEAL_SLOT_KEYS) {
+    const picks = picksByMeal[slot]
+    if (!picks?.length) continue
+    for (const p of picks) {
+      const q = parseLocaleNumberOrZero(p.qtyG)
+      if (q <= 0) continue
+      if (p.kind === 'plan_row') {
+        const sec = wb.sections.find((s) => s.key === p.secKey)
+        const row = sec?.rows.find((r) => r.id === p.rowId)
+        if (!row) continue
+        acc = sumTotals(
+          acc,
+          scaledFromRefs(q, {
+            carbs: parseLocaleNumberOrZero(row.refCarbs),
+            protein: parseLocaleNumberOrZero(row.refProt),
+            fat: parseLocaleNumberOrZero(row.refFat),
+            kcal: parseLocaleNumberOrZero(row.refKcal),
+          }),
+        )
+      } else {
+        const ref = wb.libraryFoodRefsById?.[p.libraryFoodId]
+        if (!ref) continue
+        acc = sumTotals(
+          acc,
+          scaledFromRefs(q, {
+            carbs: ref.c,
+            protein: ref.p,
+            fat: ref.f,
+            kcal: ref.k,
+          }),
+        )
+      }
+    }
+  }
+  return acc
+}
+
+/** Tablas + borradores de Mi lista + momentos del día con gramos cargados (armado integrado del plan). */
+export function plannedNutritionTotalsFromWorkbook(wb: PlanningWorkbookStateV1): MacroTotals {
+  return sumTotals(grandTotalsFromWorkbook(wb), mealDistributionPicksTotals(wb))
+}
+
+export function diffTotals(a: MacroTotals, b: MacroTotals): MacroTotals {
+  return {
+    carbsG: a.carbsG - b.carbsG,
+    proteinG: a.proteinG - b.proteinG,
+    fatG: a.fatG - b.fatG,
+    kcal: a.kcal - b.kcal,
+  }
 }
 
 export function pctKcalMacros(t: MacroTotals): { p: number; c: number; f: number } | null {

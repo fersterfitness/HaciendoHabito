@@ -678,12 +678,14 @@ export function RoutineDetailPage() {
             showCopyMenu={copyMenuBlock === block.id}
             onToggle={() => setExpandedBlocks((prev) => {
               const next = new Set(prev)
-              next.has(block.id) ? next.delete(block.id) : next.add(block.id)
+              if (next.has(block.id)) next.delete(block.id)
+              else next.add(block.id)
               return next
             })}
             onToggleDay={(dayId) => setExpandedDays((prev) => {
               const next = new Set(prev)
-              next.has(dayId) ? next.delete(dayId) : next.add(dayId)
+              if (next.has(dayId)) next.delete(dayId)
+              else next.add(dayId)
               return next
             })}
             onUpdateBlock={(patch) => updateBlock(block.id, patch)}
@@ -959,9 +961,10 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   const freeExercises = day.exercises.filter(e => !e.is_superset)
 
   function toggleSelect(id: string) {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -1509,7 +1512,14 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
               {groups.map((group) => (
                 <div key={group.id} className="border border-surface-border rounded-xl overflow-hidden">
                   <button
-                    onClick={() => setOpenGroups((prev) => { const next = new Set(prev); next.has(group.id) ? next.delete(group.id) : next.add(group.id); return next })}
+                    onClick={() =>
+                      setOpenGroups((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(group.id)) next.delete(group.id)
+                        else next.add(group.id)
+                        return next
+                      })
+                    }
                     className="w-full flex items-center justify-between px-3 py-2.5 bg-surface-elevated hover:bg-surface-card transition-colors"
                   >
                     <span className="text-xs font-semibold text-ink-primary">{group.name}</span>

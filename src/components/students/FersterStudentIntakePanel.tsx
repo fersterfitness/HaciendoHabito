@@ -85,11 +85,13 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
     student.height_cm != null ||
     (intake && Object.keys(intake).length > 0)
 
-  if (!hasExtra) return null
-
   const [fileUrls, setFileUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    if (!hasExtra) {
+      setFileUrls({})
+      return
+    }
     const uploads = intake?.uploads
     if (!uploads || Object.keys(uploads).length === 0) {
       setFileUrls({})
@@ -107,7 +109,9 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
     return () => {
       cancelled = true
     }
-  }, [student.id, intake?.uploads])
+  }, [hasExtra, student.id, intake?.uploads])
+
+  if (!hasExtra) return null
 
   const i = intake
 

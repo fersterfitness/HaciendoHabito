@@ -484,7 +484,6 @@ export function StudentDetailPage() {
         {/* ── Fuerza / 1RM tab ── */}
         {tab === 'fuerza' && (
           <FuerzaTab
-            studentId={id!}
             records={rmRecords}
             onAdd={addRmRecord}
             onDelete={deleteRmRecord}
@@ -516,12 +515,10 @@ export function StudentDetailPage() {
 // ─── FuerzaTab ────────────────────────────────────────────────────────────────
 
 function FuerzaTab({
-  studentId,
   records,
   onAdd,
   onDelete,
 }: {
-  studentId: string
   records: StudentRmRecord[]
   onAdd: (r: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) => Promise<void>
   onDelete: (id: string) => Promise<void>

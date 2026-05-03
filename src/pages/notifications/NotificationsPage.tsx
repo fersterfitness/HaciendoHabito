@@ -28,12 +28,14 @@ export function NotificationsPage() {
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50)
+    void Promise.resolve(
+      supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50),
+    )
       .then(({ data }) => {
         setNotifications(data ?? [])
       })
