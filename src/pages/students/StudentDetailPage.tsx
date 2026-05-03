@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Pencil, Trash2, Dumbbell, FileText, FileDown, Plus,
   Mail, Phone, Calendar, Zap, X, ChevronDown,
-  StickyNote, Check, DollarSign, ClipboardList, Copy,
+  StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Share2,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
@@ -15,16 +15,19 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, formatDate, daysUntil } from '@/lib/utils'
+import { cn, formatDate, daysUntil, formatCurrency } from '@/lib/utils'
 import { CicloTab } from './CicloTab'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
-import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan } from '@/types/database'
+import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan, Income } from '@/types/database'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+} from 'recharts'
 
-type Tab = 'resumen' | 'fuerza' | 'ciclo' | 'peso'
+type Tab = 'resumen' | 'fuerza' | 'ciclo' | 'peso' | 'pagos'
 
 // ─── Epley formula ────────────────────────────────────────────────────────────
 function epley1RM(weight: number, reps: number): number {
@@ -50,6 +53,29 @@ export function StudentDetailPage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
   const [tab,        setTab]        = useState<Tab>('resumen')
+
+  // Tags (localStorage)
+  const tagsKey = id ? `tags_${id}` : ''
+  const [tags, setTags] = useState<string[]>(() => {
+    if (!id) return []
+    const raw = localStorage.getItem(`tags_${id}`)
+    try { return raw ? (JSON.parse(raw) as string[]) : [] } catch { return [] }
+  })
+  const [tagInput, setTagInput] = useState('')
+  const [editingTags, setEditingTags] = useState(false)
+  function addTag(t: string) {
+    const clean = t.trim().toLowerCase()
+    if (!clean || tags.includes(clean)) return
+    const next = [...tags, clean]
+    setTags(next)
+    localStorage.setItem(tagsKey, JSON.stringify(next))
+    setTagInput('')
+  }
+  function removeTag(t: string) {
+    const next = tags.filter((x) => x !== t)
+    setTags(next)
+    localStorage.setItem(tagsKey, JSON.stringify(next))
+  }
 
   // Notas rápidas
   const [editingNotes,  setEditingNotes]  = useState(false)
@@ -220,14 +246,55 @@ export function StudentDetailPage() {
                   </a>
                 )}
                 {student.phone && (
-                  <a href={`tel:${student.phone}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                    <Phone className="h-3 w-3" />{student.phone}
-                  </a>
+                  <>
+                    <a href={`tel:${student.phone}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
+                      <Phone className="h-3 w-3" />{student.phone}
+                    </a>
+                    <a
+                      href={`https://wa.me/${student.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-400 transition-colors"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      WhatsApp
+                    </a>
+                  </>
                 )}
                 {student.birth_date && (
                   <span className="flex items-center gap-1 text-xs text-ink-secondary">
                     <Calendar className="h-3 w-3" />{formatDate(student.birth_date)}
                   </span>
+                )}
+              </div>
+              {/* Tags */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {tags.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium">
+                    <Tag className="h-2.5 w-2.5" />{t}
+                    {editingTags && (
+                      <button onClick={() => removeTag(t)} className="ml-0.5 hover:text-red-400 transition-colors"><X className="h-2.5 w-2.5" /></button>
+                    )}
+                  </span>
+                ))}
+                {editingTags ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') addTag(tagInput); if (e.key === 'Escape') setEditingTags(false) }}
+                      placeholder="Nueva etiqueta..."
+                      className="text-[11px] rounded-lg bg-surface-input border border-brand-primary/40 text-ink-primary px-2 py-0.5 w-32 focus:outline-none"
+                    />
+                    <button onClick={() => addTag(tagInput)} className="text-[11px] text-brand-primary hover:underline">+ Agregar</button>
+                    <button onClick={() => setEditingTags(false)} className="text-[11px] text-ink-muted hover:text-ink-secondary">Listo</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingTags(true)} className="text-[11px] text-ink-muted hover:text-brand-primary transition-colors flex items-center gap-1">
+                    <Tag className="h-3 w-3" />{tags.length === 0 ? 'Agregar etiqueta' : '+'}
+                  </button>
                 )}
               </div>
             </div>
@@ -269,6 +336,7 @@ export function StudentDetailPage() {
             { value: 'resumen', label: 'Resumen' },
             { value: 'peso',    label: '⚖️ Peso' },
             { value: 'fuerza',  label: '💪 Fuerza' },
+            { value: 'pagos',   label: '💰 Pagos' },
             ...(student.gender === 'F' ? [{ value: 'ciclo' as Tab, label: '🌸 Ciclo' }] : []),
           ] as { value: Tab; label: string }[]).map(({ value, label }) => (
             <button
@@ -379,6 +447,56 @@ export function StudentDetailPage() {
               </Card>
             )}
 
+            {/* ── Reporte de progreso ── */}
+            {(() => {
+              function generarReporte() {
+                if (!student) return
+                const pesoKey  = `peso_goal_${student.id}`
+                const cuotaKey = `cuota_mensual_${student.id}`
+                const goalPeso = localStorage.getItem(pesoKey)
+                const cuota    = localStorage.getItem(cuotaKey)
+                const lines: string[] = [
+                  `Reporte de progreso — ${student.full_name}`,
+                  `Fecha: ${new Date().toLocaleDateString('es-AR')}`,
+                  '',
+                  `Nivel: ${student.level ?? '—'}`,
+                  `Estado: ${student.status}`,
+                ]
+                if (student.birth_date) lines.push(`Edad: ${new Date().getFullYear() - new Date(student.birth_date).getFullYear()} años`)
+                if (activeRoutine) {
+                  lines.push('', `Rutina activa: ${activeRoutine.name}`)
+                  lines.push(`  Período: ${formatDate(activeRoutine.start_date)} → ${formatDate(activeRoutine.end_date)}`)
+                  lines.push(`  Objetivo: ${activeRoutine.objective}`)
+                }
+                if (goalPeso) lines.push('', `Peso objetivo: ${goalPeso} kg`)
+                if (cuota) lines.push(`Cuota mensual: ${formatCurrency(Number(cuota))}`)
+                if (student.notes) lines.push('', `Observaciones: ${student.notes}`)
+                const text = lines.join('\n')
+                if (student.phone) {
+                  const digits = student.phone.replace(/\D/g, '')
+                  window.open(`https://wa.me/${digits}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+                } else {
+                  void navigator.clipboard.writeText(text).then(() => {
+                    toast.success('Reporte copiado al portapapeles')
+                  })
+                }
+              }
+              return (
+                <button
+                  onClick={generarReporte}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed border-surface-border text-ink-secondary hover:border-brand-primary/40 hover:bg-brand-primary/5 hover:text-ink-primary transition-colors text-sm"
+                >
+                  <Share2 className="h-4 w-4 text-brand-primary shrink-0" />
+                  <span>
+                    <span className="font-medium text-ink-primary">Generar reporte de progreso</span>
+                    <span className="block text-[11px] text-ink-muted mt-0.5">
+                      {student.phone ? 'Abre WhatsApp con el resumen del alumno' : 'Copia el resumen al portapapeles'}
+                    </span>
+                  </span>
+                </button>
+              )
+            })()}
+
             <Card>
               <CardHeader>
                 <CardTitle>Historial de rutinas</CardTitle>
@@ -475,6 +593,15 @@ export function StudentDetailPage() {
           </div>
         )}
 
+        {/* ── Pagos tab ── */}
+        {tab === 'pagos' && (
+          <PagosTab
+            studentId={id!}
+            studentName={student.full_name}
+            onRegisterPago={() => setShowPayModal(true)}
+          />
+        )}
+
         {/* ── Ciclo Menstrual tab ── */}
         {tab === 'ciclo' && <CicloTab studentId={id!} />}
 
@@ -508,6 +635,173 @@ export function StudentDetailPage() {
           onClose={() => setShowPayModal(false)}
         />
       )}
+    </div>
+  )
+}
+
+// ─── PagosTab ─────────────────────────────────────────────────────────────────
+
+function PagosTab({
+  studentId,
+  studentName,
+  onRegisterPago,
+}: { studentId: string; studentName: string; onRegisterPago: () => void }) {
+  const { user } = useAuthStore()
+  const [payments, setPayments] = useState<Income[]>([])
+  const [loading, setLoading]   = useState(true)
+
+  // ── Cuota mensual (stored in localStorage, no migration needed) ──
+  const cuotaKey = `cuota_mensual_${studentId}`
+  const [cuota, setCuota]             = useState<number | null>(() => {
+    const v = localStorage.getItem(cuotaKey); return v ? Number(v) : null
+  })
+  const [editingCuota, setEditingCuota] = useState(false)
+  const [cuotaInput, setCuotaInput]     = useState('')
+  function saveCuota() {
+    const n = parseFloat(cuotaInput)
+    if (!isNaN(n) && n > 0) {
+      localStorage.setItem(cuotaKey, String(n))
+      setCuota(n)
+    } else {
+      localStorage.removeItem(cuotaKey)
+      setCuota(null)
+    }
+    setEditingCuota(false)
+  }
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('income')
+      .select('*')
+      .eq('owner_id', user.id)
+      .eq('student_id', studentId)
+      .order('income_date', { ascending: false })
+      .then(({ data }) => { setPayments((data as Income[]) ?? []); setLoading(false) })
+  }, [user, studentId])
+
+  const totalCobrado  = payments.filter((p) => p.status === 'cobrado').reduce((s, p) => s + p.amount, 0)
+  const now           = new Date()
+  const thisMonthKey  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
+  const ultimoPago    = payments.find((p) => p.status === 'cobrado')
+
+  const METHOD_LABEL: Record<string, string> = {
+    efectivo_debito: 'Efectivo/Débito',
+    tarjeta_credito: 'Tarjeta',
+    transferencia:   'Transferencia',
+    otro:            'Otro',
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* ── Cuota mensual ── */}
+      <div className="rounded-2xl border border-surface-border bg-surface-card px-4 py-3">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide">Plan de cuota mensual</p>
+          {!editingCuota && (
+            <button
+              onClick={() => { setCuotaInput(String(cuota ?? '')); setEditingCuota(true) }}
+              className="text-[11px] text-brand-primary hover:underline"
+            >
+              {cuota ? 'Modificar' : 'Configurar'}
+            </button>
+          )}
+        </div>
+        {editingCuota ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-ink-muted">$</span>
+            <input
+              type="number"
+              min={0}
+              step={100}
+              autoFocus
+              value={cuotaInput}
+              onChange={(e) => setCuotaInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && saveCuota()}
+              placeholder="Ej: 15000"
+              className="w-36 rounded-xl bg-surface-input border border-brand-primary/40 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:border-brand-primary"
+            />
+            <Button size="sm" onClick={saveCuota}>Guardar</Button>
+            <button onClick={() => setEditingCuota(false)} className="text-xs text-ink-muted hover:text-ink-secondary">Cancelar</button>
+          </div>
+        ) : cuota ? (
+          <div className="flex items-center justify-between">
+            <p className="text-2xl font-bold text-status-generated">{formatCurrency(cuota)}<span className="text-sm font-normal text-ink-muted ml-1">/ mes</span></p>
+            {(() => {
+              const now = new Date()
+              const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+              const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
+              const totalEsteMes  = payments.filter((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey)).reduce((s, p) => s + p.amount, 0)
+              return (
+                <div className="text-right">
+                  {pagadoEsteMes ? (
+                    <p className="text-sm font-semibold text-emerald-400">✓ Pagó este mes</p>
+                  ) : (
+                    <p className="text-sm font-semibold text-amber-400">⚠ Pendiente de cobro</p>
+                  )}
+                  {totalEsteMes > 0 && totalEsteMes < cuota && (
+                    <p className="text-[11px] text-ink-muted mt-0.5">Cobrado: {formatCurrency(totalEsteMes)} / {formatCurrency(cuota)}</p>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        ) : (
+          <p className="text-sm text-ink-muted">Sin cuota configurada — establecé el monto mensual para seguimiento automático.</p>
+        )}
+      </div>
+
+      {/* Estado de cuenta */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-3 text-center">
+          <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1">Total cobrado</p>
+          <p className="text-lg font-bold text-status-generated">{formatCurrency(totalCobrado)}</p>
+        </div>
+        <div className={`border rounded-2xl p-3 text-center ${pagadoEsteMes ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+          <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1">Este mes</p>
+          <p className={`text-sm font-bold ${pagadoEsteMes ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {pagadoEsteMes ? '✓ Pagó' : '⚠ Pendiente'}
+          </p>
+        </div>
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-3 text-center">
+          <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1">Último pago</p>
+          <p className="text-sm font-semibold text-ink-primary">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Historial de pagos</CardTitle>
+          <Button size="sm" icon={<DollarSign className="h-3.5 w-3.5" />} onClick={onRegisterPago}>
+            Registrar
+          </Button>
+        </CardHeader>
+        {loading ? (
+          <div className="flex justify-center py-6"><Spinner size="md" /></div>
+        ) : payments.length === 0 ? (
+          <EmptyState
+            icon={<DollarSign className="h-6 w-6" />}
+            title="Sin pagos registrados"
+            description={`${studentName} todavía no tiene pagos cargados.`}
+          />
+        ) : (
+          <div className="space-y-1.5">
+            {payments.map((p) => (
+              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-elevated">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink-primary">{formatCurrency(p.amount)}</p>
+                  <p className="text-xs text-ink-muted">{p.income_type} · {METHOD_LABEL[p.payment_method] ?? p.payment_method}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-medium text-ink-secondary">{formatDate(p.income_date)}</p>
+                  <Badge status={p.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
@@ -668,16 +962,41 @@ function FuerzaTab({
                     </button>
                   </div>
 
-                  {isOpen && history.length > 1 && (
-                    <div className="border-t border-surface-border divide-y divide-surface-border/50">
-                      {history.slice(1).map((h) => (
-                        <div key={h.id} className="flex items-center justify-between px-3 py-2">
-                          <span className="text-xs text-ink-muted">{formatDate(h.tested_at)} · {h.source === 'epley' ? 'Epley' : 'Test'}</span>
-                          <span className="text-xs font-medium text-ink-secondary">{h.rm_kg} kg</span>
+                  {isOpen && history.length > 1 && (() => {
+                    const rmChartData = [...history].reverse().map((h) => ({
+                      date: formatDate(h.tested_at),
+                      rm: h.rm_kg,
+                      source: h.source === 'epley' ? 'Epley' : 'Test',
+                    }))
+                    const minRm = Math.min(...rmChartData.map(d => d.rm))
+                    const maxRm = Math.max(...rmChartData.map(d => d.rm))
+                    return (
+                      <div className="border-t border-surface-border px-3 pt-3 pb-2">
+                        <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-2">Progresión 1RM</p>
+                        <ResponsiveContainer width="100%" height={90}>
+                          <LineChart data={rmChartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                            <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--color-ink-muted)' }} tickLine={false} axisLine={false} />
+                            <YAxis domain={[Math.max(0, minRm - 5), maxRm + 5]} tick={{ fontSize: 9, fill: 'var(--color-ink-muted)' }} tickLine={false} axisLine={false} />
+                            <Tooltip
+                              contentStyle={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-surface-border)', borderRadius: 8, fontSize: 11 }}
+                              labelStyle={{ color: 'var(--color-ink-muted)', marginBottom: 2 }}
+                              formatter={(value: number, _name: string, props: { payload?: { source?: string } }) => [`${value} kg (${props.payload?.source ?? ''})`, '1RM']}
+                            />
+                            <Line type="monotone" dataKey="rm" stroke="var(--color-brand-primary)" strokeWidth={2} dot={{ r: 3, fill: 'var(--color-brand-primary)' }} activeDot={{ r: 4 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                        <div className="mt-1 divide-y divide-surface-border/40">
+                          {history.slice(1).map((h) => (
+                            <div key={h.id} className="flex items-center justify-between py-1.5">
+                              <span className="text-xs text-ink-muted">{formatDate(h.tested_at)} · {h.source === 'epley' ? 'Epley' : 'Test'}</span>
+                              <span className="text-xs font-medium text-ink-secondary">{h.rm_kg} kg</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}
@@ -921,11 +1240,25 @@ function PesoTab({ studentId }: { studentId: string }) {
     if (error) { setLogs(prev); toast.error(error.message) }
   }
 
-  // Simple sparkline data: sort ascending for chart
-  const chartData = [...logs].sort((a, b) => a.logged_at.localeCompare(b.logged_at))
-  const minW = Math.min(...chartData.map((l) => l.weight_kg))
-  const maxW = Math.max(...chartData.map((l) => l.weight_kg))
-  const range = maxW - minW || 1
+  const chartData = useMemo(
+    () => [...logs].sort((a, b) => a.logged_at.localeCompare(b.logged_at)),
+    [logs],
+  )
+
+  // Peso objetivo (localStorage)
+  const goalKey  = `peso_goal_${studentId}`
+  const [goal, setGoal]           = useState<number | null>(() => {
+    const v = localStorage.getItem(goalKey); return v ? Number(v) : null
+  })
+  const [editingGoal, setEditingGoal] = useState(false)
+  const [goalInput,   setGoalInput]   = useState('')
+
+  function saveGoal() {
+    const v = Number(goalInput)
+    if (!v || v <= 0) { toast.error('Ingresá un peso válido'); return }
+    localStorage.setItem(goalKey, String(v))
+    setGoal(v); setEditingGoal(false)
+  }
 
   return (
     <div className="space-y-4">
@@ -996,33 +1329,147 @@ function PesoTab({ studentId }: { studentId: string }) {
           />
         ) : (
           <>
-            {/* Sparkline chart */}
-            {chartData.length >= 2 && (
-              <div className="mb-4">
-                <div className="flex items-end gap-1 h-16 px-1">
-                  {chartData.map((l, i) => {
-                    const h = Math.round(((l.weight_kg - minW) / range) * 48 + 8)
-                    const isLast = i === chartData.length - 1
+            {/* Weight line chart */}
+            {chartData.length >= 2 && (() => {
+              const first = chartData[0]
+              const last  = chartData[chartData.length - 1]
+              const delta = Math.round((last.weight_kg - first.weight_kg) * 10) / 10
+              const hasFat = chartData.some((l) => l.body_fat_pct != null)
+              const rechartsData = chartData.map((l) => ({
+                date:   l.logged_at.slice(5),
+                weight: l.weight_kg,
+                fat:    l.body_fat_pct ?? undefined,
+              }))
+              return (
+                <div className="mb-5">
+                  {/* KPIs row */}
+                  <div className="flex items-end gap-5 mb-3 px-1 flex-wrap">
+                    <div>
+                      <p className="text-[10px] text-ink-muted uppercase tracking-wide">Actual</p>
+                      <p className="text-2xl font-bold text-ink-primary">{last.weight_kg} <span className="text-sm font-normal text-ink-muted">kg</span></p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-ink-muted uppercase tracking-wide">Δ inicio</p>
+                      <p className={cn('text-base font-bold', delta < 0 ? 'text-emerald-400' : delta > 0 ? 'text-amber-400' : 'text-ink-muted')}>
+                        {delta > 0 ? '+' : ''}{delta} kg
+                      </p>
+                    </div>
+                    {hasFat && last.body_fat_pct != null && (
+                      <div>
+                        <p className="text-[10px] text-ink-muted uppercase tracking-wide">% Grasa</p>
+                        <p className="text-base font-bold text-emerald-400">{last.body_fat_pct}%</p>
+                      </div>
+                    )}
+                    {goal && (
+                      <div>
+                        <p className="text-[10px] text-ink-muted uppercase tracking-wide">Objetivo</p>
+                        <p className="text-base font-bold text-brand-primary">{goal} kg</p>
+                        {(() => {
+                          const toGoal = Math.round((last.weight_kg - goal) * 10) / 10
+                          return toGoal !== 0 && (
+                            <p className="text-[10px] text-ink-muted">{toGoal > 0 ? `-${toGoal}` : `+${Math.abs(toGoal)}`} kg restantes</p>
+                          )
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  {/* Barra progreso hacia objetivo */}
+                  {goal && (() => {
+                    const start  = first.weight_kg
+                    const curr   = last.weight_kg
+                    const pct    = start === goal ? 100 : Math.min(100, Math.max(0, Math.round(Math.abs(start - curr) / Math.abs(start - goal) * 100)))
                     return (
-                      <div key={l.id} className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                        <div
-                          title={`${l.weight_kg} kg — ${l.logged_at}`}
-                          className={cn(
-                            'w-full rounded-sm transition-all',
-                            isLast ? 'bg-brand-primary' : 'bg-brand-primary/30',
-                          )}
-                          style={{ height: `${h}px` }}
-                        />
+                      <div className="mb-3 px-1">
+                        <div className="flex justify-between text-[10px] text-ink-muted mb-1">
+                          <span>Inicio: {start} kg</span>
+                          <span className="text-brand-primary font-semibold">{pct}% completado</span>
+                          <span>Objetivo: {goal} kg</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-surface-border overflow-hidden">
+                          <div className="h-full rounded-full bg-brand-primary transition-all" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
                     )
-                  })}
+                  })()}
+
+                  <ResponsiveContainer width="100%" height={160}>
+                    <LineChart data={rechartsData} margin={{ top: 5, right: 8, bottom: 0, left: -20 }}>
+                      <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.35)' }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        domain={['auto', 'auto']}
+                        tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={36}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null
+                          return (
+                            <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
+                              <p className="text-ink-muted mb-1">{label}</p>
+                              <p className="font-bold text-ink-primary">{payload[0].value} kg</p>
+                              {payload[1]?.value != null && (
+                                <p className="text-emerald-400">{payload[1].value}% grasa</p>
+                              )}
+                            </div>
+                          )
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="weight"
+                        stroke="#7C5DFA"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: '#7C5DFA', stroke: '#7C5DFA', strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: '#7C5DFA' }}
+                      />
+                      {hasFat && (
+                        <Line
+                          type="monotone"
+                          dataKey="fat"
+                          stroke="#10b981"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 2"
+                          dot={false}
+                          activeDot={{ r: 4, fill: '#10b981' }}
+                          connectNulls
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className="flex justify-between text-[10px] text-ink-muted mt-1 px-1">
-                  <span>{chartData[0].logged_at.slice(5)}</span>
-                  <span className="font-semibold text-brand-primary">{chartData[chartData.length - 1].weight_kg} kg</span>
-                  <span>{chartData[chartData.length - 1].logged_at.slice(5)}</span>
-                </div>
+              )
+            })()}
+
+            {/* Objetivo de peso */}
+            {editingGoal ? (
+              <div className="mb-4 flex items-center gap-2">
+                <input
+                  type="number" min={30} max={300} step={0.5} autoFocus
+                  placeholder="Peso objetivo (kg)"
+                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none text-center"
+                  value={goalInput}
+                  onChange={(e) => setGoalInput(e.target.value)}
+                />
+                <Button size="sm" onClick={saveGoal}>Guardar</Button>
+                <button onClick={() => setEditingGoal(false)} className="text-xs text-ink-muted hover:text-ink-primary px-2 py-1.5">Cancelar</button>
               </div>
+            ) : (
+              <button
+                onClick={() => { setGoalInput(String(goal ?? '')); setEditingGoal(true) }}
+                className="w-full mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-surface-border text-ink-muted hover:text-ink-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors text-xs"
+              >
+                <span>🎯</span>
+                {goal ? `Objetivo: ${goal} kg — modificar` : 'Establecer peso objetivo'}
+              </button>
             )}
 
             {/* Log list */}

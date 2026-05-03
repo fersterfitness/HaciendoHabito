@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Dumbbell, Search, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Dumbbell, Search, Pencil, Trash2, Copy } from 'lucide-react'
 import { useRoutines } from '@/hooks/useRoutines'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -11,16 +11,120 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatDate, daysUntil } from '@/lib/utils'
-import type { Routine } from '@/types/database'
+import type { Routine, Student } from '@/types/database'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
+import toast from 'react-hot-toast'
 
 type RoutineWithStudent = Routine & { student?: { full_name: string } }
 
 export function RoutinesPage() {
-  const navigate = useNavigate()
+  const navigate   = useNavigate()
+  const { user }   = useAuthStore()
   const { routines, loading, fetchRoutines, deleteRoutine } = useRoutines()
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<RoutineWithStudent | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // ── Duplicate routine ──
+  const [duplicateTarget, setDuplicateTarget] = useState<RoutineWithStudent | null>(null)
+  const [students, setStudents]               = useState<Student[]>([])
+  const [dupStudentId, setDupStudentId]       = useState('')
+  const [duplicating, setDuplicating]         = useState(false)
+
+  useEffect(() => {
+    if (!duplicateTarget || !user) return
+    supabase
+      .from('students')
+      .select('id, full_name')
+      .eq('owner_id', user.id)
+      .order('full_name')
+      .then(({ data }) => { setStudents((data as Student[]) ?? []); setDupStudentId('') })
+  }, [duplicateTarget, user])
+
+  async function handleDuplicate() {
+    if (!duplicateTarget || !dupStudentId || !user) return
+    setDuplicating(true)
+    try {
+      // 1. Load source blocks → days → exercises
+      const { data: blocks } = await supabase
+        .from('routine_blocks')
+        .select('*')
+        .eq('routine_id', duplicateTarget.id)
+        .order('sort_order')
+      const blockIds = (blocks ?? []).map((b) => b.id as string)
+      const [{ data: days }, { data: exercises }] = await Promise.all([
+        blockIds.length
+          ? supabase.from('routine_days').select('*').in('block_id', blockIds).order('sort_order')
+          : Promise.resolve({ data: [] }),
+        blockIds.length
+          ? supabase.from('routine_exercises').select('*').in('day_id',
+              ((await supabase.from('routine_days').select('id').in('block_id', blockIds)).data ?? []).map((d) => d.id as string)
+            ).order('sort_order')
+          : Promise.resolve({ data: [] }),
+      ])
+
+      // 2. Insert new routine
+      const { data: newRoutine, error: routineErr } = await supabase
+        .from('routines')
+        .insert({
+          owner_id:   user.id,
+          student_id: dupStudentId,
+          name:       `${duplicateTarget.name} (copia)`,
+          objective:  duplicateTarget.objective,
+          level:      duplicateTarget.level,
+          start_date: duplicateTarget.start_date,
+          end_date:   duplicateTarget.end_date,
+          duration_days: duplicateTarget.duration_days,
+          price:      duplicateTarget.price,
+          status:     'activa',
+          notes:      duplicateTarget.notes,
+        })
+        .select('id')
+        .single()
+      if (routineErr || !newRoutine) { toast.error(routineErr?.message ?? 'Error al duplicar'); return }
+
+      // 3. Insert blocks + remap
+      const blockIdMap = new Map<string, string>()
+      for (const b of (blocks ?? [])) {
+        const { data: nb } = await supabase
+          .from('routine_blocks')
+          .insert({ routine_id: newRoutine.id, name: b.name, sort_order: b.sort_order, notes: b.notes, start_date: b.start_date, end_date: b.end_date })
+          .select('id').single()
+        if (nb) blockIdMap.set(b.id as string, nb.id as string)
+      }
+
+      // 4. Insert days + remap
+      const dayIdMap = new Map<string, string>()
+      for (const d of (days ?? [])) {
+        const newBlockId = blockIdMap.get(d.block_id as string)
+        if (!newBlockId) continue
+        const { data: nd } = await supabase
+          .from('routine_days')
+          .insert({ block_id: newBlockId, day_name: d.day_name, day_of_week: d.day_of_week, muscle_focus: d.muscle_focus, warmup_notes: d.warmup_notes, sort_order: d.sort_order })
+          .select('id').single()
+        if (nd) dayIdMap.set(d.id as string, nd.id as string)
+      }
+
+      // 5. Insert exercises
+      const exRows = (exercises ?? [])
+        .map((ex) => {
+          const newDayId = dayIdMap.get(ex.day_id as string)
+          if (!newDayId) return null
+          const { id: _id, day_id: _day, exercise: _ex, ...rest } = ex as Record<string, unknown>
+          void _id; void _day; void _ex
+          return { ...rest, day_id: newDayId }
+        })
+        .filter(Boolean)
+      if (exRows.length) await supabase.from('routine_exercises').insert(exRows)
+
+      toast.success('Rutina duplicada')
+      fetchRoutines()
+      setDuplicateTarget(null)
+    } finally {
+      setDuplicating(false)
+    }
+  }
 
   useEffect(() => { fetchRoutines() }, [fetchRoutines])
 
@@ -83,6 +187,7 @@ export function RoutinesPage() {
                       onClick={() => navigate(`/routines/${r.id}`)}
                       onEdit={() => navigate(`/routines/${r.id}/edit`)}
                       onDelete={() => setDeleteTarget(r)}
+                      onDuplicate={() => setDuplicateTarget(r)}
                     />
                   ))}
                 </div>
@@ -101,6 +206,7 @@ export function RoutinesPage() {
                       onClick={() => navigate(`/routines/${r.id}`)}
                       onEdit={() => navigate(`/routines/${r.id}/edit`)}
                       onDelete={() => setDeleteTarget(r)}
+                      onDuplicate={() => setDuplicateTarget(r)}
                     />
                   ))}
                 </div>
@@ -119,6 +225,45 @@ export function RoutinesPage() {
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
+
+      {/* Duplicate modal */}
+      {duplicateTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-2xl p-5 space-y-4">
+            <h2 className="text-base font-bold text-ink-primary">Duplicar rutina</h2>
+            <p className="text-sm text-ink-secondary">
+              <span className="font-medium text-ink-primary">"{duplicateTarget.name}"</span> será copiada con todos sus ejercicios a:
+            </p>
+            <select
+              value={dupStudentId}
+              onChange={(e) => setDupStudentId(e.target.value)}
+              className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary text-sm px-3 py-2.5"
+            >
+              <option value="">Seleccionar alumno...</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>{s.full_name}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDuplicateTarget(null)}
+                className="px-4 py-2 rounded-xl text-sm text-ink-secondary hover:text-ink-primary border border-surface-border"
+              >
+                Cancelar
+              </button>
+              <Button
+                size="sm"
+                icon={<Copy className="h-3.5 w-3.5" />}
+                onClick={handleDuplicate}
+                loading={duplicating}
+                disabled={!dupStudentId}
+              >
+                Duplicar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -128,11 +273,13 @@ function RoutineCard({
   onClick,
   onEdit,
   onDelete,
+  onDuplicate,
 }: {
   routine: RoutineWithStudent
   onClick: () => void
   onEdit: () => void
   onDelete: () => void
+  onDuplicate: () => void
 }) {
   const days = daysUntil(routine.end_date)
   return (
@@ -173,6 +320,14 @@ function RoutineCard({
         >
           <Pencil className="h-3.5 w-3.5" />
           Datos
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDuplicate() }}
+          className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors px-2 py-1.5 rounded-lg"
+          title="Duplicar a otro alumno"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Duplicar
         </button>
         <div className="flex-1" />
         <button

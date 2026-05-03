@@ -182,6 +182,9 @@ export function DashboardPage() {
   const [expiringPlans, setExpiringPlans] = useState<ExpiringPlan[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [growthData, setGrowthData] = useState<{ label: string; value: number; change: number }[]>([])
+  const [retention, setRetention] = useState({ m3: 0, m6: 0, m12: 0 })
+  const [birthdays, setBirthdays] = useState<{ id: string; full_name: string; daysUntil: number }[]>([])
+  const [todayApps, setTodayApps] = useState<{ id: string; title: string; starts_at: string; student_name: string }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -209,6 +212,8 @@ export function DashboardPage() {
         { data: notifData },
         { data: incomeRows },
         { data: expiringPlansData },
+        { data: studentDates },
+        { data: todayAppsData },
       ] = await Promise.all([
         supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
         canSeeTraining
@@ -242,7 +247,54 @@ export function DashboardPage() {
           .lte('plan_end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0])
           .order('plan_end_date', { ascending: true })
           .limit(5),
+        supabase.from('students').select('id, full_name, birth_date, created_at').eq('owner_id', user!.id).eq('status', 'activo'),
+        supabase
+          .from('appointments')
+          .select('id, title, starts_at, student:students(full_name)')
+          .eq('owner_id', user!.id)
+          .in('status', ['scheduled', 'confirmed'])
+          .gte('starts_at', `${new Date().toISOString().split('T')[0]}T00:00:00`)
+          .lte('starts_at', `${new Date().toISOString().split('T')[0]}T23:59:59`)
+          .order('starts_at'),
       ])
+
+      // Compute retention buckets
+      const now = new Date()
+      const c3m  = new Date(now.getFullYear(), now.getMonth() - 3,  now.getDate())
+      const c6m  = new Date(now.getFullYear(), now.getMonth() - 6,  now.getDate())
+      const c12m = new Date(now.getFullYear() - 1, now.getMonth(),  now.getDate())
+      const dates = (studentDates ?? []) as { created_at: string }[]
+      setRetention({
+        m3:  dates.filter((d) => new Date(d.created_at) <= c3m).length,
+        m6:  dates.filter((d) => new Date(d.created_at) <= c6m).length,
+        m12: dates.filter((d) => new Date(d.created_at) <= c12m).length,
+      })
+
+      // Birthdays in next 7 days
+      const todayMD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const bdayList = (dates as { id: string; full_name: string; birth_date: string | null; created_at: string }[])
+        .filter((s) => s.birth_date)
+        .map((s) => {
+          const bd   = s.birth_date!.slice(5) // MM-DD
+          const thisYear = new Date(`${now.getFullYear()}-${bd}`)
+          let diff = Math.round((thisYear.getTime() - now.setHours(0,0,0,0)) / 86400000)
+          if (diff < 0) diff += 365 // passed this year → next year
+          return { id: s.id, full_name: s.full_name, daysUntil: diff }
+        })
+        .filter((s) => s.daysUntil <= 7)
+        .sort((a, b) => a.daysUntil - b.daysUntil)
+      setBirthdays(bdayList)
+
+      // Today's appointments
+      setTodayApps(
+        ((todayAppsData ?? []) as { id: string; title: string; starts_at: string; student?: { full_name?: string } | null }[])
+          .map((a) => ({
+            id: a.id,
+            title: a.title,
+            starts_at: a.starts_at,
+            student_name: a.student?.full_name ?? '—',
+          }))
+      )
 
       setStats({
         activeStudents: activeStudents ?? 0,
@@ -340,6 +392,72 @@ export function DashboardPage() {
             </>
           )}
         </div>
+
+        {/* Cumpleaños próximos */}
+        {birthdays.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {birthdays.map((b) => (
+              <div key={b.id} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-pink-500/10 border border-pink-500/25 text-sm">
+                <span>🎂</span>
+                <span className="font-medium text-ink-primary">{b.full_name}</span>
+                <span className="text-xs text-pink-400 font-semibold">
+                  {b.daysUntil === 0 ? '¡Hoy!' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil} días`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Turnos de hoy */}
+        {todayApps.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-brand-primary" />
+                <CardTitle>Hoy · {todayApps.length} {todayApps.length === 1 ? 'turno' : 'turnos'}</CardTitle>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/appointments')}>Ver agenda</Button>
+            </CardHeader>
+            <div className="space-y-1.5">
+              {todayApps.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-elevated">
+                  <span className="text-xs font-bold text-brand-primary w-10 shrink-0">
+                    {new Date(a.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-primary truncate">{a.title}</p>
+                    <p className="text-xs text-ink-muted">{a.student_name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Retención */}
+        {stats.activeStudents > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-brand-primary" />
+                <CardTitle>Retención</CardTitle>
+              </div>
+              <p className="text-xs text-ink-muted">Alumnos activos por antigüedad</p>
+            </CardHeader>
+            <div className="grid grid-cols-3 gap-3 mt-1">
+              {[
+                { label: '+3 meses', value: retention.m3, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                { label: '+6 meses', value: retention.m6, color: 'text-brand-primary', bg: 'bg-brand-primary/10 border-brand-primary/20' },
+                { label: '+12 meses', value: retention.m12, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20' },
+              ].map(({ label, value, color, bg }) => (
+                <div key={label} className={`rounded-xl p-3 text-center border ${bg}`}>
+                  <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                  <p className="text-[11px] text-ink-muted mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {canSeeTraining && (
         <Card className="overflow-hidden p-0">

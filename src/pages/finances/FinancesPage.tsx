@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, TrendingUp, TrendingDown, Search, Pencil, Trash2, Download } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, Search, Pencil, Trash2, Download, MessageCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -14,9 +14,28 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import type { Income, Expense, Student } from '@/types/database'
 import toast from 'react-hot-toast'
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
+} from 'recharts'
+import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
 type Tab = 'income' | 'expenses'
+
+const MES_LABELS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
+function buildPaymentReminderWaUrl(phone: string | null | undefined, studentName: string, amount: number, mesLabel: string): string | null {
+  const digits = normalizePhoneForWhatsApp(phone)
+  if (!digits) return null
+  const msg = [
+    `Hola ${studentName}, te recuerdo que la cuota de ${mesLabel} está pendiente.`,
+    '',
+    `Monto: ${formatCurrency(amount)}`,
+    '',
+    'Cualquier consulta sobre el método de pago, avisame. Gracias!',
+  ].join('\n')
+  return buildWhatsAppUrl(digits, msg)
+}
 
 // ─── Metric pill ──────────────────────────────────────────────────────────────
 function MetricCard({ label, value, color }: { label: string; value: string; color: string }) {
@@ -63,6 +82,7 @@ export function FinancesPage() {
   const [tab, setTab] = useState<Tab>((searchParams.get('tab') as Tab) ?? 'income')
   const [incomes, setIncomes] = useState<IncomeWithStudent[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -74,15 +94,20 @@ export function FinancesPage() {
     if (!user) return
     setLoading(true)
     try {
-      const [{ data: incomeData, error: incomeErr }, { data: expenseData, error: expenseErr }] =
-        await Promise.all([
+      const [
+        { data: incomeData, error: incomeErr },
+        { data: expenseData, error: expenseErr },
+        { data: studentData },
+      ] = await Promise.all([
           supabase.from('income').select('*, student:students(full_name)').eq('owner_id', user.id).order('income_date', { ascending: false }),
           supabase.from('expenses').select('*').eq('owner_id', user.id).order('expense_date', { ascending: false }),
+          supabase.from('students').select('id, full_name, phone, status').eq('owner_id', user.id).eq('status', 'activo'),
         ])
       if (incomeErr) toast.error(incomeErr.message)
       else setIncomes((incomeData as unknown as IncomeWithStudent[]) ?? [])
       if (expenseErr) toast.error(expenseErr.message)
       else setExpenses(expenseData ?? [])
+      setStudents((studentData as Student[]) ?? [])
     } finally {
       setLoading(false)
     }
@@ -129,10 +154,44 @@ export function FinancesPage() {
   }
 
   // ── Totals ──
-  const totalIngresos = incomes.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
+  const totalIngresos  = incomes.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
   const totalPendiente = incomes.filter((i) => i.status === 'pendiente').reduce((s, i) => s + i.amount, 0)
-  const totalGastos = expenses.reduce((s, e) => s + e.amount, 0)
-  const balance = totalIngresos - totalGastos
+  const totalGastos    = expenses.reduce((s, e) => s + e.amount, 0)
+  const balance        = totalIngresos - totalGastos
+
+  // ── Month comparison ──
+  const now           = new Date()
+  const thisMonthKey  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const prevMonthKey  = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`
+  const MES_LABELS    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  const thisMesTotal  = incomes.filter((i) => i.status === 'cobrado' && i.income_date.startsWith(thisMonthKey)).reduce((s, i) => s + i.amount, 0)
+  const prevMesTotal  = incomes.filter((i) => i.status === 'cobrado' && i.income_date.startsWith(prevMonthKey)).reduce((s, i) => s + i.amount, 0)
+  const mesDelta      = prevMesTotal > 0 ? Math.round(((thisMesTotal - prevMesTotal) / prevMesTotal) * 100) : null
+
+  // ── Deudores (alumnos con cuota configurada pero sin pago este mes) ──
+  const deudores = students
+    .map((s) => {
+      const raw = localStorage.getItem(`cuota_mensual_${s.id}`)
+      if (!raw) return null
+      const cuota = Number(raw)
+      const paid  = incomes
+        .filter((i) => i.status === 'cobrado' && i.student_id === s.id && i.income_date.startsWith(thisMonthKey))
+        .reduce((sum, i) => sum + i.amount, 0)
+      if (paid >= cuota) return null
+      return { student: s, cuota, paid, pending: cuota - paid }
+    })
+    .filter(Boolean) as { student: Student; cuota: number; paid: number; pending: number }[]
+
+  // ── Gráfico anual (últimos 12 meses) ──
+  const annualChartData = Array.from({ length: 12 }, (_, i) => {
+    const d    = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
+    const key  = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const total = incomes
+      .filter((inc) => inc.status === 'cobrado' && inc.income_date.startsWith(key))
+      .reduce((s, inc) => s + inc.amount, 0)
+    return { mes: MES_LABELS[d.getMonth()], total, isCurrent: key === thisMonthKey }
+  })
 
   // ── Filtered lists ──
   const filteredIncomes = incomes.filter((i) =>
@@ -234,15 +293,97 @@ export function FinancesPage() {
 
         {/* ── Global metrics ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
-            label="Balance neto"
-            value={formatCurrency(balance)}
-            color={balance >= 0 ? 'text-status-generated' : 'text-status-expired'}
-          />
-          <MetricCard label="Ingresos cobrados" value={formatCurrency(totalIngresos)} color="text-status-generated" />
-          <MetricCard label="Ingresos pendientes" value={formatCurrency(totalPendiente)} color="text-status-expiring" />
+          <MetricCard label="Balance neto" value={formatCurrency(balance)} color={balance >= 0 ? 'text-status-generated' : 'text-status-expired'} />
+          <MetricCard label="Cobrado total" value={formatCurrency(totalIngresos)} color="text-status-generated" />
+          <MetricCard label="Pendiente" value={formatCurrency(totalPendiente)} color="text-status-expiring" />
           <MetricCard label="Total gastos" value={formatCurrency(totalGastos)} color="text-status-expired" />
         </div>
+
+        {/* ── Month comparison ── */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-surface-card border border-surface-border rounded-2xl p-4 flex flex-col gap-1">
+            <p className="text-[11px] text-ink-muted font-medium">
+              {MES_LABELS[now.getMonth()]} (cobrado)
+              {mesDelta !== null && (
+                <span className={`ml-2 font-bold ${mesDelta >= 0 ? 'text-status-generated' : 'text-status-expired'}`}>
+                  {mesDelta >= 0 ? '+' : ''}{mesDelta}%
+                </span>
+              )}
+            </p>
+            <p className="text-xl font-bold text-status-generated">{formatCurrency(thisMesTotal)}</p>
+          </div>
+          <div className="bg-surface-card border border-surface-border rounded-2xl p-4 flex flex-col gap-1">
+            <p className="text-[11px] text-ink-muted font-medium">{MES_LABELS[prevMonthDate.getMonth()]} (cobrado)</p>
+            <p className="text-xl font-bold text-ink-secondary">{formatCurrency(prevMesTotal)}</p>
+          </div>
+        </div>
+
+        {/* ── Gráfico anual ── */}
+        <Card>
+          <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-3">Ingresos cobrados — últimos 12 meses</p>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={annualChartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1000 ? `${Math.round(v/1000)}k` : String(v)} />
+              <Tooltip
+                contentStyle={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-surface-border)', borderRadius: 8, fontSize: 11 }}
+                formatter={(v: number) => [formatCurrency(v), 'Cobrado']}
+              />
+              <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                {annualChartData.map((entry, index) => (
+                  <Cell key={index} fill={entry.isCurrent ? 'var(--color-brand-primary)' : 'rgba(255,140,0,0.35)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* ── Deudores pendientes ── */}
+        {deudores.length > 0 && (
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+              <p className="text-sm font-semibold text-ink-primary">
+                Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}
+              </p>
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                {deudores.length}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {deudores.map(({ student, cuota, paid, pending }) => {
+                const waUrl = buildPaymentReminderWaUrl(student.phone, student.full_name, pending, MES_LABELS_FULL[now.getMonth()])
+                return (
+                  <div key={student.id} className="flex items-center gap-3 rounded-xl bg-surface-elevated px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink-primary truncate">{student.full_name}</p>
+                      <p className="text-xs text-ink-muted">
+                        Cuota: {formatCurrency(cuota)}
+                        {paid > 0 && ` · Cobrado: ${formatCurrency(paid)}`}
+                        {' · '}
+                        <span className="text-amber-400 font-medium">Pendiente: {formatCurrency(pending)}</span>
+                      </p>
+                    </div>
+                    {waUrl ? (
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600/15 border border-emerald-600/30 text-emerald-400 text-xs font-medium hover:bg-emerald-600/25 transition-colors"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        Recordar
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-ink-muted">Sin teléfono</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        )}
 
         {/* ── Tabs + search ── */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">

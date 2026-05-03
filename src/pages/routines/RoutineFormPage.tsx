@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, addDays } from 'date-fns'
+import { Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRoutines } from '@/hooks/useRoutines'
 import { useAuthStore } from '@/stores/authStore'
@@ -48,6 +49,7 @@ export function RoutineFormPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
     defaultValues: {
       student_id: searchParams.get('student') ?? '',
       start_date: format(new Date(), 'yyyy-MM-dd'),
@@ -260,21 +262,36 @@ export function RoutineFormPage() {
               error={errors.plan_name?.message}
               {...register('plan_name')}
             />
-            {!isEditing && (
-              <div>
-                <label className="block text-sm font-medium text-ink-primary mb-1.5">Copiar estructura desde otra rutina (opcional)</label>
+            {!isEditing && routineTemplates.length > 0 && (
+              <div className="rounded-2xl border-2 border-dashed border-surface-border bg-surface-elevated/40 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Copy className="h-4 w-4 text-brand-primary shrink-0" />
+                  <span className="text-sm font-semibold text-ink-primary">Usar plantilla</span>
+                  <span className="ml-auto text-[10px] text-ink-muted bg-surface-border px-2 py-0.5 rounded-full">opcional</span>
+                </div>
+                <p className="text-xs text-ink-secondary leading-relaxed">
+                  Copiá bloques, días y ejercicios de una rutina existente para no empezar desde cero.
+                </p>
                 <select
                   value={templateRoutineId}
                   onChange={(e) => setTemplateRoutineId(e.target.value)}
-                  className="w-full bg-surface-input border border-surface-inputBorder text-ink-primary rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-surface-card border border-surface-border text-ink-primary rounded-xl px-3 py-2.5 text-sm focus:border-brand-primary outline-none"
                 >
-                  <option value="">Comenzar desde cero</option>
+                  <option value="">— Comenzar desde cero —</option>
                   {routineTemplates.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}{r.student_name ? ` · ${r.student_name}` : ''}
                     </option>
                   ))}
                 </select>
+                {templateRoutineId && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20">
+                    <Check className="h-3.5 w-3.5 text-brand-primary shrink-0" />
+                    <span className="text-xs text-brand-primary font-medium">
+                      La estructura de bloques y ejercicios se copiará al crear la rutina
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </FormSection>

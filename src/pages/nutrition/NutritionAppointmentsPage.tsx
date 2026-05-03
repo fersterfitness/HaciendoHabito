@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import { CalendarClock, ChevronLeft, ChevronRight, Grid2x2, List, MessageCircle } from 'lucide-react'
+import { CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Grid2x2, List, MessageCircle } from 'lucide-react'
 import {
   buildAppointmentConfirmationWaUrl,
   buildAppointmentFeedbackWaUrl,
@@ -13,7 +13,11 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { Appointment, Student, AppointmentStatus } from '@/types/database'
 import toast from 'react-hot-toast'
-import { addDays, addWeeks, format, isSameDay, parseISO, startOfWeek } from 'date-fns'
+import {
+  addDays, addMonths, addWeeks, eachDayOfInterval,
+  endOfMonth, endOfWeek, format, getMonth, isSameDay, isToday,
+  parseISO, startOfMonth, startOfWeek,
+} from 'date-fns'
 import { es } from 'date-fns/locale'
 
 async function parseFunctionErrorMessage(error: unknown) {
@@ -65,7 +69,7 @@ function appointmentPhoneRaw(a: AppointmentRow, studentsById: Map<string, Studen
   if (fromJoin) return fromJoin
   return studentsById.get(a.student_id)?.phone?.trim() || undefined
 }
-type ViewMode = 'week' | 'agenda'
+type ViewMode = 'week' | 'agenda' | 'month'
 
 const STATUS_BADGE: Record<AppointmentStatus, string> = {
   scheduled: 'bg-blue-500/10 text-blue-300 border-blue-500/40',
@@ -86,6 +90,7 @@ export function NutritionAppointmentsPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [weekAnchor, setWeekAnchor] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const [monthAnchor, setMonthAnchor] = useState(() => startOfMonth(new Date()))
   const [form, setForm] = useState({
     student_id: '',
     starts_at: '',
@@ -94,8 +99,14 @@ export function NutritionAppointmentsPage() {
     location: '',
     notes: '',
   })
+  const [recurring, setRecurring]       = useState(false)
+  const [recurWeeks, setRecurWeeks]     = useState(4)
+  // Week view appointment popover
+  const [weekPopover, setWeekPopover]   = useState<{ apptId: string; top: number; left: number } | null>(null)
 
   const profileType = profile?.role === 'nutritionist' ? 'nutritionist' : 'trainer'
+  const [completingId, setCompletingId] = useState<string | null>(null)
+  const [completingNote, setCompletingNote] = useState('')
 
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students])
 
@@ -124,6 +135,23 @@ export function NutritionAppointmentsPage() {
   const upcoming = useMemo(() => appointments.filter((a) => a.status === 'scheduled' || a.status === 'confirmed'), [appointments])
   const history = useMemo(() => appointments.filter((a) => a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show'), [appointments])
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(weekAnchor, index)), [weekAnchor])
+  const monthDays = useMemo(() => {
+    const first = startOfMonth(monthAnchor)
+    const last  = endOfMonth(monthAnchor)
+    return eachDayOfInterval({
+      start: startOfWeek(first, { weekStartsOn: 1 }),
+      end:   endOfWeek(last,  { weekStartsOn: 1 }),
+    })
+  }, [monthAnchor])
+
+  function handlePrev() {
+    if (viewMode === 'month') setMonthAnchor((p) => addMonths(p, -1))
+    else setWeekAnchor((p) => addWeeks(p, -1))
+  }
+  function handleNext() {
+    if (viewMode === 'month') setMonthAnchor((p) => addMonths(p, 1))
+    else setWeekAnchor((p) => addWeeks(p, 1))
+  }
   const weekAppointments = useMemo(
     () =>
       appointments
@@ -186,6 +214,35 @@ export function NutritionAppointmentsPage() {
       const endMs = startMs + mins * 60 * 1000
       const startsAtIso = new Date(startMs).toISOString()
       const endsAtIso = new Date(endMs).toISOString()
+
+      // Recurring: insert N copies spaced by 7 days
+      if (recurring && recurWeeks > 1) {
+        const rows = Array.from({ length: recurWeeks }, (_, i) => {
+          const offset = i * 7 * 24 * 60 * 60 * 1000
+          return {
+            owner_id:     user.id,
+            student_id:   form.student_id,
+            profile_type: profileType,
+            starts_at:    new Date(startMs + offset).toISOString(),
+            ends_at:      new Date(endMs   + offset).toISOString(),
+            title:        form.title.trim(),
+            location:     form.location.trim() || null,
+            notes:        form.notes.trim() || null,
+            status:       'scheduled' as const,
+          }
+        })
+        const { data: recData, error: recErr } = await supabase
+          .from('appointments')
+          .insert(rows)
+          .select('*, student:students(full_name, phone)')
+        if (recErr) { toast.error(recErr.message); return }
+        const recAppts = recData as AppointmentRow[]
+        setAppointments((prev) => [...prev, ...recAppts].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
+        setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
+        setRecurring(false); setRecurWeeks(4)
+        toast.success(`${recurWeeks} turnos recurrentes agendados`)
+        return
+      }
 
       const { data, error } = await supabase
         .from('appointments')
@@ -278,15 +335,17 @@ export function NutritionAppointmentsPage() {
     }
   }
 
-  async function updateStatus(id: string, status: AppointmentStatus) {
+  async function updateStatus(id: string, status: AppointmentStatus, sessionNotes?: string) {
     if (!user) return
     const prev = appointments.find((a) => a.id === id)
-    const { error } = await supabase.from('appointments').update({ status }).eq('id', id).eq('owner_id', user.id)
+    const updatePayload: { status: AppointmentStatus; notes?: string } = { status }
+    if (sessionNotes !== undefined) updatePayload.notes = sessionNotes.trim() || undefined
+    const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
       return
     }
-    setAppointments((prevList) => prevList.map((a) => (a.id === id ? { ...a, status } : a)))
+    setAppointments((prevList) => prevList.map((a) => (a.id === id ? { ...a, status, ...(sessionNotes !== undefined && { notes: sessionNotes.trim() || undefined }) } : a)))
 
     if (status === 'completed' && prev) {
       const studentName = prev.student?.full_name ?? '—'
@@ -400,9 +459,33 @@ export function NutritionAppointmentsPage() {
               />
             </label>
           </div>
+          <div className="flex items-center gap-3 mt-1">
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={recurring}
+                onChange={(e) => setRecurring(e.target.checked)}
+                className="accent-brand-primary h-4 w-4"
+              />
+              <span className="text-xs text-ink-secondary">Repetir semanalmente</span>
+            </label>
+            {recurring && (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={2}
+                  max={52}
+                  value={recurWeeks}
+                  onChange={(e) => setRecurWeeks(Math.max(2, Math.min(52, Number(e.target.value))))}
+                  className="w-16 rounded-lg bg-surface-input border border-surface-inputBorder text-ink-primary text-xs px-2 py-1.5 text-center"
+                />
+                <span className="text-xs text-ink-muted">semanas</span>
+              </div>
+            )}
+          </div>
           <div className="mt-3">
             <Button size="sm" onClick={createAppointment} loading={creating}>
-              Guardar turno
+              {recurring ? `Agendar ${recurWeeks} turnos` : 'Guardar turno'}
             </Button>
           </div>
         </Card>
@@ -416,7 +499,10 @@ export function NutritionAppointmentsPage() {
               <div>
                 <CardTitle className="mb-0.5">Calendario de turnos</CardTitle>
                 <p className="text-xs text-ink-secondary">
-                  Semana del {format(weekAnchor, "d 'de' MMMM", { locale: es })}
+                  {viewMode === 'month'
+                    ? format(monthAnchor, "MMMM yyyy", { locale: es })
+                    : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
+                  }
                 </p>
               </div>
             </div>
@@ -431,6 +517,13 @@ export function NutritionAppointmentsPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setViewMode('month')}
+                  className={`px-2 py-1.5 text-xs flex items-center gap-1 ${viewMode === 'month' ? 'bg-brand-primary/15 text-brand-primary' : 'text-ink-secondary'}`}
+                >
+                  <CalendarDays className="h-3.5 w-3.5" /> Mes
+                </button>
+                <button
+                  type="button"
                   onClick={() => setViewMode('agenda')}
                   className={`px-2 py-1.5 text-xs flex items-center gap-1 ${viewMode === 'agenda' ? 'bg-brand-primary/15 text-brand-primary' : 'text-ink-secondary'}`}
                 >
@@ -439,14 +532,14 @@ export function NutritionAppointmentsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setWeekAnchor((prev) => addWeeks(prev, -1))}
+                onClick={handlePrev}
                 className="p-1.5 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                onClick={() => setWeekAnchor((prev) => addWeeks(prev, 1))}
+                onClick={handleNext}
                 className="p-1.5 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -454,7 +547,60 @@ export function NutritionAppointmentsPage() {
             </div>
           </div>
 
-          {viewMode === 'week' ? (
+          {viewMode === 'month' ? (
+            <div>
+              {/* Day-of-week header */}
+              <div className="grid grid-cols-7 mb-1">
+                {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map((d) => (
+                  <p key={d} className="text-center text-[10px] font-semibold text-ink-muted uppercase tracking-wide py-1">
+                    {d}
+                  </p>
+                ))}
+              </div>
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 gap-px bg-surface-border rounded-xl overflow-hidden">
+                {monthDays.map((day) => {
+                  const dayAppts = appointments
+                    .filter((a) => a.status !== 'cancelled' && isSameDay(parseISO(a.starts_at), day))
+                    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+                  const isCurrentMonth = getMonth(day) === getMonth(monthAnchor)
+                  const today = isToday(day)
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={`bg-surface-elevated min-h-[80px] p-1.5 ${!isCurrentMonth ? 'opacity-40' : ''}`}
+                    >
+                      <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold mb-1 ${
+                        today
+                          ? 'bg-brand-primary text-white'
+                          : 'text-ink-secondary'
+                      }`}>
+                        {format(day, 'd')}
+                      </span>
+                      <div className="space-y-0.5">
+                        {dayAppts.slice(0, 3).map((a) => (
+                          <div
+                            key={a.id}
+                            title={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
+                            className={`truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default ${
+                              a.status === 'confirmed'
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-brand-primary/15 text-brand-primary'
+                            }`}
+                          >
+                            {format(parseISO(a.starts_at), 'HH:mm')} {a.student?.full_name?.split(' ')[0] ?? a.title}
+                          </div>
+                        ))}
+                        {dayAppts.length > 3 && (
+                          <p className="text-[9px] text-ink-muted pl-1">+{dayAppts.length - 3} más</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : viewMode === 'week' ? (
             <div className="grid md:grid-cols-7 gap-2">
               {weekDays.map((day) => {
                 const dayAppointments = weekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
@@ -469,26 +615,21 @@ export function NutritionAppointmentsPage() {
                         <p className="text-[11px] text-ink-secondary">Sin turnos</p>
                       ) : (
                         dayAppointments.map((a) => (
-                          <div
+                          <button
                             key={a.id}
-                            className={`rounded-lg border px-2 py-1 ${a.profile_type === 'nutritionist' ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-blue-500/40 bg-blue-500/10'}`}
+                            type="button"
+                            onClick={(e) => {
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                              if (weekPopover?.apptId === a.id) { setWeekPopover(null) }
+                              else setWeekPopover({ apptId: a.id, top: rect.bottom + 4, left: rect.left })
+                            }}
+                            className={`w-full text-left rounded-lg border px-2 py-1 transition-opacity hover:opacity-90 ${a.profile_type === 'nutritionist' ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-blue-500/40 bg-blue-500/10'}`}
                           >
                             <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>
                             <p className="text-[11px] text-ink-secondary">
                               {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                             </p>
-                            {(a.status === 'scheduled' || a.status === 'confirmed') && (
-                              <button
-                                type="button"
-                                title="Pedir confirmación por WhatsApp"
-                                onClick={() => openAppointmentConfirmationWa(a)}
-                                className="mt-1 w-full inline-flex items-center justify-center gap-1 rounded-md border border-emerald-600/35 bg-emerald-600/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600/15"
-                              >
-                                <MessageCircle className="h-3 w-3 shrink-0" />
-                                WhatsApp
-                              </button>
-                            )}
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>
@@ -514,38 +655,71 @@ export function NutritionAppointmentsPage() {
                         {a.status}
                       </span>
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => updateStatus(a.id, 'confirmed')}
-                        className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
-                      >
-                        Confirmar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => updateStatus(a.id, 'completed')}
-                        className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
-                      >
-                        Completar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => updateStatus(a.id, 'cancelled')}
-                        className="text-[11px] px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openAppointmentConfirmationWa(a)}
-                        title="Abre WhatsApp con mensaje para confirmar el turno (misma plantilla que al crear)."
-                        className="text-[11px] px-2 py-1 rounded-lg border border-emerald-600/40 text-emerald-700 dark:text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/15 inline-flex items-center gap-1"
-                      >
-                        <MessageCircle className="h-3 w-3" />
-                        Confirmación WA
-                      </button>
-                    </div>
+                    {completingId === a.id ? (
+                      <div className="mt-2 space-y-2">
+                        <textarea
+                          autoFocus
+                          rows={3}
+                          value={completingNote}
+                          onChange={(e) => setCompletingNote(e.target.value)}
+                          placeholder="Notas de la sesión (opcional)..."
+                          className="w-full rounded-xl bg-surface-input border border-brand-primary/40 text-ink-primary text-xs px-3 py-2 resize-none focus:outline-none focus:border-brand-primary"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await updateStatus(a.id, 'completed', completingNote)
+                              setCompletingId(null)
+                              setCompletingNote('')
+                            }}
+                            className="text-[11px] px-3 py-1.5 rounded-lg bg-brand-primary text-white font-medium hover:bg-brand-primary/90"
+                          >
+                            Guardar y completar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setCompletingId(null); setCompletingNote('') }}
+                            className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(a.id, 'confirmed')}
+                          className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
+                        >
+                          Confirmar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setCompletingId(a.id); setCompletingNote('') }}
+                          className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
+                        >
+                          Completar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(a.id, 'cancelled')}
+                          className="text-[11px] px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openAppointmentConfirmationWa(a)}
+                          title="Abre WhatsApp con mensaje para confirmar el turno (misma plantilla que al crear)."
+                          className="text-[11px] px-2 py-1 rounded-lg border border-emerald-600/40 text-emerald-700 dark:text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/15 inline-flex items-center gap-1"
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          Confirmación WA
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -570,6 +744,11 @@ export function NutritionAppointmentsPage() {
                   <p className="text-xs text-ink-secondary mt-0.5">
                     {a.student?.full_name ?? 'Paciente'} · {new Date(a.starts_at).toLocaleString('es-AR')}
                   </p>
+                  {a.notes && (
+                    <p className="mt-1 text-xs text-ink-muted bg-surface-border/30 rounded-lg px-2.5 py-1.5 italic leading-snug">
+                      {a.notes}
+                    </p>
+                  )}
                   {a.status === 'completed' && (
                     <button
                       type="button"
@@ -587,6 +766,59 @@ export function NutritionAppointmentsPage() {
           )}
         </Card>
       </div>
+
+      {/* ── Week view appointment popover ── */}
+      {weekPopover && (() => {
+        const appt = appointments.find((a) => a.id === weekPopover.apptId)
+        if (!appt) return null
+        return (
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setWeekPopover(null)} />
+            <div
+              style={{ position: 'fixed', top: weekPopover.top, left: weekPopover.left }}
+              className="z-[9999] w-52 rounded-2xl border border-surface-border bg-surface-card shadow-2xl p-3 space-y-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-xs font-semibold text-ink-primary truncate">{appt.title}</p>
+              <p className="text-[11px] text-ink-muted">
+                {format(parseISO(appt.starts_at), 'HH:mm')} · {appt.student?.full_name ?? '—'}
+              </p>
+              {(appt.status === 'scheduled' || appt.status === 'confirmed') && (
+                <div className="space-y-1 pt-1 border-t border-surface-border">
+                  <button
+                    type="button"
+                    onClick={() => { void updateStatus(appt.id, 'confirmed'); setWeekPopover(null) }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors"
+                  >
+                    ✓ Confirmar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCompletingId(appt.id); setCompletingNote(''); setWeekPopover(null) }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors"
+                  >
+                    ✓ Completar (con nota)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { openAppointmentConfirmationWa(appt); setWeekPopover(null) }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-400 hover:bg-emerald-500/10 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <MessageCircle className="h-3 w-3" /> WhatsApp confirmación
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { void updateStatus(appt.id, 'cancelled'); setWeekPopover(null) }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-status-expired hover:bg-status-expired/10 transition-colors"
+                  >
+                    ✕ Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )
+      })()}
     </div>
   )
 }

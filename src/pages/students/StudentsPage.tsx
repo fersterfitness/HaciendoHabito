@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Users, Pencil, Trash2, ChevronDown, Filter } from 'lucide-react'
+import { Plus, Search, Users, Pencil, Trash2, ChevronDown, Filter, Dumbbell, X, Download, Tag } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -158,10 +158,197 @@ function StatusToggle({
 
 type LevelFilter  = '' | 'inicial' | 'intermedio' | 'avanzado'
 type StatusFilter = '' | StudentStatus
+type ExpiryFilter = '' | 'pronto' | 'vencido'
+
+function exportStudentsCSV(students: Student[]) {
+  const rows = [
+    ['Nombre', 'Email', 'Teléfono', 'Nivel', 'Estado', 'Nacimiento', 'Venc. Plan'],
+    ...students.map((s) => [
+      s.full_name,
+      s.email ?? '',
+      s.phone ?? '',
+      LEVEL_LABELS[s.level] ?? s.level,
+      s.status,
+      s.birth_date ?? '',
+      s.plan_end_date ?? '',
+    ]),
+  ]
+  const csv  = 'sep=;\n' + rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(';')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = `alumnos_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ─── FiltersDropdown ──────────────────────────────────────────────────────────
+function FiltersDropdown({
+  filterLevel, setFilterLevel,
+  filterStatus, setFilterStatus,
+  filterExpiry, setFilterExpiry,
+  filterTag, setFilterTag, allTags,
+}: {
+  filterLevel: LevelFilter
+  setFilterLevel: (v: LevelFilter) => void
+  filterStatus: StatusFilter
+  setFilterStatus: (v: StatusFilter) => void
+  filterExpiry: ExpiryFilter
+  setFilterExpiry: (v: ExpiryFilter) => void
+  filterTag: string
+  setFilterTag: (v: string) => void
+  allTags: string[]
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const activeCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0) + (filterTag ? 1 : 0)
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative inline-flex shrink-0">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => {
+          const rect = btnRef.current?.getBoundingClientRect()
+          if (rect) setPos({ top: rect.bottom + 4, left: rect.left })
+          setOpen((o) => !o)
+        }}
+        className={cn(
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors',
+          activeCount > 0
+            ? 'bg-brand-primary/10 border-brand-primary/40 text-brand-primary'
+            : 'bg-surface-elevated border-surface-border text-ink-secondary hover:text-ink-primary',
+        )}
+      >
+        <Filter className="h-3.5 w-3.5" />
+        Filtrar
+        {activeCount > 0 && (
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-primary text-white text-[10px] font-bold">
+            {activeCount}
+          </span>
+        )}
+        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div
+          style={{ position: 'fixed', top: pos.top, left: pos.left }}
+          className="z-[9999] w-52 rounded-2xl border border-surface-border bg-surface-card shadow-xl p-3 space-y-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Nivel */}
+          <div>
+            <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Nivel</p>
+            {(['', 'inicial', 'intermedio', 'avanzado'] as LevelFilter[]).map((v) => (
+              <button
+                key={v || 'all-nivel'}
+                type="button"
+                onClick={() => setFilterLevel(v)}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                  filterLevel === v
+                    ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                    : 'text-ink-secondary hover:bg-surface-elevated',
+                )}
+              >
+                {v === '' ? 'Todos' : LEVEL_LABELS[v]}
+              </button>
+            ))}
+          </div>
+
+          <div className="border-t border-surface-border pt-2">
+            <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Estado</p>
+            {([{ value: '' as StatusFilter, label: 'Todos' }, ...STATUS_OPTIONS]).map((opt) => (
+              <button
+                key={opt.value || 'all-status'}
+                type="button"
+                onClick={() => setFilterStatus(opt.value)}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                  filterStatus === opt.value
+                    ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                    : 'text-ink-secondary hover:bg-surface-elevated',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="border-t border-surface-border pt-2">
+            <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Plan</p>
+            {([
+              { value: '' as ExpiryFilter, label: 'Todos' },
+              { value: 'pronto' as ExpiryFilter, label: 'Vence en ≤14 días' },
+              { value: 'vencido' as ExpiryFilter, label: 'Plan vencido' },
+            ]).map((opt) => (
+              <button
+                key={opt.value || 'all-expiry'}
+                type="button"
+                onClick={() => setFilterExpiry(opt.value)}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                  filterExpiry === opt.value
+                    ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                    : 'text-ink-secondary hover:bg-surface-elevated',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {allTags.length > 0 && (
+            <div className="border-t border-surface-border pt-2">
+              <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Etiqueta</p>
+              {(['', ...allTags]).map((t) => (
+                <button
+                  key={t || 'all-tag'}
+                  type="button"
+                  onClick={() => setFilterTag(t)}
+                  className={cn(
+                    'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5',
+                    filterTag === t
+                      ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                      : 'text-ink-secondary hover:bg-surface-elevated',
+                  )}
+                >
+                  {t ? <><Tag className="h-3 w-3 shrink-0" />{t}</> : 'Todas'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={() => { setFilterLevel(''); setFilterStatus(''); setFilterExpiry(''); setFilterTag(''); setOpen(false) }}
+              className="w-full flex items-center justify-center gap-1 text-xs text-ink-muted hover:text-status-expired border-t border-surface-border pt-2 transition-colors"
+            >
+              <X className="h-3 w-3" />
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function StudentsPage() {
   const navigate = useNavigate()
   const role = useAuthStore((state) => state.profile?.role)
+  const user = useAuthStore((state) => state.user)
   const entityLabel = role === 'nutritionist' ? 'Pacientes' : 'Alumnos'
   const entityLabelSingular = role === 'nutritionist' ? 'paciente' : 'alumno'
   const { students, loading, fetchStudents, deleteStudent } = useStudents()
@@ -169,10 +356,48 @@ export function StudentsPage() {
   const [search, setSearch] = useState('')
   const [filterLevel,  setFilterLevel]  = useState<LevelFilter>('')
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('')
+  const [filterExpiry, setFilterExpiry] = useState<ExpiryFilter>('')
+  const [filterTag,    setFilterTag]    = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
+  const [routineExpiryMap, setRoutineExpiryMap] = useState<Map<string, string>>(new Map())
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetchStudents() }, [fetchStudents])
+  useEffect(() => {
+    fetchStudents()
+    if (!user) return
+    supabase
+      .from('routines')
+      .select('student_id, end_date, status')
+      .eq('owner_id', user.id)
+      .in('status', ['activa', 'por_vencer'])
+      .then(({ data }) => {
+        const ids  = new Set<string>()
+        const expMap = new Map<string, string>()
+        for (const r of (data ?? [])) {
+          const sid = r.student_id as string
+          ids.add(sid)
+          const d = daysUntil(r.end_date as string)
+          if (d >= 0 && d <= 7) expMap.set(sid, r.end_date as string)
+        }
+        setActiveRoutineStudentIds(ids)
+        setRoutineExpiryMap(expMap)
+      })
+  }, [fetchStudents, user])
+
+  // Keyboard shortcut: press '/' to focus search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
   useEffect(() => { setLocalStudents(students) }, [students])
 
   const handleSearch = useCallback(
@@ -201,86 +426,109 @@ export function StudentsPage() {
     )
   }
 
+  // Compute all unique tags from localStorage
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>()
+    for (const s of localStudents) {
+      const raw = localStorage.getItem(`tags_${s.id}`)
+      if (raw) {
+        try { (JSON.parse(raw) as string[]).forEach((t) => tagSet.add(t)) } catch { /* ignore */ }
+      }
+    }
+    return Array.from(tagSet).sort()
+  }, [localStudents])
+
   const filtered = useMemo(() => localStudents.filter((s) => {
     if (filterLevel  && s.level  !== filterLevel)  return false
     if (filterStatus && s.status !== filterStatus) return false
+    if (filterExpiry) {
+      if (!s.plan_end_date) return false
+      const d = daysUntil(s.plan_end_date)
+      if (filterExpiry === 'pronto'  && !(d >= 0 && d <= 14)) return false
+      if (filterExpiry === 'vencido' && d >= 0)               return false
+    }
+    if (filterTag) {
+      const raw = localStorage.getItem(`tags_${s.id}`)
+      if (!raw) return false
+      try {
+        const tags = JSON.parse(raw) as string[]
+        if (!tags.includes(filterTag)) return false
+      } catch { return false }
+    }
     return true
-  }), [localStudents, filterLevel, filterStatus])
+  }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag])
 
   const grouped = {
     activo:   filtered.filter((s) => s.status === 'activo'),
     inactivo: filtered.filter((s) => s.status !== 'activo'),
   }
 
-  const hasFilters = filterLevel !== '' || filterStatus !== ''
-
   return (
     <div>
       <Header
         title={entityLabel}
         actions={
-          <Button
-            size="sm"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => navigate('/students/new')}
-          >
-            Nuevo
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportStudentsCSV(filtered)}
+              title="Exportar CSV"
+              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated px-2.5 py-1.5 rounded-lg transition-colors border border-surface-border"
+            >
+              <Download className="h-3.5 w-3.5" /> CSV
+            </button>
+            <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/students/new')}>
+              Nuevo
+            </Button>
+          </div>
         }
       />
 
       <div className="px-4 lg:px-6 py-6 space-y-6">
         <Input
-          placeholder={`Buscar ${entityLabelSingular}...`}
+          ref={searchRef}
+          placeholder={`Buscar ${entityLabelSingular}... (/ para enfocar)`}
           leftIcon={<Search className="h-4 w-4" />}
           value={search}
           onChange={(e) => handleSearch(e.target.value)}
         />
 
         {/* ── Filtros ── */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="h-3.5 w-3.5 text-ink-muted shrink-0" />
-          {/* Nivel */}
-          {(['', 'inicial', 'intermedio', 'avanzado'] as LevelFilter[]).map((v) => (
-            <button
-              key={v || 'all-nivel'}
-              onClick={() => setFilterLevel(v)}
-              className={cn(
-                'px-3 py-1 rounded-lg text-xs font-medium transition-colors border',
-                filterLevel === v
-                  ? 'bg-brand-primary text-white border-brand-primary'
-                  : 'bg-surface-elevated text-ink-muted border-surface-border hover:text-ink-primary',
-              )}
-            >
-              {v === '' ? 'Todos los niveles' : LEVEL_LABELS[v]}
-            </button>
-          ))}
-          <span className="w-px h-4 bg-surface-border" />
-          {/* Estado */}
-          {([
-            { value: '' as StatusFilter, label: 'Todos' },
-            ...STATUS_OPTIONS,
-          ]).map((opt) => (
-            <button
-              key={opt.value || 'all-status'}
-              onClick={() => setFilterStatus(opt.value)}
-              className={cn(
-                'px-3 py-1 rounded-lg text-xs font-medium transition-colors border',
-                filterStatus === opt.value
-                  ? 'bg-brand-primary text-white border-brand-primary'
-                  : 'bg-surface-elevated text-ink-muted border-surface-border hover:text-ink-primary',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-          {hasFilters && (
-            <button
-              onClick={() => { setFilterLevel(''); setFilterStatus('') }}
-              className="ml-1 text-xs text-ink-muted hover:text-status-expired transition-colors underline underline-offset-2"
-            >
-              Limpiar
-            </button>
+        <div className="flex items-center gap-3">
+          <FiltersDropdown
+            filterLevel={filterLevel}
+            setFilterLevel={setFilterLevel}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            filterExpiry={filterExpiry}
+            setFilterExpiry={setFilterExpiry}
+            filterTag={filterTag}
+            setFilterTag={setFilterTag}
+            allTags={allTags}
+          />
+          {/* Chips de filtros activos */}
+          {filterLevel && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+              {LEVEL_LABELS[filterLevel]}
+              <button onClick={() => setFilterLevel('')}><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {filterStatus && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+              {STATUS_OPTIONS.find((o) => o.value === filterStatus)?.label}
+              <button onClick={() => setFilterStatus('')}><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {filterExpiry && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              {filterExpiry === 'pronto' ? 'Vence pronto' : 'Plan vencido'}
+              <button onClick={() => setFilterExpiry('')}><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {filterTag && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20">
+              <Tag className="h-3 w-3" />{filterTag}
+              <button onClick={() => setFilterTag('')}><X className="h-3 w-3" /></button>
+            </span>
           )}
         </div>
 
@@ -316,6 +564,8 @@ export function StudentsPage() {
                 onAvatarUpdated={() => { void fetchStudents(search) }}
                 entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 students={grouped.activo}
+                activeRoutineStudentIds={activeRoutineStudentIds}
+                routineExpiryMap={routineExpiryMap}
                 onRowClick={(id) => navigate(`/students/${id}`)}
                 onEdit={(id) => navigate(`/students/${id}/edit`)}
                 onDelete={(s) => setDeleteTarget(s)}
@@ -328,6 +578,8 @@ export function StudentsPage() {
                 onAvatarUpdated={() => { void fetchStudents(search) }}
                 entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 students={grouped.inactivo}
+                activeRoutineStudentIds={activeRoutineStudentIds}
+                routineExpiryMap={routineExpiryMap}
                 onRowClick={(id) => navigate(`/students/${id}`)}
                 onEdit={(id) => navigate(`/students/${id}/edit`)}
                 onDelete={(s) => setDeleteTarget(s)}
@@ -360,6 +612,8 @@ function StudentTable({
   onEdit,
   onDelete,
   onStatusChanged,
+  activeRoutineStudentIds,
+  routineExpiryMap,
 }: {
   label: string
   entityLabelColumn: string
@@ -369,6 +623,8 @@ function StudentTable({
   onEdit: (id: string) => void
   onDelete: (student: Student) => void
   onStatusChanged: (id: string, status: StudentStatus) => void
+  activeRoutineStudentIds: Set<string>
+  routineExpiryMap: Map<string, string>
 }) {
   return (
     <section>
@@ -415,7 +671,49 @@ function StudentTable({
                       stopRowNavigation
                       onPathChange={() => onAvatarUpdated()}
                     />
-                    <span className="font-semibold text-ink-primary">{student.full_name}</span>
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <span className="font-semibold text-ink-primary truncate">{student.full_name}</span>
+                      {activeRoutineStudentIds.has(student.id) ? (
+                        <>
+                          <span
+                            title="Rutina activa"
+                            className="shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary/15"
+                          >
+                            <Dumbbell className="h-3 w-3 text-brand-primary" />
+                          </span>
+                          {routineExpiryMap.has(student.id) && (() => {
+                            const d = daysUntil(routineExpiryMap.get(student.id)!)
+                            return (
+                              <span
+                                title="Rutina por vencer"
+                                className="shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-orange-500/15 border border-orange-500/20 text-orange-400 text-[10px] font-medium"
+                              >
+                                {d === 0 ? 'Vence hoy' : `Rutina vence en ${d}d`}
+                              </span>
+                            )
+                          })()}
+                        </>
+                      ) : student.status === 'activo' ? (
+                        <span
+                          title="Sin rutina activa"
+                          className="shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/20 text-amber-400 text-[10px] font-medium"
+                        >
+                          Sin rutina
+                        </span>
+                      ) : null}
+                      {(() => {
+                        const raw = localStorage.getItem(`tags_${student.id}`)
+                        if (!raw) return null
+                        try {
+                          const tags = JSON.parse(raw) as string[]
+                          return tags.slice(0, 2).map((t) => (
+                            <span key={t} className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-medium">
+                              <Tag className="h-2.5 w-2.5" />{t}
+                            </span>
+                          ))
+                        } catch { return null }
+                      })()}
+                    </div>
                   </div>
                 </td>
                 <td className="px-5 py-3.5 text-ink-secondary hidden sm:table-cell">
