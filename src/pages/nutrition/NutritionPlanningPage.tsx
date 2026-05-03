@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Apple,
@@ -1140,14 +1140,16 @@ export function NutritionPlanningPage() {
                 </div>
                 <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
                   <p className="text-[9px] uppercase font-semibold text-ink-muted">Consumido</p>
-                  <p className="text-lg font-bold tabular-nums text-ink-primary">{fmt1(intakeTotals.kcal)}</p>
+                  <p className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-300">{fmt1(intakeTotals.kcal)}</p>
                 </div>
                 <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
                   <p className="text-[9px] uppercase font-semibold text-ink-muted">Restante kcal</p>
                   <p
                     className={cn(
                       'text-lg font-bold tabular-nums',
-                      remainderKcalTarget && remainderKcalTarget.kcal < 0 ? 'text-amber-700 dark:text-amber-300' : 'text-ink-primary',
+                      remainderKcalTarget && remainderKcalTarget.kcal < 0
+                        ? 'text-amber-700 dark:text-amber-300'
+                        : 'text-emerald-700 dark:text-emerald-300',
                     )}
                   >
                     {remainderKcalTarget ? fmt1(remainderKcalTarget.kcal) : targetKcal > 0 ? fmt1(targetKcal - intakeTotals.kcal) : '—'}
@@ -1470,10 +1472,80 @@ export function NutritionPlanningPage() {
               </h2>
             </div>
             <p className="text-sm text-ink-muted mt-1 leading-relaxed">
-              Lo principal que ven en <strong>PDF</strong> / app: momentos del día con alimentos (desde tablas abajo o <strong>Mi lista</strong>) y sus gramos. Notas opcionales. Activá{' '}
-              <strong>media mañana / tarde</strong> si aplican.
+              Cada comida es un bloque en <strong>orden vertical</strong> (como el PDF): tabla con un alimento por fila, separación clara entre desayuno, almuerzo, etc. Cargá desde las tablas abajo o <strong>Mi lista</strong>. Notas opcionales al pie de cada momento. Activá{' '}
+              <strong>media mañana / tarde</strong> si aplican. Las <strong className="text-emerald-700 dark:text-emerald-300">kcal en verde</strong> abajo se actualizan al vuelo con lo que sumás en tablas, Mi lista y esta distribución.
             </p>
           </div>
+
+          {/* Kcal en vivo: visible al armar comidas (sticky dentro del scroll de la página) */}
+          <div className="sticky top-2 z-20">
+            <div className="rounded-xl border border-emerald-300/70 dark:border-emerald-600/45 bg-emerald-50/95 dark:bg-emerald-950/85 backdrop-blur-sm shadow-md px-4 py-3 space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-900/80 dark:text-emerald-200/90 shrink-0">
+                    Kcal del plan (en vivo)
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300 leading-none">
+                    {fmt1(intakeTotals.kcal)}
+                  </span>
+                  <span className="text-xs text-emerald-800/75 dark:text-emerald-200/70">kcal sumadas</span>
+                </div>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase text-emerald-800/65 dark:text-emerald-300/70">Meta</p>
+                    <p className="font-semibold text-ink-primary">{targetKcal > 0 ? `${fmt1(targetKcal)} kcal` : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase text-emerald-800/65 dark:text-emerald-300/70">Restante</p>
+                    <p
+                      className={cn(
+                        'text-lg font-bold',
+                        !remainderKcalTarget && targetKcal <= 0
+                          ? 'text-ink-muted text-base font-medium'
+                          : remainderKcalTarget && remainderKcalTarget.kcal < 0
+                            ? 'text-amber-700 dark:text-amber-300'
+                            : 'text-emerald-800 dark:text-emerald-200',
+                      )}
+                    >
+                      {remainderKcalTarget
+                        ? `${fmt1(remainderKcalTarget.kcal)} kcal`
+                        : targetKcal > 0
+                          ? `${fmt1(targetKcal - intakeTotals.kcal)} kcal`
+                          : 'Definí meta en 2 · Objetivos'}
+                    </p>
+                  </div>
+                  {targetKcal > 0 ? (
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase text-emerald-800/65 dark:text-emerald-300/70">Del objetivo</p>
+                      <p className="font-semibold text-emerald-800 dark:text-emerald-200">
+                        {`${Math.round((100 * intakeTotals.kcal) / targetKcal)} %`}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              {targetKcal > 0 ? (
+                <div className="h-2 rounded-full bg-emerald-200/80 dark:bg-emerald-900/60 overflow-hidden border border-emerald-300/40 dark:border-emerald-700/40">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-[width] duration-300 ease-out"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, (100 * intakeTotals.kcal) / targetKcal))}%`,
+                    }}
+                    role="progressbar"
+                    aria-valuenow={Math.round(intakeTotals.kcal)}
+                    aria-valuemin={0}
+                    aria-valuemax={Math.round(targetKcal)}
+                    aria-label="Avance de kcal respecto a la meta"
+                  />
+                </div>
+              ) : (
+                <p className="text-[11px] text-emerald-900/70 dark:text-emerald-200/65 leading-snug">
+                  Cargá <strong className="font-semibold">Calorías propuestas</strong> en la sección 2 para ver cuánto te falta descontar respecto a la meta.
+                </p>
+              )}
+            </div>
+          </div>
+
           {orphanLibDraftIds.length > 0 ? (
             <div
               role="status"
@@ -1605,7 +1677,7 @@ export function NutritionPlanningPage() {
               Incluir media tarde
             </label>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-6">
             {(
               [
                 { key: 'desayuno' as MealSlotKey, label: MEAL_SLOT_LABELS.desayuno, visible: true },
@@ -1628,10 +1700,11 @@ export function NutritionPlanningPage() {
                     aria-labelledby={`meal-slot-title-${key}`}
                     className="rounded-xl border border-surface-border bg-surface-card overflow-hidden text-sm shadow-sm"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-surface-muted/50 border-b border-surface-border">
+                    {/* Cabecera de momento — alineada al PDF (franja + título) */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
                       <span
                         id={`meal-slot-title-${key}`}
-                        className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted"
+                        className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300"
                       >
                         {label}
                       </span>
@@ -1639,146 +1712,187 @@ export function NutritionPlanningPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="shrink-0 h-8 text-xs gap-1"
+                        className="shrink-0 h-8 text-xs gap-1 border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-900/50"
                         icon={<Plus className="h-3.5 w-3.5" aria-hidden />}
                         onClick={() => setMealPickSlot(key)}
                       >
                         Desde tablas / Mi lista
                       </Button>
                     </div>
-                    <div className="p-3 space-y-3 bg-surface-muted/10">
+                    <div className="bg-slate-50/80 dark:bg-slate-950/40">
                       {picks.length > 0 ? (
-                        <ul className="space-y-2">
-                          {picks.map((p) => {
-                            const macroLine = macroLineForMealPick(p)
-                            const hintText = hintForPickDisplay(p)
-                            const studentQty = buildStudentQuantitySummaryLines({
-                              gramsStr: p.qtyG,
-                              nameSnapshot: p.nameSnapshot,
-                              hint: hintText,
-                              preparation: p.preparation,
-                            })
-                            return (
-                              <li
-                                key={p.id}
-                                className="rounded-lg border border-surface-border/80 bg-surface-card overflow-hidden"
-                              >
-                                <div className="p-2.5 space-y-2">
-                                  <div className="grid grid-cols-1 min-[420px]:grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 items-start">
-                                    <div className="min-w-0 space-y-1">
-                                      <p className="font-medium text-ink-primary text-[13px] leading-snug">
-                                        {displayNameForMealPick(p)}
-                                      </p>
-                                      {macroLine ? (
-                                        <p className="text-[10px] text-ink-muted tabular-nums leading-snug">{macroLine}</p>
-                                      ) : null}
-                                      {studentQty.prepLine ? (
-                                        <p className="text-[10px] text-ink-muted leading-snug">{studentQty.prepLine}</p>
-                                      ) : null}
-                                      {hintText ? (
-                                        <p className="text-[10px] text-ink-muted italic leading-snug border-l-2 border-brand-primary/30 pl-2">
-                                          Tip / unidad: {hintText}
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[520px] border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-surface-border bg-surface-elevated/90 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                                <th className="text-left px-3 py-2 min-w-0">Alimento</th>
+                                <th className="text-left px-2 py-2 hidden md:table-cell">Macros (orient.)</th>
+                                <th className="text-right px-2 py-2 whitespace-nowrap w-[7rem]">Cantidad</th>
+                                <th className="text-right px-2 py-2 w-[6.5rem]">g</th>
+                                <th className="w-11 px-1 py-2" aria-label="Quitar" />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {picks.map((p, rowIdx) => {
+                                const macroLine = macroLineForMealPick(p)
+                                const hintText = hintForPickDisplay(p)
+                                const studentQty = buildStudentQuantitySummaryLines({
+                                  gramsStr: p.qtyG,
+                                  nameSnapshot: p.nameSnapshot,
+                                  hint: hintText,
+                                  preparation: p.preparation,
+                                })
+                                return (
+                                  <Fragment key={p.id}>
+                                    <tr
+                                      className={cn(
+                                        'border-b border-surface-border align-top',
+                                        rowIdx % 2 === 0 ? 'bg-white dark:bg-slate-900/35' : 'bg-slate-50/90 dark:bg-slate-900/20',
+                                      )}
+                                    >
+                                      <td className="px-3 py-2.5 align-top min-w-0 max-w-[40%]">
+                                        <p className="font-semibold text-ink-primary text-[13px] leading-snug">
+                                          {displayNameForMealPick(p)}
                                         </p>
-                                      ) : null}
-                                    </div>
-                                    <div className="flex flex-wrap items-start justify-between gap-2 min-[420px]:flex-col min-[420px]:items-end min-[420px]:justify-start">
-                                      <p className="text-[10px] text-ink-secondary tabular-nums leading-snug min-[420px]:text-right min-[420px]:max-w-[11rem]">
-                                        {studentQty.gramsLine}
-                                      </p>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <span className="text-[10px] text-ink-muted whitespace-nowrap">g</span>
-                                        <Input
-                                          className="h-8 w-[4.25rem] text-xs tabular-nums"
-                                          inputMode="decimal"
-                                          value={p.qtyG}
-                                          onChange={(e) => updateMealPickQty(key, p.id, e.target.value)}
-                                          aria-label={`Gramos · ${displayNameForMealPick(p)}`}
-                                        />
+                                        {studentQty.prepLine ? (
+                                          <p className="text-[10px] text-emerald-700 dark:text-emerald-400/90 leading-snug mt-1">
+                                            {studentQty.prepLine}
+                                          </p>
+                                        ) : null}
+                                        {hintText ? (
+                                          <p className="text-[10px] text-ink-muted italic leading-snug mt-1 border-l-2 border-brand-primary/35 pl-2">
+                                            Tip / unidad: {hintText}
+                                          </p>
+                                        ) : null}
+                                        <div className="mt-2 space-y-1.5 md:hidden">
+                                          {macroLine ? (
+                                            <p className="text-[10px] text-ink-muted tabular-nums leading-snug">
+                                              {macroLine}
+                                            </p>
+                                          ) : null}
+                                        </div>
+                                      </td>
+                                      <td className="px-2 py-2.5 align-top hidden md:table-cell">
+                                        {macroLine ? (
+                                          <p className="text-[10px] text-ink-muted tabular-nums leading-relaxed max-w-[14rem]">
+                                            {macroLine}
+                                          </p>
+                                        ) : (
+                                          <span className="text-ink-muted text-[10px]">—</span>
+                                        )}
+                                      </td>
+                                      <td className="px-2 py-2.5 align-top text-right">
+                                        <p className="text-[10px] text-ink-secondary tabular-nums leading-snug">
+                                          {studentQty.gramsLine}
+                                        </p>
+                                      </td>
+                                      <td className="px-2 py-2 align-top">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <span className="text-[10px] text-ink-muted">g</span>
+                                          <Input
+                                            className="h-8 w-[4.25rem] text-xs tabular-nums"
+                                            inputMode="decimal"
+                                            value={p.qtyG}
+                                            onChange={(e) => updateMealPickQty(key, p.id, e.target.value)}
+                                            aria-label={`Gramos · ${displayNameForMealPick(p)}`}
+                                          />
+                                        </div>
+                                      </td>
+                                      <td className="px-1 py-2 align-top text-center">
                                         <button
                                           type="button"
-                                          className="rounded-lg p-1.5 text-ink-muted hover:bg-red-500/10 hover:text-red-600"
+                                          className="rounded-lg p-1.5 text-ink-muted hover:bg-red-500/10 hover:text-red-600 mx-auto"
                                           title="Quitar"
                                           onClick={() => removeMealPick(key, p.id)}
                                         >
                                           <Trash2 className="h-4 w-4" aria-hidden />
                                         </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="space-y-2 pt-2 border-t border-surface-border/50">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <button
-                                        type="button"
-                                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-muted/40 px-2 py-1.5 text-[10px] font-medium text-ink-secondary hover:bg-surface-border/40"
-                                        title="Actualizar tip desde la fila del plan o las notas de Mi lista"
-                                        onClick={() => syncPickHintSnapshot(key, p.id)}
-                                      >
-                                        <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                        Sincronizar tip
-                                      </button>
-                                      <label htmlFor={`dup-${key}-${p.id}`} className="sr-only">
-                                        Copiar «{displayNameForMealPick(p)}» a otro momento
-                                      </label>
-                                      <select
-                                        id={`dup-${key}-${p.id}`}
-                                        className={cn(selectPlanClasses, 'h-8 max-w-[11rem] text-[10px] py-0')}
-                                        value=""
-                                        onChange={(e) => {
-                                          const to = e.target.value as MealSlotKey
-                                          e.target.value = ''
-                                          if (to) duplicateMealPick(key, p.id, to)
-                                        }}
-                                      >
-                                        <option value="">Copiar a…</option>
-                                        {visibleMealSlots.map((slot) => (
-                                          <option key={slot} value={slot}>
-                                            {MEAL_SLOT_LABELS[slot]}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <span id={`prep-desc-${p.id}`} className="sr-only">
-                                        Define cómo se muestra crudo o cocido en el PDF para este alimento.
-                                      </span>
-                                      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
-                                        <span className="text-[9px] text-ink-muted uppercase tracking-wide shrink-0">
-                                          Referencia PDF
-                                        </span>
-                                        <select
-                                          className={cn(
-                                            selectPlanClasses,
-                                            'h-8 flex-1 min-w-0 text-[11px] py-0 min-[420px]:max-w-[16rem]',
-                                          )}
-                                          value={p.preparation ?? 'infer'}
-                                          onChange={(e) =>
-                                            updatePickPreparation(key, p.id, e.target.value as MealPreparationChoice)
-                                          }
-                                          aria-label={`Crudo o cocido · ${displayNameForMealPick(p)}`}
-                                          aria-describedby={`prep-desc-${p.id}`}
-                                        >
-                                          <option value="infer">Automático (nombre y notas)</option>
-                                          <option value="crudo">Cantidad en crudo</option>
-                                          <option value="cocido">Cantidad cocida</option>
-                                        </select>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      ) : null}
-                      <label className="block space-y-1">
-                        <span className="text-[10px] text-ink-muted uppercase tracking-wide">Notas (opcional)</span>
-                        <textarea
-                          className="flex min-h-[64px] w-full rounded-lg border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                          value={notesStr}
-                          onChange={(e) => patchMeal(key, e.target.value)}
-                          placeholder="Observaciones para este momento…"
-                        />
-                      </label>
+                                      </td>
+                                    </tr>
+                                    <tr className="border-b border-surface-border bg-surface-muted/50 dark:bg-slate-900/45">
+                                      <td colSpan={5} className="px-3 py-2">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+                                          <button
+                                            type="button"
+                                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1.5 text-[10px] font-medium text-ink-secondary hover:bg-surface-elevated w-fit"
+                                            title="Actualizar tip desde la fila del plan o las notas de Mi lista"
+                                            onClick={() => syncPickHintSnapshot(key, p.id)}
+                                          >
+                                            <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                            Sincronizar tip
+                                          </button>
+                                          <label htmlFor={`dup-${key}-${p.id}`} className="sr-only">
+                                            Copiar «{displayNameForMealPick(p)}» a otro momento
+                                          </label>
+                                          <select
+                                            id={`dup-${key}-${p.id}`}
+                                            className={cn(selectPlanClasses, 'h-8 max-w-full sm:max-w-[11rem] text-[10px] py-0 w-full sm:w-auto')}
+                                            value=""
+                                            onChange={(e) => {
+                                              const to = e.target.value as MealSlotKey
+                                              e.target.value = ''
+                                              if (to) duplicateMealPick(key, p.id, to)
+                                            }}
+                                          >
+                                            <option value="">Copiar a…</option>
+                                            {visibleMealSlots.map((slot) => (
+                                              <option key={slot} value={slot}>
+                                                {MEAL_SLOT_LABELS[slot]}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                                            <span id={`prep-desc-${p.id}`} className="sr-only">
+                                              Define cómo se muestra crudo o cocido en el PDF para este alimento.
+                                            </span>
+                                            <span className="text-[9px] text-ink-muted uppercase tracking-wide shrink-0">
+                                              Referencia PDF
+                                            </span>
+                                            <select
+                                              className={cn(
+                                                selectPlanClasses,
+                                                'h-8 flex-1 min-w-0 text-[11px] py-0 sm:max-w-[18rem]',
+                                              )}
+                                              value={p.preparation ?? 'infer'}
+                                              onChange={(e) =>
+                                                updatePickPreparation(key, p.id, e.target.value as MealPreparationChoice)
+                                              }
+                                              aria-label={`Crudo o cocido · ${displayNameForMealPick(p)}`}
+                                              aria-describedby={`prep-desc-${p.id}`}
+                                            >
+                                              <option value="infer">Automático (nombre y notas)</option>
+                                              <option value="crudo">Cantidad en crudo</option>
+                                              <option value="cocido">Cantidad cocida</option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  </Fragment>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="px-4 py-6 text-center text-sm text-ink-muted border-b border-surface-border/60">
+                          Sin alimentos en este momento. Usá <strong className="text-ink-secondary">Desde tablas / Mi lista</strong>{' '}
+                          para agregar el primero (queda uno debajo del otro, como en el PDF).
+                        </p>
+                      )}
+                      <div className="border-t border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/30 px-3 py-3">
+                        <label className="block space-y-1">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                            Notas del momento (opcional)
+                          </span>
+                          <textarea
+                            className="flex min-h-[64px] w-full rounded-lg border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                            value={notesStr}
+                            onChange={(e) => patchMeal(key, e.target.value)}
+                            placeholder="Observaciones para este momento (aparecen en el PDF debajo de la tabla)…"
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
                 )
