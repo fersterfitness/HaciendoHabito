@@ -2436,7 +2436,7 @@ export function NutritionPlanningPage() {
                 <option value="cocido">Cantidad cocida</option>
               </select>
               <p className="text-[11px] text-ink-muted leading-relaxed">
-                El PDF muestra gramos aprox., cucharadas soperas orientativas y si la porción va pensada en crudo o cocida.
+                El PDF muestra gramos y, cuando aplica, cucharadas orientativas; en carnes/pescado/huevo prioriza gramos y el tip de la fila (ej. churrasco en g), no cucharadas.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-end mt-6">

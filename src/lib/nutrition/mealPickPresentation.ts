@@ -19,6 +19,26 @@ export function approxCucharadasSoperasLabel(grams: number): string {
   return `~${rounded} cdas.`
 }
 
+/**
+ * Cucharadas orientativas tienen sentido para untables, líquidos chicos, etc.
+ * En carnes / pescado / huevo en porción resulta confuso; ahí solo gramos + tip de la fila.
+ */
+export function shouldAppendCucharadasEquivalence(name: string, hint?: string): boolean {
+  const combined = `${name} ${hint ?? ''}`
+  if (/cucharada|cuchara\s+(sopera|t[eé])|\bcdas?\b\.?\s*(sopera)?|\(cda|sopera\s*\)/i.test(combined)) {
+    return true
+  }
+  if (/\(ml\)|\bml\s*%|\bml\)/i.test(name)) return false
+  if (/\bwhey\b/i.test(name)) return false
+
+  const t = name.toLowerCase()
+  const meatFishPortion =
+    /\b(suprema|pollo|lomo|bife|vaca|cerdo|vacuno|pescado|at[uú]n|salm[oó]n|merluza|filet|filete|cuadril|nalga|roast|bondiola|entrañ|entrana|jam[oó]n|picad[oa]|churrasco|milanesa|calamar|raba|huevos?\b|clara\b|yema\b|colita|morrillo|tapa\b|soja\s+textur)\b/i
+  if (meatFishPortion.test(t)) return false
+
+  return true
+}
+
 /** Texto amigable sobre referencia cruda/cocida a partir del nombre y la nota de plantilla. */
 export function preparacionAlumnoLine(name: string, hint?: string): string | null {
   const t = `${name} ${hint ?? ''}`.toLowerCase()
@@ -51,12 +71,17 @@ export function buildStudentQuantitySummaryLines(opts: {
   compact?: boolean
 }): { gramsLine: string; prepLine: string | null } {
   const g = parseLocaleNumberOrZero(opts.gramsStr)
+  const withSpoons = shouldAppendCucharadasEquivalence(opts.nameSnapshot, opts.hint)
   const cdas = approxCucharadasSoperasLabel(g)
   const gramsPart =
     g > 0
-      ? opts.compact
-        ? `${fmtGramOrDash(g)} g · ~${cdas} (~${GRAMOS_POR_CUCHARADA_SOPERA} g/cda.)`
-        : `${fmtGramOrDash(g)} g · ~${cdas} cdas. sopera (≈${GRAMOS_POR_CUCHARADA_SOPERA} g/cda., orientativo)`
+      ? withSpoons
+        ? opts.compact
+          ? `${fmtGramOrDash(g)} g · ~${cdas} (~${GRAMOS_POR_CUCHARADA_SOPERA} g/cda.)`
+          : `${fmtGramOrDash(g)} g · ~${cdas} cdas. sopera (≈${GRAMOS_POR_CUCHARADA_SOPERA} g/cda., orientativo)`
+        : opts.compact
+          ? `${fmtGramOrDash(g)} g`
+          : `${fmtGramOrDash(g)} g · en plato`
       : 'Cantidad: indicá gramos en el plan con tu entrenador.'
   const prepLine = preparacionElegidaLine(opts.preparation, opts.nameSnapshot, opts.hint)
   return { gramsLine: gramsPart, prepLine }

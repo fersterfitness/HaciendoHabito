@@ -504,7 +504,7 @@ export function PlanningWorkbookPdfDocument({
               <>
                 <Text style={styles.sectionHeading}>Distribución por momentos</Text>
                 <Text style={styles.sectionIntro}>
-                  Gramos y cdas. (~{GRAMOS_POR_CUCHARADA_SOPERA} g/cda.) orientativas; crudo/cocido cuando corresponda.
+                  Gramos orientativos; en untables/semillas cdas. (~{GRAMOS_POR_CUCHARADA_SOPERA} g/cda.). En carnes/pescado/huevo suele mostrarse solo gramos y referencia en plato (ver tip por fila).
                 </Text>
                 {mealLayout
                   .filter((b) => {
