@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Dumbbell, Trash2, Pencil } from 'lucide-react'
+import { Plus, Search, Dumbbell, Trash2, Pencil, Tags } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -38,6 +39,15 @@ export function ExercisesPage() {
   const [filterDifficulty, setFilterDifficulty] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<ExerciseWithGroup | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [showCategoryPanel, setShowCategoryPanel] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [creatingCategory, setCreatingCategory] = useState(false)
+
+  const reloadMuscleGroups = useCallback(async () => {
+    const { data, error } = await supabase.from('muscle_groups').select('*').order('sort_order')
+    if (error) toast.error(error.message)
+    else setMuscleGroups(data ?? [])
+  }, [])
 
   const fetchExercises = useCallback(async () => {
     try {
@@ -54,10 +64,8 @@ export function ExercisesPage() {
 
   useEffect(() => {
     fetchExercises()
-    supabase.from('muscle_groups').select('*').order('sort_order').then(({ data }) =>
-      setMuscleGroups(data ?? [])
-    )
-  }, [fetchExercises])
+    void reloadMuscleGroups()
+  }, [fetchExercises, reloadMuscleGroups])
 
   const filtered = exercises.filter((e) => {
     const matchSearch =
@@ -83,18 +91,85 @@ export function ExercisesPage() {
     fetchExercises()
   }
 
+  async function createMuscleCategory() {
+    if (!newCategoryName.trim()) return
+    const upperName = newCategoryName.trim().toUpperCase()
+    if (muscleGroups.some((g) => g.name.toUpperCase() === upperName)) {
+      toast.error(`La categoría "${upperName}" ya existe`)
+      return
+    }
+    setCreatingCategory(true)
+    const slug = `${slugifyMuscleCatalogName(newCategoryName)}-${Date.now()}`
+    const { data: row, error } = await supabase
+      .from('muscle_groups')
+      .insert({ name: upperName, slug, sort_order: nextMuscleGroupSortOrder(muscleGroups) })
+      .select()
+      .single()
+    setCreatingCategory(false)
+    if (error) {
+      toast.error(error.message || 'Error al crear categoría')
+      return
+    }
+    const created = row as MuscleGroup
+    setMuscleGroups((prev) => [...prev, created].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)))
+    setFilterGroup(created.id)
+    toast.success('Categoría creada')
+    setNewCategoryName('')
+    setShowCategoryPanel(false)
+  }
+
   return (
     <div>
       <Header
         title="Ejercicios"
         actions={
-          <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/exercises/new')}>
-            Nuevo
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Tags className="h-4 w-4" />}
+              onClick={() => setShowCategoryPanel((v) => !v)}
+            >
+              Nueva categoría
+            </Button>
+            <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/exercises/new')}>
+              Nuevo
+            </Button>
+          </div>
         }
       />
 
       <div className="px-4 lg:px-6 py-6 space-y-5">
+        {showCategoryPanel && (
+          <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/5 p-4 space-y-3">
+            <p className="text-xs font-semibold text-ink-primary">Nueva categoría (grupo muscular)</p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+              <div className="flex-1 min-w-0">
+                <Input
+                  placeholder="Nombre de la categoría *"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+              <Button
+                size="sm"
+                loading={creatingCategory}
+                disabled={!newCategoryName.trim()}
+                onClick={createMuscleCategory}
+              >
+                Crear
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => { setShowCategoryPanel(false); setNewCategoryName('') }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
         {/* Filtros */}
         <div className="flex gap-3 flex-wrap">
           <div className="flex-1 min-w-48">

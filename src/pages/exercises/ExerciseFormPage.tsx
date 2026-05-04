@@ -11,6 +11,7 @@ import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { slugify } from '@/lib/utils'
+import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
 import type { MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -35,8 +36,11 @@ export function ExerciseFormPage() {
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([])
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showNewCategory, setShowNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [creatingCategory, setCreatingCategory] = useState(false)
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { difficulty: 'basico', is_active: true },
   })
@@ -95,6 +99,33 @@ export function ExerciseFormPage() {
     navigate('/exercises')
   }
 
+  async function createMuscleCategory() {
+    if (!newCategoryName.trim()) return
+    const upperName = newCategoryName.trim().toUpperCase()
+    if (muscleGroups.some((g) => g.name.toUpperCase() === upperName)) {
+      toast.error(`La categoría "${upperName}" ya existe`)
+      return
+    }
+    setCreatingCategory(true)
+    const slug = `${slugifyMuscleCatalogName(newCategoryName)}-${Date.now()}`
+    const { data: row, error } = await supabase
+      .from('muscle_groups')
+      .insert({ name: upperName, slug, sort_order: nextMuscleGroupSortOrder(muscleGroups) })
+      .select()
+      .single()
+    setCreatingCategory(false)
+    if (error) {
+      toast.error(error.message || 'Error al crear categoría')
+      return
+    }
+    const created = row as MuscleGroup
+    setMuscleGroups((prev) => [...prev, created].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)))
+    setValue('muscle_group_id', created.id, { shouldValidate: true, shouldDirty: true })
+    toast.success('Categoría creada y seleccionada')
+    setNewCategoryName('')
+    setShowNewCategory(false)
+  }
+
   async function handleDelete() {
     if (!id || !user) return
     setDeleting(true)
@@ -141,6 +172,40 @@ export function ExerciseFormPage() {
               error={errors.muscle_group_id?.message}
               {...register('muscle_group_id')}
             />
+            <div className="space-y-2 -mt-1">
+              <button
+                type="button"
+                onClick={() => setShowNewCategory((v) => !v)}
+                className="text-xs font-medium text-brand-primary hover:text-brand-primary/80 transition-colors"
+              >
+                {showNewCategory ? 'Ocultar' : '+'} nueva categoría
+              </button>
+              {showNewCategory && (
+                <div className="rounded-xl border border-surface-border bg-surface-elevated p-3 space-y-2">
+                  <Input
+                    label="Nombre de la categoría"
+                    placeholder="Ej: Antebrazo"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      loading={creatingCategory}
+                      disabled={!newCategoryName.trim()}
+                      onClick={createMuscleCategory}
+                    >
+                      Crear categoría
+                    </Button>
+                    <Button type="button" size="sm" variant="secondary" onClick={() => { setShowNewCategory(false); setNewCategoryName('') }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             <Select
               label="Dificultad"
               required

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
@@ -22,7 +22,8 @@ import {
   parseExerciseMeta,
   buildExerciseTechnicalNotes,
 } from '@/lib/routine/exerciseMeta'
-import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student } from '@/types/database'
+import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
+import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -78,6 +79,41 @@ function parseRpeToNumber(value: string): number | null {
   const n = Number(match[1])
   if (Number.isNaN(n) || n < 1 || n > 10) return null
   return n
+}
+
+/** Actualiza `circuitNote` en todos los miembros del circuito en un solo `setBlocks` (sin carreras). */
+function applyCircuitNoteToBlocks(
+  prev: BlockWithDays[],
+  dayId: string,
+  groupId: number,
+  value: string,
+): BlockWithDays[] {
+  const patchMap = new Map<string, string | null>()
+  for (const block of prev) {
+    const day = block.days.find((d) => d.id === dayId)
+    if (!day) continue
+    for (const e of day.exercises) {
+      if (e.superset_group !== groupId) continue
+      const { userNotes, meta } = parseExerciseMeta(e.technical_notes)
+      const nextMeta: ExerciseMeta = { ...meta, circuitNote: value || undefined }
+      patchMap.set(e.id, buildExerciseTechnicalNotes(userNotes, nextMeta) || null)
+    }
+  }
+  if (patchMap.size === 0) return prev
+  return prev.map((block) => ({
+    ...block,
+    days: block.days.map((d) =>
+      d.id !== dayId
+        ? d
+        : {
+            ...d,
+            exercises: d.exercises.map((ex) => {
+              const tn = patchMap.get(ex.id)
+              return tn !== undefined ? { ...ex, technical_notes: tn } : ex
+            }),
+          },
+    ),
+  }))
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -486,6 +522,38 @@ export function RoutineDetailPage() {
     })))
   }
 
+  const blocksRef = useRef(blocks)
+  useEffect(() => { blocksRef.current = blocks }, [blocks])
+
+  const persistCircuitGroup = useCallback(async (dayId: string, groupId: number) => {
+    const snap = blocksRef.current
+    let day: DayWithEx | undefined
+    for (const b of snap) {
+      const d = b.days.find((x) => x.id === dayId)
+      if (d) { day = d; break }
+    }
+    if (!day) return
+    const members = day.exercises.filter((e) => e.superset_group === groupId)
+    if (members.length === 0) return
+    await Promise.all(
+      members.map((e) =>
+        supabase.from('routine_exercises').update({ technical_notes: e.technical_notes }).eq('id', e.id),
+      ),
+    )
+  }, [])
+
+  const debouncedPersistCircuit = useDebounce((dayId: string, groupId: number) => {
+    void persistCircuitGroup(dayId, groupId)
+  }, 400)
+
+  const handleCircuitNoteChange = useCallback(
+    (dayId: string, groupId: number, value: string) => {
+      setBlocks((prev) => applyCircuitNoteToBlocks(prev, dayId, groupId, value))
+      debouncedPersistCircuit(dayId, groupId)
+    },
+    [debouncedPersistCircuit],
+  )
+
   async function deleteExercise(dayId: string, exId: string) {
     const { error } = await supabase.from('routine_exercises').delete().eq('id', exId)
     if (error) { toast.error(error.message); return }
@@ -698,6 +766,7 @@ export function RoutineDetailPage() {
             onMoveDay={(dayId, direction) => moveDay(block.id, dayId, direction)}
             onAddExercise={(dayId) => setShowExercisePicker({ dayId })}
             onUpdateExercise={updateExercise}
+            onCircuitNoteChange={handleCircuitNoteChange}
             onDeleteExercise={deleteExercise}
             onMoveExercise={moveExercise}
             onOpenCopyMenu={() => setCopyMenuBlock(copyMenuBlock === block.id ? null : block.id)}
@@ -737,7 +806,7 @@ export function RoutineDetailPage() {
 function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu,
   onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
-  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onDeleteExercise, onMoveExercise,
+  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, rmByExerciseId,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
@@ -745,8 +814,9 @@ function BlockCard({
   onToggle: () => void; onToggleDay: (id: string) => void
   onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
   onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
-  onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void; onAddExercise: (dayId: string) => void
-  onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void
+  onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void;   onAddExercise: (dayId: string) => void
+  onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
+  onCircuitNoteChange: (dayId: string, groupId: number, value: string) => void
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
   rmByExerciseId: Map<string, number>
@@ -884,6 +954,7 @@ function BlockCard({
               onMoveDay={(direction) => onMoveDay(day.id, direction)}
               onAddExercise={() => onAddExercise(day.id)}
               onUpdateExercise={(exId, patch) => onUpdateExercise(day.id, exId, patch)}
+              onCircuitNoteChange={(groupId, value) => onCircuitNoteChange(day.id, groupId, value)}
               onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
               onMoveExercise={(exId, direction) => onMoveExercise(day.id, exId, direction)}
               rmByExerciseId={rmByExerciseId}
@@ -935,7 +1006,7 @@ function groupExercises(exercises: ExWithExercise[]): RenderGroup[] {
   return result
 }
 
-function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onDeleteExercise, onMoveExercise, rmByExerciseId = new Map<string, number>() }: {
+function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise, rmByExerciseId = new Map<string, number>() }: {
   day: DayWithEx; expanded: boolean
   onToggle: () => void
   onUpdateDay: (patch: Partial<RoutineDay>) => void
@@ -943,7 +1014,8 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   onDuplicateDay: () => void
   onMoveDay: (direction: 'up' | 'down') => void
   onAddExercise: () => void
-  onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void
+  onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
+  onCircuitNoteChange: (groupId: number, value: string) => void
   onDeleteExercise: (exId: string) => void
   onMoveExercise: (exId: string, direction: 'up' | 'down') => void
   rmByExerciseId: Map<string, number>
@@ -982,17 +1054,6 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
     day.exercises
       .filter(e => e.superset_group === groupId)
       .forEach(e => onUpdateExercise(e.id, { is_superset: false, superset_group: null }))
-  }
-
-  function updateCircuitNote(groupId: number, value: string) {
-    day.exercises
-      .filter((e) => e.superset_group === groupId)
-      .forEach((e) => {
-        const { userNotes, meta } = parseExerciseMeta(e.technical_notes)
-        const nextMeta: ExerciseMeta = { ...meta, circuitNote: value || undefined }
-        const technicalNotes = buildExerciseTechnicalNotes(userNotes, nextMeta)
-        onUpdateExercise(e.id, { technical_notes: technicalNotes || null })
-      })
   }
 
   return (
@@ -1131,7 +1192,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                     placeholder="Ej: descanso entre vueltas 3' · intermitente 20x20'' x 4"
                     className="w-full bg-surface-card text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
                     value={parseExerciseMeta(group.exercises[0]?.technical_notes).meta.circuitNote ?? ''}
-                    onChange={(e) => updateCircuitNote(group.groupId, e.target.value)}
+                    onChange={(e) => onCircuitNoteChange(group.groupId, e.target.value)}
                   />
                 </div>
                 {group.exercises.map((ex, i) => (
@@ -1212,8 +1273,11 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
   const hasPercent = percent1rm.trim().length > 0
   const suggestedWeight = rmKg && hasPercent ? Math.round((rmKg * Number(percent1rm) / 100) * 10) / 10 : null
 
+  /** Meta persistida en `technical_notes` (incl. circuitNote del circuito); no usar solo `initialMeta` del primer render. */
   function saveMeta(nextMeta: ExerciseMeta, overrides?: Partial<RoutineExercise>) {
-    const technicalNotes = buildExerciseTechnicalNotes(notes, nextMeta)
+    const base = parseExerciseMeta(exercise.technical_notes).meta
+    const merged = { ...base, ...nextMeta }
+    const technicalNotes = buildExerciseTechnicalNotes(notes, merged)
     save({ technical_notes: technicalNotes || null, ...overrides })
   }
 
@@ -1295,7 +1359,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
               const v = e.target.value
               setRestText(v)
               const parsed = parseRestToSeconds(v)
-              saveMeta({ ...initialMeta.meta, restText: v || undefined, rpeText, percent1rm: percent1rm || undefined }, { rest_seconds: parsed })
+              saveMeta({ restText: v || undefined, rpeText: rpeText || undefined, percent1rm: percent1rm || undefined }, { rest_seconds: parsed })
             }}
           />
         </div>
@@ -1334,7 +1398,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
               const v = e.target.value
               setRpeText(v)
               const parsed = parseRpeToNumber(v)
-              saveMeta({ ...initialMeta.meta, restText: restText || undefined, rpeText: v || undefined, percent1rm: percent1rm || undefined }, { rpe: parsed })
+              saveMeta({ restText: restText || undefined, rpeText: v || undefined, percent1rm: percent1rm || undefined }, { rpe: parsed })
             }}
           />
         </div>
@@ -1362,7 +1426,6 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
                   : null
               saveMeta(
                 {
-                  ...initialMeta.meta,
                   restText: restText || undefined,
                   rpeText: rpeText || undefined,
                   percent1rm: v || undefined,
@@ -1397,7 +1460,13 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
         onChange={(e) => {
           const v = e.target.value
           setNotes(v)
-          const technicalNotes = buildExerciseTechnicalNotes(v, { restText: restText || undefined, rpeText: rpeText || undefined, percent1rm: percent1rm || undefined })
+          const baseMeta = parseExerciseMeta(exercise.technical_notes).meta
+          const technicalNotes = buildExerciseTechnicalNotes(v, {
+            ...baseMeta,
+            restText: restText || undefined,
+            rpeText: rpeText || undefined,
+            percent1rm: percent1rm || undefined,
+          })
           save({ technical_notes: technicalNotes || null })
         }}
       />
@@ -1413,6 +1482,7 @@ type MuscleGroupOption = { id: string; name: string }
 function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => void; onClose: () => void }) {
   const { user } = useAuthStore()
   const [exercises, setExercises]   = useState<ExerciseWithGroup[]>([])
+  const [muscleCatalog, setMuscleCatalog] = useState<MuscleGroup[]>([])
   const [search, setSearch]         = useState('')
   const [loading, setLoading]       = useState(true)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
@@ -1425,22 +1495,46 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
   const [creatingCategory, setCreatingCategory] = useState(false)
 
   useEffect(() => {
-    supabase.from('exercise_library').select('*, muscle_group:muscle_groups(id, name, sort_order)').eq('is_active', true).order('name')
-      .then(({ data }) => { setExercises((data as ExerciseWithGroup[]) ?? []); setLoading(false) })
+    let cancelled = false
+    setLoading(true)
+    Promise.all([
+      supabase.from('exercise_library').select('*, muscle_group:muscle_groups(id, name, sort_order)').eq('is_active', true).order('name'),
+      supabase.from('muscle_groups').select('*').order('sort_order'),
+    ]).then(([exRes, mgRes]) => {
+      if (cancelled) return
+      if (exRes.error) toast.error(exRes.error.message)
+      else setExercises((exRes.data as ExerciseWithGroup[]) ?? [])
+      if (mgRes.error) toast.error(mgRes.error.message)
+      else setMuscleCatalog((mgRes.data as MuscleGroup[]) ?? [])
+      setLoading(false)
+    })
+    return () => { cancelled = true }
   }, [])
 
+  /** Todas las categorías del catálogo (incluidas vacías), para listado y desplegable “nuevo ejercicio”. */
   const groups = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; sort_order: number; exercises: ExerciseWithGroup[] }>()
-    for (const ex of exercises) {
-      const mg = ex.muscle_group as { id: string; name: string; sort_order: number } | undefined
-      const gid = mg?.id ?? 'other'; const gname = mg?.name ?? 'Sin categoría'; const gorder = mg?.sort_order ?? 99
-      if (!map.has(gid)) map.set(gid, { id: gid, name: gname, sort_order: gorder, exercises: [] })
-      map.get(gid)!.exercises.push(ex)
+    const byId = new Map<string, { id: string; name: string; sort_order: number; exercises: ExerciseWithGroup[] }>()
+    for (const mg of muscleCatalog) {
+      byId.set(mg.id, { id: mg.id, name: mg.name, sort_order: mg.sort_order, exercises: [] })
     }
-    return Array.from(map.values()).sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-  }, [exercises])
+    const orphan: ExerciseWithGroup[] = []
+    for (const ex of exercises) {
+      const mgId = ex.muscle_group_id
+      const bucket = mgId ? byId.get(mgId) : undefined
+      if (bucket) bucket.exercises.push(ex)
+      else orphan.push(ex)
+    }
+    const list = Array.from(byId.values())
+    if (orphan.length > 0) {
+      list.push({ id: 'other', name: 'Sin categoría', sort_order: 9999, exercises: orphan })
+    }
+    return list.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+  }, [exercises, muscleCatalog])
 
-  const muscleGroupOptions: MuscleGroupOption[] = useMemo(() => groups.map((g) => ({ id: g.id, name: g.name })), [groups])
+  const muscleGroupOptions: MuscleGroupOption[] = useMemo(
+    () => muscleCatalog.map((g) => ({ id: g.id, name: g.name })),
+    [muscleCatalog],
+  )
 
   const filtered = search.trim()
     ? exercises.filter((e) =>
@@ -1466,18 +1560,25 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
   async function createCategory() {
     if (!newCategoryName.trim()) return
     const upperName = newCategoryName.trim().toUpperCase()
-    const exists = groups.some((g) => g.name.toUpperCase() === upperName)
+    const exists = muscleCatalog.some((g) => g.name.toUpperCase() === upperName)
     if (exists) { toast.error(`La categoría "${upperName}" ya existe`); return }
     setCreatingCategory(true)
-    const slug = newCategoryName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now()
-    const { error } = await supabase
+    const slugBase = slugifyMuscleCatalogName(newCategoryName)
+    const slug = `${slugBase}-${Date.now()}`
+    const nextSort = nextMuscleGroupSortOrder(muscleCatalog)
+    const { data: row, error } = await supabase
       .from('muscle_groups')
-      .insert({ name: upperName, slug, sort_order: 99 })
+      .insert({ name: upperName, slug, sort_order: nextSort })
+      .select()
+      .single()
     setCreatingCategory(false)
-    if (error) { toast.error('Error al crear categoría'); return }
-    const { data: refreshed } = await supabase
-      .from('exercise_library').select('*, muscle_group:muscle_groups(id, name, sort_order)').eq('is_active', true).order('name')
-    if (refreshed) setExercises(refreshed as ExerciseWithGroup[])
+    if (error) {
+      toast.error(error.message || 'Error al crear categoría')
+      return
+    }
+    const created = row as MuscleGroup
+    setMuscleCatalog((prev) => [...prev, created].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)))
+    if (created.id) setOpenGroups((prev) => new Set(prev).add(created.id))
     toast.success('Categoría creada')
     setNewCategoryName('')
     setShowNewForm(null)
