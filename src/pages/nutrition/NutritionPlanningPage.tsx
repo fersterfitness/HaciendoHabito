@@ -95,6 +95,61 @@ function formatLibNutrientForPlanning(n: number | null | undefined): string {
   return String(n)
 }
 
+/** Celda compacta P / HC / G en la misma vista que kcal (alta visibilidad en claro y oscuro). */
+function LiveMacroCell({
+  abbr,
+  intakeG,
+  goalG,
+}: {
+  abbr: string
+  intakeG: number
+  goalG: number
+}) {
+  const hasGoal = goalG > 0
+  const remainderG = goalG - intakeG
+  const over = hasGoal && remainderG < 0
+  const pct = hasGoal ? Math.round((100 * intakeG) / goalG) : null
+  const barPct = hasGoal ? Math.min(100, Math.max(0, (100 * intakeG) / goalG)) : 0
+
+  return (
+    <div className="min-w-0 rounded-lg border border-emerald-500/35 dark:border-emerald-500/35 bg-white/90 dark:bg-black/35 px-2 py-2 sm:px-2.5 text-center shadow-sm">
+      <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-emerald-900 dark:text-emerald-200">
+        {abbr}
+      </p>
+      <p className="text-lg sm:text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-200 leading-tight mt-0.5">
+        {fmt1(intakeG)}
+        <span className="text-[10px] font-semibold text-emerald-600/90 dark:text-emerald-300/90 ml-0.5">g</span>
+      </p>
+      <p className="text-[9px] tabular-nums text-emerald-800/90 dark:text-emerald-100/85 mt-1 leading-tight">
+        Meta {hasGoal ? `${fmt1(goalG)} g` : '—'}
+      </p>
+      <p
+        className={cn(
+          'text-[10px] sm:text-[11px] font-bold tabular-nums leading-tight mt-0.5',
+          !hasGoal ? 'text-emerald-600/50 dark:text-emerald-300/40' : over ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-800 dark:text-emerald-100',
+        )}
+      >
+        Rest {hasGoal ? `${fmt1(remainderG)} g` : '—'}
+      </p>
+      {hasGoal && pct != null ? (
+        <p className="text-[9px] tabular-nums text-emerald-800/85 dark:text-emerald-200/75 mt-0.5">Obj. {pct} %</p>
+      ) : null}
+      {hasGoal ? (
+        <div className="h-1.5 mt-1.5 rounded-full bg-emerald-200/90 dark:bg-emerald-950/70 overflow-hidden mx-auto max-w-[5.5rem]">
+          <div
+            className="h-full rounded-full bg-emerald-500 dark:bg-emerald-300 transition-[width] duration-300 ease-out"
+            style={{ width: `${barPct}%` }}
+          />
+        </div>
+      ) : intakeG > 0 ? (
+        <p className="text-[8px] text-emerald-800/75 dark:text-emerald-200/65 leading-snug mt-1 px-0.5">
+          Peso y g/kg en 2
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 function TotalsBadge({
   label,
   compact,
@@ -1473,11 +1528,11 @@ export function NutritionPlanningPage() {
             </div>
             <p className="text-sm text-ink-muted mt-1 leading-relaxed">
               Cada comida es un bloque en <strong>orden vertical</strong> (como el PDF): tabla con un alimento por fila, separación clara entre desayuno, almuerzo, etc. Cargá desde las tablas abajo o <strong>Mi lista</strong>. Notas opcionales al pie de cada momento. Activá{' '}
-              <strong>media mañana / tarde</strong> si aplican. Las <strong className="text-emerald-700 dark:text-emerald-300">kcal en verde</strong> abajo se actualizan al vuelo con lo que sumás en tablas, Mi lista y esta distribución.
+              <strong>media mañana / tarde</strong> si aplican. El panel verde abajo actualiza <strong className="text-emerald-700 dark:text-emerald-300">kcal y gramos de P / HC / G</strong> con lo que sumás en tablas, Mi lista y esta distribución (metas de gramos = peso × g/kg del apartado 2).
             </p>
           </div>
 
-          {/* Kcal en vivo: visible al armar comidas (sticky dentro del scroll de la página) */}
+          {/* Kcal + macros en vivo (sticky) */}
           <div className="sticky top-2 z-20">
             <div className="rounded-xl border border-emerald-300/70 dark:border-emerald-600/45 bg-emerald-50/95 dark:bg-emerald-950/85 backdrop-blur-sm shadow-md px-4 py-3 space-y-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -1524,6 +1579,23 @@ export function NutritionPlanningPage() {
                   ) : null}
                 </div>
               </div>
+
+              {/* Macros: misma tarjeta, justo encima de la barra de kcal — siempre visibles al cargar alimentos */}
+              <div
+                className="rounded-lg border border-emerald-500/40 dark:border-emerald-500/40 bg-emerald-100/50 dark:bg-emerald-950/60 px-2 py-2 sm:py-2.5"
+                aria-live="polite"
+                aria-label="Macros del plan en tiempo real"
+              >
+                <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-900 dark:text-emerald-200/95 mb-1.5 text-center sm:text-left px-0.5">
+                  Macros en vivo (g) — se actualizan al cargar tablas, Mi lista o comidas del día
+                </p>
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <LiveMacroCell abbr="Proteínas" intakeG={intakeTotals.proteinG} goalG={guideTotals.proteinG} />
+                  <LiveMacroCell abbr="Carbos" intakeG={intakeTotals.carbsG} goalG={guideTotals.carbsG} />
+                  <LiveMacroCell abbr="Grasas" intakeG={intakeTotals.fatG} goalG={guideTotals.fatG} />
+                </div>
+              </div>
+
               {targetKcal > 0 ? (
                 <div className="h-2 rounded-full bg-emerald-200/80 dark:bg-emerald-900/60 overflow-hidden border border-emerald-300/40 dark:border-emerald-700/40">
                   <div
