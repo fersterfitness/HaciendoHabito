@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, addDays } from 'date-fns'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, Library } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { applyBlueprintPayloadToRoutine, type RoutineBlueprintPayload } from '@/lib/routine/routineBlueprint'
 import { useRoutines } from '@/hooks/useRoutines'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -38,7 +39,9 @@ export function RoutineFormPage() {
   const { createRoutine, updateRoutine } = useRoutines()
   const [students, setStudents] = useState<Student[]>([])
   const [routineTemplates, setRoutineTemplates] = useState<Array<{ id: string; name: string; student_name?: string | null }>>([])
+  const [blueprintTemplates, setBlueprintTemplates] = useState<Array<{ id: string; name: string }>>([])
   const [templateRoutineId, setTemplateRoutineId] = useState('')
+  const [templateBlueprintId, setTemplateBlueprintId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
 
   const {
@@ -86,7 +89,24 @@ export function RoutineFormPage() {
         }))
         setRoutineTemplates(items)
       })
+    supabase
+      .from('routine_blueprints')
+      .select('id, name')
+      .eq('owner_id', user.id)
+      .order('updated_at', { ascending: false })
+      .then(({ data }) => {
+        setBlueprintTemplates(((data as Array<{ id: string; name: string }>) ?? []).map((b) => ({ id: b.id, name: b.name })))
+      })
   }, [user])
+
+  useEffect(() => {
+    if (isEditing) return
+    const bp = searchParams.get('blueprint')
+    if (bp) {
+      setTemplateBlueprintId(bp)
+      setTemplateRoutineId('')
+    }
+  }, [isEditing, searchParams])
 
   useEffect(() => {
     if (!isEditing) return
@@ -224,7 +244,21 @@ export function RoutineFormPage() {
         notes: values.notes || undefined,
       })
       if (result) {
-        if (templateRoutineId) {
+        if (templateBlueprintId) {
+          const loadingId = toast.loading('Aplicando plantilla del diccionario...')
+          try {
+            const { data: row, error: bpErr } = await supabase
+              .from('routine_blueprints')
+              .select('payload')
+              .eq('id', templateBlueprintId)
+              .single()
+            if (bpErr || !row) throw new Error(bpErr?.message ?? 'Plantilla no encontrada')
+            await applyBlueprintPayloadToRoutine(result.id, row.payload as RoutineBlueprintPayload)
+            toast.success('Rutina creada desde plantilla del diccionario', { id: loadingId })
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'No se pudo aplicar la plantilla', { id: loadingId })
+          }
+        } else if (templateRoutineId) {
           const loadingId = toast.loading('Copiando estructura de rutina...')
           try {
             await copyStructureFromTemplate(templateRoutineId, result.id)
@@ -262,33 +296,68 @@ export function RoutineFormPage() {
               error={errors.plan_name?.message}
               {...register('plan_name')}
             />
-            {!isEditing && routineTemplates.length > 0 && (
-              <div className="rounded-2xl border-2 border-dashed border-surface-border bg-surface-elevated/40 p-4 space-y-3">
+            {!isEditing && (routineTemplates.length > 0 || blueprintTemplates.length > 0) && (
+              <div className="rounded-2xl border-2 border-dashed border-surface-border bg-surface-elevated/40 p-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Copy className="h-4 w-4 text-brand-primary shrink-0" />
                   <span className="text-sm font-semibold text-ink-primary">Usar plantilla</span>
                   <span className="ml-auto text-[10px] text-ink-muted bg-surface-border px-2 py-0.5 rounded-full">opcional</span>
                 </div>
                 <p className="text-xs text-ink-secondary leading-relaxed">
-                  Copiá bloques, días y ejercicios de una rutina existente para no empezar desde cero.
+                  Elegí una entrada del{' '}
+                  <Link to="/routines/blueprints" className="text-brand-primary font-medium hover:underline">
+                    diccionario de plantillas
+                  </Link>{' '}
+                  o copiá desde una rutina ya creada. Solo aplica una opción a la vez.
                 </p>
-                <select
-                  value={templateRoutineId}
-                  onChange={(e) => setTemplateRoutineId(e.target.value)}
-                  className="w-full bg-surface-card border border-surface-border text-ink-primary rounded-xl px-3 py-2.5 text-sm focus:border-brand-primary outline-none"
-                >
-                  <option value="">— Comenzar desde cero —</option>
-                  {routineTemplates.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}{r.student_name ? ` · ${r.student_name}` : ''}
-                    </option>
-                  ))}
-                </select>
-                {templateRoutineId && (
+                {blueprintTemplates.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-ink-primary">
+                      <Library className="h-3.5 w-3.5 text-brand-primary" />
+                      Desde el diccionario
+                    </label>
+                    <select
+                      value={templateBlueprintId}
+                      onChange={(e) => {
+                        setTemplateBlueprintId(e.target.value)
+                        setTemplateRoutineId('')
+                      }}
+                      className="w-full bg-surface-card border border-surface-border text-ink-primary rounded-xl px-3 py-2.5 text-sm focus:border-brand-primary outline-none"
+                    >
+                      <option value="">— Sin plantilla guardada —</option>
+                      {blueprintTemplates.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {routineTemplates.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-ink-primary">Copiar desde rutina existente</label>
+                    <select
+                      value={templateRoutineId}
+                      onChange={(e) => {
+                        setTemplateRoutineId(e.target.value)
+                        setTemplateBlueprintId('')
+                      }}
+                      className="w-full bg-surface-card border border-surface-border text-ink-primary rounded-xl px-3 py-2.5 text-sm focus:border-brand-primary outline-none"
+                    >
+                      <option value="">— No copiar —</option>
+                      {routineTemplates.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}{r.student_name ? ` · ${r.student_name}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {(templateBlueprintId || templateRoutineId) && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20">
                     <Check className="h-3.5 w-3.5 text-brand-primary shrink-0" />
                     <span className="text-xs text-brand-primary font-medium">
-                      La estructura de bloques y ejercicios se copiará al crear la rutina
+                      Se copiarán bloques, días y ejercicios al crear la rutina
                     </span>
                   </div>
                 )}

@@ -7,7 +7,7 @@ import {
   Image,
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
-import { pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
+import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,12 +218,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   tableRowAlt: { backgroundColor: C.rowAlt },
-  thName: { flex: 3, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6 },
-  thSmall: { flex: 1, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6, textAlign: 'center' },
-  thNotes: { flex: 2.5, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6 },
-  tdName: { flex: 3, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
-  tdSmall: { flex: 1, fontSize: 8, color: C.body, textAlign: 'center' },
-  tdNotes: { flex: 2.5, fontSize: 7.5, color: C.muted, lineHeight: 1.4 },
+  thName: { flex: 2.35, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6 },
+  thSmall: { flex: 0.72, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6, textAlign: 'center' },
+  thNotes: { flex: 2.15, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6 },
+  tdName: { flex: 2.35, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
+  tdSmall: { flex: 0.72, fontSize: 7.5, color: C.body, textAlign: 'center' },
+  tdNotes: { flex: 2.15, fontSize: 7.5, color: C.muted, lineHeight: 1.4 },
 
   // ── Footer ──
   footer: {
@@ -270,6 +270,14 @@ type RenderGroup =
   | { type: 'single';   exercise: ExerciseFull }
   | { type: 'circuit';  groupId: number; exercises: ExerciseFull[] }
 
+function circuitClarificationFromGroup(exercises: ExerciseFull[]): string {
+  for (const ex of exercises) {
+    const note = parseExerciseMeta(ex.technical_notes).meta.circuitNote?.trim()
+    if (note) return note
+  }
+  return ''
+}
+
 function groupExercises(exercises: ExerciseFull[]): RenderGroup[] {
   const result: RenderGroup[] = []
   const seen = new Set<string>()
@@ -299,10 +307,10 @@ const sc = StyleSheet.create({
   },
   circuitHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: '#FFF3E0',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 6,
     gap: 5,
   },
   circuitDot: {
@@ -317,6 +325,19 @@ const sc = StyleSheet.create({
     color: C.brand,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
+  },
+  circuitNoteTitle: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.brand,
+    letterSpacing: 0.6,
+    marginBottom: 3,
+    textTransform: 'uppercase',
+  },
+  circuitNote: {
+    fontSize: 7.5,
+    color: C.body,
+    lineHeight: 1.45,
   },
   circuitRow: {
     flexDirection: 'row',
@@ -346,8 +367,9 @@ function ExerciseTable({
         <Text style={s.thSmall}>SERIES</Text>
         <Text style={s.thSmall}>REPS</Text>
         <Text style={s.thSmall}>PESO</Text>
-        <Text style={s.thSmall}>DESCANSO</Text>
-        <Text style={s.thSmall}>TEMPO</Text>
+        <Text style={s.thSmall}>DESC.</Text>
+        <Text style={s.thSmall}>RPE</Text>
+        <Text style={s.thSmall}>RIR</Text>
         <Text style={s.thNotes}>NOTAS</Text>
       </View>
 
@@ -362,19 +384,29 @@ function ExerciseTable({
               <Text style={s.tdSmall}>{group.exercise.sets ?? '—'}</Text>
               <Text style={s.tdSmall}>{formatReps(group.exercise)}</Text>
               <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
-              <Text style={s.tdSmall}>{group.exercise.rest_seconds ? `${group.exercise.rest_seconds}″` : '—'}</Text>
-              <Text style={s.tdSmall}>{group.exercise.tempo ?? '—'}</Text>
+              <Text style={s.tdSmall}>{pdfRow.restDisplay}</Text>
+              <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
+              <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
               <Text style={s.tdNotes}>{pdfRow.notesClean}</Text>
             </View>
           )
         }
 
         rowIndex += group.exercises.length
+        const circuitNote = circuitClarificationFromGroup(group.exercises)
         return (
-          <View key={group.groupId} style={sc.circuitWrapper} wrap={false}>
+          <View key={group.groupId} style={sc.circuitWrapper}>
             <View style={sc.circuitHeader}>
               <View style={sc.circuitDot} />
-              <Text style={sc.circuitLabel}>Circuito · {group.exercises.length} ejercicios</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={sc.circuitLabel}>Circuito · {group.exercises.length} ejercicios</Text>
+                {circuitNote ? (
+                  <View style={{ marginTop: 5 }}>
+                    <Text style={sc.circuitNoteTitle}>Aclaración del circuito</Text>
+                    <Text style={sc.circuitNote}>{circuitNote}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
             {group.exercises.map((ex, i) => {
               const rmKg = rmByExerciseId?.[ex.exercise_id]
@@ -385,8 +417,9 @@ function ExerciseTable({
                   <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
                   <Text style={s.tdSmall}>{formatReps(ex)}</Text>
                   <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
-                  <Text style={s.tdSmall}>{ex.rest_seconds ? `${ex.rest_seconds}″` : '—'}</Text>
-                  <Text style={s.tdSmall}>{ex.tempo ?? '—'}</Text>
+                  <Text style={s.tdSmall}>{pdfRow.restDisplay}</Text>
+                  <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
+                  <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
                   <Text style={s.tdNotes}>{pdfRow.notesClean}</Text>
                 </View>
               )

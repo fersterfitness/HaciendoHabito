@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
-  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown,
+  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -23,6 +23,8 @@ import {
   buildExerciseTechnicalNotes,
 } from '@/lib/routine/exerciseMeta'
 import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
+import { segmentSourceExercises, prescriptionPatchFrom } from '@/lib/routine/copyDayPrescriptions'
+import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -135,6 +137,10 @@ export function RoutineDetailPage() {
   const [showExercisePicker, setShowExercisePicker] = useState<{ dayId: string } | null>(null)
   const [copyMenuBlock, setCopyMenuBlock] = useState<string | null>(null)
   const [rmByExerciseId, setRmByExerciseId] = useState<Map<string, number>>(new Map())
+  const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
+  const [blueprintName, setBlueprintName] = useState('')
+  const [blueprintDesc, setBlueprintDesc] = useState('')
+  const [savingBlueprint, setSavingBlueprint] = useState(false)
 
   const fetchData = useCallback(async () => {
     if (!id) return
@@ -589,6 +595,109 @@ export function RoutineDetailPage() {
     )
   }
 
+  async function copyDayPrescriptionToTargets(
+    blockId: string,
+    sourceDayId: string,
+    targetDayIds: string[],
+    includeDayMeta: boolean,
+  ) {
+    const block = blocks.find((b) => b.id === blockId)
+    const sourceDay = block?.days.find((d) => d.id === sourceDayId)
+    if (!block || !sourceDay || targetDayIds.length === 0) return
+
+    const sourceSorted = [...sourceDay.exercises].sort((a, b) => a.sort_order - b.sort_order)
+    if (sourceSorted.length === 0) {
+      toast.error('Este día no tiene ejercicios para copiar')
+      return
+    }
+
+    const segments = segmentSourceExercises(sourceSorted)
+
+    const loadingId = toast.loading('Copiando prescripción...')
+    try {
+      if (includeDayMeta) {
+        for (const tid of targetDayIds) {
+          await updateDay(blockId, tid, {
+            muscle_focus: sourceDay.muscle_focus,
+            warmup_notes: sourceDay.warmup_notes,
+          })
+        }
+      }
+
+      for (const tid of targetDayIds) {
+        const targetDay = block.days.find((d) => d.id === tid)
+        if (!targetDay) continue
+        const targetSorted = [...targetDay.exercises].sort((a, b) => a.sort_order - b.sort_order)
+
+        if (targetSorted.length < sourceSorted.length) {
+          toast.error(
+            `"${targetDay.day_name}" tiene menos ejercicios (${targetSorted.length}) que "${sourceDay.day_name}" (${sourceSorted.length}). Agregá ejercicios en el destino o quitá filas en el origen.`,
+            { id: loadingId },
+          )
+          return
+        }
+
+        let tp = 0
+        for (const seg of segments) {
+          const n = seg.indices.length
+          if (tp + n > targetSorted.length) {
+            toast.error(
+              `No alcanzan los ejercicios en "${targetDay.day_name}" para copiar un circuito completo.`,
+              { id: loadingId },
+            )
+            return
+          }
+          const newGroupId = seg.kind === 'circuit' ? Math.floor(Math.random() * 2_000_000_000) : null
+          for (let k = 0; k < n; k++) {
+            const srcEx = sourceSorted[seg.indices[k]]
+            const tgtEx = targetSorted[tp + k]
+            const patch = prescriptionPatchFrom(srcEx)
+            if (seg.kind === 'circuit' && newGroupId != null) {
+              patch.is_superset = true
+              patch.superset_group = newGroupId
+            } else {
+              patch.is_superset = false
+              patch.superset_group = null
+            }
+            await updateExercise(tid, tgtEx.id, patch)
+          }
+          tp += n
+        }
+      }
+
+      toast.success(
+        targetDayIds.length === 1
+          ? 'Prescripción copiada al día elegido'
+          : `Prescripción copiada a ${targetDayIds.length} días`,
+        { id: loadingId },
+      )
+    } catch (err) {
+      toast.dismiss(loadingId)
+      toast.error(err instanceof Error ? err.message : 'Error al copiar')
+    }
+  }
+
+  async function saveRoutineAsBlueprint() {
+    if (!user || !blueprintName.trim()) return
+    setSavingBlueprint(true)
+    const payload = serializeBlocksToBlueprint(blocks)
+    const { error } = await supabase.from('routine_blueprints').insert({
+      owner_id: user.id,
+      name: blueprintName.trim(),
+      description: blueprintDesc.trim() || null,
+      payload: JSON.parse(JSON.stringify(payload)),
+    })
+    setSavingBlueprint(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Plantilla guardada en el diccionario')
+    setBlueprintModalOpen(false)
+    setBlueprintName('')
+    setBlueprintDesc('')
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) return (
@@ -630,6 +739,15 @@ export function RoutineDetailPage() {
             >
               <Copy className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Duplicar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBlueprintModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
+              title="Guardar como plantilla reutilizable"
+            >
+              <Library className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Plantilla</span>
             </button>
             <button
               onClick={handleGeneratePdf}
@@ -772,6 +890,8 @@ export function RoutineDetailPage() {
             onOpenCopyMenu={() => setCopyMenuBlock(copyMenuBlock === block.id ? null : block.id)}
             onCloseCopyMenu={() => setCopyMenuBlock(null)}
             onCopyTo={(targetId) => copyBlock(block.id, targetId)}
+            onCopyDayPrescription={(sourceDayId, targetDayIds, includeDayMeta) =>
+              copyDayPrescriptionToTargets(block.id, sourceDayId, targetDayIds, includeDayMeta)}
             rmByExerciseId={rmByExerciseId}
           />
         ))}
@@ -786,6 +906,51 @@ export function RoutineDetailPage() {
           onSelect={(ex) => addExercise(showExercisePicker.dayId, ex)}
           onClose={() => setShowExercisePicker(null)}
         />
+      )}
+
+      {blueprintModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBlueprintModalOpen(false)} />
+          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-ink-primary">Guardar en diccionario de plantillas</h3>
+              <button type="button" onClick={() => setBlueprintModalOpen(false)} className="text-ink-muted hover:text-ink-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-ink-secondary mb-3">
+              Se guarda la estructura de semanas, días y ejercicios (con series, notas, circuitos). Luego podés aplicarla al crear una rutina nueva.
+            </p>
+            <div className="space-y-2">
+              <Input
+                label="Nombre de la plantilla *"
+                placeholder="Ej: 3 días principiantes — empuje"
+                value={blueprintName}
+                onChange={(e) => setBlueprintName(e.target.value)}
+                className="text-sm"
+              />
+              <Textarea
+                label="Nota (opcional)"
+                placeholder="Cuándo usarla, recordatorios…"
+                value={blueprintDesc}
+                onChange={(e) => setBlueprintDesc(e.target.value)}
+                rows={2}
+                className="text-xs"
+              />
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button type="button" variant="secondary" className="flex-1" onClick={() => setBlueprintModalOpen(false)}>Cancelar</Button>
+              <Button
+                className="flex-1"
+                loading={savingBlueprint}
+                disabled={!blueprintName.trim() || totalExercises === 0}
+                onClick={saveRoutineAsBlueprint}
+              >
+                Guardar plantilla
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog
@@ -807,7 +972,7 @@ function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu,
   onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
   onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
-  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, rmByExerciseId,
+  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmByExerciseId,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   expandedDays: Set<string>; showCopyMenu: boolean
@@ -819,6 +984,7 @@ function BlockCard({
   onCircuitNoteChange: (dayId: string, groupId: number, value: string) => void
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
+  onCopyDayPrescription: (sourceDayId: string, targetDayIds: string[], includeDayMeta: boolean) => void | Promise<void>
   rmByExerciseId: Map<string, number>
 }) {
   const [showDelete, setShowDelete] = useState(false)
@@ -957,6 +1123,9 @@ function BlockCard({
               onCircuitNoteChange={(groupId, value) => onCircuitNoteChange(day.id, groupId, value)}
               onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
               onMoveExercise={(exId, direction) => onMoveExercise(day.id, exId, direction)}
+              siblingDays={block.days.filter((d) => d.id !== day.id).map((d) => ({ id: d.id, day_name: d.day_name }))}
+              onCopyPrescription={(targetIds, includeDayMeta) =>
+                onCopyDayPrescription(day.id, targetIds, includeDayMeta)}
               rmByExerciseId={rmByExerciseId}
             />
           ))}
@@ -1006,7 +1175,7 @@ function groupExercises(exercises: ExWithExercise[]): RenderGroup[] {
   return result
 }
 
-function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise, rmByExerciseId = new Map<string, number>() }: {
+function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise, siblingDays, onCopyPrescription, rmByExerciseId = new Map<string, number>() }: {
   day: DayWithEx; expanded: boolean
   onToggle: () => void
   onUpdateDay: (patch: Partial<RoutineDay>) => void
@@ -1018,6 +1187,8 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   onCircuitNoteChange: (groupId: number, value: string) => void
   onDeleteExercise: (exId: string) => void
   onMoveExercise: (exId: string, direction: 'up' | 'down') => void
+  siblingDays: { id: string; day_name: string }[]
+  onCopyPrescription: (targetDayIds: string[], includeDayMeta: boolean) => void | Promise<void>
   rmByExerciseId: Map<string, number>
 }) {
   const [showDelete, setShowDelete]     = useState(false)
@@ -1026,6 +1197,9 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   const [warmup, setWarmup]             = useState(day.warmup_notes ?? '')
   const [circuitMode, setCircuitMode]   = useState(false)
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
+  const [copyPrescriptionOpen, setCopyPrescriptionOpen] = useState(false)
+  const [copyTargets, setCopyTargets]     = useState<Set<string>>(new Set())
+  const [copyIncludeDayMeta, setCopyIncludeDayMeta] = useState(true)
 
   const saveDay = useDebounce(onUpdateDay, 600)
 
@@ -1101,6 +1275,31 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
             </div>
             <Textarea placeholder="Entrada en calor..." value={warmup} onChange={(e) => { setWarmup(e.target.value); saveDay({ warmup_notes: e.target.value || null }) }} rows={3} className="text-xs" />
           </div>
+
+          {siblingDays.length > 0 && day.exercises.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 py-1.5 px-2 rounded-lg border border-dashed border-brand-primary/25 bg-brand-primary/5">
+              <button
+                type="button"
+                onClick={() => {
+                  setCopyTargets(new Set())
+                  setCopyPrescriptionOpen(true)
+                }}
+                className="text-xs font-medium text-brand-primary hover:text-brand-primary/90 transition-colors"
+              >
+                Copiar series/cargas/notas → otros días
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCopyTargets(new Set(siblingDays.map((d) => d.id)))
+                  setCopyPrescriptionOpen(true)
+                }}
+                className="text-[10px] text-ink-muted hover:text-ink-primary underline underline-offset-2"
+              >
+                todos los demás
+              </button>
+            </div>
+          )}
 
           {/* Modo selección de circuito */}
           {circuitMode && (
@@ -1227,6 +1426,71 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                 <Link2 className="h-3 w-3" /> Crear circuito
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {copyPrescriptionOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCopyPrescriptionOpen(false)} />
+          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-ink-primary">Copiar a otros días de esta semana</h3>
+              <button type="button" onClick={() => setCopyPrescriptionOpen(false)} className="text-ink-muted hover:text-ink-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-ink-secondary mb-3 leading-relaxed">
+              Se copian series, reps, peso, descanso, RPE/RIR, notas y agrupación de circuitos. Los <strong className="text-ink-primary">ejercicios</strong> del día destino no cambian.
+            </p>
+            <label className="flex items-center gap-2 text-xs text-ink-secondary mb-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={copyIncludeDayMeta}
+                onChange={(e) => setCopyIncludeDayMeta(e.target.checked)}
+                className="accent-brand-primary"
+              />
+              También copiar foco muscular y entrada en calor
+            </label>
+            <div className="space-y-2 mb-4">
+              {siblingDays.map((d) => (
+                <label key={d.id} className="flex items-center gap-2 text-sm text-ink-primary cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={copyTargets.has(d.id)}
+                    onChange={(e) => {
+                      setCopyTargets((prev) => {
+                        const n = new Set(prev)
+                        if (e.target.checked) n.add(d.id)
+                        else n.delete(d.id)
+                        return n
+                      })
+                    }}
+                    className="accent-brand-primary"
+                  />
+                  {d.day_name}
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" className="flex-1" onClick={() => setCopyPrescriptionOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={async () => {
+                  if (copyTargets.size === 0) {
+                    toast.error('Seleccioná al menos un día')
+                    return
+                  }
+                  await onCopyPrescription(Array.from(copyTargets), copyIncludeDayMeta)
+                  setCopyPrescriptionOpen(false)
+                }}
+              >
+                Copiar
+              </Button>
+            </div>
           </div>
         </div>
       )}

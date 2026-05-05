@@ -67,6 +67,10 @@ function fmtKg(n: number): string {
 export interface PdfExerciseRowDisplay {
   weightCell: string
   notesClean: string
+  /** Descanso: texto del META (ej. 2′) o segundos numéricos */
+  restDisplay: string
+  rpeDisplay: string
+  rirDisplay: string
 }
 
 /** PDF / informes: peso visible en kg; notas sin bloque META. */
@@ -75,6 +79,9 @@ export function pdfExerciseDisplay(
     exercise_id?: string | null
     weight_kg: number | null
     technical_notes: string | null
+    rest_seconds?: number | null
+    rpe?: number | null
+    rir?: number | null
   },
   rmKg?: number | null,
 ): PdfExerciseRowDisplay {
@@ -95,8 +102,35 @@ export function pdfExerciseDisplay(
     weightCell = `${pct}% · sin 1RM (cargá peso en kg o registrar 1RM)`
   }
 
+  const restDisplay =
+    meta.restText?.trim() ||
+    (exercise.rest_seconds != null && exercise.rest_seconds > 0
+      ? `${exercise.rest_seconds}″`
+      : '—')
+
+  const rpeFromCol = (() => {
+    const raw = exercise.rpe as unknown
+    if (raw === null || raw === undefined || raw === '') return null
+    const n = typeof raw === 'number' ? raw : Number(raw)
+    return Number.isFinite(n) ? String(n) : null
+  })()
+
+  const rpeDisplay = meta.rpeText?.trim() || rpeFromCol || '—'
+
+  const rirFromCol = (() => {
+    const raw = exercise.rir as unknown
+    if (raw === null || raw === undefined || raw === '') return null
+    const n = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10)
+    return Number.isFinite(n) ? String(n) : null
+  })()
+
+  const rirDisplay = rirFromCol || '—'
+
   return {
     weightCell,
     notesClean: userNotes.trim(),
+    restDisplay,
+    rpeDisplay,
+    rirDisplay,
   }
 }

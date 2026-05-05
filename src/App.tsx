@@ -15,6 +15,7 @@ import { RoutineFormPage } from '@/pages/routines/RoutineFormPage'
 import { RoutineDetailPage } from '@/pages/routines/RoutineDetailPage'
 import { RoutineEditorPage } from '@/pages/routines/RoutineEditorPage'
 import { RoutinePdfsPage } from '@/pages/routines/RoutinePdfsPage'
+import { RoutineBlueprintsPage } from '@/pages/routines/RoutineBlueprintsPage'
 import { HabitsPage } from '@/pages/habits/HabitsPage'
 import { ExercisesPage } from '@/pages/exercises/ExercisesPage'
 import { ExerciseFormPage } from '@/pages/exercises/ExerciseFormPage'
@@ -103,6 +104,7 @@ function AppRoutes() {
           />
           <Route path="/routines" element={canSeeTraining ? <RoutinesPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/routines/new" element={canSeeTraining ? <RoutineFormPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/routines/blueprints" element={canSeeTraining ? <RoutineBlueprintsPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/routines/:id" element={canSeeTraining ? <RoutineDetailPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/routines/:id/edit" element={canSeeTraining ? <RoutineFormPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/routines/:id/editor" element={canSeeTraining ? <RoutineEditorPage /> : <Navigate to="/dashboard" replace />} />

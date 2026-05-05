@@ -83,6 +83,12 @@ export interface Database {
         Update: Partial<Omit<RoutineExercise, 'id'>>
         Relationships: []
       }
+      routine_blueprints: {
+        Row: RoutineBlueprint
+        Insert: Omit<RoutineBlueprint, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<RoutineBlueprint, 'id' | 'created_at'>>
+        Relationships: []
+      }
       exercise_library: {
         Row: Exercise
         Insert: Omit<Exercise, 'id' | 'created_at' | 'updated_at'>
@@ -426,6 +432,16 @@ export interface MuscleGroup {
   name: string
   slug: string
   sort_order: number
+}
+
+export interface RoutineBlueprint {
+  id: string
+  owner_id: string
+  name: string
+  description: string | null
+  payload: Json
+  created_at: string
+  updated_at: string
 }
 
 export interface RoutinePdf {
