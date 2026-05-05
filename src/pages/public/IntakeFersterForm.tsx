@@ -122,9 +122,10 @@ function checkFileSize(f: File): boolean {
 
 type Props = {
   onSuccess: () => void
+  selectedPlanSlug?: string | null
 }
 
-export function IntakeFersterForm({ onSuccess }: Props) {
+export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props) {
   const [step, setStep] = useState(0)
   const [progressFiles, setProgressFiles] = useState<File[]>([])
   const [profileFile, setProfileFile] = useState<File | null>(null)
@@ -175,6 +176,7 @@ export function IntakeFersterForm({ onSuccess }: Props) {
     const payload = {
       ...values,
       phone,
+      selected_plan_slug: selectedPlanSlug,
       website: '',
     }
 

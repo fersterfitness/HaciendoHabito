@@ -63,9 +63,12 @@ const taClass = (err?: string) =>
 
 const FREQ_OPTIONS = ['', 'Diario', 'Semanal', 'Quincenal', 'Mensual', 'X']
 
-type Props = { onSuccess: () => void }
+type Props = {
+  onSuccess: () => void
+  selectedPlanSlug?: string | null
+}
 
-export function IntakeNutritionForm({ onSuccess }: Props) {
+export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Props) {
   const [step, setStep] = useState(0)
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [labFile, setLabFile] = useState<File | null>(null)
@@ -99,7 +102,7 @@ export function IntakeNutritionForm({ onSuccess }: Props) {
     const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string
     if (!supabaseUrl || !anon) { toast.error('Falta configuración del sitio'); return }
 
-    const payload = { ...values, phone, form_type: 'nutrition', website: '' }
+    const payload = { ...values, phone, form_type: 'nutrition', selected_plan_slug: selectedPlanSlug, website: '' }
     const endpoint = `${supabaseUrl}/functions/v1/public-intake-form`
     const fnHeaders: Record<string, string> = {
       apikey: anon,

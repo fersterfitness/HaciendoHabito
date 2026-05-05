@@ -21,6 +21,9 @@ type BadgeStatus =
   | 'inicial'
   | 'intermedio'
   | 'avanzado'
+  | 'plan-entrenamiento'
+  | 'plan-nutricion'
+  | 'plan-full'
 
 const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   activa: {
@@ -114,6 +117,18 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   avanzado: {
     label: 'Avanzado',
     className: 'bg-brand-primary/15 text-brand-primary border border-brand-primary/40',
+  },
+  'plan-entrenamiento': {
+    label: 'Plan Entrenamiento',
+    className: 'bg-amber-400/15 text-amber-300 border border-amber-400/35',
+  },
+  'plan-nutricion': {
+    label: 'Plan Nutrición',
+    className: 'bg-yellow-400/15 text-yellow-300 border border-yellow-400/35',
+  },
+  'plan-full': {
+    label: 'Plan Full',
+    className: 'bg-orange-400/15 text-orange-300 border border-orange-400/35',
   },
 }
 

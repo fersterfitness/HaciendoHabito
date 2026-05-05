@@ -430,7 +430,6 @@ export function PublicIntakeFormPage() {
     clearFlipTimer()
     setIsPlanFlipped(false)
     flipTimerRef.current = window.setTimeout(() => {
-      setSelectedPlanId(null)
       flipTimerRef.current = null
     }, 320)
   }
@@ -485,9 +484,9 @@ export function PublicIntakeFormPage() {
                 {formType === null ? (
                   <FormTypeSelector onSelect={setFormType} />
                 ) : formType === 'nutricion' ? (
-                  <IntakeNutritionForm onSuccess={() => setDone(true)} />
+                  <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                 ) : (
-                  <IntakeFersterForm onSuccess={() => setDone(true)} />
+                  <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                 )}
               </div>
             )
@@ -504,9 +503,9 @@ export function PublicIntakeFormPage() {
                   {formType === null ? (
                     <FormTypeSelector onSelect={setFormType} />
                   ) : formType === 'nutricion' ? (
-                    <IntakeNutritionForm onSuccess={() => setDone(true)} />
+                  <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                   ) : (
-                    <IntakeFersterForm onSuccess={() => setDone(true)} />
+                  <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                   )}
                 </div>
 

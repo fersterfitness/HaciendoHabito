@@ -223,6 +223,14 @@ export function StudentDetailPage() {
   if (!student) return <div><Header title={entitySingularCapitalized} showBack /><p className="p-6 text-ink-muted">{entitySingularCapitalized} no encontrado.</p></div>
 
   const activeRoutine = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
+  const selectedPlanLabel =
+    student.selected_web_plan_slug === 'plan-entrenamiento'
+      ? 'Plan Entrenamiento'
+      : student.selected_web_plan_slug === 'plan-nutricion'
+      ? 'Plan Nutrición'
+      : student.selected_web_plan_slug === 'plan-full'
+      ? 'Plan Full'
+      : null
 
   return (
     <div>
@@ -238,7 +246,11 @@ export function StudentDetailPage() {
                 <h2 className="text-lg font-bold text-ink-primary">{student.full_name}</h2>
                 <Badge status={student.status} />
                 <Badge status={student.level} />
+                {student.selected_web_plan_slug && <Badge status={student.selected_web_plan_slug} />}
               </div>
+              <p className="text-xs text-ink-muted mt-1">
+                Plan seleccionado: <span className="text-ink-secondary font-medium">{selectedPlanLabel ?? 'Sin plan elegido'}</span>
+              </p>
               <div className="flex flex-wrap gap-3 mt-1.5">
                 {student.email && (
                   <a href={`mailto:${student.email}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">

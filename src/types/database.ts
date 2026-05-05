@@ -47,6 +47,7 @@ export interface Database {
               | 'weight_kg'
               | 'height_cm'
               | 'intake_ferster'
+              | 'selected_web_plan_slug'
               | 'avatar_path'
             >
           >
@@ -329,6 +330,7 @@ export interface Student {
   address: string | null
   weight_kg: number | null
   height_cm: number | null
+  selected_web_plan_slug: string | null
   intake_ferster: FersterIntakeStored | null
   /** Cuestionario nutricional web. */
   intake_nutrition: NutritionIntakeStored | null
