@@ -13,7 +13,7 @@ import {
 } from '@/lib/intake/fersterIntakeSchema'
 import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 
-const ACCENT = '#7C5DFA'
+const ACCENT = '#ffcc33'
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
 
@@ -108,7 +108,7 @@ const inputClass = (err?: string) =>
   cn(
     'w-full rounded-xl border px-4 py-3 text-sm transition-shadow',
     'bg-surface-input border-surface-inputBorder text-ink-primary placeholder:text-ink-muted',
-    'focus:outline-none focus:ring-2 focus:ring-[#7C5DFA]/55 focus:border-transparent',
+    'focus:outline-none focus:ring-2 focus:ring-[#ffcc33]/55 focus:border-transparent',
     err && 'border-status-expired focus:ring-status-expired/35',
   )
 
@@ -269,7 +269,7 @@ export function IntakeFersterForm({ onSuccess }: Props) {
         Formulario de registro
       </h1>
       <p className="text-sm text-ink-secondary mb-2">
-        Plan personalizado Ferster Fitness — <span className="font-medium">Haciéndolo hábito</span>
+        Plan personalizado — <span className="font-medium">Haciéndolo hábito</span>
       </p>
       <p className="text-xs text-ink-muted mb-6">
         ¿Ya tenés cuenta?{' '}
@@ -363,15 +363,15 @@ export function IntakeFersterForm({ onSuccess }: Props) {
               <FieldLabel required>Género</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-                  <input type="radio" value="M" className="accent-[#7C5DFA]" {...register('gender')} />
+                  <input type="radio" value="M" className="accent-[#ffcc33]" {...register('gender')} />
                   Masculino
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-                  <input type="radio" value="F" className="accent-[#7C5DFA]" {...register('gender')} />
+                  <input type="radio" value="F" className="accent-[#ffcc33]" {...register('gender')} />
                   Femenino
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-                  <input type="radio" value="otro" className="accent-[#7C5DFA]" {...register('gender')} />
+                  <input type="radio" value="otro" className="accent-[#ffcc33]" {...register('gender')} />
                   Otros
                 </label>
               </div>
@@ -502,11 +502,11 @@ export function IntakeFersterForm({ onSuccess }: Props) {
               <FieldLabel required>¿Patología o medicamentos?</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-[#7C5DFA]" {...register('pathology')} />
+                  <input type="radio" value="no" className="accent-[#ffcc33]" {...register('pathology')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="yes" className="accent-[#7C5DFA]" {...register('pathology')} />
+                  <input type="radio" value="yes" className="accent-[#ffcc33]" {...register('pathology')} />
                   Sí (detallar abajo y adjuntar estudios en el último paso)
                 </label>
               </div>
@@ -557,11 +557,11 @@ export function IntakeFersterForm({ onSuccess }: Props) {
               <FieldLabel required>¿Consumís suplementos?</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-[#7C5DFA]" {...register('supplements')} />
+                  <input type="radio" value="no" className="accent-[#ffcc33]" {...register('supplements')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="yes" className="accent-[#7C5DFA]" {...register('supplements')} />
+                  <input type="radio" value="yes" className="accent-[#ffcc33]" {...register('supplements')} />
                   Sí
                 </label>
               </div>

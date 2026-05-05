@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, LayoutTemplate } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -95,6 +96,17 @@ export function SettingsPage() {
                 }
               </button>
             </div>
+          </FormSection>
+        </Card>
+
+        <Card>
+          <FormSection title="Planes Web">
+            <p className="text-sm text-ink-secondary">
+              Editá títulos, precios y detalles de los 3 planes del formulario público sin tocar código.
+            </p>
+            <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
+              <Link to="/settings/web-plans">Gestionar planes</Link>
+            </Button>
           </FormSection>
         </Card>
 

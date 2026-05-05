@@ -15,7 +15,7 @@ import {
 } from '@/lib/intake/nutritionIntakeSchema'
 import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 
-const ACCENT = '#7C5DFA'
+const ACCENT = '#ffcc33'
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
 
@@ -54,7 +54,7 @@ const inputClass = (err?: string) =>
   cn(
     'w-full rounded-xl border px-4 py-3 text-sm transition-shadow',
     'bg-surface-input border-surface-inputBorder text-ink-primary placeholder:text-ink-muted',
-    'focus:outline-none focus:ring-2 focus:ring-[#7C5DFA]/55 focus:border-transparent',
+    'focus:outline-none focus:ring-2 focus:ring-[#ffcc33]/55 focus:border-transparent',
     err && 'border-status-expired focus:ring-status-expired/35',
   )
 
@@ -320,11 +320,11 @@ export function IntakeNutritionForm({ onSuccess }: Props) {
               <FieldLabel>Tabaquismo</FieldLabel>
               <div className="flex gap-4 mt-1">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-[#7C5DFA]" {...register('smoking')} />
+                  <input type="radio" value="no" className="accent-[#ffcc33]" {...register('smoking')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="si" className="accent-[#7C5DFA]" {...register('smoking')} />
+                  <input type="radio" value="si" className="accent-[#ffcc33]" {...register('smoking')} />
                   Sí
                 </label>
               </div>
@@ -354,11 +354,11 @@ export function IntakeNutritionForm({ onSuccess }: Props) {
               <FieldLabel>¿Realizás actividad física?</FieldLabel>
               <div className="flex gap-4 mt-1">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-[#7C5DFA]" {...register('has_physical_activity')} />
+                  <input type="radio" value="no" className="accent-[#ffcc33]" {...register('has_physical_activity')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="si" className="accent-[#7C5DFA]" {...register('has_physical_activity')} />
+                  <input type="radio" value="si" className="accent-[#ffcc33]" {...register('has_physical_activity')} />
                   Sí
                 </label>
               </div>

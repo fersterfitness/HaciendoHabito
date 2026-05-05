@@ -89,6 +89,12 @@ export interface Database {
         Update: Partial<Omit<RoutineBlueprint, 'id' | 'created_at'>>
         Relationships: []
       }
+      web_plans: {
+        Row: WebPlan
+        Insert: Omit<WebPlan, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<WebPlan, 'id' | 'created_at'>>
+        Relationships: []
+      }
       exercise_library: {
         Row: Exercise
         Insert: Omit<Exercise, 'id' | 'created_at' | 'updated_at'>
@@ -440,6 +446,21 @@ export interface RoutineBlueprint {
   name: string
   description: string | null
   payload: Json
+  created_at: string
+  updated_at: string
+}
+
+export interface WebPlan {
+  id: string
+  slug: string
+  title: string
+  price_label: string
+  short_description: string
+  intro_text: string
+  includes_items: string[]
+  gifts_items: string[]
+  sort_order: number
+  is_active: boolean
   created_at: string
   updated_at: string
 }

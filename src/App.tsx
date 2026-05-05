@@ -24,6 +24,7 @@ import { IncomeFormPage } from '@/pages/finances/IncomeFormPage'
 import { ExpenseFormPage } from '@/pages/finances/ExpenseFormPage'
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { WebPlansSettingsPage } from '@/pages/settings/WebPlansSettingsPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { NutritionPage } from '@/pages/nutrition/NutritionPage'
 import { NutritionPatientDetailPage } from '@/pages/nutrition/NutritionPatientDetailPage'
@@ -157,6 +158,10 @@ function AppRoutes() {
           {/* Sistema */}
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route
+            path="/settings/web-plans"
+            element={role === 'admin' || role === 'trainer' || role === 'nutritionist' ? <WebPlansSettingsPage /> : <Navigate to="/dashboard" replace />}
+          />
           <Route path="/profile" element={<PlaceholderPage title="Perfil" />} />
         </Route>
       </Route>
