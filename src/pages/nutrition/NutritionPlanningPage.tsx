@@ -53,7 +53,14 @@ import {
 import { parsePlanningData, planningDataToJson } from '@/lib/nutrition/planningWorkbookTypes'
 import { buildStudentQuantitySummaryLines } from '@/lib/nutrition/mealPickPresentation'
 import { downloadPlanningWorkbookPdf } from '@/lib/nutrition/downloadPlanningWorkbookPdf'
-import type { Json, NutritionFoodLibrary, NutritionPlanningWorkbook, Student } from '@/types/database'
+import { fersterGoalLabel } from '@/lib/fersterIntakeLabels'
+import type {
+  Json,
+  NutritionFoodLibrary,
+  NutritionPlanningWorkbook,
+  NutritionPlanningWorkbookTemplate,
+  Student,
+} from '@/types/database'
 import { cn, formatDate } from '@/lib/utils'
 import {
   orphanLibraryDraftLibIds,
@@ -65,6 +72,11 @@ import {
   saveMealDistributionTemplate,
   type MealDistributionTemplate,
 } from '@/lib/nutrition/mealDistributionTemplates'
+import {
+  fetchPlanningWorkbookTemplates,
+  insertPlanningWorkbookTemplate,
+  workbookFromTemplateData,
+} from '@/lib/nutrition/planningWorkbookTemplates'
 import {
   ACTIVITY_FACTOR_GUIDE_ROWS,
   mifflinStJeorBmrFemale,
@@ -87,6 +99,21 @@ function approxAgeFromBirthDate(birthIso: string | null | undefined): number | n
   if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age -= 1
   if (age < 0 || age > 124) return null
   return age
+}
+
+function mealPickQtyPresentation(
+  p: MealSlotPick,
+  wb: PlanningWorkbookStateV1,
+): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
+  const ulSnap = p.unitsLabel?.trim()
+  if (p.qtyPresentation === 'units' && ulSnap) return { qtyPresentation: 'units', unitsLabel: ulSnap }
+  if (p.kind === 'plan_row') {
+    const sec = wb.sections.find((s) => s.key === p.secKey)
+    const row = sec?.rows.find((r) => r.id === p.rowId)
+    const ul = row?.unitsLabel?.trim()
+    if (row?.qtyPresentation === 'units' && ul) return { qtyPresentation: 'units', unitsLabel: ul }
+  }
+  return {}
 }
 
 /** Valores por 100 g guardados en Guía → columnas HC/P/G/kcal del plan */
@@ -223,6 +250,14 @@ export function NutritionPlanningPage() {
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
   const [templateSaveName, setTemplateSaveName] = useState('')
   const [applyTemplateTarget, setApplyTemplateTarget] = useState<MealDistributionTemplate | null>(null)
+  const [fullWorkbookTemplates, setFullWorkbookTemplates] = useState<NutritionPlanningWorkbookTemplate[]>([])
+  const [wbTemplateListLoading, setWbTemplateListLoading] = useState(false)
+  const [wbTemplateApplySelect, setWbTemplateApplySelect] = useState('')
+  const [applyFullWorkbookTemplateId, setApplyFullWorkbookTemplateId] = useState<string | null>(null)
+  const [workbookTplSaveOpen, setWorkbookTplSaveOpen] = useState(false)
+  const [workbookTplName, setWorkbookTplName] = useState('')
+  const [workbookTplDesc, setWorkbookTplDesc] = useState('')
+  const [workbookTplSaving, setWorkbookTplSaving] = useState(false)
 
   const loadLibraryFoods = useCallback(async (): Promise<boolean> => {
     if (!user?.id) return false
@@ -285,6 +320,24 @@ export function NutritionPlanningPage() {
       return { ...prev, libraryFoodRefsById: refs }
     })
   }, [libraryFoods, loading])
+
+  const refreshFullWorkbookTemplates = useCallback(async () => {
+    if (!user?.id) return
+    setWbTemplateListLoading(true)
+    try {
+      const list = await fetchPlanningWorkbookTemplates()
+      setFullWorkbookTemplates(list)
+    } catch (e) {
+      console.error(e)
+      toast.error(e instanceof Error ? e.message : 'No se pudieron cargar las plantillas del plan.')
+    } finally {
+      setWbTemplateListLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    void refreshFullWorkbookTemplates()
+  }, [refreshFullWorkbookTemplates])
 
   const canAssignToStudent = profile?.role === 'trainer' || profile?.role === 'admin'
   const referenceEntityLabel = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
@@ -709,6 +762,12 @@ export function NutritionPlanningPage() {
     const hintSnap = p.hintSnapshot?.trim()
     const prep = p.preparation && p.preparation !== 'infer' ? p.preparation : undefined
     let clone: MealSlotPick
+    const qp =
+      p.qtyPresentation === 'units' && p.unitsLabel?.trim()
+        ? ({ qtyPresentation: 'units' as const, unitsLabel: p.unitsLabel.trim() } as const)
+        : p.qtyPresentation === 'grams'
+          ? ({ qtyPresentation: 'grams' as const } as const)
+          : ({} as const)
     if (p.kind === 'plan_row') {
       clone = {
         id: newMealPickId(),
@@ -719,6 +778,7 @@ export function NutritionPlanningPage() {
         nameSnapshot: p.nameSnapshot,
         ...(hintSnap ? { hintSnapshot: hintSnap } : {}),
         ...(prep ? { preparation: prep } : {}),
+        ...qp,
       }
     } else {
       clone = {
@@ -729,6 +789,7 @@ export function NutritionPlanningPage() {
         nameSnapshot: p.nameSnapshot,
         ...(hintSnap ? { hintSnapshot: hintSnap } : {}),
         ...(prep ? { preparation: prep } : {}),
+        ...qp,
       }
     }
     const dest = mealDistribution.picksByMeal?.[toSlot] ?? []
@@ -796,6 +857,12 @@ export function NutritionPlanningPage() {
       }
       const qty = mealPickQty.trim() || (row.qtyG ?? '').trim()
       const hintSnap = row.hint?.trim()
+      const qtyPres =
+        row.qtyPresentation === 'units' && row.unitsLabel?.trim()
+          ? ({ qtyPresentation: 'units' as const, unitsLabel: row.unitsLabel.trim() } as const)
+          : row.qtyPresentation === 'grams'
+            ? ({ qtyPresentation: 'grams' as const } as const)
+            : ({} as const)
       appendMealPick(mealPickSlot, {
         id: newMealPickId(),
         kind: 'plan_row',
@@ -805,6 +872,7 @@ export function NutritionPlanningPage() {
         nameSnapshot: row.name,
         ...(hintSnap ? { hintSnapshot: hintSnap } : {}),
         ...(mealPickPreparation !== 'infer' ? { preparation: mealPickPreparation } : {}),
+        ...qtyPres,
       })
     } else {
       const lib = libraryFoods.find((f) => f.id === mealPickLibId)
@@ -1046,6 +1114,35 @@ export function NutritionPlanningPage() {
     }
   }
 
+  async function handleSavePlanningWorkbookTemplate() {
+    const name = workbookTplName.trim()
+    if (!name) {
+      toast.error('Nombre de plantilla obligatorio.')
+      return
+    }
+    setWorkbookTplSaving(true)
+    try {
+      await insertPlanningWorkbookTemplate(name, workbookTplDesc.trim() || null, planningDataToJson(wbRef.current))
+      toast.success('Plantilla guardada en la nube.')
+      setWorkbookTplSaveOpen(false)
+      setWorkbookTplName('')
+      setWorkbookTplDesc('')
+      void refreshFullWorkbookTemplates()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo guardar.')
+    } finally {
+      setWorkbookTplSaving(false)
+    }
+  }
+
+  function confirmApplyFullWorkbookTemplate() {
+    if (!wbTemplateApplySelect) {
+      toast.error('Elegí una plantilla en la lista.')
+      return
+    }
+    setApplyFullWorkbookTemplateId(wbTemplateApplySelect)
+  }
+
   async function handleResetConfirm() {
     if (!user?.id || !rowPk) return
     const seed = createInitialPlanningWorkbook()
@@ -1108,6 +1205,44 @@ export function NutritionPlanningPage() {
             >
               PDF
             </Button>
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+              <select
+                className={cn(selectPlanClasses, 'h-9 text-xs max-w-[10rem] sm:max-w-[14rem]')}
+                disabled={wbTemplateListLoading}
+                value={wbTemplateApplySelect}
+                onChange={(e) => setWbTemplateApplySelect(e.target.value)}
+                aria-label="Plantilla del plan completo"
+              >
+                <option value="">
+                  {wbTemplateListLoading ? 'Cargando plantillas…' : 'Plantilla libro · Excel'}
+                </option>
+                {fullWorkbookTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0 rounded-xl text-xs px-2.5"
+                disabled={!wbTemplateApplySelect || wbTemplateListLoading}
+                onClick={confirmApplyFullWorkbookTemplate}
+              >
+                Cargar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={<BookmarkPlus className="h-3.5 w-3.5" aria-hidden />}
+                className="h-9 shrink-0 rounded-xl text-xs px-2.5"
+                onClick={() => setWorkbookTplSaveOpen(true)}
+              >
+                Guardar libro
+              </Button>
+            </div>
             {canAssignToStudent ? (
               <Button
                 type="button"
@@ -1323,6 +1458,30 @@ export function NutritionPlanningPage() {
                   </div>
                 </div>
               </div>
+              <div className="rounded-xl border border-surface-border overflow-hidden mt-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
+                  Vista cuadro (como segunda solapa Excel) · referencia rápida
+                </p>
+                <table className="w-full text-left text-sm">
+                  <tbody>
+                    {(
+                      [
+                        ['Objetivo', fersterGoalLabel(wb.objectives?.trim() ?? '') || wb.objectives?.trim() || '—'],
+                        ['Peso (kg)', wb.person.weightKg?.trim() || '—'],
+                        ['Meta kcal', wb.proposedKcal?.trim() || '—'],
+                        ['Prot / HC / G · g/kg', `${wb.macroInputs.proteinGPerKg} / ${wb.macroInputs.carbGPerKg} / ${wb.macroInputs.fatGPerKg}`],
+                      ] as const
+                    ).map(([k, v]) => (
+                      <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
+                        <th className="w-[34%] px-3 py-2 text-[10px] font-bold uppercase text-ink-muted bg-surface-muted/20 align-top">
+                          {k}
+                        </th>
+                        <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap">{v}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </details>
 
             {/* 3 · TDEE colapsado por defecto */}
@@ -1530,6 +1689,23 @@ export function NutritionPlanningPage() {
               Cada comida es un bloque en <strong>orden vertical</strong> (como el PDF): tabla con un alimento por fila, separación clara entre desayuno, almuerzo, etc. Cargá desde las tablas abajo o <strong>Mi lista</strong>. Notas opcionales al pie de cada momento. Activá{' '}
               <strong>media mañana / tarde</strong> si aplican. El panel verde abajo actualiza <strong className="text-emerald-700 dark:text-emerald-300">kcal y gramos de P / HC / G</strong> con lo que sumás en tablas, Mi lista y esta distribución (metas de gramos = peso × g/kg del apartado 2).
             </p>
+            <label className="block mt-4 space-y-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                Guía orientativa para el alumno / PDF (hortalizas A y B, equivalencias, proteínas, marcas)
+              </span>
+              <textarea
+                className="flex min-h-[100px] w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-xs text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                value={wb.studentOrientativeGuide ?? ''}
+                onChange={(e) => {
+                  userHasEdited.current = true
+                  setWb((p) => ({ ...p, studentOrientativeGuide: e.target.value }))
+                }}
+                placeholder="Editá el texto por defecto o dejá el que trae la plantilla…"
+              />
+              <span className="text-[10px] text-ink-muted leading-snug block">
+                Aparece al pie del PDF y en la vista del alumno. Es orientación general, no reemplaza indicación individual.
+              </span>
+            </label>
           </div>
 
           {/* Kcal + macros en vivo (sticky) */}
@@ -1808,11 +1984,14 @@ export function NutritionPlanningPage() {
                               {picks.map((p, rowIdx) => {
                                 const macroLine = macroLineForMealPick(p)
                                 const hintText = hintForPickDisplay(p)
+                                const mq = mealPickQtyPresentation(p, wb)
                                 const studentQty = buildStudentQuantitySummaryLines({
                                   gramsStr: p.qtyG,
                                   nameSnapshot: p.nameSnapshot,
                                   hint: hintText,
                                   preparation: p.preparation,
+                                  qtyPresentation: mq.qtyPresentation,
+                                  unitsLabel: mq.unitsLabel,
                                 })
                                 return (
                                   <Fragment key={p.id}>
@@ -2157,7 +2336,7 @@ export function NutritionPlanningPage() {
         </div>
 
         <div className="space-y-5 pb-12">
-          {wb.sections.map((sec) => {
+          {wb.sections.map((sec, secStripeIdx) => {
             let secTotals = ZERO_TOTALS
             for (const r of sec.rows) {
               const q = parseLocaleNumberOrZero(r.qtyG)
@@ -2171,7 +2350,15 @@ export function NutritionPlanningPage() {
               secTotals = sumTotals(secTotals, scaledFromRefs(q, refVals))
             }
             return (
-              <section key={sec.key} className="rounded-xl border border-surface-border bg-surface-card overflow-hidden w-full">
+              <section
+                key={sec.key}
+                className={cn(
+                  'rounded-xl border overflow-hidden w-full',
+                  secStripeIdx % 2 === 0
+                    ? 'border-slate-200/95 bg-slate-50/85 dark:border-slate-800 dark:bg-slate-950/40'
+                    : 'border-amber-200/80 bg-orange-50/50 dark:border-amber-900/50 dark:bg-orange-950/25',
+                )}
+              >
                 <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-xs font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
@@ -2182,11 +2369,15 @@ export function NutritionPlanningPage() {
                   </p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11px] min-w-[880px]">
+                  <table className="w-full text-[11px] min-w-[960px]">
                     <thead>
                       <tr className="border-b border-surface-border text-left bg-surface-muted/30">
                         <th className="px-2 py-1.5 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[220px]">Alimento</th>
-                        <th className="px-1.5 py-1.5 font-semibold w-[68px]">Cant. g</th>
+                        <th className="px-1 py-1.5 font-semibold w-[52px]" title="Gramos para totales / unidades solo para cómo lo lee el alumno">
+                          Modo
+                        </th>
+                        <th className="px-1 py-1.5 font-semibold w-[56px]">Uds</th>
+                        <th className="px-1.5 py-1.5 font-semibold w-[64px]">g (totales)</th>
                         <th className="px-1.5 py-1.5 font-semibold w-[56px]">HC /100</th>
                         <th className="px-1.5 py-1.5 font-semibold w-[56px]">P /100</th>
                         <th className="px-1.5 py-1.5 font-semibold w-[56px]">G /100</th>
@@ -2239,12 +2430,38 @@ export function NutritionPlanningPage() {
                                 </button>
                               </div>
                             </td>
-                            <td className="px-2 py-1 align-top">
+                            <td className="px-1 py-1 align-top">
+                              <select
+                                className="h-8 w-full rounded-md border border-surface-inputBorder bg-surface-input px-1 text-[10px] text-ink-primary"
+                                value={r.qtyPresentation ?? 'grams'}
+                                onChange={(e) =>
+                                  patchRow(sec.key, r.id, {
+                                    qtyPresentation: e.target.value === 'units' ? 'units' : 'grams',
+                                  })
+                                }
+                                aria-label={`Modo cantidad · ${r.name}`}
+                              >
+                                <option value="grams">g</option>
+                                <option value="units">u.</option>
+                              </select>
+                            </td>
+                            <td className="px-1 py-1 align-top">
+                              <Input
+                                className="h-8 text-[10px] px-1"
+                                value={r.unitsLabel ?? ''}
+                                placeholder="2"
+                                disabled={(r.qtyPresentation ?? 'grams') !== 'units'}
+                                onChange={(e) => patchRow(sec.key, r.id, { unitsLabel: e.target.value })}
+                                aria-label={`Unidades · ${r.name}`}
+                              />
+                            </td>
+                            <td className="px-1.5 py-1 align-top">
                               <Input
                                 className="h-8 text-[11px]"
                                 inputMode="decimal"
                                 value={r.qtyG}
                                 onChange={(e) => patchRow(sec.key, r.id, { qtyG: e.target.value })}
+                                aria-label={`Gramos (cómputo) · ${r.name}`}
                               />
                             </td>
                             <td className="px-1.5 py-1 align-top">
@@ -2633,6 +2850,44 @@ export function NutritionPlanningPage() {
         </div>
       ) : null}
 
+      {workbookTplSaveOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            role="presentation"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !workbookTplSaving && setWorkbookTplSaveOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl space-y-3">
+            <h3 className="text-base font-semibold text-ink-primary">Guardar plantilla del libro (Excel)</h3>
+            <p className="text-xs text-ink-muted leading-relaxed">
+              Se guarda todo el plan actual (tablas, distribución, guías, TDEE, etc.) en tu cuenta para reutilizarlo después con «Cargar».
+            </p>
+            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">Nombre</label>
+            <Input
+              className="w-full"
+              value={workbookTplName}
+              onChange={(e) => setWorkbookTplName(e.target.value)}
+              placeholder="Ej. Déficit · 3 comidas + plantilla HH"
+            />
+            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">Nota (opcional)</label>
+            <textarea
+              className="w-full min-h-[64px] rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary"
+              value={workbookTplDesc}
+              onChange={(e) => setWorkbookTplDesc(e.target.value)}
+              placeholder="Cuándo usarla…"
+            />
+            <div className="flex flex-wrap gap-2 justify-end pt-1">
+              <Button variant="secondary" type="button" disabled={workbookTplSaving} onClick={() => setWorkbookTplSaveOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" loading={workbookTplSaving} onClick={() => void handleSavePlanningWorkbookTemplate()}>
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <ConfirmDialog
         open={resetOpen}
         onClose={() => setResetOpen(false)}
@@ -2661,6 +2916,39 @@ export function NutritionPlanningPage() {
             : ''
         }
         confirmLabel="Aplicar"
+        variant="warning"
+      />
+
+      <ConfirmDialog
+        open={applyFullWorkbookTemplateId !== null}
+        onClose={() => setApplyFullWorkbookTemplateId(null)}
+        onConfirm={() => {
+          const id = applyFullWorkbookTemplateId
+          if (!id) return
+          const t = fullWorkbookTemplates.find((x) => x.id === id)
+          setApplyFullWorkbookTemplateId(null)
+          if (!t) {
+            toast.error('Plantilla no encontrada.')
+            return
+          }
+          try {
+            const next = workbookFromTemplateData(t.data)
+            userHasEdited.current = true
+            setWb(next)
+            toast.success(`Se cargó «${t.name}».`)
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'No se pudo aplicar.')
+          }
+        }}
+        title="¿Cargar plantilla del libro?"
+        description={
+          applyFullWorkbookTemplateId
+            ? `Se reemplaza todo el contenido actual del plan por «${
+                fullWorkbookTemplates.find((x) => x.id === applyFullWorkbookTemplateId)?.name ?? 'plantilla'
+              }».`
+            : ''
+        }
+        confirmLabel="Cargar plantilla"
         variant="warning"
       />
     </div>

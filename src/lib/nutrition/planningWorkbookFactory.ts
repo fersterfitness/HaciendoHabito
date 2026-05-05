@@ -1,6 +1,10 @@
 import { EXCEL_PLANNING_BLUEPRINT } from '@/lib/nutrition/excelPlanningBlueprint'
 import { resolveRefForPlanningRow } from '@/lib/nutrition/planningRefResolve'
-import { DEFAULT_MEAL_DISTRIBUTION, type PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
+import {
+  DEFAULT_MEAL_DISTRIBUTION,
+  DEFAULT_STUDENT_ORIENTATIVE_GUIDE,
+  type PlanningWorkbookStateV1,
+} from '@/lib/nutrition/planningWorkbookTypes'
 
 export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
   return {
@@ -45,6 +49,7 @@ export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
     libraryQtyDraft: {},
     libraryFoodRefsById: {},
     mealDistribution: { ...DEFAULT_MEAL_DISTRIBUTION },
+    studentOrientativeGuide: DEFAULT_STUDENT_ORIENTATIVE_GUIDE,
     sections: EXCEL_PLANNING_BLUEPRINT.map((sec) => ({
       key: sec.key,
       title: sec.title,

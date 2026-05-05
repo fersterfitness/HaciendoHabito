@@ -7,6 +7,10 @@ export interface PlanningFoodRowState {
   name: string
   /** Sugerencia (ej. unidad → gramos orientativos) */
   hint?: string
+  /** Cómo leer «Cantidad»: gramos (default) o unidades para el texto al alumno/PDF. Siempre cargá también gramos equivalentes para totales. */
+  qtyPresentation?: 'grams' | 'units'
+  /** Texto de unidades si qtyPresentation = units (ej. «2», «½»). */
+  unitsLabel?: string
   /** Cantidad en gramos para el cómputo */
   qtyG: string
   /** Referencia manual por 100 g (usuario/plantilla) */
@@ -65,6 +69,9 @@ export type MealSlotPick =
       hintSnapshot?: string
       /** infer = deducir desde nombre/hint; crudo/cocido = forzar leyenda. */
       preparation?: MealPreparationChoice
+      /** Copiado al agregar desde la fila; si no, se usa la fila viva. */
+      qtyPresentation?: 'grams' | 'units'
+      unitsLabel?: string
     }
   | {
       id: string
@@ -74,6 +81,8 @@ export type MealSlotPick =
       nameSnapshot: string
       hintSnapshot?: string
       preparation?: MealPreparationChoice
+      qtyPresentation?: 'grams' | 'units'
+      unitsLabel?: string
     }
 
 export function newMealPickId(): string {
@@ -125,6 +134,10 @@ export function normalizePicksByMeal(raw: unknown): MealDistributionState['picks
       const prepRaw = o.preparation
       const preparation: MealPreparationChoice | undefined =
         prepRaw === 'crudo' || prepRaw === 'cocido' || prepRaw === 'infer' ? prepRaw : undefined
+      const qtyPresentationRaw = o.qtyPresentation
+      const qtyPresentation: 'grams' | 'units' | undefined =
+        qtyPresentationRaw === 'units' || qtyPresentationRaw === 'grams' ? qtyPresentationRaw : undefined
+      const unitsLabel = typeof o.unitsLabel === 'string' ? o.unitsLabel : undefined
       if (kind === 'library') {
         const libraryFoodId = typeof o.libraryFoodId === 'string' ? o.libraryFoodId : ''
         if (!libraryFoodId || !nameSnapshot) continue
@@ -136,6 +149,8 @@ export function normalizePicksByMeal(raw: unknown): MealDistributionState['picks
           nameSnapshot,
           ...(hintSnapshot !== undefined ? { hintSnapshot } : {}),
           ...(preparation ? { preparation } : {}),
+          ...(qtyPresentation ? { qtyPresentation } : {}),
+          ...(unitsLabel !== undefined ? { unitsLabel } : {}),
         })
       } else {
         const secKey = typeof o.secKey === 'string' ? o.secKey : ''
@@ -150,6 +165,8 @@ export function normalizePicksByMeal(raw: unknown): MealDistributionState['picks
           nameSnapshot,
           ...(hintSnapshot !== undefined ? { hintSnapshot } : {}),
           ...(preparation ? { preparation } : {}),
+          ...(qtyPresentation ? { qtyPresentation } : {}),
+          ...(unitsLabel !== undefined ? { unitsLabel } : {}),
         })
       }
     }
@@ -228,6 +245,11 @@ export interface PlanningWorkbookStateV1 {
   libraryFoodRefsById?: Record<string, { c: number; p: number; f: number; k: number }>
   /** Momentos del día y sugerencias de alimentos (visible en PDF / alumno). */
   mealDistribution?: MealDistributionState
+  /**
+   * Guía orientativa editable: grupos de hortalizas A/B, equivalencias visuales, alternativas de proteína,
+   * marcas de ejemplo — no sustituye indicación profesional individual.
+   */
+  studentOrientativeGuide?: string
   sections: PlanningSectionState[]
 }
 
@@ -239,6 +261,19 @@ export function isPlanningWorkbookData(x: unknown): x is PlanningWorkbookStateV1
     Array.isArray((x as PlanningWorkbookStateV1).sections)
   )
 }
+
+/** Texto inicial de la guía orientativa (hortalizas A/B, proteínas, equivalencias). */
+export const DEFAULT_STUDENT_ORIENTATIVE_GUIDE = [
+  'HORTALIZAS · orientación general (ajustá con tu entrenador o nutricionista)',
+  'Grupo A · suele incluir hortalizas de bajo aporte energético: hojas verdes, tomate, zapallito, berenjenas, brócoli u otras verduras tipo ensalada/verdura al vapor.',
+  'Grupo B · aportan más carbohidratos: papa, batata, mandioca/yuca, choclo, arvejas frescas/zapallo anco.',
+  '',
+  'PROTEÍNA · carnes magras vacunas (nalga, cuadril, lomo según preferencia), pollo/pechuga, pescados, huevos, lácteos o alternativas acordadas en tu plan.',
+  'Equivalencias solo guía (~gramos cocidos si no se indica otra cosa): un filete/pechuga típico puede rondar ~120–220 g según tamaño; un «churrasco» grande suele ubicarse por encima de ~180 g hasta ~280 g — son rangos muy variables.',
+  'Las marcas o productos citados en el plan son ejemplos; existe equivalentes de otros fabricantes.',
+  '',
+  'Imágenes orientativas del plato: idea en desarrollo — priorizá las cantidades en gramos del plan.',
+].join('\n')
 
 export function planningDataToJson(d: PlanningWorkbookStateV1): Json {
   return d as unknown as Json
@@ -303,11 +338,17 @@ export function parsePlanningData(raw: Json | undefined): PlanningWorkbookStateV
         : '',
   }
 
+  const studentOrientativeGuide =
+    typeof o.studentOrientativeGuide === 'string'
+      ? o.studentOrientativeGuide
+      : DEFAULT_STUDENT_ORIENTATIVE_GUIDE
+
   return {
     ...wb,
     person,
     libraryQtyDraft,
     libraryFoodRefsById,
     mealDistribution,
+    studentOrientativeGuide,
   }
 }

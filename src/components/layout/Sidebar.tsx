@@ -19,7 +19,6 @@ import {
   Apple,
   ClipboardList,
   UtensilsCrossed,
-  LayoutTemplate,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -44,9 +43,7 @@ const appointmentsItem = { label: 'Turnos', href: '/appointments', icon: Calenda
 const navItems = [
   { label: 'Alumnos',      href: '/students',      icon: Users },
   { label: 'Rutinas',      href: '/routines',      icon: Dumbbell },
-  { label: 'Plantillas rutina', href: '/routines/blueprints', icon: LayoutTemplate },
   { label: 'Planes alimentación', href: '/meal-plans', icon: UtensilsCrossed },
-  { label: 'PDFs Rutina',  href: '/routine-pdfs',  icon: FileText },
   { label: 'Hábitos',       href: '/habits',        icon: CalendarCheck },
   { label: 'Devoluciones', href: '/feedback',      icon: MessageSquare },
   { label: 'Ejercicios',   href: '/exercises',     icon: BookOpen },

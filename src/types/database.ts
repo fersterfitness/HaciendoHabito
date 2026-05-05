@@ -186,6 +186,18 @@ export interface Database {
         Update: Partial<Omit<NutritionPlanningWorkbook, 'id' | 'created_at'>>
         Relationships: []
       }
+      nutrition_planning_workbook_templates: {
+        Row: NutritionPlanningWorkbookTemplate
+        Insert: Omit<NutritionPlanningWorkbookTemplate, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<NutritionPlanningWorkbookTemplate, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      student_progress_photos: {
+        Row: StudentProgressPhoto
+        Insert: Omit<StudentProgressPhoto, 'id' | 'created_at'>
+        Update: Partial<Omit<StudentProgressPhoto, 'id' | 'created_at'>>
+        Relationships: []
+      }
       trainer_student_meal_plans: {
         Row: TrainerStudentMealPlan
         Insert: Omit<TrainerStudentMealPlan, 'id' | 'created_at' | 'updated_at'>
@@ -613,6 +625,28 @@ export interface NutritionPlanningWorkbook {
   data: Json
   created_at: string
   updated_at: string
+}
+
+/** Plantilla reutilizable del workbook de planificación (JSON completo). */
+export interface NutritionPlanningWorkbookTemplate {
+  id: string
+  owner_id: string
+  name: string
+  description: string | null
+  data: Json
+  created_at: string
+  updated_at: string
+}
+
+/** Foto de evolución corporal asociada a un mes (YYYY-MM). */
+export interface StudentProgressPhoto {
+  id: string
+  owner_id: string
+  student_id: string
+  year_month: string
+  storage_path: string
+  note: string | null
+  created_at: string
 }
 
 /** Plan Excel HH asignado por entrenador a un alumno (varios por alumno). */

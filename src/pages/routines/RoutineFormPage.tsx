@@ -305,7 +305,7 @@ export function RoutineFormPage() {
                 </div>
                 <p className="text-xs text-ink-secondary leading-relaxed">
                   Elegí una entrada del{' '}
-                  <Link to="/routines/blueprints" className="text-brand-primary font-medium hover:underline">
+                  <Link to="/routines?tab=plantillas" className="text-brand-primary font-medium hover:underline">
                     diccionario de plantillas
                   </Link>{' '}
                   o copiá desde una rutina ya creada. Solo aplica una opción a la vez.

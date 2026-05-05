@@ -91,6 +91,22 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
     ],
   },
   {
+    key: 'hortalizas',
+    title: 'HORTALIZAS · GRUPOS A Y B (orientativo)',
+    quantityColumnHint:
+      'Grupo A: ensalada / verduras de baja densidad. Grupo B: mayor aporte de HC (papa, choclo, zapallo anco, etc.). Cantidad en gramos cocidos salvo indicación.',
+    rows: [
+      {
+        name: 'Verduras grupo A (mezcla / ensalada)',
+        hint: 'Ej. hoja verde, tomate, zapallito, champiñón — suele permitirse más volumen según plan.',
+      },
+      {
+        name: 'Hortalizas grupo B (mayor aporte de carbos)',
+        hint: 'Ej. papa, batata, mandioca, choclo en grano, arvejas — repartir según meta de hidratos del día.',
+      },
+    ],
+  },
+  {
     key: 'pastas',
     title: 'PASTAS / ARROZ',
     quantityColumnHint: 'Cantidad en gramos (cocido)',

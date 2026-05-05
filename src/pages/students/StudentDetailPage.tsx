@@ -20,6 +20,7 @@ import { CicloTab } from './CicloTab'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
+import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
 import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan, Income } from '@/types/database'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
@@ -341,6 +342,16 @@ export function StudentDetailPage() {
         </Card>
 
         <FersterStudentIntakePanel student={student} />
+
+        <StudentProgressPhotosSection
+          studentId={student.id}
+          canManage={
+            !!(user &&
+              student.owner_id === user.id &&
+              profile &&
+              (profile.role === 'trainer' || profile.role === 'admin' || profile.role === 'nutritionist'))
+          }
+        />
 
         {/* Tabs */}
         <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">

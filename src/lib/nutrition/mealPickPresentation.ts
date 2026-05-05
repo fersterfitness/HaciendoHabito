@@ -67,22 +67,36 @@ export function buildStudentQuantitySummaryLines(opts: {
   nameSnapshot: string
   hint?: string
   preparation?: MealPreparationChoice
+  qtyPresentation?: 'grams' | 'units'
+  unitsLabel?: string
   /** PDF compacto: menos texto en la línea de gramos (sigue mostrando cdas. orientativas). */
   compact?: boolean
 }): { gramsLine: string; prepLine: string | null } {
   const g = parseLocaleNumberOrZero(opts.gramsStr)
   const withSpoons = shouldAppendCucharadasEquivalence(opts.nameSnapshot, opts.hint)
   const cdas = approxCucharadasSoperasLabel(g)
-  const gramsPart =
-    g > 0
-      ? withSpoons
+  const units = opts.unitsLabel?.trim()
+
+  let gramsPart: string
+  if (opts.qtyPresentation === 'units' && units) {
+    gramsPart =
+      g > 0
         ? opts.compact
-          ? `${fmtGramOrDash(g)} g · ~${cdas} (~${GRAMOS_POR_CUCHARADA_SOPERA} g/cda.)`
-          : `${fmtGramOrDash(g)} g · ~${cdas} cdas. sopera (≈${GRAMOS_POR_CUCHARADA_SOPERA} g/cda., orientativo)`
-        : opts.compact
-          ? `${fmtGramOrDash(g)} g`
-          : `${fmtGramOrDash(g)} g · en plato`
-      : 'Cantidad: indicá gramos en el plan con tu entrenador.'
+          ? `${units} u. (~${fmtGramOrDash(g)} g)`
+          : `${units} unidad(es) · equivalente orientativo ~${fmtGramOrDash(g)} g`
+        : `${units} u. · indicá también gramos equivalentes en el plan para el total energético.`
+  } else {
+    gramsPart =
+      g > 0
+        ? withSpoons
+          ? opts.compact
+            ? `${fmtGramOrDash(g)} g · ~${cdas} (~${GRAMOS_POR_CUCHARADA_SOPERA} g/cda.)`
+            : `${fmtGramOrDash(g)} g · ~${cdas} cdas. sopera (≈${GRAMOS_POR_CUCHARADA_SOPERA} g/cda., orientativo)`
+          : opts.compact
+            ? `${fmtGramOrDash(g)} g`
+            : `${fmtGramOrDash(g)} g · en plato`
+        : 'Cantidad: indicá gramos en el plan con tu entrenador.'
+  }
   const prepLine = preparacionElegidaLine(opts.preparation, opts.nameSnapshot, opts.hint)
   return { gramsLine: gramsPart, prepLine }
 }

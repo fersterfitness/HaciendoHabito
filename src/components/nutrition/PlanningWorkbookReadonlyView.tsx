@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react'
+import { fersterGoalLabel } from '@/lib/fersterIntakeLabels'
 import type { MealSlotKey, MealSlotPick, PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
 import {
   MEAL_SLOT_LABELS,
@@ -38,6 +39,21 @@ function mealLayoutFrom(md: ReturnType<typeof normalizeMealDistribution>) {
 function anyMealContent(md: ReturnType<typeof normalizeMealDistribution>) {
   if (mealDistributionHasMealPicks(md)) return true
   return mealLayoutFrom(md).some((b) => b.notes.trim().length > 0)
+}
+
+function pickQtyPresentationForReadonly(
+  p: MealSlotPick,
+  wb: PlanningWorkbookStateV1,
+): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
+  const ulSnap = p.unitsLabel?.trim()
+  if (p.qtyPresentation === 'units' && ulSnap) return { qtyPresentation: 'units', unitsLabel: ulSnap }
+  if (p.kind === 'plan_row') {
+    const sec = wb.sections.find((s) => s.key === p.secKey)
+    const row = sec?.rows.find((r) => r.id === p.rowId)
+    const ul = row?.unitsLabel?.trim()
+    if (row?.qtyPresentation === 'units' && ul) return { qtyPresentation: 'units', unitsLabel: ul }
+  }
+  return {}
 }
 
 /** Hint guardado o texto de plantilla (Mi lista no tiene notas en esta vista si no hubo snapshot). */
@@ -108,11 +124,14 @@ export function PlanningWorkbookReadonlyView({
                       <ul className="space-y-2">
                         {picks.map((p) => {
                           const hintText = hintForStudentPick(p, wb)
+                          const qp = pickQtyPresentationForReadonly(p, wb)
                           const lines = buildStudentQuantitySummaryLines({
                             gramsStr: p.qtyG,
                             nameSnapshot: p.nameSnapshot,
                             hint: hintText,
                             preparation: p.preparation,
+                            qtyPresentation: qp.qtyPresentation,
+                            unitsLabel: qp.unitsLabel,
                           })
                           return (
                             <li
@@ -151,59 +170,73 @@ export function PlanningWorkbookReadonlyView({
               )
             })}
           </div>
-          {wb.objectives.trim() && audience === 'student' ? (
-            <div className="pt-2 border-t border-surface-border/80">
-              <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide mb-1">Objetivo</p>
-              <p className="text-sm text-ink-secondary whitespace-pre-wrap">{wb.objectives}</p>
+          {audience === 'student' ? (
+            <div className="pt-4 border-t border-surface-border/80 space-y-4">
+              <div>
+                <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide mb-2">Resumen orientativo</p>
+                <div className="rounded-xl border border-brand-primary/25 overflow-hidden text-sm">
+                  <table className="w-full text-left">
+                    <tbody>
+                      {(
+                        [
+                          ['Objetivo', fersterGoalLabel(wb.objectives?.trim() ?? '') || wb.objectives?.trim() || '—'],
+                          ['Meta kcal', wb.proposedKcal?.trim() || '—'],
+                          ['Peso ref. (kg)', wb.person.weightKg?.trim() || '—'],
+                          ['Macros · P / HC / G (g/kg)', `${wb.macroInputs.proteinGPerKg} · ${wb.macroInputs.carbGPerKg} · ${wb.macroInputs.fatGPerKg}`],
+                        ] as const
+                      ).map(([k, v]) => (
+                        <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
+                          <th className="w-[38%] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-ink-muted bg-surface-muted/40 align-top">
+                            {k}
+                          </th>
+                          <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap">{v}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {wb.studentOrientativeGuide?.trim() ? (
+                <div className="rounded-xl border border-dashed border-surface-border bg-surface-muted/15 px-3 py-3">
+                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wide mb-1.5">
+                    Hortalizas, equivalencias y proteínas (guía)
+                  </p>
+                  <p className="text-xs text-ink-secondary whitespace-pre-wrap leading-relaxed">{wb.studentOrientativeGuide.trim()}</p>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </section>
       ) : null}
 
       {showTechnical ? (
-        <section className="rounded-2xl border border-surface-border bg-surface-card p-5 space-y-3 w-full">
-          <h2 className="text-sm font-bold text-ink-primary uppercase tracking-wide">Persona · referencia</h2>
-          <dl className="grid gap-2 sm:grid-cols-2 text-sm">
-            <div>
-              <dt className="text-[11px] text-ink-muted uppercase font-semibold">Mantención típ · hombre (kcal)</dt>
-              <dd className="text-ink-primary">{wb.person.tdeeMale || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] text-ink-muted uppercase font-semibold">Mantención típ · mujer (kcal)</dt>
-              <dd className="text-ink-primary">{wb.person.tdeeFemale || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] text-ink-muted uppercase font-semibold">Peso ejemplo (kg)</dt>
-              <dd className="text-ink-primary">{wb.person.weightKg || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] text-ink-muted uppercase font-semibold">Sexo · TDEE</dt>
-              <dd className="text-ink-primary">{wb.person.sex === 'M' ? 'Hombre' : wb.person.sex === 'F' ? 'Mujer' : '—'}</dd>
-            </div>
-          </dl>
-          <div>
-            <p className="text-[11px] text-ink-muted uppercase font-semibold mb-1">Objetivo</p>
-            <p className="text-sm text-ink-secondary whitespace-pre-wrap">{wb.objectives || '—'}</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <p className="text-[11px] text-ink-muted uppercase font-semibold">Calorías diarias ejemplo</p>
-              <p className="text-sm text-ink-primary">{wb.proposedKcal || '—'}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              <div>
-                <p className="text-[10px] text-ink-muted">Prot g/kg</p>
-                <p className="tabular-nums">{wb.macroInputs.proteinGPerKg}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-ink-muted">Carb g/kg</p>
-                <p className="tabular-nums">{wb.macroInputs.carbGPerKg}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-ink-muted">Grasa g/kg</p>
-                <p className="tabular-nums">{wb.macroInputs.fatGPerKg}</p>
-              </div>
-            </div>
+        <section className="rounded-2xl border border-surface-border bg-surface-card p-5 space-y-4 w-full">
+          <h2 className="text-sm font-bold text-ink-primary uppercase tracking-wide">Persona · referencia · cuadro tipo Excel</h2>
+          <div className="rounded-xl border border-surface-border overflow-hidden text-sm">
+            <table className="w-full text-left">
+              <tbody>
+                {(
+                  [
+                    ['Objetivo (texto / Ferster)', fersterGoalLabel(wb.objectives?.trim() ?? '') || wb.objectives?.trim() || '—'],
+                    ['Peso (kg)', wb.person.weightKg?.trim() || '—'],
+                    ['Altura (cm)', wb.person.heightCm?.trim() || '—'],
+                    ['Edad (años)', wb.person.ageYears?.trim() || '—'],
+                    ['Sexo', wb.person.sex === 'M' ? 'Hombre' : wb.person.sex === 'F' ? 'Mujer' : '—'],
+                    ['TDEE ref. · hombre', wb.person.tdeeMale?.trim() || '—'],
+                    ['TDEE ref. · mujer', wb.person.tdeeFemale?.trim() || '—'],
+                    ['Calorías propuestas (meta día)', wb.proposedKcal?.trim() || '—'],
+                    ['Prot / HC / Grasas · g/kg', `${wb.macroInputs.proteinGPerKg} / ${wb.macroInputs.carbGPerKg} / ${wb.macroInputs.fatGPerKg}`],
+                  ] as const
+                ).map(([k, v]) => (
+                  <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
+                    <th className="w-[40%] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-ink-muted bg-surface-muted/40 align-top">
+                      {k}
+                    </th>
+                    <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap tabular-nums">{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       ) : null}
@@ -219,7 +252,7 @@ export function PlanningWorkbookReadonlyView({
       ) : null}
 
       <div className="space-y-8">
-        {wb.sections.map((sec) => {
+        {wb.sections.map((sec, secIdx) => {
           let secTotals = ZERO_TOTALS
           for (const r of sec.rows) {
             const q = parseLocaleNumberOrZero(r.qtyG)
@@ -235,7 +268,15 @@ export function PlanningWorkbookReadonlyView({
             )
           }
           return (
-            <section key={sec.key} className="rounded-2xl border border-surface-border bg-surface-card overflow-hidden w-full">
+            <section
+              key={sec.key}
+              className={cn(
+                'rounded-2xl border overflow-hidden w-full',
+                secIdx % 2 === 0
+                  ? 'border-slate-200/90 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/35'
+                  : 'border-orange-200/75 bg-orange-50/35 dark:border-orange-900/45 dark:bg-orange-950/20',
+              )}
+            >
               <div className="border-b border-surface-border bg-surface-muted/40 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
@@ -253,7 +294,7 @@ export function PlanningWorkbookReadonlyView({
                   <thead>
                     <tr className="border-b border-surface-border text-left bg-surface-muted/30">
                       <th className="px-3 py-2 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[260px]">Alimento</th>
-                      <th className="px-2 py-2 font-semibold w-[76px]">Cant. g</th>
+                      <th className="px-2 py-2 font-semibold w-[100px]">Cantidad · g · u.</th>
                       {showTechnical ? (
                         <>
                           <th className="px-2 py-2 font-semibold w-[64px]">HC /100</th>
@@ -286,7 +327,11 @@ export function PlanningWorkbookReadonlyView({
                               <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-snug">{r.hint}</p>
                             ) : null}
                           </td>
-                          <td className="px-2 py-2 tabular-nums text-ink-secondary">{r.qtyG || '—'}</td>
+                          <td className="px-2 py-2 tabular-nums text-ink-secondary text-[11px]">
+                            {r.qtyPresentation === 'units' && r.unitsLabel?.trim()
+                              ? `${r.unitsLabel.trim()} u. (~${r.qtyG || '?'} g)`
+                              : r.qtyG || '—'}
+                          </td>
                           {showTechnical ? (
                             <>
                               <td className="px-2 py-2 tabular-nums text-ink-secondary">{r.refCarbs}</td>

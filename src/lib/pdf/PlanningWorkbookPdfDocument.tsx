@@ -41,6 +41,9 @@ const C = {
   bgSoft: '#f8fafc',
 }
 
+/** Franjas tipo «semana» en tablas de apéndice (sección par/impar). */
+const SECTION_STRIPE = ['#f1f5f9', '#fff7ed'] as const
+
 const styles = StyleSheet.create({
   page: {
     paddingTop: 22,
@@ -316,6 +319,70 @@ const styles = StyleSheet.create({
     lineHeight: 1.3,
     textAlign: 'right',
   },
+  objectivesTable: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: C.brandBorder,
+    borderRadius: 6,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  objectivesTableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  objectivesTableRowLast: {
+    borderBottomWidth: 0,
+  },
+  objectivesTableCellLabel: {
+    width: '32%',
+    backgroundColor: C.brandMutedBg,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    color: C.muted,
+    textTransform: 'uppercase',
+  },
+  objectivesTableCellValue: {
+    flex: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    fontSize: 8.5,
+    color: C.body,
+    lineHeight: 1.35,
+  },
+  orientativeBox: {
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: C.bgSoft,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  orientativeTitle: {
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    color: C.muted,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  orientativeBody: {
+    fontSize: 7.5,
+    color: C.body,
+    lineHeight: 1.42,
+  },
+  secAppendixStrip: {
+    marginTop: 2,
+    marginBottom: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 5,
+    borderLeftWidth: 3,
+    borderLeftColor: C.brand,
+  },
 })
 
 function mealNotesHaveText(md: MealDistributionState): boolean {
@@ -356,6 +423,22 @@ function hintForPick(p: MealSlotPick, wb: PlanningWorkbookStateV1): string | und
   return undefined
 }
 
+function pickQtyPresentationForStudent(
+  p: MealSlotPick,
+  wb: PlanningWorkbookStateV1,
+): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
+  const ulSnap = p.unitsLabel?.trim()
+  const modeSnap = p.qtyPresentation
+  if (modeSnap === 'units' && ulSnap) return { qtyPresentation: 'units', unitsLabel: ulSnap }
+  if (p.kind === 'plan_row') {
+    const sec = wb.sections.find((s) => s.key === p.secKey)
+    const row = sec?.rows.find((r) => r.id === p.rowId)
+    const ul = row?.unitsLabel?.trim()
+    if (row?.qtyPresentation === 'units' && ul) return { qtyPresentation: 'units', unitsLabel: ul }
+  }
+  return {}
+}
+
 /** Primera línea (cantidades) alineada a la derecha; resto debajo a ancho completo. */
 function splitMultilineBody(text: string): { first: string; rest: string[] } {
   const lines = text
@@ -371,7 +454,11 @@ function appendixDetailLinesCompact(row: PlanningFoodRowState): string {
   const cdas = approxCucharadasSoperasLabel(q)
   const prep = preparacionAlumnoLine(row.name, row.hint)
   const hint = row.hint?.trim()
-  const base = `${fmtGramOrDash(q)} g · ~${cdas}`
+  const ul = row.unitsLabel?.trim()
+  const base =
+    row.qtyPresentation === 'units' && ul
+      ? `${ul} u. (~${fmtGramOrDash(q)} g)`
+      : `${fmtGramOrDash(q)} g · ~${cdas}`
   const lines = [base]
   if (prep) lines.push(prep)
   else if (hint) lines.push(truncate(`Nota: ${hint}`, 140))
@@ -433,6 +520,24 @@ export function PlanningWorkbookPdfDocument({
   const hasDistMoments = distributionMomentsHaveContent(md)
   const hasObjective = objectivesDisplay.length > 0
 
+  const person = wb.person
+  const macro = wb.macroInputs
+  const sexTxt = person.sex === 'M' ? 'Hombre' : person.sex === 'F' ? 'Mujer' : ''
+  const objectiveGridRows: [string, string][] = [
+    ['Objetivo', hasObjective ? objectivesDisplay : '—'],
+    ['Peso (kg)', person.weightKg?.trim() || '—'],
+    ['Altura (cm)', person.heightCm?.trim() || '—'],
+    ['Edad (años)', person.ageYears?.trim() || '—'],
+    ['Sexo · ref.', sexTxt || '—'],
+    ['TDEE ref. hombre', person.tdeeMale?.trim() || '—'],
+    ['TDEE ref. mujer', person.tdeeFemale?.trim() || '—'],
+    ['Meta kcal día', wb.proposedKcal?.trim() || '—'],
+    ['Prot. (g/kg)', macro.proteinGPerKg?.trim() || '—'],
+    ['HC (g/kg)', macro.carbGPerKg?.trim() || '—'],
+    ['Grasas (g/kg)', macro.fatGPerKg?.trim() || '—'],
+  ]
+  const hasObjectivesTable = objectiveGridRows.some(([, v]) => v !== '—')
+
   const sectionsWithGrams = wb.sections
     .map((sec) => ({
       sec,
@@ -442,7 +547,10 @@ export function PlanningWorkbookPdfDocument({
 
   const hasGramPlan = sectionsWithGrams.length > 0
 
-  const hasPdfBody = hasDistMoments || hasObjective || hasGramPlan
+  const orientGuideRaw = wb.studentOrientativeGuide?.trim() ?? ''
+
+  const hasPdfBody =
+    hasDistMoments || hasObjective || hasGramPlan || hasObjectivesTable || orientGuideRaw.length > 0
 
   const mealLayout: { slot: MealSlotKey; title: string; notes: string }[] = [
     { slot: 'desayuno', title: MEAL_SLOT_LABELS.desayuno, notes: md.desayuno },
@@ -493,10 +601,24 @@ export function PlanningWorkbookPdfDocument({
           </View>
         ) : (
           <>
-            {hasObjective ? (
-              <View style={styles.objectivesBox}>
-                <Text style={styles.objectivesLabel}>Objetivo</Text>
-                <Text style={styles.objectivesText}>{objectivesDisplay}</Text>
+            {hasObjectivesTable ? (
+              <View style={styles.objectivesTable}>
+                <View style={{ paddingBottom: 4, paddingHorizontal: 8, paddingTop: 6, backgroundColor: C.brandSoftBg }}>
+                  <Text style={styles.objectivesLabel}>Resumen · datos del plan (orientativo)</Text>
+                </View>
+                {objectiveGridRows.map(([label, val], ri) => (
+                  <View
+                    key={label}
+                    style={[styles.objectivesTableRow, ri === objectiveGridRows.length - 1 ? styles.objectivesTableRowLast : {}]}
+                  >
+                    <View style={styles.objectivesTableCellLabel}>
+                      <Text>{label}</Text>
+                    </View>
+                    <View style={styles.objectivesTableCellValue}>
+                      <Text>{val}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
             ) : null}
 
@@ -521,12 +643,15 @@ export function PlanningWorkbookPdfDocument({
                         <View style={styles.mealBody}>
                           {picks.map((p, pi) => {
                             const hint = hintForPick(p, wb)
+                            const qPres = pickQtyPresentationForStudent(p, wb)
                             const { gramsLine, prepLine } = buildStudentQuantitySummaryLines({
                               gramsStr: p.qtyG,
                               nameSnapshot: p.nameSnapshot,
                               hint,
                               preparation: p.preparation,
                               compact: true,
+                              qtyPresentation: qPres.qtyPresentation,
+                              unitsLabel: qPres.unitsLabel,
                             })
                             const last = pi === picks.length - 1 && !b.notes.trim()
                             return (
@@ -569,8 +694,11 @@ export function PlanningWorkbookPdfDocument({
                     <Text style={styles.appendixHint}>
                       Tablas del armado en la app; podés cruzarlo con la distribución por momentos arriba.
                     </Text>
-                    {sectionsWithGrams.map(({ sec, rows }) => (
-                      <View key={sec.key}>
+                    {sectionsWithGrams.map(({ sec, rows }) => {
+                      const si = Math.max(0, wb.sections.findIndex((s) => s.key === sec.key))
+                      const stripeBg = SECTION_STRIPE[si % 2]
+                      return (
+                      <View key={sec.key} style={[styles.secAppendixStrip, { backgroundColor: stripeBg }]}>
                         <Text style={styles.secAppendixTitle}>{sec.title}</Text>
                         {rows.map((r) => {
                           const appBody = splitMultilineBody(appendixDetailLinesCompact(r))
@@ -596,16 +724,25 @@ export function PlanningWorkbookPdfDocument({
                           )
                         })}
                       </View>
-                    ))}
+                      )
+                    })}
                   </>
                 ) : null}
+              </View>
+            ) : null}
+
+            {orientGuideRaw.length > 0 ? (
+              <View style={styles.orientativeBox}>
+                <Text style={styles.orientativeTitle}>Guía orientativa · hortalizas, equivalencias y proteínas</Text>
+                <Text style={styles.orientativeBody}>{truncate(orientGuideRaw, 3500)}</Text>
               </View>
             ) : null}
           </>
         )}
 
         <Text style={styles.footer} fixed>
-          Orientación general: ajustá con tu entrenador o nutricionista. Macros detallados solo en la app del profesional.
+          No es prescripción médica · orientación general: ajustá con tu profesional. Imágenes de plato pueden sumarse como
+          ayuda visual en próximas versiones.
         </Text>
       </Page>
     </Document>

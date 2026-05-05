@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Dumbbell, Search, Pencil, Trash2, Copy } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Plus, Dumbbell, Search, Pencil, Trash2, Copy, LayoutTemplate, FileText } from 'lucide-react'
 import { useRoutines } from '@/hooks/useRoutines'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { formatDate, daysUntil } from '@/lib/utils'
+import { cn, formatDate, daysUntil } from '@/lib/utils'
+import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
+import { RoutinePdfsPanel } from '@/pages/routines/RoutinePdfsPanel'
 import type { Routine, Student } from '@/types/database'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -18,8 +19,41 @@ import toast from 'react-hot-toast'
 
 type RoutineWithStudent = Routine & { student?: { full_name: string } }
 
+function RoutineDaysChip({ endDate }: { endDate: string }) {
+  const days = daysUntil(endDate)
+  if (days < 0) {
+    return (
+      <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400 border border-red-500/25 whitespace-nowrap">
+        Vencida
+      </span>
+    )
+  }
+  if (days === 0) {
+    return (
+      <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400 border border-red-500/25 whitespace-nowrap">
+        Hoy
+      </span>
+    )
+  }
+  if (days <= 7) {
+    return (
+      <span className="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400 border border-amber-500/25 whitespace-nowrap">
+        {days}d
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/25 whitespace-nowrap">
+      {days}d
+    </span>
+  )
+}
+
 export function RoutinesPage() {
   const navigate   = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabPlantillas = searchParams.get('tab') === 'plantillas'
+  const tabPdfs = searchParams.get('tab') === 'pdfs'
   const { user }   = useAuthStore()
   const { routines, loading, fetchRoutines, deleteRoutine } = useRoutines()
   const [search, setSearch] = useState('')
@@ -143,6 +177,7 @@ export function RoutinesPage() {
 
   const activas = filtered.filter((r) => r.status === 'activa' || r.status === 'por_vencer')
   const inactivas = filtered.filter((r) => r.status !== 'activa' && r.status !== 'por_vencer')
+  const ordered = [...activas, ...inactivas]
 
   return (
     <div>
@@ -155,62 +190,158 @@ export function RoutinesPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6">
-        <Input
-          placeholder="Buscar por alumno o rutina..."
-          leftIcon={<Search className="h-4 w-4" />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="px-4 lg:px-6 pt-4 flex gap-2 border-b border-surface-border">
+        <button
+          type="button"
+          onClick={() =>
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev)
+              next.delete('tab')
+              return next
+            }, { replace: true })
+          }
+          className={cn(
+            'px-4 py-2.5 text-sm font-semibold rounded-t-xl border border-b-0 transition-colors -mb-px',
+            !tabPlantillas && !tabPdfs
+              ? 'border-surface-border bg-surface-card text-ink-primary'
+              : 'border-transparent text-ink-muted hover:text-ink-secondary hover:bg-surface-muted/40',
+          )}
+        >
+          Mis rutinas
+        </button>
+        <button
+          type="button"
+          onClick={() => setSearchParams({ tab: 'plantillas' }, { replace: true })}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl border border-b-0 transition-colors -mb-px',
+            tabPlantillas
+              ? 'border-surface-border bg-surface-card text-ink-primary'
+              : 'border-transparent text-ink-muted hover:text-ink-secondary hover:bg-surface-muted/40',
+          )}
+        >
+          <LayoutTemplate className="h-4 w-4 shrink-0" aria-hidden />
+          Plantillas
+        </button>
+        <button
+          type="button"
+          onClick={() => setSearchParams({ tab: 'pdfs' }, { replace: true })}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl border border-b-0 transition-colors -mb-px',
+            tabPdfs
+              ? 'border-surface-border bg-surface-card text-ink-primary'
+              : 'border-transparent text-ink-muted hover:text-ink-secondary hover:bg-surface-muted/40',
+          )}
+        >
+          <FileText className="h-4 w-4 shrink-0" aria-hidden />
+          PDFs
+        </button>
+      </div>
 
-        {loading ? (
-          <div className="flex justify-center py-16"><Spinner size="lg" /></div>
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            icon={<Dumbbell className="h-8 w-8" />}
-            title="No hay rutinas todavía"
-            description="Creá la primera rutina para un alumno."
-            action={{ label: 'Nueva rutina', onClick: () => navigate('/routines/new'), icon: <Plus className="h-4 w-4" /> }}
-          />
+      <div className="px-4 lg:px-6 py-6 space-y-6">
+        {tabPlantillas ? (
+          <RoutineBlueprintsPanel />
+        ) : tabPdfs ? (
+          <RoutinePdfsPanel />
         ) : (
           <>
-            {activas.length > 0 && (
-              <section>
-                <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">
-                  Activas ({activas.length})
-                </h2>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {activas.map((r) => (
-                    <RoutineCard
-                      key={r.id}
-                      routine={r}
-                      onClick={() => navigate(`/routines/${r.id}`)}
-                      onEdit={() => navigate(`/routines/${r.id}/edit`)}
-                      onDelete={() => setDeleteTarget(r)}
-                      onDuplicate={() => setDuplicateTarget(r)}
-                    />
-                  ))}
+            <Input
+              placeholder="Buscar por alumno o rutina..."
+              leftIcon={<Search className="h-4 w-4" />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <Spinner size="lg" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                icon={<Dumbbell className="h-8 w-8" />}
+                title="No hay rutinas todavía"
+                description="Creá la primera rutina para un alumno."
+                action={{
+                  label: 'Nueva rutina',
+                  onClick: () => navigate('/routines/new'),
+                  icon: <Plus className="h-4 w-4" />,
+                }}
+              />
+            ) : (
+              <div className="rounded-2xl border border-surface-border bg-surface-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[980px] text-sm">
+                    <thead className="bg-surface-muted/40 border-b border-surface-border">
+                      <tr className="text-left text-[11px] uppercase tracking-wide text-ink-muted">
+                        <th className="px-4 py-3 font-semibold">Alumno</th>
+                        <th className="px-4 py-3 font-semibold">Rutina</th>
+                        <th className="px-4 py-3 font-semibold">Período</th>
+                        <th className="px-4 py-3 font-semibold">Nivel</th>
+                        <th className="px-4 py-3 font-semibold">Estado</th>
+                        <th className="px-4 py-3 font-semibold">Vence</th>
+                        <th className="px-4 py-3 font-semibold text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ordered.map((r) => (
+                        <tr
+                          key={r.id}
+                          className="border-b border-surface-border/70 hover:bg-surface-elevated/40 cursor-pointer transition-colors"
+                          onClick={() => navigate(`/routines/${r.id}`)}
+                        >
+                          <td className="px-4 py-3 text-ink-primary font-semibold">{r.student?.full_name ?? '—'}</td>
+                          <td className="px-4 py-3 text-ink-secondary">{r.name}</td>
+                          <td className="px-4 py-3 text-xs text-ink-muted whitespace-nowrap">
+                            {formatDate(r.start_date)} → {formatDate(r.end_date)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge status={r.level} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge status={r.status} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <RoutineDaysChip endDate={r.end_date} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end items-center gap-1.5">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigate(`/routines/${r.id}/edit`)
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors px-2 py-1.5 rounded-lg"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Datos
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setDuplicateTarget(r)
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors px-2 py-1.5 rounded-lg"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                Duplicar
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setDeleteTarget(r)
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors px-2 py-1.5 rounded-lg"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Eliminar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </section>
-            )}
-            {inactivas.length > 0 && (
-              <section>
-                <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">
-                  Historial ({inactivas.length})
-                </h2>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {inactivas.map((r) => (
-                    <RoutineCard
-                      key={r.id}
-                      routine={r}
-                      onClick={() => navigate(`/routines/${r.id}`)}
-                      onEdit={() => navigate(`/routines/${r.id}/edit`)}
-                      onDelete={() => setDeleteTarget(r)}
-                      onDuplicate={() => setDuplicateTarget(r)}
-                    />
-                  ))}
-                </div>
-              </section>
+              </div>
             )}
           </>
         )}
@@ -265,79 +396,5 @@ export function RoutinesPage() {
         </div>
       )}
     </div>
-  )
-}
-
-function RoutineCard({
-  routine,
-  onClick,
-  onEdit,
-  onDelete,
-  onDuplicate,
-}: {
-  routine: RoutineWithStudent
-  onClick: () => void
-  onEdit: () => void
-  onDelete: () => void
-  onDuplicate: () => void
-}) {
-  const days = daysUntil(routine.end_date)
-  return (
-    <Card className="flex flex-col gap-2 group">
-      {/* Área clickable para ver detalle */}
-      <button onClick={onClick} className="flex flex-col gap-2 text-left">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-xs text-ink-muted truncate">{routine.name}</p>
-            <p className="text-base font-bold text-ink-primary truncate">
-              {routine.student?.full_name ?? '—'}
-            </p>
-          </div>
-          <Badge status={routine.status} />
-        </div>
-        <div className="text-xs text-ink-secondary">
-          {formatDate(routine.start_date)} → {formatDate(routine.end_date)}
-        </div>
-        <div className="flex items-center justify-between">
-          <Badge status={routine.level} />
-          {(routine.status === 'activa' || routine.status === 'por_vencer') && days >= 0 && (
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
-              days <= 3 ? 'bg-status-expired/10 text-status-expired' :
-              days <= 7 ? 'bg-status-expiring/10 text-status-expiring' :
-              'bg-surface-elevated text-ink-muted'
-            }`}>
-              {days === 0 ? 'Vence hoy' : `${days} días`}
-            </span>
-          )}
-        </div>
-      </button>
-
-      {/* Acciones */}
-      <div className="flex items-center gap-1 pt-3 mt-1 border-t border-surface-border">
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit() }}
-          className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors px-2 py-1.5 rounded-lg"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Datos
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDuplicate() }}
-          className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors px-2 py-1.5 rounded-lg"
-          title="Duplicar a otro alumno"
-        >
-          <Copy className="h-3.5 w-3.5" />
-          Duplicar
-        </button>
-        <div className="flex-1" />
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete() }}
-          className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors px-2 py-1.5 rounded-lg"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Eliminar
-        </button>
-      </div>
-    </Card>
   )
 }

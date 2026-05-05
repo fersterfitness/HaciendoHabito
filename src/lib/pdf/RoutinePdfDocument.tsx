@@ -147,8 +147,28 @@ const s = StyleSheet.create({
   },
   notesText: { fontSize: 8, color: '#78350F', lineHeight: 1.6 },
 
-  // ── Bloque ──
-  blockWrapper: { marginTop: 18 },
+  // ── Bloque (semana): franja alternada con la app ──
+  blockStripeA: {
+    marginTop: 14,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
+  blockStripeB: {
+    marginTop: 14,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    backgroundColor: '#ECFDF5',
+  },
+  blockWrapper: { marginTop: 4 },
   blockHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -524,8 +544,8 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
         )}
 
         {/* Bloques */}
-        {blocks.map((block) => (
-          <View key={block.id} style={s.blockWrapper}>
+        {blocks.map((block, wi) => (
+          <View key={block.id} style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
             <View style={s.blockHeader} wrap={false}>
               <View style={s.blockAccent} />
               <Text style={s.blockName}>{block.name}</Text>

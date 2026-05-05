@@ -854,9 +854,10 @@ export function RoutineDetailPage() {
         </div>
 
         {/* Editor de bloques */}
-        {blocks.map((block) => (
+        {blocks.map((block, blockStripeIndex) => (
           <BlockCard
             key={block.id}
+            stripeIndex={blockStripeIndex}
             block={block}
             allBlocks={blocks}
             expanded={expandedBlocks.has(block.id)}
@@ -969,12 +970,14 @@ export function RoutineDetailPage() {
 // ─── BlockCard ────────────────────────────────────────────────────────────────
 
 function BlockCard({
-  block, allBlocks, expanded, expandedDays, showCopyMenu,
+  block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0,
   onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
   onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmByExerciseId,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
+  /** Color de fondo alternado por semana (0 = gris, 1 = naranja suave). */
+  stripeIndex?: number
   expandedDays: Set<string>; showCopyMenu: boolean
   onToggle: () => void; onToggleDay: (id: string) => void
   onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
@@ -993,7 +996,14 @@ function BlockCard({
   const otherBlocks = allBlocks.filter((b) => b.id !== block.id)
 
   return (
-    <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
+    <div
+      className={cn(
+        'rounded-2xl border overflow-hidden shadow-sm',
+        stripeIndex % 2 === 0
+          ? 'border-slate-200/95 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40'
+          : 'border-emerald-200/85 bg-emerald-50/60 dark:border-emerald-900/45 dark:bg-emerald-950/30',
+      )}
+    >
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors"
         onClick={onToggle}
