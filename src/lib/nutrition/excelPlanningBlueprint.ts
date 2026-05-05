@@ -5,6 +5,10 @@
 export interface PlanningBlueprintRowDef {
   name: string
   hint?: string
+  /** Nueva plantilla: cómo muestra Cantidad para el alumno/PDF por defecto. */
+  qtyPresentation?: 'grams' | 'units'
+  /** Ej. «2» cuando es por unidades. */
+  unitsLabel?: string
 }
 
 export interface PlanningSectionBlueprintDef {
@@ -19,7 +23,7 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
     key: 'carnes',
     title: 'CARNES / PESCADO / HUEVO / LACTEOS / JAMÓN',
     quantityColumnHint:
-      'Cantidad en gramos (cocción en carnes / pescado; lácteos en ml donde indica). En carnes usamos referencias en plato (no cucharadas).',
+      'Carnes y pescado: gramos después de cocer. Huevos claras/yema/entero, jamón y quesos tipo fiambre: cantidad por unidades (claras, huevos enteros, fetas); los gramos orientativos quedan en la fila o en la columna total. Leche y yogures en ml o unidad según marca.',
     rows: [
       { name: 'Suprema', hint: 'Pechuga cocida orientativa ~150–220 g por filete grande (según tamaño).' },
       { name: 'Lomo de vaca', hint: 'Medallón cocido ~120–180 g; bife ancho ~180–250 g; churrasco grande ~200–280 g (ejemplos orientativos).' },
@@ -29,21 +33,51 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
       { name: 'Roast beff', hint: 'Fiambre en fetas: ~25–40 g por feta fina; asado en porción ~150–250 g.' },
       { name: 'Atún de pescadería', hint: 'Lomito fresco cocido orientativo ~120–200 g porción.' },
       { name: 'Salmón', hint: 'Porción cocida orientativa ~120–200 g filete (variable).' },
-      { name: 'Lata 180 gr de atún en lomitos (unidad)', hint: 'Equivalente orientativo ~130 g escurrido; ajustá gramos si usás otro tamaño.' },
-      { name: 'Clara de huevo (unidad)', hint: '~33 g por clara grande.' },
-      { name: 'Yema de huevo (unidad)', hint: '~17 g por yema grande.' },
+      {
+        name: 'Lata 180 gr de atún en lomitos (unidad)',
+        hint: 'Equivalente orientativo ~130 g escurrido; ajustá gramos si usás otro tamaño.',
+        qtyPresentation: 'units',
+      },
+      { name: 'Clara de huevo (unidad)', hint: '~33 g por clara grande.', qtyPresentation: 'units' },
+      { name: 'Yema de huevo (unidad)', hint: '~17 g por yema grande.', qtyPresentation: 'units' },
       { name: 'Whey protein "Gentech 7900"' },
       { name: 'Leche descremada % (ml)', hint: '1 ml ≈ 1 g para el cálculo.' },
       { name: 'Leche Zero lactosa "La Serenísima" (ml)', hint: '1 ml ≈ 1 g.' },
-      { name: 'Queso cremoso %' },
-      { name: 'Queso cremoso light port salut %' },
-      { name: 'Ricotta magra' },
+      { name: 'Queso cremoso %', qtyPresentation: 'units', hint: 'Mejor como fetas o porción; usar gramos sólo cuando el formato sea especial.' },
+      { name: 'Queso cremoso light port salut %', qtyPresentation: 'units', hint: 'Unidad habitual = feta típica; gramos sólo orientativos para la sumatoria.' },
+      { name: 'Ricotta magra', hint: 'También se puede cargar como cucharadas soperas (~30–40 g c/u).' },
       { name: 'Queso untable Ricotta "Tregar" (cucharada sopera)', hint: '~15 g por cucharada sopera (orientativo).' },
-      { name: 'Yogurt %' },
-      { name: 'Jamón cocido sin glutten dia por ciento 200gr (por feta)' },
-      { name: 'Queso cremoso ligth por salut "Día %"' },
-      { name: 'Queso untable descremado "Cousine & co."' },
-      { name: 'Queso cremoso "La Serenisima" light por salut' },
+      { name: 'Yogurt firme o bebible (envase habitual)', hint: 'Podés cargar ml (etiqueta) o unidades de pote (~125–170 g).' },
+      { name: 'Yogur griego natural batido tipo "Milbona"' },
+      { name: 'Yogurt % referencia habitual', hint: 'Ver carbos en etiqueta por 100 g; podés cargar gramos netos.' },
+      {
+        name: 'Jamón cocido sin glutten dia por ciento 200gr (por feta)',
+        hint: '~25–40 g por feta según espesor; sumá cantidad de fetas.',
+        qtyPresentation: 'units',
+      },
+      { name: 'Queso cremoso ligth por salut "Día %"', qtyPresentation: 'units', hint: 'Contá feta o porción; referencia típica ~20–35 g por rodaja.' },
+      {
+        name: 'Queso untable descremado "Cousine & co."',
+        hint: 'Cucharada sopera ~15–20 g; mejor para el alumno cargar cucharadas o gramos etiqueta.',
+      },
+      {
+        name: 'Queso cremoso "La Serenisima" light por salut',
+        qtyPresentation: 'units',
+        hint: 'Por feta o taco chico típico; gramos equivalen entre paréntesis en la recomendación.',
+      },
+      {
+        name: 'Queso duro rallado tipo reggianito/parmesano',
+        hint: 'Rallado sopero ~8–15 g.',
+      },
+      {
+        name: 'Leche de almendra / sin lactosa alta proteína (ml)',
+        hint: '1 ml ≈ 1 g cuando la etiqueta no indica volumen específico.',
+      },
+      {
+        name: 'Huevo mediano entero (unidad)',
+        hint: '~48–56 g huevo pesado sin cáscara; mejor leer como «1 huevo», «3 claras», etc.',
+        qtyPresentation: 'units',
+      },
     ],
   },
   {
@@ -104,6 +138,15 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
         name: 'Hortalizas grupo B (mayor aporte de carbos)',
         hint: 'Ej. papa, batata, mandioca, choclo en grano, arvejas — repartir según meta de hidratos del día.',
       },
+      { name: 'Lechuga / rúcula / mix de hojas (crudo)', hint: 'Grupo A típico; registrá volumen habitual en g si necesitás ajust fino.' },
+      { name: 'Tomate / pepino crudo', hint: 'Grupo A.' },
+      { name: 'Zapallitos / berenjenas cocidos', hint: 'Grupo A intermedio; podés cargar después de cocer.' },
+      { name: 'Espinaca / acelga / verdura de hoja cocida', hint: 'Valor por gram cocido después de pérdidas de volumen.' },
+      { name: 'Brócoli / coliflor (cocido)', hint: 'Grupo intermediario volumen alto, carbos moderate.' },
+      { name: 'Champiñones / hongos (cocido)', hint: 'Grupo A con buen volumen útil para satiedad.' },
+      { name: 'Alcauciles corazón (conserva o fresco cocido)', hint: 'Fibra alta; cargá gramos útiles.' },
+      { name: 'Espárragos (cocidos)', hint: 'Grupo A.' },
+      { name: 'Puerro / cebolla de verdeo (salteado cocido)', hint: 'Cantidad habitual en salsa o guarnición.' },
     ],
   },
   {
@@ -125,12 +168,17 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
   {
     key: 'pan',
     title: 'PAN / GALLETAS / GALLETITAS',
-    quantityColumnHint: 'Cantidad en gramos (crudo / producto)',
+    quantityColumnHint:
+      'Preferí unidades cuando el alumno cuenta rebanadas o fichas; los gr equivalen típicamente al peso etiqueta de la marca que use.',
     rows: [
-      { name: 'Pan lactal % (unidad)', hint: '~25–35 g por ficha según marca.' },
-      { name: 'Galletas de arroz tipo "Arrocitas" (unidad)', hint: '~5–10 g por unidad según tamaño.' },
-      { name: 'Galletas de arroz tipo "Cerealitas" (unidad)' },
-      { name: 'Galletas de Arroz orgánicas "Dos Hermanos" (unidad)' },
+      { name: 'Pan lactal % (unidad)', hint: '~25–38 g por ficha según marca.', qtyPresentation: 'units' },
+      {
+        name: 'Galletas de arroz tipo "Arrocitas" (unidad)',
+        hint: '~5–10 g por unidad según tamaño.',
+        qtyPresentation: 'units',
+      },
+      { name: 'Galletas de arroz tipo "Cerealitas" (unidad)', qtyPresentation: 'units' },
+      { name: 'Galletas de Arroz orgánicas "Dos Hermanos" (unidad)', qtyPresentation: 'units' },
       { name: 'Pan salvado' },
     ],
   },

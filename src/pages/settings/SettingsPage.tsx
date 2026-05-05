@@ -102,7 +102,8 @@ export function SettingsPage() {
         <Card>
           <FormSection title="Planes Web">
             <p className="text-sm text-ink-secondary">
-              Editá títulos, precios y detalles de los 3 planes del formulario público sin tocar código.
+              Editá planes del formulario público (/form), segmento solo / con Cristina, fotos del selector y textos largos sin
+              tocar código.
             </p>
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
               <Link to="/settings/web-plans">Gestionar planes</Link>

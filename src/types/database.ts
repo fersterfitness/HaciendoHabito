@@ -96,6 +96,12 @@ export interface Database {
         Update: Partial<Omit<WebPlan, 'id' | 'created_at'>>
         Relationships: []
       }
+      web_intake_catalog_settings: {
+        Row: WebIntakeCatalogSettings
+        Insert: Omit<WebIntakeCatalogSettings, 'updated_at'>
+        Update: Partial<Omit<WebIntakeCatalogSettings, 'id'>>
+        Relationships: []
+      }
       exercise_library: {
         Row: Exercise
         Insert: Omit<Exercise, 'id' | 'created_at' | 'updated_at'>
@@ -464,6 +470,8 @@ export interface RoutineBlueprint {
   updated_at: string
 }
 
+export type WebPlanCatalogSegment = 'solo' | 'with_cris'
+
 export interface WebPlan {
   id: string
   slug: string
@@ -473,6 +481,10 @@ export interface WebPlan {
   intro_text: string
   includes_items: string[]
   gifts_items: string[]
+  /** Formulario público: solo entrenador vs planes con Cristina */
+  catalog_segment: WebPlanCatalogSegment
+  /** Etiqueta corta tipo chip (ej. Entrenamiento); null = usar heurística por slug */
+  display_badge: string | null
   sort_order: number
   is_active: boolean
   created_at: string
@@ -665,6 +677,8 @@ export interface NutritionFoodLibrary {
   id: string
   owner_id: string
   display_name: string
+  /** Agrupa ítems en «Mi lista» (nombre libre, ej. Lácteos). */
+  category: string
   external_source: NutritionFoodExternalSource
   external_fdc_id: number | null
   protein_g_per_100g: number | null

@@ -1,18 +1,51 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CheckCircle2, Sun, Moon, Dumbbell, Salad, Check } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { supabase } from '@/lib/supabase'
-import type { WebPlan } from '@/types/database'
+import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 
 type FormType = 'entrenamiento' | 'nutricion' | null
 
 const ACCENT = '#ffcc33'
 
+function CatalogSegmentThumbnail({
+  imageUrl,
+  titleFallback,
+  compactFallback,
+}: {
+  imageUrl: string | null
+  titleFallback: string
+  compactFallback?: boolean
+}) {
+  const [failed, setFailed] = useState(false)
+  const showImg = Boolean(imageUrl && !failed)
+  return (
+    <div className="mx-auto mb-2 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
+      {showImg ? (
+        <img
+          src={imageUrl!}
+          alt=""
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      ) : compactFallback ? (
+        <span className="px-1 text-center text-[10px] font-bold leading-tight text-[#ffe99f]">{titleFallback}</span>
+      ) : (
+        <span className="text-xl font-black text-[#ffe99f]">{titleFallback}</span>
+      )}
+    </div>
+  )
+}
+
 type PlanDetail = {
   id: string
+  catalogSegment: WebPlanCatalogSegment
+  displayBadge: string | null
   name: string
   price: string
   badge: string
@@ -20,6 +53,15 @@ type PlanDetail = {
   intro: string
   info: string[]
   gifts: string[]
+}
+
+function planCardBadge(plan: Pick<PlanDetail, 'id' | 'displayBadge'>): string {
+  const b = plan.displayBadge?.trim()
+  if (b) return b
+  if (plan.id === 'plan-entrenamiento') return 'Entrenamiento'
+  if (plan.id === 'plan-nutricion') return 'Nutrición'
+  if (plan.id === 'plan-full') return 'Full'
+  return 'Plan'
 }
 
 const COMMON_GIFTS = [
@@ -32,6 +74,8 @@ const COMMON_GIFTS = [
 const DEFAULT_PLANS: PlanDetail[] = [
   {
     id: 'plan-entrenamiento',
+    catalogSegment: 'solo',
+    displayBadge: null,
     name: 'Primer Plan Entrenamiento',
     price: '$60.000',
     badge: 'Entrenamiento',
@@ -50,6 +94,8 @@ const DEFAULT_PLANS: PlanDetail[] = [
   },
   {
     id: 'plan-nutricion',
+    catalogSegment: 'solo',
+    displayBadge: null,
     name: 'Segundo Plan Nutrición',
     price: '$80.000',
     badge: 'Nutrición',
@@ -68,6 +114,8 @@ const DEFAULT_PLANS: PlanDetail[] = [
   },
   {
     id: 'plan-full',
+    catalogSegment: 'solo',
+    displayBadge: null,
     name: 'Plan Full',
     price: '$100.000',
     badge: 'Full',
@@ -102,7 +150,7 @@ function PlansStack({
         {plans.map((plan) => (
           <button
             type="button"
-            key={plan.name}
+            key={plan.id}
             onClick={() => onSelectPlan(plan.id)}
             className={[
               'w-full text-left rounded-2xl border p-4 transition-all backdrop-blur-sm hover:-translate-y-0.5',
@@ -148,6 +196,9 @@ function PlansStack({
                 </li>
               ))}
             </ul>
+            <p className="mt-2 px-1 text-center text-[10px] leading-snug text-white/55">
+              Tocá la tarjeta para ver todos los ítems y el detalle completo.
+            </p>
           </button>
         ))}
       </div>
@@ -163,7 +214,7 @@ function PlanDetailView({
   onBack: () => void
 }) {
   return (
-    <div className="h-full max-h-[calc(100vh-5rem)] overflow-y-auto scrollbar-hide px-1 pb-20 lg:pb-1">
+    <div className="h-full min-h-0 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain scrollbar-hide px-1 pb-20 lg:pb-1">
       <div className="rounded-2xl border border-[#ffcc33]/35 bg-[#3b2d0f] p-5 sm:p-6 text-white">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -173,7 +224,7 @@ function PlanDetailView({
           <span className="text-2xl font-extrabold">{plan.price}</span>
         </div>
 
-        <p className="mt-4 text-sm text-white/85 leading-relaxed">{plan.intro}</p>
+        <p className="mt-4 whitespace-pre-wrap break-words text-sm text-white/85 leading-relaxed">{plan.intro}</p>
 
         <div className="mt-5 pt-4 border-t border-[#f0c419]/20">
           <p className="text-sm font-semibold text-[#ffe99f] mb-2">Incluye</p>
@@ -280,15 +331,28 @@ function PublicAuthTopBar() {
 /** Panel izquierdo: marca + planes */
 function LeftBrandPanel({
   theme,
-  plans,
+  plansAll,
+  plansVisible,
+  catalogSegment,
+  soloSegmentImageUrl,
+  withCrisSegmentImageUrl,
+  onSelectCatalogSegment,
   selectedPlanId,
   onSelectPlan,
 }: {
   theme: 'light' | 'dark'
-  plans: PlanDetail[]
+  plansAll: PlanDetail[]
+  plansVisible: PlanDetail[]
+  catalogSegment: WebPlanCatalogSegment | null
+  soloSegmentImageUrl: string | null
+  withCrisSegmentImageUrl: string | null
+  onSelectCatalogSegment: (s: WebPlanCatalogSegment) => void
   selectedPlanId: string | null
   onSelectPlan: (id: string) => void
 }) {
+  const nSolo = plansAll.filter((p) => p.catalogSegment === 'solo').length
+  const nWithCris = plansAll.filter((p) => p.catalogSegment === 'with_cris').length
+  const dualCatalog = nSolo > 0 && nWithCris > 0
   return (
     <div className="relative lg:w-[44%] min-h-[340px] lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 overflow-hidden">
       <HeroBgLayers theme={theme} />
@@ -314,12 +378,58 @@ function LeftBrandPanel({
           <h2 className="text-[1.45rem] sm:text-3xl lg:text-[1.7rem] font-bold text-white tracking-tight drop-shadow-lg max-w-[16rem] lg:max-w-none">
             Haciéndolo hábito
           </h2>
+          {dualCatalog ? (
+            <div className="mb-5 w-full max-w-[340px]">
+              <p className="mb-3 text-[10px] uppercase tracking-[0.18em] text-white/60 font-semibold text-center lg:text-left">
+                Elegí la línea
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => onSelectCatalogSegment('solo')}
+                  className={[
+                    'rounded-2xl border p-4 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5',
+                    catalogSegment === 'solo'
+                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/55'
+                      : 'border-white/15 bg-black/22',
+                  ].join(' ')}
+                  aria-pressed={catalogSegment === 'solo'}
+                >
+                  <CatalogSegmentThumbnail imageUrl={soloSegmentImageUrl} titleFallback="F" />
+                  <p className="text-[11px] font-semibold text-white leading-tight">Mis planes</p>
+                  <p className="mt-1 text-[9px] text-white/60 leading-snug">Solo Fernando</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectCatalogSegment('with_cris')}
+                  className={[
+                    'rounded-2xl border p-4 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5',
+                    catalogSegment === 'with_cris'
+                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/55'
+                      : 'border-white/15 bg-black/22',
+                  ].join(' ')}
+                  aria-pressed={catalogSegment === 'with_cris'}
+                >
+                  <CatalogSegmentThumbnail imageUrl={withCrisSegmentImageUrl} titleFallback="F+C" compactFallback />
+                  <p className="text-[11px] font-semibold text-white leading-tight">Con Cristina</p>
+                  <p className="mt-1 text-[9px] text-white/60 leading-snug">Consultas conjuntas</p>
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-3 mb-5">
-            <PlansStack
-              plans={plans}
-              selectedPlanId={selectedPlanId}
-              onSelectPlan={onSelectPlan}
-            />
+            {plansVisible.length === 0 ? (
+              <p className="max-w-[300px] text-center text-[11px] text-white/60 lg:text-left mx-auto lg:mx-0">
+                {catalogSegment === null ? 'Seleccioná arriba qué línea querés para ver planes.' : 'Próximamente cargaremos planes en esta línea.'}
+              </p>
+            ) : (
+              <PlansStack
+                plans={plansVisible}
+                selectedPlanId={selectedPlanId}
+                onSelectPlan={onSelectPlan}
+              />
+            )}
           </div>
         </div>
 
@@ -350,13 +460,40 @@ export function PublicIntakeFormPage() {
   const [done,      setDone]      = useState(false)
   const [formType,  setFormType]  = useState<FormType>(null)
   const [plans, setPlans] = useState<PlanDetail[]>(DEFAULT_PLANS)
+  const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [isPlanFlipped, setIsPlanFlipped] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const flipTimerRef = useRef<number | null>(null)
+  const [soloSegmentImgUrl, setSoloSegmentImgUrl] = useState<string | null>(null)
+  const [withCrisSegmentImgUrl, setWithCrisSegmentImgUrl] = useState<string | null>(null)
+  const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
+    plans,
+    catalogSegment,
+  ])
+
   const selectedPlan = selectedPlanId
     ? plans.find((p) => p.id === selectedPlanId) ?? null
     : null
+
+  useEffect(() => {
+    const nSolo = plans.filter((p) => p.catalogSegment === 'solo').length
+    const nWith = plans.filter((p) => p.catalogSegment === 'with_cris').length
+    if (nSolo > 0 && nWith === 0) setCatalogSegment('solo')
+    else if (nWith > 0 && nSolo === 0) setCatalogSegment('with_cris')
+    else if (nSolo > 0 && nWith > 0) {
+      setCatalogSegment((curr) => (curr === 'solo' || curr === 'with_cris' ? curr : 'solo'))
+    }
+  }, [plans])
+
+  useEffect(() => {
+    if (!selectedPlanId || catalogSegment === null) return
+    const row = plans.find((p) => p.id === selectedPlanId)
+    if (!row || row.catalogSegment !== catalogSegment) {
+      setSelectedPlanId(null)
+      setIsPlanFlipped(false)
+    }
+  }, [catalogSegment, plans, selectedPlanId])
 
   useEffect(() => {
     return () => {
@@ -375,29 +512,65 @@ export function PublicIntakeFormPage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
+      const { data } = await supabase
+        .from('web_intake_catalog_settings')
+        .select('solo_segment_image_url, with_cris_segment_image_url')
+        .eq('id', 1)
+        .maybeSingle()
+      if (!mounted) return
+      if (data) {
+        setSoloSegmentImgUrl(data.solo_segment_image_url)
+        setWithCrisSegmentImgUrl(data.with_cris_segment_image_url)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
       const { data, error } = await supabase
         .from('web_plans')
-        .select('slug, title, price_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active')
+        .select(
+          'slug, title, price_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, catalog_segment, display_badge',
+        )
         .eq('is_active', true)
         .order('sort_order')
       if (error || !mounted) return
-      const mapped = ((data as Array<Pick<WebPlan, 'slug' | 'title' | 'price_label' | 'short_description' | 'intro_text' | 'includes_items' | 'gifts_items' | 'sort_order' | 'is_active'>>) ?? [])
-        .map((row) => ({
-          id: row.slug,
+      type Row = Pick<
+        WebPlan,
+        | 'slug'
+        | 'title'
+        | 'price_label'
+        | 'short_description'
+        | 'intro_text'
+        | 'includes_items'
+        | 'gifts_items'
+        | 'sort_order'
+        | 'is_active'
+        | 'catalog_segment'
+        | 'display_badge'
+      >
+      const mapped: PlanDetail[] = ((data as Row[]) ?? []).map((row) => {
+        const id = row.slug
+        const segment: WebPlanCatalogSegment = row.catalog_segment === 'with_cris' ? 'with_cris' : 'solo'
+        const displayBadge = row.display_badge ?? null
+        return {
+          id,
+          catalogSegment: segment,
+          displayBadge,
           name: row.title,
           price: row.price_label,
-          badge:
-            row.slug === 'plan-entrenamiento'
-              ? 'Entrenamiento'
-              : row.slug === 'plan-nutricion'
-              ? 'Nutrición'
-              : 'Full',
+          badge: planCardBadge({ id, displayBadge }),
           shortDescription: row.short_description,
           intro: row.intro_text,
           info: row.includes_items ?? [],
           gifts: row.gifts_items ?? [],
-        }))
-      if (mapped.length === 3) setPlans(mapped)
+        }
+      })
+      if (mapped.length > 0) setPlans(mapped)
     })()
     return () => {
       mounted = false
@@ -441,7 +614,12 @@ export function PublicIntakeFormPage() {
         <div className="w-full max-w-[960px] rounded-3xl overflow-hidden border border-surface-border bg-surface-card shadow-card dark:shadow-2xl flex flex-col lg:flex-row">
           <LeftBrandPanel
             theme={theme}
-            plans={plans}
+            plansAll={plans}
+            plansVisible={plansVisible}
+            catalogSegment={catalogSegment}
+            soloSegmentImageUrl={soloSegmentImgUrl}
+            withCrisSegmentImageUrl={withCrisSegmentImgUrl}
+            onSelectCatalogSegment={setCatalogSegment}
             selectedPlanId={selectedPlanId}
             onSelectPlan={handleSelectPlan}
           />
@@ -469,7 +647,12 @@ export function PublicIntakeFormPage() {
       <div className="w-full max-w-[960px] rounded-3xl overflow-hidden border border-surface-border bg-surface-card shadow-card dark:shadow-2xl flex flex-col lg:flex-row">
         <LeftBrandPanel
           theme={theme}
-          plans={plans}
+          plansAll={plans}
+          plansVisible={plansVisible}
+          catalogSegment={catalogSegment}
+          soloSegmentImageUrl={soloSegmentImgUrl}
+          withCrisSegmentImageUrl={withCrisSegmentImgUrl}
+          onSelectCatalogSegment={setCatalogSegment}
           selectedPlanId={selectedPlanId}
           onSelectPlan={handleSelectPlan}
         />

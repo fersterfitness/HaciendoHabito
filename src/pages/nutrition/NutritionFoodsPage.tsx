@@ -33,6 +33,13 @@ const PORTION_OPTS: { v: NutritionFoodPortionBasis; label: string }[] = [
 ]
 
 const CATALOGO_LABEL = 'Catálogo guía (español)'
+const CATEGORY_MAX = 80
+
+function normalizeFoodCategory(raw: string): string {
+  const t = raw.trim()
+  if (!t) return 'General'
+  return t.slice(0, CATEGORY_MAX)
+}
 
 function sourceBadge(row: NutritionFoodLibrary): string {
   if (row.external_source === 'usda_fdc') return 'Base internacional (USDA)'
@@ -68,6 +75,7 @@ export function NutritionFoodsPage() {
   const [fiber, setFiber] = useState('')
   const [kcal, setKcal] = useState('')
   const [notes, setNotes] = useState('')
+  const [category, setCategory] = useState('General')
   const [saving, setSaving] = useState(false)
 
   const catalogFiltered = useMemo(() => filterFoodCatalogEs(catalogQuery), [catalogQuery])
@@ -86,6 +94,7 @@ export function NutritionFoodsPage() {
     setFiber('')
     setKcal('')
     setNotes('')
+    setCategory('General')
     setFdcHits([])
     setFdcQuery('')
     setCatalogQuery('')
@@ -105,6 +114,7 @@ export function NutritionFoodsPage() {
     setCarbs(String(item.carbs_g_per_100g))
     setFiber(String(item.fiber_g_per_100g))
     setKcal(String(item.energy_kcal_per_100g))
+    setCategory(normalizeFoodCategory(item.grupo))
     setNotes(
       'Valores orientativos por 100 g. Ajustá si usás otra preparación o marca.'
     )
@@ -118,6 +128,7 @@ export function NutritionFoodsPage() {
       .from('nutrition_food_library')
       .select('*')
       .eq('owner_id', user.id)
+      .order('category', { ascending: true })
       .order('display_name')
     setLoading(false)
     if (error) {
@@ -172,6 +183,7 @@ export function NutritionFoodsPage() {
     setFiber(row.fiber_g_per_100g != null ? String(row.fiber_g_per_100g) : '')
     setKcal(row.energy_kcal_per_100g != null ? String(row.energy_kcal_per_100g) : '')
     setNotes(row.notes ?? '')
+    setCategory(normalizeFoodCategory(row.category ?? 'General'))
   }
 
   function parseDecimal(s: string): number | null {
@@ -253,6 +265,7 @@ export function NutritionFoodsPage() {
       setFiber(m?.fiber_g_per_100g != null ? String(m.fiber_g_per_100g) : '')
       setKcal(m?.energy_kcal_per_100g != null ? String(m.energy_kcal_per_100g) : '')
       if (payload.basisHint) toast(payload.basisHint, { duration: 5000 })
+      setCategory('USDA / internacional')
       toast.success('Importado. Los nombres suelen venir en inglés: podés editarlos antes de guardar.')
     } finally {
       setDetailLoadingId(null)
@@ -278,6 +291,7 @@ export function NutritionFoodsPage() {
     const row = {
       owner_id: user.id,
       display_name: displayName.trim(),
+      category: normalizeFoodCategory(category),
       external_source: externalSource,
       external_fdc_id: externalSource === 'usda_fdc' ? fdcParsed : null,
       protein_g_per_100g: parseDecimal(protein),
@@ -345,6 +359,22 @@ export function NutritionFoodsPage() {
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b, 'es'))
   }, [catalogFiltered])
 
+  const existingCategories = useMemo(() => {
+    const uniq = new Set<string>()
+    for (const r of rows) uniq.add(normalizeFoodCategory(r.category ?? 'General'))
+    return [...uniq].sort((a, b) => a.localeCompare(b, 'es'))
+  }, [rows])
+
+  const groupedSavedFoods = useMemo(() => {
+    const m = new Map<string, NutritionFoodLibrary[]>()
+    for (const r of rows) {
+      const c = normalizeFoodCategory(r.category ?? 'General')
+      if (!m.has(c)) m.set(c, [])
+      m.get(c)!.push(r)
+    }
+    return [...m.entries()].sort(([a], [b]) => a.localeCompare(b, 'es'))
+  }, [rows])
+
   return (
     <div>
       <Header title="Guía de alimentos" />
@@ -361,7 +391,8 @@ export function NutritionFoodsPage() {
             Mi lista
           </h2>
           <p className="text-xs text-ink-secondary mb-4">
-            Acá están los que guardás vos desde esta página (solo tu cuenta). Podés editar o borrar con los íconos.
+            Acá están los que guardás vos desde esta página (solo tu cuenta), agrupados por categoría. Podés crear el nombre del
+          grupo al guardar cada alimento (como rutinas por categoría).
           </p>
           {loading ? (
             <div className="flex justify-center py-10">
@@ -373,47 +404,54 @@ export function NutritionFoodsPage() {
               description="Elegí del catálogo en español, completá el formulario más abajo y tocá «Guardar en mi lista»."
             />
           ) : (
-            <ul className="space-y-2">
-              {rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 flex flex-wrap items-center justify-between gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-ink-primary truncate">{r.display_name}</p>
-                    <p className="text-xs text-ink-muted mt-0.5">
-                      Prot {r.protein_g_per_100g ?? '—'} g · Grasas {r.fat_g_per_100g ?? '—'} g · Carbos{' '}
-                      {r.carbs_g_per_100g ?? '—'} g · Fibra {r.fiber_g_per_100g ?? '—'} g · {r.energy_kcal_per_100g ?? '—'}{' '}
-                      kcal <span className="text-ink-secondary/90">(por 100 g)</span>
-                    </p>
-                    <p className="text-[11px] text-ink-muted mt-1">
-                      {r.portion_basis === 'cocido'
-                        ? 'Referencia cocido'
-                        : r.portion_basis === 'crudo'
-                          ? 'Referencia crudo'
-                          : 'Crudo/cocido no indicado'}
-                      {' · '}
-                      <span className="text-ink-secondary">{sourceBadge(r)}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button type="button" variant="ghost" size="icon" onClick={() => populateFromRow(r)} aria-label="Editar">
-                      <PencilLine className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-status-expired hover:text-red-600"
-                      onClick={() => setDeleteTarget(r)}
-                      aria-label="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </li>
+            <div className="space-y-6">
+              {groupedSavedFoods.map(([catLabel, items]) => (
+                <div key={catLabel}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-2">{catLabel}</p>
+                  <ul className="space-y-2">
+                    {items.map((r) => (
+                      <li
+                        key={r.id}
+                        className="rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-ink-primary truncate">{r.display_name}</p>
+                          <p className="text-xs text-ink-muted mt-0.5">
+                            Prot {r.protein_g_per_100g ?? '—'} g · Grasas {r.fat_g_per_100g ?? '—'} g · Carbos{' '}
+                            {r.carbs_g_per_100g ?? '—'} g · Fibra {r.fiber_g_per_100g ?? '—'} g · {r.energy_kcal_per_100g ?? '—'}{' '}
+                            kcal <span className="text-ink-secondary/90">(por 100 g)</span>
+                          </p>
+                          <p className="text-[11px] text-ink-muted mt-1">
+                            {r.portion_basis === 'cocido'
+                              ? 'Referencia cocido'
+                              : r.portion_basis === 'crudo'
+                                ? 'Referencia crudo'
+                                : 'Crudo/cocido no indicado'}
+                            {' · '}
+                            <span className="text-ink-secondary">{sourceBadge(r)}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button type="button" variant="ghost" size="icon" onClick={() => populateFromRow(r)} aria-label="Editar">
+                            <PencilLine className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-status-expired hover:text-red-600"
+                            onClick={() => setDeleteTarget(r)}
+                            aria-label="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
@@ -520,11 +558,34 @@ export function NutritionFoodsPage() {
             )}
           </div>
 
+          <datalist id="nutrition-food-category-suggestions">
+            {existingCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="text-xs text-ink-secondary font-medium mb-1 block">Nombre del alimento *</label>
                 <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="nutrition-food-category-field" className="text-xs text-ink-secondary font-medium mb-1 block">
+                  Categoría (agrupa en «Mi lista»)
+                </label>
+                <input
+                  id="nutrition-food-category-field"
+                  list="nutrition-food-category-suggestions"
+                  value={category}
+                  maxLength={CATEGORY_MAX}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Ej. Lácteos, Verduras…"
+                  className="w-full rounded-xl bg-surface-input border border-surface-inputBorder px-3 py-2.5 text-sm text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                />
+                <p className="text-[11px] text-ink-muted mt-1">
+                  Creá grupos nuevos escribiendo; el catálogo en español rellena el grupo cuando elegís una fila. Vacío ⇒
+                  «General». Máximo {CATEGORY_MAX} caracteres.
+                </p>
               </div>
               <div>
                 <p id="portion-basis-label" className="text-xs text-ink-secondary font-medium mb-2 block">

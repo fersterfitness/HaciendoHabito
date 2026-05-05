@@ -35,16 +35,19 @@ const MATCHERS: ReadonlyArray<{ test: RegExp; ref: Ref100 }> = [
   { test: /\bsalm[oó]n\b/i, ref: { c: 0, p: 20, f: 13, k: 206 } },
   { test: /clara de huevo/i, ref: fr(byId('clara-huevo')) },
   { test: /yema de huevo/i, ref: { c: 0.7, p: 16.4, f: 27.7, k: 322 } },
+  { test: /huevo mediano entero|huevo entero \(unidad\)/i, ref: fr(byId('huevo-entero')) },
   { test: /whey|gentech/i, ref: { c: 5, p: 75, f: 5, k: 380 } },
 
   { test: /leche zero lactosa|descremada/i, ref: fr(byId('leche-descremada')) },
+  { test: /leche de almendra|bebida de almendra/i, ref: { c: 0.6, p: 0.5, f: 1.1, k: 14 } },
   { test: /\bleche\b/i, ref: fr(byId('leche-entera')) },
 
   {
     test: /^ricotta magra|cousine|queso cremoso .*d[ií]a|serenisim.*light|tregar|Tregar/i,
     ref: fr(byId('queso-blanco-descremado')),
   },
-  { test: /yogh?urt|\byogur\b/i, ref: fr(byId('yogur-natural')) },
+  { test: /yogh?urt|\byogur\b|yogur griego|milbona/i, ref: fr(byId('yogur-natural')) },
+  { test: /reggianito|parmesano.*rallado|queso duro rallado/i, ref: { c: 3, p: 32, f: 25, k: 392 } },
   { test: /queso cremoso.*light|port salut|finlandia|cheddar|cuisin.*co|\bcousine\b/i, ref: fr(byId('queso-cremoso')) },
   { test: /\bqueso cremoso\b|\bricotta\b/i, ref: fr(byId('queso-cremoso')) },
   { test: /jam[oó]n cocido/i, ref: { c: 1, p: 18, f: 3, k: 100 } },

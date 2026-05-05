@@ -265,9 +265,10 @@ export function NutritionPlanningPage() {
       const { data, error } = await supabase
         .from('nutrition_food_library')
         .select(
-          'id, owner_id, display_name, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, portion_basis, source_label, notes, created_at, updated_at',
+          'id, owner_id, display_name, category, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, portion_basis, source_label, notes, created_at, updated_at',
         )
         .eq('owner_id', user.id)
+        .order('category', { ascending: true })
         .order('display_name')
       if (error) {
         toast.error(error.message || 'No se pudo cargar Mi lista.')

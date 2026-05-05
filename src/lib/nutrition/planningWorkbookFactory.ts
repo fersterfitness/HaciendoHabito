@@ -60,6 +60,8 @@ export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
           id: `${sec.key}-${ri}`,
           name: r.name,
           hint: r.hint,
+          ...(r.qtyPresentation ? { qtyPresentation: r.qtyPresentation } : {}),
+          ...(r.unitsLabel != null && r.unitsLabel !== '' ? { unitsLabel: r.unitsLabel } : {}),
           qtyG: '',
           refCarbs: ref.c.toString(),
           refProt: ref.p.toString(),
