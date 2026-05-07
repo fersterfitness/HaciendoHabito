@@ -1,5 +1,6 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { ChevronDown } from 'lucide-react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -122,32 +123,35 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {props.required && <span className="text-brand-primary ml-1">*</span>}
           </label>
         )}
-        <select
-          ref={ref}
-          id={inputId}
-          className={cn(
-            'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
-            'text-ink-primary text-sm',
-            'px-3 py-2.5 h-10',
-            'transition-colors duration-150 appearance-none cursor-pointer',
-            'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-status-expired',
-            className
-          )}
-          {...props}
-        >
-          {placeholder && (
-            <option value="" disabled>
-              {placeholder}
-            </option>
-          )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            ref={ref}
+            id={inputId}
+            className={cn(
+              'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
+              'text-ink-primary text-sm',
+              'pl-3 pr-10 py-2.5 h-10',
+              'transition-colors duration-150 appearance-none cursor-pointer',
+              'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+              error && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
+              className
+            )}
+            {...props}
+          >
+            {placeholder && (
+              <option value="" disabled>
+                {placeholder}
+              </option>
+            )}
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
+        </div>
         {error && <p className="text-xs text-status-expired">{error}</p>}
         {hint && !error && <p className="text-xs text-ink-muted">{hint}</p>}
       </div>

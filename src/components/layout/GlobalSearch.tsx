@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Search, Users, Dumbbell, X } from 'lucide-react'
+import { Search, Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ type Result = {
   id: string
   label: string
   sub: string
-  icon: 'student' | 'routine'
+  kind: 'student' | 'routine' | 'mealplan'
   href: string
 }
 
@@ -52,7 +52,7 @@ export function GlobalSearch() {
   const search = useCallback(async (q: string) => {
     if (!user || !q.trim()) { setResults([]); return }
     setLoading(true)
-    const [{ data: students }, { data: routines }] = await Promise.all([
+    const [{ data: students }, { data: routines }, { data: mealPlans }] = await Promise.all([
       supabase
         .from('students')
         .select('id, full_name, level, status')
@@ -65,21 +65,34 @@ export function GlobalSearch() {
         .eq('owner_id', user.id)
         .ilike('name', `%${q}%`)
         .limit(5),
+      supabase
+        .from('trainer_student_meal_plans')
+        .select('id, title, student_id, student:students(full_name)')
+        .eq('owner_id', user.id)
+        .ilike('title', `%${q}%`)
+        .limit(5),
     ])
     const res: Result[] = [
       ...(students ?? []).map((s) => ({
         id:    s.id,
         label: s.full_name,
         sub:   `${s.level} · ${s.status}`,
-        icon:  'student' as const,
+        kind:  'student' as const,
         href:  `/students/${s.id}`,
       })),
       ...(routines ?? []).map((r) => ({
         id:    r.id,
         label: r.name,
         sub:   `Rutina · ${r.status}`,
-        icon:  'routine' as const,
+        kind:  'routine' as const,
         href:  `/routines/${r.id}`,
+      })),
+      ...(mealPlans ?? []).map((p) => ({
+        id: p.id as string,
+        label: (p.title as string) || 'Plan de alimentación',
+        sub: `Plan · ${((p as { student?: { full_name?: string } | null }).student?.full_name ?? 'Alumno')}`,
+        kind: 'mealplan' as const,
+        href: `/students/${p.student_id}/meal-plan/${p.id}`,
       })),
     ]
     setResults(res)
@@ -121,7 +134,7 @@ export function GlobalSearch() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Buscar alumnos, rutinas..."
+            placeholder="Buscar alumnos, rutinas, planes..."
             className="flex-1 bg-transparent text-sm text-ink-primary placeholder:text-ink-muted outline-none"
           />
           {query && (
@@ -142,36 +155,61 @@ export function GlobalSearch() {
             <div className="px-4 py-6 text-center text-xs text-ink-muted">Sin resultados para "{query}"</div>
           ) : results.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-ink-muted">
-              Escribí para buscar alumnos y rutinas
+              Escribí para buscar alumnos, rutinas y planes
             </div>
           ) : (
-            <ul>
-              {results.map((r, i) => (
-                <li key={r.id}>
-                  <button
-                    onClick={() => go(r.href)}
-                    onMouseEnter={() => setActive(i)}
-                    className={cn(
-                      'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
-                      active === i ? 'bg-surface-elevated' : 'hover:bg-surface-elevated/50',
-                    )}
-                  >
-                    <span className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-xl shrink-0',
-                      r.icon === 'student' ? 'bg-brand-primary/10 text-brand-primary' : 'bg-emerald-500/10 text-emerald-400',
-                    )}>
-                      {r.icon === 'student'
-                        ? <Users className="h-4 w-4" />
-                        : <Dumbbell className="h-4 w-4" />}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink-primary truncate">{r.label}</p>
-                      <p className="text-xs text-ink-muted capitalize">{r.sub}</p>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div>
+              {(['student', 'routine', 'mealplan'] as const).map((k) => {
+                const group = results.filter((r) => r.kind === k)
+                if (group.length === 0) return null
+                const label = k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
+                return (
+                  <div key={k} className="py-1">
+                    <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      {label}
+                    </p>
+                    <ul>
+                      {group.map((r) => {
+                        const i = results.indexOf(r)
+                        return (
+                          <li key={`${r.kind}-${r.id}`}>
+                            <button
+                              onClick={() => go(r.href)}
+                              onMouseEnter={() => setActive(i)}
+                              className={cn(
+                                'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
+                                active === i ? 'bg-surface-elevated' : 'hover:bg-surface-elevated/50',
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  'flex h-8 w-8 items-center justify-center rounded-xl shrink-0',
+                                  r.kind === 'student' && 'bg-brand-primary/10 text-brand-primary',
+                                  r.kind === 'routine' && 'bg-emerald-500/10 text-emerald-400',
+                                  r.kind === 'mealplan' && 'bg-brand-tertiary/10 text-brand-tertiary',
+                                )}
+                              >
+                                {r.kind === 'student' ? (
+                                  <Users className="h-4 w-4" />
+                                ) : r.kind === 'routine' ? (
+                                  <Dumbbell className="h-4 w-4" />
+                                ) : (
+                                  <UtensilsCrossed className="h-4 w-4" />
+                                )}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-ink-primary truncate">{r.label}</p>
+                                <p className="text-xs text-ink-muted">{r.sub}</p>
+                              </div>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 

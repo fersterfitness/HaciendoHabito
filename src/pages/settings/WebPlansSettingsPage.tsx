@@ -40,6 +40,7 @@ const LIMITS = {
   badge: 48,
   item: 180,
   segmentImgUrl: 600,
+  testimonialUrl: 900,
 } as const
 
 const FALLBACK_PLANS: EditableWebPlan[] = [
@@ -141,6 +142,7 @@ export function WebPlansSettingsPage() {
   const [draftSlugs, setDraftSlugs] = useState<string[]>([])
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
   const [withCrisSegmentImg, setWithCrisSegmentImg] = useState('')
+  const [testimonialUrlsText, setTestimonialUrlsText] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
   const soloFileRef = useRef<HTMLInputElement>(null)
   const crisFileRef = useRef<HTMLInputElement>(null)
@@ -155,6 +157,7 @@ export function WebPlansSettingsPage() {
       if (!data) return
       setSoloSegmentImg(data.solo_segment_image_url ?? '')
       setWithCrisSegmentImg(data.with_cris_segment_image_url ?? '')
+      setTestimonialUrlsText(((data.testimonial_videos as string[] | null) ?? []).join('\n'))
     })()
   }, [canManage])
 
@@ -175,6 +178,33 @@ export function WebPlansSettingsPage() {
         return
       }
       toast.success('Imágenes del selector guardadas')
+    } finally {
+      setAssetsSaving(false)
+    }
+  }
+
+  async function handleSaveTestimonials() {
+    const urls = testimonialUrlsText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+
+    if (urls.some((u) => u.length > LIMITS.testimonialUrl)) {
+      toast.error(`Cada URL debe tener ≤ ${LIMITS.testimonialUrl} caracteres.`)
+      return
+    }
+
+    setAssetsSaving(true)
+    try {
+      const { error } = await supabase.from('web_intake_catalog_settings').upsert({
+        id: 1,
+        testimonial_videos: urls,
+      })
+      if (error) {
+        toast.error(error.message.includes('testimonial_videos') ? 'Ejecutá la migración SQL de videos testimonios.' : error.message)
+        return
+      }
+      toast.success('Testimonios guardados')
     } finally {
       setAssetsSaving(false)
     }
@@ -465,6 +495,21 @@ export function WebPlansSettingsPage() {
             />
             <Button type="button" size="sm" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
               Guardar fotos del selector
+            </Button>
+          </FormSection>
+          <FormSection title="Videos testimonios (/form)">
+            <p className="text-xs text-ink-secondary">
+              Pegá una URL por línea (YouTube/Vimeo o link directo `.mp4`). Se mostrará una grilla de videos en el formulario público.
+            </p>
+            <Textarea
+              label="URLs (una por línea)"
+              rows={5}
+              placeholder={'https://...\nhttps://...'}
+              value={testimonialUrlsText}
+              onChange={(e) => setTestimonialUrlsText(e.target.value)}
+            />
+            <Button type="button" size="sm" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
+              Guardar testimonios
             </Button>
           </FormSection>
           <hr className="border-surface-border" />

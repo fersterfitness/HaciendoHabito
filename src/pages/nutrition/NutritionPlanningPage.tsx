@@ -182,7 +182,7 @@ function LiveMacroCell({
       <p
         className={cn(
           'mt-0.5 text-[10px] font-bold tabular-nums leading-tight sm:text-[11px]',
-          !hasGoal ? 'text-zinc-400 dark:text-zinc-600' : over ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300',
+          !hasGoal ? 'text-zinc-400 dark:text-zinc-600' : over ? 'text-status-expiring' : 'text-zinc-700 dark:text-zinc-300',
         )}
       >
         Rest {hasGoal ? `${fmt1(remainderG)} g` : '—'}
@@ -1222,98 +1222,96 @@ export function NutritionPlanningPage() {
       <Header
         title="Armar plan de alimentación"
         actions={
-          <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5 shrink-0 min-w-0">
-            {saveState === 'saving' && (
-              <span className="text-xs text-ink-muted flex items-center gap-1 whitespace-nowrap">
-                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Guardando…
-              </span>
-            )}
-            {saveState === 'saved' && (
-              <span className="shrink-0 whitespace-nowrap text-[11px] text-zinc-600 dark:text-zinc-400">Guardado</span>
-            )}
-            {saveState === 'dirty' && (
-              <span className="text-[11px] text-ink-muted whitespace-nowrap shrink-0">Guardando cambios…</span>
-            )}
-            {workbookUpdatedAt ? (
-              <span className="text-[10px] text-ink-muted whitespace-nowrap shrink-0 hidden sm:inline">
-                Actualizado {formatDate(workbookUpdatedAt)}
-              </span>
-            ) : null}
+          <div className="flex items-center gap-2 shrink-0 min-w-0">
+            {/* Save status */}
+            <span className="hidden lg:flex items-center gap-1 text-[11px] text-ink-muted whitespace-nowrap select-none">
+              {saveState === 'saving' ? (
+                <><Loader2 className="h-3 w-3 animate-spin" aria-hidden />Guardando…</>
+              ) : saveState === 'dirty' ? (
+                'Guardando…'
+              ) : workbookUpdatedAt ? (
+                `Guardado ${formatDate(workbookUpdatedAt)}`
+              ) : (
+                'Guardado'
+              )}
+            </span>
+
+            <div className="hidden lg:block h-5 w-px bg-surface-border/70 shrink-0" aria-hidden />
+
+            {/* PDF */}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              icon={<FileDown className="h-4 w-4" aria-hidden />}
-              className="h-9 shrink-0 rounded-md shadow-none"
+              icon={<FileDown className="h-3.5 w-3.5" aria-hidden />}
+              className="h-8 shrink-0"
               onClick={() => void handleExportPdf()}
             >
               PDF
             </Button>
-            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-              <select
-                className={cn(selectPlanClasses, 'h-9 text-xs max-w-[10rem] sm:max-w-[14rem]')}
-                disabled={wbTemplateListLoading}
-                value={wbTemplateApplySelect}
-                onChange={(e) => setWbTemplateApplySelect(e.target.value)}
-                aria-label="Plantilla del plan completo"
-              >
-                <option value="">
-                  {wbTemplateListLoading ? 'Cargando plantillas…' : 'Plantilla libro · Excel'}
-                </option>
-                {fullWorkbookTemplates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 shrink-0 rounded-xl text-xs px-2.5"
-                disabled={!wbTemplateApplySelect || wbTemplateListLoading}
-                onClick={confirmApplyFullWorkbookTemplate}
-              >
-                Cargar
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                icon={<BookmarkPlus className="h-3.5 w-3.5" aria-hidden />}
-                className="h-9 shrink-0 rounded-xl text-xs px-2.5"
-                onClick={() => setWorkbookTplSaveOpen(true)}
-              >
-                Guardar libro
-              </Button>
-            </div>
+
+            <div className="h-5 w-px bg-surface-border/70 shrink-0" aria-hidden />
+
+            {/* Plantilla selector */}
+            <select
+              className={cn(selectPlanClasses, 'h-8 text-xs w-[160px] sm:w-[200px] lg:w-[260px]')}
+              disabled={wbTemplateListLoading}
+              value={wbTemplateApplySelect}
+              onChange={(e) => setWbTemplateApplySelect(e.target.value)}
+              aria-label="Plantilla del plan completo"
+            >
+              <option value="">
+                {wbTemplateListLoading ? 'Cargando…' : 'Plantilla · Excel'}
+              </option>
+              {fullWorkbookTemplates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={!wbTemplateApplySelect || wbTemplateListLoading}
+              onClick={confirmApplyFullWorkbookTemplate}
+            >
+              Cargar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={<BookmarkPlus className="h-3.5 w-3.5" aria-hidden />}
+              className="h-8 shrink-0"
+              onClick={() => setWorkbookTplSaveOpen(true)}
+            >
+              Guardar
+            </Button>
+
+            <div className="h-5 w-px bg-surface-border/70 shrink-0" aria-hidden />
+
             {canAssignToStudent ? (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                icon={<UserPlus className="h-4 w-4" aria-hidden />}
-                className="h-9 shrink-0 rounded-md shadow-none"
-                onClick={() => {
-                  setAssignTitle('Plan de alimentación')
-                  setAssignOpen(true)
-                }}
+                icon={<UserPlus className="h-3.5 w-3.5" aria-hidden />}
+                className="h-8 shrink-0"
+                onClick={() => { setAssignTitle('Plan de alimentación'); setAssignOpen(true) }}
               >
-                Asignar a alumno
+                Asignar
               </Button>
             ) : null}
+
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
-              icon={<RotateCcw className="h-4 w-4" aria-hidden />}
-              className={cn(
-                'h-9 shrink-0 rounded-md border border-zinc-200/80 px-3 font-medium shadow-none dark:border-zinc-600',
-                'bg-surface-elevated text-ink-primary hover:border-zinc-300 hover:bg-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80',
-              )}
+              icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}
+              className="h-8 shrink-0"
               onClick={() => setResetOpen(true)}
             >
-              Restaurar plantilla
+              Restaurar
             </Button>
           </div>
         }
@@ -2034,7 +2032,7 @@ export function NutritionPlanningPage() {
                     <span>{t.name}</span>
                     <button
                       type="button"
-                      className="text-red-600 hover:underline text-[11px] font-medium"
+                      className="text-status-expired hover:underline text-[11px] font-medium"
                       onClick={() => {
                         removeMealDistributionTemplate(t.id)
                         setTemplateListVersion((v) => v + 1)
@@ -2195,7 +2193,7 @@ export function NutritionPlanningPage() {
                                       <td className="px-1 py-2 align-top text-center">
                                         <button
                                           type="button"
-                                          className="rounded-lg p-1.5 text-ink-muted hover:bg-red-500/10 hover:text-red-600 mx-auto"
+                                          className="rounded-lg p-1.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired mx-auto"
                                           title="Quitar"
                                           onClick={() => removeMealPick(key, p.id)}
                                         >

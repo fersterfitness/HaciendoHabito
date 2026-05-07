@@ -35,7 +35,7 @@ function difficultyBadgeClass(difficulty: string): string {
     case 'intermedio':
       return cn(
         base,
-        'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+        'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
       )
     case 'avanzado':
       return cn(

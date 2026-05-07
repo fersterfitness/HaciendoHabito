@@ -262,7 +262,7 @@ export function PlanningWorkbookReadonlyView({
                 'rounded-2xl border overflow-hidden w-full',
                 secIdx % 2 === 0
                   ? 'border-slate-200/90 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/35'
-                  : 'border-orange-200/75 bg-orange-50/35 dark:border-orange-900/45 dark:bg-orange-950/20',
+                  : 'border-status-expiring/25 bg-status-expiring/8',
               )}
             >
               <div className="border-b border-surface-border bg-surface-muted/40 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -312,7 +312,7 @@ export function PlanningWorkbookReadonlyView({
                           <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
                             <p className="text-ink-primary font-medium break-words">{r.name}</p>
                             {r.hint ? (
-                              <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-snug">{r.hint}</p>
+                              <p className="text-[10px] text-status-expiring mt-1 leading-snug">{r.hint}</p>
                             ) : null}
                           </td>
                           <td className="px-2 py-2 tabular-nums text-ink-secondary text-[11px]">

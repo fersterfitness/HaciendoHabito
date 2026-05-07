@@ -447,7 +447,7 @@ export function NutritionFoodsPage() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="text-status-expired hover:text-red-600"
+                            className="text-status-expired hover:text-status-expired/80"
                             onClick={() => setDeleteTarget(r)}
                             aria-label="Eliminar"
                           >

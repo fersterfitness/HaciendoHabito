@@ -22,6 +22,8 @@ import { Header } from '@/components/layout/Header'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Tooltip } from '@/components/ui/Tooltip'
+import { Popover } from '@/components/ui/Popover'
 import { cn } from '@/lib/utils'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { useAuthStore } from '@/stores/authStore'
@@ -60,11 +62,11 @@ function PlanDaysChip({ date }: { date: string }) {
     return <span className={cn(pill, 'border-status-expired/25 bg-status-expired/8 text-status-expired')}>Vencido</span>
   }
   if (days === 0) {
-    return <span className={cn(pill, 'border-status-expiring/30 bg-status-expiring/10 text-amber-800 dark:text-amber-400/95')}>Vence hoy</span>
+    return <span className={cn(pill, 'border-status-expiring/30 bg-status-expiring/10 text-status-expiring')}>Vence hoy</span>
   }
   if (days <= 7) {
     return (
-      <span className={cn(pill, 'border-status-expiring/25 bg-status-expiring/8 text-amber-900 dark:text-amber-300/95')}>
+      <span className={cn(pill, 'border-status-expiring/25 bg-status-expiring/8 text-status-expiring')}>
         {days} {days === 1 ? 'día' : 'días'}
       </span>
     )
@@ -86,19 +88,6 @@ function StatusToggle({
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
-  const ref = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
-
-  // Cierra al clickear afuera
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
 
   async function changeStatus(next: StudentStatus) {
     if (next === student.status) { setOpen(false); return }
@@ -115,30 +104,27 @@ function StatusToggle({
   }
 
   return (
-    <div ref={ref} className="relative inline-flex items-center gap-2">
-      <button
-        ref={btnRef}
-        type="button"
-        disabled={busy}
-        onClick={(e) => {
-          e.stopPropagation()
-          const rect = btnRef.current?.getBoundingClientRect()
-          if (rect) setDropdownPos({ top: rect.bottom + 4, left: rect.left })
-          setOpen((o) => !o)
-        }}
-        className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-surface-elevated"
-        title="Cambiar estado"
+    <div className="relative inline-flex items-center gap-2">
+      <Popover
+        open={open}
+        onOpenChange={(next) => setOpen(next)}
+        className="w-36"
+        trigger={({ ref, onClick, ...a11y }) => (
+          <button
+            ref={ref}
+            type="button"
+            disabled={busy}
+            onClick={onClick}
+            className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-surface-elevated"
+            title="Cambiar estado"
+            {...a11y}
+          >
+            <Badge status={student.status} />
+            <ChevronDown className="h-3 w-3 shrink-0 text-ink-muted" />
+          </button>
+        )}
       >
-        <Badge status={student.status} />
-        <ChevronDown className="h-3 w-3 shrink-0 text-ink-muted" />
-      </button>
-
-      {open && (
-        <div
-          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
-          className="z-[9999] w-36 overflow-hidden rounded-md border border-zinc-200/80 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="py-1">
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -155,8 +141,7 @@ function StatusToggle({
             </button>
           ))}
         </div>
-      )}
-
+      </Popover>
       {student.plan_end_date && (
         <PlanDaysChip date={student.plan_end_date} />
       )}
@@ -261,53 +246,38 @@ function FiltersDropdown({
   allTags: string[]
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
   const activeCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0) + (filterTag ? 1 : 0)
 
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
   return (
-    <div ref={ref} className="relative inline-flex shrink-0">
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={() => {
-          const rect = btnRef.current?.getBoundingClientRect()
-          if (rect) setPos({ top: rect.bottom + 4, left: rect.left })
-          setOpen((o) => !o)
-        }}
-        className={cn(
-          'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-          activeCount > 0
-            ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
-            : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+    <div className="relative inline-flex shrink-0">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        className="w-56 p-3 space-y-2.5"
+        trigger={({ ref, onClick, ...a11y }) => (
+          <button
+            ref={ref}
+            type="button"
+            onClick={onClick}
+            className={cn(
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+              activeCount > 0
+                ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
+                : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+            )}
+            {...a11y}
+          >
+            <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            Filtrar
+            {activeCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                {activeCount}
+              </span>
+            )}
+            <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+          </button>
         )}
       >
-        <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-        Filtrar
-        {activeCount > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-            {activeCount}
-          </span>
-        )}
-        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-[9999] w-56 rounded-md border border-zinc-200/85 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950 space-y-2.5"
-          onClick={(e) => e.stopPropagation()}
-        >
           {/* Nivel */}
           <div>
             <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Nivel</p>
@@ -401,61 +371,43 @@ function FiltersDropdown({
               Limpiar filtros
             </button>
           )}
-        </div>
-      )}
+      </Popover>
     </div>
   )
 }
 
 function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: TableSort) => void }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
 
   const selectedLabel =
     TABLE_SORT_OPTS.find((o) => o.value === value)?.label ?? TABLE_SORT_OPTS[0].label
 
   return (
-    <div ref={ref} className="relative inline-flex shrink-0">
-      <button
-        ref={btnRef}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={`Ordenar tabla. Actual: ${selectedLabel}`}
-        onClick={() => {
-          const rect = btnRef.current?.getBoundingClientRect()
-          if (rect) setPos({ top: rect.bottom + 4, left: rect.left })
-          setOpen((o) => !o)
-        }}
-        title={selectedLabel}
-        className={cn(
-          'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-          'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80',
-          'dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+    <div className="relative inline-flex shrink-0">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        className="min-w-[15.5rem] max-w-[min(calc(100vw-2rem),20rem)] p-2"
+        trigger={({ ref, onClick, ...a11y }) => (
+          <button
+            ref={ref}
+            type="button"
+            aria-label={`Ordenar tabla. Actual: ${selectedLabel}`}
+            onClick={onClick}
+            title={selectedLabel}
+            className={cn(
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+              'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80',
+              'dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+            )}
+            {...a11y}
+          >
+            <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            Ordenar
+            <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
+          </button>
         )}
       >
-        <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-        Ordenar
-        <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-[9999] min-w-[15.5rem] max-w-[min(calc(100vw-2rem),20rem)] rounded-md border border-zinc-200/85 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
-          onClick={(e) => e.stopPropagation()}
-        >
           <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
             Orden de la tabla
           </p>
@@ -477,8 +429,7 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
               {opt.label}
             </button>
           ))}
-        </div>
-      )}
+      </Popover>
     </div>
   )
 }
@@ -729,7 +680,7 @@ export function StudentsPage() {
               </span>
             )}
             {filterExpiry && (
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-amber-900 dark:border-zinc-600/85 dark:text-amber-200">
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-status-expiring/30 bg-status-expiring/8 px-2.5 text-xs font-medium text-status-expiring">
                 {filterExpiry === 'pronto' ? 'Vence pronto' : 'Plan vencido'}
                 <button type="button" className="opacity-70 hover:opacity-100" onClick={() => setFilterExpiry('')} aria-label="Quitar filtro plan">
                   <X className="h-3.5 w-3.5" />
@@ -886,21 +837,6 @@ function StudentDirectoryTable({
   const iconStrike =
     "after:content-[''] after:absolute after:left-1/2 after:top-1/2 after:h-[2px] after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-[-35deg] after:bg-current after:opacity-55"
 
-  function HoverTip({ text }: { text: string }) {
-    return (
-      <span
-        className={cn(
-          'pointer-events-none absolute -top-2 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap',
-          'rounded-md border border-surface-border/80 bg-surface-card px-2 py-1 text-[11px] font-medium text-ink-primary shadow-lg',
-          'opacity-0 transition-opacity peer-hover:opacity-100',
-        )}
-        role="tooltip"
-      >
-        {text}
-      </span>
-    )
-  }
-
   return (
     <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">
       <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -995,19 +931,19 @@ function StudentDirectoryTable({
                               const hasRoutine = activeRoutineStudentIds.has(student.id)
                               const tip = hasRoutine ? 'Con rutina' : 'Sin rutina'
                               return (
-                                <span
-                                  className={cn(
-                                    'relative inline-flex',
-                                    iconWrapBase,
-                                    hasRoutine
-                                      ? 'border-surface-border/75 text-brand-secondary'
-                                      : 'border-dashed border-surface-border/80 text-ink-muted',
-                                    !hasRoutine && iconStrike,
-                                  )}
-                                >
-                                  <Dumbbell className={cn('peer h-3.5 w-3.5', !hasRoutine && 'opacity-70')} />
-                                  <HoverTip text={tip} />
-                                </span>
+                                <Tooltip content={tip}>
+                                  <span
+                                    className={cn(
+                                      iconWrapBase,
+                                      hasRoutine
+                                        ? 'border-surface-border/75 text-brand-secondary'
+                                        : 'border-dashed border-surface-border/80 text-ink-muted',
+                                      !hasRoutine && iconStrike,
+                                    )}
+                                  >
+                                    <Dumbbell className={cn('h-3.5 w-3.5', !hasRoutine && 'opacity-70')} />
+                                  </span>
+                                </Tooltip>
                               )
                             })()}
 
@@ -1016,19 +952,19 @@ function StudentDirectoryTable({
                               const hasPlan = hasMealPlanStudentIds.has(student.id)
                               const tip = hasPlan ? 'Con plan' : 'Sin plan'
                               return (
-                                <span
-                                  className={cn(
-                                    'relative inline-flex',
-                                    iconWrapBase,
-                                    hasPlan
-                                      ? 'border-surface-border/75 text-brand-tertiary'
-                                      : 'border-dashed border-surface-border/80 text-ink-muted',
-                                    !hasPlan && iconStrike,
-                                  )}
-                                >
-                                  <Utensils className={cn('peer h-3.5 w-3.5', !hasPlan && 'opacity-70')} />
-                                  <HoverTip text={tip} />
-                                </span>
+                                <Tooltip content={tip}>
+                                  <span
+                                    className={cn(
+                                      iconWrapBase,
+                                      hasPlan
+                                        ? 'border-surface-border/75 text-brand-tertiary'
+                                        : 'border-dashed border-surface-border/80 text-ink-muted',
+                                      !hasPlan && iconStrike,
+                                    )}
+                                  >
+                                    <Utensils className={cn('h-3.5 w-3.5', !hasPlan && 'opacity-70')} />
+                                  </span>
+                                </Tooltip>
                               )
                             })()}
                           </div>

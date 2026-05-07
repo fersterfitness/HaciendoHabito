@@ -34,14 +34,6 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
 export function CardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={cn('relative flex items-center justify-between mb-3', className)} {...props}>
-      <div
-        aria-hidden
-        className={cn(
-          'pointer-events-none absolute left-0.5 top-1/2 -translate-y-1/2',
-          'h-3.5 w-[3px] rounded-full',
-          'bg-gradient-to-b from-brand-secondary/45 to-brand-tertiary/30',
-        )}
-      />
       {children}
     </div>
   )

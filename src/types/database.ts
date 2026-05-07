@@ -9,7 +9,14 @@ export type QuestionStatus = 'recibida' | 'en_revision' | 'devuelta' | 'cerrada'
 export type PaymentStatus = 'pendiente' | 'cobrado' | 'cancelado' | 'reembolsado'
 export type IncomeStatus = 'pendiente' | 'cobrado' | 'cancelado'
 export type ExpenseType = 'fijo' | 'variable'
-export type PaymentMethod = 'efectivo_debito' | 'tarjeta_credito' | 'transferencia' | 'otro'
+export type PaymentMethod =
+  | 'efectivo_debito'
+  | 'efectivo_ars'
+  | 'cuenta_dni'
+  | 'tarjeta_credito'
+  | 'transferencia'
+  | 'otro'
+export type FinanceScope = 'business' | 'personal'
 export type PlanType = 'entrenamiento' | 'nutricion' | 'combo'
 export type NutritionAttendanceStatus = 'P' | 'A' | 'ST'
 export type NutritionDocumentCategory = 'antropometria' | 'anamnesis'
@@ -751,6 +758,7 @@ export interface Income {
   description: string
   amount: number
   payment_method: PaymentMethod
+  scope: FinanceScope
   status: IncomeStatus
   receipt_path: string | null
   notes: string | null
@@ -769,6 +777,7 @@ export interface Expense {
   amount: number
   expense_type: ExpenseType
   payment_method: PaymentMethod
+  scope: FinanceScope
   receipt_path: string | null
   notes: string | null
   created_at: string

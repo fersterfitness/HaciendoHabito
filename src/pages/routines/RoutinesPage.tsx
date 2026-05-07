@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Popover } from '@/components/ui/Popover'
 import { cn, formatDate, daysUntil } from '@/lib/utils'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
 import { RoutinePdfsPanel } from '@/pages/routines/RoutinePdfsPanel'
@@ -62,7 +63,7 @@ function routineStatusBadgeClass(status: RoutineStatus): string {
     case 'por_vencer':
       return cn(
         base,
-        'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+        'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
       )
     case 'vencida':
       return cn(
@@ -82,21 +83,21 @@ function RoutineDaysChip({ endDate }: { endDate: string }) {
   const days = daysUntil(endDate)
   if (days < 0) {
     return (
-      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-rose-500/25 bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-red-600 dark:text-red-400">
+      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-status-expired/25 bg-status-expired/10 px-2 py-0.5 text-xs font-semibold text-status-expired">
         Vencida
       </span>
     )
   }
   if (days === 0) {
     return (
-      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-rose-500/25 bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-red-600 dark:text-red-400">
+      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-status-expired/25 bg-status-expired/10 px-2 py-0.5 text-xs font-semibold text-status-expired">
         Hoy
       </span>
     )
   }
   if (days <= 7) {
     return (
-      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-amber-500/25 bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-400">
+      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-status-expiring/30 bg-status-expiring/10 px-2 py-0.5 text-xs font-semibold text-status-expiring">
         {days}d
       </span>
     )
@@ -193,53 +194,38 @@ function RoutinesFiltersDropdown({
   setFilterExpiry: (v: RoutineExpiryFilter) => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
   const activeCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0)
 
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
   return (
-    <div ref={ref} className="relative inline-flex shrink-0">
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={() => {
-          const rect = btnRef.current?.getBoundingClientRect()
-          if (rect) setPos({ top: rect.bottom + 4, left: rect.left })
-          setOpen((o) => !o)
-        }}
-        className={cn(
-          'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-          activeCount > 0
-            ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
-            : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+    <div className="relative inline-flex shrink-0">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        className="w-56 space-y-2.5 p-3"
+        trigger={({ ref, onClick, ...a11y }) => (
+          <button
+            ref={ref}
+            type="button"
+            onClick={onClick}
+            className={cn(
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+              activeCount > 0
+                ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
+                : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+            )}
+            {...a11y}
+          >
+            <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            Filtrar
+            {activeCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                {activeCount}
+              </span>
+            )}
+            <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+          </button>
         )}
       >
-        <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-        Filtrar
-        {activeCount > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-            {activeCount}
-          </span>
-        )}
-        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-[9999] w-56 space-y-2.5 rounded-md border border-zinc-200/85 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
-          onClick={(e) => e.stopPropagation()}
-        >
           <div>
             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Nivel</p>
             {(['', 'inicial', 'intermedio', 'avanzado'] as RoutineLevelFilter[]).map((v) => (
@@ -318,59 +304,41 @@ function RoutinesFiltersDropdown({
               Limpiar filtros
             </button>
           )}
-        </div>
-      )}
+      </Popover>
     </div>
   )
 }
 
 function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; onChange: (v: RoutineTableSort) => void }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
 
   const selectedLabel = ROUTINE_SORT_OPTS.find((o) => o.value === value)?.label ?? ROUTINE_SORT_OPTS[0].label
 
   return (
-    <div ref={ref} className="relative inline-flex shrink-0">
-      <button
-        ref={btnRef}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={`Ordenar. ${selectedLabel}`}
-        title={selectedLabel}
-        onClick={() => {
-          const rect = btnRef.current?.getBoundingClientRect()
-          if (rect) setPos({ top: rect.bottom + 4, left: rect.left })
-          setOpen((o) => !o)
-        }}
-        className={cn(
-          'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-          'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+    <div className="relative inline-flex shrink-0">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        className="min-w-[16rem] max-w-[min(calc(100vw-2rem),20rem)] p-2"
+        trigger={({ ref, onClick, ...a11y }) => (
+          <button
+            ref={ref}
+            type="button"
+            aria-label={`Ordenar. ${selectedLabel}`}
+            title={selectedLabel}
+            onClick={onClick}
+            className={cn(
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+              'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+            )}
+            {...a11y}
+          >
+            <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            Ordenar
+            <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
+          </button>
         )}
       >
-        <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-        Ordenar
-        <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-[9999] min-w-[16rem] max-w-[min(calc(100vw-2rem),20rem)] rounded-md border border-zinc-200/85 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
-          onClick={(e) => e.stopPropagation()}
-        >
           <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Orden del listado</p>
           {ROUTINE_SORT_OPTS.map((opt) => (
             <button
@@ -390,8 +358,7 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
               {opt.label}
             </button>
           ))}
-        </div>
-      )}
+      </Popover>
     </div>
   )
 }
@@ -703,7 +670,7 @@ export function RoutinesPage() {
                   </span>
                 )}
                 {filterExpiry && (
-                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-amber-500/35 bg-amber-500/8 px-2.5 text-xs font-medium text-amber-900 dark:border-amber-500/28 dark:bg-amber-500/12 dark:text-amber-200">
+                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-status-expiring/35 bg-status-expiring/8 px-2.5 text-xs font-medium text-status-expiring">
                     {filterExpiry === 'pronto' ? 'Vence ≤14 días' : 'Período vencido'}
                     <button
                       type="button"

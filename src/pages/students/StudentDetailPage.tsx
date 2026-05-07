@@ -88,7 +88,7 @@ function routineStatusPillClass(status: string, compact = false): string {
     case 'por_vencer':
       return cn(
         base,
-        'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+        'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
       )
     case 'vencida':
       return cn(
@@ -116,7 +116,7 @@ function studentAccountStatusChipClass(status: string): string {
     case 'pausado':
       return cn(
         base,
-        'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+        'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
       )
     case 'inactivo':
       return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-700/25 dark:text-zinc-400')
@@ -133,7 +133,7 @@ function incomeLedgerStatusClass(status: string): string {
     case 'cobrado':
       return 'text-emerald-600 dark:text-emerald-400'
     case 'pendiente':
-      return 'text-amber-700 dark:text-amber-400'
+      return 'text-status-expiring'
     case 'anulado':
       return 'text-zinc-500 line-through dark:text-zinc-500'
     default:
@@ -1069,7 +1069,7 @@ function PagosTab({
                   {pagadoEsteMes ? (
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pagó este mes</p>
                   ) : (
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-400">Pendiente de cobro</p>
+                    <p className="text-sm font-medium text-status-expiring">Pendiente de cobro</p>
                   )}
                   {totalEsteMes > 0 && totalEsteMes < cuota && (
                     <p className="text-[11px] text-ink-muted mt-0.5">Cobrado: {formatCurrency(totalEsteMes)} / {formatCurrency(cuota)}</p>
@@ -1094,7 +1094,7 @@ function PagosTab({
           <p
             className={cn(
               'text-sm font-medium',
-              pagadoEsteMes ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-800 dark:text-amber-400',
+              pagadoEsteMes ? 'text-emerald-700 dark:text-emerald-400' : 'text-status-expiring',
             )}
           >
             {pagadoEsteMes ? 'Al día' : 'Pendiente'}

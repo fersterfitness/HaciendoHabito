@@ -1572,7 +1572,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
           <button
             onClick={onSeparate}
             title="Separar del circuito"
-            className="text-orange-400/60 hover:text-orange-400 transition-colors"
+            className="text-status-expiring/60 hover:text-status-expiring transition-colors"
           >
             <Unlink className="h-3 w-3" />
           </button>

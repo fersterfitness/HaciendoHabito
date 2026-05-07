@@ -203,25 +203,25 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
               <div>
                 <FieldLabel required>Nombre</FieldLabel>
                 <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
-                {errors.first_name?.message && <p className="mt-1 text-xs text-red-400">{errors.first_name.message}</p>}
+                {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
               </div>
               <div>
                 <FieldLabel required>Apellido</FieldLabel>
                 <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
-                {errors.last_name?.message && <p className="mt-1 text-xs text-red-400">{errors.last_name.message}</p>}
+                {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
               </div>
             </div>
 
             <div>
               <FieldLabel required>Fecha de nacimiento</FieldLabel>
               <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
-              {errors.birth_date?.message && <p className="mt-1 text-xs text-red-400">{errors.birth_date.message}</p>}
+              {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
             </div>
 
             <div>
               <FieldLabel required>Correo electrónico</FieldLabel>
               <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
-              {errors.email?.message && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
+              {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
             </div>
 
             <div>
@@ -243,7 +243,7 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
                 })}
               />
               {errors.phone?.message
-                ? <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>
+                ? <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
                 : <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>}
             </div>
 
@@ -288,13 +288,13 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
                 <FieldLabel required>Peso actual (kg)</FieldLabel>
                 <input type="number" step="0.1" className={inputClass(errors.weight_kg?.message)}
                   {...register('weight_kg', { valueAsNumber: true })} />
-                {errors.weight_kg?.message && <p className="mt-1 text-xs text-red-400">{String(errors.weight_kg.message)}</p>}
+                {errors.weight_kg?.message && <p className="mt-1 text-xs text-status-expired">{String(errors.weight_kg.message)}</p>}
               </div>
               <div>
                 <FieldLabel required>Altura (cm)</FieldLabel>
                 <input type="number" className={inputClass(errors.height_cm?.message)}
                   {...register('height_cm', { valueAsNumber: true })} />
-                {errors.height_cm?.message && <p className="mt-1 text-xs text-red-400">{String(errors.height_cm.message)}</p>}
+                {errors.height_cm?.message && <p className="mt-1 text-xs text-status-expired">{String(errors.height_cm.message)}</p>}
               </div>
             </div>
 
@@ -540,7 +540,7 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
                   <input type="text" className={inputClass()} placeholder="Hábito bueno 3" {...register('good_habit_3')} />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-red-400">Malos hábitos</p>
+                  <p className="text-xs font-semibold text-status-expired">Malos hábitos</p>
                   <input type="text" className={inputClass()} placeholder="Hábito malo 1" {...register('bad_habit_1')} />
                   <input type="text" className={inputClass()} placeholder="Hábito malo 2" {...register('bad_habit_2')} />
                   <input type="text" className={inputClass()} placeholder="Hábito malo 3" {...register('bad_habit_3')} />
@@ -576,7 +576,7 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
               </span>
             </label>
             {errors.accept_privacy?.message && (
-              <p className="text-xs text-red-400">{errors.accept_privacy.message}</p>
+              <p className="text-xs text-status-expired">{errors.accept_privacy.message}</p>
             )}
 
             <input type="text" tabIndex={-1} autoComplete="off" className="sr-only" aria-hidden {...register('website')} />

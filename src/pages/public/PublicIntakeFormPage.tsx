@@ -21,8 +21,52 @@ const PUBLIC_PLAN_SOLO_CREDENTIAL_LINE =
 const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
   'Plan conjunto con Cristian Vázquez — Licenciado/a en Nutrición y especialización deportiva'
 
-const SEGMENT_SOLO_SUB = 'Solo Fernando'
+const SEGMENT_SOLO_SUB = 'Solo Tomás Ferster'
 const SEGMENT_CRIS_SUB = 'Nutrición deportiva · plan conjunto'
+
+function isLikelyYouTube(url: string): boolean {
+  return /(?:youtube\.com\/watch\?v=|youtu\.be\/)/i.test(url)
+}
+
+function youtubeEmbedUrl(url: string): string | null {
+  const m1 = url.match(/[?&]v=([a-zA-Z0-9_-]{6,})/)
+  const m2 = url.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/)
+  const id = (m1?.[1] ?? m2?.[1])?.trim()
+  return id ? `https://www.youtube.com/embed/${id}` : null
+}
+
+function TestimonialsSection({ urls }: { urls: string[] }) {
+  const clean = (urls ?? []).map((u) => u.trim()).filter(Boolean)
+  if (clean.length === 0) return null
+  return (
+    <div className="mb-6 rounded-2xl border border-surface-border/80 bg-surface-elevated/25 px-4 py-4">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-ink-muted font-semibold">Testimonios</p>
+      <p className="mt-1 text-sm font-semibold text-ink-primary">Personas que ya hicieron el proceso</p>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {clean.slice(0, 4).map((u) => {
+          const yt = isLikelyYouTube(u) ? youtubeEmbedUrl(u) : null
+          return (
+            <div key={u} className="overflow-hidden rounded-xl border border-surface-border bg-surface-card">
+              {yt ? (
+                <iframe
+                  src={yt}
+                  title="Testimonio"
+                  className="h-44 w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <video className="h-44 w-full bg-black" controls preload="metadata">
+                  <source src={u} />
+                </video>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function CatalogSegmentThumbnail({
   imageUrl,
@@ -486,6 +530,7 @@ export function PublicIntakeFormPage() {
   const flipTimerRef = useRef<number | null>(null)
   const [soloSegmentImgUrl, setSoloSegmentImgUrl] = useState<string | null>(null)
   const [withCrisSegmentImgUrl, setWithCrisSegmentImgUrl] = useState<string | null>(null)
+  const [testimonialVideos, setTestimonialVideos] = useState<string[]>([])
   const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
     plans,
     catalogSegment,
@@ -538,13 +583,14 @@ export function PublicIntakeFormPage() {
     ;(async () => {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
-        .select('solo_segment_image_url, with_cris_segment_image_url')
+        .select('solo_segment_image_url, with_cris_segment_image_url, testimonial_videos')
         .eq('id', 1)
         .maybeSingle()
       if (!mounted) return
       if (data) {
         setSoloSegmentImgUrl(data.solo_segment_image_url)
         setWithCrisSegmentImgUrl(data.with_cris_segment_image_url)
+        setTestimonialVideos(((data.testimonial_videos as string[] | null) ?? []).filter(Boolean))
       }
     })()
     return () => {
@@ -694,6 +740,7 @@ export function PublicIntakeFormPage() {
               <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
             ) : (
               <div className="h-full overflow-y-auto">
+                <TestimonialsSection urls={testimonialVideos} />
                 {intakeKind === 'nutricion' ? (
                   <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                 ) : (
@@ -711,6 +758,7 @@ export function PublicIntakeFormPage() {
                 }}
               >
               <div style={{ backfaceVisibility: 'hidden' }} className="h-full overflow-y-auto scrollbar-hide">
+                  <TestimonialsSection urls={testimonialVideos} />
                   {intakeKind === 'nutricion' ? (
                     <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                   ) : (

@@ -11,7 +11,9 @@ import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
-import { PAYMENT_METHODS, EXPENSE_TYPES, EXPENSE_CATEGORIES } from '@/lib/constants'
+import { PAYMENT_METHODS, FINANCE_SCOPES, EXPENSE_TYPES, EXPENSE_CATEGORIES } from '@/lib/constants'
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
+import { emptyToNull } from '@/lib/formUtils'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
@@ -21,7 +23,8 @@ const schema = z.object({
   description: z.string().min(2, 'Ingresá una descripción'),
   amount: z.coerce.number().min(0.01, 'Ingresá el monto'),
   expense_type: z.enum(['fijo', 'variable']),
-  payment_method: z.enum(['efectivo_debito', 'tarjeta_credito', 'transferencia', 'otro']),
+  payment_method: z.enum(['efectivo_debito', 'efectivo_ars', 'cuenta_dni', 'tarjeta_credito', 'transferencia', 'otro']),
+  scope: z.enum(['business', 'personal']),
   notes: z.string().optional(),
 })
 
@@ -39,6 +42,7 @@ export function ExpenseFormPage() {
       expense_date: format(new Date(), 'yyyy-MM-dd'),
       expense_type: 'variable',
       payment_method: 'transferencia',
+      scope: 'business',
     },
   })
 
@@ -53,6 +57,7 @@ export function ExpenseFormPage() {
         amount: data.amount,
         expense_type: data.expense_type,
         payment_method: data.payment_method,
+        scope: data.scope ?? 'business',
         notes: data.notes ?? '',
       })
     })
@@ -63,8 +68,8 @@ export function ExpenseFormPage() {
     const payload = {
       ...values,
       owner_id: user.id,
-      subcategory: values.subcategory || null,
-      notes: values.notes || null,
+      subcategory: emptyToNull(values.subcategory),
+      notes: emptyToNull(values.notes),
     }
     if (isEditing) {
       const { error } = await supabase.from('expenses').update(payload).eq('id', id).eq('owner_id', user.id)
@@ -85,6 +90,8 @@ export function ExpenseFormPage() {
       <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
         <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <FormErrorSummary errors={errors} />
+
           <FormSection title="Fecha y categoría">
             <Input
               label="Fecha"
@@ -144,6 +151,12 @@ export function ExpenseFormPage() {
                 {...register('payment_method')}
               />
             </div>
+            <Select
+              label="Ámbito"
+              required
+              options={FINANCE_SCOPES}
+              {...register('scope')}
+            />
             <Textarea
               label="Notas adicionales"
               placeholder="Observaciones..."

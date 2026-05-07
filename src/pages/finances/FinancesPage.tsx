@@ -12,6 +12,7 @@ import {
   MessageCircle,
   AlertCircle,
   StickyNote,
+  ChevronDown,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -26,6 +27,7 @@ import type { Income, Expense, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
+import { FINANCE_SCOPES } from '@/lib/constants'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
 type Tab = 'income' | 'expenses'
@@ -34,6 +36,8 @@ const MES_LABELS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
 
 const METHOD_LABEL: Record<string, string> = {
   efectivo_debito: 'Efectivo / débito',
+  efectivo_ars: 'Efectivo (ARS)',
+  cuenta_dni: 'Cuenta DNI',
   tarjeta_credito: 'Tarjeta crédito',
   transferencia: 'Transferencia',
   otro: 'Otro',
@@ -148,6 +152,7 @@ export function FinancesPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'business' | 'personal'>('business')
 
   const [deleteIncomeTarget, setDeleteIncomeTarget] = useState<IncomeWithStudent | null>(null)
   const [deleteExpenseTarget, setDeleteExpenseTarget] = useState<Expense | null>(null)
@@ -175,6 +180,16 @@ export function FinancesPage() {
       setLoading(false)
     }
   }, [user])
+
+  const incomesFiltered = incomes.filter((i) => {
+    if (scopeFilter === 'all') return true
+    return (i.scope ?? 'business') === scopeFilter
+  })
+
+  const expensesFiltered = expenses.filter((e) => {
+    if (scopeFilter === 'all') return true
+    return (e.scope ?? 'business') === scopeFilter
+  })
 
   useEffect(() => {
     fetchAll()
@@ -219,9 +234,9 @@ export function FinancesPage() {
     fetchAll()
   }
 
-  const totalIngresos = incomes.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
-  const totalPendiente = incomes.filter((i) => i.status === 'pendiente').reduce((s, i) => s + i.amount, 0)
-  const totalGastos = expenses.reduce((s, e) => s + e.amount, 0)
+  const totalIngresos = incomesFiltered.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
+  const totalPendiente = incomesFiltered.filter((i) => i.status === 'pendiente').reduce((s, i) => s + i.amount, 0)
+  const totalGastos = expensesFiltered.reduce((s, e) => s + e.amount, 0)
   const balance = totalIngresos - totalGastos
 
   const now = new Date()
@@ -229,10 +244,10 @@ export function FinancesPage() {
   const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`
   const MES_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  const thisMesTotal = incomes
+  const thisMesTotal = incomesFiltered
     .filter((i) => i.status === 'cobrado' && i.income_date.startsWith(thisMonthKey))
     .reduce((s, i) => s + i.amount, 0)
-  const prevMesTotal = incomes
+  const prevMesTotal = incomesFiltered
     .filter((i) => i.status === 'cobrado' && i.income_date.startsWith(prevMonthKey))
     .reduce((s, i) => s + i.amount, 0)
   const mesDelta = prevMesTotal > 0 ? Math.round(((thisMesTotal - prevMesTotal) / prevMesTotal) * 100) : null
@@ -242,7 +257,7 @@ export function FinancesPage() {
       const raw = localStorage.getItem(`cuota_mensual_${s.id}`)
       if (!raw) return null
       const cuota = Number(raw)
-      const paid = incomes
+      const paid = incomesFiltered
         .filter((i) => i.status === 'cobrado' && i.student_id === s.id && i.income_date.startsWith(thisMonthKey))
         .reduce((sum, i) => sum + i.amount, 0)
       if (paid >= cuota) return null
@@ -253,20 +268,20 @@ export function FinancesPage() {
   const annualChartData = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const total = incomes
+    const total = incomesFiltered
       .filter((inc) => inc.status === 'cobrado' && inc.income_date.startsWith(key))
       .reduce((s, inc) => s + inc.amount, 0)
     return { mes: MES_LABELS[d.getMonth()], total, isCurrent: key === thisMonthKey }
   })
 
-  const filteredIncomes = incomes.filter(
+  const filteredIncomes = incomesFiltered.filter(
     (i) =>
       i.description.toLowerCase().includes(search.toLowerCase()) ||
       (i.student?.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
       i.category.toLowerCase().includes(search.toLowerCase()) ||
       i.income_type.toLowerCase().includes(search.toLowerCase()),
   )
-  const filteredExpenses = expenses.filter(
+  const filteredExpenses = expensesFiltered.filter(
     (e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
       e.category.toLowerCase().includes(search.toLowerCase()) ||
@@ -438,6 +453,24 @@ export function FinancesPage() {
                 'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50 dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
               )}
             />
+          </div>
+          <div className="relative md:w-[210px]">
+            <select
+              aria-label="Filtrar por ámbito"
+              value={scopeFilter}
+              onChange={(e) => setScopeFilter(e.target.value as 'all' | 'business' | 'personal')}
+              className={cn(
+                'h-10 w-full appearance-none rounded-md border border-zinc-200/75 bg-surface-card',
+                'pl-3 pr-9 text-sm text-ink-primary shadow-none outline-none transition-colors cursor-pointer',
+                'dark:border-zinc-700/80 dark:bg-zinc-900/50',
+                'focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
+              )}
+            >
+              <option value="business">Haciéndolo hábito</option>
+              <option value="personal">Vida personal</option>
+              <option value="all">Todos los ámbitos</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
           </div>
           <div className="flex flex-wrap items-center gap-2 md:shrink-0 md:justify-end md:gap-2">
             <button

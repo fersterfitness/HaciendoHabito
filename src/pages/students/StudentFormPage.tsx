@@ -12,6 +12,8 @@ import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS, STUDENT_STATUSES } from '@/lib/constants'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
+import { emptyToNull } from '@/lib/formUtils'
 import { useAuthStore } from '@/stores/authStore'
 
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT} (solo dígitos, +54, espacios entre bloques).`
@@ -93,14 +95,14 @@ export function StudentFormPage() {
 
     const payload = {
       full_name: values.full_name,
-      email: values.email || null,
+      email: emptyToNull(values.email),
       phone: phoneCanon,
-      birth_date: values.birth_date || null,
+      birth_date: emptyToNull(values.birth_date),
       level: values.level,
       gender: values.gender ?? null,
       status: values.status,
-      plan_end_date: values.plan_end_date || null,
-      notes: values.notes || null,
+      plan_end_date: emptyToNull(values.plan_end_date),
+      notes: emptyToNull(values.notes),
       profile_id: null,
       document_id: null,
       address: null,
@@ -129,6 +131,8 @@ export function StudentFormPage() {
 
       <div className="px-4 lg:px-6 py-6 max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <FormErrorSummary errors={errors} />
+
           <FormSection title="Datos personales">
             <Input
               label="Nombre completo"

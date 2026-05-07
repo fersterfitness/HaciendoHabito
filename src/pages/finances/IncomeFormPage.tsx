@@ -11,7 +11,9 @@ import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
-import { PAYMENT_METHODS, INCOME_STATUSES, INCOME_TYPES, INCOME_CATEGORIES } from '@/lib/constants'
+import { PAYMENT_METHODS, FINANCE_SCOPES, INCOME_STATUSES, INCOME_TYPES, INCOME_CATEGORIES } from '@/lib/constants'
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
+import { emptyToNull } from '@/lib/formUtils'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -22,7 +24,8 @@ const schema = z.object({
   category: z.string().min(1, 'Seleccioná la categoría'),
   description: z.string().min(2, 'Ingresá una descripción'),
   amount: z.coerce.number().min(0.01, 'Ingresá el monto'),
-  payment_method: z.enum(['efectivo_debito', 'tarjeta_credito', 'transferencia', 'otro']),
+  payment_method: z.enum(['efectivo_debito', 'efectivo_ars', 'cuenta_dni', 'tarjeta_credito', 'transferencia', 'otro']),
+  scope: z.enum(['business', 'personal']),
   status: z.enum(['pendiente', 'cobrado', 'cancelado']),
   notes: z.string().optional(),
 })
@@ -42,6 +45,7 @@ export function IncomeFormPage() {
       income_date: format(new Date(), 'yyyy-MM-dd'),
       status: 'cobrado',
       payment_method: 'transferencia',
+      scope: 'business',
     },
   })
 
@@ -61,6 +65,7 @@ export function IncomeFormPage() {
         description: data.description,
         amount: data.amount,
         payment_method: data.payment_method,
+        scope: data.scope ?? 'business',
         status: data.status,
         notes: data.notes ?? '',
       })
@@ -72,8 +77,8 @@ export function IncomeFormPage() {
     const payload = {
       ...values,
       owner_id: user.id,
-      student_id: values.student_id || null,
-      notes: values.notes || null,
+      student_id: emptyToNull(values.student_id),
+      notes: emptyToNull(values.notes),
     }
     if (isEditing) {
       const { error } = await supabase.from('income').update(payload).eq('id', id).eq('owner_id', user.id)
@@ -99,6 +104,8 @@ export function IncomeFormPage() {
       <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
         <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <FormErrorSummary errors={errors} />
+
           <FormSection title="Fecha y alumno">
             <Input
               label="Fecha"
@@ -166,6 +173,12 @@ export function IncomeFormPage() {
                 {...register('status')}
               />
             </div>
+            <Select
+              label="Ámbito"
+              required
+              options={FINANCE_SCOPES}
+              {...register('scope')}
+            />
             <Textarea
               label="Notas adicionales"
               placeholder="Observaciones..."

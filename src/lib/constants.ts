@@ -34,9 +34,16 @@ export const PDF_STATUSES = [
 
 export const PAYMENT_METHODS = [
   { value: 'efectivo_debito', label: 'Efectivo / Débito' },
+  { value: 'efectivo_ars', label: 'Efectivo (ARS)' },
+  { value: 'cuenta_dni', label: 'Cuenta DNI' },
   { value: 'tarjeta_credito', label: 'Tarjeta de Crédito' },
   { value: 'transferencia', label: 'Transferencia' },
   { value: 'otro', label: 'Otro' },
+] as const
+
+export const FINANCE_SCOPES = [
+  { value: 'business', label: 'Haciéndolo hábito' },
+  { value: 'personal', label: 'Vida personal' },
 ] as const
 
 export const EXPENSE_TYPES = [

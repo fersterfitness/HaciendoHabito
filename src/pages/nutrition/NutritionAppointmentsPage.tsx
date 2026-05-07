@@ -4,6 +4,8 @@ import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Spinner } from '@/components/ui/Spinner'
+import { Tooltip as UiTooltip } from '@/components/ui/Tooltip'
+import { Popover } from '@/components/ui/Popover'
 import {
   CalendarClock,
   CalendarDays,
@@ -102,7 +104,7 @@ const STATUS_BADGE: Record<AppointmentStatus, string> = {
   cancelled:
     'bg-surface-elevated/50 text-ink-muted border-surface-border line-through decoration-ink-muted/60',
   no_show:
-    'bg-amber-500/[0.1] text-amber-950 dark:text-amber-300 border-amber-500/35',
+    'bg-status-expiring/10 text-status-expiring border-status-expiring/35',
 }
 
 function agendaCardAccent(status: AppointmentStatus): string {
@@ -136,7 +138,8 @@ export function NutritionAppointmentsPage() {
   const [recurring, setRecurring]       = useState(false)
   const [recurWeeks, setRecurWeeks]     = useState(4)
   // Week view appointment popover
-  const [weekPopover, setWeekPopover]   = useState<{ apptId: string; top: number; left: number } | null>(null)
+  const [weekPopoverOpen, setWeekPopoverOpen] = useState(false)
+  const [weekPopoverApptId, setWeekPopoverApptId] = useState<string | null>(null)
 
   const profileType = profile?.role === 'nutritionist' ? 'nutritionist' : 'trainer'
   const [completingId, setCompletingId] = useState<string | null>(null)
@@ -394,7 +397,12 @@ export function NutritionAppointmentsPage() {
     }
   }
 
-  async function updateStatus(id: string, status: AppointmentStatus, sessionNotes?: string) {
+  async function updateStatus(
+    id: string,
+    status: AppointmentStatus,
+    sessionNotes?: string,
+    opts?: { allowUndo?: boolean },
+  ) {
     if (!user) return
     const prev = appointments.find((a) => a.id === id)
     const updatePayload: { status: AppointmentStatus; notes?: string } = { status }
@@ -405,6 +413,43 @@ export function NutritionAppointmentsPage() {
       return
     }
     setAppointments((prevList) => prevList.map((a) => (a.id === id ? { ...a, status, ...(sessionNotes !== undefined && { notes: sessionNotes.trim() || undefined }) } : a)))
+
+    const allowUndo = opts?.allowUndo ?? true
+    if (allowUndo && prev && status === 'cancelled') {
+      const prevStatus = prev.status
+      const prevNotes = prev.notes
+      toast.custom(
+        (t) => (
+          <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3">
+            <p className="text-sm font-medium text-ink-primary leading-snug">Turno cancelado</p>
+            <p className="mt-0.5 text-xs text-ink-muted truncate">
+              {prev.title} · {prev.student?.full_name ?? 'Paciente'}
+            </p>
+            <div className="mt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="text-xs font-medium text-ink-muted hover:text-ink-primary px-2 py-1"
+                onClick={() => toast.dismiss(t.id)}
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-lg border border-surface-border bg-surface-elevated/40 px-2.5 py-1.5 text-xs font-semibold text-ink-primary hover:bg-surface-elevated"
+                onClick={async () => {
+                  toast.dismiss(t.id)
+                  await updateStatus(id, prevStatus, prevNotes ?? undefined, { allowUndo: false })
+                  toast.success('Cancelación deshecha')
+                }}
+              >
+                Deshacer
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: 7000 },
+      )
+    }
 
     if (status === 'completed' && prev) {
       const studentName = prev.student?.full_name ?? '—'
@@ -570,20 +615,23 @@ export function NutritionAppointmentsPage() {
                       </span>
                       <div className="space-y-0.5">
                         {dayAppts.slice(0, 3).map((a) => (
-                          <div
+                          <UiTooltip
                             key={a.id}
-                            title={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
-                            className={cn(
-                              'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
-                              a.status === 'confirmed'
-                                ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
-                                : a.status === 'scheduled'
-                                  ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
-                                  : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
-                            )}
+                            content={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
                           >
-                            {format(parseISO(a.starts_at), 'HH:mm')} {a.student?.full_name?.split(' ')[0] ?? a.title}
-                          </div>
+                            <div
+                              className={cn(
+                                'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
+                                a.status === 'confirmed'
+                                  ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
+                                  : a.status === 'scheduled'
+                                    ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
+                                    : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
+                              )}
+                            >
+                              {format(parseISO(a.starts_at), 'HH:mm')} {a.student?.full_name?.split(' ')[0] ?? a.title}
+                            </div>
+                          </UiTooltip>
                         ))}
                         {dayAppts.length > 3 && (
                           <p className="text-[9px] text-ink-muted pl-1">+{dayAppts.length - 3} más</p>
@@ -625,28 +673,73 @@ export function NutritionAppointmentsPage() {
                         <p className="text-[11px] text-ink-secondary">Sin turnos</p>
                       ) : (
                         dayAppointments.map((a) => (
-                          <button
+                          <Popover
                             key={a.id}
-                            type="button"
-                            onClick={(e) => {
-                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                              if (weekPopover?.apptId === a.id) { setWeekPopover(null) }
-                              else setWeekPopover({ apptId: a.id, top: rect.bottom + 4, left: rect.left })
+                            open={weekPopoverOpen && weekPopoverApptId === a.id}
+                            onOpenChange={(next) => {
+                              setWeekPopoverOpen(next)
+                              setWeekPopoverApptId(next ? a.id : null)
                             }}
-                            className={cn(
-                              'w-full text-left rounded-lg border px-2 py-1 transition-colors border-l-[3px]',
-                              a.status === 'confirmed'
-                                ? 'border border-emerald-500/25 border-l-emerald-500 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.13]'
-                                : a.status === 'scheduled'
-                                  ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
-                                  : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
+                            className="w-52 rounded-2xl p-3 space-y-2"
+                            trigger={({ ref, onClick, ...a11y }) => (
+                              <button
+                                ref={ref}
+                                type="button"
+                                onClick={onClick}
+                                className={cn(
+                                  'w-full text-left rounded-lg border px-2 py-1 transition-colors border-l-[3px]',
+                                  a.status === 'confirmed'
+                                    ? 'border border-emerald-500/25 border-l-emerald-500 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.13]'
+                                    : a.status === 'scheduled'
+                                      ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
+                                      : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
+                                )}
+                                {...a11y}
+                              >
+                                <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>
+                                <p className="text-[11px] text-ink-secondary">
+                                  {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
+                                </p>
+                              </button>
                             )}
                           >
-                            <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>
-                            <p className="text-[11px] text-ink-secondary">
-                              {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
+                            <p className="text-xs font-semibold text-ink-primary truncate">{a.title}</p>
+                            <p className="text-[11px] text-ink-muted">
+                              {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? '—'}
                             </p>
-                          </button>
+                            {(a.status === 'scheduled' || a.status === 'confirmed') && (
+                              <div className="space-y-1 pt-1 border-t border-surface-border">
+                                <button
+                                  type="button"
+                                  onClick={() => { void updateStatus(a.id, 'confirmed'); setWeekPopoverOpen(false); setWeekPopoverApptId(null) }}
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 transition-colors"
+                                >
+                                  ✓ Confirmar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setCompletingId(a.id); setCompletingNote(''); setWeekPopoverOpen(false); setWeekPopoverApptId(null) }}
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-500/14 transition-colors"
+                                >
+                                  ✓ Completar (con nota)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { openAppointmentConfirmationWa(a); setWeekPopoverOpen(false); setWeekPopoverApptId(null) }}
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900/90 dark:text-emerald-400/90 hover:bg-emerald-500/12 transition-colors inline-flex items-center gap-1.5"
+                                >
+                                  <MessageCircle className="h-3 w-3" /> WhatsApp confirmación
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { void updateStatus(a.id, 'cancelled'); setWeekPopoverOpen(false); setWeekPopoverApptId(null) }}
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-status-expired hover:bg-status-expired/10 transition-colors"
+                                >
+                                  ✕ Cancelar
+                                </button>
+                              </div>
+                            )}
+                          </Popover>
                         ))
                       )}
                     </div>
@@ -924,58 +1017,6 @@ export function NutritionAppointmentsPage() {
         </Card>
       </div>
 
-      {/* ── Week view appointment popover ── */}
-      {weekPopover && (() => {
-        const appt = appointments.find((a) => a.id === weekPopover.apptId)
-        if (!appt) return null
-        return (
-          <>
-            <div className="fixed inset-0 z-[9998]" onClick={() => setWeekPopover(null)} />
-            <div
-              style={{ position: 'fixed', top: weekPopover.top, left: weekPopover.left }}
-              className="z-[9999] w-52 rounded-2xl border border-surface-border bg-surface-card shadow-2xl p-3 space-y-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-xs font-semibold text-ink-primary truncate">{appt.title}</p>
-              <p className="text-[11px] text-ink-muted">
-                {format(parseISO(appt.starts_at), 'HH:mm')} · {appt.student?.full_name ?? '—'}
-              </p>
-              {(appt.status === 'scheduled' || appt.status === 'confirmed') && (
-                <div className="space-y-1 pt-1 border-t border-surface-border">
-                  <button
-                    type="button"
-                    onClick={() => { void updateStatus(appt.id, 'confirmed'); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 transition-colors"
-                  >
-                    ✓ Confirmar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setCompletingId(appt.id); setCompletingNote(''); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-500/14 transition-colors"
-                  >
-                    ✓ Completar (con nota)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { openAppointmentConfirmationWa(appt); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900/90 dark:text-emerald-400/90 hover:bg-emerald-500/12 transition-colors inline-flex items-center gap-1.5"
-                  >
-                    <MessageCircle className="h-3 w-3" /> WhatsApp confirmación
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { void updateStatus(appt.id, 'cancelled'); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-status-expired hover:bg-status-expired/10 transition-colors"
-                  >
-                    ✕ Cancelar
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        )
-      })()}
     </div>
   )
 }

@@ -310,7 +310,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                   {...register('first_name')}
                 />
                 {errors.first_name?.message ? (
-                  <p className="mt-1 text-xs text-red-400">{errors.first_name.message}</p>
+                  <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>
                 ) : null}
               </div>
               <div>
@@ -322,7 +322,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                   {...register('last_name')}
                 />
                 {errors.last_name?.message ? (
-                  <p className="mt-1 text-xs text-red-400">{errors.last_name.message}</p>
+                  <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>
                 ) : null}
               </div>
             </div>
@@ -330,7 +330,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
               <FieldLabel required>Documento</FieldLabel>
               <input type="text" className={inputClass(errors.document_id?.message)} {...register('document_id')} />
               {errors.document_id?.message ? (
-                <p className="mt-1 text-xs text-red-400">{errors.document_id.message}</p>
+                <p className="mt-1 text-xs text-status-expired">{errors.document_id.message}</p>
               ) : null}
             </div>
             <div>
@@ -349,7 +349,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                 })}
               />
               {errors.phone?.message ? (
-                <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>
+                <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
               ) : (
                 <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>
               )}
@@ -358,7 +358,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
               <FieldLabel required>Fecha de nacimiento</FieldLabel>
               <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
               {errors.birth_date?.message ? (
-                <p className="mt-1 text-xs text-red-400">{errors.birth_date.message}</p>
+                <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>
               ) : null}
             </div>
             <div>
@@ -386,7 +386,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                     {...register('gender_other')}
                   />
                   {errors.gender_other?.message ? (
-                    <p className="mt-1 text-xs text-red-400">{errors.gender_other.message}</p>
+                    <p className="mt-1 text-xs text-status-expired">{errors.gender_other.message}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -401,7 +401,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                   {...register('weight_kg', { valueAsNumber: true })}
                 />
                 {errors.weight_kg?.message ? (
-                  <p className="mt-1 text-xs text-red-400">{String(errors.weight_kg.message)}</p>
+                  <p className="mt-1 text-xs text-status-expired">{String(errors.weight_kg.message)}</p>
                 ) : null}
               </div>
               <div>
@@ -412,19 +412,19 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                   {...register('height_cm', { valueAsNumber: true })}
                 />
                 {errors.height_cm?.message ? (
-                  <p className="mt-1 text-xs text-red-400">{String(errors.height_cm.message)}</p>
+                  <p className="mt-1 text-xs text-status-expired">{String(errors.height_cm.message)}</p>
                 ) : null}
               </div>
             </div>
             <div>
               <FieldLabel required>Correo electrónico</FieldLabel>
               <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
-              {errors.email?.message ? <p className="mt-1 text-xs text-red-400">{errors.email.message}</p> : null}
+              {errors.email?.message ? <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p> : null}
             </div>
             <div>
               <FieldLabel required>Dirección completa</FieldLabel>
               <textarea rows={2} className={cn(inputClass(errors.address?.message), 'resize-y min-h-[72px]')} {...register('address')} />
-              {errors.address?.message ? <p className="mt-1 text-xs text-red-400">{errors.address.message}</p> : null}
+              {errors.address?.message ? <p className="mt-1 text-xs text-status-expired">{errors.address.message}</p> : null}
             </div>
           </>
         )}
@@ -522,7 +522,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                   {...register('pathology_detail')}
                 />
                 {errors.pathology_detail?.message ? (
-                  <p className="mt-1 text-xs text-red-400">{errors.pathology_detail.message}</p>
+                  <p className="mt-1 text-xs text-status-expired">{errors.pathology_detail.message}</p>
                 ) : null}
               </div>
             ) : null}
@@ -535,7 +535,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
                 {...register('discomfort_exercises')}
               />
               {errors.discomfort_exercises?.message ? (
-                <p className="mt-1 text-xs text-red-400">{errors.discomfort_exercises.message}</p>
+                <p className="mt-1 text-xs text-status-expired">{errors.discomfort_exercises.message}</p>
               ) : null}
             </div>
             <div>
@@ -622,7 +622,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
               </span>
             </label>
             {errors.accept_privacy?.message ? (
-              <p className="text-xs text-red-400">{errors.accept_privacy.message}</p>
+              <p className="text-xs text-status-expired">{errors.accept_privacy.message}</p>
             ) : null}
             <input type="text" tabIndex={-1} autoComplete="off" className="sr-only" aria-hidden {...register('website')} />
           </>

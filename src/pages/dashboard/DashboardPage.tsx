@@ -139,7 +139,7 @@ function CustomTooltip({ active, payload, label }: any) {
         </p>
       </div>
       {change !== 0 && (
-        <p className={`font-medium mt-0.5 ${change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+        <p className={`font-medium mt-0.5 ${change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired'}`}>
           {change > 0 ? '+' : ''}{change}% vs mes ant.
         </p>
       )}
@@ -231,7 +231,7 @@ function MonthlyDualLineChart({ data }: { data: ChartPoint[] }) {
             <span className={cn(
               'text-[9px] font-medium',
               d.change > 0 && 'text-emerald-600/90 dark:text-emerald-400/90',
-              d.change < 0 && 'text-red-600/90 dark:text-red-400/90',
+              d.change < 0 && 'text-status-expired',
               d.change === 0 && 'text-ink-muted/50',
             )}>
               {d.change > 0 ? '+' : ''}{d.change !== 0 ? `${d.change}%` : '—'}
@@ -731,6 +731,14 @@ export function DashboardPage() {
                 </div>
               ))}
             </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => navigate('/appointments')}>
+                Ver semana
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/appointments')}>
+                Agendar nuevo
+              </Button>
+            </div>
           </Card>
         )}
 
@@ -824,7 +832,7 @@ export function DashboardPage() {
                               'inline-flex items-center gap-1 font-medium tabular-nums',
                               last.change > 0
                                 ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-red-600 dark:text-red-400'
+                                : 'text-status-expired'
                             )}
                           >
                             {last.change > 0 ? (
@@ -893,10 +901,10 @@ export function DashboardPage() {
                         <span
                           className={cn(
                             'text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border border-surface-border shrink-0',
-                            row.days < 0 && 'border-red-500/35 text-red-600 dark:text-red-400',
+                            row.days < 0 && 'border-status-expired/35 text-status-expired',
                             row.days >= 0 &&
                               row.days <= 3 &&
-                              'border-amber-500/35 text-amber-800 dark:text-amber-300'
+                              'border-status-expiring/35 text-status-expiring'
                           )}
                         >
                           {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Hoy' : `${row.days}d`}
@@ -935,6 +943,9 @@ export function DashboardPage() {
                     >
                       <Icon className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
                       <span className="text-sm text-ink-primary flex-1">{label}</span>
+                      <span className="text-[11px] font-medium text-ink-muted">
+                        Ir
+                      </span>
                       <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted/70" aria-hidden />
                     </button>
                   ))}

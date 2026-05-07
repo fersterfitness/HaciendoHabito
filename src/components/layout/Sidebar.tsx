@@ -181,7 +181,7 @@ function RailIconButton({
           'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400/90 dark:focus-visible:ring-white/35',
           'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
           danger
-            ? 'text-zinc-400 hover:bg-red-500/10 hover:text-red-600 dark:text-white/35 dark:hover:bg-red-500/15 dark:hover:text-red-400'
+            ? 'text-zinc-400 hover:bg-status-expired/10 hover:text-status-expired dark:text-white/35 dark:hover:bg-status-expired/15 dark:hover:text-status-expired'
             : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
         )}
       >

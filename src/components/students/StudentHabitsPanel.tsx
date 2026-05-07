@@ -371,7 +371,7 @@ export function StudentHabitsPanel({
                                   'whitespace-nowrap px-3 py-2 font-medium',
                                   ev.action === 'assigned'
                                     ? 'text-emerald-600 dark:text-emerald-400'
-                                    : 'text-amber-700 dark:text-amber-400',
+                                    : 'text-status-expiring',
                                 )}
                               >
                                 {ev.action === 'assigned' ? 'Agregado' : 'Quitado'}
@@ -504,7 +504,7 @@ export function StudentHabitsPanel({
                             <span
                               className={cn(
                                 'text-xs font-bold tabular-nums',
-                                p >= 80 ? 'text-emerald-600 dark:text-emerald-400' : p >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400',
+                                p >= 80 ? 'text-emerald-600 dark:text-emerald-400' : p >= 50 ? 'text-status-expiring' : 'text-status-expired',
                               )}
                             >
                               {p}%
