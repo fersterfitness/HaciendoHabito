@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import toast from 'react-hot-toast'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, ImagePlus, User, Mail, Phone, Calendar, X } from 'lucide-react'
 import {
   fersterIntakeSchema,
   fersterDefaults,
@@ -123,13 +123,18 @@ function checkFileSize(f: File): boolean {
 type Props = {
   onSuccess: () => void
   selectedPlanSlug?: string | null
+  selectedPlanLabel?: string | null
+  selectedPlanPrice?: string | null
 }
 
-export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props) {
+export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null }: Props) {
   const [step, setStep] = useState(0)
   const [progressFiles, setProgressFiles] = useState<File[]>([])
+  const [progressPreviews, setProgressPreviews] = useState<string[]>([])
   const [profileFile, setProfileFile] = useState<File | null>(null)
+  const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const [medicalFile, setMedicalFile] = useState<File | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
@@ -145,6 +150,38 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
 
   const pathology = watch('pathology')
   const gender = watch('gender')
+  const watchedFirstName = watch('first_name')
+  const watchedLastName = watch('last_name')
+  const watchedEmail = watch('email')
+  const watchedPhone = watch('phone')
+
+  // scroll to top of form on step change
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    const parent = scrollRef.current?.closest('.overflow-y-auto')
+    if (parent) parent.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [step])
+
+  // cleanup object URLs
+  useEffect(() => {
+    return () => {
+      progressPreviews.forEach((u) => URL.revokeObjectURL(u))
+      if (profilePreview) URL.revokeObjectURL(profilePreview)
+    }
+  }, [progressPreviews, profilePreview])
+
+  const handleProgressFiles = useCallback((files: FileList | null) => {
+    const list = Array.from(files ?? []).slice(0, 5)
+    setProgressFiles(list)
+    progressPreviews.forEach((u) => URL.revokeObjectURL(u))
+    setProgressPreviews(list.map((f) => URL.createObjectURL(f)))
+  }, [progressPreviews])
+
+  const handleProfileFile = useCallback((file: File | null) => {
+    if (profilePreview) URL.revokeObjectURL(profilePreview)
+    setProfileFile(file)
+    setProfilePreview(file ? URL.createObjectURL(file) : null)
+  }, [profilePreview])
 
   async function goNext() {
     const fields = STEP_FIELDS[step]
@@ -263,24 +300,46 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
     onSuccess()
   }
 
-  const stepTitles = ['Tus datos', 'Entrenamiento', 'Salud y hábitos', 'Fotos y documentos']
+  const stepTitles = ['Tus datos', 'Entrenamiento', 'Salud y hábitos', 'Fotos y envío']
 
   return (
-    <div className="max-w-md mx-auto lg:mx-0">
+    <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
       <h1 className="text-2xl sm:text-[1.65rem] font-bold text-ink-primary tracking-tight mb-1">
         Formulario de registro
       </h1>
       <p className="text-sm text-ink-secondary mb-2">
         Plan personalizado — <span className="font-medium">Haciéndolo hábito</span>
       </p>
-      <p className="text-xs text-ink-muted mb-6">
+      <p className="text-xs text-ink-muted mb-4">
         ¿Ya tenés cuenta?{' '}
         <Link to="/login" className="font-medium hover:underline" style={{ color: ACCENT }}>
           Iniciar sesión
         </Link>
       </p>
 
-      <div className="flex gap-1 mb-6">
+      {/* Plan badge / no-plan nudge */}
+      {selectedPlanLabel ? (
+        <div
+          className="mb-4 flex items-center gap-2.5 rounded-xl border px-3 py-2.5"
+          style={{ borderColor: `${ACCENT}55`, backgroundColor: `${ACCENT}12` }}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>Plan elegido</span>
+          <span className="text-sm font-semibold text-ink-primary truncate">{selectedPlanLabel}</span>
+          {selectedPlanPrice ? (
+            <span className="ml-auto shrink-0 text-sm font-bold" style={{ color: ACCENT }}>{selectedPlanPrice}</span>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-expiring/40 bg-status-expiring/8 px-3 py-2.5">
+          <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" />
+          <p className="text-xs text-ink-secondary">
+            Seleccioná un plan en el panel izquierdo antes de continuar.
+          </p>
+        </div>
+      )}
+
+      {/* Step tabs */}
+      <div className="flex gap-1 mb-2">
         {stepTitles.map((t, i) => (
           <button
             key={t}
@@ -295,6 +354,13 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
             {i + 1}. {t}
           </button>
         ))}
+      </div>
+      {/* Progress bar */}
+      <div className="mb-5 h-1 rounded-full bg-surface-elevated overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${((step + 1) / stepTitles.length) * 100}%`, backgroundColor: ACCENT }}
+        />
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -573,42 +639,138 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null }: Props)
 
         {step === 3 && (
           <>
+            {/* Summary card */}
+            {(watchedFirstName || watchedEmail || watchedPhone) && (
+              <div className="mb-2 rounded-xl border border-surface-border bg-surface-elevated/60 p-3 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-widest text-ink-muted font-semibold mb-2">Revisá tus datos</p>
+                {(watchedFirstName || watchedLastName) && (
+                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
+                    <User className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                    <span>{[watchedFirstName, watchedLastName].filter(Boolean).join(' ')}</span>
+                  </div>
+                )}
+                {watchedEmail && (
+                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                    <span className="truncate">{watchedEmail}</span>
+                  </div>
+                )}
+                {watchedPhone && (
+                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
+                    <Phone className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                    <span>{watchedPhone}</span>
+                  </div>
+                )}
+                {selectedPlanLabel && (
+                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                    <span>{selectedPlanLabel}</span>
+                    {selectedPlanPrice ? <span className="ml-auto font-semibold" style={{ color: ACCENT }}>{selectedPlanPrice}</span> : null}
+                  </div>
+                )}
+              </div>
+            )}
+
             <p className="text-xs text-ink-secondary leading-relaxed">
-              Las fotos y estudios son <span className="font-medium">opcionales</span>. Si querés, subí imágenes claras
-              (frontal, lateral, espalda, hasta 5, 10 MB c/u) y una foto para el registro visual.
+              Las fotos y estudios son <span className="font-medium">opcionales</span>. Imágenes claras
+              (frontal, lateral, espalda, hasta 5, máx. 10 MB c/u).
             </p>
+
+            {/* Medical file */}
             <div>
               <FieldLabel>Estudios médicos (PDF o imagen, opcional)</FieldLabel>
-              <input
-                type="file"
-                accept=".pdf,image/*"
-                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                onChange={(e) => setMedicalFile(e.target.files?.[0] ?? null)}
-              />
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
+                <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
+                <span className="text-sm text-ink-secondary truncate">
+                  {medicalFile ? medicalFile.name : 'Elegir archivo…'}
+                </span>
+                {medicalFile && (
+                  <button
+                    type="button"
+                    className="ml-auto shrink-0 rounded-full p-0.5 hover:bg-surface-border/50"
+                    onClick={(e) => { e.preventDefault(); setMedicalFile(null) }}
+                  >
+                    <X className="h-3.5 w-3.5 text-ink-muted" />
+                  </button>
+                )}
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="sr-only"
+                  onChange={(e) => setMedicalFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
             </div>
+
+            {/* Progress photos */}
             <div>
               <FieldLabel>Fotografías análisis (opcional, hasta 5)</FieldLabel>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                onChange={(e) => {
-                  const list = Array.from(e.target.files ?? []).slice(0, 5)
-                  setProgressFiles(list)
-                }}
-              />
-              <p className="mt-1 text-[11px] text-ink-muted">{progressFiles.length} archivo(s) seleccionados</p>
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
+                <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
+                <span className="text-sm text-ink-secondary">
+                  {progressFiles.length > 0 ? `${progressFiles.length} foto(s) elegida(s)` : 'Elegir fotos…'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => handleProgressFiles(e.target.files)}
+                />
+              </label>
+              {progressPreviews.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {progressPreviews.map((src, idx) => (
+                    <div key={src} className="relative h-16 w-16 overflow-hidden rounded-lg border border-surface-border">
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5"
+                        onClick={() => {
+                          const next = progressFiles.filter((_, i) => i !== idx)
+                          URL.revokeObjectURL(src)
+                          setProgressFiles(next)
+                          setProgressPreviews((p) => p.filter((_, i) => i !== idx))
+                        }}
+                      >
+                        <X className="h-3 w-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Profile photo */}
             <div>
               <FieldLabel>Foto para registro visual (opcional)</FieldLabel>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                onChange={(e) => setProfileFile(e.target.files?.[0] ?? null)}
-              />
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
+                {profilePreview ? (
+                  <img src={profilePreview} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
+                )}
+                <span className="text-sm text-ink-secondary truncate">
+                  {profileFile ? profileFile.name : 'Elegir foto…'}
+                </span>
+                {profileFile && (
+                  <button
+                    type="button"
+                    className="ml-auto shrink-0 rounded-full p-0.5 hover:bg-surface-border/50"
+                    onClick={(e) => { e.preventDefault(); handleProfileFile(null) }}
+                  >
+                    <X className="h-3.5 w-3.5 text-ink-muted" />
+                  </button>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(e) => handleProfileFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
             </div>
+
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"

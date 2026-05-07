@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import toast from 'react-hot-toast'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, ImagePlus, X } from 'lucide-react'
 import {
   nutritionIntakeSchema,
   nutritionDefaults,
@@ -66,12 +66,16 @@ const FREQ_OPTIONS = ['', 'Diario', 'Semanal', 'Quincenal', 'Mensual', 'X']
 type Props = {
   onSuccess: () => void
   selectedPlanSlug?: string | null
+  selectedPlanLabel?: string | null
+  selectedPlanPrice?: string | null
 }
 
-export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Props) {
+export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null }: Props) {
   const [step, setStep] = useState(0)
   const [profileFile, setProfileFile] = useState<File | null>(null)
+  const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const [labFile, setLabFile] = useState<File | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
@@ -87,6 +91,16 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
   })
 
   const hasActivity = watch('has_physical_activity')
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    const parent = scrollRef.current?.closest('.overflow-y-auto')
+    if (parent) parent.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [step])
+
+  useEffect(() => {
+    return () => { if (profilePreview) URL.revokeObjectURL(profilePreview) }
+  }, [profilePreview])
 
   async function goNext() {
     const fields = STEP_FIELDS[step]
@@ -157,22 +171,43 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
   }
 
   return (
-    <div className="max-w-md mx-auto lg:mx-0">
+    <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
       <h1 className="text-2xl sm:text-[1.65rem] font-bold text-ink-primary tracking-tight mb-1">
         Cuestionario nutricional
       </h1>
       <p className="text-sm text-ink-secondary mb-2">
         Plan personalizado de alimentación — <span className="font-medium">Haciéndolo hábito</span>
       </p>
-      <p className="text-xs text-ink-muted mb-6">
+      <p className="text-xs text-ink-muted mb-4">
         ¿Ya tenés cuenta?{' '}
         <Link to="/login" className="font-medium hover:underline" style={{ color: ACCENT }}>
           Iniciar sesión
         </Link>
       </p>
 
-      {/* Barra de pasos */}
-      <div className="flex gap-1 mb-6">
+      {/* Plan badge / no-plan nudge */}
+      {selectedPlanLabel ? (
+        <div
+          className="mb-4 flex items-center gap-2.5 rounded-xl border px-3 py-2.5"
+          style={{ borderColor: `${ACCENT}55`, backgroundColor: `${ACCENT}12` }}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>Plan elegido</span>
+          <span className="text-sm font-semibold text-ink-primary truncate">{selectedPlanLabel}</span>
+          {selectedPlanPrice ? (
+            <span className="ml-auto shrink-0 text-sm font-bold" style={{ color: ACCENT }}>{selectedPlanPrice}</span>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-expiring/40 bg-status-expiring/8 px-3 py-2.5">
+          <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" />
+          <p className="text-xs text-ink-secondary">
+            Seleccioná un plan en el panel izquierdo antes de continuar.
+          </p>
+        </div>
+      )}
+
+      {/* Step tabs */}
+      <div className="flex gap-1 mb-2">
         {STEP_TITLES.map((t, i) => (
           <button
             key={t}
@@ -187,6 +222,13 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
             {i + 1}. {t}
           </button>
         ))}
+      </div>
+      {/* Progress bar */}
+      <div className="mb-5 h-1 rounded-full bg-surface-elevated overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${((step + 1) / STEP_TITLES.length) * 100}%`, backgroundColor: ACCENT }}
+        />
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -335,16 +377,31 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
 
             <div>
               <FieldLabel>Análisis de laboratorio (PDF o imagen, opcional)</FieldLabel>
-              <input
-                type="file"
-                accept=".pdf,image/*"
-                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null
-                  if (f && f.size > MAX_BYTES) { toast.error('Máximo 10 MB'); return }
-                  setLabFile(f)
-                }}
-              />
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
+                <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
+                <span className="text-sm text-ink-secondary truncate">
+                  {labFile ? labFile.name : 'Elegir archivo…'}
+                </span>
+                {labFile && (
+                  <button
+                    type="button"
+                    className="ml-auto shrink-0 rounded-full p-0.5 hover:bg-surface-border/50"
+                    onClick={(e) => { e.preventDefault(); setLabFile(null) }}
+                  >
+                    <X className="h-3.5 w-3.5 text-ink-muted" />
+                  </button>
+                )}
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null
+                    if (f && f.size > MAX_BYTES) { toast.error('Máximo 10 MB'); return }
+                    setLabFile(f)
+                  }}
+                />
+              </label>
               <p className="mt-1 text-[11px] text-ink-muted">Antigüedad máxima 2 años</p>
             </div>
           </>
@@ -551,16 +608,42 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null }: Prop
             {/* Foto para registro */}
             <div className="border-t border-surface-border pt-4">
               <FieldLabel>Foto de perfil para el registro (opcional)</FieldLabel>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="text-sm text-ink-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-surface-elevated file:px-3 file:py-2"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null
-                  if (f && f.size > MAX_BYTES) { toast.error('Máximo 10 MB'); return }
-                  setProfileFile(f)
-                }}
-              />
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
+                {profilePreview ? (
+                  <img src={profilePreview} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
+                )}
+                <span className="text-sm text-ink-secondary truncate">
+                  {profileFile ? profileFile.name : 'Elegir foto…'}
+                </span>
+                {profileFile && (
+                  <button
+                    type="button"
+                    className="ml-auto shrink-0 rounded-full p-0.5 hover:bg-surface-border/50"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (profilePreview) URL.revokeObjectURL(profilePreview)
+                      setProfileFile(null)
+                      setProfilePreview(null)
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5 text-ink-muted" />
+                  </button>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null
+                    if (f && f.size > MAX_BYTES) { toast.error('Máximo 10 MB'); return }
+                    if (profilePreview) URL.revokeObjectURL(profilePreview)
+                    setProfileFile(f)
+                    setProfilePreview(f ? URL.createObjectURL(f) : null)
+                  }}
+                />
+              </label>
             </div>
 
             {/* Privacidad */}

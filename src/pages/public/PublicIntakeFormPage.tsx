@@ -80,20 +80,20 @@ function CatalogSegmentThumbnail({
   const [failed, setFailed] = useState(false)
   const showImg = Boolean(imageUrl && !failed)
   return (
-    <div className="mx-auto mb-1.5 flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/12">
+    <div className="mx-auto mb-2 w-16 h-20 shrink-0 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10">
       {showImg ? (
         <img
           src={imageUrl!}
           alt=""
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-top"
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
         />
       ) : compactFallback ? (
-        <span className="px-1 text-center text-[10px] font-bold leading-tight text-[#ffe99f]">{titleFallback}</span>
+        <span className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-bold leading-tight text-[#ffe99f]">{titleFallback}</span>
       ) : (
-        <span className="text-xl font-black text-[#ffe99f]">{titleFallback}</span>
+        <span className="flex h-full w-full items-center justify-center text-xl font-black text-[#ffe99f]">{titleFallback}</span>
       )}
     </div>
   )
@@ -742,9 +742,19 @@ export function PublicIntakeFormPage() {
               <div className="h-full overflow-y-auto">
                 <TestimonialsSection urls={testimonialVideos} />
                 {intakeKind === 'nutricion' ? (
-                  <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
+                  <IntakeNutritionForm
+                    selectedPlanSlug={selectedPlanId}
+                    selectedPlanLabel={selectedPlan?.name ?? null}
+                    selectedPlanPrice={selectedPlan?.price ?? null}
+                    onSuccess={() => setDone(true)}
+                  />
                 ) : (
-                  <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
+                  <IntakeFersterForm
+                    selectedPlanSlug={selectedPlanId}
+                    selectedPlanLabel={selectedPlan?.name ?? null}
+                    selectedPlanPrice={selectedPlan?.price ?? null}
+                    onSuccess={() => setDone(true)}
+                  />
                 )}
               </div>
             )
@@ -760,9 +770,19 @@ export function PublicIntakeFormPage() {
               <div style={{ backfaceVisibility: 'hidden' }} className="h-full overflow-y-auto scrollbar-hide">
                   <TestimonialsSection urls={testimonialVideos} />
                   {intakeKind === 'nutricion' ? (
-                    <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
+                    <IntakeNutritionForm
+                      selectedPlanSlug={selectedPlanId}
+                      selectedPlanLabel={selectedPlan?.name ?? null}
+                      selectedPlanPrice={selectedPlan?.price ?? null}
+                      onSuccess={() => setDone(true)}
+                    />
                   ) : (
-                    <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
+                    <IntakeFersterForm
+                      selectedPlanSlug={selectedPlanId}
+                      selectedPlanLabel={selectedPlan?.name ?? null}
+                      selectedPlanPrice={selectedPlan?.price ?? null}
+                      onSuccess={() => setDone(true)}
+                    />
                   )}
                 </div>
 
