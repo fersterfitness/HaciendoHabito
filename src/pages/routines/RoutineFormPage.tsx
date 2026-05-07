@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -34,7 +35,7 @@ export function RoutineFormPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const isEditing = !!id
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const { createRoutine, updateRoutine } = useRoutines()
   const [students, setStudents] = useState<Student[]>([])

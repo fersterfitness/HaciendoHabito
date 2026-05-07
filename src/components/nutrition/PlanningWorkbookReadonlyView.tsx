@@ -14,7 +14,10 @@ import {
   ZERO_TOTALS,
 } from '@/lib/nutrition/planningCalculations'
 import { cn, formatDate } from '@/lib/utils'
-import { buildStudentQuantitySummaryLines } from '@/lib/nutrition/mealPickPresentation'
+import {
+  buildStudentQuantitySummaryLines,
+  resolveMealPickQtyPresentation,
+} from '@/lib/nutrition/mealPickPresentation'
 
 function fmt1(n: number): string {
   if (!Number.isFinite(n)) return '—'
@@ -39,21 +42,6 @@ function mealLayoutFrom(md: ReturnType<typeof normalizeMealDistribution>) {
 function anyMealContent(md: ReturnType<typeof normalizeMealDistribution>) {
   if (mealDistributionHasMealPicks(md)) return true
   return mealLayoutFrom(md).some((b) => b.notes.trim().length > 0)
-}
-
-function pickQtyPresentationForReadonly(
-  p: MealSlotPick,
-  wb: PlanningWorkbookStateV1,
-): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
-  const ulSnap = p.unitsLabel?.trim()
-  if (p.qtyPresentation === 'units' && ulSnap) return { qtyPresentation: 'units', unitsLabel: ulSnap }
-  if (p.kind === 'plan_row') {
-    const sec = wb.sections.find((s) => s.key === p.secKey)
-    const row = sec?.rows.find((r) => r.id === p.rowId)
-    const ul = row?.unitsLabel?.trim()
-    if (row?.qtyPresentation === 'units' && ul) return { qtyPresentation: 'units', unitsLabel: ul }
-  }
-  return {}
 }
 
 /** Hint guardado o texto de plantilla (Mi lista no tiene notas en esta vista si no hubo snapshot). */
@@ -124,7 +112,7 @@ export function PlanningWorkbookReadonlyView({
                       <ul className="space-y-2">
                         {picks.map((p) => {
                           const hintText = hintForStudentPick(p, wb)
-                          const qp = pickQtyPresentationForReadonly(p, wb)
+                          const qp = resolveMealPickQtyPresentation(p, wb)
                           const lines = buildStudentQuantitySummaryLines({
                             gramsStr: p.qtyG,
                             nameSnapshot: p.nameSnapshot,

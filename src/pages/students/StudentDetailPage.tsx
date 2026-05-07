@@ -1,17 +1,19 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Pencil, Trash2, Dumbbell, FileText, FileDown, Plus,
   Mail, Phone, Calendar, Zap, X, ChevronDown,
   StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Share2,
+  Maximize2, UserRound, UtensilsCrossed, TrendingUp, Scale,
+  CalendarCheck,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
@@ -21,6 +23,9 @@ import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
+import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
+import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
+import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan, Income } from '@/types/database'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
@@ -28,7 +33,113 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts'
 
-type Tab = 'resumen' | 'fuerza' | 'ciclo' | 'peso' | 'pagos'
+/** Pestañas dentro de Seguimiento (peso, fuerza, pagos, ciclo). */
+type SeguimientoTab = 'peso' | 'fuerza' | 'pagos' | 'ciclo'
+
+/** Solapas principales de la ficha / panel lateral. */
+type SheetTab = 'ficha' | 'rutina' | 'nutricion' | 'seguimiento' | 'habitos'
+
+const DETAIL_LEVEL_LABEL: Record<string, string> = {
+  inicial: 'Inicial',
+  intermedio: 'Intermedio',
+  avanzado: 'Avanzado',
+}
+
+function intakeStatusPhrase(status: string): string {
+  const m: Record<string, string> = {
+    activo: 'Activo',
+    inactivo: 'Inactivo',
+    pausado: 'Pausado',
+    baja: 'Baja',
+  }
+  return m[status] ?? status
+}
+
+function intakeRoutinePhrase(status: string): string {
+  const m: Record<string, string> = {
+    activa: 'Activa',
+    por_vencer: 'Por vencer',
+    vencida: 'Vencida',
+    pausada: 'Pausada',
+    cancelada: 'Cancelada',
+  }
+  return m[status] ?? status
+}
+
+function incomeStatusPhrase(status: string): string {
+  const m: Record<string, string> = {
+    cobrado: 'Cobrado',
+    pendiente: 'Pendiente',
+    anulado: 'Anulado',
+  }
+  return m[status] ?? status
+}
+
+/** Píldora de estado de rutina (activa = verde; resto semántico). */
+function routineStatusPillClass(status: string, compact = false): string {
+  const sizing = compact ? 'px-1.5 py-px text-[9px]' : 'px-2 py-0.5 text-[10px]'
+  const base = cn('rounded border font-semibold uppercase tracking-wide', sizing)
+  switch (status) {
+    case 'activa':
+      return cn(
+        base,
+        'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/[0.14] dark:text-emerald-400',
+      )
+    case 'por_vencer':
+      return cn(
+        base,
+        'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+      )
+    case 'vencida':
+      return cn(
+        base,
+        'border-rose-400/45 bg-rose-500/12 text-rose-800 dark:border-rose-400/35 dark:bg-rose-500/10 dark:text-rose-400',
+      )
+    case 'pausada':
+      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400')
+    case 'cancelada':
+      return cn(base, 'border-zinc-300/80 bg-zinc-500/8 text-zinc-600 dark:border-zinc-700 dark:text-zinc-500')
+    default:
+      return cn(base, 'border-zinc-200/80 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400')
+  }
+}
+
+/** Estado de cuenta del alumno en la ficha. */
+function studentAccountStatusChipClass(status: string): string {
+  const base = 'rounded border px-1.5 py-0.5'
+  switch (status) {
+    case 'activo':
+      return cn(
+        base,
+        'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/[0.14] dark:text-emerald-400',
+      )
+    case 'pausado':
+      return cn(
+        base,
+        'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+      )
+    case 'inactivo':
+      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-700/25 dark:text-zinc-400')
+    case 'baja':
+      return cn(base, 'border-rose-400/40 bg-rose-500/10 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-400')
+    default:
+      return cn(base, 'border-zinc-200/80 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400')
+  }
+}
+
+/** Línea de estado en historial de pagos. */
+function incomeLedgerStatusClass(status: string): string {
+  switch (status) {
+    case 'cobrado':
+      return 'text-emerald-600 dark:text-emerald-400'
+    case 'pendiente':
+      return 'text-amber-700 dark:text-amber-400'
+    case 'anulado':
+      return 'text-zinc-500 line-through dark:text-zinc-500'
+    default:
+      return 'text-zinc-500'
+  }
+}
 
 // ─── Epley formula ────────────────────────────────────────────────────────────
 function epley1RM(weight: number, reps: number): number {
@@ -38,10 +149,20 @@ function epley1RM(weight: number, reps: number): number {
 // ─── RM percentages table ─────────────────────────────────────────────────────
 const RM_PERCENTS = [100, 95, 90, 85, 80, 75, 70, 65, 60]
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export function StudentDetailPage() {
-  const { id }     = useParams<{ id: string }>()
-  const navigate   = useNavigate()
+/** Ficha completa del alumno: página dedicada o panel lateral desde la lista. */
+export interface StudentDetailViewProps {
+  studentId: string
+  variant?: 'page' | 'panel'
+  onClosePanel?: () => void
+}
+
+// ─── Ficha ─────────────────────────────────────────────────────────────────────
+export function StudentDetailView({
+  studentId: id,
+  variant = 'page',
+  onClosePanel,
+}: StudentDetailViewProps) {
+  const navigate = useAppNavigate()
   const { deleteStudent } = useStudents()
   const { user, profile }   = useAuthStore()
   const entitySingularCapitalized = profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno'
@@ -53,7 +174,8 @@ export function StudentDetailPage() {
   const [loading,    setLoading]    = useState(true)
   const [showDelete, setShowDelete] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
-  const [tab,        setTab]        = useState<Tab>('resumen')
+  const [sheetTab,      setSheetTab]      = useState<SheetTab>('ficha')
+  const [seguimientoTab, setSeguimientoTab] = useState<SeguimientoTab>('peso')
 
   // Tags (localStorage)
   const tagsKey = id ? `tags_${id}` : ''
@@ -125,6 +247,21 @@ export function StudentDetailPage() {
     }
   }, [id, user?.id, profile?.role])
 
+  const showNutritionTab = profile?.role === 'trainer' || profile?.role === 'admin'
+  const showHabitsTab = canSeeTraining(profile?.role)
+
+  useEffect(() => {
+    if (!showNutritionTab && sheetTab === 'nutricion') setSheetTab('ficha')
+  }, [showNutritionTab, sheetTab])
+
+  useEffect(() => {
+    if (!showHabitsTab && sheetTab === 'habitos') setSheetTab('ficha')
+  }, [showHabitsTab, sheetTab])
+
+  useEffect(() => {
+    if (student?.gender !== 'F' && seguimientoTab === 'ciclo') setSeguimientoTab('peso')
+  }, [student?.gender, seguimientoTab])
+
   async function downloadMealPlanPdf(plan: TrainerStudentMealPlan) {
     setMealPlanPdfBusy(plan.id)
     try {
@@ -167,7 +304,9 @@ export function StudentDetailPage() {
     setDeleting(true)
     const ok = await deleteStudent(id)
     setDeleting(false)
-    if (ok) navigate('/students')
+    if (!ok) return
+    if (variant === 'panel' && onClosePanel) onClosePanel()
+    else navigate('/students')
   }
 
   async function addRmRecord(record: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) {
@@ -220,10 +359,39 @@ export function StudentDetailPage() {
     setTimeout(() => notesRef.current?.focus(), 50)
   }
 
-  if (loading) return <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
-  if (!student) return <div><Header title={entitySingularCapitalized} showBack /><p className="p-6 text-ink-muted">{entitySingularCapitalized} no encontrado.</p></div>
+  if (loading) {
+    return variant === 'page' ? (
+      <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
+    ) : (
+      <div className="flex flex-1 flex-col items-center justify-center py-24"><Spinner size="lg" /></div>
+    )
+  }
+  if (!student) {
+    return variant === 'page' ? (
+      <div><Header title={entitySingularCapitalized} showBack /><p className="p-6 text-ink-muted">{entitySingularCapitalized} no encontrado.</p></div>
+    ) : (
+      <div className="p-6 text-center text-sm text-ink-muted">{entitySingularCapitalized} no encontrado.</div>
+    )
+  }
 
   const activeRoutine = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
+  /** Etiquetas de solapas principales (solo entrenadores/admins ven Nutrición con planes tipo Excel). */
+  const sheetTabDefs: { key: SheetTab; label: string; icon: ReactNode }[] = [
+    { key: 'ficha', label: 'Información', icon: <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
+    { key: 'rutina', label: 'Rutina', icon: <Dumbbell className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
+    ...(showNutritionTab
+      ? [{ key: 'nutricion' as const, label: 'Nutrición', icon: <UtensilsCrossed className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
+      : []),
+    {
+      key: 'seguimiento',
+      label: 'Seguimiento',
+      icon: <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden />,
+    },
+    ...(showHabitsTab
+      ? [{ key: 'habitos' as const, label: 'Hábitos', icon: <CalendarCheck className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
+      : []),
+  ]
+
   const selectedPlanLabel =
     student.selected_web_plan_slug === 'plan-entrenamiento'
       ? 'Plan Entrenamiento'
@@ -234,60 +402,146 @@ export function StudentDetailPage() {
       : null
 
   return (
-    <div>
-      <Header title={student.full_name} showBack />
+    <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-zinc-50 dark:bg-[rgb(var(--surface-base))]')}>
+      {variant === 'page' ? (
+        <Header title={student.full_name} showBack />
+      ) : (
+        <div className="flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-zinc-200/80 bg-white/90 px-4 py-3.5 dark:border-zinc-800/90 dark:bg-zinc-900/85">
+          <div className="min-w-0 flex-1">
+            <p id="student-sheet-title" className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+              {entitySingularCapitalized}
+            </p>
+            <p className="truncate text-sm font-semibold text-ink-primary">{student.full_name}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Abrir en página completa"
+              onClick={() => navigate(`/students/${id}`)}
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+            {onClosePanel && (
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Cerrar" onClick={onClosePanel}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
-      <div className="px-4 lg:px-6 py-4 space-y-4">
+      <div
+        className={cn(
+          'space-y-6',
+          variant === 'page' ? 'px-4 py-5 lg:px-6' : 'min-h-0 flex-1 overflow-y-auto px-4 py-5',
+        )}
+      >
+        {/* Solapas principales — ancho completo de la card (breakout sobre el padding lateral) */}
+        <div
+          className={cn(
+            '-mx-4 border-b border-zinc-200/55 dark:border-zinc-800/70',
+            variant === 'page' && 'lg:-mx-6',
+            variant === 'panel' && 'sticky top-0 z-[2] bg-zinc-50/95 backdrop-blur-sm dark:bg-zinc-950/90',
+          )}
+          role="tablist"
+          aria-label="Secciones de la ficha"
+        >
+          <div className="flex w-full">
+            {sheetTabDefs.map(({ key, label, icon }) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={sheetTab === key}
+                onClick={() => setSheetTab(key)}
+                className={cn(
+                  'flex min-w-0 flex-1 items-center justify-center gap-1.5 border-b-2 px-1.5 py-3 text-center text-[11px] font-semibold transition-colors sm:gap-2 sm:px-2 sm:text-[13px]',
+                  sheetTab === key
+                    ? 'border-b-zinc-900 text-zinc-900 dark:border-b-zinc-100 dark:text-zinc-50'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-200',
+                )}
+              >
+                <span className={cn('shrink-0', sheetTab === key ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500')}>
+                  {icon}
+                </span>
+                <span className="min-w-0 leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {/* Perfil compacto: datos a la izquierda, foto grande a la derecha (o iniciales) */}
-        <Card>
+        {/* ── Información: datos completos del alumno ── */}
+        {sheetTab === 'ficha' && (
+          <>
+        {/* Perfil: sin tarjeta contenedora, tipografía y líneas */}
+        <section className="border-b border-zinc-200/60 pb-6 dark:border-zinc-800/60">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-            <div className="flex-1 min-w-0 order-2 sm:order-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold text-ink-primary">{student.full_name}</h2>
-                <Badge status={student.status} />
-                <Badge status={student.level} />
-                {student.selected_web_plan_slug && <Badge status={student.selected_web_plan_slug} />}
-              </div>
-              <p className="text-xs text-ink-muted mt-1">
-                Plan seleccionado: <span className="text-ink-secondary font-medium">{selectedPlanLabel ?? 'Sin plan elegido'}</span>
+            <div className="order-2 min-w-0 flex-1 sm:order-1">
+              <h2 className="text-balance text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{student.full_name}</h2>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium uppercase tracking-wider">
+                <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
+                <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>
+                  ·
+                </span>
+                {student.level ? (
+                  <>
+                    <span className="text-zinc-400 dark:text-zinc-500">{DETAIL_LEVEL_LABEL[student.level] ?? student.level}</span>
+                    <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>
+                      ·
+                    </span>
+                  </>
+                ) : null}
+                <span className="text-zinc-400 dark:text-zinc-500">{selectedPlanLabel ?? 'Sin plan web'}</span>
               </p>
-              <div className="flex flex-wrap gap-3 mt-1.5">
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
                 {student.email && (
-                  <a href={`mailto:${student.email}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                    <Mail className="h-3 w-3" />{student.email}
+                  <a
+                    href={`mailto:${student.email}`}
+                    className="flex items-center gap-1 text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+                  >
+                    <Mail className="h-3 w-3 opacity-70" aria-hidden />{student.email}
                   </a>
                 )}
                 {student.phone && (
                   <>
-                    <a href={`tel:${student.phone}`} className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-primary transition-colors">
-                      <Phone className="h-3 w-3" />{student.phone}
+                    <a
+                      href={`tel:${student.phone}`}
+                      className="flex items-center gap-1 text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+                    >
+                      <Phone className="h-3 w-3 opacity-70" aria-hidden />{student.phone}
                     </a>
                     <a
                       href={`https://wa.me/${student.phone.replace(/\D/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-400 transition-colors"
+                      className="flex items-center gap-1 text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
                     >
-                      <MessageCircle className="h-3 w-3" />
+                      <MessageCircle className="h-3 w-3 opacity-70" aria-hidden />
                       WhatsApp
                     </a>
                   </>
                 )}
                 {student.birth_date && (
-                  <span className="flex items-center gap-1 text-xs text-ink-secondary">
-                    <Calendar className="h-3 w-3" />{formatDate(student.birth_date)}
+                  <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
+                    <Calendar className="h-3 w-3 opacity-70" aria-hidden />{formatDate(student.birth_date)}
                   </span>
                 )}
               </div>
-              {/* Tags */}
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
                 {tags.map((t) => (
-                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium">
-                    <Tag className="h-2.5 w-2.5" />{t}
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 border border-zinc-300/70 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:border-zinc-600 dark:text-zinc-400"
+                  >
+                    {t}
                     {editingTags && (
-                      <button onClick={() => removeTag(t)} className="ml-0.5 hover:text-red-400 transition-colors"><X className="h-2.5 w-2.5" /></button>
+                      <button type="button" onClick={() => removeTag(t)} className="text-zinc-400 hover:text-zinc-200" aria-label="Quitar etiqueta">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
                     )}
                   </span>
                 ))}
@@ -297,49 +551,65 @@ export function StudentDetailPage() {
                       autoFocus
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') addTag(tagInput); if (e.key === 'Escape') setEditingTags(false) }}
-                      placeholder="Nueva etiqueta..."
-                      className="text-[11px] rounded-lg bg-surface-input border border-brand-primary/40 text-ink-primary px-2 py-0.5 w-32 focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') addTag(tagInput)
+                        if (e.key === 'Escape') setEditingTags(false)
+                      }}
+                      placeholder="Nueva etiqueta…"
+                      className="w-28 border border-zinc-300 bg-transparent px-1.5 py-0.5 text-[11px] text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-600 dark:text-zinc-100"
                     />
-                    <button onClick={() => addTag(tagInput)} className="text-[11px] text-brand-primary hover:underline">+ Agregar</button>
-                    <button onClick={() => setEditingTags(false)} className="text-[11px] text-ink-muted hover:text-ink-secondary">Listo</button>
+                    <button type="button" onClick={() => addTag(tagInput)} className="text-[11px] font-semibold text-zinc-700 hover:underline dark:text-zinc-300">
+                      Agregar
+                    </button>
+                    <button type="button" onClick={() => setEditingTags(false)} className="text-[11px] text-zinc-500 hover:text-zinc-300">
+                      Listo
+                    </button>
                   </div>
                 ) : (
-                  <button onClick={() => setEditingTags(true)} className="text-[11px] text-ink-muted hover:text-brand-primary transition-colors flex items-center gap-1">
-                    <Tag className="h-3 w-3" />{tags.length === 0 ? 'Agregar etiqueta' : '+'}
+                  <button
+                    type="button"
+                    onClick={() => setEditingTags(true)}
+                    className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300"
+                  >
+                    <Tag className="h-3 w-3" aria-hidden />
+                    {tags.length === 0 ? 'Etiqueta' : '+'}
                   </button>
                 )}
               </div>
             </div>
-            <div className="flex justify-center sm:justify-end shrink-0 order-1 sm:order-2">
+            <div className="order-1 flex shrink-0 justify-center sm:order-2 sm:justify-end">
               <StudentAvatar
                 studentId={student.id}
                 fullName={student.full_name}
                 avatarPath={student.avatar_path ?? null}
                 size="lg"
                 allowRemove
-                onPathChange={(path) =>
-                  setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))
-                }
+                onPathChange={(path) => setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))}
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-surface-border">
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-zinc-200/60 pt-4 dark:border-zinc-800/60">
             <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
               Editar
             </Button>
-            <Button size="sm" icon={<DollarSign className="h-3.5 w-3.5" />} onClick={() => setShowPayModal(true)}>
+            <Button
+              size="sm"
+              icon={<DollarSign className="h-3.5 w-3.5" />}
+              className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
+              onClick={() => setShowPayModal(true)}
+            >
               Registrar pago
             </Button>
             <div className="flex-1" />
             <button
+              type="button"
               onClick={() => setShowDelete(true)}
-              className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-status-expired transition-colors px-2 py-1.5 rounded-lg"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
             >
               <Trash2 className="h-3.5 w-3.5" /> Eliminar
             </button>
           </div>
-        </Card>
+        </section>
 
         <FersterStudentIntakePanel student={student} />
 
@@ -353,39 +623,11 @@ export function StudentDetailPage() {
           }
         />
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">
-          {([
-            { value: 'resumen', label: 'Resumen' },
-            { value: 'peso',    label: '⚖️ Peso' },
-            { value: 'fuerza',  label: '💪 Fuerza' },
-            { value: 'pagos',   label: '💰 Pagos' },
-            ...(student.gender === 'F' ? [{ value: 'ciclo' as Tab, label: '🌸 Ciclo' }] : []),
-          ] as { value: Tab; label: string }[]).map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setTab(value)}
-              className={cn(
-                'flex-1 py-2 text-xs font-semibold rounded-lg transition-colors',
-                tab === value
-                  ? 'bg-surface-card text-ink-primary shadow-sm'
-                  : 'text-ink-muted hover:text-ink-secondary',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Resumen tab ── */}
-        {tab === 'resumen' && (
-          <div className="space-y-4">
-
-            {/* Notas rápidas */}
+            {/* Notas / observaciones */}
             {editingNotes ? (
-              <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3">
+              <div className="space-y-3 border-t border-zinc-200/60 pt-4 dark:border-zinc-800/60">
                 <div className="flex items-center gap-2">
-                  <StickyNote className="h-4 w-4 text-brand-primary" />
+                  <StickyNote className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
                   <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
                 </div>
                 <textarea
@@ -393,7 +635,7 @@ export function StudentDetailPage() {
                   value={notesValue}
                   onChange={(e) => setNotesValue(e.target.value)}
                   rows={5}
-                  className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none resize-none placeholder:text-ink-muted"
+                  className="w-full resize-none border border-zinc-200/80 bg-zinc-50 px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950/40"
                   placeholder="Observaciones, lesiones, objetivos..."
                 />
                 <div className="flex items-center gap-2 justify-end">
@@ -403,19 +645,14 @@ export function StudentDetailPage() {
                   >
                     Cancelar
                   </button>
-                  <button
-                    onClick={saveNotes}
-                    disabled={savingNotes}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary/90 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    <Check className="h-3.5 w-3.5" />
+                  <Button type="button" size="sm" variant="secondary" loading={savingNotes} icon={<Check className="h-3.5 w-3.5" />} onClick={saveNotes}>
                     {savingNotes ? 'Guardando…' : 'Guardar'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : student.notes ? (
               <div className="relative group">
-                <StudentNotesCard notes={student.notes} />
+                <StudentNotesCard notes={student.notes} variant="minimal" />
                 <button
                   onClick={startEditNotes}
                   className="absolute top-3 right-3 p-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors opacity-0 group-hover:opacity-100"
@@ -427,47 +664,11 @@ export function StudentDetailPage() {
             ) : (
               <button
                 onClick={startEditNotes}
-                className="w-full flex items-center gap-2 px-4 py-3 rounded-2xl border border-dashed border-surface-border text-ink-muted hover:text-ink-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors text-sm"
+                className="flex w-full items-center gap-2 border-b border-dashed border-zinc-300/80 py-4 text-sm text-zinc-500 transition-colors hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-200"
               >
-                <StickyNote className="h-4 w-4" />
+                <StickyNote className="h-4 w-4 shrink-0" aria-hidden />
                 Agregar observaciones...
               </button>
-            )}
-
-            {activeRoutine && (
-              <Card className="border-brand-primary/20">
-                <CardHeader>
-                  <div>
-                    <p className="text-xs text-brand-primary font-medium uppercase tracking-wider mb-0.5">Rutina activa</p>
-                    <CardTitle>{activeRoutine.name}</CardTitle>
-                  </div>
-                  <Badge status={activeRoutine.status} size="md" />
-                </CardHeader>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="bg-surface-elevated rounded-xl p-3">
-                    <p className="text-xs text-ink-muted">Inicio</p>
-                    <p className="text-sm font-semibold text-ink-primary">{formatDate(activeRoutine.start_date)}</p>
-                  </div>
-                  <div className="bg-surface-elevated rounded-xl p-3">
-                    <p className="text-xs text-ink-muted">Vencimiento</p>
-                    <p className="text-sm font-semibold text-ink-primary">{formatDate(activeRoutine.end_date)}</p>
-                  </div>
-                  <div className="bg-surface-elevated rounded-xl p-3">
-                    <p className="text-xs text-ink-muted">Días restantes</p>
-                    <p className={cn('text-sm font-semibold', daysUntil(activeRoutine.end_date) <= 7 ? 'text-status-expiring' : 'text-ink-primary')}>
-                      {Math.max(0, daysUntil(activeRoutine.end_date))}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button variant="secondary" size="sm" icon={<Dumbbell className="h-3.5 w-3.5" />} onClick={() => navigate(`/routines/${activeRoutine.id}`)} className="flex-1">
-                    Ver rutina
-                  </Button>
-                  <Button variant="secondary" size="sm" icon={<FileText className="h-3.5 w-3.5" />} onClick={() => navigate('/routine-pdfs')} className="flex-1">
-                    Ver PDF
-                  </Button>
-                </div>
-              </Card>
             )}
 
             {/* ── Reporte de progreso ── */}
@@ -507,9 +708,9 @@ export function StudentDetailPage() {
               return (
                 <button
                   onClick={generarReporte}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed border-surface-border text-ink-secondary hover:border-brand-primary/40 hover:bg-brand-primary/5 hover:text-ink-primary transition-colors text-sm"
+                  className="flex w-full items-center gap-3 border-b border-dashed border-zinc-300/80 py-4 text-sm text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-100"
                 >
-                  <Share2 className="h-4 w-4 text-brand-primary shrink-0" />
+                  <Share2 className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
                   <span>
                     <span className="font-medium text-ink-primary">Generar reporte de progreso</span>
                     <span className="block text-[11px] text-ink-muted mt-0.5">
@@ -519,125 +720,257 @@ export function StudentDetailPage() {
                 </button>
               )
             })()}
+          </>
+        )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Historial de rutinas</CardTitle>
-                <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate(`/routines/new?student=${id}`)}>
+        {/* ── Rutina ── */}
+        {sheetTab === 'rutina' && (() => {
+          const rutinaHistorialVacío = routines.length === 0
+          return (
+          <div className="space-y-8">
+            {activeRoutine ? (
+              <section>
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200/55 pb-4 dark:border-zinc-800/55">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Rutina activa</p>
+                    <p className="mt-2 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{activeRoutine.name}</p>
+                    {activeRoutine.objective?.trim() ? (
+                      <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">{activeRoutine.objective}</p>
+                    ) : null}
+                  </div>
+                  <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
+                </div>
+                <dl className="mt-5 grid gap-8 sm:grid-cols-3">
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Inicio</dt>
+                    <dd className="mt-1.5 text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{formatDate(activeRoutine.start_date)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Vencimiento</dt>
+                    <dd className="mt-1.5 text-sm tabular-nums font-medium text-zinc-900 dark:text-zinc-100">{formatDate(activeRoutine.end_date)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Días restantes</dt>
+                    <dd
+                      className={cn(
+                        'mt-1.5 text-sm tabular-nums',
+                        daysUntil(activeRoutine.end_date) <= 7 ? 'font-semibold text-zinc-950 dark:text-zinc-50' : 'text-zinc-700 dark:text-zinc-300',
+                      )}
+                    >
+                      {Math.max(0, daysUntil(activeRoutine.end_date))}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    size="sm"
+                    icon={<Dumbbell className="h-3.5 w-3.5" />}
+                    className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100] sm:flex-1"
+                    onClick={() => navigate(`/routines/${activeRoutine.id}`)}
+                  >
+                    Abrir rutina
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<FileText className="h-3.5 w-3.5" />}
+                    onClick={() => navigate('/routine-pdfs')}
+                    className="sm:flex-1"
+                  >
+                    PDF
+                  </Button>
+                </div>
+              </section>
+            ) : (
+              <div className="relative border-b border-dashed border-zinc-300/70 pb-8 dark:border-zinc-700/40">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-200/80 to-transparent dark:via-zinc-700/50" aria-hidden />
+                <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <Dumbbell className="h-5 w-5 text-zinc-500 dark:text-zinc-400" aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Ahora mismo</p>
+                    <p className="mt-2 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Sin rutina activa</p>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                      Creá una rutina nueva o marcá una del historial como activa cuando corresponda.
+                    </p>
+                    {!rutinaHistorialVacío ? (
+                      <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">Este {entitySingular} ya tiene rutinas en el histórico: abrila para activarlas o renovar períodos desde ahí.</p>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      icon={<Plus className="h-3.5 w-3.5" />}
+                      className={cn(
+                        '!mt-5 !border-0 shadow-none hover:!bg-[#e04100]',
+                        rutinaHistorialVacío ? '!bg-[#ff4800] !text-white' : '!bg-zinc-200 !text-zinc-900 hover:!bg-zinc-300 dark:!bg-zinc-800 dark:!text-zinc-100 dark:hover:!bg-zinc-700',
+                      )}
+                      onClick={() => navigate(`/routines/new?student=${id}`)}
+                    >
+                      {rutinaHistorialVacío ? 'Crear primera rutina' : 'Nueva rutina'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <section>
+              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200/55 pb-3 dark:border-zinc-800/55">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Historial</p>
+                  <h3 className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Rutinas anteriores</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Plus className="h-3.5 w-3.5" />}
+                  className={cn(
+                    '!h-9 font-semibold',
+                    rutinaHistorialVacío
+                      ? 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
+                      : '!text-[#ff4800] hover:bg-[#ff4800]/10 dark:!text-[#ff4800] dark:hover:bg-[#ff4800]/10',
+                  )}
+                  onClick={() => navigate(`/routines/new?student=${id}`)}
+                >
                   Nueva
                 </Button>
-              </CardHeader>
-              {routines.length === 0 ? (
-                <EmptyState icon={<Dumbbell className="h-6 w-6" />} title="Sin rutinas" description={`Este ${entitySingular} todavía no tiene rutinas registradas.`} />
-              ) : (
-                <div className="space-y-2">
-                  {routines.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => navigate(`/routines/${r.id}`)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors text-left"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink-primary truncate">{r.name}</p>
-                        <p className="text-xs text-ink-muted">{formatDate(r.start_date)} → {formatDate(r.end_date)}</p>
-                      </div>
-                      <Badge status={r.status} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            {(profile?.role === 'trainer' || profile?.role === 'admin') && (
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <ClipboardList className="h-4 w-4 text-brand-primary shrink-0" aria-hidden />
-                        <CardTitle>Planes de alimentación</CardTitle>
-                      </div>
-                      <p className="text-xs text-ink-muted mt-1 font-normal">
-                        Planillas tipo Excel que asignaste desde Plan de alimentación. El alumno las ve si su usuario está vinculado en la ficha.&nbsp;
-                        <button
-                          type="button"
-                          className="text-brand-primary hover:underline font-medium"
-                          onClick={() => navigate('/meal-plans')}
-                        >
-                          Ver todos los planes
-                        </button>
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                {mealPlans.length === 0 ? (
-                  <p className="text-sm text-ink-muted px-4 pb-4">
-                    Todavía no hay planes asignados a este alumno.
+              </div>
+              {rutinaHistorialVacío ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Sin historial</p>
+                  <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    Cuando cargues rutinas, las vas a ver ordenadas aquí con fechas y estado.
                   </p>
-                ) : (
-                  <div className="space-y-2 px-4 pb-4">
-                    {mealPlans.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex flex-wrap items-center gap-2 justify-between rounded-xl border border-surface-border bg-surface-elevated p-3"
+                </div>
+              ) : (
+                <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+                  {routines.map((r) => (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/routines/${r.id}`)}
+                        className="group flex w-full items-center gap-3 py-3.5 text-left transition-colors hover:bg-zinc-50/90 dark:hover:bg-zinc-900/40"
                       >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-ink-primary truncate">{p.title}</p>
-                          <p className="text-[11px] text-ink-muted">Actualizado {formatDate(p.updated_at)}</p>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-zinc-200/65 text-zinc-400 transition-colors group-hover:border-zinc-300 group-hover:text-zinc-600 dark:border-zinc-700 dark:group-hover:border-zinc-600 dark:group-hover:text-zinc-300">
+                          <Dumbbell className="h-3.5 w-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-50">{r.name}</p>
+                          <p className="mt-0.5 text-[11px] tabular-nums text-zinc-500">
+                            {formatDate(r.start_date)} · {formatDate(r.end_date)}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            loading={mealPlanPdfBusy === p.id}
-                            icon={<FileDown className="h-3.5 w-3.5" />}
-                            onClick={() => void downloadMealPlanPdf(p)}
-                          >
-                            PDF
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={<Copy className="h-3.5 w-3.5" />}
-                            onClick={() => void cloneMealPlan(p)}
-                          >
-                            Clonar
-                          </Button>
-                          <Button size="sm" onClick={() => navigate(`/students/${id}/meal-plan/${p.id}`)}>
-                            Ver
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+                        <span className={routineStatusPillClass(r.status, true)}>{intakeRoutinePhrase(r.status)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+          )
+        })()}
+
+        {/* ── Nutrición ── */}
+        {sheetTab === 'nutricion' && showNutritionTab && (
+          <section>
+            <div className="border-b border-zinc-200/50 pb-4 dark:border-zinc-800/50">
+              <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-100">
+                <ClipboardList className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+                <h3 className="text-sm font-semibold">Planes de alimentación</h3>
+              </div>
+              <p className="mt-1 text-xs text-zinc-500">
+                Asignados desde Plan de alimentación.{' '}
+                <button
+                  type="button"
+                  className="font-medium text-zinc-700 underline-offset-4 hover:text-zinc-950 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                  onClick={() => navigate('/meal-plans')}
+                >
+                  Ver todos
+                </button>
+              </p>
+            </div>
+            {mealPlans.length === 0 ? (
+              <p className="pt-4 text-sm text-zinc-500">Todavía no hay planes asignados a este alumno.</p>
+            ) : (
+              <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+                {mealPlans.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{p.title}</p>
+                      <p className="text-[11px] text-zinc-500">Actualizado {formatDate(p.updated_at)}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        loading={mealPlanPdfBusy === p.id}
+                        icon={<FileDown className="h-3.5 w-3.5" />}
+                        onClick={() => void downloadMealPlanPdf(p)}
+                      >
+                        PDF
+                      </Button>
+                      <Button variant="secondary" size="sm" icon={<Copy className="h-3.5 w-3.5" />} onClick={() => void cloneMealPlan(p)}>
+                        Clonar
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => navigate(`/students/${id}/meal-plan/${p.id}`)}>
+                        Ver
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {/* ── Seguimiento (peso, fuerza, pagos, ciclo) ── */}
+        {sheetTab === 'seguimiento' && (
+          <div className="space-y-4">
+            <div className="-mx-px flex border-b border-zinc-200/60 dark:border-zinc-800/60" role="tablist" aria-label="Seguimiento">
+              {(
+                [
+                  { value: 'peso' as const, label: 'Peso' },
+                  { value: 'fuerza' as const, label: 'Fuerza' },
+                  { value: 'pagos' as const, label: 'Pagos' },
+                  ...(student.gender === 'F' ? ([{ value: 'ciclo' as const, label: 'Ciclo' }] as const) : []),
+                ] as { value: SeguimientoTab; label: string }[]
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={seguimientoTab === value}
+                  onClick={() => setSeguimientoTab(value)}
+                  className={cn(
+                    '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide transition-colors sm:text-xs',
+                    seguimientoTab === value
+                      ? 'border-b-zinc-900 text-zinc-900 dark:border-b-zinc-200 dark:text-zinc-50'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-200',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {seguimientoTab === 'pagos' && (
+              <PagosTab studentId={id!} studentName={student.full_name} onRegisterPago={() => setShowPayModal(true)} />
+            )}
+
+            {seguimientoTab === 'ciclo' && <CicloTab studentId={id!} />}
+
+            {seguimientoTab === 'peso' && <PesoTab studentId={id!} />}
+
+            {seguimientoTab === 'fuerza' && (
+              <FuerzaTab records={rmRecords} onAdd={addRmRecord} onDelete={deleteRmRecord} />
             )}
           </div>
         )}
 
-        {/* ── Pagos tab ── */}
-        {tab === 'pagos' && (
-          <PagosTab
-            studentId={id!}
-            studentName={student.full_name}
-            onRegisterPago={() => setShowPayModal(true)}
-          />
-        )}
-
-        {/* ── Ciclo Menstrual tab ── */}
-        {tab === 'ciclo' && <CicloTab studentId={id!} />}
-
-        {/* ── Peso tab ── */}
-        {tab === 'peso' && <PesoTab studentId={id!} />}
-
-        {/* ── Fuerza / 1RM tab ── */}
-        {tab === 'fuerza' && (
-          <FuerzaTab
-            records={rmRecords}
-            onAdd={addRmRecord}
-            onDelete={deleteRmRecord}
-          />
+        {sheetTab === 'habitos' && showHabitsTab && (
+          <div className="min-h-0 rounded-xl bg-zinc-50/80 p-1 dark:bg-zinc-950/25">
+            <StudentHabitsPanel studentId={id!} toolbarLeading={<HabitsViewToolbar studentId={id!} />} />
+          </div>
         )}
       </div>
 
@@ -660,6 +993,22 @@ export function StudentDetailPage() {
       )}
     </div>
   )
+}
+
+/** Ruta `/students/:id` — mismo contenido que el panel lateral. */
+export function StudentDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const role = useAuthStore((s) => s.profile?.role)
+  const entitySingularCapitalized = role === 'nutritionist' ? 'Paciente' : 'Alumno'
+  if (!id) {
+    return (
+      <div>
+        <Header title={entitySingularCapitalized} showBack />
+        <p className="p-6 text-ink-muted">Identificador no válido.</p>
+      </div>
+    )
+  }
+  return <StudentDetailView studentId={id} variant="page" />
 }
 
 // ─── PagosTab ─────────────────────────────────────────────────────────────────
@@ -719,13 +1068,14 @@ function PagosTab({
   return (
     <div className="space-y-4">
       {/* ── Cuota mensual ── */}
-      <div className="rounded-2xl border border-surface-border bg-surface-card px-4 py-3">
+      <div className="border-b border-zinc-200/60 pb-4 dark:border-zinc-800/60">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide">Plan de cuota mensual</p>
+          <p className="text-xs font-semibold text-zinc-600 uppercase tracking-wide dark:text-zinc-400">Plan de cuota mensual</p>
           {!editingCuota && (
             <button
+              type="button"
               onClick={() => { setCuotaInput(String(cuota ?? '')); setEditingCuota(true) }}
-              className="text-[11px] text-brand-primary hover:underline"
+              className="text-[11px] font-semibold text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
             >
               {cuota ? 'Modificar' : 'Configurar'}
             </button>
@@ -743,14 +1093,14 @@ function PagosTab({
               onChange={(e) => setCuotaInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && saveCuota()}
               placeholder="Ej: 15000"
-              className="w-36 rounded-xl bg-surface-input border border-brand-primary/40 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:border-brand-primary"
+              className="w-36 rounded-xl border border-zinc-300 bg-zinc-50 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-400/40 dark:border-zinc-600 dark:bg-zinc-950/50"
             />
-            <Button size="sm" onClick={saveCuota}>Guardar</Button>
+            <Button size="sm" variant="secondary" onClick={saveCuota}>Guardar</Button>
             <button onClick={() => setEditingCuota(false)} className="text-xs text-ink-muted hover:text-ink-secondary">Cancelar</button>
           </div>
         ) : cuota ? (
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-status-generated">{formatCurrency(cuota)}<span className="text-sm font-normal text-ink-muted ml-1">/ mes</span></p>
+            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(cuota)}<span className="ml-1 text-sm font-normal text-zinc-500">/ mes</span></p>
             {(() => {
               const now = new Date()
               const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -759,9 +1109,9 @@ function PagosTab({
               return (
                 <div className="text-right">
                   {pagadoEsteMes ? (
-                    <p className="text-sm font-semibold text-emerald-400">✓ Pagó este mes</p>
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pagó este mes</p>
                   ) : (
-                    <p className="text-sm font-semibold text-amber-400">⚠ Pendiente de cobro</p>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-400">Pendiente de cobro</p>
                   )}
                   {totalEsteMes > 0 && totalEsteMes < cuota && (
                     <p className="text-[11px] text-ink-muted mt-0.5">Cobrado: {formatCurrency(totalEsteMes)} / {formatCurrency(cuota)}</p>
@@ -776,30 +1126,40 @@ function PagosTab({
       </div>
 
       {/* Estado de cuenta */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-3 text-center">
-          <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1">Total cobrado</p>
-          <p className="text-lg font-bold text-status-generated">{formatCurrency(totalCobrado)}</p>
+      <div className="grid grid-cols-3 gap-px border border-zinc-200/70 bg-zinc-200/70 dark:border-zinc-800 dark:bg-zinc-800">
+        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Total cobrado</p>
+          <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(totalCobrado)}</p>
         </div>
-        <div className={`border rounded-2xl p-3 text-center ${pagadoEsteMes ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-          <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1">Este mes</p>
-          <p className={`text-sm font-bold ${pagadoEsteMes ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {pagadoEsteMes ? '✓ Pagó' : '⚠ Pendiente'}
+        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Este mes</p>
+          <p
+            className={cn(
+              'text-sm font-medium',
+              pagadoEsteMes ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-800 dark:text-amber-400',
+            )}
+          >
+            {pagadoEsteMes ? 'Al día' : 'Pendiente'}
           </p>
         </div>
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-3 text-center">
-          <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1">Último pago</p>
-          <p className="text-sm font-semibold text-ink-primary">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
+        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Último pago</p>
+          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de pagos</CardTitle>
-          <Button size="sm" icon={<DollarSign className="h-3.5 w-3.5" />} onClick={onRegisterPago}>
+      <section>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/50">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Historial de pagos</h3>
+          <Button
+            size="sm"
+            icon={<DollarSign className="h-3.5 w-3.5" />}
+            className="!border-0 !bg-[#ff4800] !text-white hover:!bg-[#e04100]"
+            onClick={onRegisterPago}
+          >
             Registrar
           </Button>
-        </CardHeader>
+        </div>
         {loading ? (
           <div className="flex justify-center py-6"><Spinner size="md" /></div>
         ) : payments.length === 0 ? (
@@ -809,22 +1169,24 @@ function PagosTab({
             description={`${studentName} todavía no tiene pagos cargados.`}
           />
         ) : (
-          <div className="space-y-1.5">
+          <ul className="divide-y divide-zinc-200/55 dark:divide-zinc-800/60">
             {payments.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-elevated">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink-primary">{formatCurrency(p.amount)}</p>
-                  <p className="text-xs text-ink-muted">{p.income_type} · {METHOD_LABEL[p.payment_method] ?? p.payment_method}</p>
+              <li key={p.id} className="flex items-center gap-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(p.amount)}</p>
+                  <p className="text-xs text-zinc-500">{p.income_type} · {METHOD_LABEL[p.payment_method] ?? p.payment_method}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-medium text-ink-secondary">{formatDate(p.income_date)}</p>
-                  <Badge status={p.status} />
+                <div className="shrink-0 text-right">
+                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{formatDate(p.income_date)}</p>
+                  <p className={cn('text-[11px] font-medium', incomeLedgerStatusClass(p.status))}>
+                    {incomeStatusPhrase(p.status)}
+                  </p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </Card>
+      </section>
     </div>
   )
 }
@@ -861,10 +1223,10 @@ function FuerzaTab({
     <div className="space-y-4">
 
       {/* ── Calculadora de % ── */}
-      <Card>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="h-4 w-4 text-brand-primary" />
-          <CardTitle className="text-sm">Calculadora de porcentaje</CardTitle>
+      <section className="border-b border-zinc-200/55 pb-5 dark:border-zinc-800/60">
+        <div className="mb-3 flex items-center gap-2">
+          <Zap className="h-4 w-4 text-zinc-400" aria-hidden />
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Calculadora de porcentaje</h3>
         </div>
 
         {latestByExercise.length === 0 ? (
@@ -874,7 +1236,7 @@ function FuerzaTab({
             <div>
               <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Ejercicio</label>
               <select
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
                 value={calcExerciseId}
                 onChange={(e) => setCalcExerciseId(e.target.value)}
               >
@@ -897,15 +1259,15 @@ function FuerzaTab({
                     type="range" min={50} max={100} step={5}
                     value={calcPercent}
                     onChange={(e) => setCalcPercent(Number(e.target.value))}
-                    className="w-full accent-brand-primary"
+                    className="w-full accent-zinc-500 dark:accent-zinc-400"
                   />
                 </div>
 
                 {/* Resultado destacado */}
-                <div className="flex items-center justify-between bg-brand-primary/10 border border-brand-primary/20 rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between border border-zinc-200/80 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
                   <div>
-                    <p className="text-[10px] text-brand-primary uppercase tracking-wide font-semibold">Peso estimado</p>
-                    <p className="text-2xl font-bold text-brand-primary">{calcWeight} kg</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Peso estimado</p>
+                    <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{calcWeight} kg</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-ink-muted">1RM base</p>
@@ -926,8 +1288,8 @@ function FuerzaTab({
                         className={cn(
                           'flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-colors',
                           isSelected
-                            ? 'bg-brand-primary/20 border border-brand-primary/40 text-brand-primary font-semibold'
-                            : 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/50',
+                            ? 'border border-zinc-400 bg-white font-semibold text-zinc-900 ring-2 ring-zinc-300/80 dark:border-zinc-500 dark:bg-zinc-800 dark:text-white dark:ring-zinc-600/80'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/90 dark:bg-zinc-900/55 dark:text-zinc-400 dark:hover:bg-zinc-800',
                         )}
                       >
                         <span>{pct}%</span>
@@ -940,16 +1302,16 @@ function FuerzaTab({
             )}
           </div>
         )}
-      </Card>
+      </section>
 
       {/* ── Registros de 1RM ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Registros de 1RM</CardTitle>
-          <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
+      <section>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Registros de 1RM</h3>
+          <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
             Agregar
           </Button>
-        </CardHeader>
+        </div>
 
         {latestByExercise.length === 0 ? (
           <EmptyState
@@ -963,15 +1325,15 @@ function FuerzaTab({
               const history = records.filter((x) => x.exercise_id === r.exercise_id)
               const isOpen  = showHistory === r.exercise_id
               return (
-                <div key={r.exercise_id} className="bg-surface-elevated rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-3 px-3 py-2.5">
+                <div key={r.exercise_id} className="overflow-hidden border-b border-zinc-200/40 last:border-0 dark:border-zinc-800/50">
+                  <div className="flex items-center gap-3 py-2.5">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-ink-primary truncate">{r.exercise?.name ?? '—'}</p>
                       <p className="text-[10px] text-ink-muted">
                         {formatDate(r.tested_at)} · {r.source === 'epley' ? 'Estimado (Epley)' : 'Testeado'}
                       </p>
                     </div>
-                    <span className="text-base font-bold text-brand-primary shrink-0">{r.rm_kg} kg</span>
+                    <span className="text-base font-bold shrink-0 text-zinc-900 dark:text-zinc-100">{r.rm_kg} kg</span>
                     {history.length > 1 && (
                       <button
                         onClick={() => setShowHistory(isOpen ? null : r.exercise_id)}
@@ -1006,7 +1368,14 @@ function FuerzaTab({
                               labelStyle={{ color: 'var(--color-ink-muted)', marginBottom: 2 }}
                               formatter={(value: number, _name: string, props: { payload?: { source?: string } }) => [`${value} kg (${props.payload?.source ?? ''})`, '1RM']}
                             />
-                            <Line type="monotone" dataKey="rm" stroke="var(--color-brand-primary)" strokeWidth={2} dot={{ r: 3, fill: 'var(--color-brand-primary)' }} activeDot={{ r: 4 }} />
+                            <Line
+                              type="monotone"
+                              dataKey="rm"
+                              stroke="#a1a1aa"
+                              strokeWidth={2}
+                              dot={{ r: 3, fill: '#a1a1aa' }}
+                              activeDot={{ r: 4 }}
+                            />
                           </LineChart>
                         </ResponsiveContainer>
                         <div className="mt-1 divide-y divide-surface-border/40">
@@ -1025,7 +1394,7 @@ function FuerzaTab({
             })}
           </div>
         )}
-      </Card>
+      </section>
 
       {/* ── Add form modal ── */}
       {showAddForm && (
@@ -1097,7 +1466,7 @@ function AddRmModal({
           <div>
             <label className="block text-xs font-medium text-ink-secondary mb-1">Ejercicio *</label>
             <select
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
               value={exerciseId}
               onChange={(e) => setExerciseId(e.target.value)}
             >
@@ -1107,7 +1476,7 @@ function AddRmModal({
           </div>
 
           {/* Modo */}
-          <div className="flex gap-1 bg-surface-elevated rounded-xl p-1">
+          <div className="flex gap-1 rounded-xl border border-zinc-200/90 bg-zinc-100/90 p-1 dark:border-zinc-800 dark:bg-zinc-900/60">
             {([
               { value: 'test',   label: 'RM real (testeado)' },
               { value: 'epley',  label: 'Estimar con Epley' },
@@ -1117,7 +1486,9 @@ function AddRmModal({
                 onClick={() => setMode(value)}
                 className={cn(
                   'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                  mode === value ? 'bg-surface-card text-ink-primary shadow-sm' : 'text-ink-muted',
+                  mode === value
+                    ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/90 dark:bg-zinc-800 dark:text-zinc-50 dark:ring-zinc-700'
+                    : 'text-zinc-500 dark:text-zinc-500',
                 )}
               >
                 {label}
@@ -1130,7 +1501,7 @@ function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
               <input
                 type="number" min={0} step={0.5} placeholder="ej: 120"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center font-bold"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center font-bold"
                 value={rmKg}
                 onChange={(e) => setRmKg(e.target.value)}
               />
@@ -1142,7 +1513,7 @@ function AddRmModal({
                   <label className="block text-xs font-medium text-ink-secondary mb-1">Peso usado (kg) *</label>
                   <input
                     type="number" min={0} step={0.5} placeholder="ej: 100"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
                     value={epleyWeight}
                     onChange={(e) => setEpleyWeight(e.target.value)}
                   />
@@ -1151,17 +1522,17 @@ function AddRmModal({
                   <label className="block text-xs font-medium text-ink-secondary mb-1">Reps realizadas *</label>
                   <input
                     type="number" min={1} max={10} placeholder="ej: 5"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
                     value={epleyReps}
                     onChange={(e) => setEpleyReps(e.target.value)}
                   />
                 </div>
               </div>
               {estimatedRm && (
-                <div className="flex items-center justify-between bg-brand-primary/10 border border-brand-primary/20 rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/65">
                   <div>
-                    <p className="text-[10px] text-brand-primary uppercase tracking-wide font-semibold">1RM estimado (Epley)</p>
-                    <p className="text-2xl font-bold text-brand-primary">{estimatedRm} kg</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">1RM estimado (Epley)</p>
+                    <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{estimatedRm} kg</p>
                   </div>
                   <p className="text-xs text-ink-muted text-right">
                     Fórmula:<br />
@@ -1177,7 +1548,7 @@ function AddRmModal({
             <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
             <input
               type="date"
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
               value={testedAt}
               onChange={(e) => setTestedAt(e.target.value)}
             />
@@ -1187,13 +1558,13 @@ function AddRmModal({
             <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
             <input
               placeholder="ej: con cinturón, post competencia..."
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
-          <Button className="w-full" loading={saving} onClick={handleSave}>
+          <Button className="w-full" variant="secondary" loading={saving} onClick={handleSave}>
             Guardar registro
           </Button>
         </div>
@@ -1285,23 +1656,23 @@ function PesoTab({ studentId }: { studentId: string }) {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de peso</CardTitle>
-          <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowForm((v) => !v)}>
+      <section>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Historial de peso</h3>
+          <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowForm((v) => !v)}>
             Registrar
           </Button>
-        </CardHeader>
+        </div>
 
         {/* Quick-add form */}
         {showForm && (
-          <div className="mb-4 p-3 rounded-xl bg-surface-elevated space-y-3 border border-surface-border">
+          <div className="mt-4 space-y-3 border border-zinc-200/55 bg-zinc-50/50 p-3 dark:border-zinc-800/65 dark:bg-zinc-950/25">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Peso (kg) *</label>
                 <input
                   type="number" min={0} step={0.1} placeholder="ej: 75.5"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none text-center font-bold"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center font-bold"
                   value={weight} onChange={(e) => setWeight(e.target.value)}
                   autoFocus
                 />
@@ -1310,7 +1681,7 @@ function PesoTab({ studentId }: { studentId: string }) {
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Grasa corporal %</label>
                 <input
                   type="number" min={0} max={100} step={0.1} placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none text-center"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
                   value={fat} onChange={(e) => setFat(e.target.value)}
                 />
               </div>
@@ -1320,7 +1691,7 @@ function PesoTab({ studentId }: { studentId: string }) {
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Fecha</label>
                 <input
                   type="date"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
                   value={dateVal} onChange={(e) => setDateVal(e.target.value)}
                 />
               </div>
@@ -1328,7 +1699,7 @@ function PesoTab({ studentId }: { studentId: string }) {
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Notas</label>
                 <input
                   placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
                   value={noteVal} onChange={(e) => setNoteVal(e.target.value)}
                 />
               </div>
@@ -1337,7 +1708,9 @@ function PesoTab({ studentId }: { studentId: string }) {
               <button onClick={() => setShowForm(false)} className="text-xs text-ink-muted hover:text-ink-primary px-3 py-1.5 rounded-lg hover:bg-surface-card transition-colors">
                 Cancelar
               </button>
-              <Button size="sm" loading={saving} onClick={handleSave}>Guardar</Button>
+              <Button size="sm" variant="secondary" loading={saving} onClick={handleSave}>
+                Guardar
+              </Button>
             </div>
           </div>
         )}
@@ -1346,7 +1719,7 @@ function PesoTab({ studentId }: { studentId: string }) {
           <div className="flex justify-center py-8"><Spinner size="md" /></div>
         ) : logs.length === 0 ? (
           <EmptyState
-            icon={<span className="text-2xl">⚖️</span>}
+            icon={<Scale className="h-8 w-8 text-zinc-400" aria-hidden />}
             title="Sin registros de peso"
             description="Registrá el peso periódicamente para ver la evolución."
           />
@@ -1373,20 +1746,25 @@ function PesoTab({ studentId }: { studentId: string }) {
                     </div>
                     <div>
                       <p className="text-[10px] text-ink-muted uppercase tracking-wide">Δ inicio</p>
-                      <p className={cn('text-base font-bold', delta < 0 ? 'text-emerald-400' : delta > 0 ? 'text-amber-400' : 'text-ink-muted')}>
+                      <p
+                        className={cn(
+                          'text-base font-bold tabular-nums',
+                          delta === 0 ? 'text-zinc-500' : 'text-zinc-800 dark:text-zinc-200',
+                        )}
+                      >
                         {delta > 0 ? '+' : ''}{delta} kg
                       </p>
                     </div>
                     {hasFat && last.body_fat_pct != null && (
                       <div>
                         <p className="text-[10px] text-ink-muted uppercase tracking-wide">% Grasa</p>
-                        <p className="text-base font-bold text-emerald-400">{last.body_fat_pct}%</p>
+                        <p className="text-base font-bold text-zinc-600 dark:text-zinc-400">{last.body_fat_pct}%</p>
                       </div>
                     )}
                     {goal && (
                       <div>
                         <p className="text-[10px] text-ink-muted uppercase tracking-wide">Objetivo</p>
-                        <p className="text-base font-bold text-brand-primary">{goal} kg</p>
+                        <p className="text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{goal} kg</p>
                         {(() => {
                           const toGoal = Math.round((last.weight_kg - goal) * 10) / 10
                           return toGoal !== 0 && (
@@ -1405,11 +1783,11 @@ function PesoTab({ studentId }: { studentId: string }) {
                       <div className="mb-3 px-1">
                         <div className="flex justify-between text-[10px] text-ink-muted mb-1">
                           <span>Inicio: {start} kg</span>
-                          <span className="text-brand-primary font-semibold">{pct}% completado</span>
+                          <span className="font-semibold text-zinc-600 dark:text-zinc-300">{pct}% completado</span>
                           <span>Objetivo: {goal} kg</span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-surface-border overflow-hidden">
-                          <div className="h-full rounded-full bg-brand-primary transition-all" style={{ width: `${pct}%` }} />
+                        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                          <div className="h-full rounded-full bg-zinc-500 transition-all dark:bg-zinc-400" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     )
@@ -1440,7 +1818,7 @@ function PesoTab({ studentId }: { studentId: string }) {
                               <p className="text-ink-muted mb-1">{label}</p>
                               <p className="font-bold text-ink-primary">{payload[0].value} kg</p>
                               {payload[1]?.value != null && (
-                                <p className="text-emerald-400">{payload[1].value}% grasa</p>
+                                <p className="text-zinc-500">{payload[1].value}% grasa</p>
                               )}
                             </div>
                           )
@@ -1449,20 +1827,20 @@ function PesoTab({ studentId }: { studentId: string }) {
                       <Line
                         type="monotone"
                         dataKey="weight"
-                        stroke="#7C5DFA"
+                        stroke="#a1a1aa"
                         strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#7C5DFA', stroke: '#7C5DFA', strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: '#7C5DFA' }}
+                        dot={{ r: 3, fill: '#a1a1aa', stroke: '#a1a1aa', strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: '#d4d4d8' }}
                       />
                       {hasFat && (
                         <Line
                           type="monotone"
                           dataKey="fat"
-                          stroke="#10b981"
-                          strokeWidth={1.5}
+                          stroke="#71717a"
+                          strokeWidth={1.25}
                           strokeDasharray="4 2"
                           dot={false}
-                          activeDot={{ r: 4, fill: '#10b981' }}
+                          activeDot={{ r: 4, fill: '#71717a' }}
                           connectNulls
                         />
                       )}
@@ -1478,7 +1856,7 @@ function PesoTab({ studentId }: { studentId: string }) {
                 <input
                   type="number" min={30} max={300} step={0.5} autoFocus
                   placeholder="Peso objetivo (kg)"
-                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none text-center"
+                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
                   value={goalInput}
                   onChange={(e) => setGoalInput(e.target.value)}
                 />
@@ -1487,38 +1865,39 @@ function PesoTab({ studentId }: { studentId: string }) {
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => { setGoalInput(String(goal ?? '')); setEditingGoal(true) }}
-                className="w-full mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-surface-border text-ink-muted hover:text-ink-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors text-xs"
+                className="mb-4 flex w-full items-center gap-2 border-b border-dashed border-zinc-400/70 py-3 text-left text-xs text-zinc-500 transition-colors hover:border-zinc-500 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-200"
               >
-                <span>🎯</span>
                 {goal ? `Objetivo: ${goal} kg — modificar` : 'Establecer peso objetivo'}
               </button>
             )}
 
             {/* Log list */}
-            <div className="space-y-1.5">
+            <ul className="divide-y divide-zinc-200/50 dark:divide-zinc-800/55">
               {logs.map((l) => (
-                <div key={l.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-elevated group">
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-bold text-ink-primary">{l.weight_kg} kg</span>
+                <li key={l.id} className="group flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{l.weight_kg} kg</span>
                     {l.body_fat_pct != null && (
-                      <span className="ml-2 text-xs text-ink-muted">{l.body_fat_pct}% grasa</span>
+                      <span className="ml-2 text-xs text-zinc-500">{l.body_fat_pct}% grasa</span>
                     )}
-                    {l.notes && <p className="text-xs text-ink-muted truncate mt-0.5">{l.notes}</p>}
+                    {l.notes && <p className="mt-0.5 truncate text-xs text-zinc-500">{l.notes}</p>}
                   </div>
-                  <span className="text-xs text-ink-muted shrink-0">{l.logged_at}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-zinc-500">{l.logged_at}</span>
                   <button
+                    type="button"
                     onClick={() => handleDelete(l.id)}
-                    className="text-ink-muted hover:text-status-expired transition-colors opacity-0 group-hover:opacity-100"
+                    className="text-zinc-500 opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </>
         )}
-      </Card>
+      </section>
     </div>
   )
 }
@@ -1585,7 +1964,7 @@ function QuickPayModal({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">$</span>
               <input
                 type="number" min={0} step={100} placeholder="0"
-                className="w-full bg-surface-elevated text-ink-primary text-lg font-bold rounded-xl pl-7 pr-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+                className="w-full bg-surface-elevated text-ink-primary text-lg font-bold rounded-xl pl-7 pr-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 autoFocus
@@ -1598,7 +1977,7 @@ function QuickPayModal({
             <div>
               <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo</label>
               <select
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
                 value={type} onChange={(e) => setType(e.target.value)}
               >
                 <option value="mensualidad">Mensualidad</option>
@@ -1611,7 +1990,7 @@ function QuickPayModal({
             <div>
               <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
               <select
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
                 value={method} onChange={(e) => setMethod(e.target.value)}
               >
                 <option value="efectivo_debito">Efectivo / Débito</option>
@@ -1627,7 +2006,7 @@ function QuickPayModal({
             <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
             <input
               type="date"
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
               value={date} onChange={(e) => setDate(e.target.value)}
             />
           </div>
@@ -1637,12 +2016,16 @@ function QuickPayModal({
             <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
             <input
               placeholder="ej: mes de mayo..."
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
               value={notes} onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
-          <Button className="w-full" loading={saving} onClick={handleSave}>
+          <Button
+            className="w-full !border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
+            loading={saving}
+            onClick={handleSave}
+          >
             Confirmar pago
           </Button>
         </div>

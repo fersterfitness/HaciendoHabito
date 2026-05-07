@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Search, FolderOpen } from 'lucide-react'
@@ -9,6 +10,7 @@ import { Header } from '@/components/layout/Header'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { PageToolbar } from '@/components/ui/PageToolbar'
 import type { Student, NutritionPatientFollowup, NutritionAttendanceStatus } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -25,7 +27,7 @@ function formatNextConsultation(value: string | null) {
 }
 
 export function NutritionPage() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -98,12 +100,16 @@ export function NutritionPage() {
     <div>
       <Header title="Nutrición · Pacientes" />
       <div className="px-4 lg:px-6 py-6 space-y-5">
-        <Input
-          placeholder="Buscar paciente..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="h-4 w-4" />}
-        />
+        <PageToolbar>
+          <div className="w-full max-w-lg">
+            <Input
+              placeholder="Buscar paciente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              leftIcon={<Search className="h-4 w-4" />}
+            />
+          </div>
+        </PageToolbar>
 
         {loading ? (
           <div className="flex justify-center py-14">

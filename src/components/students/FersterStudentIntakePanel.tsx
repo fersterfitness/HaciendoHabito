@@ -26,9 +26,9 @@ import {
   studentGenderLabel,
 } from '@/lib/fersterIntakeLabels'
 import type { Student, FersterIntakeStored } from '@/types/database'
+import { cn } from '@/lib/utils'
 
 function uploadKeyLabel(key: string): string {
-  if (key === 'profile') return 'Foto de perfil'
   if (key === 'medical') return 'Estudios médicos'
   if (key.startsWith('progress_')) return `Foto progreso ${key.replace('progress_', '')}`
   return key
@@ -45,11 +45,9 @@ function Field({
 }) {
   if (value == null || value === '') return null
   return (
-    <div
-      className={`rounded-xl border border-surface-border bg-surface-elevated/40 px-3 py-2.5 ${className ?? ''}`}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">{label}</p>
-      <div className="text-sm text-ink-primary mt-0.5 break-words">{value}</div>
+    <div className={cn('border-b border-zinc-200/45 py-3 last:border-b-0 dark:border-zinc-800/65', className)}>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
+      <div className="mt-1 break-words text-sm text-zinc-800 dark:text-zinc-100">{value}</div>
     </div>
   )
 }
@@ -64,14 +62,12 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
-          <Icon className="h-4 w-4" />
-        </span>
-        <h4 className="text-sm font-semibold text-ink-primary">{title}</h4>
+    <section className="space-y-2">
+      <div className="flex items-center gap-2 pb-2">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
+        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">{title}</h4>
       </div>
-      {children}
+      <div>{children}</div>
     </section>
   )
 }
@@ -101,6 +97,7 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
     ;(async () => {
       const next: Record<string, string> = {}
       for (const [key, path] of Object.entries(uploads)) {
+        if (key === 'profile') continue
         const { data, error } = await supabase.storage.from('student-intake').createSignedUrl(path, 3600)
         if (!error && data?.signedUrl) next[key] = data.signedUrl
       }
@@ -116,30 +113,30 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
   const i = intake
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-sm">
-      <div className="flex flex-col gap-1 border-b border-surface-border bg-gradient-to-br from-brand-primary/[0.06] to-transparent px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-primary/15 text-brand-primary">
-            <ClipboardList className="h-5 w-5" />
-          </span>
+    <div className="border-t border-zinc-200/55 pt-6 dark:border-zinc-800/70">
+      <div className="mb-6 flex flex-col gap-2 border-b border-zinc-200/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-800/60">
+        <div className="flex items-start gap-2">
+          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
           <div>
-            <h3 className="text-base font-bold text-ink-primary">Cuestionario de registro</h3>
-            <p className="text-xs text-ink-muted">Datos enviados desde el formulario web (Ferster /form)</p>
+            <h3 className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+              Cuestionario de registro
+            </h3>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Datos desde el formulario web (Ferster / form)</p>
           </div>
         </div>
         {i?.submitted_at ? (
-          <p className="text-xs text-ink-muted sm:text-right pl-14 sm:pl-0">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 sm:text-right">
             Enviado el{' '}
-            <span className="font-medium text-ink-secondary">
+            <span className="tabular-nums text-zinc-700 dark:text-zinc-300">
               {formatDate(i.submitted_at.slice(0, 10))}
             </span>
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-8 p-4 sm:p-6">
+      <div className="space-y-8">
         <Section icon={User} title="Datos personales">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
             <Field label="Documento" value={student.document_id} />
             <Field
               label="Género"
@@ -149,7 +146,10 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
               label="Correo"
               value={
                 student.email ? (
-                  <a href={`mailto:${student.email}`} className="text-brand-primary hover:underline inline-flex items-center gap-1">
+                  <a
+                    href={`mailto:${student.email}`}
+                    className="inline-flex items-center gap-1 text-zinc-700 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                  >
                     <Mail className="h-3.5 w-3.5 shrink-0" />
                     {student.email}
                   </a>
@@ -160,7 +160,10 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
               label="Teléfono"
               value={
                 student.phone ? (
-                  <a href={`tel:${student.phone}`} className="text-brand-primary hover:underline inline-flex items-center gap-1">
+                  <a
+                    href={`tel:${student.phone}`}
+                    className="inline-flex items-center gap-1 text-zinc-700 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                  >
                     <Phone className="h-3.5 w-3.5 shrink-0" />
                     {student.phone}
                   </a>
@@ -288,25 +291,25 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
             </p>
             <ul className="grid gap-2 sm:grid-cols-2">
               {Object.entries(fileUrls).map(([key, href]) => {
-                const isImg = key.startsWith('progress_') || key === 'profile'
+                const isImg = key.startsWith('progress_')
                 return (
                   <li key={key}>
                     <a
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="group flex items-center gap-3 rounded-xl border border-surface-border bg-surface-elevated/50 px-3 py-3 transition-colors hover:border-brand-primary/30 hover:bg-brand-primary/[0.04]"
+                      className="group flex items-center gap-3 border-b border-zinc-200/50 py-3 transition-colors last:border-b-0 hover:border-zinc-300/70 dark:border-zinc-800/60"
                     >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-brand-primary">
-                        {isImg ? <ImageIcon className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-zinc-200/65 bg-transparent text-zinc-500 dark:border-zinc-700/65 dark:text-zinc-400">
+                        {isImg ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium text-ink-primary truncate">
+                        <span className="block truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
                           {uploadKeyLabel(key)}
                         </span>
-                        <span className="text-[10px] text-ink-muted">student-intake</span>
+                        <span className="text-[10px] text-zinc-500">student-intake</span>
                       </span>
-                      <ExternalLink className="h-4 w-4 shrink-0 text-ink-muted group-hover:text-brand-primary" />
+                      <ExternalLink className="h-4 w-4 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-200" />
                     </a>
                   </li>
                 )

@@ -1,10 +1,12 @@
-import { useNavigate } from 'react-router-dom'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Bell, ChevronLeft, Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
-import { cn, getInitials } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
 interface HeaderProps {
   title: string
@@ -14,7 +16,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, showBack = false, actions, className }: HeaderProps) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { profile, user } = useAuthStore()
   const { theme, toggleTheme } = useTheme()
   const [unreadCount, setUnreadCount] = useState(0)
@@ -50,7 +52,8 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex items-center h-16 px-4 lg:px-6 bg-surface-base gap-3',
+        'sticky top-0 z-30 flex items-center h-14 sm:h-16 px-4 lg:px-6 gap-3',
+        'border-b border-surface-border/70 bg-surface-base/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/75',
         className,
       )}
     >
@@ -93,12 +96,16 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         </button>
 
         <button
+          type="button"
           onClick={() => navigate('/profile')}
-          className="w-9 h-9 rounded-xl bg-brand-primary flex items-center justify-center ml-1 hover:opacity-85 transition-all shadow-[0_8px_20px_rgb(var(--brand-primary)/0.35)]"
+          className="ml-1 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50"
+          title="Perfil"
         >
-          <span className="text-white text-xs font-bold">
-            {profile ? getInitials(profile.full_name) : '?'}
-          </span>
+          {profile ? (
+            <AvatarOrInitials fullName={profile.full_name} avatarUrl={profile.avatar_url} size="md" rounded="xl" />
+          ) : (
+            <span className="text-xs font-bold text-ink-muted">?</span>
+          )}
         </button>
       </div>
     </header>

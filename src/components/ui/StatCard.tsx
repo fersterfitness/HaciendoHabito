@@ -1,14 +1,21 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useMemo } from 'react'
+import { ArrowDownRight, ArrowUpRight, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+export interface StatCardAction {
+  ariaLabel: string
+  onClick: () => void
+}
 
 interface StatCardProps {
   title: string
   value: string | number
   subtitle?: string
   icon: ReactNode
-  iconColor?: string
-  iconBg?: string
-  trend?: { value: number; label: string }
+  /** Conteos del mes actual y del anterior (delta positivo = verde, negativo = rojo). Suele medir un flujo distinto del número principal. */
+  monthOverMonth?: { thisMonth: number; prevMonth: number; scopeLabel?: string }
+  /** Botón destacado pequeño (p. ej. alta rápida de alumno). */
+  action?: StatCardAction
   onClick?: () => void
   className?: string
 }
@@ -18,59 +25,108 @@ export function StatCard({
   value,
   subtitle,
   icon,
-  iconColor = 'text-brand-primary',
-  iconBg = 'bg-brand-primary/10',
-  trend,
+  monthOverMonth,
+  action,
   onClick,
   className,
 }: StatCardProps) {
+  const comparison = useMemo(() => {
+    if (!monthOverMonth) return null
+    const { thisMonth: t, prevMonth: p, scopeLabel } = monthOverMonth
+    const delta = t - p
+    const pct = p > 0 ? Math.round((delta / p) * 100) : null
+    return { delta, pct, scopeLabel }
+  }, [monthOverMonth])
+
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
       className={cn(
-        'bg-surface-card rounded-2xl border border-surface-border/70 p-3.5',
-        'flex flex-col gap-2.5',
+        'rounded-xl border border-surface-border/80 bg-surface-card p-4',
+        'flex flex-col gap-3 min-h-[128px]',
         onClick &&
-          'cursor-pointer hover:border-brand-primary/25 transition-colors duration-200',
+          'cursor-pointer hover:border-surface-border hover:bg-surface-elevated/40 transition-colors duration-200',
         className
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-1 min-w-0">
-          <p className="text-[11px] font-medium text-ink-muted uppercase tracking-wide truncate">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-ink-muted shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+          <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider truncate">
             {title}
           </p>
-          <p className="text-[34px] font-semibold text-ink-primary tabular-nums leading-none">
-            {value}
-          </p>
-          {subtitle && (
-            <p className="text-xs text-ink-secondary mt-0.5">{subtitle}</p>
-          )}
         </div>
-        <div
-          className={cn(
-            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-            iconBg,
-            iconColor
-          )}
-        >
-          {icon}
-        </div>
-      </div>
-
-      {trend && (
-        <div className="flex items-center gap-1.5 pt-1">
-          <span
+        {action && (
+          <button
+            type="button"
+            aria-label={action.ariaLabel}
+            onClick={(e) => {
+              e.stopPropagation()
+              action.onClick()
+            }}
             className={cn(
-              'text-[11px] font-semibold px-2 py-0.5 rounded-md',
-              trend.value >= 0
-                ? 'text-status-generated bg-status-generated/10'
-                : 'text-status-expired bg-status-expired/10'
+              'shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg',
+              'border border-surface-border text-ink-secondary',
+              'hover:bg-surface-elevated hover:text-ink-primary transition-colors'
             )}
           >
-            {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}%
+            <Plus className="h-4 w-4" strokeWidth={2.25} />
+          </button>
+        )}
+      </div>
+
+      <p className="text-[32px] font-semibold text-ink-primary tabular-nums leading-none tracking-tight">
+        {value}
+      </p>
+
+      {subtitle && (
+        <p className="text-[11px] text-ink-secondary -mt-1">{subtitle}</p>
+      )}
+
+      {comparison && (
+        <div
+          className={cn(
+            'mt-auto pt-0.5 flex flex-nowrap items-center gap-0.5 min-w-0',
+            'text-[10px] sm:text-[11px] font-semibold tabular-nums leading-none',
+            comparison.delta > 0 && 'text-emerald-600 dark:text-emerald-400',
+            comparison.delta < 0 && 'text-red-600 dark:text-red-400',
+            comparison.delta === 0 && 'text-ink-muted'
+          )}
+        >
+          {comparison.delta > 0 ? (
+            <ArrowUpRight className="h-3 w-3 shrink-0 self-center" aria-hidden />
+          ) : comparison.delta < 0 ? (
+            <ArrowDownRight className="h-3 w-3 shrink-0 self-center" aria-hidden />
+          ) : null}
+          <span className="min-w-0 truncate">
+            {comparison.delta === 0
+              ? '0'
+              : `${comparison.delta > 0 ? '+' : ''}${comparison.delta}`}
+            {comparison.pct !== null &&
+              ` (${comparison.pct >= 0 ? '+' : ''}${comparison.pct}%)`}
+            {comparison.pct === null &&
+              comparison.delta > 0 &&
+              monthOverMonth &&
+              monthOverMonth.prevMonth === 0 &&
+              ' (nuevo)'}
+            <span className="font-medium text-ink-muted">
+              {' · '}
+              {comparison.scopeLabel ? `${comparison.scopeLabel} ` : ''}
+              vs mes anterior
+            </span>
           </span>
-          <span className="text-xs text-ink-muted">{trend.label}</span>
         </div>
       )}
     </div>

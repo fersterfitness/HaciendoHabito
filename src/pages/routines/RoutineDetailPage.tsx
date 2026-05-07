@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library,
@@ -122,7 +123,7 @@ function applyCircuitNoteToBlocks(
 
 export function RoutineDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { deleteRoutine, updateRoutine } = useRoutines()
   const { user } = useAuthStore()
 

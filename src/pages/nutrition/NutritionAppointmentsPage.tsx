@@ -2,13 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Spinner } from '@/components/ui/Spinner'
-import { CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Grid2x2, List, MessageCircle } from 'lucide-react'
+import {
+  CalendarClock,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Grid2x2,
+  List,
+  MessageCircle,
+} from 'lucide-react'
 import {
   buildAppointmentConfirmationWaUrl,
   buildAppointmentFeedbackWaUrl,
 } from '@/lib/whatsapp'
+import { parseGoogleCalendarSyncFailure } from '@/lib/googleCalendarSyncErrors'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { Appointment, Student, AppointmentStatus } from '@/types/database'
@@ -71,13 +83,35 @@ function appointmentPhoneRaw(a: AppointmentRow, studentsById: Map<string, Studen
 }
 type ViewMode = 'week' | 'agenda' | 'month'
 
-const STATUS_BADGE: Record<AppointmentStatus, string> = {
-  scheduled: 'bg-blue-500/10 text-blue-300 border-blue-500/40',
-  confirmed: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40',
-  completed: 'bg-violet-500/10 text-violet-300 border-violet-500/40',
-  cancelled: 'bg-rose-500/10 text-rose-300 border-rose-500/40',
-  no_show: 'bg-amber-500/10 text-amber-300 border-amber-500/40',
+const STATUS_LABEL_ES: Record<AppointmentStatus, string> = {
+  scheduled: 'Programado',
+  confirmed: 'Confirmado',
+  completed: 'Realizado',
+  cancelled: 'Cancelado',
+  no_show: 'Ausente',
 }
+
+/** Badges: gris base + tintes suaves por estado (legible sin gritar). */
+const STATUS_BADGE: Record<AppointmentStatus, string> = {
+  scheduled:
+    'border-zinc-300/65 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/50 dark:bg-zinc-500/[0.12] dark:text-zinc-200',
+  confirmed:
+    'bg-emerald-500/[0.1] text-emerald-950 dark:text-emerald-400/95 border-emerald-500/30',
+  completed:
+    'bg-emerald-500/[0.06] text-emerald-900 dark:text-emerald-400/85 border-emerald-500/22',
+  cancelled:
+    'bg-surface-elevated/50 text-ink-muted border-surface-border line-through decoration-ink-muted/60',
+  no_show:
+    'bg-amber-500/[0.1] text-amber-950 dark:text-amber-300 border-amber-500/35',
+}
+
+function agendaCardAccent(status: AppointmentStatus): string {
+  if (status === 'confirmed') return 'border-l-emerald-500'
+  return 'border-l-zinc-500/85 dark:border-l-zinc-500/55'
+}
+
+const FIELD_ROW =
+  'mt-1 w-full rounded-lg bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm placeholder:text-ink-muted/60'
 
 /** Opciones de duración del turno (minutos, de 15 en 15 hasta 8 h). */
 const APPOINTMENT_DURATION_OPTIONS_MINUTES = Array.from({ length: 32 }, (_, i) => (i + 1) * 15)
@@ -151,6 +185,11 @@ export function NutritionAppointmentsPage() {
   function handleNext() {
     if (viewMode === 'month') setMonthAnchor((p) => addMonths(p, 1))
     else setWeekAnchor((p) => addWeeks(p, 1))
+  }
+  function handleGoToday() {
+    const now = new Date()
+    if (viewMode === 'month') setMonthAnchor(startOfMonth(now))
+    else if (viewMode === 'week') setWeekAnchor(startOfWeek(now, { weekStartsOn: 1 }))
   }
   const weekAppointments = useMemo(
     () =>
@@ -289,7 +328,23 @@ export function NutritionAppointmentsPage() {
 
       if (calendarError) {
         const functionMessage = await parseFunctionErrorMessage(calendarError)
-        toast.error(`Turno guardado, pero falló Google Calendar: ${functionMessage}`)
+        const { title, body, kind } = parseGoogleCalendarSyncFailure(functionMessage)
+        toast.custom(
+          (t) => (
+            <div className="max-w-md rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 flex flex-col gap-2">
+              <p className="text-sm font-semibold text-ink-primary leading-snug">{title}</p>
+              <p className="text-xs text-ink-secondary leading-relaxed">{body}</p>
+              <button
+                type="button"
+                className="self-end px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-400"
+                onClick={() => toast.dismiss(t.id)}
+              >
+                Entendido
+              </button>
+            </div>
+          ),
+          { duration: kind === 'oauth_revoked' ? 28000 : 16000 },
+        )
       } else if (calendarData?.googleEventId) {
         appointment.google_event_id = calendarData.googleEventId as string
         toast.success('Turno agendado y sincronizado con Google Calendar')
@@ -314,7 +369,11 @@ export function NutritionAppointmentsPage() {
           (t) => (
             <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 text-sm text-ink-secondary">
               Para pedir confirmación por WhatsApp, agregá el teléfono del alumno en su ficha.
-              <button type="button" className="mt-2 text-xs font-medium text-brand-primary" onClick={() => toast.dismiss(t.id)}>
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                onClick={() => toast.dismiss(t.id)}
+              >
                 Entendido
               </button>
             </div>
@@ -361,7 +420,11 @@ export function NutritionAppointmentsPage() {
           (t) => (
             <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 text-sm text-ink-secondary">
               Sesión marcada como completada. Para pedir feedback por WhatsApp, cargá el teléfono en la ficha del alumno.
-              <button type="button" className="mt-2 text-xs font-medium text-brand-primary" onClick={() => toast.dismiss(t.id)}>
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                onClick={() => toast.dismiss(t.id)}
+              >
                 Entendido
               </button>
             </div>
@@ -388,165 +451,92 @@ export function NutritionAppointmentsPage() {
   return (
     <div>
       <Header title="Turnos" />
-      <div className="px-4 lg:px-6 py-6 space-y-4">
-        <Card>
-          <CardTitle className="mb-3">Agendar turno</CardTitle>
-          <div className="grid md:grid-cols-2 gap-3">
-            <label className="text-xs text-ink-secondary">
-              Paciente
-              <select
-                value={form.student_id}
-                onChange={(e) => setForm((prev) => ({ ...prev, student_id: e.target.value }))}
-                className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              >
-                <option value="">Seleccionar...</option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>{s.full_name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs text-ink-secondary">
-              Título
-              <input
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="Consulta de seguimiento"
-                className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              />
-            </label>
-            <label className="text-xs text-ink-secondary">
-              Inicio
-              <input
-                type="datetime-local"
-                value={form.starts_at}
-                onChange={(e) => setForm((prev) => ({ ...prev, starts_at: e.target.value }))}
-                className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              />
-            </label>
-            <label className="text-xs text-ink-secondary">
-              Duración
-              <select
-                value={form.duration_minutes}
-                onChange={(e) => setForm((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              >
-                {APPOINTMENT_DURATION_OPTIONS_MINUTES.map((m) => (
-                  <option key={m} value={m}>
-                    {m} min{m >= 60 ? ` (${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''})` : ''}
-                  </option>
-                ))}
-              </select>
-              <span className="block text-[10px] text-ink-muted mt-1 leading-snug">
-                El horario de fin se calcula desde el inicio (de 15 en 15 minutos).
-              </span>
-            </label>
-            <label className="text-xs text-ink-secondary">
-              Ubicación
-              <input
-                value={form.location}
-                onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-                placeholder="Online / Consultorio..."
-                className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              />
-            </label>
-            <label className="text-xs text-ink-secondary md:col-span-2">
-              Nota
-              <textarea
-                value={form.notes}
-                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-                rows={2}
-                className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5"
-              />
-            </label>
-          </div>
-          <div className="flex items-center gap-3 mt-1">
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={recurring}
-                onChange={(e) => setRecurring(e.target.checked)}
-                className="accent-brand-primary h-4 w-4"
-              />
-              <span className="text-xs text-ink-secondary">Repetir semanalmente</span>
-            </label>
-            {recurring && (
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  min={2}
-                  max={52}
-                  value={recurWeeks}
-                  onChange={(e) => setRecurWeeks(Math.max(2, Math.min(52, Number(e.target.value))))}
-                  className="w-16 rounded-lg bg-surface-input border border-surface-inputBorder text-ink-primary text-xs px-2 py-1.5 text-center"
-                />
-                <span className="text-xs text-ink-muted">semanas</span>
-              </div>
-            )}
-          </div>
-          <div className="mt-3">
-            <Button size="sm" onClick={createAppointment} loading={creating}>
-              {recurring ? `Agendar ${recurWeeks} turnos` : 'Guardar turno'}
-            </Button>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center">
-                <CalendarClock className="h-4 w-4 text-brand-primary" />
-              </div>
-              <div>
-                <CardTitle className="mb-0.5">Calendario de turnos</CardTitle>
-                <p className="text-xs text-ink-secondary">
-                  {viewMode === 'month'
-                    ? format(monthAnchor, "MMMM yyyy", { locale: es })
-                    : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
-                  }
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center rounded-lg border border-surface-border overflow-hidden">
+      <div className="px-4 lg:px-6 py-8 space-y-8">
+        <Card className="overflow-hidden p-0 gap-0">
+          <PageToolbar
+            className="rounded-none border-0 border-b border-surface-border bg-surface-elevated/35 dark:bg-surface-elevated/15"
+            title="Calendario"
+            description={
+              viewMode === 'agenda'
+                ? 'Próximos turnos confirmados y programados'
+                : viewMode === 'month'
+                  ? format(monthAnchor, 'MMMM yyyy', { locale: es })
+                  : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
+            }
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px">
                 <button
                   type="button"
                   onClick={() => setViewMode('week')}
-                  className={`px-2 py-1.5 text-xs flex items-center gap-1 ${viewMode === 'week' ? 'bg-brand-primary/15 text-brand-primary' : 'text-ink-secondary'}`}
+                  className={cn(
+                    'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
+                    viewMode === 'week'
+                      ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
+                      : 'text-ink-muted hover:text-ink-secondary'
+                  )}
                 >
-                  <Grid2x2 className="h-3.5 w-3.5" /> Semana
+                  <Grid2x2 className="h-3.5 w-3.5" aria-hidden /> Semana
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('month')}
-                  className={`px-2 py-1.5 text-xs flex items-center gap-1 ${viewMode === 'month' ? 'bg-brand-primary/15 text-brand-primary' : 'text-ink-secondary'}`}
+                  className={cn(
+                    'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
+                    viewMode === 'month'
+                      ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
+                      : 'text-ink-muted hover:text-ink-secondary'
+                  )}
                 >
-                  <CalendarDays className="h-3.5 w-3.5" /> Mes
+                  <CalendarDays className="h-3.5 w-3.5" aria-hidden /> Mes
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('agenda')}
-                  className={`px-2 py-1.5 text-xs flex items-center gap-1 ${viewMode === 'agenda' ? 'bg-brand-primary/15 text-brand-primary' : 'text-ink-secondary'}`}
+                  className={cn(
+                    'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
+                    viewMode === 'agenda'
+                      ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
+                      : 'text-ink-muted hover:text-ink-secondary'
+                  )}
                 >
-                  <List className="h-3.5 w-3.5" /> Agenda
+                  <List className="h-3.5 w-3.5" aria-hidden /> Agenda
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="p-1.5 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="p-1.5 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              {viewMode !== 'agenda' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 border-zinc-300/80 px-3 text-xs text-zinc-800 hover:border-zinc-400/90 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80"
+                  onClick={handleGoToday}
+                >
+                  Hoy
+                </Button>
+              )}
+              <div className="flex items-center rounded-lg border border-surface-border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="p-1.5 text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors border-r border-surface-border"
+                  aria-label="Periodo anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="p-1.5 text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors"
+                  aria-label="Periodo siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+              <CalendarClock className="hidden h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500 sm:block" aria-hidden />
             </div>
-          </div>
+          </PageToolbar>
 
+          <div className="p-4 sm:p-6">
           {viewMode === 'month' ? (
             <div>
               {/* Day-of-week header */}
@@ -570,11 +560,12 @@ export function NutritionAppointmentsPage() {
                       key={day.toISOString()}
                       className={`bg-surface-elevated min-h-[80px] p-1.5 ${!isCurrentMonth ? 'opacity-40' : ''}`}
                     >
-                      <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold mb-1 ${
+                      <span className={cn(
+                        'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold mb-1',
                         today
-                          ? 'bg-brand-primary text-white'
-                          : 'text-ink-secondary'
-                      }`}>
+                          ? 'bg-zinc-500/[0.12] text-zinc-900 ring-2 ring-zinc-400/45 dark:bg-zinc-500/[0.2] dark:text-zinc-100 dark:ring-zinc-500/40'
+                          : 'text-ink-secondary',
+                      )}>
                         {format(day, 'd')}
                       </span>
                       <div className="space-y-0.5">
@@ -582,11 +573,12 @@ export function NutritionAppointmentsPage() {
                           <div
                             key={a.id}
                             title={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
-                            className={`truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default ${
+                            className={cn(
+                              'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
                               a.status === 'confirmed'
-                                ? 'bg-emerald-500/20 text-emerald-300'
-                                : 'bg-brand-primary/15 text-brand-primary'
-                            }`}
+                                ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
+                                : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
+                            )}
                           >
                             {format(parseISO(a.starts_at), 'HH:mm')} {a.student?.full_name?.split(' ')[0] ?? a.title}
                           </div>
@@ -604,12 +596,28 @@ export function NutritionAppointmentsPage() {
             <div className="grid md:grid-cols-7 gap-2">
               {weekDays.map((day) => {
                 const dayAppointments = weekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
+                const dayIsToday = isToday(day)
                 return (
-                  <div key={day.toISOString()} className="rounded-xl border border-surface-border bg-surface-elevated min-h-44 p-2">
-                    <p className="text-[11px] uppercase tracking-wide text-ink-secondary">
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      'rounded-xl border min-h-44 p-2 transition-shadow',
+                      dayIsToday
+                        ? 'border-zinc-300/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] dark:border-zinc-600 dark:bg-zinc-500/[0.1] dark:shadow-black/20'
+                        : 'border-surface-border bg-surface-elevated/50',
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        'text-[11px] uppercase tracking-wide',
+                        dayIsToday ? 'font-semibold text-zinc-800 dark:text-zinc-300' : 'text-ink-secondary',
+                      )}
+                    >
                       {format(day, 'EEE', { locale: es })}
                     </p>
-                    <p className="text-sm font-semibold text-ink-primary">{format(day, 'd')}</p>
+                    <p className={cn('text-sm font-semibold', dayIsToday ? 'text-zinc-950 dark:text-zinc-50' : 'text-ink-primary')}>
+                      {format(day, 'd')}
+                    </p>
                     <div className="mt-2 space-y-1.5">
                       {dayAppointments.length === 0 ? (
                         <p className="text-[11px] text-ink-secondary">Sin turnos</p>
@@ -623,7 +631,12 @@ export function NutritionAppointmentsPage() {
                               if (weekPopover?.apptId === a.id) { setWeekPopover(null) }
                               else setWeekPopover({ apptId: a.id, top: rect.bottom + 4, left: rect.left })
                             }}
-                            className={`w-full text-left rounded-lg border px-2 py-1 transition-opacity hover:opacity-90 ${a.profile_type === 'nutritionist' ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-blue-500/40 bg-blue-500/10'}`}
+                            className={cn(
+                              'w-full text-left rounded-lg border px-2 py-1 transition-colors border-l-[3px]',
+                              a.status === 'confirmed'
+                                ? 'border border-emerald-500/25 border-l-emerald-500 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.13]'
+                                : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
+                            )}
                           >
                             <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>
                             <p className="text-[11px] text-ink-secondary">
@@ -643,7 +656,13 @@ export function NutritionAppointmentsPage() {
                 <p className="text-sm text-ink-secondary">No hay turnos agendados.</p>
               ) : (
                 upcoming.map((a) => (
-                  <div key={a.id} className="rounded-xl border border-surface-border bg-surface-elevated px-3 py-2">
+                  <div
+                    key={a.id}
+                    className={cn(
+                      'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px]',
+                      agendaCardAccent(a.status),
+                    )}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-ink-primary">{a.title}</p>
@@ -651,8 +670,8 @@ export function NutritionAppointmentsPage() {
                           {a.student?.full_name ?? 'Paciente'} · {new Date(a.starts_at).toLocaleString('es-AR')}
                         </p>
                       </div>
-                      <span className={`text-[10px] px-2 py-1 rounded-full border uppercase tracking-wide ${STATUS_BADGE[a.status]}`}>
-                        {a.status}
+                      <span className={`text-[10px] px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
+                        {STATUS_LABEL_ES[a.status]}
                       </span>
                     </div>
                     {completingId === a.id ? (
@@ -662,28 +681,35 @@ export function NutritionAppointmentsPage() {
                           rows={3}
                           value={completingNote}
                           onChange={(e) => setCompletingNote(e.target.value)}
-                          placeholder="Notas de la sesión (opcional)..."
-                          className="w-full rounded-xl bg-surface-input border border-brand-primary/40 text-ink-primary text-xs px-3 py-2 resize-none focus:outline-none focus:border-brand-primary"
+                          placeholder="Notas de la sesión (opcional)…"
+                          className={cn(FIELD_ROW, 'resize-none text-xs focus:ring-1 focus:ring-surface-border')}
                         />
                         <div className="flex items-center gap-2">
-                          <button
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="text-xs h-8"
                             type="button"
                             onClick={async () => {
                               await updateStatus(a.id, 'completed', completingNote)
                               setCompletingId(null)
                               setCompletingNote('')
                             }}
-                            className="text-[11px] px-3 py-1.5 rounded-lg bg-brand-primary text-white font-medium hover:bg-brand-primary/90"
                           >
                             Guardar y completar
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-8"
                             type="button"
-                            onClick={() => { setCompletingId(null); setCompletingNote('') }}
-                            className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
+                            onClick={() => {
+                              setCompletingId(null)
+                              setCompletingNote('')
+                            }}
                           >
                             Cancelar
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -691,14 +717,14 @@ export function NutritionAppointmentsPage() {
                         <button
                           type="button"
                           onClick={() => updateStatus(a.id, 'confirmed')}
-                          className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
+                          className="text-[11px] px-2 py-1 rounded-lg border border-emerald-500/35 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12"
                         >
                           Confirmar
                         </button>
                         <button
                           type="button"
                           onClick={() => { setCompletingId(a.id); setCompletingNote('') }}
-                          className="text-[11px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary"
+                          className="text-[11px] px-2 py-1 rounded-lg border border-slate-400/45 text-slate-800 dark:text-slate-200 hover:bg-slate-500/12"
                         >
                           Completar
                         </button>
@@ -713,7 +739,7 @@ export function NutritionAppointmentsPage() {
                           type="button"
                           onClick={() => openAppointmentConfirmationWa(a)}
                           title="Abre WhatsApp con mensaje para confirmar el turno (misma plantilla que al crear)."
-                          className="text-[11px] px-2 py-1 rounded-lg border border-emerald-600/40 text-emerald-700 dark:text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/15 inline-flex items-center gap-1"
+                          className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/38 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 inline-flex items-center gap-1"
                         >
                           <MessageCircle className="h-3 w-3" />
                           Confirmación WA
@@ -725,20 +751,147 @@ export function NutritionAppointmentsPage() {
               )}
             </div>
           )}
+          </div>
         </Card>
 
+        <details
+          open
+          className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-zinc-400/70 bg-surface-card dark:border-l-zinc-500/50"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-gradient-to-r from-zinc-500/[0.06] to-surface-elevated/25 px-4 py-3 transition-colors hover:from-zinc-500/[0.09] hover:to-surface-elevated/35 dark:from-zinc-500/[0.1] dark:hover:from-zinc-500/[0.14] [&::-webkit-details-marker]:hidden">
+            <div>
+              <p className="text-sm font-semibold text-ink-primary">Agendar turno</p>
+              <p className="text-[11px] text-ink-muted mt-0.5">Alta rápida · se limpia después de guardar</p>
+            </div>
+            <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className="text-xs font-medium text-ink-muted">
+                Paciente
+                <select
+                  value={form.student_id}
+                  onChange={(e) => setForm((prev) => ({ ...prev, student_id: e.target.value }))}
+                  className={FIELD_ROW}
+                >
+                  <option value="">Seleccionar…</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.full_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs font-medium text-ink-muted">
+                Título
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="Consulta de seguimiento"
+                  className={FIELD_ROW}
+                />
+              </label>
+              <label className="text-xs font-medium text-ink-muted">
+                Inicio
+                <input
+                  type="datetime-local"
+                  value={form.starts_at}
+                  onChange={(e) => setForm((prev) => ({ ...prev, starts_at: e.target.value }))}
+                  className={FIELD_ROW}
+                />
+              </label>
+              <label className="text-xs font-medium text-ink-muted">
+                Duración
+                <select
+                  value={form.duration_minutes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))}
+                  className={FIELD_ROW}
+                >
+                  {APPOINTMENT_DURATION_OPTIONS_MINUTES.map((m) => (
+                    <option key={m} value={m}>
+                      {m} min{m >= 60 ? ` (${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="block text-[10px] text-ink-muted mt-1 leading-snug">
+                  Fin automático según duración (incrementos de 15 min).
+                </span>
+              </label>
+              <label className="text-xs font-medium text-ink-muted">
+                Ubicación
+                <input
+                  value={form.location}
+                  onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
+                  placeholder="Online / Consultorio…"
+                  className={FIELD_ROW}
+                />
+              </label>
+              <label className="text-xs font-medium text-ink-muted md:col-span-2">
+                Nota interna
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  className={cn(FIELD_ROW, 'resize-y min-h-[4rem]')}
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-ink-secondary">
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => setRecurring(e.target.checked)}
+                  className="h-4 w-4 rounded border-surface-border accent-zinc-600 dark:accent-zinc-500"
+                />
+                Repetir semanalmente
+              </label>
+              {recurring && (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={recurWeeks}
+                    onChange={(e) => setRecurWeeks(Math.max(2, Math.min(52, Number(e.target.value))))}
+                    className="w-16 rounded-lg bg-surface-input border border-surface-inputBorder text-ink-primary text-xs px-2 py-1.5 text-center"
+                  />
+                  <span className="text-xs text-ink-muted">semanas</span>
+                </div>
+              )}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="border-zinc-200/90 bg-zinc-100/80 font-semibold text-zinc-900 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/70 dark:text-zinc-50 dark:hover:bg-zinc-800"
+              onClick={() => void createAppointment()}
+              loading={creating}
+            >
+              {recurring ? `Agendar ${recurWeeks} turnos` : 'Guardar turno'}
+            </Button>
+          </div>
+        </details>
+
         <Card>
-          <CardTitle className="mb-3">Historial reciente</CardTitle>
+          <CardTitle className="mb-2 font-medium text-base">Historial reciente</CardTitle>
           {history.length === 0 ? (
             <p className="text-sm text-ink-secondary">Todavía no hay turnos completados o cerrados.</p>
           ) : (
             <div className="space-y-2">
               {history.slice(0, 8).map((a) => (
-                <div key={a.id} className="rounded-xl border border-surface-border bg-surface-elevated px-3 py-2">
+                <div
+                  key={a.id}
+                  className={cn(
+                    'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px]',
+                    a.status === 'completed' && 'border-l-emerald-500/85',
+                    a.status === 'cancelled' && 'border-l-status-expired/70',
+                    a.status === 'no_show' && 'border-l-amber-500/80',
+                  )}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-ink-primary">{a.title}</p>
-                    <span className={`text-[10px] px-2 py-1 rounded-full border uppercase tracking-wide ${STATUS_BADGE[a.status]}`}>
-                      {a.status}
+                    <span className={`text-[10px] px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
+                      {STATUS_LABEL_ES[a.status]}
                     </span>
                   </div>
                   <p className="text-xs text-ink-secondary mt-0.5">
@@ -754,7 +907,7 @@ export function NutritionAppointmentsPage() {
                       type="button"
                       onClick={() => openAppointmentFeedbackWa(a)}
                       title="Pedir feedback por WhatsApp (misma plantilla que al completar)."
-                      className="mt-2 text-[11px] px-2 py-1 rounded-lg border border-emerald-600/40 text-emerald-700 dark:text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/15 inline-flex items-center gap-1"
+                      className="mt-2 text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 inline-flex items-center gap-1.5"
                     >
                       <MessageCircle className="h-3 w-3" />
                       Feedback WA
@@ -788,21 +941,21 @@ export function NutritionAppointmentsPage() {
                   <button
                     type="button"
                     onClick={() => { void updateStatus(appt.id, 'confirmed'); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 transition-colors"
                   >
                     ✓ Confirmar
                   </button>
                   <button
                     type="button"
                     onClick={() => { setCompletingId(appt.id); setCompletingNote(''); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-500/14 transition-colors"
                   >
                     ✓ Completar (con nota)
                   </button>
                   <button
                     type="button"
                     onClick={() => { openAppointmentConfirmationWa(appt); setWeekPopover(null) }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-400 hover:bg-emerald-500/10 transition-colors inline-flex items-center gap-1.5"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900/90 dark:text-emerald-400/90 hover:bg-emerald-500/12 transition-colors inline-flex items-center gap-1.5"
                   >
                     <MessageCircle className="h-3 w-3" /> WhatsApp confirmación
                   </button>

@@ -8,10 +8,12 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Header } from '@/components/layout/Header'
+import { cn } from '@/lib/utils'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { FormSection } from '@/components/ui/FormSection'
 import { Card } from '@/components/ui/Card'
+import { SettingsProfilePhotoSection } from '@/pages/settings/SettingsProfilePhotoSection'
 import toast from 'react-hot-toast'
 import type { AppRole } from '@/types/database'
 
@@ -102,7 +104,7 @@ export function SettingsPage() {
         <Card>
           <FormSection title="Planes Web">
             <p className="text-sm text-ink-secondary">
-              Editá planes del formulario público (/form), segmento solo / con Cristina, fotos del selector y textos largos sin
+              Editá planes del formulario público (/form), segmento solo / conjunto Cristian Vázquez, fotos del selector y textos largos sin
               tocar código.
             </p>
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
@@ -113,8 +115,13 @@ export function SettingsPage() {
 
         {/* Perfil */}
         <Card>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <FormSection title="Perfil">
+          {profile && (
+            <FormSection title="Tu cuenta">
+              <SettingsProfilePhotoSection profile={profile} onUpdated={(p) => setProfile(p)} />
+            </FormSection>
+          )}
+          <form onSubmit={handleSubmit(onSubmit)} className={cn(profile ? 'space-y-6 mt-8 border-t border-surface-border pt-8' : 'space-y-6')}>
+            <FormSection title="Datos de perfil">
               <Input label="Nombre completo" required error={errors.full_name?.message} {...register('full_name')} />
               <Input label="Teléfono" type="tel" {...register('phone')} />
               <Input label="Bio / Descripción" {...register('bio')} />

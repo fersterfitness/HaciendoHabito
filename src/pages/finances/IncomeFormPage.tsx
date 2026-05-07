@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -31,7 +32,7 @@ type FormValues = z.infer<typeof schema>
 export function IncomeFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEditing = !!id
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [students, setStudents] = useState<Student[]>([])
 
@@ -83,7 +84,7 @@ export function IncomeFormPage() {
       if (error) { toast.error(error.message); return }
       toast.success('Ingreso registrado')
     }
-    navigate('/finances/income')
+    navigate('/finances?tab=income')
   }
 
   const studentOptions = [
@@ -95,7 +96,8 @@ export function IncomeFormPage() {
     <div>
       <Header title={isEditing ? 'Editar ingreso' : 'Nuevo ingreso'} showBack />
 
-      <div className="px-4 lg:px-6 py-6 max-w-lg">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
+        <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <FormSection title="Fecha y alumno">
             <Input
@@ -176,11 +178,16 @@ export function IncomeFormPage() {
             <Button type="button" variant="secondary" className="flex-1" onClick={() => navigate(-1)}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" loading={isSubmitting}>
+            <Button
+              type="submit"
+              className="flex-1 bg-[#ff4800] shadow-none hover:bg-[#e04100] hover:shadow-none focus-visible:ring-[#ff4800]/45"
+              loading={isSubmitting}
+            >
               {isEditing ? 'Guardar cambios' : 'Registrar ingreso'}
             </Button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   )

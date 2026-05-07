@@ -1,10 +1,23 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Users, Pencil, Trash2, ChevronDown, Filter, Dumbbell, X, Download, Tag } from 'lucide-react'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
+import { StudentDetailView } from './StudentDetailPage'
+import {
+  Plus,
+  Search,
+  Users,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  Filter,
+  Dumbbell,
+  X,
+  Download,
+  Tag,
+  ArrowDownUp,
+} from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { Header } from '@/components/layout/Header'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -39,30 +52,24 @@ function daysUntil(dateStr: string): number {
 
 function PlanDaysChip({ date }: { date: string }) {
   const days = daysUntil(date)
+  const pill =
+    'inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium border border-black/[0.06] whitespace-nowrap dark:border-white/[0.08]'
 
   if (days < 0) {
-    return (
-      <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400 border border-red-500/25 whitespace-nowrap">
-        Vencido
-      </span>
-    )
+    return <span className={cn(pill, 'border-status-expired/25 bg-status-expired/8 text-status-expired')}>Vencido</span>
   }
   if (days === 0) {
-    return (
-      <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400 border border-red-500/25 whitespace-nowrap">
-        Vence hoy
-      </span>
-    )
+    return <span className={cn(pill, 'border-status-expiring/30 bg-status-expiring/10 text-amber-800 dark:text-amber-400/95')}>Vence hoy</span>
   }
   if (days <= 7) {
     return (
-      <span className="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400 border border-amber-500/25 whitespace-nowrap">
+      <span className={cn(pill, 'border-status-expiring/25 bg-status-expiring/8 text-amber-900 dark:text-amber-300/95')}>
         {days} {days === 1 ? 'día' : 'días'}
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/25 whitespace-nowrap">
+    <span className={cn(pill, 'border-surface-border bg-surface-elevated text-ink-secondary')}>
       {days} días
     </span>
   )
@@ -118,17 +125,17 @@ function StatusToggle({
           if (rect) setDropdownPos({ top: rect.bottom + 4, left: rect.left })
           setOpen((o) => !o)
         }}
-        className="inline-flex items-center gap-1 rounded-lg hover:bg-surface-elevated px-1 py-0.5 -mx-1 transition-colors"
+        className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-surface-elevated"
         title="Cambiar estado"
       >
         <Badge status={student.status} />
-        <ChevronDown className="h-3 w-3 text-ink-muted shrink-0" />
+        <ChevronDown className="h-3 w-3 shrink-0 text-ink-muted" />
       </button>
 
       {open && (
         <div
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
-          className="z-[9999] w-36 rounded-xl border border-surface-border bg-surface-card shadow-xl overflow-hidden"
+          className="z-[9999] w-36 overflow-hidden rounded-md border border-zinc-200/80 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
           onClick={(e) => e.stopPropagation()}
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -137,9 +144,9 @@ function StatusToggle({
               type="button"
               onClick={() => void changeStatus(opt.value)}
               className={cn(
-                'w-full text-left px-3 py-2.5 text-xs font-medium transition-colors hover:bg-surface-elevated',
+                'w-full px-3 py-2.5 text-left text-xs font-medium transition-colors hover:bg-surface-elevated',
                 opt.value === student.status
-                  ? 'text-brand-primary bg-brand-primary/5'
+                  ? 'bg-slate-500/15 text-ink-primary dark:bg-slate-400/14'
                   : 'text-ink-secondary',
               )}
             >
@@ -159,6 +166,60 @@ function StatusToggle({
 type LevelFilter  = '' | 'inicial' | 'intermedio' | 'avanzado'
 type StatusFilter = '' | StudentStatus
 type ExpiryFilter = '' | 'pronto' | 'vencido'
+
+/** Opciones de orden de la tabla (botón neutro tipo Gray UI). */
+type TableSort = 'recommended' | 'name_asc' | 'name_desc' | 'plan_asc' | 'plan_desc'
+
+const TABLE_SORT_OPTS: { value: TableSort; label: string }[] = [
+  { value: 'recommended', label: 'Activos primero, luego nombre (A→Z)' },
+  { value: 'name_asc', label: 'Nombre · A→Z' },
+  { value: 'name_desc', label: 'Nombre · Z→A' },
+  { value: 'plan_asc', label: 'Vencimiento plan · más próximo' },
+  { value: 'plan_desc', label: 'Vencimiento plan · más lejano' },
+]
+
+/** Texto corto bajo el título del listado. */
+const SORT_SUBTITLE: Record<TableSort, string> = {
+  recommended: 'Activos primero · A→Z',
+  name_asc: 'Nombre · A→Z',
+  name_desc: 'Nombre · Z→A',
+  plan_asc: 'Plan · próximo primero',
+  plan_desc: 'Plan · lejano primero',
+}
+
+function comparePlanEnd(a: string | null, b: string | null): number {
+  if (!a && !b) return 0
+  if (!a) return 1
+  if (!b) return -1
+  return a.localeCompare(b)
+}
+
+/** Orden estable respecto del nombre dentro de mismos valores de orden. */
+function sortStudentsClone(list: Student[], sort: TableSort): Student[] {
+  const nameCmp = (a: Student, b: Student) => a.full_name.localeCompare(b.full_name, 'es')
+  const rankActivo = (s: Student) => (s.status === 'activo' ? 0 : 1)
+  const copy = [...list]
+  switch (sort) {
+    case 'recommended':
+      copy.sort((a, b) => rankActivo(a) - rankActivo(b) || nameCmp(a, b))
+      break
+    case 'name_asc':
+      copy.sort(nameCmp)
+      break
+    case 'name_desc':
+      copy.sort((a, b) => nameCmp(b, a))
+      break
+    case 'plan_asc':
+      copy.sort((a, b) => comparePlanEnd(a.plan_end_date, b.plan_end_date) || nameCmp(a, b))
+      break
+    case 'plan_desc':
+      copy.sort((a, b) => comparePlanEnd(b.plan_end_date, a.plan_end_date) || nameCmp(a, b))
+      break
+    default:
+      break
+  }
+  return copy
+}
 
 function exportStudentsCSV(students: Student[]) {
   const rows = [
@@ -224,16 +285,16 @@ function FiltersDropdown({
           setOpen((o) => !o)
         }}
         className={cn(
-          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors',
+          'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
           activeCount > 0
-            ? 'bg-brand-primary/10 border-brand-primary/40 text-brand-primary'
-            : 'bg-surface-elevated border-surface-border text-ink-secondary hover:text-ink-primary',
+            ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
+            : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
         )}
       >
-        <Filter className="h-3.5 w-3.5" />
+        <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
         Filtrar
         {activeCount > 0 && (
-          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-primary text-white text-[10px] font-bold">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
             {activeCount}
           </span>
         )}
@@ -243,7 +304,7 @@ function FiltersDropdown({
       {open && (
         <div
           style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-[9999] w-52 rounded-2xl border border-surface-border bg-surface-card shadow-xl p-3 space-y-3"
+          className="z-[9999] w-56 rounded-md border border-zinc-200/85 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950 space-y-2.5"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Nivel */}
@@ -255,9 +316,9 @@ function FiltersDropdown({
                 type="button"
                 onClick={() => setFilterLevel(v)}
                 className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                  'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                   filterLevel === v
-                    ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                    ? 'bg-slate-500/12 text-ink-primary font-medium dark:bg-slate-400/14'
                     : 'text-ink-secondary hover:bg-surface-elevated',
                 )}
               >
@@ -266,7 +327,7 @@ function FiltersDropdown({
             ))}
           </div>
 
-          <div className="border-t border-surface-border pt-2">
+          <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
             <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Estado</p>
             {([{ value: '' as StatusFilter, label: 'Todos' }, ...STATUS_OPTIONS]).map((opt) => (
               <button
@@ -274,9 +335,9 @@ function FiltersDropdown({
                 type="button"
                 onClick={() => setFilterStatus(opt.value)}
                 className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                  'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                   filterStatus === opt.value
-                    ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                    ? 'bg-slate-500/12 text-ink-primary font-medium dark:bg-slate-400/14'
                     : 'text-ink-secondary hover:bg-surface-elevated',
                 )}
               >
@@ -285,7 +346,7 @@ function FiltersDropdown({
             ))}
           </div>
 
-          <div className="border-t border-surface-border pt-2">
+          <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
             <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Plan</p>
             {([
               { value: '' as ExpiryFilter, label: 'Todos' },
@@ -297,9 +358,9 @@ function FiltersDropdown({
                 type="button"
                 onClick={() => setFilterExpiry(opt.value)}
                 className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                  'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                   filterExpiry === opt.value
-                    ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                    ? 'bg-slate-500/12 text-ink-primary font-medium dark:bg-slate-400/14'
                     : 'text-ink-secondary hover:bg-surface-elevated',
                 )}
               >
@@ -309,7 +370,7 @@ function FiltersDropdown({
           </div>
 
           {allTags.length > 0 && (
-            <div className="border-t border-surface-border pt-2">
+            <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
               <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Etiqueta</p>
               {(['', ...allTags]).map((t) => (
                 <button
@@ -317,9 +378,9 @@ function FiltersDropdown({
                   type="button"
                   onClick={() => setFilterTag(t)}
                   className={cn(
-                    'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5',
+                    'flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                     filterTag === t
-                      ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                      ? 'bg-slate-500/12 text-ink-primary font-medium dark:bg-slate-400/14'
                       : 'text-ink-secondary hover:bg-surface-elevated',
                   )}
                 >
@@ -333,7 +394,7 @@ function FiltersDropdown({
             <button
               type="button"
               onClick={() => { setFilterLevel(''); setFilterStatus(''); setFilterExpiry(''); setFilterTag(''); setOpen(false) }}
-              className="w-full flex items-center justify-center gap-1 text-xs text-ink-muted hover:text-status-expired border-t border-surface-border pt-2 transition-colors"
+              className="w-full flex items-center justify-center gap-1 border-t border-zinc-200/65 pt-2 text-xs text-ink-muted transition-colors hover:text-status-expired dark:border-zinc-800/80"
             >
               <X className="h-3 w-3" />
               Limpiar filtros
@@ -345,8 +406,84 @@ function FiltersDropdown({
   )
 }
 
+function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: TableSort) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const selectedLabel =
+    TABLE_SORT_OPTS.find((o) => o.value === value)?.label ?? TABLE_SORT_OPTS[0].label
+
+  return (
+    <div ref={ref} className="relative inline-flex shrink-0">
+      <button
+        ref={btnRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Ordenar tabla. Actual: ${selectedLabel}`}
+        onClick={() => {
+          const rect = btnRef.current?.getBoundingClientRect()
+          if (rect) setPos({ top: rect.bottom + 4, left: rect.left })
+          setOpen((o) => !o)
+        }}
+        title={selectedLabel}
+        className={cn(
+          'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+          'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80',
+          'dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+        )}
+      >
+        <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+        Ordenar
+        <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div
+          style={{ position: 'fixed', top: pos.top, left: pos.left }}
+          className="z-[9999] min-w-[15.5rem] max-w-[min(calc(100vw-2rem),20rem)] rounded-md border border-zinc-200/85 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+            Orden de la tabla
+          </p>
+          {TABLE_SORT_OPTS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={cn(
+                'w-full rounded-md px-2.5 py-2 text-left text-xs transition-colors',
+                opt.value === value
+                  ? 'bg-zinc-200/85 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
+                  : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function StudentsPage() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const role = useAuthStore((state) => state.profile?.role)
   const user = useAuthStore((state) => state.user)
   const entityLabel = role === 'nutritionist' ? 'Pacientes' : 'Alumnos'
@@ -358,10 +495,12 @@ export function StudentsPage() {
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('')
   const [filterExpiry, setFilterExpiry] = useState<ExpiryFilter>('')
   const [filterTag,    setFilterTag]    = useState('')
+  const [tableSort, setTableSort] = useState<TableSort>('recommended')
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
   const [routineExpiryMap, setRoutineExpiryMap] = useState<Map<string, string>>(new Map())
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -398,6 +537,21 @@ export function StudentsPage() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [])
+
+  useEffect(() => {
+    if (!selectedStudentId) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedStudentId(null)
+    }
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [selectedStudentId])
+
   useEffect(() => { setLocalStudents(students) }, [students])
 
   const handleSearch = useCallback(
@@ -411,10 +565,12 @@ export function StudentsPage() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    const ok = await deleteStudent(deleteTarget.id)
+    const removedId = deleteTarget.id
+    const ok = await deleteStudent(removedId)
     setDeleting(false)
     if (ok) {
       setDeleteTarget(null)
+      setSelectedStudentId((cur) => (cur === removedId ? null : cur))
       fetchStudents(search)
     }
   }
@@ -458,86 +614,126 @@ export function StudentsPage() {
     return true
   }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag])
 
-  const grouped = {
-    activo:   filtered.filter((s) => s.status === 'activo'),
-    inactivo: filtered.filter((s) => s.status !== 'activo'),
-  }
+  const sortedForTable = useMemo(
+    () => sortStudentsClone(filtered, tableSort),
+    [filtered, tableSort],
+  )
 
   return (
     <div>
-      <Header
-        title={entityLabel}
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => exportStudentsCSV(filtered)}
-              title="Exportar CSV"
-              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary hover:bg-surface-elevated px-2.5 py-1.5 rounded-lg transition-colors border border-surface-border"
-            >
-              <Download className="h-3.5 w-3.5" /> CSV
-            </button>
-            <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/students/new')}>
-              Nuevo
-            </Button>
+      <Header title={entityLabel} />
+
+      <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 lg:px-6 lg:py-8">
+        {/* Barra estilo Gray: sin panel con fondo; búsqueda a la izquierda · acciones a la derecha */}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+          <div className="relative min-h-10 min-w-0 flex-1">
+            <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
+              <Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" aria-hidden />
+            </span>
+            <input
+              ref={searchRef}
+              type="search"
+              placeholder={`Buscar ${entityLabelSingular} por nombre, email… ( / para enfocar )`}
+              autoComplete="off"
+              spellCheck={false}
+              aria-label={`Buscar ${entityLabelSingular}`}
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              className={cn(
+                'h-10 w-full rounded-md border border-zinc-200/75 bg-transparent pl-10 pr-3 text-[14px] text-zinc-900 outline-none shadow-none',
+                'placeholder:text-zinc-400',
+                'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50',
+                'dark:border-zinc-700/80 dark:text-zinc-100 dark:placeholder:text-zinc-500',
+                'dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
+              )}
+            />
           </div>
-        }
-      />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6">
-        <Input
-          ref={searchRef}
-          placeholder={`Buscar ${entityLabelSingular}... (/ para enfocar)`}
-          leftIcon={<Search className="h-4 w-4" />}
-          value={search}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
+          <div className="flex flex-wrap items-center gap-2 md:justify-end md:gap-2">
+            <button
+              type="button"
+              onClick={() => exportStudentsCSV(filtered)}
+              title="Exportar lista a CSV"
+              className={cn(
+                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-zinc-200/75 bg-transparent px-3.5 text-sm font-medium text-zinc-800',
+                'transition-colors hover:border-zinc-300 hover:bg-zinc-50/90',
+                'dark:border-zinc-700/80 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/45',
+              )}
+            >
+              <Download className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+              Exportar
+            </button>
 
-        {/* ── Filtros ── */}
-        <div className="flex items-center gap-3">
-          <FiltersDropdown
-            filterLevel={filterLevel}
-            setFilterLevel={setFilterLevel}
-            filterStatus={filterStatus}
-            setFilterStatus={setFilterStatus}
-            filterExpiry={filterExpiry}
-            setFilterExpiry={setFilterExpiry}
-            filterTag={filterTag}
-            setFilterTag={setFilterTag}
-            allTags={allTags}
-          />
-          {/* Chips de filtros activos */}
-          {filterLevel && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
-              {LEVEL_LABELS[filterLevel]}
-              <button onClick={() => setFilterLevel('')}><X className="h-3 w-3" /></button>
-            </span>
-          )}
-          {filterStatus && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
-              {STATUS_OPTIONS.find((o) => o.value === filterStatus)?.label}
-              <button onClick={() => setFilterStatus('')}><X className="h-3 w-3" /></button>
-            </span>
-          )}
-          {filterExpiry && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {filterExpiry === 'pronto' ? 'Vence pronto' : 'Plan vencido'}
-              <button onClick={() => setFilterExpiry('')}><X className="h-3 w-3" /></button>
-            </span>
-          )}
-          {filterTag && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20">
-              <Tag className="h-3 w-3" />{filterTag}
-              <button onClick={() => setFilterTag('')}><X className="h-3 w-3" /></button>
-            </span>
-          )}
+            <FiltersDropdown
+              filterLevel={filterLevel}
+              setFilterLevel={setFilterLevel}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              filterExpiry={filterExpiry}
+              setFilterExpiry={setFilterExpiry}
+              filterTag={filterTag}
+              setFilterTag={setFilterTag}
+              allTags={allTags}
+            />
+
+            <SortDropdown value={tableSort} onChange={setTableSort} />
+
+            {filterLevel && (
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+                {LEVEL_LABELS[filterLevel]}
+                <button type="button" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200" onClick={() => setFilterLevel('')} aria-label="Quitar filtro nivel">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}
+            {filterStatus && (
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+                {STATUS_OPTIONS.find((o) => o.value === filterStatus)?.label}
+                <button type="button" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200" onClick={() => setFilterStatus('')} aria-label="Quitar filtro estado">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}
+            {filterExpiry && (
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-amber-900 dark:border-zinc-600/85 dark:text-amber-200">
+                {filterExpiry === 'pronto' ? 'Vence pronto' : 'Plan vencido'}
+                <button type="button" className="opacity-70 hover:opacity-100" onClick={() => setFilterExpiry('')} aria-label="Quitar filtro plan">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}
+            {filterTag && (
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-zinc-700 dark:border-zinc-700/80 dark:text-zinc-300">
+                <Tag className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {filterTag}
+                <button type="button" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200" onClick={() => setFilterTag('')} aria-label="Quitar etiqueta">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => navigate('/students/new')}
+              title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
+              className={cn(
+                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-white',
+                'bg-[#ff4800] shadow-none outline-none transition-colors',
+                'hover:bg-[#e04100]',
+                'focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
+                'dark:focus-visible:ring-offset-zinc-900',
+              )}
+            >
+              <Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />
+              {role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
+            </button>
+          </div>
         </div>
 
         {loading ? (
-          <div className="space-y-6">
-            <div>
-              <div className="h-3 w-20 rounded bg-surface-elevated mb-3 animate-pulse" />
-              <TableSkeleton rows={4} cols={4} />
-            </div>
+          <div className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/70">
+            <div className="mb-4 h-4 w-32 animate-pulse rounded bg-surface-elevated" />
+            <TableSkeleton rows={6} cols={5} />
           </div>
         ) : localStudents.length === 0 ? (
           <EmptyState
@@ -557,38 +753,56 @@ export function StudentsPage() {
             description="Probá con otros filtros o limpiá la selección."
           />
         ) : (
-          <div className="space-y-8">
-            {grouped.activo.length > 0 && (
-              <StudentTable
-                label={`Activos (${grouped.activo.length})`}
-                onAvatarUpdated={() => { void fetchStudents(search) }}
-                entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
-                students={grouped.activo}
-                activeRoutineStudentIds={activeRoutineStudentIds}
-                routineExpiryMap={routineExpiryMap}
-                onRowClick={(id) => navigate(`/students/${id}`)}
-                onEdit={(id) => navigate(`/students/${id}/edit`)}
-                onDelete={(s) => setDeleteTarget(s)}
-                onStatusChanged={handleStatusChanged}
-              />
-            )}
-            {grouped.inactivo.length > 0 && (
-              <StudentTable
-                label={`Inactivos / Baja (${grouped.inactivo.length})`}
-                onAvatarUpdated={() => { void fetchStudents(search) }}
-                entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
-                students={grouped.inactivo}
-                activeRoutineStudentIds={activeRoutineStudentIds}
-                routineExpiryMap={routineExpiryMap}
-                onRowClick={(id) => navigate(`/students/${id}`)}
-                onEdit={(id) => navigate(`/students/${id}/edit`)}
-                onDelete={(s) => setDeleteTarget(s)}
-                onStatusChanged={handleStatusChanged}
-              />
-            )}
-          </div>
+          <StudentDirectoryTable
+            entityLabel={entityLabel}
+            entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
+            sortSubtitle={SORT_SUBTITLE[tableSort]}
+            students={sortedForTable}
+            selectedStudentId={selectedStudentId}
+            onAvatarUpdated={() => { void fetchStudents(search) }}
+            activeRoutineStudentIds={activeRoutineStudentIds}
+            routineExpiryMap={routineExpiryMap}
+            onRowClick={(studentId) => setSelectedStudentId(studentId)}
+            onEdit={(id) => navigate(`/students/${id}/edit`)}
+            onDelete={(s) => setDeleteTarget(s)}
+            onStatusChanged={handleStatusChanged}
+          />
         )}
       </div>
+
+      {selectedStudentId && (
+        <>
+          <button
+            type="button"
+            aria-label="Cerrar panel"
+            className={cn(
+              'fixed inset-0 z-[9990] bg-ink-primary/20 backdrop-blur-[3px] dark:bg-black/50',
+              'motion-reduce:animate-none motion-safe:animate-backdrop-soft',
+            )}
+            onClick={() => setSelectedStudentId(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal
+            aria-labelledby="student-sheet-title"
+            className={cn(
+              'fixed z-[9991] flex flex-col overflow-hidden border border-zinc-200/95 bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.14)] dark:border-zinc-700/85 dark:bg-zinc-950/98 dark:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.55)]',
+              /* Móvil: panel centrado · sm+: entra deslizando de derecha → izquierda */
+              'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-panel-soft motion-safe:sm:animate-panel-slide-in',
+              /* Móvil: tarjeta con margen en los cuatro lados (estilo modal Gray) */
+              'inset-3 sm:inset-auto',
+              'sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-xl lg:right-6 lg:top-6 lg:bottom-6 lg:max-w-2xl',
+            )}
+          >
+            <StudentDetailView
+              key={selectedStudentId}
+              studentId={selectedStudentId}
+              variant="panel"
+              onClosePanel={() => setSelectedStudentId(null)}
+            />
+          </div>
+        </>
+      )}
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -603,10 +817,12 @@ export function StudentsPage() {
   )
 }
 
-function StudentTable({
-  label,
+function StudentDirectoryTable({
+  entityLabel,
   entityLabelColumn,
+  sortSubtitle,
   students,
+  selectedStudentId,
   onAvatarUpdated,
   onRowClick,
   onEdit,
@@ -615,9 +831,11 @@ function StudentTable({
   activeRoutineStudentIds,
   routineExpiryMap,
 }: {
-  label: string
+  entityLabel: string
   entityLabelColumn: string
+  sortSubtitle: string
   students: Student[]
+  selectedStudentId: string | null
   onAvatarUpdated: () => void
   onRowClick: (id: string) => void
   onEdit: (id: string) => void
@@ -627,124 +845,180 @@ function StudentTable({
   routineExpiryMap: Map<string, string>
 }) {
   return (
-    <section>
-      <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">
-        {label}
-      </h2>
+    <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card shadow-none dark:border-zinc-700/65">
+      <div className="flex flex-col gap-0 border-b border-zinc-200/55 bg-zinc-50/35 px-3 py-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 dark:border-zinc-800/80 dark:bg-zinc-950/40">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel}</h2>
+          <p className="truncate text-[11px] text-ink-muted">
+            {students.length === 1 ? '1 registro' : `${students.length} registros`} · {sortSubtitle}
+          </p>
+        </div>
+      </div>
 
-      <div className="w-full overflow-x-auto rounded-2xl border border-surface-border bg-surface-card">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b border-surface-border">
-              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[35%]">
+      <div className="max-h-[min(68vh,36rem)] overflow-auto">
+        <table className="w-full border-collapse text-[13px] leading-snug">
+          <thead className="sticky top-0 z-[1] border-b border-zinc-200/55 bg-surface-card/95 backdrop-blur-[2px] dark:border-zinc-800/85 dark:bg-zinc-950/95">
+            <tr className="text-left">
+              <th
+                scope="col"
+                className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5"
+              >
                 {entityLabelColumn}
               </th>
-              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest w-[15%] hidden sm:table-cell">
+              <th
+                scope="col"
+                className="hidden whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
+              >
                 Nivel
               </th>
-              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest">
+              <th
+                scope="col"
+                className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5"
+              >
                 Estado
               </th>
-              <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink-muted uppercase tracking-widest hidden md:table-cell">
+              <th
+                scope="col"
+                className="hidden whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
+              >
                 Email
               </th>
-              <th className="w-24" />
+              <th
+                scope="col"
+                className="hidden whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted xl:table-cell xl:px-5"
+              >
+                Teléfono
+              </th>
+              <th scope="col" className="w-12 sm:w-[4.25rem]" aria-hidden />
             </tr>
           </thead>
-          <tbody>
-            {students.map((student, i) => (
-              <tr
-                key={student.id}
-                onClick={() => onRowClick(student.id)}
-                className={cn(
-                  'cursor-pointer group transition-colors hover:bg-surface-elevated',
-                  i !== students.length - 1 && 'border-b border-surface-border'
-                )}
-              >
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <StudentAvatar
-                      studentId={student.id}
-                      fullName={student.full_name}
-                      avatarPath={student.avatar_path ?? null}
-                      size="sm"
-                      stopRowNavigation
-                      onPathChange={() => onAvatarUpdated()}
-                    />
-                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                      <span className="font-semibold text-ink-primary truncate">{student.full_name}</span>
-                      {activeRoutineStudentIds.has(student.id) ? (
-                        <>
-                          <span
-                            title="Rutina activa"
-                            className="shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary/15"
-                          >
-                            <Dumbbell className="h-3 w-3 text-brand-primary" />
-                          </span>
-                          {routineExpiryMap.has(student.id) && (() => {
-                            const d = daysUntil(routineExpiryMap.get(student.id)!)
-                            return (
+          <tbody className="divide-y divide-zinc-200/40 bg-surface-card dark:divide-zinc-800/65">
+            {students.map((student) => {
+              const isSelected = selectedStudentId === student.id
+              return (
+                <tr
+                  key={student.id}
+                  onClick={() => onRowClick(student.id)}
+                  className={cn(
+                    'group cursor-pointer transition-colors',
+                    'hover:bg-zinc-50/80 dark:hover:bg-zinc-900/45',
+                    isSelected && 'bg-zinc-100/85 dark:bg-zinc-900/70',
+                  )}
+                >
+                  <td
+                    className={cn(
+                      'px-4 py-2.5 sm:px-5',
+                      isSelected && 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)] dark:border-l-zinc-500',
+                      !isSelected && 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <StudentAvatar
+                        studentId={student.id}
+                        fullName={student.full_name}
+                        avatarPath={student.avatar_path ?? null}
+                        size="sm"
+                        stopRowNavigation
+                        onPathChange={() => onAvatarUpdated()}
+                      />
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="truncate font-medium text-ink-primary">{student.full_name}</span>
+                          {activeRoutineStudentIds.has(student.id) ? (
+                            <>
                               <span
-                                title="Rutina por vencer"
-                                className="shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-orange-500/15 border border-orange-500/20 text-orange-400 text-[10px] font-medium"
+                                title="Rutina activa"
+                                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-200/70 bg-zinc-50/80 text-ink-secondary dark:border-zinc-700/80 dark:bg-zinc-900/50"
                               >
-                                {d === 0 ? 'Vence hoy' : `Rutina vence en ${d}d`}
+                                <Dumbbell className="h-3 w-3" />
                               </span>
-                            )
-                          })()}
-                        </>
-                      ) : student.status === 'activo' ? (
-                        <span
-                          title="Sin rutina activa"
-                          className="shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/20 text-amber-400 text-[10px] font-medium"
-                        >
-                          Sin rutina
-                        </span>
-                      ) : null}
-                      {(() => {
-                        const raw = localStorage.getItem(`tags_${student.id}`)
-                        if (!raw) return null
-                        try {
-                          const tags = JSON.parse(raw) as string[]
-                          return tags.slice(0, 2).map((t) => (
-                            <span key={t} className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-medium">
-                              <Tag className="h-2.5 w-2.5" />{t}
+                              {routineExpiryMap.has(student.id) &&
+                                (() => {
+                                  const d = daysUntil(routineExpiryMap.get(student.id)!)
+                                  return (
+                                    <span
+                                      title="Rutina por vencer"
+                                      className="hidden shrink-0 rounded-md border border-status-expiring/25 bg-status-expiring/8 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 dark:text-amber-300/95 sm:inline-flex"
+                                    >
+                                      {d === 0 ? 'Rutina: hoy' : `Rutina: ${d}d`}
+                                    </span>
+                                  )
+                                })()}
+                            </>
+                          ) : student.status === 'activo' ? (
+                            <span
+                              title="Sin rutina activa"
+                              className="hidden shrink-0 rounded-md border border-dashed border-zinc-300/80 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted dark:border-zinc-600/70 sm:inline-flex"
+                            >
+                              Sin rutina
                             </span>
-                          ))
-                        } catch { return null }
-                      })()}
+                          ) : null}
+                          {(() => {
+                            const raw = localStorage.getItem(`tags_${student.id}`)
+                            if (!raw) return null
+                            try {
+                              const tags = JSON.parse(raw) as string[]
+                              return tags.slice(0, 2).map((t) => (
+                                <span
+                                  key={t}
+                                  className="hidden items-center gap-0.5 rounded border border-zinc-200/70 bg-transparent px-1.5 py-0.5 text-[10px] font-medium text-ink-muted dark:border-zinc-700/70 md:inline-flex"
+                                >
+                                  <Tag className="h-2.5 w-2.5" />
+                                  {t}
+                                </span>
+                              ))
+                            } catch {
+                              return null
+                            }
+                          })()}
+                        </div>
+                        {student.email ? (
+                          <span className="truncate text-[11px] text-ink-muted lg:hidden">{student.email}</span>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-ink-secondary hidden sm:table-cell">
-                  {LEVEL_LABELS[student.level] ?? student.level}
-                </td>
-                <td className="px-5 py-3.5">
-                  <StatusToggle student={student} onChanged={onStatusChanged} />
-                </td>
-                <td className="px-5 py-3.5 text-ink-muted hidden md:table-cell">
-                  {student.email ?? '—'}
-                </td>
-                <td className="pr-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
-                      className="p-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-border transition-colors opacity-0 group-hover:opacity-100"
-                      title="Editar"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDelete(student) }}
-                      className="p-1.5 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors opacity-0 group-hover:opacity-100"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
+                    <span className="text-[13px]">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                  </td>
+                  <td className="px-4 py-2.5 sm:px-5">
+                    <StatusToggle student={student} onChanged={onStatusChanged} />
+                  </td>
+                  <td className="hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
+                    <span className="text-[12px]">{student.email ?? '—'}</span>
+                  </td>
+                  <td className="hidden tabular-nums text-ink-muted xl:table-cell xl:px-5 xl:py-2.5">
+                    <span className="text-[12px]">{student.phone ?? '—'}</span>
+                  </td>
+                  <td className="px-2 sm:px-3">
+                    <div className="flex items-center justify-end gap-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onEdit(student.id)
+                        }}
+                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-zinc-200/50 hover:text-ink-primary dark:hover:bg-zinc-800/60 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        title="Editar"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDelete(student)
+                        }}
+                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

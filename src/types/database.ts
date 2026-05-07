@@ -481,7 +481,7 @@ export interface WebPlan {
   intro_text: string
   includes_items: string[]
   gifts_items: string[]
-  /** Formulario público: solo entrenador vs planes con Cristina */
+  /** Formulario público: línea solo vs planes conjuntos (Cristian Vázquez). */
   catalog_segment: WebPlanCatalogSegment
   /** Etiqueta corta tipo chip (ej. Entrenamiento); null = usar heurística por slug */
   display_badge: string | null

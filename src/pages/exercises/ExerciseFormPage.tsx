@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -31,7 +32,7 @@ type FormValues = z.infer<typeof schema>
 export function ExerciseFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEditing = !!id
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([])
   const [showDelete, setShowDelete] = useState(false)

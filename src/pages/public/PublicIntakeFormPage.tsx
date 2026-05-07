@@ -1,15 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Sun, Moon, Dumbbell, Salad, Check } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Sun, Moon, Check } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { supabase } from '@/lib/supabase'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 
-type FormType = 'entrenamiento' | 'nutricion' | null
-
 const ACCENT = '#ffcc33'
+
+/** Ordena precios tipo «$60.000», «$100.000», etc. (sólo dígitos). */
+function numericFromPriceLabel(label: string): number {
+  const digits = label.replace(/\s/g, '').replace(/[^\d]/g, '')
+  return digits ? parseInt(digits, 10) : 0
+}
+
+/** Texto completo (detalle del plan / tooltip). En el selector sólo usamos líneas cortas. */
+const PUBLIC_PLAN_SOLO_CREDENTIAL_LINE =
+  'Lic. en alto rendimiento (estudiante) · Prof. Educación física · Especialización deportiva'
+const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
+  'Plan conjunto con Cristian Vázquez — Licenciado/a en Nutrición y especialización deportiva'
+
+const SEGMENT_SOLO_SUB = 'Solo Fernando'
+const SEGMENT_CRIS_SUB = 'Nutrición deportiva · plan conjunto'
 
 function CatalogSegmentThumbnail({
   imageUrl,
@@ -23,7 +36,7 @@ function CatalogSegmentThumbnail({
   const [failed, setFailed] = useState(false)
   const showImg = Boolean(imageUrl && !failed)
   return (
-    <div className="mx-auto mb-2 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
+    <div className="mx-auto mb-1.5 flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/12">
       {showImg ? (
         <img
           src={imageUrl!}
@@ -226,6 +239,14 @@ function PlanDetailView({
 
         <p className="mt-4 whitespace-pre-wrap break-words text-sm text-white/85 leading-relaxed">{plan.intro}</p>
 
+        {plan.catalogSegment === 'with_cris' ? (
+          <p className="mt-4 border-l-2 border-[#ffcc33]/70 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95">
+            {PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
+          </p>
+        ) : plan.catalogSegment === 'solo' ? (
+          <p className="mt-4 text-sm leading-relaxed text-white/75">{PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}</p>
+        ) : null}
+
         <div className="mt-5 pt-4 border-t border-[#f0c419]/20">
           <p className="text-sm font-semibold text-[#ffe99f] mb-2">Incluye</p>
           <ul className="space-y-2">
@@ -361,16 +382,16 @@ function LeftBrandPanel({
         <div className="flex-1 flex flex-col items-center text-center px-2 py-4 lg:py-2">
           <div className="relative mb-5">
             <div
-              className="pointer-events-none absolute -inset-4 rounded-[2rem] blur-3xl opacity-70"
+              className="pointer-events-none absolute -inset-8 rounded-[2rem] blur-3xl opacity-50"
               style={{
-                background: `radial-gradient(circle at 50% 50%, ${ACCENT} 0%, transparent 70%)`,
+                background: `radial-gradient(circle at 50% 50%, ${ACCENT} 0%, transparent 65%)`,
               }}
             />
-            <div className="relative rounded-[1.2rem] border border-white/20 bg-black/35 p-1 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.85)] backdrop-blur-md ring-1 ring-white/10">
+            <div className="relative flex justify-center px-2">
               <img
-                src="/app_icon_original_1024.png"
+                src="/logo-brand.png"
                 alt="Haciéndolo hábito"
-                className="h-20 w-20 sm:h-24 sm:w-24 rounded-[1rem]"
+                className="h-20 w-auto max-w-[min(360px,calc(100vw-3.5rem))] object-contain object-center drop-shadow-[0_4px_28px_rgba(0,0,0,0.5)] sm:h-24 sm:max-w-[420px] lg:h-28 lg:max-w-[min(480px,90%)]"
               />
             </div>
           </div>
@@ -380,39 +401,38 @@ function LeftBrandPanel({
           </h2>
           {dualCatalog ? (
             <div className="mb-5 w-full max-w-[340px]">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.18em] text-white/60 font-semibold text-center lg:text-left">
-                Elegí la línea
-              </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => onSelectCatalogSegment('solo')}
+                  title={PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}
                   className={[
-                    'rounded-2xl border p-4 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5',
+                    'rounded-xl border px-3 py-3 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5 active:translate-y-0',
                     catalogSegment === 'solo'
-                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/55'
-                      : 'border-white/15 bg-black/22',
+                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/50'
+                      : 'border-white/15 bg-black/22 hover:border-white/25',
                   ].join(' ')}
                   aria-pressed={catalogSegment === 'solo'}
                 >
                   <CatalogSegmentThumbnail imageUrl={soloSegmentImageUrl} titleFallback="F" />
-                  <p className="text-[11px] font-semibold text-white leading-tight">Mis planes</p>
-                  <p className="mt-1 text-[9px] text-white/60 leading-snug">Solo Fernando</p>
+                  <p className="text-[12px] font-semibold text-white leading-tight tracking-tight">Mis planes</p>
+                  <p className="mt-1 text-[10px] text-white/60 leading-snug">{SEGMENT_SOLO_SUB}</p>
                 </button>
                 <button
                   type="button"
                   onClick={() => onSelectCatalogSegment('with_cris')}
+                  title={PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
                   className={[
-                    'rounded-2xl border p-4 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5',
+                    'rounded-xl border px-3 py-3 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5 active:translate-y-0',
                     catalogSegment === 'with_cris'
-                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/55'
-                      : 'border-white/15 bg-black/22',
+                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/50'
+                      : 'border-white/15 bg-black/22 hover:border-white/25',
                   ].join(' ')}
                   aria-pressed={catalogSegment === 'with_cris'}
                 >
                   <CatalogSegmentThumbnail imageUrl={withCrisSegmentImageUrl} titleFallback="F+C" compactFallback />
-                  <p className="text-[11px] font-semibold text-white leading-tight">Con Cristina</p>
-                  <p className="mt-1 text-[9px] text-white/60 leading-snug">Consultas conjuntas</p>
+                  <p className="text-[12px] font-semibold text-white leading-tight tracking-tight">Con Cristian</p>
+                  <p className="mt-1 text-[10px] text-white/60 leading-snug">{SEGMENT_CRIS_SUB}</p>
                 </button>
               </div>
             </div>
@@ -458,7 +478,6 @@ function LeftBrandPanel({
 export function PublicIntakeFormPage() {
   const { theme } = useTheme()
   const [done,      setDone]      = useState(false)
-  const [formType,  setFormType]  = useState<FormType>(null)
   const [plans, setPlans] = useState<PlanDetail[]>(DEFAULT_PLANS)
   const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
@@ -471,6 +490,11 @@ export function PublicIntakeFormPage() {
     plans,
     catalogSegment,
   ])
+
+  /** Mis planes / Fer → Ferster (entrenamiento). Con Cristian → nutrición. */
+  const intakeKind = useMemo<'entrenamiento' | 'nutricion'>(() => {
+    return catalogSegment === 'with_cris' ? 'nutricion' : 'entrenamiento'
+  }, [catalogSegment])
 
   const selectedPlan = selectedPlanId
     ? plans.find((p) => p.id === selectedPlanId) ?? null
@@ -570,6 +594,12 @@ export function PublicIntakeFormPage() {
           gifts: row.gifts_items ?? [],
         }
       })
+      mapped.sort((a, b) => {
+        const da = numericFromPriceLabel(a.price)
+        const db = numericFromPriceLabel(b.price)
+        if (da !== db) return da - db
+        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+      })
       if (mapped.length > 0) setPlans(mapped)
     })()
     return () => {
@@ -664,9 +694,7 @@ export function PublicIntakeFormPage() {
               <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
             ) : (
               <div className="h-full overflow-y-auto">
-                {formType === null ? (
-                  <FormTypeSelector onSelect={setFormType} />
-                ) : formType === 'nutricion' ? (
+                {intakeKind === 'nutricion' ? (
                   <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                 ) : (
                   <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
@@ -683,12 +711,10 @@ export function PublicIntakeFormPage() {
                 }}
               >
               <div style={{ backfaceVisibility: 'hidden' }} className="h-full overflow-y-auto scrollbar-hide">
-                  {formType === null ? (
-                    <FormTypeSelector onSelect={setFormType} />
-                  ) : formType === 'nutricion' ? (
-                  <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
+                  {intakeKind === 'nutricion' ? (
+                    <IntakeNutritionForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                   ) : (
-                  <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
+                    <IntakeFersterForm selectedPlanSlug={selectedPlanId} onSuccess={() => setDone(true)} />
                   )}
                 </div>
 
@@ -705,62 +731,6 @@ export function PublicIntakeFormPage() {
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-// ─── Selector de tipo de formulario ──────────────────────────────────────────
-
-function FormTypeSelector({ onSelect }: { onSelect: (t: NonNullable<FormType>) => void }) {
-  return (
-    <div className="max-w-md mx-auto lg:mx-0 flex flex-col justify-center h-full py-4">
-      <h1 className="text-2xl sm:text-[1.65rem] font-bold text-ink-primary tracking-tight mb-2">
-        Formulario de registro
-      </h1>
-      <p className="text-sm text-ink-secondary mb-8">
-        Seleccioná el tipo de consulta para comenzar con el cuestionario correspondiente.
-      </p>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => onSelect('entrenamiento')}
-          className="group flex flex-col items-center gap-4 rounded-2xl border-2 border-surface-border bg-surface-card p-8 text-center transition-all hover:border-[#ffcc33]/60 hover:shadow-lg hover:shadow-[#ffcc33]/10 hover:-translate-y-0.5"
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ffcc33]/10 text-[#ffcc33] transition-transform group-hover:scale-110">
-            <Dumbbell className="h-7 w-7" />
-          </span>
-          <div>
-            <p className="text-base font-bold text-ink-primary">Entrenamiento</p>
-            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-              Plan personalizado, rutinas y seguimiento físico.
-            </p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onSelect('nutricion')}
-          className="group flex flex-col items-center gap-4 rounded-2xl border-2 border-surface-border bg-surface-card p-8 text-center transition-all hover:border-[#ffcc33]/60 hover:shadow-lg hover:shadow-[#ffcc33]/10 hover:-translate-y-0.5"
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ffcc33]/10 text-[#ffcc33] transition-transform group-hover:scale-110">
-            <Salad className="h-7 w-7" />
-          </span>
-          <div>
-            <p className="text-base font-bold text-ink-primary">Nutrición</p>
-            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-              Plan nutricional personalizado y seguimiento alimentario.
-            </p>
-          </div>
-        </button>
-      </div>
-
-      <p className="text-center text-xs text-ink-muted mt-8">
-        ¿Ya tenés cuenta?{' '}
-        <Link to="/login" className="font-medium hover:underline text-[#ffcc33]">
-          Iniciar sesión
-        </Link>
-      </p>
     </div>
   )
 }

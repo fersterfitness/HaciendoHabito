@@ -6,6 +6,7 @@ import {
   GRAMOS_POR_CUCHARADA_SOPERA,
   approxCucharadasSoperasLabel,
   preparacionAlumnoLine,
+  resolveMealPickQtyPresentation,
 } from '@/lib/nutrition/mealPickPresentation'
 import { parseLocaleNumberOrZero } from '@/lib/nutrition/planningCalculations'
 import type {
@@ -423,22 +424,6 @@ function hintForPick(p: MealSlotPick, wb: PlanningWorkbookStateV1): string | und
   return undefined
 }
 
-function pickQtyPresentationForStudent(
-  p: MealSlotPick,
-  wb: PlanningWorkbookStateV1,
-): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
-  const ulSnap = p.unitsLabel?.trim()
-  const modeSnap = p.qtyPresentation
-  if (modeSnap === 'units' && ulSnap) return { qtyPresentation: 'units', unitsLabel: ulSnap }
-  if (p.kind === 'plan_row') {
-    const sec = wb.sections.find((s) => s.key === p.secKey)
-    const row = sec?.rows.find((r) => r.id === p.rowId)
-    const ul = row?.unitsLabel?.trim()
-    if (row?.qtyPresentation === 'units' && ul) return { qtyPresentation: 'units', unitsLabel: ul }
-  }
-  return {}
-}
-
 /** Primera línea (cantidades) alineada a la derecha; resto debajo a ancho completo. */
 function splitMultilineBody(text: string): { first: string; rest: string[] } {
   const lines = text
@@ -456,8 +441,12 @@ function appendixDetailLinesCompact(row: PlanningFoodRowState): string {
   const hint = row.hint?.trim()
   const ul = row.unitsLabel?.trim()
   const base =
-    row.qtyPresentation === 'units' && ul
-      ? `${ul} u. (~${fmtGramOrDash(q)} g)`
+    row.qtyPresentation === 'units'
+      ? ul
+        ? `${ul} u. (~${fmtGramOrDash(q)} g)`
+        : q > 0
+          ? `Por unidades (cargá uds. en tabla): equiv. masa ~${fmtGramOrDash(q)} g`
+          : 'Por unidades: cargá uds. y gramos equiv. en tabla'
       : `${fmtGramOrDash(q)} g · ~${cdas}`
   const lines = [base]
   if (prep) lines.push(prep)
@@ -521,20 +510,14 @@ export function PlanningWorkbookPdfDocument({
   const hasObjective = objectivesDisplay.length > 0
 
   const person = wb.person
-  const macro = wb.macroInputs
   const sexTxt = person.sex === 'M' ? 'Hombre' : person.sex === 'F' ? 'Mujer' : ''
+  /** PDF: sin cuadro TDEE / meta kcal / g·kg (eso queda en la app). */
   const objectiveGridRows: [string, string][] = [
     ['Objetivo', hasObjective ? objectivesDisplay : '—'],
     ['Peso (kg)', person.weightKg?.trim() || '—'],
     ['Altura (cm)', person.heightCm?.trim() || '—'],
     ['Edad (años)', person.ageYears?.trim() || '—'],
     ['Sexo · ref.', sexTxt || '—'],
-    ['TDEE ref. hombre', person.tdeeMale?.trim() || '—'],
-    ['TDEE ref. mujer', person.tdeeFemale?.trim() || '—'],
-    ['Meta kcal día', wb.proposedKcal?.trim() || '—'],
-    ['Prot. (g/kg)', macro.proteinGPerKg?.trim() || '—'],
-    ['HC (g/kg)', macro.carbGPerKg?.trim() || '—'],
-    ['Grasas (g/kg)', macro.fatGPerKg?.trim() || '—'],
   ]
   const hasObjectivesTable = objectiveGridRows.some(([, v]) => v !== '—')
 
@@ -604,7 +587,7 @@ export function PlanningWorkbookPdfDocument({
             {hasObjectivesTable ? (
               <View style={styles.objectivesTable}>
                 <View style={{ paddingBottom: 4, paddingHorizontal: 8, paddingTop: 6, backgroundColor: C.brandSoftBg }}>
-                  <Text style={styles.objectivesLabel}>Resumen · datos del plan (orientativo)</Text>
+                  <Text style={styles.objectivesLabel}>Resumen · objetivo y datos básicos (orientativo)</Text>
                 </View>
                 {objectiveGridRows.map(([label, val], ri) => (
                   <View
@@ -626,7 +609,8 @@ export function PlanningWorkbookPdfDocument({
               <>
                 <Text style={styles.sectionHeading}>Distribución por momentos</Text>
                 <Text style={styles.sectionIntro}>
-                  Gramos orientativos; en untables/semillas cdas. (~{GRAMOS_POR_CUCHARADA_SOPERA} g/cda.). En carnes/pescado/huevo suele mostrarse solo gramos y referencia en plato (ver tip por fila).
+                  Preferí cargar huevos, pan/crackers por unidades («Uds.»): los gramos en tabla son sólo equivalencia para el cómputo del plan. Pesos cotidianos pensados cocidos cuando la fila así lo dice. En untables cdas. (~
+                  {GRAMOS_POR_CUCHARADA_SOPERA} g/cda.).
                 </Text>
                 {mealLayout
                   .filter((b) => {
@@ -643,7 +627,7 @@ export function PlanningWorkbookPdfDocument({
                         <View style={styles.mealBody}>
                           {picks.map((p, pi) => {
                             const hint = hintForPick(p, wb)
-                            const qPres = pickQtyPresentationForStudent(p, wb)
+                            const qPres = resolveMealPickQtyPresentation(p, wb)
                             const { gramsLine, prepLine } = buildStudentQuantitySummaryLines({
                               gramsStr: p.qtyG,
                               nameSnapshot: p.nameSnapshot,
@@ -690,7 +674,7 @@ export function PlanningWorkbookPdfDocument({
               <View>
                 {sectionsWithGrams.length > 0 ? (
                   <>
-                    <Text style={styles.appendixTitle}>Alimentos del plan (gramos)</Text>
+                    <Text style={styles.appendixTitle}>Alimentos del plan (gramos · unidades donde aplique)</Text>
                     <Text style={styles.appendixHint}>
                       Tablas del armado en la app; podés cruzarlo con la distribución por momentos arriba.
                     </Text>
@@ -734,15 +718,14 @@ export function PlanningWorkbookPdfDocument({
             {orientGuideRaw.length > 0 ? (
               <View style={styles.orientativeBox}>
                 <Text style={styles.orientativeTitle}>Guía orientativa · hortalizas, equivalencias y proteínas</Text>
-                <Text style={styles.orientativeBody}>{truncate(orientGuideRaw, 3500)}</Text>
+                <Text style={styles.orientativeBody}>{orientGuideRaw.trim()}</Text>
               </View>
             ) : null}
           </>
         )}
 
         <Text style={styles.footer} fixed>
-          No es prescripción médica · orientación general: ajustá con tu profesional. Imágenes de plato pueden sumarse como
-          ayuda visual en próximas versiones.
+          No es prescripción médica · orientación general: ajustá con tu profesional.
         </Text>
       </Page>
     </Document>

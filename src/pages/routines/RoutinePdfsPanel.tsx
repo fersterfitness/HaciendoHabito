@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { FileText, RefreshCw, Send, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -16,7 +17,7 @@ import toast from 'react-hot-toast'
 type PdfFull = RoutinePdf & { routine?: Pick<Routine, 'name'>; student?: Pick<Student, 'full_name'> }
 
 export function RoutinePdfsPanel() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [pdfs, setPdfs] = useState<PdfFull[]>([])
   const [loading, setLoading] = useState(true)

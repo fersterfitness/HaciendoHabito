@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Search, Users, Dumbbell, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -14,7 +15,7 @@ type Result = {
 }
 
 export function GlobalSearch() {
-  const navigate   = useNavigate()
+  const navigate = useAppNavigate()
   const { user }   = useAuthStore()
   const [open,     setOpen]     = useState(false)
   const [query,    setQuery]    = useState('')

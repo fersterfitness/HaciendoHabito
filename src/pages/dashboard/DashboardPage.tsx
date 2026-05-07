@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Users,
   Dumbbell,
   FileText,
   MessageSquare,
-  AlertTriangle,
   Calendar,
   TrendingUp,
   TrendingDown,
   BarChart3,
   Salad,
-  Apple,
   ClipboardList,
+  UtensilsCrossed,
+  Cake,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Wallet,
 } from 'lucide-react'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
@@ -24,17 +29,32 @@ import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { StatCardSkeleton, CardSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
-import { daysUntil } from '@/lib/utils'
+import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/Skeleton'
+import { cn, daysUntil } from '@/lib/utils'
 import type { Routine, Notification } from '@/types/database'
 
 interface Stats {
   activeStudents: number
   activeRoutines: number
-  pendingPdfs: number
-  openQuestions: number
+  /** Planes de alimentación (HH) ligados a alumnos activos. */
+  activeMealPlans: number
+  /** Turnos futuros del perfil entrenamiento (scheduled / confirmed). */
+  pendingAppointments: number
   activeNutritionPlans: number
   nutritionDocuments: number
+  /** Flujos mes vs mes anterior (cards: comparativa bajo el total). */
+  momStudentsThis: number
+  momStudentsPrev: number
+  momRoutinesThis: number
+  momRoutinesPrev: number
+  momMealPlansThis: number
+  momMealPlansPrev: number
+  momAppointmentsThis: number
+  momAppointmentsPrev: number
+  momNutPlansThis: number
+  momNutPlansPrev: number
+  momNutDocsThis: number
+  momNutDocsPrev: number
 }
 
 interface ExpiringRoutine extends Omit<Routine, 'student'> {
@@ -48,7 +68,29 @@ interface ExpiringPlan {
   status: string
 }
 
+type MergedExpiringItem = {
+  kind: 'routine' | 'plan'
+  id: string
+  sortDate: string
+  title: string
+  subtitle: string
+  href: string
+  days: number
+}
+
 const MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+/** Límites del mes calendario actual y del anterior (local) para filtros ISO en Supabase. */
+function monthBoundsISO() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  return {
+    startThis: new Date(y, m, 1).toISOString(),
+    startNext: new Date(y, m + 1, 1).toISOString(),
+    startPrev: new Date(y, m - 1, 1).toISOString(),
+  }
+}
 
 function buildChartData(rows: { income_date: string; amount: number }[]) {
   const now = new Date()
@@ -75,12 +117,12 @@ function CustomTooltip({ active, payload, label }: any) {
   const { value, change } = payload[0].payload as ChartPoint
   return (
     <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
-      <p className="font-bold text-ink-primary">{label}</p>
-      <p className="text-brand-primary font-semibold text-sm mt-0.5">
+      <p className="font-semibold text-ink-primary">{label}</p>
+      <p className="text-ink-primary font-semibold text-sm mt-0.5 tabular-nums">
         ${value.toLocaleString('es-AR')}
       </p>
       {change !== 0 && (
-        <p className={`font-semibold mt-0.5 ${change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <p className={`font-medium mt-0.5 ${change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
           {change > 0 ? '+' : ''}{change}% vs mes ant.
         </p>
       )}
@@ -92,11 +134,13 @@ function CustomTooltip({ active, payload, label }: any) {
 function CustomXTick({ x, y, payload }: any) {
   const d = payload.value as string
   return (
-    <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="rgba(255,255,255,0.35)" fontWeight={600}>
+    <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="rgba(148,163,184,0.9)" fontWeight={600}>
       {d}
     </text>
   )
 }
+
+const CHART_LINE = '#94a3b8'
 
 function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
   return (
@@ -104,16 +148,16 @@ function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
       <ResponsiveContainer width="100%" height={180}>
         <AreaChart data={data} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
           <defs>
-            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor="#FF8C00" stopOpacity={0.35} />
-              <stop offset="75%"  stopColor="#FF8C00" stopOpacity={0.05} />
-              <stop offset="100%" stopColor="#FF8C00" stopOpacity={0}    />
+            <linearGradient id="incomeGradientNeutral" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART_LINE} stopOpacity={0.22} />
+              <stop offset="85%" stopColor={CHART_LINE} stopOpacity={0.04} />
+              <stop offset="100%" stopColor={CHART_LINE} stopOpacity={0} />
             </linearGradient>
           </defs>
 
           <CartesianGrid
             vertical={false}
-            stroke="rgba(255,255,255,0.05)"
+            stroke="rgba(148,163,184,0.12)"
             strokeDasharray="4 4"
           />
 
@@ -127,31 +171,35 @@ function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
 
           <YAxis
             tickFormatter={(v) => v === 0 ? '' : `$${(v / 1000).toFixed(0)}k`}
-            tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }}
+            tick={{ fontSize: 9, fill: 'rgba(148,163,184,0.75)' }}
             axisLine={false}
             tickLine={false}
             width={36}
           />
 
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#FF8C00', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.5 }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: CHART_LINE, strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.45 }} />
 
           <Area
             type="monotone"
             dataKey="value"
-            stroke="#FF8C00"
-            strokeWidth={2.5}
-            fill="url(#incomeGradient)"
+            stroke={CHART_LINE}
+            strokeWidth={2}
+            fill="url(#incomeGradientNeutral)"
             dot={false}
-            activeDot={{ r: 4, fill: '#FF8C00', stroke: '#FF8C00', strokeWidth: 2 }}
+            activeDot={{ r: 3.5, fill: CHART_LINE, stroke: CHART_LINE, strokeWidth: 1.5 }}
           />
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* % change row */}
       <div className="flex mt-1 px-9">
         {data.map((d) => (
           <div key={d.label} className="flex-1 flex justify-center">
-            <span className={`text-[9px] font-semibold ${d.change > 0 ? 'text-emerald-500' : d.change < 0 ? 'text-red-400' : 'text-ink-muted/40'}`}>
+            <span className={cn(
+              'text-[9px] font-medium',
+              d.change > 0 && 'text-emerald-600/90 dark:text-emerald-400/90',
+              d.change < 0 && 'text-red-600/90 dark:text-red-400/90',
+              d.change === 0 && 'text-ink-muted/50',
+            )}>
               {d.change > 0 ? '+' : ''}{d.change !== 0 ? `${d.change}%` : '—'}
             </span>
           </div>
@@ -163,7 +211,7 @@ function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
 
 export function DashboardPage() {
   const { user, profile } = useAuthStore()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const role = profile?.role
   const activePeopleLabel = role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
@@ -173,10 +221,22 @@ export function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     activeStudents: 0,
     activeRoutines: 0,
-    pendingPdfs: 0,
-    openQuestions: 0,
+    activeMealPlans: 0,
+    pendingAppointments: 0,
     activeNutritionPlans: 0,
     nutritionDocuments: 0,
+    momStudentsThis: 0,
+    momStudentsPrev: 0,
+    momRoutinesThis: 0,
+    momRoutinesPrev: 0,
+    momMealPlansThis: 0,
+    momMealPlansPrev: 0,
+    momAppointmentsThis: 0,
+    momAppointmentsPrev: 0,
+    momNutPlansThis: 0,
+    momNutPlansPrev: 0,
+    momNutDocsThis: 0,
+    momNutDocsPrev: 0,
   })
   const [expiring, setExpiring] = useState<ExpiringRoutine[]>([])
   const [expiringPlans, setExpiringPlans] = useState<ExpiringPlan[]>([])
@@ -186,6 +246,36 @@ export function DashboardPage() {
   const [birthdays, setBirthdays] = useState<{ id: string; full_name: string; daysUntil: number }[]>([])
   const [todayApps, setTodayApps] = useState<{ id: string; title: string; starts_at: string; student_name: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [dashboardDetailOpen, setDashboardDetailOpen] = useState(true)
+
+  const mergedExpiring = useMemo((): MergedExpiringItem[] => {
+    const items: MergedExpiringItem[] = []
+    for (const r of expiring) {
+      items.push({
+        kind: 'routine',
+        id: r.id,
+        sortDate: r.end_date,
+        title: r.student?.full_name ?? '—',
+        subtitle: r.name,
+        href: `/routines/${r.id}`,
+        days: daysUntil(r.end_date),
+      })
+    }
+    for (const s of expiringPlans) {
+      items.push({
+        kind: 'plan',
+        id: s.id,
+        sortDate: s.plan_end_date,
+        title: s.full_name,
+        subtitle: 'Plan del alumno',
+        href: `/students/${s.id}`,
+        days: daysUntil(s.plan_end_date),
+      })
+    }
+    return items.sort((a, b) => a.sortDate.localeCompare(b.sortDate))
+  }, [expiring, expiringPlans])
+
+  const showUnifiedExpiringCard = canSeeTraining || expiringPlans.length > 0
 
   useEffect(() => {
     if (!user) return
@@ -200,12 +290,17 @@ export function DashboardPage() {
       since.setMonth(since.getMonth() - 5)
       since.setDate(1)
       const sinceStr = since.toISOString().split('T')[0]
+      const mb = monthBoundsISO()
+      /** Inicio del día local: turnos de “hoy” cuentan aunque la hora de inicio ya pasó (aún scheduled/confirmed). */
+      const startOfLocalDay = new Date()
+      startOfLocalDay.setHours(0, 0, 0, 0)
+      const appointmentsPendingFromISO = startOfLocalDay.toISOString()
 
       const [
         { count: activeStudents },
         { count: activeRoutines },
-        { count: pendingPdfs },
-        { count: openQuestions },
+        { count: activeMealPlans },
+        { count: pendingAppointments },
         { count: activeNutritionPlans },
         { count: nutritionDocuments },
         { data: expiringData },
@@ -220,10 +315,20 @@ export function DashboardPage() {
           ? supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeTraining
-          ? supabase.from('routine_pdfs').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
+          ? supabase
+              .from('trainer_student_meal_plans')
+              .select('id, students!inner(status)', { count: 'exact', head: true })
+              .eq('owner_id', user!.id)
+              .eq('students.status', 'activo')
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeTraining
-          ? supabase.from('routine_questions').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).neq('status', 'cerrada')
+          ? supabase
+              .from('appointments')
+              .select('id', { count: 'exact', head: true })
+              .eq('owner_id', user!.id)
+              .eq('profile_type', 'trainer')
+              .in('status', ['scheduled', 'confirmed'])
+              .gte('starts_at', appointmentsPendingFromISO)
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeNutrition
           ? supabase.from('nutrition_plans').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
@@ -257,6 +362,128 @@ export function DashboardPage() {
           .lte('starts_at', `${new Date().toISOString().split('T')[0]}T23:59:59`)
           .order('starts_at'),
       ])
+
+      const momPromises: Promise<{ count: number | null }>[] = [
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', user!.id)
+          .eq('status', 'activo')
+          .gte('created_at', mb.startThis)
+          .lt('created_at', mb.startNext),
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', user!.id)
+          .eq('status', 'activo')
+          .gte('created_at', mb.startPrev)
+          .lt('created_at', mb.startThis),
+      ]
+      if (canSeeTraining) {
+        momPromises.push(
+          supabase
+            .from('routines')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('routines')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+          supabase
+            .from('trainer_student_meal_plans')
+            .select('id, students!inner(status)', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('students.status', 'activo')
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('trainer_student_meal_plans')
+            .select('id, students!inner(status)', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('students.status', 'activo')
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+          supabase
+            .from('appointments')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('profile_type', 'trainer')
+            .in('status', ['scheduled', 'confirmed'])
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('appointments')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('profile_type', 'trainer')
+            .in('status', ['scheduled', 'confirmed'])
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis)
+        )
+      } else if (canSeeNutrition) {
+        momPromises.push(
+          supabase
+            .from('nutrition_plans')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('nutrition_plans')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+          supabase
+            .from('nutrition_patient_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .gte('uploaded_at', mb.startThis)
+            .lt('uploaded_at', mb.startNext),
+          supabase
+            .from('nutrition_patient_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .gte('uploaded_at', mb.startPrev)
+            .lt('uploaded_at', mb.startThis)
+        )
+      }
+
+      const momRes = await Promise.all(momPromises)
+      let mi = 0
+      const momStudentsThis = momRes[mi++]?.count ?? 0
+      const momStudentsPrev = momRes[mi++]?.count ?? 0
+      let momRoutinesThis = 0
+      let momRoutinesPrev = 0
+      let momMealPlansThis = 0
+      let momMealPlansPrev = 0
+      let momAppointmentsThis = 0
+      let momAppointmentsPrev = 0
+      let momNutPlansThis = 0
+      let momNutPlansPrev = 0
+      let momNutDocsThis = 0
+      let momNutDocsPrev = 0
+      if (canSeeTraining) {
+        momRoutinesThis = momRes[mi++]?.count ?? 0
+        momRoutinesPrev = momRes[mi++]?.count ?? 0
+        momMealPlansThis = momRes[mi++]?.count ?? 0
+        momMealPlansPrev = momRes[mi++]?.count ?? 0
+        momAppointmentsThis = momRes[mi++]?.count ?? 0
+        momAppointmentsPrev = momRes[mi++]?.count ?? 0
+      } else if (canSeeNutrition) {
+        momNutPlansThis = momRes[mi++]?.count ?? 0
+        momNutPlansPrev = momRes[mi++]?.count ?? 0
+        momNutDocsThis = momRes[mi++]?.count ?? 0
+        momNutDocsPrev = momRes[mi++]?.count ?? 0
+      }
 
       // Compute retention buckets
       const now = new Date()
@@ -299,10 +526,22 @@ export function DashboardPage() {
       setStats({
         activeStudents: activeStudents ?? 0,
         activeRoutines: activeRoutines ?? 0,
-        pendingPdfs: pendingPdfs ?? 0,
-        openQuestions: openQuestions ?? 0,
+        activeMealPlans: activeMealPlans ?? 0,
+        pendingAppointments: pendingAppointments ?? 0,
         activeNutritionPlans: activeNutritionPlans ?? 0,
         nutritionDocuments: nutritionDocuments ?? 0,
+        momStudentsThis,
+        momStudentsPrev,
+        momRoutinesThis,
+        momRoutinesPrev,
+        momMealPlansThis,
+        momMealPlansPrev,
+        momAppointmentsThis,
+        momAppointmentsPrev,
+        momNutPlansThis,
+        momNutPlansPrev,
+        momNutDocsThis,
+        momNutDocsPrev,
       })
       setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
       setExpiringPlans((expiringPlansData as unknown as ExpiringPlan[]) ?? [])
@@ -317,18 +556,14 @@ export function DashboardPage() {
     return (
       <div>
         <Header title="Inicio" />
-        <div className="px-4 lg:px-6 py-6 space-y-6">
-          {/* Stat cards skeleton */}
+        <div className="px-4 lg:px-6 py-8 space-y-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+            {Array.from({ length: 4 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))}
           </div>
-          {/* Chart skeleton */}
+          <Skeleton className="h-11 rounded-xl border border-transparent" />
           <ChartSkeleton />
-          {/* Cards skeleton */}
-          <div className="grid lg:grid-cols-2 gap-4">
-            <CardSkeleton rows={3} />
-            <CardSkeleton rows={4} />
-          </div>
         </div>
       </div>
     )
@@ -338,13 +573,18 @@ export function DashboardPage() {
     <div>
       <Header title="Inicio" />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6">
-        {/* Stats */}
+      <div className="px-4 lg:px-6 py-8 space-y-8">
+        {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard
             title={activePeopleLabel}
             value={stats.activeStudents}
             icon={<Users className="h-5 w-5" />}
+            monthOverMonth={{
+              thisMonth: stats.momStudentsThis,
+              prevMonth: stats.momStudentsPrev,
+              scopeLabel: 'Altas',
+            }}
             onClick={() => navigate('/students')}
           />
           {canSeeTraining ? (
@@ -353,20 +593,35 @@ export function DashboardPage() {
                 title="Rutinas vigentes"
                 value={stats.activeRoutines}
                 icon={<Dumbbell className="h-5 w-5" />}
+                monthOverMonth={{
+                  thisMonth: stats.momRoutinesThis,
+                  prevMonth: stats.momRoutinesPrev,
+                  scopeLabel: 'Nuevas rutinas',
+                }}
                 onClick={() => navigate('/routines')}
               />
               <StatCard
-                title="PDFs generados"
-                value={stats.pendingPdfs}
-                icon={<FileText className="h-5 w-5" />}
-                onClick={() => navigate('/routine-pdfs')}
+                title="Planes alimentación vigentes"
+                value={stats.activeMealPlans}
+                icon={<UtensilsCrossed className="h-5 w-5" />}
+                monthOverMonth={{
+                  thisMonth: stats.momMealPlansThis,
+                  prevMonth: stats.momMealPlansPrev,
+                  scopeLabel: 'Planes nuevos',
+                }}
+                onClick={() => navigate('/meal-plans')}
               />
               <StatCard
-                title="Consultas abiertas"
-                value={stats.openQuestions}
-                icon={<MessageSquare className="h-5 w-5" />}
-                iconColor={stats.openQuestions > 0 ? 'text-status-expiring' : 'text-brand-primary'}
-                onClick={() => navigate('/feedback')}
+                title="Turnos pendientes"
+                subtitle="Desde hoy · programados o confirmados"
+                value={stats.pendingAppointments}
+                icon={<Calendar className="h-5 w-5" />}
+                monthOverMonth={{
+                  thisMonth: stats.momAppointmentsThis,
+                  prevMonth: stats.momAppointmentsPrev,
+                  scopeLabel: 'Turnos nuevos',
+                }}
+                onClick={() => navigate('/appointments')}
               />
             </>
           ) : (
@@ -375,56 +630,60 @@ export function DashboardPage() {
                 title="Planes nutrición"
                 value={stats.activeNutritionPlans}
                 icon={<Salad className="h-5 w-5" />}
+                monthOverMonth={{
+                  thisMonth: stats.momNutPlansThis,
+                  prevMonth: stats.momNutPlansPrev,
+                  scopeLabel: 'Planes nuevos',
+                }}
                 onClick={() => navigate('/nutrition')}
               />
               <StatCard
                 title="PDFs antropometría"
                 value={stats.nutritionDocuments}
                 icon={<FileText className="h-5 w-5" />}
+                monthOverMonth={{
+                  thisMonth: stats.momNutDocsThis,
+                  prevMonth: stats.momNutDocsPrev,
+                  scopeLabel: 'PDFs subidos',
+                }}
                 onClick={() => navigate('/nutrition')}
               />
               <StatCard
                 title="Diagnósticos"
                 value={stats.nutritionDocuments}
                 icon={<MessageSquare className="h-5 w-5" />}
+                monthOverMonth={{
+                  thisMonth: stats.momNutDocsThis,
+                  prevMonth: stats.momNutDocsPrev,
+                  scopeLabel: 'PDFs subidos',
+                }}
                 onClick={() => navigate('/nutrition-pdfs')}
               />
             </>
           )}
         </div>
 
-        {/* Cumpleaños próximos */}
-        {birthdays.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {birthdays.map((b) => (
-              <div key={b.id} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-pink-500/10 border border-pink-500/25 text-sm">
-                <span>🎂</span>
-                <span className="font-medium text-ink-primary">{b.full_name}</span>
-                <span className="text-xs text-pink-400 font-semibold">
-                  {b.daysUntil === 0 ? '¡Hoy!' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil} días`}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Turnos de hoy */}
+        {/* Operación del día (visible sin desplegar) */}
         {todayApps.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-brand-primary" />
-                <CardTitle>Hoy · {todayApps.length} {todayApps.length === 1 ? 'turno' : 'turnos'}</CardTitle>
+                <Calendar className="h-4 w-4 text-ink-muted" />
+                <CardTitle className="font-medium">
+                  Hoy · {todayApps.length} {todayApps.length === 1 ? 'turno' : 'turnos'}
+                </CardTitle>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/appointments')}>Ver agenda</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/appointments')}>
+                Ver agenda
+              </Button>
             </CardHeader>
-            <div className="space-y-1.5">
+            <div className="divide-y divide-surface-border rounded-xl border border-surface-border overflow-hidden">
               {todayApps.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-elevated">
-                  <span className="text-xs font-bold text-brand-primary w-10 shrink-0">
+                <div key={a.id} className="flex items-center gap-3 px-3 py-2.5 bg-surface-elevated/30">
+                  <span className="text-xs font-semibold tabular-nums text-ink-secondary w-11 shrink-0">
                     {new Date(a.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-ink-primary truncate">{a.title}</p>
                     <p className="text-xs text-ink-muted">{a.student_name}</p>
                   </div>
@@ -434,225 +693,235 @@ export function DashboardPage() {
           </Card>
         )}
 
-        {/* Retención */}
-        {stats.activeStudents > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-brand-primary" />
-                <CardTitle>Retención</CardTitle>
-              </div>
-              <p className="text-xs text-ink-muted">Alumnos activos por antigüedad</p>
-            </CardHeader>
-            <div className="grid grid-cols-3 gap-3 mt-1">
-              {[
-                { label: '+3 meses', value: retention.m3, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-                { label: '+6 meses', value: retention.m6, color: 'text-brand-primary', bg: 'bg-brand-primary/10 border-brand-primary/20' },
-                { label: '+12 meses', value: retention.m12, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20' },
-              ].map(({ label, value, color, bg }) => (
-                <div key={label} className={`rounded-xl p-3 text-center border ${bg}`}>
-                  <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                  <p className="text-[11px] text-ink-muted mt-0.5">{label}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
+        <button
+          type="button"
+          aria-expanded={dashboardDetailOpen}
+          onClick={() => setDashboardDetailOpen((v) => !v)}
+          className={cn(
+            'w-full flex items-center justify-between gap-3 rounded-xl border border-surface-border',
+            'bg-surface-card px-4 py-3 text-left text-sm font-medium text-ink-secondary',
+            'hover:bg-surface-elevated/50 hover:text-ink-primary transition-colors'
+          )}
+        >
+          <span>{dashboardDetailOpen ? 'Ocultar detalle' : 'Mostrar detalle y análisis'}</span>
+          {dashboardDetailOpen ? (
+            <ChevronUp className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+          ) : (
+            <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+          )}
+        </button>
 
-        {canSeeTraining && (
-        <Card className="overflow-hidden p-0">
-          <CardHeader className="px-5 pt-4 pb-0">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-brand-primary" />
-              <CardTitle>Ingresos cobrados</CardTitle>
-            </div>
-            {growthData.length > 0 && (() => {
-              const last = growthData[growthData.length - 1]
-              return (
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="font-semibold text-ink-primary">
-                    ${last.value.toLocaleString('es-AR')}
-                  </span>
-                  {last.change !== 0 && (
-                    <span className={`inline-flex items-center gap-1 font-semibold ${last.change > 0 ? 'text-status-generated' : 'text-status-expired'}`}>
-                      {last.change > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                      {last.change > 0 ? '+' : ''}{last.change}% vs mes anterior
-                    </span>
-                  )}
-                </div>
-              )
-            })()}
-          </CardHeader>
-          <div className="pt-3 pb-0">
-            {growthData.length > 0
-              ? <MonthlyAreaChart data={growthData} />
-              : <p className="text-center text-sm text-ink-muted py-12">Sin ingresos cobrados en los últimos 6 meses</p>
-            }
-          </div>
-        </Card>
-        )}
-
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* Rutinas por vencer */}
-          {canSeeTraining && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-status-expiring" />
-                <CardTitle>Rutinas por vencer</CardTitle>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/routines')}
-              >
-                Ver todas
-              </Button>
-            </CardHeader>
-            {expiring.length === 0 ? (
-              <p className="text-sm text-ink-muted py-4 text-center">
-                No hay rutinas próximas a vencer 🎉
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {expiring.map((r) => {
-                  const days = daysUntil(r.end_date)
-                  return (
-                    <button
-                      key={r.id}
-                      onClick={() => navigate(`/routines/${r.id}`)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors text-left group"
+        {dashboardDetailOpen && (
+          <div className="space-y-8 pt-4 border-t border-surface-border/70">
+            {birthdays.length > 0 && (
+              <div>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                  Cumpleaños próximos
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {birthdays.map((b) => (
+                    <div
+                      key={b.id}
+                      className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-surface-border bg-surface-elevated/40 text-sm"
                     >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink-primary truncate">
-                          {r.student?.full_name ?? '—'}
-                        </p>
-                        <p className="text-xs text-ink-secondary truncate">{r.name}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-lg ${
-                            days <= 3
-                              ? 'bg-status-expired/10 text-status-expired'
-                              : days <= 7
-                              ? 'bg-status-expiring/10 text-status-expiring'
-                              : 'bg-brand-primary/10 text-brand-primary'
-                          }`}
-                        >
-                          {days <= 0 ? 'Hoy' : `${days}d`}
-                        </span>
-                        <Calendar className="h-3.5 w-3.5 text-ink-muted" />
-                      </div>
-                    </button>
-                  )
-                })}
+                      <Cake className="h-3.5 w-3.5 text-ink-muted shrink-0" aria-hidden />
+                      <span className="font-medium text-ink-primary">{b.full_name}</span>
+                      <span className="text-[11px] text-ink-muted">
+                        {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `En ${b.daysUntil} días`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </Card>
-          )}
 
-          {/* Planes por vencer */}
-          {expiringPlans.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
-                <CardTitle>Planes por vencer</CardTitle>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>
-                Ver todos
-              </Button>
-            </CardHeader>
-            <div className="space-y-2">
-              {expiringPlans.map((s) => {
-                const days = daysUntil(s.plan_end_date)
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => navigate(`/students/${s.id}`)}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors text-left group"
-                  >
-                    <p className="text-sm font-medium text-ink-primary truncate">{s.full_name}</p>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg shrink-0 ml-2 ${
-                      days < 0
-                        ? 'bg-red-500/10 text-red-400'
-                        : days <= 3
-                        ? 'bg-status-expired/10 text-status-expired'
-                        : 'bg-amber-500/10 text-amber-400'
-                    }`}>
-                      {days < 0 ? 'Vencido' : days === 0 ? 'Hoy' : `${days}d`}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </Card>
-          )}
-
-          {/* Acciones rápidas */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Acciones rápidas</CardTitle>
-            </CardHeader>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: 'Nuevo alumno', icon: Users, href: '/students/new', show: true },
-                { label: 'Nueva rutina', icon: Dumbbell, href: '/routines/new', show: canSeeTraining },
-                { label: 'Nutrición', icon: Salad, href: '/nutrition', show: canSeeNutrition },
-                {
-                  label: 'Guía de alimentos',
-                  icon: Apple,
-                  href: '/nutrition/foods',
-                  show: canSeeNutritionFoodsGuide,
-                },
-                {
-                  label: 'Armar plan de alimentación',
-                  icon: ClipboardList,
-                  href: '/nutrition/planning',
-                  show: canSeeNutritionFoodsGuide,
-                },
-                { label: 'Diagnóstico PDF', icon: FileText, href: '/nutrition-pdfs', show: canSeeNutrition },
-                { label: 'Ver PDFs', icon: FileText, href: '/routine-pdfs', show: canSeeTraining },
-                { label: 'Ver dudas', icon: MessageSquare, href: '/feedback', show: canSeeTraining },
-              ].filter((item) => item.show).map(({ label, icon: Icon, href }) => (
-                <button
-                  key={href}
-                  onClick={() => navigate(href)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-surface-elevated hover:bg-surface-border/50 hover:border-brand-primary/20 border border-transparent transition-all text-center group"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center group-hover:bg-brand-primary/20 transition-colors">
-                    <Icon className="h-4 w-4 text-brand-primary" />
+            {stats.activeStudents > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex flex-col gap-0.5">
+                    <CardTitle className="text-base font-medium">Retención</CardTitle>
+                    <p className="text-xs text-ink-muted">Alumnos activos por antigüedad</p>
                   </div>
-                  <span className="text-xs font-medium text-ink-secondary group-hover:text-ink-primary transition-colors">
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        {/* Notificaciones recientes */}
-        {notifications.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Notificaciones recientes</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>
-                Ver todas
-              </Button>
-            </CardHeader>
-            <div className="space-y-2">
-              {notifications.map((n) => (
-                <div key={n.id} className="flex gap-3 p-3 rounded-xl bg-surface-elevated">
-                  <div className="w-2 h-2 rounded-full bg-brand-primary mt-1.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-primary">{n.title}</p>
-                    <p className="text-xs text-ink-secondary truncate">{n.body}</p>
+                </CardHeader>
+                <div className="rounded-xl border border-surface-border overflow-hidden bg-surface-elevated/20">
+                  <div className="grid grid-cols-3 divide-x divide-surface-border">
+                    {[
+                      { label: '+3 meses', value: retention.m3 },
+                      { label: '+6 meses', value: retention.m6 },
+                      { label: '+12 meses', value: retention.m12 },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="px-3 py-4 text-center">
+                        <p className="text-2xl font-semibold tabular-nums text-ink-primary">{value}</p>
+                        <p className="text-[11px] text-ink-muted mt-1">{label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+              </Card>
+            )}
+
+            {canSeeTraining && (
+              <Card className="overflow-hidden p-0">
+                <CardHeader className="px-5 pt-4 pb-0">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-ink-muted" />
+                    <CardTitle className="font-medium">Ingresos cobrados</CardTitle>
+                  </div>
+                  {growthData.length > 0 && (() => {
+                    const last = growthData[growthData.length - 1]
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-2">
+                        <span className="font-semibold text-ink-primary tabular-nums">
+                          ${last.value.toLocaleString('es-AR')}
+                        </span>
+                        {last.change !== 0 && (
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 font-medium tabular-nums',
+                              last.change > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-red-600 dark:text-red-400'
+                            )}
+                          >
+                            {last.change > 0 ? (
+                              <TrendingUp className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                            ) : (
+                              <TrendingDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                            )}
+                            {last.change > 0 ? '+' : ''}
+                            {last.change}% vs mes anterior
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </CardHeader>
+                <div className="pt-3 pb-2">
+                  {growthData.length > 0 ? (
+                    <MonthlyAreaChart data={growthData} />
+                  ) : (
+                    <p className="text-center text-sm text-ink-muted py-12 px-4">
+                      Sin ingresos cobrados en los últimos 6 meses
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {showUnifiedExpiringCard && (
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <CardTitle className="font-medium">Próximos vencimientos</CardTitle>
+                    <p className="text-xs text-ink-muted">Rutinas y planes del alumno · ventana próximos 14 días</p>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                    {canSeeTraining && (
+                      <Button variant="ghost" size="sm" onClick={() => navigate('/routines')}>
+                        Rutinas
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>
+                      Alumnos
+                    </Button>
+                  </div>
+                </CardHeader>
+                {mergedExpiring.length === 0 ? (
+                  <p className="text-sm text-ink-muted py-6 text-center">Nada próximo en esta ventana</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {mergedExpiring.map((row) => (
+                      <button
+                        key={`${row.kind}-${row.id}`}
+                        type="button"
+                        onClick={() => navigate(row.href)}
+                        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-surface-border/80 bg-surface-elevated/35 hover:bg-surface-elevated transition-colors text-left"
+                      >
+                        <div className="min-w-0 flex gap-3 items-start">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted w-[4.75rem] shrink-0 pt-0.5">
+                            {row.kind === 'routine' ? 'Rutina' : 'Plan'}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-ink-primary truncate">{row.title}</p>
+                            <p className="text-xs text-ink-muted truncate">{row.subtitle}</p>
+                          </div>
+                        </div>
+                        <span
+                          className={cn(
+                            'text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border border-surface-border shrink-0',
+                            row.days < 0 && 'border-red-500/35 text-red-600 dark:text-red-400',
+                            row.days >= 0 &&
+                              row.days <= 3 &&
+                              'border-amber-500/35 text-amber-800 dark:text-amber-300'
+                          )}
+                        >
+                          {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Hoy' : `${row.days}d`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader className="pb-1">
+                <CardTitle className="font-medium">Enlaces rápidos</CardTitle>
+                <p className="text-xs text-ink-muted">Atajos (el resto está en la barra lateral)</p>
+              </CardHeader>
+              <div className="rounded-xl border border-surface-border divide-y divide-surface-border overflow-hidden">
+                {[
+                  { label: 'Nuevo alumno', icon: Users, href: '/students/new', show: true },
+                  { label: 'Nueva rutina', icon: Dumbbell, href: '/routines/new', show: canSeeTraining },
+                  { label: 'Agenda y turnos', icon: Calendar, href: '/appointments', show: true },
+                  { label: 'Finanzas', icon: Wallet, href: '/finances', show: canSeeTraining },
+                  { label: 'Nutrición', icon: Salad, href: '/nutrition', show: canSeeNutrition },
+                  { label: 'Armar plan de alimentación', icon: ClipboardList, href: '/nutrition/planning', show: canSeeNutritionFoodsGuide },
+                  { label: 'PDFs rutinas', icon: FileText, href: '/routine-pdfs', show: canSeeTraining },
+                  { label: 'Consultas y feedback', icon: MessageSquare, href: '/feedback', show: canSeeTraining },
+                  { label: 'PDFs nutrición', icon: FileText, href: '/nutrition-pdfs', show: canSeeNutrition },
+                ]
+                  .filter((item) => item.show)
+                  .map(({ label, icon: Icon, href }) => (
+                    <button
+                      key={href}
+                      type="button"
+                      onClick={() => navigate(href)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-elevated/60 transition-colors"
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                      <span className="text-sm text-ink-primary flex-1">{label}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted/70" aria-hidden />
+                    </button>
+                  ))}
+              </div>
+            </Card>
+
+            {notifications.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-medium">Notificaciones</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>
+                    Ver todas
+                  </Button>
+                </CardHeader>
+                <div className="space-y-1.5">
+                  {notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="flex gap-3 px-3 py-2.5 rounded-xl border border-surface-border/70 bg-surface-elevated/25"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-ink-muted mt-1.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink-primary">{n.title}</p>
+                        <p className="text-xs text-ink-secondary leading-snug">{n.body}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -6,11 +6,10 @@ import {
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import type { MenstrualCycle } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -66,12 +65,12 @@ function getPhase(day: number, cycleLen: number): Phase {
   return 'lutea'
 }
 
-const PHASE_META: Record<Phase, { label: string; color: string; bg: string; desc: string }> = {
-  menstruacion: { label: 'Menstruación',   color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20',     desc: 'Puede haber más fatiga. Entrenar suave, priorizá movilidad y recuperación.' },
-  folicular:    { label: 'Fase folicular', color: '#a78bfa', bg: 'bg-purple-400/10 border-purple-400/20', desc: 'Energía en alza, estrógenos subiendo. Buena etapa para cargas altas y PR.' },
-  ovulacion:    { label: 'Ovulación',      color: '#4ade80', bg: 'bg-green-400/10 border-green-400/20',  desc: 'Pico de energía y fuerza. Ideal para entrenamientos de máxima intensidad.' },
-  lutea:        { label: 'Fase lútea',     color: '#fb923c', bg: 'bg-orange-400/10 border-orange-400/20', desc: 'Progesterona alta, puede haber retención y menor tolerancia al esfuerzo. Moderá la intensidad.' },
-  nuevo_ciclo:  { label: 'Ciclo completado', color: '#6b7280', bg: 'bg-surface-elevated border-surface-border', desc: 'El ciclo estimado terminó. Registrá el nuevo período cuando inicie.' },
+const PHASE_META: Record<Phase, { label: string; desc: string }> = {
+  menstruacion:   { label: 'Menstruación', desc: 'Puede haber más fatiga. Entrenar suave, priorizá movilidad y recuperación.' },
+  folicular:      { label: 'Fase folicular', desc: 'Energía en alza, estrógenos subiendo. Buena etapa para cargas altas y PR.' },
+  ovulacion:      { label: 'Ovulación', desc: 'Pico de energía y fuerza. Ideal para entrenamientos de máxima intensidad.' },
+  lutea:          { label: 'Fase lútea', desc: 'Progesterona alta, puede haber retención y menor tolerancia al esfuerzo. Moderá la intensidad.' },
+  nuevo_ciclo:    { label: 'Ciclo completado', desc: 'El ciclo estimado terminó. Registrá el nuevo período cuando inicie.' },
 }
 
 // ─── CicloTab ─────────────────────────────────────────────────────────────────
@@ -149,33 +148,33 @@ export function CicloTab({ studentId }: { studentId: string }) {
       {cycleInfo ? (
         <>
           {/* Fase actual */}
-          <div className={cn('border rounded-2xl p-4', PHASE_META[cycleInfo.phase].bg)}>
-            <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="border-b border-zinc-200/60 pb-5 dark:border-zinc-800/65">
+            <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: PHASE_META[cycleInfo.phase].color }}>
-                  Fase actual
-                </p>
-                <p className="text-lg font-bold text-ink-primary">{PHASE_META[cycleInfo.phase].label}</p>
-                <p className="text-xs text-ink-secondary mt-1 leading-relaxed">{PHASE_META[cycleInfo.phase].desc}</p>
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Fase actual</p>
+                <p className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{PHASE_META[cycleInfo.phase].label}</p>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">{PHASE_META[cycleInfo.phase].desc}</p>
               </div>
-              <div className="text-center shrink-0 bg-surface-card rounded-xl px-3 py-2 min-w-[60px]">
-                <p className="text-2xl font-bold text-ink-primary">{Math.max(cycleInfo.dayInCycle, 1)}</p>
-                <p className="text-[10px] text-ink-muted">día {cycleInfo.dayInCycle > cycleInfo.cycleLen ? '(pasado)' : `/ ${cycleInfo.cycleLen}`}</p>
+              <div className="min-w-[60px] shrink-0 border border-zinc-200/70 px-3 py-2 text-center dark:border-zinc-700/80">
+                <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{Math.max(cycleInfo.dayInCycle, 1)}</p>
+                <p className="text-[10px] text-zinc-500">
+                  día {cycleInfo.dayInCycle > cycleInfo.cycleLen ? '(pasado)' : `/ ${cycleInfo.cycleLen}`}
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <dl className="grid grid-cols-3 gap-4 border-t border-zinc-200/50 pt-4 dark:border-zinc-800/55">
               {[
                 { label: 'Próxima ovulación', value: cycleInfo.daysToOv > 0 ? `en ${cycleInfo.daysToOv}d` : cycleInfo.daysToOv === 0 ? 'Hoy' : 'Pasó' },
-                { label: 'Próximo período',    value: cycleInfo.daysToNext > 0 ? `en ${cycleInfo.daysToNext}d` : 'Hoy o pasado' },
-                { label: 'Largo prom.',        value: `${avgCycleLen} días` },
+                { label: 'Próximo período', value: cycleInfo.daysToNext > 0 ? `en ${cycleInfo.daysToNext}d` : 'Hoy o pasado' },
+                { label: 'Largo prom.', value: `${avgCycleLen} días` },
               ].map(({ label, value }) => (
-                <div key={label} className="bg-surface-card/60 rounded-xl p-2 text-center">
-                  <p className="text-[9px] text-ink-muted uppercase tracking-wide leading-tight">{label}</p>
-                  <p className="text-sm font-semibold text-ink-primary mt-0.5">{value}</p>
+                <div key={label}>
+                  <dt className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">{label}</dt>
+                  <dd className="mt-0.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">{value}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </div>
 
           {/* Gráfico hormonal */}
@@ -190,46 +189,50 @@ export function CicloTab({ studentId }: { studentId: string }) {
       )}
 
       {/* Registrar nuevo ciclo */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de ciclos</CardTitle>
-          <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowForm(true)}>
+      <section>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Historial de ciclos</h3>
+          <Button
+            size="sm"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            className="!border-0 !bg-[#ff4800] !text-white hover:!bg-[#e04100]"
+            onClick={() => setShowForm(true)}
+          >
             Registrar período
           </Button>
-        </CardHeader>
+        </div>
 
         {cycles.length === 0 ? (
-          <p className="text-xs text-ink-muted text-center py-4">Sin registros aún.</p>
+          <p className="py-4 text-center text-xs text-zinc-500">Sin registros aún.</p>
         ) : (
-          <div className="space-y-2">
+          <ul className="divide-y divide-zinc-200/55 dark:divide-zinc-800/55">
             {cycles.map((c) => {
               const end = new Date(c.cycle_start_date + 'T00:00:00')
               end.setDate(end.getDate() + c.cycle_length - 1)
               return (
-                <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 bg-surface-elevated rounded-xl">
-                  <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink-primary">
-                      {formatDate(c.cycle_start_date)}
-                    </p>
-                    <p className="text-[10px] text-ink-muted">
+                <li key={c.id} className="flex items-center gap-3 py-2.5">
+                  <span className="h-2 w-2 shrink-0 bg-zinc-400 dark:bg-zinc-500" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">{formatDate(c.cycle_start_date)}</p>
+                    <p className="text-[10px] text-zinc-500">
                       {c.cycle_length} días · hasta {formatDate(end.toISOString().split('T')[0])}
                       {c.notes && ` · ${c.notes}`}
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => deleteCycle(c.id)}
                     disabled={deleting === c.id}
-                    className="text-ink-muted hover:text-status-expired transition-colors"
+                    className="text-zinc-500 transition-colors hover:text-zinc-300"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
-                </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
-      </Card>
+      </section>
 
       {showForm && (
         <AddCycleModal
@@ -271,19 +274,17 @@ function CycleGraph({ dayInCycle, cycleLen }: { dayInCycle: number; cycleLen: nu
   const ovEnd  = Math.round(16 / 28 * cycleLen)
 
   return (
-    <div className="bg-surface-card border border-surface-border rounded-2xl p-4">
-      <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-4">
-        Gráfico hormonal del ciclo
-      </p>
+    <div className="border-b border-zinc-200/55 pb-4 dark:border-zinc-800/55">
+      <p className="mb-4 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Gráfico hormonal del ciclo</p>
 
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -28 }}>
 
           {/* Phase background zones */}
-          <ReferenceArea x1={1}      x2={menEnd} fill="rgba(239,68,68,0.12)"    label={{ value: 'Menst.', position: 'insideTop', fontSize: 9, fill: '#f87171', fontWeight: 600 }} />
-          <ReferenceArea x1={menEnd} x2={folEnd} fill="rgba(167,139,250,0.10)"  label={{ value: 'Folicular', position: 'insideTop', fontSize: 9, fill: '#c4b5fd', fontWeight: 600 }} />
-          <ReferenceArea x1={folEnd} x2={ovEnd}  fill="rgba(74,222,128,0.16)"   label={{ value: 'Ovul.', position: 'insideTop', fontSize: 9, fill: '#86efac', fontWeight: 600 }} />
-          <ReferenceArea x1={ovEnd}  x2={cycleLen} fill="rgba(251,146,60,0.10)" label={{ value: 'Lútea', position: 'insideTop', fontSize: 9, fill: '#fdba74', fontWeight: 600 }} />
+          <ReferenceArea x1={1}      x2={menEnd}   fill="rgba(113,113,122,0.08)" label={{ value: 'Menst.', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
+          <ReferenceArea x1={menEnd} x2={folEnd}  fill="rgba(113,113,122,0.05)" label={{ value: 'Folicular', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
+          <ReferenceArea x1={folEnd} x2={ovEnd} fill="rgba(113,113,122,0.07)" label={{ value: 'Ovul.', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
+          <ReferenceArea x1={ovEnd}  x2={cycleLen} fill="rgba(113,113,122,0.06)" label={{ value: 'Lútea', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
 
           <XAxis
             dataKey="day"
@@ -311,17 +312,17 @@ function CycleGraph({ dayInCycle, cycleLen }: { dayInCycle: number; cycleLen: nu
           {dayInCycle >= 1 && dayInCycle <= cycleLen && (
             <ReferenceLine
               x={todayDay}
-              stroke="#FF8C00"
-              strokeWidth={1.5}
+              stroke="#52525b"
+              strokeWidth={1.25}
               strokeDasharray="4 3"
-              label={{ value: 'Hoy', position: 'top', fontSize: 9, fill: '#FF8C00', fontWeight: 700 }}
+              label={{ value: 'Hoy', position: 'top', fontSize: 9, fill: '#52525b', fontWeight: 600 }}
             />
           )}
 
-          <Line dataKey="fsh"          name="FSH"         stroke="#60a5fa" strokeWidth={1.5} dot={false} type="monotone" />
-          <Line dataKey="lh"           name="LH"          stroke="#4ade80" strokeWidth={1.5} dot={false} type="monotone" />
-          <Line dataKey="estrogenos"   name="Estrógenos"  stroke="#a78bfa" strokeWidth={2}   dot={false} type="monotone" />
-          <Line dataKey="progesterona" name="Progesterona" stroke="#fb923c" strokeWidth={2}  dot={false} type="monotone" />
+          <Line dataKey="fsh"          name="FSH"          stroke="#a1a1aa" strokeWidth={1.25} strokeDasharray="4 3" dot={false} type="monotone" />
+          <Line dataKey="lh"           name="LH"           stroke="#71717a" strokeWidth={1.25} dot={false} type="monotone" />
+          <Line dataKey="estrogenos"   name="Estrógenos"   stroke="#d4d4d8" strokeWidth={2} dot={false} type="monotone" />
+          <Line dataKey="progesterona" name="Progesterona" stroke="#d4d4d8" strokeWidth={1.5} strokeDasharray="6 4" dot={false} type="monotone" />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -362,20 +363,20 @@ function AddCycleModal({
             <label className="block text-xs font-medium text-ink-secondary mb-1">Primer día del período *</label>
             <input
               type="date"
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+              className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-sm text-ink-primary outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
           <div>
             <label className="block text-xs font-medium text-ink-secondary mb-1">
-              Duración del ciclo: <span className="text-brand-primary font-bold">{cycleLen} días</span>
+              Duración del ciclo: <span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{cycleLen} días</span>
             </label>
             <input
               type="range" min={21} max={35} step={1}
               value={cycleLen}
               onChange={(e) => setCycleLen(Number(e.target.value))}
-              className="w-full accent-brand-primary"
+              className="w-full accent-zinc-500 dark:accent-zinc-400"
             />
             <div className="flex justify-between text-[10px] text-ink-muted mt-0.5">
               <span>21</span><span>28</span><span>35</span>
@@ -385,12 +386,12 @@ function AddCycleModal({
             <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
             <input
               placeholder="ej: ciclo irregular, con dolor..."
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+              className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-zinc-500 dark:focus:border-zinc-400"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
-          <Button className="w-full" loading={saving} onClick={handleSave}>
+          <Button className="w-full" variant="secondary" loading={saving} onClick={handleSave}>
             Guardar
           </Button>
         </div>

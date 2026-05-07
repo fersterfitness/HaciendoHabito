@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -25,7 +26,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 export function FeedbackFormPage() {
-  const navigate  = useNavigate()
+  const navigate = useAppNavigate()
   const { user }  = useAuthStore()
 
   const [students,  setStudents]  = useState<Student[]>([])

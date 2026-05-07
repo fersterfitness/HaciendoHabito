@@ -164,14 +164,16 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-surface-border bg-surface-card p-4 sm:p-5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+    <div className="border-t border-zinc-200/55 pt-6 dark:border-zinc-800/70 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Camera className="h-4 w-4 text-brand-primary shrink-0" aria-hidden />
-            <h3 className="text-sm font-bold text-ink-primary uppercase tracking-wide">Progreso en fotografía</h3>
+            <Camera className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+              Progreso en fotografía
+            </h3>
           </div>
-          <p className="text-[11px] text-ink-muted mt-1.5 leading-relaxed max-w-[640px]">
+          <p className="mt-2 max-w-[640px] text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
             Fotos opcionales por mes para seguimiento visual (no reemplazan evaluación profesional).
             Las sube el equipo o podés cargarlas si acordamos seguimiento con imágenes.
           </p>
@@ -179,7 +181,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
       </div>
 
       {canManage ? (
-        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-dashed border-surface-border bg-surface-muted/20 px-3 py-3">
+        <div className="flex flex-wrap items-end gap-3 border-b border-zinc-200/45 border-dashed pb-4 dark:border-zinc-700/65">
           <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted shrink-0">
             Mes
             <input
@@ -207,6 +209,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
             loading={uploading}
             disabled={uploading}
             variant="outline"
+            className="border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800/45"
             onClick={() => fileInputRef.current?.click()}
           >
             Seleccionar foto
@@ -224,14 +227,14 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
         <div className="space-y-6">
           {byMonth.map(([ym, rows]) => (
             <div key={ym}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-brand-primary mb-2">{formatYmLabel(ym)}</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{formatYmLabel(ym)}</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 {rows.map((ph) => {
                   const url = studentBucketPublicUrl(ph.storage_path)
                   return (
                     <figure
                       key={ph.id}
-                      className="relative group rounded-xl border border-surface-border overflow-hidden bg-surface-muted/40 aspect-[3/4]"
+                      className="relative group aspect-[3/4] overflow-hidden rounded border border-zinc-200/55 bg-zinc-100/20 dark:border-zinc-800/65 dark:bg-zinc-950/40"
                     >
                       {url ? (
                         <img src={url} alt={`Progreso ${ym}`} className="w-full h-full object-cover" />

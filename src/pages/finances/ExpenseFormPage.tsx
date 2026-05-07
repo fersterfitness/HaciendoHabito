@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,7 +30,7 @@ type FormValues = z.infer<typeof schema>
 export function ExpenseFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEditing = !!id
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
@@ -74,14 +75,15 @@ export function ExpenseFormPage() {
       if (error) { toast.error(error.message); return }
       toast.success('Gasto registrado')
     }
-    navigate('/finances/expenses')
+    navigate('/finances?tab=expenses')
   }
 
   return (
     <div>
       <Header title={isEditing ? 'Editar gasto' : 'Nuevo gasto'} showBack />
 
-      <div className="px-4 lg:px-6 py-6 max-w-lg">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
+        <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <FormSection title="Fecha y categoría">
             <Input
@@ -154,11 +156,16 @@ export function ExpenseFormPage() {
             <Button type="button" variant="secondary" className="flex-1" onClick={() => navigate(-1)}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" loading={isSubmitting}>
+            <Button
+              type="submit"
+              className="flex-1 bg-[#ff4800] shadow-none hover:bg-[#e04100] hover:shadow-none focus-visible:ring-[#ff4800]/45"
+              loading={isSubmitting}
+            >
               {isEditing ? 'Guardar cambios' : 'Registrar gasto'}
             </Button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   )

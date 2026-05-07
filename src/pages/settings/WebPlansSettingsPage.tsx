@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
+import { ArrowLeft, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -10,6 +11,11 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import toast from 'react-hot-toast'
+import {
+  WEB_INTAKE_CATALOG_BUCKET,
+  WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES,
+  webIntakeImageExt,
+} from '@/lib/webIntakeCatalogAssets'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -125,7 +131,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
 }
 
 export function WebPlansSettingsPage() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const role = useAuthStore((s) => s.profile?.role)
   const canManage = role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [loading, setLoading] = useState(true)
@@ -136,6 +142,11 @@ export function WebPlansSettingsPage() {
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
   const [withCrisSegmentImg, setWithCrisSegmentImg] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
+  const soloFileRef = useRef<HTMLInputElement>(null)
+  const crisFileRef = useRef<HTMLInputElement>(null)
+  const [soloUploadBusy, setSoloUploadBusy] = useState(false)
+  const [crisUploadBusy, setCrisUploadBusy] = useState(false)
+  const catalogUserId = useAuthStore((s) => s.user?.id)
 
   useEffect(() => {
     if (!canManage) return
@@ -166,6 +177,46 @@ export function WebPlansSettingsPage() {
       toast.success('Imágenes del selector guardadas')
     } finally {
       setAssetsSaving(false)
+    }
+  }
+
+  async function uploadSegmentHero(field: 'solo' | 'with_cris', file: File | null | undefined) {
+    if (!file || !catalogUserId) return
+    if (file.size > WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES) {
+      toast.error('La imagen debe pesar menos de 5 MB')
+      return
+    }
+    const ext = webIntakeImageExt(file)
+    if (!ext) {
+      toast.error('Usá JPG, PNG o WebP')
+      return
+    }
+    const slug = field === 'solo' ? 'solo-line' : 'with-cris-line'
+    const setBusy = field === 'solo' ? setSoloUploadBusy : setCrisUploadBusy
+    const setUrl = field === 'solo' ? setSoloSegmentImg : setWithCrisSegmentImg
+    const path = `${catalogUserId}/segment-${slug}.${ext}`
+    setBusy(true)
+    try {
+      const { error: upErr } = await supabase.storage.from(WEB_INTAKE_CATALOG_BUCKET).upload(path, file, {
+        upsert: true,
+        cacheControl: '3600',
+        contentType: file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      })
+      if (upErr) {
+        const msg =
+          upErr.message.toLowerCase().includes('bucket') || upErr.message.includes('404')
+            ? 'Verificá la migración del bucket «web-intake-catalog».'
+            : upErr.message
+        toast.error(msg)
+        return
+      }
+      const { data } = supabase.storage.from(WEB_INTAKE_CATALOG_BUCKET).getPublicUrl(path)
+      setUrl(data.publicUrl)
+      toast.success('Imagen subida. Tocá «Guardar fotos del selector» para publicar.')
+    } finally {
+      setBusy(false)
+      if (field === 'solo' && soloFileRef.current) soloFileRef.current.value = ''
+      else if (field === 'with_cris' && crisFileRef.current) crisFileRef.current.value = ''
     }
   }
 
@@ -345,20 +396,68 @@ export function WebPlansSettingsPage() {
 
       <div className="px-4 lg:px-6 py-6 space-y-4">
         <Card className="p-4 space-y-4">
-          <FormSection title="Fotos del selector «solo / con Cristina» (/form)">
+          <FormSection title="Fotos del selector «solo / conjunto Cristian» (/form)">
             <p className="text-xs text-ink-secondary">
-              Opcional: URL HTTPS públicas (p. ej. desde Supabase Storage). Si están vacías, el formulario usa las iniciales F
-              / F+C. Sin cambios en código.
+              Podés <strong>subir</strong> una imagen (se guarda en Storage y escribe la URL pública debajo). También pegás cualquier HTTPS.
+              Migración necesaria para subir desde acá: bucket `web-intake-catalog` en Supabase.
             </p>
+            <input
+              ref={soloFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) =>
+                void uploadSegmentHero(
+                  'solo',
+                  e.target.files?.length ? e.target.files[0] : undefined,
+                )
+              }
+            />
+            <input
+              ref={crisFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) =>
+                void uploadSegmentHero(
+                  'with_cris',
+                  e.target.files?.length ? e.target.files[0] : undefined,
+                )
+              }
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={soloUploadBusy}
+                icon={<Upload className="h-4 w-4" />}
+                disabled={!catalogUserId}
+                onClick={() => soloFileRef.current?.click()}
+              >
+                Subir · línea solo
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={crisUploadBusy}
+                icon={<Upload className="h-4 w-4" />}
+                disabled={!catalogUserId}
+                onClick={() => crisFileRef.current?.click()}
+              >
+                Subir · línea Cristian Vázquez
+              </Button>
+            </div>
             <Input
-              label="Imagen línea solo"
+              label="URL imagen · línea solo (editable)"
               placeholder="https://..."
               value={soloSegmentImg}
               maxLength={LIMITS.segmentImgUrl}
               onChange={(e) => setSoloSegmentImg(e.target.value)}
             />
             <Input
-              label="Imagen línea con Cristina"
+              label="URL imagen · línea con Cristian Vázquez (editable)"
               placeholder="https://..."
               value={withCrisSegmentImg}
               maxLength={LIMITS.segmentImgUrl}
@@ -436,7 +535,7 @@ export function WebPlansSettingsPage() {
                   className="mb-4 w-full max-w-xs rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                 >
                   <option value="solo">Solo tu línea / tu foto</option>
-                  <option value="with_cris">Planes con Cristina</option>
+                  <option value="with_cris">Planes conjunto · Cristian Vázquez</option>
                 </select>
                 <Input
                   label="Etiqueta en la card (opcional)"

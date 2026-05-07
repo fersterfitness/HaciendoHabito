@@ -112,23 +112,23 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   intermedio: {
     label: 'Intermedio',
-    className: 'bg-brand-primary/5 text-brand-warm border border-brand-warm/20',
+    className: 'bg-surface-elevated/90 text-ink-primary border border-surface-border',
   },
   avanzado: {
     label: 'Avanzado',
-    className: 'bg-brand-primary/15 text-brand-primary border border-brand-primary/40',
+    className: 'bg-surface-elevated text-ink-secondary border border-surface-border',
   },
   'plan-entrenamiento': {
     label: 'Plan Entrenamiento',
-    className: 'bg-amber-400/15 text-amber-300 border border-amber-400/35',
+    className: 'bg-surface-elevated text-ink-secondary border border-surface-border',
   },
   'plan-nutricion': {
     label: 'Plan Nutrición',
-    className: 'bg-yellow-400/15 text-yellow-300 border border-yellow-400/35',
+    className: 'bg-surface-elevated text-ink-secondary border border-surface-border',
   },
   'plan-full': {
     label: 'Plan Full',
-    className: 'bg-orange-400/15 text-orange-300 border border-orange-400/35',
+    className: 'bg-surface-elevated text-ink-secondary border border-surface-border',
   },
 }
 

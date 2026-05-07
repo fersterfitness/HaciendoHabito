@@ -1,18 +1,21 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import {
   Apple,
   BookmarkPlus,
   BookOpen,
   Check,
   ChevronDown,
+  ClipboardList,
   FileDown,
+  FileText,
   Lightbulb,
   Loader2,
   Plus,
   RefreshCw,
   RotateCcw,
   Search,
+  Table2,
   Trash2,
   UserPlus,
   X,
@@ -51,7 +54,10 @@ import {
   normalizeMealDistribution,
 } from '@/lib/nutrition/planningWorkbookTypes'
 import { parsePlanningData, planningDataToJson } from '@/lib/nutrition/planningWorkbookTypes'
-import { buildStudentQuantitySummaryLines } from '@/lib/nutrition/mealPickPresentation'
+import {
+  buildStudentQuantitySummaryLines,
+  resolveMealPickQtyPresentation,
+} from '@/lib/nutrition/mealPickPresentation'
 import { downloadPlanningWorkbookPdf } from '@/lib/nutrition/downloadPlanningWorkbookPdf'
 import { fersterGoalLabel } from '@/lib/fersterIntakeLabels'
 import type {
@@ -84,6 +90,46 @@ import {
   tdeeFromBmr,
 } from '@/lib/nutrition/tdeeCalculator'
 
+/** Campos zinc — evita tinte brand (naranja) en selects / textareas. */
+const PLAN_FIELD_SELECT =
+  'flex h-10 w-full rounded-md border border-zinc-200/80 bg-surface-input px-3 text-sm text-ink-primary outline-none transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:focus:border-zinc-500'
+
+const PLAN_FIELD_TEXTAREA_FOCUS =
+  'rounded-md border border-zinc-200/80 bg-surface-input text-ink-primary outline-none placeholder:text-ink-muted focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:focus:border-zinc-500'
+
+const PLAN_SECTION_CARD =
+  'rounded-md border border-zinc-200/75 bg-surface-card dark:border-zinc-700/65'
+
+const PLAN_STEP_KICKER = 'text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400'
+
+const PLAN_DOC_LINK_CLASS =
+  'font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100'
+
+const PLAN_MODAL_TAB_ACTIVE =
+  'bg-zinc-800 text-white shadow-none dark:bg-zinc-100 dark:text-zinc-950 dark:shadow-none'
+
+const PLANNING_MAIN_TAB_DEFS = [
+  {
+    id: 'plan' as const,
+    label: 'Plan y metas',
+    hint: 'Seguimiento, objetivos, TDEE',
+    Icon: ClipboardList,
+  },
+  {
+    id: 'dia' as const,
+    label: 'Día · PDF',
+    hint: 'Distribución y totales en vivo',
+    Icon: FileText,
+  },
+  {
+    id: 'tablas' as const,
+    label: 'Tablas HH',
+    hint: 'Mi lista y valores /100 g',
+    Icon: Table2,
+  },
+] as const
+type PlanningMainTabId = (typeof PLANNING_MAIN_TAB_DEFS)[number]['id']
+
 function fmt1(n: number): string {
   if (!Number.isFinite(n)) return '—'
   return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
@@ -99,21 +145,6 @@ function approxAgeFromBirthDate(birthIso: string | null | undefined): number | n
   if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age -= 1
   if (age < 0 || age > 124) return null
   return age
-}
-
-function mealPickQtyPresentation(
-  p: MealSlotPick,
-  wb: PlanningWorkbookStateV1,
-): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
-  const ulSnap = p.unitsLabel?.trim()
-  if (p.qtyPresentation === 'units' && ulSnap) return { qtyPresentation: 'units', unitsLabel: ulSnap }
-  if (p.kind === 'plan_row') {
-    const sec = wb.sections.find((s) => s.key === p.secKey)
-    const row = sec?.rows.find((r) => r.id === p.rowId)
-    const ul = row?.unitsLabel?.trim()
-    if (row?.qtyPresentation === 'units' && ul) return { qtyPresentation: 'units', unitsLabel: ul }
-  }
-  return {}
 }
 
 /** Valores por 100 g guardados en Guía → columnas HC/P/G/kcal del plan */
@@ -139,39 +170,35 @@ function LiveMacroCell({
   const barPct = hasGoal ? Math.min(100, Math.max(0, (100 * intakeG) / goalG)) : 0
 
   return (
-    <div className="min-w-0 rounded-lg border border-emerald-500/35 dark:border-emerald-500/35 bg-white/90 dark:bg-black/35 px-2 py-2 sm:px-2.5 text-center shadow-sm">
-      <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-emerald-900 dark:text-emerald-200">
-        {abbr}
-      </p>
-      <p className="text-lg sm:text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-200 leading-tight mt-0.5">
+    <div className="min-w-0 rounded-md border border-zinc-200/75 bg-white/95 px-2 py-2 text-center dark:border-zinc-700/65 dark:bg-zinc-950/45 sm:px-2.5">
+      <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-500 sm:text-[10px]">{abbr}</p>
+      <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-zinc-900 dark:text-zinc-100 sm:text-xl">
         {fmt1(intakeG)}
-        <span className="text-[10px] font-semibold text-emerald-600/90 dark:text-emerald-300/90 ml-0.5">g</span>
+        <span className="ml-0.5 text-[10px] font-semibold text-zinc-500 dark:text-zinc-500">g</span>
       </p>
-      <p className="text-[9px] tabular-nums text-emerald-800/90 dark:text-emerald-100/85 mt-1 leading-tight">
+      <p className="mt-1 text-[9px] tabular-nums leading-tight text-zinc-600 dark:text-zinc-400">
         Meta {hasGoal ? `${fmt1(goalG)} g` : '—'}
       </p>
       <p
         className={cn(
-          'text-[10px] sm:text-[11px] font-bold tabular-nums leading-tight mt-0.5',
-          !hasGoal ? 'text-emerald-600/50 dark:text-emerald-300/40' : over ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-800 dark:text-emerald-100',
+          'mt-0.5 text-[10px] font-bold tabular-nums leading-tight sm:text-[11px]',
+          !hasGoal ? 'text-zinc-400 dark:text-zinc-600' : over ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300',
         )}
       >
         Rest {hasGoal ? `${fmt1(remainderG)} g` : '—'}
       </p>
       {hasGoal && pct != null ? (
-        <p className="text-[9px] tabular-nums text-emerald-800/85 dark:text-emerald-200/75 mt-0.5">Obj. {pct} %</p>
+        <p className="mt-0.5 text-[9px] tabular-nums text-zinc-600 dark:text-zinc-400">Obj. {pct} %</p>
       ) : null}
       {hasGoal ? (
-        <div className="h-1.5 mt-1.5 rounded-full bg-emerald-200/90 dark:bg-emerald-950/70 overflow-hidden mx-auto max-w-[5.5rem]">
+        <div className="mx-auto mt-1.5 h-1.5 max-w-[5.5rem] overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
           <div
-            className="h-full rounded-full bg-emerald-500 dark:bg-emerald-300 transition-[width] duration-300 ease-out"
+            className="h-full rounded-full bg-zinc-600 transition-[width] duration-300 ease-out dark:bg-zinc-400"
             style={{ width: `${barPct}%` }}
           />
         </div>
       ) : intakeG > 0 ? (
-        <p className="text-[8px] text-emerald-800/75 dark:text-emerald-200/65 leading-snug mt-1 px-0.5">
-          Peso y g/kg en 2
-        </p>
+        <p className="mt-1 px-0.5 text-[8px] leading-snug text-zinc-500 dark:text-zinc-500">Peso y g/kg en 2</p>
       ) : null}
     </div>
   )
@@ -186,7 +213,7 @@ function TotalsBadge({
   return (
     <div
       className={cn(
-        'rounded-xl border border-surface-border bg-surface-muted/40 text-sm',
+        'rounded-md border border-zinc-200/70 bg-zinc-50/50 text-sm dark:border-zinc-700/65 dark:bg-zinc-950/35',
         compact ? 'px-3 py-2' : 'px-4 py-3',
       )}
     >
@@ -207,6 +234,23 @@ function TotalsBadge({
 
 export function NutritionPlanningPage() {
   const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const planningTab: PlanningMainTabId =
+    tabParam === 'dia' || tabParam === 'tablas' ? tabParam : 'plan'
+
+  function setPlanningTab(tab: PlanningMainTabId) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (tab === 'plan') next.delete('tab')
+        else next.set('tab', tab)
+        return next
+      },
+      { replace: true },
+    )
+  }
+
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
   const [loading, setLoading] = useState(true)
@@ -1075,8 +1119,7 @@ export function NutritionPlanningPage() {
     return wb.sections.find((s) => s.key === tableTargetSecKey)?.rows ?? []
   }, [wb.sections, tableTargetSecKey])
 
-  const selectPlanClasses =
-    'flex h-10 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20'
+  const selectPlanClasses = PLAN_FIELD_SELECT
 
   async function handleAssignToStudent() {
     if (!assignStudentId || !user?.id) {
@@ -1186,7 +1229,7 @@ export function NutritionPlanningPage() {
               </span>
             )}
             {saveState === 'saved' && (
-              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 whitespace-nowrap shrink-0">Guardado</span>
+              <span className="shrink-0 whitespace-nowrap text-[11px] text-zinc-600 dark:text-zinc-400">Guardado</span>
             )}
             {saveState === 'dirty' && (
               <span className="text-[11px] text-ink-muted whitespace-nowrap shrink-0">Guardando cambios…</span>
@@ -1201,7 +1244,7 @@ export function NutritionPlanningPage() {
               variant="outline"
               size="sm"
               icon={<FileDown className="h-4 w-4" aria-hidden />}
-              className="h-9 shrink-0 rounded-xl"
+              className="h-9 shrink-0 rounded-md shadow-none"
               onClick={() => void handleExportPdf()}
             >
               PDF
@@ -1250,7 +1293,7 @@ export function NutritionPlanningPage() {
                 variant="outline"
                 size="sm"
                 icon={<UserPlus className="h-4 w-4" aria-hidden />}
-                className="h-9 shrink-0 rounded-xl"
+                className="h-9 shrink-0 rounded-md shadow-none"
                 onClick={() => {
                   setAssignTitle('Plan de alimentación')
                   setAssignOpen(true)
@@ -1265,8 +1308,8 @@ export function NutritionPlanningPage() {
               size="sm"
               icon={<RotateCcw className="h-4 w-4" aria-hidden />}
               className={cn(
-                'h-9 shrink-0 rounded-xl px-3 font-medium shadow-sm border-surface-border',
-                'bg-surface-elevated text-ink-primary hover:bg-surface-border/35 hover:border-brand-primary/35',
+                'h-9 shrink-0 rounded-md border border-zinc-200/80 px-3 font-medium shadow-none dark:border-zinc-600',
+                'bg-surface-elevated text-ink-primary hover:border-zinc-300 hover:bg-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80',
               )}
               onClick={() => setResetOpen(true)}
             >
@@ -1275,27 +1318,70 @@ export function NutritionPlanningPage() {
           </div>
         }
       />
-      <div className="mx-auto w-full max-w-[1200px] space-y-5 px-4 lg:px-6 pt-2">
+      <div className="mx-auto w-full max-w-[min(1600px,calc(100%-2rem))] space-y-5 px-4 pt-2 lg:px-6">
+        <nav
+          className="-mx-4 border-b border-surface-border px-4 pt-4 lg:-mx-6 lg:px-6"
+          aria-label="Secciones del plan"
+        >
+          <div role="tablist" className="flex flex-wrap gap-2">
+            {PLANNING_MAIN_TAB_DEFS.map(({ id, label, hint, Icon }) => {
+              const sel = planningTab === id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={sel}
+                  title={hint}
+                  id={`planning-tab-${id}`}
+                  aria-controls={`planning-panel-${id}`}
+                  onClick={() => setPlanningTab(id)}
+                  className={cn(
+                    '-mb-px flex shrink-0 items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
+                    sel
+                      ? 'border-surface-border bg-surface-card text-ink-primary'
+                      : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
+                  )}
+                >
+                  <Icon
+                    className={cn('h-4 w-4 shrink-0', sel ? 'opacity-95' : 'opacity-65')}
+                    aria-hidden
+                  />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+
+        {planningTab === 'plan' && (
+          <div
+            id="planning-panel-plan"
+            role="tabpanel"
+            aria-labelledby="planning-tab-plan"
+            className="space-y-5"
+          >
         <section
-          className="rounded-2xl border border-surface-border bg-surface-card w-full shadow-sm overflow-hidden"
+          className={cn('w-full overflow-hidden shadow-none', PLAN_SECTION_CARD)}
           aria-labelledby="principal-plan-heading"
         >
-          <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-surface-border/80 bg-surface-muted/20">
+          <div className="border-b border-zinc-200/70 bg-zinc-50/40 px-4 pb-3 pt-4 dark:border-zinc-800 dark:bg-zinc-950/30 sm:px-5">
             <h2 id="principal-plan-heading" className="text-base font-semibold text-ink-primary">
               Datos del plan
             </h2>
             <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-              Primero ves el <strong>seguimiento</strong>, después ajustás <strong>objetivos</strong>; la{' '}
-              <strong>calculadora TDEE</strong> queda disponible cuando la necesités. Abajo: distribución para el alumno/PDF y tablas de trabajo.
+              Usá las <strong>solapas arriba</strong> para ir a la distribución del día o a las tablas. Primero ves el{' '}
+              <strong>seguimiento</strong>, después ajustás <strong>objetivos</strong>; la <strong>calculadora TDEE</strong>{' '}
+              queda disponible cuando la necesités.
             </p>
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
             {/* 1 · Seguimiento — siempre visible */}
-            <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/[0.04] dark:bg-brand-primary/[0.07] p-4 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="space-y-4 rounded-md border border-zinc-200/75 bg-zinc-50/50 p-4 dark:border-zinc-700/65 dark:bg-zinc-950/25">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">1 · Seguimiento</p>
+                  <p className={PLAN_STEP_KICKER}>1 · Seguimiento</p>
                   <p className="text-xs text-ink-muted mt-0.5">
                     Compará tus objetivos con lo sumado en tablas, Mi lista y comidas del día.
                   </p>
@@ -1329,9 +1415,9 @@ export function NutritionPlanningPage() {
                   <p className="text-[9px] uppercase font-semibold text-ink-muted">Meta kcal</p>
                   <p className="text-lg font-bold tabular-nums text-ink-primary">{targetKcal > 0 ? fmt1(targetKcal) : '—'}</p>
                 </div>
-                <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
-                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Consumido</p>
-                  <p className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-300">{fmt1(intakeTotals.kcal)}</p>
+                <div className="rounded-md border border-zinc-200/70 bg-surface-card px-3 py-2 dark:border-zinc-700/60">
+                  <p className="text-[9px] font-semibold uppercase text-ink-muted">Consumido</p>
+                  <p className="text-lg font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{fmt1(intakeTotals.kcal)}</p>
                 </div>
                 <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
                   <p className="text-[9px] uppercase font-semibold text-ink-muted">Restante kcal</p>
@@ -1340,7 +1426,7 @@ export function NutritionPlanningPage() {
                       'text-lg font-bold tabular-nums',
                       remainderKcalTarget && remainderKcalTarget.kcal < 0
                         ? 'text-amber-700 dark:text-amber-300'
-                        : 'text-emerald-700 dark:text-emerald-300',
+                        : 'text-zinc-800 dark:text-zinc-200',
                     )}
                   >
                     {remainderKcalTarget ? fmt1(remainderKcalTarget.kcal) : targetKcal > 0 ? fmt1(targetKcal - intakeTotals.kcal) : '—'}
@@ -1370,10 +1456,7 @@ export function NutritionPlanningPage() {
             </div>
 
             {/* 2 · Objetivos — abierto por defecto */}
-            <details
-              open
-              className="group rounded-xl border border-surface-border bg-surface-muted/10 overflow-hidden"
-            >
+            <details open className="group overflow-hidden rounded-md border border-zinc-200/70 bg-zinc-50/30 dark:border-zinc-700/60 dark:bg-zinc-950/20">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
                 <span className="text-sm font-medium text-ink-primary">2 · Objetivos, calorías y macros</span>
                 <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
@@ -1393,7 +1476,10 @@ export function NutritionPlanningPage() {
                   <label className="text-sm space-y-1">
                     <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Objetivo en texto</span>
                     <textarea
-                      className="flex min-h-[64px] w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                      className={cn(
+                        'flex min-h-[64px] w-full px-3 py-2 text-sm placeholder:text-ink-muted',
+                        PLAN_FIELD_TEXTAREA_FOCUS,
+                      )}
                       value={wb.objectives}
                       onChange={(e) => {
                         userHasEdited.current = true
@@ -1486,7 +1572,7 @@ export function NutritionPlanningPage() {
             </details>
 
             {/* 3 · TDEE colapsado por defecto */}
-            <details className="group rounded-xl border border-surface-border bg-surface-muted/10 overflow-hidden">
+            <details className="group overflow-hidden rounded-md border border-zinc-200/70 bg-zinc-50/30 dark:border-zinc-700/60 dark:bg-zinc-950/20">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
                 <div className="min-w-0 text-left space-y-0.5">
                   <span className="text-sm font-medium text-ink-primary block">3 · Calculadora TMB / TDEE</span>
@@ -1500,7 +1586,7 @@ export function NutritionPlanningPage() {
                 <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
               </summary>
               <div className="p-4 space-y-4 border-t border-surface-border/40">
-                <p className="text-[11px] text-amber-800 dark:text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 leading-relaxed">
+                <p className="rounded-md border border-zinc-200/80 bg-zinc-50/80 px-3 py-2 text-[11px] leading-relaxed text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
                   Orientación pedagógica (plantilla tipo HH); no sustituye criterio clínico.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1651,9 +1737,9 @@ export function NutritionPlanningPage() {
           </div>
         </section>
 
-        <details className="rounded-2xl border border-surface-border bg-surface-card p-4 group w-full">
+        <details className={cn('group w-full p-4', PLAN_SECTION_CARD)}>
           <summary className="cursor-pointer flex items-start gap-2 text-sm font-semibold text-ink-primary list-none [&::-webkit-details-marker]:hidden">
-            <Lightbulb className="w-4 h-4 shrink-0 text-brand-primary mt-0.5" aria-hidden />
+            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500" aria-hidden />
             Cómo usar la pantalla (paso a paso)
           </summary>
           <ol className="mt-3 list-decimal pl-5 space-y-1.5 text-sm text-ink-secondary leading-relaxed">
@@ -1664,7 +1750,8 @@ export function NutritionPlanningPage() {
               Abrí <strong>3 · TDEE</strong> solo cuando quieras Mifflin–St Jeor + factor de actividad; la tabla larga está anidada para no ocupar lugar.
             </li>
             <li>
-              <strong>Distribución del día</strong> va al alumno/PDF; las <strong>tablas HH</strong> más abajo son tu hoja de trabajo con macros por 100 g.
+              En la solapa <strong>Día · PDF</strong> cargás la distribución al alumno/PDF; en <strong>Tablas HH</strong> están{' '}
+              <strong>Mi lista</strong> y las macros por 100 g.
             </li>
             <li>
               Todo se <strong>guarda solo</strong>; «Restaurar plantilla» vuelve al formato inicial HH en tu cuenta.
@@ -1675,27 +1762,72 @@ export function NutritionPlanningPage() {
           </p>
         </details>
 
-        <section
-          className="rounded-2xl border border-surface-border bg-surface-card p-5 space-y-4 w-full"
-          aria-labelledby="meal-dist-heading"
-        >
+        <details className={cn('group w-full p-5', PLAN_SECTION_CARD)}>
+          <summary className="cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none [&::-webkit-details-marker]:hidden">
+            <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-ink-muted transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
+            Rangos típicos de macros (referencia técnica — tocá para abrir)
+          </summary>
+          <div className="mt-4 pl-7 space-y-3 border-l-2 border-surface-border ml-2.5 pb-1">
+            <ul className="text-sm text-ink-secondary space-y-2 list-disc pl-5">
+              <li>Proteínas: {wb.macroGuide.proteinPerKgHint}</li>
+              <li>Carbohidratos: {wb.macroGuide.carbPerKgHint}</li>
+              <li>Grasas: {wb.macroGuide.fatPerKgHint}</li>
+            </ul>
+            <p className="text-sm text-ink-muted">{wb.macroGuide.contextNote}</p>
+          </div>
+        </details>
+
+        <details className={cn('group w-full p-5', PLAN_SECTION_CARD)}>
+          <summary className="cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none outline-none select-none [&::-webkit-details-marker]:hidden">
+            <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-ink-muted transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
+            Información sobre objetivos
+          </summary>
+          <div className="mt-4 ml-7 pl-2 border-l-2 border-surface-border grid gap-4 md:grid-cols-2 text-sm text-ink-secondary">
+            <div className="space-y-2">
+              <p className="font-medium text-ink-primary">{wb.objectivesGuide.superavitCal}</p>
+              <p>{wb.objectivesGuide.deficitCal}</p>
+              <p>{wb.objectivesGuide.recomposicion}</p>
+              <p>{wb.objectivesGuide.longevidad}</p>
+            </div>
+            <div className="space-y-2">
+              <p>{wb.objectivesGuide.proteinasPorObjetivo}</p>
+              <p>{wb.objectivesGuide.grasasPorObjetivo}</p>
+              <p>{wb.objectivesGuide.carbosPorObjetivo}</p>
+              <p>{wb.objectivesGuide.pctDistribicion}</p>
+            </div>
+          </div>
+        </details>
+
+          </div>
+        )}
+
+        {planningTab === 'dia' && (
+          <div
+            id="planning-panel-dia"
+            role="tabpanel"
+            aria-labelledby="planning-tab-dia"
+            className="space-y-5"
+          >
+        <section className={cn('w-full space-y-4 p-5', PLAN_SECTION_CARD)} aria-labelledby="meal-dist-heading">
           <div>
             <div className="flex flex-wrap items-baseline gap-2 gap-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-primary">4 · Para el alumno</span>
+              <span className={cn('tracking-wider', PLAN_STEP_KICKER)}>4 · Para el alumno</span>
               <h2 id="meal-dist-heading" className="text-lg font-semibold text-ink-primary">
                 Distribución del día
               </h2>
             </div>
             <p className="text-sm text-ink-muted mt-1 leading-relaxed">
-              Cada comida es un bloque en <strong>orden vertical</strong> (como el PDF): tabla con un alimento por fila, separación clara entre desayuno, almuerzo, etc. Cargá desde las tablas abajo o <strong>Mi lista</strong>. Notas opcionales al pie de cada momento. Activá{' '}
-              <strong>media mañana / tarde</strong> si aplican. El panel verde abajo actualiza <strong className="text-emerald-700 dark:text-emerald-300">kcal y gramos de P / HC / G</strong> con lo que sumás en tablas, Mi lista y esta distribución (metas de gramos = peso × g/kg del apartado 2).
+              Cada comida es un bloque en <strong>orden vertical</strong> (como el PDF): tabla con un alimento por fila, separación clara entre desayuno, almuerzo, etc. Cargá desde la solapa{' '}
+              <strong className="text-zinc-800 dark:text-zinc-200">Tablas HH</strong> o desde <strong>Mi lista</strong>. Notas opcionales al pie de cada momento. Activá{' '}
+              <strong>media mañana / tarde</strong> si aplican. El panel siguiente actualiza{' '}
+              <strong className="text-zinc-800 dark:text-zinc-200">kcal y gramos de P / HC / G</strong> con lo que sumás en tablas, Mi lista y esta distribución (metas de gramos = peso × g/kg del apartado 2).
             </p>
             <label className="block mt-4 space-y-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
                 Guía orientativa para el alumno / PDF (hortalizas A y B, equivalencias, proteínas, marcas)
               </span>
               <textarea
-                className="flex min-h-[100px] w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-xs text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                className={cn('flex min-h-[100px] w-full px-3 py-2 text-xs placeholder:text-ink-muted', PLAN_FIELD_TEXTAREA_FOCUS)}
                 value={wb.studentOrientativeGuide ?? ''}
                 onChange={(e) => {
                   userHasEdited.current = true
@@ -1711,32 +1843,32 @@ export function NutritionPlanningPage() {
 
           {/* Kcal + macros en vivo (sticky) */}
           <div className="sticky top-2 z-20">
-            <div className="rounded-xl border border-emerald-300/70 dark:border-emerald-600/45 bg-emerald-50/95 dark:bg-emerald-950/85 backdrop-blur-sm shadow-md px-4 py-3 space-y-2">
+            <div className="space-y-2 rounded-md border border-zinc-200/80 bg-white/95 px-4 py-3 shadow-none backdrop-blur-sm dark:border-zinc-700/65 dark:bg-zinc-950/60">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-900/80 dark:text-emerald-200/90 shrink-0">
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
                     Kcal del plan (en vivo)
                   </span>
-                  <span className="text-2xl sm:text-3xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300 leading-none">
+                  <span className="text-2xl font-bold tabular-nums leading-none text-zinc-900 dark:text-zinc-50 sm:text-3xl">
                     {fmt1(intakeTotals.kcal)}
                   </span>
-                  <span className="text-xs text-emerald-800/75 dark:text-emerald-200/70">kcal sumadas</span>
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400">kcal sumadas</span>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
                   <div>
-                    <p className="text-[9px] font-semibold uppercase text-emerald-800/65 dark:text-emerald-300/70">Meta</p>
+                    <p className="text-[9px] font-semibold uppercase text-zinc-500 dark:text-zinc-500">Meta</p>
                     <p className="font-semibold text-ink-primary">{targetKcal > 0 ? `${fmt1(targetKcal)} kcal` : '—'}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold uppercase text-emerald-800/65 dark:text-emerald-300/70">Restante</p>
+                    <p className="text-[9px] font-semibold uppercase text-zinc-500 dark:text-zinc-500">Restante</p>
                     <p
                       className={cn(
                         'text-lg font-bold',
                         !remainderKcalTarget && targetKcal <= 0
-                          ? 'text-ink-muted text-base font-medium'
+                          ? 'text-base font-medium text-ink-muted'
                           : remainderKcalTarget && remainderKcalTarget.kcal < 0
                             ? 'text-amber-700 dark:text-amber-300'
-                            : 'text-emerald-800 dark:text-emerald-200',
+                            : 'text-zinc-800 dark:text-zinc-200',
                       )}
                     >
                       {remainderKcalTarget
@@ -1748,22 +1880,19 @@ export function NutritionPlanningPage() {
                   </div>
                   {targetKcal > 0 ? (
                     <div>
-                      <p className="text-[9px] font-semibold uppercase text-emerald-800/65 dark:text-emerald-300/70">Del objetivo</p>
-                      <p className="font-semibold text-emerald-800 dark:text-emerald-200">
-                        {`${Math.round((100 * intakeTotals.kcal) / targetKcal)} %`}
-                      </p>
+                      <p className="text-[9px] font-semibold uppercase text-zinc-500 dark:text-zinc-500">Del objetivo</p>
+                      <p className="font-semibold text-zinc-800 dark:text-zinc-200">{`${Math.round((100 * intakeTotals.kcal) / targetKcal)} %`}</p>
                     </div>
                   ) : null}
                 </div>
               </div>
 
-              {/* Macros: misma tarjeta, justo encima de la barra de kcal — siempre visibles al cargar alimentos */}
               <div
-                className="rounded-lg border border-emerald-500/40 dark:border-emerald-500/40 bg-emerald-100/50 dark:bg-emerald-950/60 px-2 py-2 sm:py-2.5"
+                className="rounded-md border border-zinc-200/70 bg-zinc-50/70 px-2 py-2 dark:border-zinc-700/65 dark:bg-zinc-900/40 sm:py-2.5"
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
-                <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-900 dark:text-emerald-200/95 mb-1.5 text-center sm:text-left px-0.5">
+                <p className="mb-1.5 px-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400 sm:text-left">
                   Macros en vivo (g) — se actualizan al cargar tablas, Mi lista o comidas del día
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -1774,9 +1903,9 @@ export function NutritionPlanningPage() {
               </div>
 
               {targetKcal > 0 ? (
-                <div className="h-2 rounded-full bg-emerald-200/80 dark:bg-emerald-900/60 overflow-hidden border border-emerald-300/40 dark:border-emerald-700/40">
+                <div className="h-2 overflow-hidden rounded-full border border-zinc-200/80 bg-zinc-200/80 dark:border-zinc-700 dark:bg-zinc-800">
                   <div
-                    className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-[width] duration-300 ease-out"
+                    className="h-full rounded-full bg-zinc-700 transition-[width] duration-300 ease-out dark:bg-zinc-400"
                     style={{
                       width: `${Math.min(100, Math.max(0, (100 * intakeTotals.kcal) / targetKcal))}%`,
                     }}
@@ -1788,8 +1917,9 @@ export function NutritionPlanningPage() {
                   />
                 </div>
               ) : (
-                <p className="text-[11px] text-emerald-900/70 dark:text-emerald-200/65 leading-snug">
-                  Cargá <strong className="font-semibold">Calorías propuestas</strong> en la sección 2 para ver cuánto te falta descontar respecto a la meta.
+                <p className="text-[11px] leading-snug text-zinc-600 dark:text-zinc-400">
+                  Cargá <strong className="font-semibold text-ink-primary">Calorías propuestas</strong> en la sección 2 para ver
+                  cuánto te falta descontar respecto a la meta.
                 </p>
               )}
             </div>
@@ -1798,9 +1928,9 @@ export function NutritionPlanningPage() {
           {orphanLibDraftIds.length > 0 ? (
             <div
               role="status"
-              className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-sm text-ink-secondary"
+              className="rounded-md border border-zinc-300/75 bg-zinc-100/60 px-3 py-2.5 text-sm text-ink-secondary dark:border-zinc-600 dark:bg-zinc-900/45"
             >
-              <p className="font-medium text-amber-900 dark:text-amber-200/95">
+              <p className="font-medium text-zinc-800 dark:text-zinc-100">
                 Tenés gramos en «Alimentos personalizados» que todavía no agregaste a un momento del día.
               </p>
               <p className="text-xs text-ink-muted mt-1 leading-relaxed">
@@ -1912,7 +2042,7 @@ export function NutritionPlanningPage() {
                 type="checkbox"
                 checked={mealDistribution.includeMidMorning}
                 onChange={(e) => patchMeal('includeMidMorning', e.target.checked)}
-                className="size-4 rounded border-surface-inputBorder text-brand-primary focus:ring-brand-primary/30"
+                className="size-4 rounded border-surface-inputBorder text-zinc-700 accent-zinc-600 focus:ring-2 focus:ring-zinc-400/30 dark:accent-zinc-500 dark:text-zinc-300"
               />
               Incluir media mañana
             </label>
@@ -1921,7 +2051,7 @@ export function NutritionPlanningPage() {
                 type="checkbox"
                 checked={mealDistribution.includeMidAfternoon}
                 onChange={(e) => patchMeal('includeMidAfternoon', e.target.checked)}
-                className="size-4 rounded border-surface-inputBorder text-brand-primary focus:ring-brand-primary/30"
+                className="size-4 rounded border-surface-inputBorder text-zinc-700 accent-zinc-600 focus:ring-2 focus:ring-zinc-400/30 dark:accent-zinc-500 dark:text-zinc-300"
               />
               Incluir media tarde
             </label>
@@ -1947,7 +2077,7 @@ export function NutritionPlanningPage() {
                     key={key}
                     role="region"
                     aria-labelledby={`meal-slot-title-${key}`}
-                    className="rounded-xl border border-surface-border bg-surface-card overflow-hidden text-sm shadow-sm"
+                    className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card text-sm shadow-none dark:border-zinc-700/65"
                   >
                     {/* Cabecera de momento — alineada al PDF (franja + título) */}
                     <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
@@ -1985,7 +2115,7 @@ export function NutritionPlanningPage() {
                               {picks.map((p, rowIdx) => {
                                 const macroLine = macroLineForMealPick(p)
                                 const hintText = hintForPickDisplay(p)
-                                const mq = mealPickQtyPresentation(p, wb)
+                                const mq = resolveMealPickQtyPresentation(p, wb)
                                 const studentQty = buildStudentQuantitySummaryLines({
                                   gramsStr: p.qtyG,
                                   nameSnapshot: p.nameSnapshot,
@@ -2012,7 +2142,7 @@ export function NutritionPlanningPage() {
                                           </p>
                                         ) : null}
                                         {hintText ? (
-                                          <p className="text-[10px] text-ink-muted italic leading-snug mt-1 border-l-2 border-brand-primary/35 pl-2">
+                                          <p className="mt-1 border-l-2 border-zinc-300/90 pl-2 text-[10px] italic leading-snug text-ink-muted dark:border-zinc-600">
                                             Tip / unidad: {hintText}
                                           </p>
                                         ) : null}
@@ -2138,7 +2268,10 @@ export function NutritionPlanningPage() {
                             Notas del momento (opcional)
                           </span>
                           <textarea
-                            className="flex min-h-[64px] w-full rounded-lg border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary placeholder:text-ink-muted focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                            className={cn(
+                              'flex min-h-[64px] w-full px-2.5 py-2 text-xs placeholder:text-ink-muted',
+                              PLAN_FIELD_TEXTAREA_FOCUS,
+                            )}
                             value={notesStr}
                             onChange={(e) => patchMeal(key, e.target.value)}
                             placeholder="Observaciones para este momento (aparecen en el PDF debajo de la tabla)…"
@@ -2151,67 +2284,40 @@ export function NutritionPlanningPage() {
               })}
           </div>
         </section>
-
-        <details className="rounded-2xl border border-surface-border bg-surface-card p-5 group w-full">
-          <summary className="cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none [&::-webkit-details-marker]:hidden">
-            <ChevronDown className="w-5 h-5 shrink-0 text-ink-muted mt-0.5 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
-            Rangos típicos de macros (referencia técnica — tocá para abrir)
-          </summary>
-          <div className="mt-4 pl-7 space-y-3 border-l-2 border-surface-border ml-2.5 pb-1">
-            <ul className="text-sm text-ink-secondary space-y-2 list-disc pl-5">
-              <li>Proteínas: {wb.macroGuide.proteinPerKgHint}</li>
-              <li>Carbohidratos: {wb.macroGuide.carbPerKgHint}</li>
-              <li>Grasas: {wb.macroGuide.fatPerKgHint}</li>
-            </ul>
-            <p className="text-sm text-ink-muted">{wb.macroGuide.contextNote}</p>
           </div>
-        </details>
+        )}
 
-        <details className="rounded-2xl border border-surface-border bg-surface-card p-5 group w-full">
-          <summary className="cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none [&::-webkit-details-marker]:hidden outline-none select-none">
-            <ChevronDown className="w-5 h-5 shrink-0 text-ink-muted mt-0.5 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
-            Información sobre objetivos
-          </summary>
-          <div className="mt-4 ml-7 pl-2 border-l-2 border-surface-border grid gap-4 md:grid-cols-2 text-sm text-ink-secondary">
-            <div className="space-y-2">
-              <p className="font-medium text-ink-primary">{wb.objectivesGuide.superavitCal}</p>
-              <p>{wb.objectivesGuide.deficitCal}</p>
-              <p>{wb.objectivesGuide.recomposicion}</p>
-              <p>{wb.objectivesGuide.longevidad}</p>
-            </div>
-            <div className="space-y-2">
-              <p>{wb.objectivesGuide.proteinasPorObjetivo}</p>
-              <p>{wb.objectivesGuide.grasasPorObjetivo}</p>
-              <p>{wb.objectivesGuide.carbosPorObjetivo}</p>
-              <p>{wb.objectivesGuide.pctDistribicion}</p>
-            </div>
-          </div>
-        </details>
-
+        {planningTab === 'tablas' && (
+          <div
+            id="planning-panel-tablas"
+            role="tabpanel"
+            aria-labelledby="planning-tab-tablas"
+            className="space-y-5 pb-12"
+          >
         <p className="text-xs text-ink-muted leading-relaxed italic">
-          El cuadro <strong className="not-italic">1 · Seguimiento</strong> arriba resume consumido y restante antes de llegar al PDF y a las tablas.
+          El cuadro <strong className="not-italic">1 · Seguimiento</strong> está en la solapa <strong className="not-italic">Plan y metas</strong>; desde ahí ves consumido y restante antes del PDF y de estas tablas.
         </p>
 
         <p className="text-sm text-ink-muted leading-relaxed">
           Tablas por tipo de comida como en HH: cargá <strong>cantidad en gramos</strong> donde querés.&nbsp;
           HC / prot / grasa / kcal por 100 g son editables si tu marca cambia.&nbsp;
-          Tip: tocá «Mi lista» (<BookOpen className="inline-block h-3.5 w-3.5 align-text-bottom mx-px text-brand-primary" aria-hidden />) junto al alimento para traer algo que hayas guardado en{' '}
-          <Link to="/nutrition/foods" className="text-brand-primary hover:underline font-medium">
+          Tip: tocá «Mi lista» (<BookOpen className="mx-px inline-block h-3.5 w-3.5 align-text-bottom text-zinc-500 dark:text-zinc-500" aria-hidden />) junto al alimento para traer algo que hayas guardado en{' '}
+          <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
             Guía de alimentos
           </Link>{' '}
           cuando la plantilla no alcanza.
         </p>
 
-        <section className="rounded-2xl border border-surface-border bg-surface-card overflow-hidden w-full">
-          <div className="border-b border-surface-border bg-surface-muted/40 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <section className={cn('w-full overflow-hidden', PLAN_SECTION_CARD)}>
+          <div className="flex flex-col gap-2 border-b border-zinc-200/70 bg-zinc-50/50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/30 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-ink-primary uppercase tracking-wide flex items-center gap-2">
-                <Apple className="w-4 h-4 text-brand-primary shrink-0" aria-hidden />
+              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink-primary">
+                <Apple className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500" aria-hidden />
                 Alimentos personalizados
               </h2>
-              <p className="text-[11px] text-ink-muted mt-1 leading-relaxed max-w-[640px]">
+              <p className="mt-1 max-w-[640px] text-[11px] leading-relaxed text-ink-muted">
                 Desde <strong>Mi lista</strong> en la{' '}
-                <Link to="/nutrition/foods" className="text-brand-primary hover:underline font-medium">
+                <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
                   Guía de alimentos
                 </Link>
                 . Cargá <strong>gramos</strong> acá para ver HC/P/G/kcal del ítem; <strong>Usar</strong> copia el alimento al momento elegido (incluye los gramos si los cargaste).
@@ -2239,7 +2345,7 @@ export function NutritionPlanningPage() {
               <p className="text-xs text-ink-muted leading-relaxed">
                 Guardá en la Guía y tocá <strong>Actualizar lista</strong>. Si ya guardaste y sigue vacío, revisá la cuenta o errores al guardar.
               </p>
-              <Link to="/nutrition/foods" className="inline-flex text-brand-primary font-medium hover:underline">
+              <Link to="/nutrition/foods" className={cn('inline-flex', PLAN_DOC_LINK_CLASS)}>
                 Ir a Guía de alimentos
               </Link>
             </div>
@@ -2287,8 +2393,8 @@ export function NutritionPlanningPage() {
                               onClick={() => openTableTargetModal(lib)}
                               className={cn(
                                 'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
-                                'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-brand-primary',
-                                'hover:border-brand-primary/40 hover:bg-surface-elevated transition-colors',
+                                'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-zinc-800 dark:hover:text-zinc-200',
+                                'hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-900/60 transition-colors',
                               )}
                             >
                               <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
@@ -2317,7 +2423,7 @@ export function NutritionPlanningPage() {
                         <td className="px-2 py-2 align-middle text-center">
                           {qDraft > 0 ? (
                             <Check
-                              className="inline h-4 w-4 text-brand-primary shrink-0"
+                              className="inline h-4 w-4 shrink-0 text-zinc-600 dark:text-zinc-400"
                               strokeWidth={2.5}
                               aria-label={`${lib.display_name} suma al total del día`}
                             />
@@ -2336,7 +2442,7 @@ export function NutritionPlanningPage() {
           <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por 100 g para copiar o ajustar rápido al armar el día; el seguimiento contra objetivos está arriba.
         </div>
 
-        <div className="space-y-5 pb-12">
+        <div className="space-y-5">
           {wb.sections.map((sec, secStripeIdx) => {
             let secTotals = ZERO_TOTALS
             for (const r of sec.rows) {
@@ -2357,7 +2463,7 @@ export function NutritionPlanningPage() {
                   'rounded-xl border overflow-hidden w-full',
                   secStripeIdx % 2 === 0
                     ? 'border-slate-200/95 bg-slate-50/85 dark:border-slate-800 dark:bg-slate-950/40'
-                    : 'border-amber-200/80 bg-orange-50/50 dark:border-amber-900/50 dark:bg-orange-950/25',
+                    : 'border-zinc-200/70 bg-zinc-50/60 dark:border-zinc-700/65 dark:bg-zinc-950/45',
                 )}
               >
                 <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
@@ -2406,7 +2512,7 @@ export function NutritionPlanningPage() {
                                 <div className="min-w-0 flex-1">
                                   <p className="text-ink-primary font-medium break-words leading-snug text-[11px]">{r.name}</p>
                                   {r.hint ? (
-                                    <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-snug">{r.hint}</p>
+                                    <p className="mt-1 text-[10px] leading-snug text-zinc-600 dark:text-zinc-400">{r.hint}</p>
                                   ) : null}
                                 </div>
                                 <button
@@ -2422,8 +2528,8 @@ export function NutritionPlanningPage() {
                                   }}
                                   className={cn(
                                     'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
-                                    'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-brand-primary',
-                                    'hover:border-brand-primary/40 hover:bg-surface-elevated transition-colors',
+                                    'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-zinc-800 dark:hover:text-zinc-200',
+                                    'hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-900/60 transition-colors',
                                   )}
                                 >
                                   <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
@@ -2511,6 +2617,8 @@ export function NutritionPlanningPage() {
             )
           })}
         </div>
+          </div>
+        )}
       </div>
 
       {mealPickSlot ? (
@@ -2523,13 +2631,13 @@ export function NutritionPlanningPage() {
           <div
             role="dialog"
             aria-labelledby="meal-pick-title"
-            className="relative w-full max-w-lg rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl max-h-[min(90vh,720px)] overflow-y-auto"
+            className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700"
           >
             <h3 id="meal-pick-title" className="text-base font-semibold text-ink-primary pr-8">
               Agregar a «{MEAL_SLOT_LABELS[mealPickSlot]}»
             </h3>
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
-              Elegí una fila de las tablas inferiores (valores por 100 g del plan) o un alimento de Mi lista, y la cantidad en
+              Elegí una fila de la solapa «Tablas HH» (valores por 100 g del plan) o un alimento de Mi lista, y la cantidad en
               gramos para este momento.
             </p>
             <div className="flex gap-2 mb-4">
@@ -2537,10 +2645,10 @@ export function NutritionPlanningPage() {
                 type="button"
                 onClick={() => setMealPickTab('plan')}
                 className={cn(
-                  'flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                  'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   mealPickTab === 'plan'
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-surface-muted text-ink-secondary hover:bg-surface-border/80',
+                    ? PLAN_MODAL_TAB_ACTIVE
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800/70 dark:text-zinc-400 dark:hover:bg-zinc-800',
                 )}
               >
                 Tabla del plan
@@ -2549,10 +2657,10 @@ export function NutritionPlanningPage() {
                 type="button"
                 onClick={() => setMealPickTab('library')}
                 className={cn(
-                  'flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                  'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   mealPickTab === 'library'
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-surface-muted text-ink-secondary hover:bg-surface-border/80',
+                    ? PLAN_MODAL_TAB_ACTIVE
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800/70 dark:text-zinc-400 dark:hover:bg-zinc-800',
                 )}
               >
                 Mi lista
@@ -2623,7 +2731,7 @@ export function NutritionPlanningPage() {
                 {libraryFoods.length === 0 ? (
                   <p className="text-xs text-ink-muted">
                     No hay ítems cargados.&nbsp;
-                    <Link to="/nutrition/foods" className="text-brand-primary font-medium hover:underline">
+                    <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
                       Ir a la Guía
                     </Link>
                   </p>
@@ -2676,7 +2784,7 @@ export function NutritionPlanningPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setTableTargetLib(null)}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700">
             <h3 className="text-base font-semibold text-ink-primary pr-8">
               ¿En qué fila va «{tableTargetLib.display_name}»?
             </h3>
@@ -2733,7 +2841,7 @@ export function NutritionPlanningPage() {
           <div
             role="dialog"
             aria-labelledby="library-picker-title"
-            className="relative flex max-h-[min(85vh,640px)] w-full sm:max-w-lg flex-col rounded-t-2xl sm:rounded-2xl border border-surface-border bg-surface-card shadow-2xl"
+            className="relative flex max-h-[min(85vh,640px)] w-full flex-col rounded-t-xl border border-zinc-200/80 bg-surface-card shadow-lg dark:border-zinc-700 sm:max-w-lg sm:rounded-xl"
           >
             <div className="flex shrink-0 items-start justify-between gap-2 border-b border-surface-border p-4">
               <div>
@@ -2775,7 +2883,7 @@ export function NutritionPlanningPage() {
               ) : libraryFoods.length === 0 ? (
                 <p className="text-sm text-ink-muted leading-relaxed">
                   Todavía no tenés alimentos en Mi lista.&nbsp;
-                  <Link to="/nutrition/foods" className="text-brand-primary font-medium hover:underline">
+                  <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
                     Abrí la Guía
                   </Link>{' '}
                   y guardá desde el catálogo o USDA.
@@ -2790,8 +2898,8 @@ export function NutritionPlanningPage() {
                         type="button"
                         onClick={() => applyFoodFromLibrary(lib)}
                         className={cn(
-                          'w-full rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-left',
-                          'hover:border-brand-primary/40 hover:bg-surface-muted/50 transition-colors',
+                          'w-full rounded-md border border-zinc-200/75 bg-zinc-50/50 px-3 py-2.5 text-left transition-colors dark:border-zinc-700 dark:bg-zinc-900/40',
+                          'hover:border-zinc-400 hover:bg-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/60',
                         )}
                       >
                         <span className="font-medium text-ink-primary block text-sm">{lib.display_name}</span>
@@ -2816,7 +2924,7 @@ export function NutritionPlanningPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => !assignSaving && setAssignOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700">
             <h3 className="text-base font-semibold text-ink-primary">Asignar plan a un alumno</h3>
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se guarda una copia del contenido actual del plan. El alumno la ve en su cuenta si su usuario está vinculado en la ficha.
@@ -2858,7 +2966,7 @@ export function NutritionPlanningPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => !workbookTplSaving && setWorkbookTplSaveOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl space-y-3">
+          <div className="relative w-full max-w-md space-y-3 rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700">
             <h3 className="text-base font-semibold text-ink-primary">Guardar plantilla del libro (Excel)</h3>
             <p className="text-xs text-ink-muted leading-relaxed">
               Se guarda todo el plan actual (tablas, distribución, guías, TDEE, etc.) en tu cuenta para reutilizarlo después con «Cargar».

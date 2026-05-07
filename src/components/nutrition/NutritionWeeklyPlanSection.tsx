@@ -243,7 +243,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             email: 'cris.crossetto@gmail.com',
             instagram: '@c.vazqueznutricion',
           }}
-          appLogoUrl={`${window.location.origin}/app_icon_original_1024.png`}
+          appLogoUrl={`${window.location.origin}/logo-brand.png`}
         />
       )
       const blob = await pdf(doc).toBlob()

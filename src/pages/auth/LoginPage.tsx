@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Navigate, Link } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
+import { BrandLogo } from '@/components/branding/BrandLogo'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Mail, Lock, ArrowRight, Zap, Sun, Moon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,7 +22,7 @@ type LoginForm = z.infer<typeof loginSchema>
 
 export function LoginPage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { theme, toggleTheme } = useTheme()
   const [tab, setTab] = useState<'password' | 'magic'>('password')
 
@@ -34,7 +36,7 @@ export function LoginPage() {
   // Do NOT navigate inside onSubmit — the store isn't updated yet at that point.
   useEffect(() => {
     if (user) navigate('/dashboard', { replace: true })
-  }, [user])
+  }, [user, navigate])
 
   if (user) return <Navigate to="/dashboard" replace />
 
@@ -76,11 +78,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img
-            src="/app_icon_original_1024.png"
-            alt="Haciéndolo Hábito"
-            className="w-28 h-28 object-contain mx-auto mb-4"
-          />
+          <BrandLogo size="lg" className="mx-auto mb-4" />
           <p className="text-sm text-ink-secondary">Panel de acceso</p>
         </div>
 

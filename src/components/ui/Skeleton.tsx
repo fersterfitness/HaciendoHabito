@@ -54,12 +54,13 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
 /** Skeleton de stat card */
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-surface-border bg-surface-card p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-8 w-8 rounded-xl" />
+    <div className="rounded-xl border border-surface-border bg-surface-card p-4 space-y-3 min-h-[128px] flex flex-col">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4 rounded shrink-0" />
+        <Skeleton className="h-3 w-28" />
       </div>
-      <Skeleton className="h-7 w-16" />
+      <Skeleton className="h-8 w-14" />
+      <Skeleton className="h-3 w-36 mt-auto" />
     </div>
   )
 }

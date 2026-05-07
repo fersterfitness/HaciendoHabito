@@ -126,27 +126,24 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
   },
   {
     key: 'hortalizas',
-    title: 'HORTALIZAS · GRUPOS A Y B (orientativo)',
+    title: 'HORTALIZAS · GRUPOS A Y B',
     quantityColumnHint:
-      'Grupo A: ensalada / verduras de baja densidad. Grupo B: mayor aporte de HC (papa, choclo, zapallo anco, etc.). Cantidad en gramos cocidos salvo indicación.',
+      'Cargá gramos cocidos; el PDF también detalla hort. A/B por ítems. Referencia rápida en estas filas.',
     rows: [
       {
-        name: 'Verduras grupo A (mezcla / ensalada)',
-        hint: 'Ej. hoja verde, tomate, zapallito, champiñón — suele permitirse más volumen según plan.',
+        name: 'HORTALIZAS A · ítems (referencia rápida)',
+        hint:
+          'Acelga, achicoria, apio, berenjena, berro, brócoli, coliflor, escarola, espárragos, espinaca, hinojo, hongos, lechuga, pepino, puerro, rabanito, radicheta, repollo, repollitos de Bruselas, tomate, zapallito.',
       },
       {
-        name: 'Hortalizas grupo B (mayor aporte de carbos)',
-        hint: 'Ej. papa, batata, mandioca, choclo en grano, arvejas — repartir según meta de hidratos del día.',
+        name: 'HORTALIZAS B · ítems (referencia rápida)',
+        hint:
+          'Alcaucil (alcachofa), arvejas frescas, brotes de soja, calabaza, cebolla, cebolla de verdeo, chauchas, nabo, palmitos, remolacha, zanahoria, zapallo.',
       },
-      { name: 'Lechuga / rúcula / mix de hojas (crudo)', hint: 'Grupo A típico; registrá volumen habitual en g si necesitás ajust fino.' },
-      { name: 'Tomate / pepino crudo', hint: 'Grupo A.' },
-      { name: 'Zapallitos / berenjenas cocidos', hint: 'Grupo A intermedio; podés cargar después de cocer.' },
-      { name: 'Espinaca / acelga / verdura de hoja cocida', hint: 'Valor por gram cocido después de pérdidas de volumen.' },
-      { name: 'Brócoli / coliflor (cocido)', hint: 'Grupo intermediario volumen alto, carbos moderate.' },
-      { name: 'Champiñones / hongos (cocido)', hint: 'Grupo A con buen volumen útil para satiedad.' },
-      { name: 'Alcauciles corazón (conserva o fresco cocido)', hint: 'Fibra alta; cargá gramos útiles.' },
-      { name: 'Espárragos (cocidos)', hint: 'Grupo A.' },
-      { name: 'Puerro / cebolla de verdeo (salteado cocido)', hint: 'Cantidad habitual en salsa o guarnición.' },
+      {
+        name: 'Porción de ensalada o verduras en plato (peso habitual)',
+        hint: 'Gramos después de lavar/listas o tras cocinar, como acordemos con la persona.',
+      },
     ],
   },
   {
@@ -193,12 +190,12 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
       { name: 'Semillas de amaranto' },
       { name: 'Semillas de calabaza' },
       { name: 'Semillas de sésamo' },
-      { name: 'Nueces mariposa (unidad)', hint: '~5–10 g por media nuez.' },
-      { name: 'Almendras (unidad)', hint: '~1,2–1,5 g por almendra.' },
-      { name: 'Castañas (unidad)', hint: '~10 g por castaña cocida orientativa.' },
-      { name: 'Palta (unidad)', hint: 'Mediana sin carozo ~135 g pulpa (orientativo).' },
+      { name: 'Nueces mariposa (unidad)', hint: '~5–10 g por media nuez.', qtyPresentation: 'units' },
+      { name: 'Almendras (unidad)', hint: '~1,2–1,5 g por almendra.', qtyPresentation: 'units' },
+      { name: 'Castañas (unidad)', hint: '~10 g por castaña cocida orientativa.', qtyPresentation: 'units' },
+      { name: 'Palta (unidad)', hint: 'Mediana sin carozo ~135 g pulpa (orientativo).', qtyPresentation: 'units' },
       { name: 'Aceite (cuchara sopera)', hint: '~12–15 g por cucharada sopera.' },
-      { name: 'Aceitunas sin carozo (unidad)', hint: '~3–5 g por unidad.' },
+      { name: 'Aceitunas sin carozo (unidad)', hint: '~3–5 g por unidad.', qtyPresentation: 'units' },
       { name: 'Pasa de uva (sopera)', hint: '~12 g por sopera rasada orientativa.' },
     ],
   },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ArrowLeft, FileDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Header } from '@/components/layout/Header'
@@ -16,7 +17,7 @@ import type { Json, TrainerStudentMealPlan } from '@/types/database'
 
 export function StudentMealPlanDetailPage() {
   const { planId } = useParams<{ planId: string }>()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
   const [wb, setWb] = useState<PlanningWorkbookStateV1 | null>(null)

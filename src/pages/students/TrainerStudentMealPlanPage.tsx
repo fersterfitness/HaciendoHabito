@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ArrowLeft, FileDown } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -21,7 +22,7 @@ type MealPlanRow = TrainerStudentMealPlan & {
 /** Vista del plan asignado (entrenador / admin) desde la ficha del alumno. */
 export function TrainerStudentMealPlanPage() {
   const { id: studentId, planId } = useParams<{ id: string; planId: string }>()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
   const [wb, setWb] = useState<PlanningWorkbookStateV1 | null>(null)

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { FileText, Upload, Sparkles, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -61,7 +62,7 @@ function toNullableNumber(value: string): number | null {
 }
 
 export function NutritionPatientDetailPage() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { id } = useParams<{ id: string }>()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)

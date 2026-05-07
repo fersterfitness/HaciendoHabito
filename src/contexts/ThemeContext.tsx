@@ -22,6 +22,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-density', 'comfortable')
+  }, [])
+
+  useEffect(() => {
     const root = document.documentElement
     root.classList.remove('dark', 'light')
     root.classList.add(theme)

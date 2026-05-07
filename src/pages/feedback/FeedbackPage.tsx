@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import {} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { MessageSquare, Search, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -9,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn, formatDate } from '@/lib/utils'
 import type { RoutineQuestion, Student, Routine, QuestionStatus } from '@/types/database'
@@ -27,7 +29,7 @@ const TABS: { value: FilterTab; label: string }[] = [
 ]
 
 export function FeedbackPage() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [questions, setQuestions] = useState<QuestionFull[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -82,43 +84,44 @@ export function FeedbackPage() {
       />
 
       <div className="px-4 lg:px-6 py-6 space-y-4">
-
-        {/* Barra de búsqueda */}
-        <Input
-          placeholder="Buscar por alumno o consulta..."
-          leftIcon={<Search className="h-4 w-4" />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        {/* Tabs de estado */}
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-          {TABS.map(({ value, label }) => {
-            const count = value === 'todas' ? questions.length : counts[value] ?? 0
-            return (
-              <button
-                key={value}
-                onClick={() => setTab(value)}
-                className={cn(
-                  'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors',
-                  tab === value
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
-                )}
-              >
-                {label}
-                {count > 0 && (
-                  <span className={cn(
-                    'rounded-full px-1.5 py-px text-[10px] font-bold',
-                    tab === value ? 'bg-white/20 text-white' : 'bg-surface-border text-ink-muted',
-                  )}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <PageToolbar>
+          <div className="w-full min-w-0 lg:max-w-md">
+            <Input
+              placeholder="Buscar por alumno o consulta..."
+              leftIcon={<Search className="h-4 w-4" />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide w-full lg:w-auto lg:flex-1 min-w-0 pb-1">
+            {TABS.map(({ value, label }) => {
+              const count = value === 'todas' ? questions.length : counts[value] ?? 0
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTab(value)}
+                  className={cn(
+                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors',
+                    tab === value
+                      ? 'bg-brand-primary text-white'
+                      : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+                  )}
+                >
+                  {label}
+                  {count > 0 && (
+                    <span className={cn(
+                      'rounded-full px-1.5 py-px text-[10px] font-bold',
+                      tab === value ? 'bg-white/20 text-white' : 'bg-surface-border text-ink-muted',
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </PageToolbar>
 
         {/* Alerta si hay abiertas */}
         {openCount > 0 && tab === 'todas' && (

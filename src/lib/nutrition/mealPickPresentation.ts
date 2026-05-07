@@ -1,4 +1,8 @@
-import type { MealPreparationChoice } from '@/lib/nutrition/planningWorkbookTypes'
+import type {
+  MealPreparationChoice,
+  MealSlotPick,
+  PlanningWorkbookStateV1,
+} from '@/lib/nutrition/planningWorkbookTypes'
 import { parseLocaleNumberOrZero } from '@/lib/nutrition/planningCalculations'
 
 /** Orientativo HH: ~15 g por cucharada sopera (varía por alimento). */
@@ -61,6 +65,29 @@ export function preparacionElegidaLine(
   return preparacionAlumnoLine(name, hint)
 }
 
+/** Unifica lectura por unidades vs gramos en picks (fila activa del plan si aplica). */
+export function resolveMealPickQtyPresentation(
+  p: MealSlotPick,
+  wb: PlanningWorkbookStateV1,
+): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
+  const ulSnap = p.unitsLabel?.trim()
+  if (p.kind === 'library') {
+    if (p.qtyPresentation === 'units') return { qtyPresentation: 'units', unitsLabel: ulSnap || undefined }
+    if (p.qtyPresentation === 'grams') return { qtyPresentation: 'grams' }
+    return {}
+  }
+  const sec = wb.sections.find((s) => s.key === p.secKey)
+  const row = sec?.rows.find((r) => r.id === p.rowId)
+  const ulRow = row?.unitsLabel?.trim()
+  const rpm = row?.qtyPresentation
+  if (rpm === 'grams') return { qtyPresentation: 'grams' }
+  if (rpm === 'units' || p.qtyPresentation === 'units') {
+    return { qtyPresentation: 'units', unitsLabel: ulSnap || ulRow || undefined }
+  }
+  if (p.qtyPresentation === 'grams') return { qtyPresentation: 'grams' }
+  return {}
+}
+
 /** Una línea compacta para PDF o pantalla: gramos + cdas + preparación. */
 export function buildStudentQuantitySummaryLines(opts: {
   gramsStr: string
@@ -78,13 +105,22 @@ export function buildStudentQuantitySummaryLines(opts: {
   const units = opts.unitsLabel?.trim()
 
   let gramsPart: string
-  if (opts.qtyPresentation === 'units' && units) {
-    gramsPart =
-      g > 0
-        ? opts.compact
-          ? `${units} u. (~${fmtGramOrDash(g)} g)`
-          : `${units} unidad(es) · equivalente orientativo ~${fmtGramOrDash(g)} g`
-        : `${units} u. · indicá también gramos equivalentes en el plan para el total energético.`
+  if (opts.qtyPresentation === 'units') {
+    if (units) {
+      gramsPart =
+        g > 0
+          ? opts.compact
+            ? `${units} u. (~${fmtGramOrDash(g)} g)`
+            : `${units} unidad(es) · equivalente orientativo ~${fmtGramOrDash(g)} g`
+          : `${units} u. · cargá también gramos equiv. para el cómputo energético.`
+    } else {
+      gramsPart =
+        g > 0
+          ? opts.compact
+            ? `Por unidades — cargá cant. en «Uds.» (${fmtGramOrDash(g)} g equiv. en tabla)`
+            : `Este ítem se registra por unidades: cargá cantidad en «Uds.» del plan · masa equiv. orientativa ~${fmtGramOrDash(g)} g`
+          : 'Por unidades: cargá cantidad en «Uds.» del plan y gramos equivalentes.'
+    }
   } else {
     gramsPart =
       g > 0

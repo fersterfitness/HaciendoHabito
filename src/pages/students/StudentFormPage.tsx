@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -43,7 +44,7 @@ type FormValues = z.infer<typeof schema>
 export function StudentFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEditing = !!id
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const role = useAuthStore((state) => state.profile?.role)
   const entitySingular = role === 'nutritionist' ? 'paciente' : 'alumno'
   const { createStudent, updateStudent } = useStudents()

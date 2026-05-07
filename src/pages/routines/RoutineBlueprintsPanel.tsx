@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link} from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ArrowRight, Library, Plus, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -12,7 +13,7 @@ import toast from 'react-hot-toast'
 
 /** Lista de plantillas guardadas desde el detalle de rutina (pestaña dentro de Rutinas). */
 export function RoutineBlueprintsPanel() {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [items, setItems] = useState<RoutineBlueprint[]>([])
   const [loading, setLoading] = useState(true)

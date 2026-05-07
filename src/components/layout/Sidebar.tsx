@@ -1,82 +1,111 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import {
-  Home,
-  Users,
-  Dumbbell,
-  FileText,
-  MessageSquare,
-  BookOpen,
-  Wallet,
-  Settings,
-  LogOut,
-  Salad,
-  ChevronLeft,
-  ChevronRight,
-  CalendarCheck,
-  LineChart,
-  CalendarClock,
-  Library,
-  Apple,
-  ClipboardList,
-  UtensilsCrossed,
-} from 'lucide-react'
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import type { LucideIcon } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
+import { BrandLogo } from '@/components/branding/BrandLogo'
+import { Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { useSidebar } from '@/contexts/SidebarContext'
-import { useTheme } from '@/contexts/ThemeContext'
-import { getInitials } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { AppRole } from '@/types/database'
+import { getSidebarBlocks } from '@/config/navigation'
+import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
-// ─── Colors ──────────────────────────────────────────────────────────────────
-const SIDEBAR_BG = '#0d0f14'
-// ACTIVE_BG and active text color are resolved at runtime via CSS variables
-// so the notch always matches the content area regardless of theme.
-const ACTIVE_BG  = 'rgb(var(--surface-base))'
-const NOTCH_R    = 14
+const RAIL_W = 'w-[56px]'
 
-// ─── Nav groups ──────────────────────────────────────────────────────────────
-const homeItem = { label: 'Inicio', href: '/dashboard', icon: Home }
-const appointmentsItem = { label: 'Turnos', href: '/appointments', icon: CalendarClock }
-
-const navItems = [
-  { label: 'Alumnos',      href: '/students',      icon: Users },
-  { label: 'Rutinas',      href: '/routines',      icon: Dumbbell },
-  { label: 'Planes alimentación', href: '/meal-plans', icon: UtensilsCrossed },
-  { label: 'Hábitos',       href: '/habits',        icon: CalendarCheck },
-  { label: 'Devoluciones', href: '/feedback',      icon: MessageSquare },
-  { label: 'Ejercicios',   href: '/exercises',     icon: BookOpen },
-]
-
-const financeItems = [
-  { label: 'Finanzas', href: '/finances', icon: Wallet },
-]
-
-/** Nutrición básica guiada por el entrenador (macros / referencias para alumnos). */
-const trainerNutritionGuideItems = [
-  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
-  { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
-]
-
-/** Alumno con cuenta vinculada: ve planes que el entrenador asignó. */
-const studentMealPlanItems = [{ label: 'Mi plan de alimentación', href: '/my/meal-plans', icon: ClipboardList }]
-
-const nutritionItems = [
-  { label: 'Nutrición',      href: '/nutrition',      icon: Salad, exactMatch: true },
-  { label: 'Evolución',      href: '/nutrition/evolution', icon: LineChart },
-  { label: 'Planes',         href: '/nutrition/plans', icon: Library },
-  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
-  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
-  { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
-]
-
-function canSeeTraining(role: AppRole | undefined) {
-  return role === 'admin' || role === 'trainer'
+/** Contenido visual del tooltip (pastilla + caret, estilo Gray). */
+function RailTooltipBubble({ label }: { label: string }) {
+  return (
+    <span className="inline-flex max-w-full flex-row items-center">
+      <span
+        aria-hidden
+        className="h-0 w-0 shrink-0 border-y-[6px] border-y-transparent border-r-[7px] border-r-white drop-shadow-sm"
+      />
+      <span
+        className={cn(
+          '-ml-px min-w-0 max-w-[min(16rem,calc(100vw-5rem))] rounded-full bg-white px-3.5 py-1.5 text-left text-xs font-semibold',
+          'tracking-tight text-zinc-900 shadow-[0_4px_16px_rgba(0,0,0,0.14)]',
+          'whitespace-normal leading-snug break-words [overflow-wrap:anywhere]',
+        )}
+      >
+        {label}
+      </span>
+    </span>
+  )
 }
 
-function canSeeNutrition(role: AppRole | undefined) {
-  return role === 'admin' || role === 'nutritionist'
+/**
+ * El nav del rail usa overflow-y-auto: en CSS eso fuerza recorte horizontal y los tooltips
+ * `absolute` quedan invisibles. Renderizamos en body con position fixed (como Gray con Portal).
+ */
+function SidebarRailTooltip({ label, children }: { label: string; children: ReactNode }) {
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  const measure = useCallback(() => {
+    const el = triggerRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setPos({ top: r.top + r.height / 2, left: r.right + 10 })
+  }, [])
+
+  const show = useCallback(() => {
+    requestAnimationFrame(() => {
+      measure()
+      setOpen(true)
+    })
+  }, [measure])
+
+  const hide = useCallback(() => setOpen(false), [])
+
+  useEffect(() => {
+    if (!open) return
+    const onScroll = () => hide()
+    const onResize = () => measure()
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [open, hide, measure])
+
+  return (
+    <>
+      <div
+        ref={triggerRef}
+        className="relative flex w-full justify-center px-1.5 py-0.5"
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocusCapture={() => {
+          requestAnimationFrame(() => {
+            measure()
+            setOpen(true)
+          })
+        }}
+        onBlurCapture={(e) => {
+          const next = e.relatedTarget as Node | null
+          if (!next || !triggerRef.current?.contains(next)) hide()
+        }}
+      >
+        {children}
+      </div>
+      {open &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="pointer-events-none fixed z-[9999] max-w-[min(18rem,calc(100vw-4rem))] -translate-y-1/2"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            <RailTooltipBubble label={label} />
+          </div>,
+          document.body,
+        )}
+    </>
+  )
 }
 
 function roleLabel(role: AppRole | undefined) {
@@ -87,152 +116,86 @@ function roleLabel(role: AppRole | undefined) {
   return 'Sin perfil'
 }
 
-// ─── Concave notch ───────────────────────────────────────────────────────────
-function Notch({ side, visible }: { side: 'above' | 'below'; visible: boolean }) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: 'absolute',
-        right: 0,
-        ...(side === 'above' ? { bottom: '100%' } : { top: '100%' }),
-        width: NOTCH_R,
-        height: NOTCH_R,
-        background: visible ? ACTIVE_BG : 'transparent',
-        zIndex: 2,
-        pointerEvents: 'none',
-        opacity: visible ? 1 : 0,
-        transition: 'opacity 150ms ease-out',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: SIDEBAR_BG,
-          borderRadius: side === 'above' ? `0 0 ${NOTCH_R}px 0` : `0 ${NOTCH_R}px 0 0`,
-        }}
-      />
-    </div>
-  )
-}
-
 function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
   if (exactMatch) return pathname === href
-  if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/'
+  const homeHref = href === '/dashboard'
+  const atHome = pathname === '/' || pathname === '/dashboard'
+  if (homeHref && atHome) return true
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-// ─── Sidebar item ─────────────────────────────────────────────────────────────
-function SidebarItem({
+function RailNavLink({
+  to,
   label,
-  href,
   icon: Icon,
-  collapsed,
   exactMatch,
 }: {
+  to: string
   label: string
-  href: string
-  icon: React.ElementType
-  collapsed: boolean
+  icon: LucideIcon
   exactMatch?: boolean
 }) {
   const { pathname } = useLocation()
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-
-  const isActive = isPathActive(pathname, href, exactMatch)
-
-  // In light mode the active item sits on a white bg → dark ink.
-  // In dark mode it sits on the dark surface-base → light ink.
-  const activeTextColor = isDark ? 'rgb(var(--ink-primary))' : '#0d0f14'
+  const isActive = isPathActive(pathname, to, exactMatch)
 
   return (
-    <div style={{ position: 'relative', marginBottom: 2, zIndex: isActive ? 10 : 1 }}>
-      <Notch side="above" visible={isActive} />
-
+    <SidebarRailTooltip label={label}>
       <NavLink
-        to={href}
-        title={collapsed ? label : undefined}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          minHeight: 40,
-          marginLeft: 8,
-          marginRight: 0,
-          paddingLeft: collapsed ? 0 : 10,
-          paddingRight: collapsed ? 0 : 10,
-          paddingTop: 8,
-          paddingBottom: 8,
-          justifyContent: collapsed ? 'center' : undefined,
-          borderTopLeftRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderTopRightRadius: isActive ? 0 : 12,
-          borderBottomRightRadius: isActive ? 0 : 12,
-          background: isActive ? ACTIVE_BG : 'transparent',
-          position: 'relative',
-          zIndex: 1,
-          color: isActive ? activeTextColor : 'rgba(255,255,255,0.55)',
-          textDecoration: 'none',
-          transition: 'color 150ms',
-        }}
+        to={to}
         className={cn(
-          'group',
-          !isActive && 'hover:!bg-white/[0.07] hover:!text-white/80',
+          'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
+          'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400/90 dark:focus-visible:ring-white/35',
+          'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+          isActive
+            ? 'bg-zinc-200 text-zinc-900 dark:bg-white/[0.16] dark:text-white'
+            : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
+        )}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={label}
+      >
+        <Icon className="size-[17px] shrink-0" strokeWidth={isActive ? 2.25 : 2} aria-hidden />
+      </NavLink>
+    </SidebarRailTooltip>
+  )
+}
+
+function RailIconButton({
+  label,
+  onClick,
+  icon: Icon,
+  danger,
+}: {
+  label: string
+  onClick: () => void
+  icon: LucideIcon
+  danger?: boolean
+}) {
+  return (
+    <SidebarRailTooltip label={label}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className={cn(
+          'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
+          'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400/90 dark:focus-visible:ring-white/35',
+          'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+          danger
+            ? 'text-zinc-400 hover:bg-red-500/10 hover:text-red-600 dark:text-white/35 dark:hover:bg-red-500/15 dark:hover:text-red-400'
+            : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
         )}
       >
-        {/* Icon wrapper */}
-        <span
-          className="flex items-center justify-center shrink-0 rounded-lg transition-colors"
-          style={{
-            width: 28,
-            height: 28,
-            background: isActive ? 'rgb(var(--brand-primary) / 0.12)' : 'transparent',
-          }}
-        >
-          <Icon
-            style={{
-              width: 15,
-              height: 15,
-              color: isActive ? 'rgb(var(--brand-primary))' : 'inherit',
-              transition: 'color 150ms',
-            }}
-          />
-        </span>
-
-        {!collapsed && (
-          <span
-            className="ml-2.5 mr-3 text-[13px] flex-1 select-none leading-snug break-words text-left min-w-0"
-            style={{ fontWeight: isActive ? 600 : 500 }}
-          >
-            {label}
-          </span>
-        )}
-      </NavLink>
-
-      <Notch side="below" visible={isActive} />
-    </div>
+        <Icon className="size-[17px] shrink-0" aria-hidden />
+      </button>
+    </SidebarRailTooltip>
   )
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
-function SidebarSection({ label }: { label: string }) {
-  return (
-    <div className="px-4 pt-5 pb-1.5">
-      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{label}</p>
-    </div>
-  )
-}
-
-// ─── Main sidebar ─────────────────────────────────────────────────────────────
 export function Sidebar() {
-  const { collapsed, toggle } = useSidebar()
   const { profile, reset } = useAuthStore()
-  const { theme } = useTheme()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const role = profile?.role
-  const showTraining = canSeeTraining(role)
-  const showNutrition = canSeeNutrition(role)
+  const sidebarBlocks = getSidebarBlocks(role)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -241,176 +204,113 @@ export function Sidebar() {
     toast.success('Sesión cerrada')
   }
 
+  const profileTip = profile
+    ? `Perfil · ${profile.full_name} (${roleLabel(profile.role)})`
+    : 'Perfil'
+
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-200 print:hidden',
-        collapsed ? 'w-[62px]' : 'w-[196px]',
+        RAIL_W,
+        'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 overflow-visible',
+        'border-r border-black/[0.08] bg-zinc-100 dark:border-white/[0.06] dark:bg-[rgb(var(--surface-sidebar))]',
+        'print:border-0 print:hidden',
       )}
-      style={{
-        background: SIDEBAR_BG,
-        borderRight: theme === 'dark'
-          ? '1px solid rgba(255,255,255,0.06)'
-          : 'none',
-      }}
     >
-      {/* Logo */}
       <div
-        className={cn(
-          'flex items-center shrink-0 border-b',
-          collapsed ? 'justify-center h-14 px-0' : 'gap-3 px-4 py-4',
-        )}
-        style={{ borderColor: 'rgba(255,255,255,0.07)' }}
+        className="flex h-[54px] shrink-0 items-center justify-center border-b border-black/[0.08] px-0.5 dark:border-white/[0.07]"
+        aria-hidden={false}
       >
-        <img
-          src="/logo_mark_original_white_transparent.png"
-          alt="HH"
-          className={cn(
-            'object-contain shrink-0 rounded-xl',
-            collapsed ? 'w-9 h-9' : 'w-14 h-14',
-          )}
-        />
-        {!collapsed && (
-          <p className="text-[11px] font-extrabold text-white leading-snug tracking-wide uppercase ml-1 mr-4">
-            Haciéndolo<br />Hábito
-          </p>
-        )}
+        <SidebarRailTooltip label="Inicio · panel">
+          <NavLink
+            to="/dashboard"
+            className={cn(
+              'flex size-[3.25rem] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
+              'hover:bg-zinc-200/90 dark:hover:bg-white/[0.10]',
+              'focus-visible:ring-2 focus-visible:ring-zinc-400/90 focus-visible:ring-offset-2',
+              'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-white/35 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+            )}
+            aria-label="Inicio"
+          >
+            <BrandLogo size="sm" decorative />
+          </NavLink>
+        </SidebarRailTooltip>
       </div>
 
-      {/* Nav */}
-      <nav
-        className={cn(
-          'flex-1 py-3 overflow-y-auto overflow-x-visible scrollbar-hide',
-          collapsed ? 'px-0' : 'px-0',
-        )}
-        style={{ paddingTop: NOTCH_R, paddingBottom: NOTCH_R }}
-      >
-        <SidebarItem key={homeItem.href} {...homeItem} collapsed={collapsed} />
-        <SidebarItem key={appointmentsItem.href} {...appointmentsItem} collapsed={collapsed} />
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden py-2 scrollbar-hide">
+        {sidebarBlocks.map((block, blockIndex) => {
+          if (block.kind === 'divider') {
+            return (
+              <div
+                key={`divider-${blockIndex}`}
+                className="mx-2 my-2 h-px shrink-0 bg-zinc-300 dark:bg-white/10"
+              />
+            )
+          }
 
-        {role === 'student' && (
-          <>
-            {!collapsed && <SidebarSection label="Tu entrenador" />}
-            {studentMealPlanItems.map((item) => (
-              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-            ))}
-          </>
-        )}
+          if (block.kind === 'items') {
+            return (
+              <Fragment key={`items-${blockIndex}`}>
+                {block.items.map((item) => (
+                  <RailNavLink
+                    key={`${item.href}-${item.label}`}
+                    to={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    exactMatch={item.exactMatch}
+                  />
+                ))}
+              </Fragment>
+            )
+          }
 
-        {(showTraining || showNutrition) && (
-          <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
-        )}
-
-        {showTraining && navItems.map((item) => (
-          <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-        ))}
-
-        {showTraining && (
-          <>
-            {!collapsed && <SidebarSection label="Finanzas" />}
-            {collapsed && (
-              <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
-            )}
-            {financeItems.map((item) => (
-              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-            ))}
-          </>
-        )}
-
-        {role === 'trainer' && (
-          <>
-            {!collapsed && <SidebarSection label="Nutrición (guía alumno)" />}
-            {collapsed && (
-              <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
-            )}
-            {trainerNutritionGuideItems.map((item) => (
-              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-            ))}
-          </>
-        )}
-
-        {showNutrition && (
-          <>
-            {!collapsed && <SidebarSection label="Nutrición" />}
-            {collapsed && (
-              <div className="my-3 mx-3" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
-            )}
-            {nutritionItems.map((item) => (
-              <SidebarItem key={item.href} {...item} collapsed={collapsed} />
-            ))}
-          </>
-        )}
+          return (
+            <Fragment key={`section-${block.title}-${blockIndex}`}>
+              <div className="mt-2 border-t border-black/10 pt-2 dark:border-white/[0.08]">
+                {block.items.map((item) => (
+                  <RailNavLink
+                    key={`${item.href}-${item.label}`}
+                    to={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    exactMatch={item.exactMatch}
+                  />
+                ))}
+              </div>
+            </Fragment>
+          )
+        })}
       </nav>
 
-      {/* Bottom */}
-      <div
-        className="shrink-0 pb-3 pt-2"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
-      >
-        {/* Settings */}
-        <SidebarItem
-          label="Configuración"
-          href="/settings"
-          icon={Settings}
-          collapsed={collapsed}
-        />
+      <div className="shrink-0 space-y-0.5 border-t border-black/[0.08] py-2 dark:border-white/[0.07]">
+        <RailNavLink to="/settings" label="Configuración" icon={Settings} />
 
-        {/* User row */}
-        <div
-          className={cn(
-            'flex items-center rounded-xl mt-1 group cursor-default transition-colors hover:bg-white/[0.07]',
-            collapsed ? 'justify-center py-2.5 mx-1' : 'gap-2.5 py-2.5 mx-2 px-2',
-          )}
-          title={collapsed ? (profile?.full_name ?? '') : undefined}
-        >
-          <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center shrink-0">
-            <span className="text-white text-[10px] font-bold">
-              {profile ? getInitials(profile.full_name) : '?'}
-            </span>
-          </div>
-          {!collapsed && (
-            <>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold text-white truncate leading-none">
-                  {profile?.full_name ?? 'Cargando...'}
-                </p>
-                <p className="text-[10px] text-white/40 capitalize leading-none mt-0.5">
-                  {roleLabel(profile?.role)}
-                </p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-white/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                title="Cerrar sesión"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {collapsed && (
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center w-full rounded-xl py-2 text-white/30 hover:text-red-400 hover:bg-white/[0.07] transition-all duration-150 mt-1"
-            title="Cerrar sesión"
+        <SidebarRailTooltip label={profileTip}>
+          <NavLink
+            to="/profile"
+            className={cn(
+              'relative flex size-[34px] shrink-0 items-center justify-center overflow-hidden rounded-xl outline-none transition-opacity hover:opacity-95',
+              'focus-visible:ring-2 focus-visible:ring-zinc-400/90 focus-visible:ring-offset-2',
+              'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-white/35 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+            )}
+            aria-label={profileTip}
           >
-            <LogOut className="h-4 w-4" />
-          </button>
-        )}
+            <AvatarOrInitials
+              fullName={profile?.full_name ?? '?'}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+              rounded="xl"
+              className="!font-bold"
+            />
+          </NavLink>
+        </SidebarRailTooltip>
 
-        {/* Collapse toggle */}
-        <button
-          onClick={toggle}
-          title={collapsed ? 'Expandir' : 'Colapsar'}
-          className={cn(
-            'flex items-center w-full rounded-xl py-2 mt-1 text-white/25 hover:text-white/50 hover:bg-white/[0.07] transition-all duration-150',
-            collapsed ? 'justify-center' : 'px-2 gap-2',
-          )}
-        >
-          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
-          {!collapsed && <span className="text-[11px]">Colapsar</span>}
-        </button>
+        <RailIconButton
+          label="Cerrar sesión"
+          icon={LogOut}
+          danger
+          onClick={() => void handleLogout()}
+        />
       </div>
     </aside>
   )
