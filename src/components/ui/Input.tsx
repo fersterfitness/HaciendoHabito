@@ -16,7 +16,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-ink-secondary">
+          <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             {label}
             {props.required && <span className="text-brand-primary ml-1">*</span>}
           </label>
@@ -31,11 +31,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              'w-full rounded-xl bg-surface-input border border-surface-inputBorder',
+              'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
               'text-ink-primary placeholder:text-ink-muted text-sm',
               'px-3 py-2.5 h-10',
               'transition-colors duration-150',
-              'focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20',
+              'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
               'disabled:opacity-50 disabled:cursor-not-allowed',
               error && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
               leftIcon && 'pl-9',
@@ -72,7 +72,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-ink-secondary">
+          <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             {label}
             {props.required && <span className="text-brand-primary ml-1">*</span>}
           </label>
@@ -81,11 +81,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full rounded-xl bg-surface-input border border-surface-inputBorder',
+            'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
             'text-ink-primary placeholder:text-ink-muted text-sm',
             'px-3 py-2.5 min-h-[80px] resize-y',
             'transition-colors duration-150',
-            'focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20',
+            'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
             className
@@ -117,7 +117,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-ink-secondary">
+          <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             {label}
             {props.required && <span className="text-brand-primary ml-1">*</span>}
           </label>
@@ -126,11 +126,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full rounded-xl bg-surface-input border border-surface-inputBorder',
+            'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
             'text-ink-primary text-sm',
             'px-3 py-2.5 h-10',
             'transition-colors duration-150 appearance-none cursor-pointer',
-            'focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20',
+            'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error && 'border-status-expired',
             className

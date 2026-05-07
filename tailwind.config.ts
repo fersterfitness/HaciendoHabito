@@ -10,11 +10,14 @@ const config: Config = {
           primary: 'rgb(var(--brand-primary) / <alpha-value>)',
           hover: 'rgb(var(--brand-hover) / <alpha-value>)',
           warm: 'rgb(var(--brand-warm) / <alpha-value>)',
+          secondary: 'rgb(var(--brand-secondary) / <alpha-value>)',
+          tertiary: 'rgb(var(--brand-tertiary) / <alpha-value>)',
         },
         surface: {
           base: 'rgb(var(--surface-base) / <alpha-value>)',
           card: 'rgb(var(--surface-card) / <alpha-value>)',
           elevated: 'rgb(var(--surface-elevated) / <alpha-value>)',
+          panel: 'rgb(var(--surface-panel) / <alpha-value>)',
           input: 'rgb(var(--surface-input) / <alpha-value>)',
           border: 'rgb(var(--surface-border) / <alpha-value>)',
           inputBorder: 'rgb(var(--surface-input-border) / <alpha-value>)',
@@ -56,10 +59,10 @@ const config: Config = {
         'fade-in': 'fadeIn 0.15s ease-out',
         'slide-in': 'slideIn 0.2s ease-out',
         /** Panel anclado a la derecha: entra desde la derecha + fade */
-        'panel-slide-in': 'panelSlideIn 0.85s cubic-bezier(0.32, 0.72, 0, 1) forwards',
+        'panel-slide-in': 'panelSlideIn 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         /** Panel flotante tipo Gray (desliz + fade leve). */
-        'panel-soft': 'panelSoft 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards',
-        'backdrop-soft': 'backdropSoft 0.78s ease-out forwards',
+        'panel-soft': 'panelSoft 0.92s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'backdrop-soft': 'backdropSoft 0.92s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'spin-slow': 'spin 1.5s linear infinite',
       },
       keyframes: {
@@ -76,11 +79,11 @@ const config: Config = {
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
         panelSoft: {
-          '0%': { opacity: '0', transform: 'translate3d(14px, 0, 0)' },
+          '0%': { opacity: '0', transform: 'translate3d(18px, 0, 0)' },
           '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
         },
         backdropSoft: {
-          '0%': { opacity: '0' },
+          '0%': { opacity: '0.35' },
           '100%': { opacity: '1' },
         },
       },

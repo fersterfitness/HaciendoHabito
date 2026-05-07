@@ -17,10 +17,10 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
   return (
     <div
       className={cn(
-        'bg-surface-card rounded-2xl border border-surface-border',
-        'shadow-card dark:shadow-none',
+        'bg-surface-card rounded-2xl border border-surface-border/80',
+        'shadow-card',
         hover &&
-          'hover:border-brand-primary/30 hover:shadow-card-md dark:hover:shadow-brand-primary/5 dark:hover:shadow-lg transition-all duration-200 cursor-pointer',
+          'hover:border-surface-border hover:bg-surface-elevated/30 hover:shadow-card-md transition-colors duration-200 cursor-pointer',
         paddingStyles[padding],
         className
       )}
@@ -33,7 +33,15 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
 
 export function CardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('flex items-center justify-between mb-3', className)} {...props}>
+    <div className={cn('relative flex items-center justify-between mb-3', className)} {...props}>
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute left-0.5 top-1/2 -translate-y-1/2',
+          'h-3.5 w-[3px] rounded-full',
+          'bg-gradient-to-b from-brand-secondary/45 to-brand-tertiary/30',
+        )}
+      />
       {children}
     </div>
   )

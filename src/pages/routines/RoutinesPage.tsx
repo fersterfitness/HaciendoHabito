@@ -755,51 +755,55 @@ export function RoutinesPage() {
                 description="Probá con otra búsqueda o limpiá filtros desde el botón Filtrar."
               />
             ) : (
-              <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card shadow-none dark:border-zinc-700/65">
-                <div className="flex flex-col gap-0 border-b border-zinc-200/55 bg-zinc-50/35 px-3 py-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 dark:border-zinc-800/80 dark:bg-zinc-950/40">
+              <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">
+                <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
                     <p className="truncate text-[11px] text-ink-muted">
-                      {filteredSorted.length === 1 ? '1 rutina' : `${filteredSorted.length} rutinas`} ·{' '}
                       {ROUTINE_SORT_SUBTITLE[tableSort]}
                       {search.trim() ? ` · texto “${search.trim()}”` : ''}
                     </p>
                   </div>
-                  {filterActiveCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterLevel('')
-                        setFilterStatus('')
-                        setFilterExpiry('')
-                      }}
-                      className="self-start text-[11px] font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100 sm:self-auto"
-                    >
-                      Limpiar filtros activos
-                    </button>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
+                      {filteredSorted.length === 1 ? '1 rutina' : `${filteredSorted.length} rutinas`}
+                    </span>
+                    {filterActiveCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterLevel('')
+                          setFilterStatus('')
+                          setFilterExpiry('')
+                        }}
+                        className="text-[11px] font-medium text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="max-h-[min(72vh,40rem)] overflow-auto">
                   <table className="w-full min-w-[980px] border-collapse text-[13px] leading-snug">
-                    <thead className="sticky top-0 z-[1] border-b border-zinc-200/55 bg-surface-card/95 backdrop-blur-[2px] dark:border-zinc-800/85 dark:bg-zinc-950/95">
+                    <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                       <tr className="text-left">
-                        <th className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">Rutina</th>
-                        <th className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">Alumno</th>
-                        <th className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">Período</th>
-                        <th className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">Nivel</th>
-                        <th className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-                        <th className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">Vence</th>
-                        <th className="whitespace-nowrap px-4 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5">
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Rutina</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Alumno</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Período</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Nivel</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Vence</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
                           Acciones
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-200/40 bg-surface-card dark:divide-zinc-800/65">
+                    <tbody className="divide-y divide-surface-border/70 bg-surface-card">
                       {filteredSorted.map((r) => (
                         <tr
                           key={r.id}
-                          className="cursor-pointer transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/45"
+                          className="cursor-pointer transition-colors hover:bg-surface-elevated/35"
                           onClick={() => navigate(`/routines/${r.id}`)}
                         >
                           <td className="min-w-[10rem] px-4 py-2.5 sm:min-w-[12rem] sm:px-5">
@@ -827,7 +831,7 @@ export function RoutinesPage() {
                                   e.stopPropagation()
                                   navigate(`/routines/${r.id}/edit`)
                                 }}
-                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
+                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                                 Datos
@@ -837,7 +841,7 @@ export function RoutinesPage() {
                                   e.stopPropagation()
                                   setDuplicateTarget(r)
                                 }}
-                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
                               >
                                 <Copy className="h-3.5 w-3.5" />
                                 Duplicar
@@ -847,7 +851,7 @@ export function RoutinesPage() {
                                   e.stopPropagation()
                                   setDeleteTarget(r)
                                 }}
-                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 Eliminar

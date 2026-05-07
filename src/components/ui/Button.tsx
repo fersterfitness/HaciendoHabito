@@ -12,15 +12,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles = {
   primary:
-    'bg-brand-primary hover:bg-brand-hover text-white font-semibold shadow-sm hover:shadow-md',
+    'bg-brand-primary text-white font-semibold shadow-none hover:bg-brand-hover',
   secondary:
-    'bg-surface-elevated border border-surface-border text-ink-primary hover:border-brand-primary/40 hover:text-brand-primary',
+    'bg-surface-card border border-surface-border/80 text-ink-primary shadow-none hover:bg-surface-elevated/50 hover:border-surface-border',
   ghost:
-    'bg-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated',
+    'bg-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated/50',
   danger:
-    'bg-status-expired/10 text-status-expired border border-status-expired/30 hover:bg-status-expired/20',
+    'bg-status-expired/14 text-status-expired border border-status-expired/45 hover:bg-status-expired/20',
   outline:
-    'bg-transparent border border-surface-border text-ink-secondary hover:border-brand-primary hover:text-brand-primary',
+    'bg-transparent border border-surface-border/80 text-ink-secondary hover:bg-surface-elevated/40 hover:text-ink-primary',
 }
 
 const sizeStyles = {
@@ -50,8 +50,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center rounded-xl transition-all duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50',
+          'inline-flex items-center justify-center rounded-xl transition-colors duration-150',
+          'focus:outline-none focus:ring-2 focus:ring-brand-secondary/45 focus:ring-offset-2 focus:ring-offset-[rgb(var(--surface-base))]',
           'disabled:opacity-50 disabled:pointer-events-none',
           variantStyles[variant],
           sizeStyles[size],

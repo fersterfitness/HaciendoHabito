@@ -282,7 +282,7 @@ export function StudentHabitsPanel({
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 [&::-webkit-details-marker]:hidden">
               <div className="flex min-w-0 items-center gap-2">
-                <TrendingUp className="h-4 w-4 shrink-0 text-[#ff4800]" aria-hidden />
+                <TrendingUp className="h-4 w-4 shrink-0 text-brand-tertiary" aria-hidden />
                 <div className="min-w-0">
                   <span className="block text-sm font-semibold text-ink-primary">Evolución mensual y cambios</span>
                   <span className="block text-[10px] text-ink-muted">12 meses hasta {monthLabel(year, month)}</span>
@@ -330,7 +330,7 @@ export function StudentHabitsPanel({
                             </p>
                             <p className="text-zinc-600 dark:text-zinc-400">
                               Promedio:{' '}
-                              <span className="tabular-nums font-medium text-emerald-700 dark:text-emerald-400">
+                              <span className="tabular-nums font-medium text-brand-tertiary">
                                 {p.avgPct != null ? `${p.avgPct}%` : '—'}
                               </span>
                             </p>
@@ -338,7 +338,7 @@ export function StudentHabitsPanel({
                         )
                       }}
                     />
-                    <Bar dataKey="barValue" radius={[4, 4, 0, 0]} name="Promedio %" fill="rgba(34, 197, 94, 0.75)" />
+                    <Bar dataKey="barValue" radius={[4, 4, 0, 0]} name="Promedio %" fill="rgb(255, 79, 234)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

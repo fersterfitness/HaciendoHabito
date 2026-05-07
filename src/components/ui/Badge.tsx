@@ -28,19 +28,19 @@ type BadgeStatus =
 const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   activa: {
     label: 'Activa',
-    className: 'bg-brand-primary/10 text-brand-primary border border-brand-primary/30',
+    className: 'bg-brand-primary/20 text-brand-primary border border-brand-primary/45',
   },
   activo: {
     label: 'Activo',
-    className: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+    className: 'bg-status-generated/20 text-status-generated border border-status-generated/45',
   },
   por_vencer: {
     label: 'Por vencer',
-    className: 'bg-status-expiring/10 text-status-expiring border border-status-expiring/30',
+    className: 'bg-status-expiring/20 text-status-expiring border border-status-expiring/45',
   },
   vencida: {
     label: 'Vencida',
-    className: 'bg-status-expired/10 text-status-expired border border-status-expired/30',
+    className: 'bg-status-expired/24 text-status-expired border border-status-expired/55',
   },
   pausada: {
     label: 'Pausada',
@@ -56,35 +56,35 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   pendiente: {
     label: 'Pendiente',
-    className: 'bg-status-pending/10 text-status-pending border border-status-pending/30',
+    className: 'bg-status-pending/20 text-status-pending border border-status-pending/45',
   },
   en_proceso: {
     label: 'Procesando',
-    className: 'bg-status-sent/10 text-status-sent border border-status-sent/30',
+    className: 'bg-status-sent/20 text-status-sent border border-status-sent/45',
   },
   generado: {
     label: 'PDF listo',
-    className: 'bg-status-generated/10 text-status-generated border border-status-generated/30',
+    className: 'bg-status-generated/20 text-status-generated border border-status-generated/45',
   },
   enviado: {
     label: 'Enviado',
-    className: 'bg-status-generated/20 text-status-generated border border-status-generated/50',
+    className: 'bg-status-generated/25 text-status-generated border border-status-generated/55',
   },
   error: {
     label: 'Error',
-    className: 'bg-status-error/10 text-status-error border border-status-error/30',
+    className: 'bg-status-error/24 text-status-error border border-status-error/55',
   },
   recibida: {
     label: 'Recibida',
-    className: 'bg-status-pending/10 text-status-pending border border-status-pending/30',
+    className: 'bg-status-pending/20 text-status-pending border border-status-pending/45',
   },
   en_revision: {
     label: 'En revisión',
-    className: 'bg-status-expiring/10 text-status-expiring border border-status-expiring/30',
+    className: 'bg-status-expiring/20 text-status-expiring border border-status-expiring/45',
   },
   devuelta: {
     label: 'Devuelta',
-    className: 'bg-status-generated/10 text-status-generated border border-status-generated/30',
+    className: 'bg-status-generated/20 text-status-generated border border-status-generated/45',
   },
   cerrada: {
     label: 'Cerrada',
@@ -92,7 +92,7 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   cobrado: {
     label: 'Cobrado',
-    className: 'bg-status-generated/10 text-status-generated border border-status-generated/30',
+    className: 'bg-status-generated/20 text-status-generated border border-status-generated/45',
   },
   cancelado: {
     label: 'Cancelado',
@@ -100,11 +100,11 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   pausado: {
     label: 'Pausado',
-    className: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+    className: 'bg-status-expiring/20 text-status-expiring border border-status-expiring/45',
   },
   baja: {
     label: 'Baja',
-    className: 'bg-status-expired/10 text-status-expired border border-status-expired/30',
+    className: 'bg-status-expired/24 text-status-expired border border-status-expired/55',
   },
   inicial: {
     label: 'Inicial',

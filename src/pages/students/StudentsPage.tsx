@@ -15,6 +15,7 @@ import {
   Download,
   Tag,
   ArrowDownUp,
+  Utensils,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { Header } from '@/components/layout/Header'
@@ -500,6 +501,7 @@ export function StudentsPage() {
   const [deleting, setDeleting] = useState(false)
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
   const [routineExpiryMap, setRoutineExpiryMap] = useState<Map<string, string>>(new Map())
+  const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -524,6 +526,38 @@ export function StudentsPage() {
         setRoutineExpiryMap(expMap)
       })
   }, [fetchStudents, user])
+
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+    ;(async () => {
+      // Entrenador/admin: planes en `trainer_student_meal_plans`
+      if (role === 'trainer' || role === 'admin') {
+        const { data } = await supabase
+          .from('trainer_student_meal_plans')
+          .select('student_id')
+          .eq('owner_id', user.id)
+        if (cancelled) return
+        setHasMealPlanStudentIds(new Set((data ?? []).map((r) => r.student_id as string)))
+        return
+      }
+      // Nutricionista: plan activo en `nutrition_patient_plan_versions`
+      if (role === 'nutritionist') {
+        const { data } = await supabase
+          .from('nutrition_patient_plan_versions')
+          .select('student_id')
+          .eq('owner_id', user.id)
+          .eq('is_active', true)
+        if (cancelled) return
+        setHasMealPlanStudentIds(new Set((data ?? []).map((r) => r.student_id as string)))
+        return
+      }
+      setHasMealPlanStudentIds(new Set())
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, role])
 
   // Keyboard shortcut: press '/' to focus search
   useEffect(() => {
@@ -762,6 +796,7 @@ export function StudentsPage() {
             onAvatarUpdated={() => { void fetchStudents(search) }}
             activeRoutineStudentIds={activeRoutineStudentIds}
             routineExpiryMap={routineExpiryMap}
+            hasMealPlanStudentIds={hasMealPlanStudentIds}
             onRowClick={(studentId) => setSelectedStudentId(studentId)}
             onEdit={(id) => navigate(`/students/${id}/edit`)}
             onDelete={(s) => setDeleteTarget(s)}
@@ -776,7 +811,7 @@ export function StudentsPage() {
             type="button"
             aria-label="Cerrar panel"
             className={cn(
-              'fixed inset-0 z-[9990] bg-ink-primary/20 backdrop-blur-[3px] dark:bg-black/50',
+              'fixed inset-0 z-[9990] bg-black/30 backdrop-blur-[3px] dark:bg-black/55',
               'motion-reduce:animate-none motion-safe:animate-backdrop-soft',
             )}
             onClick={() => setSelectedStudentId(null)}
@@ -786,12 +821,12 @@ export function StudentsPage() {
             aria-modal
             aria-labelledby="student-sheet-title"
             className={cn(
-              'fixed z-[9991] flex flex-col overflow-hidden border border-zinc-200/95 bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.14)] dark:border-zinc-700/85 dark:bg-zinc-950/98 dark:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.55)]',
+              'fixed z-[9991] flex flex-col overflow-hidden border border-surface-border/85 bg-surface-panel shadow-[0_20px_50px_-12px_rgba(0,0,0,0.14)] dark:bg-surface-panel dark:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.55)]',
               /* Móvil: panel centrado · sm+: entra deslizando de derecha → izquierda */
               'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-panel-soft motion-safe:sm:animate-panel-slide-in',
               /* Móvil: tarjeta con margen en los cuatro lados (estilo modal Gray) */
               'inset-3 sm:inset-auto',
-              'sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-xl lg:right-6 lg:top-6 lg:bottom-6 lg:max-w-2xl',
+              'sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-3xl lg:right-6 lg:top-6 lg:bottom-6 lg:max-w-4xl',
             )}
           >
             <StudentDetailView
@@ -830,6 +865,7 @@ function StudentDirectoryTable({
   onStatusChanged,
   activeRoutineStudentIds,
   routineExpiryMap,
+  hasMealPlanStudentIds,
 }: {
   entityLabel: string
   entityLabelColumn: string
@@ -843,56 +879,82 @@ function StudentDirectoryTable({
   onStatusChanged: (id: string, status: StudentStatus) => void
   activeRoutineStudentIds: Set<string>
   routineExpiryMap: Map<string, string>
+  hasMealPlanStudentIds: Set<string>
 }) {
+  const iconWrapBase =
+    'relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border bg-surface-elevated/25'
+  const iconStrike =
+    "after:content-[''] after:absolute after:left-1/2 after:top-1/2 after:h-[2px] after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-[-35deg] after:bg-current after:opacity-55"
+
+  function HoverTip({ text }: { text: string }) {
+    return (
+      <span
+        className={cn(
+          'pointer-events-none absolute -top-2 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap',
+          'rounded-md border border-surface-border/80 bg-surface-card px-2 py-1 text-[11px] font-medium text-ink-primary shadow-lg',
+          'opacity-0 transition-opacity peer-hover:opacity-100',
+        )}
+        role="tooltip"
+      >
+        {text}
+      </span>
+    )
+  }
+
   return (
-    <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card shadow-none dark:border-zinc-700/65">
-      <div className="flex flex-col gap-0 border-b border-zinc-200/55 bg-zinc-50/35 px-3 py-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 dark:border-zinc-800/80 dark:bg-zinc-950/40">
+    <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">
+      <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel}</h2>
           <p className="truncate text-[11px] text-ink-muted">
-            {students.length === 1 ? '1 registro' : `${students.length} registros`} · {sortSubtitle}
+            {sortSubtitle}
           </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
+            {students.length === 1 ? '1 registro' : `${students.length} registros`}
+          </span>
         </div>
       </div>
 
       <div className="max-h-[min(68vh,36rem)] overflow-auto">
         <table className="w-full border-collapse text-[13px] leading-snug">
-          <thead className="sticky top-0 z-[1] border-b border-zinc-200/55 bg-surface-card/95 backdrop-blur-[2px] dark:border-zinc-800/85 dark:bg-zinc-950/95">
+          <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
               <th
                 scope="col"
-                className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5"
+                className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
               >
                 {entityLabelColumn}
               </th>
               <th
                 scope="col"
-                className="hidden whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
+                className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
               >
                 Nivel
               </th>
               <th
                 scope="col"
-                className="whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-5"
+                className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
               >
                 Estado
               </th>
               <th
                 scope="col"
-                className="hidden whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
+                className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
               >
                 Email
               </th>
               <th
                 scope="col"
-                className="hidden whitespace-nowrap px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted xl:table-cell xl:px-5"
+                className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted xl:table-cell xl:px-5"
               >
                 Teléfono
               </th>
               <th scope="col" className="w-12 sm:w-[4.25rem]" aria-hidden />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200/40 bg-surface-card dark:divide-zinc-800/65">
+          <tbody className="divide-y divide-surface-border/70 bg-surface-card">
             {students.map((student) => {
               const isSelected = selectedStudentId === student.id
               return (
@@ -901,14 +963,14 @@ function StudentDirectoryTable({
                   onClick={() => onRowClick(student.id)}
                   className={cn(
                     'group cursor-pointer transition-colors',
-                    'hover:bg-zinc-50/80 dark:hover:bg-zinc-900/45',
-                    isSelected && 'bg-zinc-100/85 dark:bg-zinc-900/70',
+                    'hover:bg-surface-elevated/35',
+                    isSelected && 'bg-surface-elevated/45',
                   )}
                 >
                   <td
                     className={cn(
                       'px-4 py-2.5 sm:px-5',
-                      isSelected && 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)] dark:border-l-zinc-500',
+                      isSelected && 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)]',
                       !isSelected && 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
                     )}
                   >
@@ -922,37 +984,54 @@ function StudentDirectoryTable({
                         onPathChange={() => onAvatarUpdated()}
                       />
                       <div className="flex min-w-0 flex-col gap-0.5">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="truncate font-medium text-ink-primary">{student.full_name}</span>
-                          {activeRoutineStudentIds.has(student.id) ? (
-                            <>
-                              <span
-                                title="Rutina activa"
-                                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-200/70 bg-zinc-50/80 text-ink-secondary dark:border-zinc-700/80 dark:bg-zinc-900/50"
-                              >
-                                <Dumbbell className="h-3 w-3" />
-                              </span>
-                              {routineExpiryMap.has(student.id) &&
-                                (() => {
-                                  const d = daysUntil(routineExpiryMap.get(student.id)!)
-                                  return (
-                                    <span
-                                      title="Rutina por vencer"
-                                      className="hidden shrink-0 rounded-md border border-status-expiring/25 bg-status-expiring/8 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 dark:text-amber-300/95 sm:inline-flex"
-                                    >
-                                      {d === 0 ? 'Rutina: hoy' : `Rutina: ${d}d`}
-                                    </span>
-                                  )
-                                })()}
-                            </>
-                          ) : student.status === 'activo' ? (
-                            <span
-                              title="Sin rutina activa"
-                              className="hidden shrink-0 rounded-md border border-dashed border-zinc-300/80 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted dark:border-zinc-600/70 sm:inline-flex"
-                            >
-                              Sin rutina
-                            </span>
-                          ) : null}
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate font-semibold text-ink-primary">
+                            {student.full_name}
+                          </span>
+
+                          <div className="flex w-[66px] shrink-0 items-center justify-end gap-1.5">
+                            {/* Rutina */}
+                            {(() => {
+                              const hasRoutine = activeRoutineStudentIds.has(student.id)
+                              const tip = hasRoutine ? 'Con rutina' : 'Sin rutina'
+                              return (
+                                <span
+                                  className={cn(
+                                    'relative inline-flex',
+                                    iconWrapBase,
+                                    hasRoutine
+                                      ? 'border-surface-border/75 text-brand-secondary'
+                                      : 'border-dashed border-surface-border/80 text-ink-muted',
+                                    !hasRoutine && iconStrike,
+                                  )}
+                                >
+                                  <Dumbbell className={cn('peer h-3.5 w-3.5', !hasRoutine && 'opacity-70')} />
+                                  <HoverTip text={tip} />
+                                </span>
+                              )
+                            })()}
+
+                            {/* Alimentación */}
+                            {(() => {
+                              const hasPlan = hasMealPlanStudentIds.has(student.id)
+                              const tip = hasPlan ? 'Con plan' : 'Sin plan'
+                              return (
+                                <span
+                                  className={cn(
+                                    'relative inline-flex',
+                                    iconWrapBase,
+                                    hasPlan
+                                      ? 'border-surface-border/75 text-brand-tertiary'
+                                      : 'border-dashed border-surface-border/80 text-ink-muted',
+                                    !hasPlan && iconStrike,
+                                  )}
+                                >
+                                  <Utensils className={cn('peer h-3.5 w-3.5', !hasPlan && 'opacity-70')} />
+                                  <HoverTip text={tip} />
+                                </span>
+                              )
+                            })()}
+                          </div>
                           {(() => {
                             const raw = localStorage.getItem(`tags_${student.id}`)
                             if (!raw) return null
@@ -961,7 +1040,7 @@ function StudentDirectoryTable({
                               return tags.slice(0, 2).map((t) => (
                                 <span
                                   key={t}
-                                  className="hidden items-center gap-0.5 rounded border border-zinc-200/70 bg-transparent px-1.5 py-0.5 text-[10px] font-medium text-ink-muted dark:border-zinc-700/70 md:inline-flex"
+                                  className="hidden items-center gap-0.5 rounded-md border border-surface-border/70 bg-surface-elevated/20 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted md:inline-flex"
                                 >
                                   <Tag className="h-2.5 w-2.5" />
                                   {t}
@@ -998,7 +1077,7 @@ function StudentDirectoryTable({
                           e.stopPropagation()
                           onEdit(student.id)
                         }}
-                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-zinc-200/50 hover:text-ink-primary dark:hover:bg-zinc-800/60 sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
                         title="Editar"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -1009,7 +1088,7 @@ function StudentDirectoryTable({
                           e.stopPropagation()
                           onDelete(student)
                         }}
-                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
+                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
                         title="Eliminar"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

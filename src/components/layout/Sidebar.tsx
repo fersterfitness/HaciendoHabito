@@ -144,7 +144,7 @@ function RailNavLink({
         to={to}
         className={cn(
           'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
-          'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400/90 dark:focus-visible:ring-white/35',
+          'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-secondary/45 dark:focus-visible:ring-brand-secondary/35',
           'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
           isActive
             ? 'bg-zinc-200 text-zinc-900 dark:bg-white/[0.16] dark:text-white'

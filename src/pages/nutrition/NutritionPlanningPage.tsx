@@ -1419,13 +1419,25 @@ export function NutritionPlanningPage() {
                   <p className="text-[9px] font-semibold uppercase text-ink-muted">Consumido</p>
                   <p className="text-lg font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{fmt1(intakeTotals.kcal)}</p>
                 </div>
-                <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
-                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Restante kcal</p>
+                <div
+                  className={cn(
+                    'rounded-lg bg-surface-card border border-surface-border px-3 py-2',
+                    remainderKcalTarget && remainderKcalTarget.kcal < 0 && 'bg-status-expired/10 border-status-expired/35',
+                  )}
+                >
+                  <p
+                    className={cn(
+                      'text-[9px] uppercase font-semibold',
+                      remainderKcalTarget && remainderKcalTarget.kcal < 0 ? 'text-status-expired/85' : 'text-ink-muted',
+                    )}
+                  >
+                    Restante kcal
+                  </p>
                   <p
                     className={cn(
                       'text-lg font-bold tabular-nums',
                       remainderKcalTarget && remainderKcalTarget.kcal < 0
-                        ? 'text-amber-700 dark:text-amber-300'
+                        ? 'text-status-expired'
                         : 'text-zinc-800 dark:text-zinc-200',
                     )}
                   >
@@ -1867,7 +1879,7 @@ export function NutritionPlanningPage() {
                         !remainderKcalTarget && targetKcal <= 0
                           ? 'text-base font-medium text-ink-muted'
                           : remainderKcalTarget && remainderKcalTarget.kcal < 0
-                            ? 'text-amber-700 dark:text-amber-300'
+                            ? 'text-status-expired'
                             : 'text-zinc-800 dark:text-zinc-200',
                       )}
                     >

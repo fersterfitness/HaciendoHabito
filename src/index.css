@@ -14,25 +14,18 @@
     --density-page-x: 1rem;
     --density-page-x-lg: 1.5rem;
 
-    /* Brand - fixed across themes */
-    --brand-primary: 255 140 0;
-    --brand-hover: 255 179 71;
-    --brand-warm: 243 216 199;
-
-    /* Status - fixed across themes */
-    --status-active: 255 140 0;
-    --status-expiring: 245 158 11;
-    --status-expired: 239 68 68;
-    --status-paused: 107 107 107;
-    --status-generated: 34 197 94;
-    --status-sent: 59 130 246;
-    --status-error: 248 113 113;
-    --status-pending: 255 179 71;
+    /* Brand - fixed across themes (single source of truth) */
+    --brand-primary: 255 72 0; /* #ff4800 */
+    --brand-hover: 224 65 0; /* #e04100 */
+    --brand-secondary: 169 121 255; /* #A979FF */
+    --brand-tertiary: 255 79 234; /* #FF4FEA */
+    --brand-warm: 255 229 219; /* soft tint for primary */
 
     /* Light mode */
     --surface-base: 255 255 255;
     --surface-card: 255 255 255;
     --surface-elevated: 248 248 252;
+    --surface-panel: 248 248 252;
     --surface-input: 255 255 255;
     --surface-border: 226 226 236;
     --surface-input-border: 206 206 218;
@@ -41,6 +34,16 @@
     --ink-secondary: 85 85 115;
     --ink-warm: 120 68 30;
     --ink-muted: 148 148 172;
+
+    /* Status — en light, el “amarillo” necesita más contraste */
+    --status-active: 255 140 0;
+    --status-expiring: 217 119 6;
+    --status-pending: 234 88 12;
+    --status-expired: 185 28 28;
+    --status-error: 185 28 28;
+    --status-generated: 22 163 74;
+    --status-sent: 37 99 235;
+    --status-paused: 107 107 107;
   }
 
   :root[data-density='compact'] {
@@ -56,6 +59,8 @@
     --surface-base: 24 24 27;
     --surface-card: 32 32 37;
     --surface-elevated: 43 43 48;
+    /* Panel (sheet) un poco más claro para legibilidad */
+    --surface-panel: 52 52 58;
     --surface-input: 32 32 37;
     --surface-border: 63 63 70;
     --surface-input-border: 74 74 82;
@@ -64,13 +69,23 @@
     --ink-secondary: 161 161 170;
     --ink-warm: 228 228 231;
     --ink-muted: 113 113 122;
+
+    /* Status — en dark, más “luminosos” */
+    --status-active: 255 140 0;
+    --status-expiring: 245 158 11;
+    --status-pending: 255 179 71;
+    --status-expired: 248 84 84;
+    --status-error: 252 118 118;
+    --status-generated: 34 197 94;
+    --status-sent: 59 130 246;
+    --status-paused: 107 107 107;
   }
 
   :root[data-role-theme='nutritionist'] {
     --brand-primary: 34 197 94;
     --brand-hover: 74 222 128;
     --status-active: 34 197 94;
-    --status-pending: 134 239 172;
+    --status-pending: 22 163 74;
   }
 
   * {

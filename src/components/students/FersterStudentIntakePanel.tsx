@@ -64,7 +64,7 @@ function Section({
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2 pb-2">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
+        <Icon className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
         <h4 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">{title}</h4>
       </div>
       <div>{children}</div>

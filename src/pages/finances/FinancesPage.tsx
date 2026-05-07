@@ -77,13 +77,28 @@ function expenseTypePillClass(expenseType: string): string {
   }
   return cn(
     base,
-    'border-amber-500/45 bg-amber-500/12 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/12 dark:text-amber-300',
+    'border-status-expiring/45 bg-status-expiring/15 text-status-expiring',
   )
 }
 
-function MetricTile({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
+function MetricTile({
+  label,
+  value,
+  valueClassName,
+  containerClassName,
+}: {
+  label: string
+  value: string
+  valueClassName?: string
+  containerClassName?: string
+}) {
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-zinc-200/70 bg-surface-card p-3 shadow-none dark:border-zinc-700/65 lg:p-3.5">
+    <div
+      className={cn(
+        'flex flex-col gap-1 rounded-md border border-zinc-200/70 bg-surface-card p-3 shadow-none dark:border-zinc-700/65 lg:p-3.5',
+        containerClassName,
+      )}
+    >
       <p className="text-[11px] font-medium text-ink-muted">{label}</p>
       <p className={cn('text-lg font-semibold tracking-tight tabular-nums sm:text-xl', valueClassName ?? 'text-ink-primary')}>
         {value}
@@ -112,7 +127,7 @@ function AnnualIncomeTooltip({
   return (
     <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg dark:border-zinc-600 dark:bg-zinc-950">
       <p className="text-[11px] font-semibold text-zinc-900 dark:text-zinc-50">{safeLabel}</p>
-      <p className="mt-1 font-semibold tabular-nums leading-tight text-[13px] text-emerald-700 dark:text-emerald-400">
+      <p className="mt-1 font-semibold tabular-nums leading-tight text-[13px] text-brand-tertiary">
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
       <p className="mt-1.5 border-t border-zinc-200 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
@@ -300,8 +315,8 @@ export function FinancesPage() {
 
   /** Rejilla neutra · barras en verdes (actual un poco más intenso) */
   const chartGridStroke = 'rgba(113, 113, 122, 0.18)'
-  const barFillDefault = 'rgba(34, 197, 94, 0.45)'
-  const barFillCurrent = 'rgb(22, 163, 74)'
+  const barFillDefault = 'rgba(255, 79, 234, 0.70)' // brand.tertiary
+  const barFillCurrent = 'rgba(255, 79, 234, 0.95)' // brand.tertiary (current)
 
   return (
     <div>
@@ -315,15 +330,17 @@ export function FinancesPage() {
             value={formatCurrency(balance)}
             valueClassName={
               balance >= 0
-                ? 'text-emerald-800 dark:text-emerald-400'
-                : 'text-rose-800 dark:text-rose-400'
+                ? 'text-status-generated'
+                : 'text-status-expired'
             }
+            containerClassName={balance < 0 ? 'border-status-expired/35 bg-status-expired/10' : undefined}
           />
           <MetricTile label="Cobrado total" value={formatCurrency(totalIngresos)} />
           <MetricTile
             label="Pendiente"
             value={formatCurrency(totalPendiente)}
-            valueClassName="text-amber-900 dark:text-amber-300"
+            valueClassName="text-status-pending"
+            containerClassName="border-status-pending/35 bg-status-pending/10"
           />
           <MetricTile label="Total gastos" value={formatCurrency(totalGastos)} />
         </div>
@@ -338,8 +355,8 @@ export function FinancesPage() {
                   className={cn(
                     'ml-2 font-semibold tabular-nums',
                     mesDelta >= 0
-                      ? 'text-emerald-700 dark:text-emerald-400'
-                      : 'text-rose-700 dark:text-rose-400',
+                      ? 'text-status-generated'
+                      : 'text-status-expired',
                   )}
                 >
                   {mesDelta >= 0 ? '+' : ''}
@@ -632,9 +649,9 @@ export function FinancesPage() {
         {deudores.length > 0 && (
           <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/65">
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500/90" aria-hidden />
+              <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
-              <span className="ml-auto inline-flex rounded border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900 dark:border-amber-500/28 dark:bg-amber-500/12 dark:text-amber-200">
+              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-status-expiring">
                 {deudores.length}
               </span>
             </div>
@@ -652,7 +669,7 @@ export function FinancesPage() {
                         Cuota {formatCurrency(cuota)}
                         {paid > 0 && <> · Cobrado {formatCurrency(paid)}</>}
                         {' · '}
-                        <span className="font-medium text-amber-800 dark:text-amber-400">Pendiente {formatCurrency(pending)}</span>
+                        <span className="font-medium text-status-expiring">Pendiente {formatCurrency(pending)}</span>
                       </p>
                     </div>
                     {waUrl ? (

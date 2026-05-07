@@ -20,7 +20,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   Tooltip, CartesianGrid,
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
@@ -92,35 +92,52 @@ function monthBoundsISO() {
   }
 }
 
-function buildChartData(rows: { income_date: string; amount: number }[]) {
+function buildChartData({
+  incomeRows,
+  studentRows,
+}: {
+  incomeRows: { income_date: string; amount: number }[]
+  studentRows: { created_at: string }[]
+}) {
   const now = new Date()
   return Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const total = rows
-      .filter((r) => r.income_date.startsWith(key) )
+    const revenue = incomeRows
+      .filter((r) => r.income_date.startsWith(key))
       .reduce((s, r) => s + r.amount, 0)
-    return { label: MONTH_LABELS[d.getMonth()], value: total, month: key }
+    const users = studentRows.filter((s) => (s.created_at ?? '').slice(0, 7) === key).length
+    return { label: MONTH_LABELS[d.getMonth()], revenue, users, month: key }
   }).map((item, i, arr) => {
-    const prev = arr[i - 1]?.value ?? 0
-    const change = prev === 0 ? 0 : Math.round(((item.value - prev) / prev) * 100)
+    const prev = arr[i - 1]?.revenue ?? 0
+    const change = prev === 0 ? 0 : Math.round(((item.revenue - prev) / prev) * 100)
     return { ...item, change }
   })
 }
 
 // ─── MonthlyAreaChart (Recharts) ──────────────────────────────────────────────
-interface ChartPoint { label: string; value: number; change: number }
+interface ChartPoint {
+  label: string
+  revenue: number
+  users: number
+  change: number
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
-  const { value, change } = payload[0].payload as ChartPoint
+  const { revenue, users, change } = payload[0].payload as ChartPoint
   return (
     <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
       <p className="font-semibold text-ink-primary">{label}</p>
-      <p className="text-ink-primary font-semibold text-sm mt-0.5 tabular-nums">
-        ${value.toLocaleString('es-AR')}
-      </p>
+      <div className="mt-1 space-y-0.5">
+        <p className="text-ink-primary font-semibold text-sm tabular-nums">
+          ${revenue.toLocaleString('es-AR')}
+        </p>
+        <p className="text-ink-secondary text-[11px] tabular-nums">
+          {users} {users === 1 ? 'alta' : 'altas'}
+        </p>
+      </div>
       {change !== 0 && (
         <p className={`font-medium mt-0.5 ${change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
           {change > 0 ? '+' : ''}{change}% vs mes ant.
@@ -140,24 +157,17 @@ function CustomXTick({ x, y, payload }: any) {
   )
 }
 
-const CHART_LINE = '#94a3b8'
+const CHART_SECONDARY = 'rgba(169, 121, 255, 0.92)' // brand.secondary
+const CHART_TERTIARY = 'rgba(255, 79, 234, 0.90)' // brand.tertiary
 
-function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
+function MonthlyDualLineChart({ data }: { data: ChartPoint[] }) {
   return (
     <div className="w-full px-1 pb-2">
       <ResponsiveContainer width="100%" height={180}>
-        <AreaChart data={data} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="incomeGradientNeutral" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_LINE} stopOpacity={0.22} />
-              <stop offset="85%" stopColor={CHART_LINE} stopOpacity={0.04} />
-              <stop offset="100%" stopColor={CHART_LINE} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-
+        <LineChart data={data} margin={{ top: 10, right: 14, bottom: 0, left: 0 }}>
           <CartesianGrid
             vertical={false}
-            stroke="rgba(148,163,184,0.12)"
+            stroke="rgba(113,113,122,0.14)"
             strokeDasharray="4 4"
           />
 
@@ -170,25 +180,49 @@ function MonthlyAreaChart({ data }: { data: ChartPoint[] }) {
           />
 
           <YAxis
+            yAxisId="left"
             tickFormatter={(v) => v === 0 ? '' : `$${(v / 1000).toFixed(0)}k`}
             tick={{ fontSize: 9, fill: 'rgba(148,163,184,0.75)' }}
             axisLine={false}
             tickLine={false}
             width={36}
           />
-
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: CHART_LINE, strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.45 }} />
-
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke={CHART_LINE}
-            strokeWidth={2}
-            fill="url(#incomeGradientNeutral)"
-            dot={false}
-            activeDot={{ r: 3.5, fill: CHART_LINE, stroke: CHART_LINE, strokeWidth: 1.5 }}
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tickFormatter={(v) => (v === 0 ? '' : String(v))}
+            tick={{ fontSize: 9, fill: 'rgba(148,163,184,0.55)' }}
+            axisLine={false}
+            tickLine={false}
+            width={24}
           />
-        </AreaChart>
+
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{ stroke: 'rgba(148,163,184,0.28)', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.55 }}
+          />
+
+          <Line
+            type="monotone"
+            yAxisId="left"
+            dataKey="revenue"
+            stroke={CHART_SECONDARY}
+            strokeWidth={1.35}
+            dot={false}
+            activeDot={{ r: 4, fill: CHART_SECONDARY, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            yAxisId="right"
+            dataKey="users"
+            stroke={CHART_TERTIARY}
+            strokeWidth={1.35}
+            dot={false}
+            activeDot={{ r: 4, fill: CHART_TERTIARY, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
+        </LineChart>
       </ResponsiveContainer>
 
       <div className="flex mt-1 px-9">
@@ -241,7 +275,7 @@ export function DashboardPage() {
   const [expiring, setExpiring] = useState<ExpiringRoutine[]>([])
   const [expiringPlans, setExpiringPlans] = useState<ExpiringPlan[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [growthData, setGrowthData] = useState<{ label: string; value: number; change: number }[]>([])
+  const [growthData, setGrowthData] = useState<ChartPoint[]>([])
   const [retention, setRetention] = useState({ m3: 0, m6: 0, m12: 0 })
   const [birthdays, setBirthdays] = useState<{ id: string; full_name: string; daysUntil: number }[]>([])
   const [todayApps, setTodayApps] = useState<{ id: string; title: string; starts_at: string; student_name: string }[]>([])
@@ -546,7 +580,14 @@ export function DashboardPage() {
       setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
       setExpiringPlans((expiringPlansData as unknown as ExpiringPlan[]) ?? [])
       setNotifications(notifData ?? [])
-      setGrowthData(canSeeTraining ? buildChartData((incomeRows ?? []) as { income_date: string; amount: number }[]) : [])
+      setGrowthData(
+        canSeeTraining
+          ? buildChartData({
+              incomeRows: (incomeRows ?? []) as { income_date: string; amount: number }[],
+              studentRows: ((studentDates ?? []) as { created_at: string }[]),
+            })
+          : []
+      )
     } finally {
       setLoading(false)
     }
@@ -772,7 +813,10 @@ export function DashboardPage() {
                     return (
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-2">
                         <span className="font-semibold text-ink-primary tabular-nums">
-                          ${last.value.toLocaleString('es-AR')}
+                          ${last.revenue.toLocaleString('es-AR')}
+                        </span>
+                        <span className="text-ink-muted tabular-nums">
+                          {last.users} {last.users === 1 ? 'alta' : 'altas'}
                         </span>
                         {last.change !== 0 && (
                           <span
@@ -798,7 +842,7 @@ export function DashboardPage() {
                 </CardHeader>
                 <div className="pt-3 pb-2">
                   {growthData.length > 0 ? (
-                    <MonthlyAreaChart data={growthData} />
+                    <MonthlyDualLineChart data={growthData} />
                   ) : (
                     <p className="text-center text-sm text-ink-muted py-12 px-4">
                       Sin ingresos cobrados en los últimos 6 meses

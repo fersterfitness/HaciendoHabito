@@ -53,7 +53,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
   function Wrapper({ children, wrapperClass }: { children: ReactNode; wrapperClass?: string }) {
     if (variant === 'minimal') {
       return (
-        <div className={cn('border-t border-zinc-200/55 pt-4 dark:border-zinc-800/70', wrapperClass)}>
+        <div className={cn('border-t border-surface-border/70 pt-3', wrapperClass)}>
           {children}
         </div>
       )
@@ -66,7 +66,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
       <>
         <div className="mb-3 flex items-center gap-2">
           {variant === 'minimal' ? (
-            <ClipboardList className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
+            <ClipboardList className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
           ) : (
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
               <ClipboardList className="h-4 w-4" aria-hidden />
@@ -76,7 +76,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
             className={cn(
               'mb-0',
               variant === 'minimal'
-                ? 'text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400'
+                ? 'text-[11px] font-semibold uppercase tracking-wide text-ink-muted'
                 : 'text-sm',
             )}
           >
@@ -85,7 +85,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
         </div>
         <p className={cn(
           variant === 'minimal'
-            ? 'text-sm leading-relaxed text-zinc-600 dark:text-zinc-400'
+            ? 'text-sm leading-relaxed text-ink-secondary'
             : 'text-sm text-ink-secondary leading-relaxed',
           'whitespace-pre-wrap',
         )}>{notes.trim()}</p>
@@ -99,7 +99,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
     <Wrapper wrapperClass={variant === 'default' ? cn('overflow-hidden', className) : className}>
       <div className={variant === 'minimal' ? 'mb-3 flex items-center gap-2' : 'mb-4 flex items-center gap-2'}>
         {variant === 'minimal' ? (
-          <ClipboardList className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
+          <ClipboardList className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
         ) : (
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
             <ClipboardList className="h-4 w-4" aria-hidden />
@@ -109,7 +109,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
           className={cn(
             'mb-0',
             variant === 'minimal'
-              ? 'text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400'
+              ? 'text-[11px] font-semibold uppercase tracking-wide text-ink-muted'
               : 'text-sm',
           )}
         >
@@ -123,9 +123,9 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
             {batch.kind === 'meta' ? (
               <p
                 className={cn(
-                  'inline-flex max-w-full px-2 py-1 text-[11px] font-medium leading-snug text-zinc-600 dark:text-zinc-400',
+                  'inline-flex max-w-full px-2 py-1 text-[11px] font-medium leading-snug text-ink-secondary',
                   variant === 'minimal'
-                    ? 'border border-zinc-200/65 dark:border-zinc-700/80'
+                    ? 'border border-surface-border/70'
                     : 'rounded-lg border border-brand-primary/25 bg-brand-primary/8 text-brand-primary',
                 )}
               >
@@ -135,7 +135,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
             {batch.kind === 'free' ? (
               <p className={cn(
                 variant === 'minimal'
-                  ? 'text-sm leading-relaxed text-zinc-600 dark:text-zinc-400'
+                  ? 'text-sm leading-relaxed text-ink-secondary'
                   : 'text-sm text-ink-secondary leading-relaxed',
                 'whitespace-pre-wrap',
               )}>{batch.content}</p>
@@ -144,7 +144,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
               <div
                 className={cn(
                   variant === 'minimal'
-                    ? 'divide-y divide-zinc-200/60 dark:divide-zinc-800'
+                    ? 'divide-y divide-surface-border/70'
                     : 'divide-y divide-surface-border rounded-xl border border-surface-border bg-surface-elevated/90',
                   'overflow-hidden',
                 )}
@@ -153,12 +153,21 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
                   <div
                     key={j}
                     className={cn(
-                      'grid gap-1.5 px-3 py-2.5 sm:grid-cols-[minmax(7.5rem,11rem)_1fr] sm:gap-4 sm:items-start sm:px-4',
+                      'grid gap-2 px-3 py-3 sm:grid-cols-[minmax(9rem,14rem)_1fr] sm:gap-6 sm:items-start sm:px-4 lg:grid-cols-[minmax(12rem,18rem)_1fr] lg:px-5',
                       variant === 'minimal' && 'border-0 px-2 sm:px-0 py-3 first:pt-0',
                     )}
                   >
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{p.label}</dt>
-                    <dd className="text-sm leading-snug break-words text-zinc-800 dark:text-zinc-100">{p.value}</dd>
+                    <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">{p.label}</dt>
+                    <dd
+                      className={cn(
+                        'text-sm leading-snug text-ink-primary',
+                        // Evita que fechas ISO cortas “caigan” a la línea siguiente
+                        /^\d{4}-\d{2}-\d{2}/.test(p.value) && 'whitespace-nowrap tabular-nums',
+                        !/^\d{4}-\d{2}-\d{2}/.test(p.value) && 'break-words',
+                      )}
+                    >
+                      {p.value}
+                    </dd>
                   </div>
                 ))}
               </div>

@@ -577,7 +577,9 @@ export function NutritionAppointmentsPage() {
                               'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
                               a.status === 'confirmed'
                                 ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
-                                : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
+                                : a.status === 'scheduled'
+                                  ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
+                                  : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
                             )}
                           >
                             {format(parseISO(a.starts_at), 'HH:mm')} {a.student?.full_name?.split(' ')[0] ?? a.title}
@@ -635,7 +637,9 @@ export function NutritionAppointmentsPage() {
                               'w-full text-left rounded-lg border px-2 py-1 transition-colors border-l-[3px]',
                               a.status === 'confirmed'
                                 ? 'border border-emerald-500/25 border-l-emerald-500 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.13]'
-                                : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
+                                : a.status === 'scheduled'
+                                  ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
+                                  : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
                             )}
                           >
                             <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>

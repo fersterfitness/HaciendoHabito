@@ -439,37 +439,45 @@ export function StudentDetailView({
           variant === 'page' ? 'px-4 py-5 lg:px-6' : 'min-h-0 flex-1 overflow-y-auto px-4 py-5',
         )}
       >
-        {/* Solapas principales — ancho completo de la card (breakout sobre el padding lateral) */}
+        {/* Solapas principales — tabs “raised” (full width) + sticky en panel */}
         <div
           className={cn(
-            '-mx-4 border-b border-zinc-200/55 dark:border-zinc-800/70',
-            variant === 'page' && 'lg:-mx-6',
-            variant === 'panel' && 'sticky top-0 z-[2] bg-zinc-50/95 backdrop-blur-sm dark:bg-zinc-950/90',
+            '-mx-4 px-4',
+            variant === 'page' && 'lg:-mx-6 lg:px-6',
+            'border-b border-surface-border/70',
+            variant === 'panel' &&
+              'sticky top-0 z-[5] bg-surface-base/85 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/70',
           )}
           role="tablist"
           aria-label="Secciones de la ficha"
         >
-          <div className="flex w-full">
-            {sheetTabDefs.map(({ key, label, icon }) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={sheetTab === key}
-                onClick={() => setSheetTab(key)}
-                className={cn(
-                  'flex min-w-0 flex-1 items-center justify-center gap-1.5 border-b-2 px-1.5 py-3 text-center text-[11px] font-semibold transition-colors sm:gap-2 sm:px-2 sm:text-[13px]',
-                  sheetTab === key
-                    ? 'border-b-zinc-900 text-zinc-900 dark:border-b-zinc-100 dark:text-zinc-50'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-200',
-                )}
-              >
-                <span className={cn('shrink-0', sheetTab === key ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500')}>
-                  {icon}
-                </span>
-                <span className="min-w-0 leading-tight">{label}</span>
-              </button>
-            ))}
+          <div className="pt-3">
+            <div className="flex w-full items-end gap-2">
+              {sheetTabDefs.map(({ key, label, icon }) => {
+                const active = sheetTab === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setSheetTab(key)}
+                    className={cn(
+                      'relative -mb-px flex min-w-0 flex-1 items-center justify-center gap-2',
+                      'rounded-t-2xl border px-4 py-3 text-[12px] font-semibold transition-colors',
+                      active
+                        ? 'border-surface-border/80 bg-surface-card text-ink-primary shadow-card'
+                        : 'border-transparent bg-transparent text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/25',
+                    )}
+                  >
+                    <span className={cn('shrink-0', active ? 'text-ink-secondary' : 'text-ink-muted')}>
+                      {icon}
+                    </span>
+                    <span className="min-w-0 truncate">{label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
@@ -627,7 +635,7 @@ export function StudentDetailView({
             {editingNotes ? (
               <div className="space-y-3 border-t border-zinc-200/60 pt-4 dark:border-zinc-800/60">
                 <div className="flex items-center gap-2">
-                  <StickyNote className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+                  <StickyNote className="h-4 w-4 text-brand-secondary" aria-hidden />
                   <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
                 </div>
                 <textarea
@@ -666,60 +674,10 @@ export function StudentDetailView({
                 onClick={startEditNotes}
                 className="flex w-full items-center gap-2 border-b border-dashed border-zinc-300/80 py-4 text-sm text-zinc-500 transition-colors hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-200"
               >
-                <StickyNote className="h-4 w-4 shrink-0" aria-hidden />
+                <StickyNote className="h-4 w-4 shrink-0 text-brand-secondary" aria-hidden />
                 Agregar observaciones...
               </button>
             )}
-
-            {/* ── Reporte de progreso ── */}
-            {(() => {
-              function generarReporte() {
-                if (!student) return
-                const pesoKey  = `peso_goal_${student.id}`
-                const cuotaKey = `cuota_mensual_${student.id}`
-                const goalPeso = localStorage.getItem(pesoKey)
-                const cuota    = localStorage.getItem(cuotaKey)
-                const lines: string[] = [
-                  `Reporte de progreso — ${student.full_name}`,
-                  `Fecha: ${new Date().toLocaleDateString('es-AR')}`,
-                  '',
-                  `Nivel: ${student.level ?? '—'}`,
-                  `Estado: ${student.status}`,
-                ]
-                if (student.birth_date) lines.push(`Edad: ${new Date().getFullYear() - new Date(student.birth_date).getFullYear()} años`)
-                if (activeRoutine) {
-                  lines.push('', `Rutina activa: ${activeRoutine.name}`)
-                  lines.push(`  Período: ${formatDate(activeRoutine.start_date)} → ${formatDate(activeRoutine.end_date)}`)
-                  lines.push(`  Objetivo: ${activeRoutine.objective}`)
-                }
-                if (goalPeso) lines.push('', `Peso objetivo: ${goalPeso} kg`)
-                if (cuota) lines.push(`Cuota mensual: ${formatCurrency(Number(cuota))}`)
-                if (student.notes) lines.push('', `Observaciones: ${student.notes}`)
-                const text = lines.join('\n')
-                if (student.phone) {
-                  const digits = student.phone.replace(/\D/g, '')
-                  window.open(`https://wa.me/${digits}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
-                } else {
-                  void navigator.clipboard.writeText(text).then(() => {
-                    toast.success('Reporte copiado al portapapeles')
-                  })
-                }
-              }
-              return (
-                <button
-                  onClick={generarReporte}
-                  className="flex w-full items-center gap-3 border-b border-dashed border-zinc-300/80 py-4 text-sm text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-100"
-                >
-                  <Share2 className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
-                  <span>
-                    <span className="font-medium text-ink-primary">Generar reporte de progreso</span>
-                    <span className="block text-[11px] text-ink-muted mt-0.5">
-                      {student.phone ? 'Abre WhatsApp con el resumen del alumno' : 'Copia el resumen al portapapeles'}
-                    </span>
-                  </span>
-                </button>
-              )
-            })()}
           </>
         )}
 

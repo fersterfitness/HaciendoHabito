@@ -164,16 +164,16 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
   }
 
   return (
-    <div className="border-t border-zinc-200/55 pt-6 dark:border-zinc-800/70 space-y-4">
+    <div className="border-t border-surface-border/70 pt-4 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Camera className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+            <Camera className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
               Progreso en fotografía
             </h3>
           </div>
-          <p className="mt-2 max-w-[640px] text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 max-w-[640px] text-[11px] leading-relaxed text-ink-muted">
             Fotos opcionales por mes para seguimiento visual (no reemplazan evaluación profesional).
             Las sube el equipo o podés cargarlas si acordamos seguimiento con imágenes.
           </p>
@@ -218,11 +218,13 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
       ) : null}
 
       {loading ? (
-        <div className="flex justify-center py-6 text-ink-muted">
+        <div className="flex justify-center py-5 text-ink-muted">
           <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
         </div>
       ) : byMonth.length === 0 ? (
-        <p className="text-sm text-ink-muted py-2">Aún no hay fotos cargadas por mes.</p>
+        <div className="rounded-xl border border-surface-border/70 bg-surface-elevated/25 px-3 py-3 text-[12px] text-ink-muted">
+          Aún no hay fotos cargadas por mes.
+        </div>
       ) : (
         <div className="space-y-6">
           {byMonth.map(([ym, rows]) => (
