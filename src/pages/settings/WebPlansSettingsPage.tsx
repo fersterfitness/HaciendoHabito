@@ -142,12 +142,15 @@ export function WebPlansSettingsPage() {
   const [draftSlugs, setDraftSlugs] = useState<string[]>([])
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
   const [withCrisSegmentImg, setWithCrisSegmentImg] = useState('')
+  const [fullSegmentImg, setFullSegmentImg] = useState('')
   const [testimonialUrlsText, setTestimonialUrlsText] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
   const soloFileRef = useRef<HTMLInputElement>(null)
   const crisFileRef = useRef<HTMLInputElement>(null)
+  const fullFileRef = useRef<HTMLInputElement>(null)
   const [soloUploadBusy, setSoloUploadBusy] = useState(false)
   const [crisUploadBusy, setCrisUploadBusy] = useState(false)
+  const [fullUploadBusy, setFullUploadBusy] = useState(false)
   const catalogUserId = useAuthStore((s) => s.user?.id)
 
   useEffect(() => {
@@ -157,12 +160,17 @@ export function WebPlansSettingsPage() {
       if (!data) return
       setSoloSegmentImg(data.solo_segment_image_url ?? '')
       setWithCrisSegmentImg(data.with_cris_segment_image_url ?? '')
+      setFullSegmentImg((data as Record<string, unknown>).full_segment_image_url as string ?? '')
       setTestimonialUrlsText(((data.testimonial_videos as string[] | null) ?? []).join('\n'))
     })()
   }, [canManage])
 
   async function handleSaveSegmentImages() {
-    if (soloSegmentImg.length > LIMITS.segmentImgUrl || withCrisSegmentImg.length > LIMITS.segmentImgUrl) {
+    if (
+      soloSegmentImg.length > LIMITS.segmentImgUrl ||
+      withCrisSegmentImg.length > LIMITS.segmentImgUrl ||
+      fullSegmentImg.length > LIMITS.segmentImgUrl
+    ) {
       toast.error(`Las URL no pueden superar ${LIMITS.segmentImgUrl} caracteres.`)
       return
     }
@@ -172,6 +180,7 @@ export function WebPlansSettingsPage() {
         id: 1,
         solo_segment_image_url: soloSegmentImg.trim() ? soloSegmentImg.trim() : null,
         with_cris_segment_image_url: withCrisSegmentImg.trim() ? withCrisSegmentImg.trim() : null,
+        full_segment_image_url: fullSegmentImg.trim() ? fullSegmentImg.trim() : null,
       })
       if (error) {
         toast.error(error.message.includes('does not exist') ? 'Ejecutá la migración SQL (web_intake_catalog_settings).' : error.message)
@@ -210,7 +219,7 @@ export function WebPlansSettingsPage() {
     }
   }
 
-  async function uploadSegmentHero(field: 'solo' | 'with_cris', file: File | null | undefined) {
+  async function uploadSegmentHero(field: 'solo' | 'with_cris' | 'full', file: File | null | undefined) {
     if (!file || !catalogUserId) return
     if (file.size > WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES) {
       toast.error('La imagen debe pesar menos de 5 MB')
@@ -221,9 +230,9 @@ export function WebPlansSettingsPage() {
       toast.error('Usá JPG, PNG o WebP')
       return
     }
-    const slug = field === 'solo' ? 'solo-line' : 'with-cris-line'
-    const setBusy = field === 'solo' ? setSoloUploadBusy : setCrisUploadBusy
-    const setUrl = field === 'solo' ? setSoloSegmentImg : setWithCrisSegmentImg
+    const slug = field === 'solo' ? 'solo-line' : field === 'with_cris' ? 'with-cris-line' : 'full-line'
+    const setBusy = field === 'solo' ? setSoloUploadBusy : field === 'with_cris' ? setCrisUploadBusy : setFullUploadBusy
+    const setUrl = field === 'solo' ? setSoloSegmentImg : field === 'with_cris' ? setWithCrisSegmentImg : setFullSegmentImg
     const path = `${catalogUserId}/segment-${slug}.${ext}`
     setBusy(true)
     try {
@@ -247,6 +256,7 @@ export function WebPlansSettingsPage() {
       setBusy(false)
       if (field === 'solo' && soloFileRef.current) soloFileRef.current.value = ''
       else if (field === 'with_cris' && crisFileRef.current) crisFileRef.current.value = ''
+      else if (field === 'full' && fullFileRef.current) fullFileRef.current.value = ''
     }
   }
 
@@ -426,9 +436,9 @@ export function WebPlansSettingsPage() {
 
       <div className="px-4 lg:px-6 py-6 space-y-4">
         <Card className="p-4 space-y-4">
-          <FormSection title="Fotos del selector «solo / conjunto Cristian» (/form)">
+          <FormSection title="Fotos del selector de profesional (/form)">
             <p className="text-xs text-ink-secondary">
-              Podés <strong>subir</strong> una imagen (se guarda en Storage y escribe la URL pública debajo). También pegás cualquier HTTPS.
+              Podés <strong>subir</strong> una imagen por línea (se guarda en Storage y escribe la URL pública debajo). También pegás cualquier HTTPS.
               Migración necesaria para subir desde acá: bucket `web-intake-catalog` en Supabase.
             </p>
             <input
@@ -436,62 +446,65 @@ export function WebPlansSettingsPage() {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               className="hidden"
-              onChange={(e) =>
-                void uploadSegmentHero(
-                  'solo',
-                  e.target.files?.length ? e.target.files[0] : undefined,
-                )
-              }
+              onChange={(e) => void uploadSegmentHero('solo', e.target.files?.length ? e.target.files[0] : undefined)}
             />
             <input
               ref={crisFileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               className="hidden"
-              onChange={(e) =>
-                void uploadSegmentHero(
-                  'with_cris',
-                  e.target.files?.length ? e.target.files[0] : undefined,
-                )
-              }
+              onChange={(e) => void uploadSegmentHero('with_cris', e.target.files?.length ? e.target.files[0] : undefined)}
+            />
+            <input
+              ref={fullFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => void uploadSegmentHero('full', e.target.files?.length ? e.target.files[0] : undefined)}
             />
             <div className="flex flex-wrap items-center gap-2">
               <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                loading={soloUploadBusy}
-                icon={<Upload className="h-4 w-4" />}
-                disabled={!catalogUserId}
-                onClick={() => soloFileRef.current?.click()}
+                type="button" size="sm" variant="outline"
+                loading={soloUploadBusy} icon={<Upload className="h-4 w-4" />}
+                disabled={!catalogUserId} onClick={() => soloFileRef.current?.click()}
               >
-                Subir · línea solo
+                Subir · Entrenador
               </Button>
               <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                loading={crisUploadBusy}
-                icon={<Upload className="h-4 w-4" />}
-                disabled={!catalogUserId}
-                onClick={() => crisFileRef.current?.click()}
+                type="button" size="sm" variant="outline"
+                loading={crisUploadBusy} icon={<Upload className="h-4 w-4" />}
+                disabled={!catalogUserId} onClick={() => crisFileRef.current?.click()}
               >
-                Subir · línea Cristian Vázquez
+                Subir · Nutricionista
+              </Button>
+              <Button
+                type="button" size="sm" variant="outline"
+                loading={fullUploadBusy} icon={<Upload className="h-4 w-4" />}
+                disabled={!catalogUserId} onClick={() => fullFileRef.current?.click()}
+              >
+                Subir · Full
               </Button>
             </div>
             <Input
-              label="URL imagen · línea solo (editable)"
+              label="URL imagen · Entrenador (Tomás Ferster)"
               placeholder="https://..."
               value={soloSegmentImg}
               maxLength={LIMITS.segmentImgUrl}
               onChange={(e) => setSoloSegmentImg(e.target.value)}
             />
             <Input
-              label="URL imagen · línea con Cristian Vázquez (editable)"
+              label="URL imagen · Nutricionista (Cristian Crossetto)"
               placeholder="https://..."
               value={withCrisSegmentImg}
               maxLength={LIMITS.segmentImgUrl}
               onChange={(e) => setWithCrisSegmentImg(e.target.value)}
+            />
+            <Input
+              label="URL imagen · Full (Tomás + Cristian)"
+              placeholder="https://..."
+              value={fullSegmentImg}
+              maxLength={LIMITS.segmentImgUrl}
+              onChange={(e) => setFullSegmentImg(e.target.value)}
             />
             <Button type="button" size="sm" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
               Guardar fotos del selector

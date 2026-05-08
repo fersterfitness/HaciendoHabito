@@ -24,8 +24,8 @@ const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
 const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
   'Tomás Ferster + Cristian Crossetto — Plan integral de entrenamiento y nutrición'
 
-const SEGMENT_SOLO_SUB = 'Solo Tomás Ferster'
-const SEGMENT_CRIS_SUB = 'Nutrición deportiva · Cristian Crossetto'
+const SEGMENT_SOLO_SUB = 'Tomás Ferster — Prof. Educación Física · Lic. en Alto Rendimiento'
+const SEGMENT_CRIS_SUB = 'Cristian Crossetto — Lic. en Nutrición · Esp. en Nutrición deportiva'
 const SEGMENT_FULL_SUB = 'Entrenamiento + Nutrición'
 
 function isLikelyYouTube(url: string): boolean {
@@ -205,7 +205,7 @@ function PlansStack({
   onSelectPlan: (id: string) => void
 }) {
   return (
-    <div className="space-y-3 w-full max-w-[330px]">
+    <div className="space-y-3 w-full">
       <p className="text-[10px] uppercase tracking-[0.2em] text-white/65 font-semibold">Planes disponibles</p>
       <div className="space-y-3">
         {plans.map((plan) => (
@@ -405,6 +405,7 @@ function LeftBrandPanel({
   catalogSegment,
   soloSegmentImageUrl,
   withCrisSegmentImageUrl,
+  fullSegmentImageUrl,
   onSelectCatalogSegment,
   selectedPlanId,
   onSelectPlan,
@@ -415,6 +416,7 @@ function LeftBrandPanel({
   catalogSegment: WebPlanCatalogSegment | null
   soloSegmentImageUrl: string | null
   withCrisSegmentImageUrl: string | null
+  fullSegmentImageUrl: string | null
   onSelectCatalogSegment: (s: WebPlanCatalogSegment) => void
   selectedPlanId: string | null
   onSelectPlan: (id: string) => void
@@ -454,7 +456,7 @@ function LeftBrandPanel({
       sub: SEGMENT_FULL_SUB,
       credential: PUBLIC_PLAN_FULL_CREDENTIAL_LINE,
       icon: <Zap className="h-4 w-4" />,
-      imageUrl: null,
+      imageUrl: fullSegmentImageUrl,
       fallback: 'TF+CC',
     },
   ]
@@ -484,10 +486,10 @@ function LeftBrandPanel({
             Haciéndolo hábito
           </h2>
 
-          {/* 3 Professional cards — grid 3 columnas compacto */}
-          <div className="mb-4 lg:mb-5 w-full max-w-full sm:max-w-[380px]">
+          {/* 3 Professional cards — grid 3 columnas estilo perfil */}
+          <div className="mb-4 lg:mb-5 w-full max-w-full sm:max-w-[390px]">
             <p className="text-[10px] uppercase tracking-[0.2em] text-white/65 font-semibold mb-3">Elegí tu profesional</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               {professionalCards.map((card) => {
                 const isSelected = catalogSegment === card.segment
                 return (
@@ -497,47 +499,66 @@ function LeftBrandPanel({
                     onClick={() => onSelectCatalogSegment(card.segment)}
                     title={card.credential}
                     className={[
-                      'flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5 active:translate-y-0',
+                      'flex flex-col rounded-2xl border overflow-hidden text-center transition-all backdrop-blur-sm hover:scale-[1.02] active:scale-[0.99]',
                       isSelected
-                        ? 'border-[#ffcc33]/80 bg-[#3b2d0f]/70 ring-1 ring-[#ffcc33]/40 shadow-[0_0_28px_-8px_rgba(255,204,51,0.55)]'
-                        : 'border-white/12 bg-black/20 hover:border-white/22 hover:bg-black/28',
+                        ? 'border-[#ffcc33]/80 ring-2 ring-[#ffcc33]/35 shadow-[0_0_32px_-8px_rgba(255,204,51,0.6)]'
+                        : 'border-white/12 hover:border-white/25',
                     ].join(' ')}
                     aria-pressed={isSelected}
                   >
-                    {/* Avatar / foto */}
-                    <div className="h-14 w-14 overflow-hidden rounded-xl ring-1 ring-white/10 shrink-0">
-                      {card.imageUrl ? (
-                        <img src={card.imageUrl} alt="" className="h-full w-full object-cover object-top" />
-                      ) : card.segment === 'full' ? (
-                        <div className="h-full w-full flex items-center justify-center bg-[#ffcc33]/15">
-                          <Zap className="h-5 w-5 text-[#ffe99f]" />
+                    {/* Foto / avatar — proporción 3:4 retrato */}
+                    <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                      <div className="absolute inset-0">
+                        {card.imageUrl ? (
+                          <img
+                            src={card.imageUrl}
+                            alt={card.label}
+                            className="h-full w-full object-cover object-top"
+                          />
+                        ) : card.segment === 'full' ? (
+                          <div className="h-full w-full flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-[#2a1f00] to-[#1a1200]">
+                            <div className="flex gap-1.5 items-center">
+                              <BicepsFlexed className="h-4 w-4 text-[#ffe99f]/70" />
+                              <span className="text-white/30 text-xs">+</span>
+                              <Salad className="h-4 w-4 text-[#ffe99f]/70" />
+                            </div>
+                            <span className="text-[10px] font-bold text-[#ffe99f]/60 tracking-wide">FULL</span>
+                          </div>
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-b from-white/8 to-white/4">
+                            <span className="text-2xl font-black text-[#ffe99f]/50">{card.fallback}</span>
+                          </div>
+                        )}
+                        {/* Gradiente inferior para leer el texto */}
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
+                        {/* Ícono de rol — badge flotante arriba izquierda */}
+                        <div className={[
+                          'absolute top-1.5 left-1.5 h-5 w-5 rounded-lg flex items-center justify-center backdrop-blur-sm',
+                          isSelected ? 'bg-[#ffcc33]/25 text-[#ffe99f]' : 'bg-black/40 text-white/50',
+                        ].join(' ')}>
+                          {card.icon}
                         </div>
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-white/8">
-                          <span className="text-[11px] font-bold text-[#ffe99f]">{card.fallback}</span>
-                        </div>
-                      )}
+                        {/* Check seleccionado — badge arriba derecha */}
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-[#ffcc33] flex items-center justify-center">
+                            <Check className="h-3 w-3 text-black" strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Ícono de rol */}
-                    <div className={['h-5 w-5 flex items-center justify-center', isSelected ? 'text-[#ffe99f]' : 'text-white/40'].join(' ')}>
-                      {card.icon}
+                    {/* Texto debajo de la foto */}
+                    <div className={[
+                      'flex-1 px-2 pt-2 pb-2.5 flex flex-col gap-0.5',
+                      isSelected ? 'bg-[#3b2d0f]/80' : 'bg-black/30',
+                    ].join(' ')}>
+                      <p className={['text-[11px] font-bold leading-tight', isSelected ? 'text-white' : 'text-white/85'].join(' ')}>
+                        {card.label}
+                      </p>
+                      <p className={['text-[8.5px] leading-snug', isSelected ? 'text-white/60' : 'text-white/38'].join(' ')}>
+                        {card.sub}
+                      </p>
                     </div>
-
-                    {/* Texto */}
-                    <p className={['text-[11px] font-bold leading-tight', isSelected ? 'text-white' : 'text-white/85'].join(' ')}>
-                      {card.label}
-                    </p>
-                    <p className={['text-[9px] leading-snug line-clamp-2', isSelected ? 'text-white/65' : 'text-white/40'].join(' ')}>
-                      {card.sub}
-                    </p>
-
-                    {/* Indicador seleccionado */}
-                    {isSelected && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full border border-[#ffcc33]/40 bg-[#ffcc33]/10 px-1.5 py-0.5 text-[8px] font-semibold text-[#ffe99f]">
-                        <Check className="h-2 w-2" />OK
-                      </span>
-                    )}
                   </button>
                 )
               })}
@@ -545,7 +566,7 @@ function LeftBrandPanel({
           </div>
 
           {/* Plans stack for selected segment */}
-          <div className="mt-1 mb-3 lg:mt-2 lg:mb-5 w-full max-w-full sm:max-w-[380px]">
+          <div className="mt-1 mb-3 lg:mt-2 lg:mb-5 w-full max-w-full sm:max-w-[390px]">
             {plansVisible.length === 0 ? (
               <p className="max-w-[280px] text-center text-[11px] text-white/60 mx-auto">
                 {catalogSegment === null
@@ -604,6 +625,7 @@ export function PublicIntakeFormPage() {
   const flipTimerRef = useRef<number | null>(null)
   const [soloSegmentImgUrl, setSoloSegmentImgUrl] = useState<string | null>(null)
   const [withCrisSegmentImgUrl, setWithCrisSegmentImgUrl] = useState<string | null>(null)
+  const [fullSegmentImgUrl, setFullSegmentImgUrl] = useState<string | null>(null)
   const [testimonialVideos, setTestimonialVideos] = useState<string[]>([])
   const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
     plans,
@@ -659,13 +681,14 @@ export function PublicIntakeFormPage() {
     ;(async () => {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
-        .select('solo_segment_image_url, with_cris_segment_image_url, testimonial_videos')
+        .select('solo_segment_image_url, with_cris_segment_image_url, full_segment_image_url, testimonial_videos')
         .eq('id', 1)
         .maybeSingle()
       if (!mounted) return
       if (data) {
         setSoloSegmentImgUrl(data.solo_segment_image_url)
         setWithCrisSegmentImgUrl(data.with_cris_segment_image_url)
+        setFullSegmentImgUrl((data as Record<string, unknown>).full_segment_image_url as string | null ?? null)
         setTestimonialVideos(((data.testimonial_videos as string[] | null) ?? []).filter(Boolean))
       }
     })()
@@ -774,6 +797,7 @@ export function PublicIntakeFormPage() {
             catalogSegment={catalogSegment}
             soloSegmentImageUrl={soloSegmentImgUrl}
             withCrisSegmentImageUrl={withCrisSegmentImgUrl}
+            fullSegmentImageUrl={fullSegmentImgUrl}
             onSelectCatalogSegment={setCatalogSegment}
             selectedPlanId={selectedPlanId}
             onSelectPlan={handleSelectPlan}
@@ -807,13 +831,14 @@ export function PublicIntakeFormPage() {
           catalogSegment={catalogSegment}
           soloSegmentImageUrl={soloSegmentImgUrl}
           withCrisSegmentImageUrl={withCrisSegmentImgUrl}
+          fullSegmentImageUrl={fullSegmentImgUrl}
           onSelectCatalogSegment={setCatalogSegment}
           selectedPlanId={selectedPlanId}
           onSelectPlan={handleSelectPlan}
         />
 
         {/* Panel derecho — selector de tipo o formulario */}
-        <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:h-[min(100vh-5rem,860px)] lg:overflow-hidden">
+        <div className="flex-1 flex flex-col px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:overflow-y-auto lg:max-h-[min(100vh-2rem,1200px)]">
           {isMobile ? (
             selectedPlan ? (
               <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
@@ -845,15 +870,15 @@ export function PublicIntakeFormPage() {
               </div>
             )
           ) : (
-            <div className="h-full" style={{ perspective: '1600px' }}>
+            <div className="flex-1" style={{ perspective: '1600px' }}>
               <div
-                className="relative h-full transition-transform duration-700"
+                className="relative transition-transform duration-700"
                 style={{
                   transformStyle: 'preserve-3d',
                   transform: isPlanFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                 }}
               >
-              <div style={{ backfaceVisibility: 'hidden' }} className="h-full overflow-y-auto scrollbar-hide">
+              <div style={{ backfaceVisibility: 'hidden' }} className="scrollbar-hide">
                   <TestimonialsSection urls={testimonialVideos} />
                   {intakeKind === 'nutricion' ? (
                     <IntakeNutritionForm
