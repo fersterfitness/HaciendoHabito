@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import toast from 'react-hot-toast'
@@ -309,12 +308,6 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
       </h1>
       <p className="text-sm text-ink-secondary mb-2">
         Plan personalizado — <span className="font-medium">Haciéndolo hábito</span>
-      </p>
-      <p className="text-xs text-ink-muted mb-4">
-        ¿Ya tenés cuenta?{' '}
-        <Link to="/login" className="font-medium hover:underline" style={{ color: ACCENT }}>
-          Iniciar sesión
-        </Link>
       </p>
 
       {/* Plan badge / no-plan nudge */}

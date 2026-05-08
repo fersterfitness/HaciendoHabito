@@ -5,12 +5,15 @@ import { cn } from '@/lib/utils'
 
 function flattenErrors(errors: FieldErrors): string[] {
   const out: string[] = []
+  const visited = new WeakSet()
   function walk(obj: unknown) {
     if (!obj || typeof obj !== 'object') return
+    if (visited.has(obj as object)) return
+    visited.add(obj as object)
     const rec = obj as Record<string, unknown>
     for (const v of Object.values(rec)) {
       if (!v) continue
-      if (typeof v === 'object' && v && 'message' in (v as Record<string, unknown>)) {
+      if (typeof v === 'object' && 'message' in (v as Record<string, unknown>)) {
         const msg = (v as { message?: unknown }).message
         if (typeof msg === 'string' && msg.trim()) out.push(msg.trim())
       }

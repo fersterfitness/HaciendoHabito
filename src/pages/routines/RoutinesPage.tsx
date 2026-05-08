@@ -14,6 +14,7 @@ import {
   Filter,
   X,
   ArrowDownUp,
+  Check,
 } from 'lucide-react'
 import { useRoutines } from '@/hooks/useRoutines'
 import { Header } from '@/components/layout/Header'
@@ -24,6 +25,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Popover } from '@/components/ui/Popover'
 import { cn, formatDate, daysUntil } from '@/lib/utils'
+import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
 import { RoutinePdfsPanel } from '@/pages/routines/RoutinePdfsPanel'
 import type { Routine, RoutineStatus, Student } from '@/types/database'
@@ -31,7 +33,21 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
 
-type RoutineWithStudent = Routine & { student?: { full_name: string } | null }
+type RoutineWithStudent = Routine & {
+  student?: { full_name: string; level?: string; status?: string; avatar_path?: string | null } | null
+}
+
+const ROUTINE_COLORS = [
+  { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },
+  { bar: 'bg-brand-tertiary',  avatar: 'bg-brand-tertiary/15 text-brand-tertiary'   },
+  { bar: 'bg-brand-primary',   avatar: 'bg-brand-primary/15 text-brand-primary'     },
+]
+
+function strColorIdx(str: string): number {
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
+  return Math.abs(h) % ROUTINE_COLORS.length
+}
 
 const LEVEL_LABELS: Record<string, string> = {
   inicial: 'Inicial',
@@ -378,6 +394,9 @@ export function RoutinesPage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoutineWithStudent | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   const [duplicateTarget, setDuplicateTarget] = useState<RoutineWithStudent | null>(null)
   const [students, setStudents] = useState<Student[]>([])
@@ -512,6 +531,20 @@ export function RoutinesPage() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [tabPlantillas, tabPdfs])
+
+  function startRename(r: RoutineWithStudent, e: React.MouseEvent) {
+    e.stopPropagation()
+    setRenamingId(r.id)
+    setRenameValue(r.name)
+    setTimeout(() => renameInputRef.current?.select(), 30)
+  }
+
+  async function commitRename(id: string) {
+    const trimmed = renameValue.trim()
+    if (!trimmed) { setRenamingId(null); return }
+    const updated = await updateRoutine(id, { name: trimmed })
+    if (updated) setRenamingId(null)
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return
@@ -767,17 +800,78 @@ export function RoutinesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border/70 bg-surface-card">
-                      {filteredSorted.map((r) => (
+                      {filteredSorted.map((r) => {
+                        const ci = strColorIdx(r.student?.full_name ?? r.id)
+                        const colors = ROUTINE_COLORS[ci]
+                        return (
                         <tr
                           key={r.id}
                           className="cursor-pointer transition-colors hover:bg-surface-elevated/35"
-                          onClick={() => navigate(`/routines/${r.id}`)}
+                          onClick={() => renamingId !== r.id && navigate(`/routines/${r.id}`)}
                         >
-                          <td className="min-w-[10rem] px-4 py-2.5 sm:min-w-[12rem] sm:px-5">
-                            <span className="break-words font-semibold leading-snug tracking-tight text-ink-primary">{r.name}</span>
+                          {/* Rutina con barra de color + rename inline */}
+                          <td className="min-w-[10rem] px-0 py-0 sm:min-w-[12rem]">
+                            <div className="flex items-stretch gap-0">
+                              <div className={cn('w-1 self-stretch shrink-0', colors.bar)} />
+                              <div className="flex-1 px-4 py-2.5 sm:px-5">
+                                {renamingId === r.id ? (
+                                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      ref={renameInputRef}
+                                      value={renameValue}
+                                      onChange={(e) => setRenameValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') void commitRename(r.id)
+                                        if (e.key === 'Escape') setRenamingId(null)
+                                      }}
+                                      onBlur={() => void commitRename(r.id)}
+                                      className="flex-1 min-w-0 rounded-lg border border-brand-secondary/40 bg-surface-input px-2.5 py-1 text-sm font-semibold text-ink-primary outline-none focus:ring-1 focus:ring-brand-secondary/50"
+                                      autoFocus
+                                    />
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => { e.preventDefault(); void commitRename(r.id) }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-secondary/15 text-brand-secondary hover:bg-brand-secondary/25 transition-colors shrink-0"
+                                    >
+                                      <Check className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 group/title">
+                                    <span className="break-words font-semibold leading-snug tracking-tight text-ink-primary">{r.name}</span>
+                                    <button
+                                      type="button"
+                                      title="Renombrar"
+                                      onClick={(e) => startRename(r, e)}
+                                      className="opacity-0 group-hover/title:opacity-100 shrink-0 rounded p-0.5 text-ink-muted hover:text-brand-secondary transition-all"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </td>
-                          <td className="max-w-[13rem] truncate px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5" title={r.student?.full_name ?? undefined}>
-                            {r.student?.full_name ?? '—'}
+                          {/* Alumno con foto */}
+                          <td className="max-w-[13rem] px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5" title={r.student?.full_name ?? undefined}>
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const photoUrl = studentAvatarPublicUrl((r.student as RoutineWithStudent['student'])?.avatar_path ?? null)
+                                return photoUrl ? (
+                                  <img
+                                    src={photoUrl}
+                                    alt={r.student?.full_name ?? ''}
+                                    className="h-6 w-6 shrink-0 rounded-md border border-surface-border object-cover"
+                                  />
+                                ) : (
+                                  <div className={cn('flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold shrink-0', colors.avatar)}>
+                                    {(r.student?.full_name ?? '?').charAt(0).toUpperCase()}
+                                  </div>
+                                )
+                              })()}
+                              <span className="truncate">{r.student?.full_name ?? '—'}</span>
+                            </div>
                           </td>
                           <td className="whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5">
                             {formatDate(r.start_date)} → {formatDate(r.end_date)}
@@ -826,7 +920,8 @@ export function RoutinesPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

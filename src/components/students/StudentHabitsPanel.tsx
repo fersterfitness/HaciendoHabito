@@ -13,11 +13,33 @@ import {
   X,
   Check,
   TrendingUp,
+  Dumbbell,
+  Droplets,
+  Pill,
+  Footprints,
+  ClipboardList,
+  BookOpen,
+  Scale,
+  Leaf,
+  Moon,
+  Brain,
+  Bike,
+  Heart,
+  Target,
+  Zap,
+  Activity,
+  Sun,
+  Flame,
+  Timer,
+  Apple,
+  Utensils,
+  Trophy,
+  type LucideIcon,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -31,15 +53,85 @@ import { buildMonthlyEvolutionPayload } from '@/lib/habits/habitSelectionHistory
 import type { Habit, HabitLog, StudentHabitSelectionEvent } from '@/types/database'
 import toast from 'react-hot-toast'
 
+/** Mapa ícono-name → componente Lucide */
+const HABIT_ICON_MAP: Record<string, LucideIcon> = {
+  dumbbell: Dumbbell,
+  droplets: Droplets,
+  pill: Pill,
+  footprints: Footprints,
+  'clipboard-list': ClipboardList,
+  'book-open': BookOpen,
+  scale: Scale,
+  leaf: Leaf,
+  moon: Moon,
+  brain: Brain,
+  bike: Bike,
+  heart: Heart,
+  target: Target,
+  zap: Zap,
+  activity: Activity,
+  sun: Sun,
+  flame: Flame,
+  timer: Timer,
+  apple: Apple,
+  utensils: Utensils,
+}
+
+/** Opciones disponibles en el picker del modal */
+const ICON_OPTIONS: string[] = [
+  'dumbbell', 'droplets', 'pill', 'footprints', 'clipboard-list',
+  'book-open', 'scale', 'leaf', 'moon', 'brain',
+  'bike', 'heart', 'target', 'zap', 'activity',
+  'sun', 'flame', 'timer', 'apple', 'utensils',
+]
+
+/** Mapeo de emojis legacy → nombre de ícono Lucide */
+const EMOJI_TO_ICON: Record<string, string> = {
+  '💧': 'droplets',
+  '🏋️': 'dumbbell',
+  '🏋': 'dumbbell',
+  '💊': 'pill',
+  '👟': 'footprints',
+  '📋': 'clipboard-list',
+  '📚': 'book-open',
+  '⚖️': 'scale',
+  '⚖': 'scale',
+  '🥗': 'leaf',
+  '😴': 'moon',
+  '🧘': 'brain',
+  '🧘‍♀️': 'brain',
+  '🚴': 'bike',
+  '🚴‍♂️': 'bike',
+  '🫀': 'heart',
+  '🧠': 'brain',
+  '💪': 'zap',
+  '🎯': 'target',
+  '✅': 'activity',
+  '☀️': 'sun',
+  '🔥': 'flame',
+  '⏱️': 'timer',
+  '🍎': 'apple',
+  '🥙': 'utensils',
+}
+
+/** Renderiza el ícono Lucide — convierte emojis legacy automáticamente */
+function HabitIcon({ name, className }: { name: string; className?: string }) {
+  const resolvedKey = EMOJI_TO_ICON[name] ?? name
+  const Icon = HABIT_ICON_MAP[resolvedKey]
+  if (Icon) return <Icon className={cn('h-4 w-4', className)} aria-hidden />
+  // Fallback: emoji desconocido → texto
+  return <span className="text-sm leading-none" aria-hidden>{name}</span>
+}
+
 const DEFAULT_HABITS = [
-  { emoji: '💧', name: 'Tomar agua', sort_order: 0 },
-  { emoji: '🏋️', name: 'Entrenar', sort_order: 1 },
-  { emoji: '💊', name: 'Tomar suplementos', sort_order: 2 },
-  { emoji: '👟', name: 'Pasos diarios', sort_order: 3 },
-  { emoji: '📋', name: 'Organizarse', sort_order: 4 },
-  { emoji: '📚', name: 'Leer / informarse', sort_order: 5 },
-  { emoji: '⚖️', name: 'Registrar pesos', sort_order: 6 },
-  { emoji: '🥗', name: 'Alimentación saludable', sort_order: 7 },
+  { emoji: 'droplets', name: 'Tomar agua', sort_order: 0 },
+  { emoji: 'dumbbell', name: 'Entrenar', sort_order: 1 },
+  { emoji: 'pill', name: 'Tomar suplementos', sort_order: 2 },
+  { emoji: 'footprints', name: 'Pasos diarios', sort_order: 3 },
+  { emoji: 'clipboard-list', name: 'Organizarse', sort_order: 4 },
+  { emoji: 'book-open', name: 'Leer / informarse', sort_order: 5 },
+  { emoji: 'scale', name: 'Registrar pesos', sort_order: 6 },
+  { emoji: 'leaf', name: 'Alimentación saludable', sort_order: 7 },
 ]
 
 function daysInMonth(year: number, month: number) {
@@ -254,7 +346,7 @@ export function StudentHabitsPanel({
           <Spinner size="lg" />
         </div>
       ) : (
-        <>
+        <div className="space-y-3">
           <div className="flex items-center justify-between rounded-lg border border-zinc-200/75 bg-zinc-50/50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950/40">
             <button
               type="button"
@@ -278,7 +370,7 @@ export function StudentHabitsPanel({
           <details
             open={evolutionOpen}
             onToggle={(e) => setEvolutionOpen(e.currentTarget.open)}
-            className="group overflow-hidden rounded-lg border border-zinc-200/75 bg-surface-card dark:border-zinc-700/65"
+            className="group overflow-hidden rounded-xl border border-zinc-200/75 bg-surface-card dark:border-zinc-700/65"
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 [&::-webkit-details-marker]:hidden">
               <div className="flex min-w-0 items-center gap-2">
@@ -293,65 +385,89 @@ export function StudentHabitsPanel({
                 aria-hidden
               />
             </summary>
-            <div className="space-y-4 border-t border-zinc-200/60 px-4 pb-4 pt-3 dark:border-zinc-800/80">
-              <p className="text-[11px] leading-relaxed text-ink-muted">
-                El <strong className="text-ink-primary">promedio</strong> es el % del mes de cada hábito activo. En{' '}
-                <strong className="text-ink-primary">Gestionar hábitos</strong> quedan registradas las altas y bajas.
-              </p>
-              <div className="h-56 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={evolutionMonthly.map((row) => ({
-                      ...row,
-                      barValue: row.avgPct ?? 0,
-                    }))}
-                    margin={{ top: 4, right: 8, bottom: 24, left: -16 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200/70 opacity-60 dark:stroke-zinc-700/70" />
-                    <XAxis
-                      dataKey="labelShort"
-                      tick={{ fontSize: 9, fill: '#71717a' }}
-                      interval={0}
-                      angle={-35}
-                      textAnchor="end"
-                      height={54}
-                    />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={(v) => `${v}%`} width={36} />
-                    <Tooltip
-                      cursor={false}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.length) return null
-                        const p = payload[0].payload as (typeof evolutionMonthly)[number]
-                        return (
-                          <div className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-lg dark:border-zinc-600 dark:bg-zinc-950">
-                            <p className="font-semibold text-zinc-900 dark:text-zinc-50">{p.labelShort}</p>
-                            <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                              Hábitos activos: <span className="font-medium text-zinc-800 dark:text-zinc-200">{p.activeCount}</span>
-                            </p>
-                            <p className="text-zinc-600 dark:text-zinc-400">
-                              Promedio:{' '}
-                              <span className="tabular-nums font-medium text-brand-tertiary">
-                                {p.avgPct != null ? `${p.avgPct}%` : '—'}
-                              </span>
-                            </p>
-                          </div>
-                        )
-                      }}
-                    />
-                    <Bar dataKey="barValue" radius={[4, 4, 0, 0]} name="Promedio %" fill="rgb(255, 79, 234)" />
-                  </BarChart>
-                </ResponsiveContainer>
+
+            {/* ── 2-column layout: chart left · changes right ── */}
+            <div className="grid gap-0 border-t border-zinc-200/60 dark:border-zinc-800/80 md:grid-cols-2">
+              {/* Left: bar chart */}
+              <div className="px-4 pb-4 pt-3 md:border-r md:border-zinc-200/60 md:dark:border-zinc-800/80">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  Promedio mensual (12 meses)
+                </p>
+                <div className="h-52 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={evolutionMonthly.map((row) => ({
+                        ...row,
+                        lineValue: row.avgPct ?? 0,
+                      }))}
+                      margin={{ top: 4, right: 8, bottom: 24, left: -16 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#71717a" strokeOpacity={0.15} />
+                      <XAxis
+                        dataKey="labelShort"
+                        tick={{ fontSize: 9, fill: '#71717a' }}
+                        interval={0}
+                        angle={-35}
+                        textAnchor="end"
+                        height={54}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 10, fill: '#71717a' }}
+                        tickFormatter={(v) => `${v}%`}
+                        width={36}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        cursor={{ stroke: '#A979FF', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null
+                          const p = payload[0].payload as (typeof evolutionMonthly)[number]
+                          return (
+                            <div className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-lg dark:border-zinc-600 dark:bg-zinc-950">
+                              <p className="font-semibold text-zinc-900 dark:text-zinc-50">{p.labelShort}</p>
+                              <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                Hábitos activos: <span className="font-medium text-zinc-800 dark:text-zinc-200">{p.activeCount}</span>
+                              </p>
+                              <p className="text-zinc-600 dark:text-zinc-400">
+                                Promedio:{' '}
+                                <span className="tabular-nums font-medium text-brand-secondary">
+                                  {p.avgPct != null ? `${p.avgPct}%` : '—'}
+                                </span>
+                              </p>
+                            </div>
+                          )
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="lineValue"
+                        stroke="#A979FF"
+                        strokeWidth={1.5}
+                        dot={false}
+                        activeDot={{ r: 3, fill: '#A979FF', strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">Últimos cambios (alta / baja)</p>
-                <div className="max-h-48 overflow-y-auto rounded-lg border border-zinc-200/70 dark:border-zinc-800">
+
+              {/* Right: changes log */}
+              <div className="flex flex-col px-4 pb-4 pt-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  Últimos cambios (alta / baja)
+                </p>
+                <div className="flex-1 overflow-y-auto rounded-lg border border-zinc-200/70 dark:border-zinc-800" style={{ maxHeight: '13rem' }}>
                   {evolutionEventsSortedDesc.length === 0 ? (
-                    <p className="p-3 text-xs leading-relaxed text-ink-muted">
+                    <p className="p-4 text-xs leading-relaxed text-ink-muted">
                       Todavía no hay altas ni bajas registradas desde esta versión.
                     </p>
                   ) : (
                     <table className="w-full text-xs">
-                      <thead className="bg-zinc-50/90 text-zinc-600 dark:bg-zinc-900/70 dark:text-zinc-400">
+                      <thead className="sticky top-0 z-10 bg-zinc-50/95 text-zinc-600 backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-400">
                         <tr>
                           <th className="px-3 py-2 text-left font-semibold">Fecha</th>
                           <th className="px-3 py-2 text-left font-semibold">Cambio</th>
@@ -368,7 +484,7 @@ export function StudentHabitsPanel({
                               </td>
                               <td
                                 className={cn(
-                                  'whitespace-nowrap px-3 py-2 font-medium',
+                                  'whitespace-nowrap px-3 py-2 font-semibold',
                                   ev.action === 'assigned'
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : 'text-status-expiring',
@@ -378,10 +494,10 @@ export function StudentHabitsPanel({
                               </td>
                               <td className="px-3 py-2 text-ink-primary">
                                 {habit ? (
-                                  <>
-                                    <span className="mr-1">{habit.emoji}</span>
-                                    {habit.name}
-                                  </>
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <HabitIcon name={habit.emoji} className="text-ink-muted" />
+                                    <span>{habit.name}</span>
+                                  </span>
                                 ) : (
                                   <span className="italic text-ink-muted">Hábito (desactivado)</span>
                                 )}
@@ -421,23 +537,61 @@ export function StudentHabitsPanel({
             </div>
           ) : (
             <>
-              <div
-                className="grid gap-2"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}
-              >
-                {/* Promedio general */}
-                <div className="flex flex-col items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-center dark:bg-emerald-500/[0.12]">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Promedio</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{overallPct}%</p>
-                  <p className="mt-0.5 text-[10px] text-emerald-600/70 dark:text-emerald-500/70">{stats.length} hábitos</p>
+              {/* ── KPI summary row ── */}
+              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
+                {/* Overall */}
+                <div className={cn(
+                  'flex flex-col gap-2 rounded-xl border p-4',
+                  overallPct >= 70
+                    ? 'border-emerald-500/30 bg-emerald-500/[0.08] dark:bg-emerald-500/[0.1]'
+                    : overallPct >= 40
+                    ? 'border-amber-500/30 bg-amber-500/[0.08] dark:bg-amber-500/[0.1]'
+                    : 'border-rose-500/25 bg-rose-500/[0.06] dark:bg-rose-500/[0.08]',
+                )}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Promedio</p>
+                    {overallPct >= 70
+                      ? <Trophy className="h-4 w-4 text-emerald-500" />
+                      : overallPct >= 40
+                      ? <TrendingUp className="h-4 w-4 text-amber-500" />
+                      : <Zap className="h-4 w-4 text-brand-tertiary" />
+                    }
+                  </div>
+                  <p className={cn(
+                    'text-3xl font-bold tabular-nums leading-none',
+                    overallPct >= 70 ? 'text-emerald-600 dark:text-emerald-400' : overallPct >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-brand-tertiary',
+                  )}>
+                    {overallPct}%
+                  </p>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                    <div
+                      className={cn('h-full rounded-full transition-all', overallPct >= 70 ? 'bg-emerald-500' : overallPct >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
+                      style={{ width: `${overallPct}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-ink-muted">{stats.length} hábito{stats.length !== 1 ? 's' : ''} activo{stats.length !== 1 ? 's' : ''}</p>
                 </div>
-                {/* Todos los hábitos activos */}
+
+                {/* Per-habit tiles */}
                 {stats.map(({ habit, done, total, pct: p }) => (
-                  <div key={habit.id} className="flex flex-col items-center justify-center rounded-lg border border-zinc-200/75 bg-surface-card p-3 text-center dark:border-zinc-700">
-                    <p className="text-base leading-none">{habit.emoji}</p>
-                    <p className="mt-1 truncate w-full text-[10px] text-ink-muted">{habit.name}</p>
-                    <p className="mt-1 text-2xl font-bold tabular-nums text-ink-primary">{p}%</p>
-                    <p className="mt-0.5 text-[10px] tabular-nums text-ink-muted">{done}/{total}</p>
+                  <div key={habit.id} className="flex flex-col gap-2 rounded-xl border border-zinc-200/75 bg-surface-card p-4 dark:border-zinc-700/65">
+                    <div className="flex items-center justify-between">
+                      <p className="truncate text-[11px] font-medium text-ink-secondary">{habit.name}</p>
+                      <HabitIcon name={habit.emoji} className="shrink-0 text-ink-muted" />
+                    </div>
+                    <p className={cn(
+                      'text-3xl font-bold tabular-nums leading-none',
+                      p >= 70 ? 'text-emerald-600 dark:text-emerald-400' : p >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
+                    )}>
+                      {p}%
+                    </p>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                      <div
+                        className={cn('h-full rounded-full transition-all', p >= 70 ? 'bg-emerald-500' : p >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
+                        style={{ width: `${p}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] tabular-nums text-ink-muted">{done} / {total} días</p>
                   </div>
                 ))}
               </div>
@@ -478,7 +632,7 @@ export function StudentHabitsPanel({
                               rowIdx % 2 === 0 ? 'bg-white dark:bg-zinc-950/30' : 'bg-zinc-50/90 dark:bg-zinc-900/25',
                             )}
                           >
-                            <span className="mr-1.5">{habit.emoji}</span>
+                            <HabitIcon name={habit.emoji} className="mr-1.5 shrink-0 text-ink-muted" />
                             {habit.name}
                           </td>
                           {dayNums.map((d) => {
@@ -521,27 +675,36 @@ export function StudentHabitsPanel({
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-lg border border-zinc-200/75 p-4 dark:border-zinc-700">
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Detalle del mes</p>
-                {stats.map(({ habit, done, total, pct: p }) => (
-                  <div key={habit.id}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs text-ink-primary">
-                        {habit.emoji} {habit.name}
-                      </span>
-                      <span className="text-xs font-semibold tabular-nums text-ink-secondary">
-                        {done}/{total} días · {p}%
-                      </span>
+              <div className="rounded-xl border border-zinc-200/75 p-4 dark:border-zinc-700/65">
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Detalle del mes · {monthLabel(year, month)}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {stats.map(({ habit, done, total, pct: p }) => (
+                    <div key={habit.id} className="flex items-center gap-3">
+                      <HabitIcon name={habit.emoji} className="shrink-0 text-ink-muted" />
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="truncate text-xs font-medium text-ink-primary">{habit.name}</span>
+                          <span className={cn(
+                            'shrink-0 text-xs font-bold tabular-nums',
+                            p >= 70 ? 'text-emerald-600 dark:text-emerald-400' : p >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
+                          )}>
+                            {done}/{total}
+                          </span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                          <div
+                            className={cn('h-full rounded-full transition-all duration-500', p >= 70 ? 'bg-emerald-500' : p >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
+                            style={{ width: `${p}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                      <div className="h-full rounded-full bg-emerald-600 transition-all dark:bg-emerald-500" style={{ width: `${p}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </>
           )}
-        </>
+        </div>
       )}
 
       {showLibrary && user && (
@@ -580,7 +743,7 @@ function HabitLibraryModal({
   onSelectionEventLogged?: () => void
 }) {
   const [newName, setNewName] = useState('')
-  const [newEmoji, setNewEmoji] = useState('✅')
+  const [newEmoji, setNewEmoji] = useState('dumbbell')
   const [adding, setAdding] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
 
@@ -604,7 +767,7 @@ function HabitLibraryModal({
     }
     onHabitsChange([...habits, data as Habit])
     setNewName('')
-    setNewEmoji('✅')
+    setNewEmoji('dumbbell')
     toast.success('Hábito creado')
   }
 
@@ -710,7 +873,7 @@ function HabitLibraryModal({
                   >
                     {isSel && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
                   </span>
-                  <span className="shrink-0 text-base">{h.emoji}</span>
+                  <HabitIcon name={h.emoji} className="shrink-0 text-ink-muted" />
                   <span className="min-w-0 flex-1 text-sm font-medium text-ink-primary">{h.name}</span>
                   {tol && <Spinner className="h-4 w-4 shrink-0 text-[#ff4800]" />}
                 </button>
@@ -727,20 +890,31 @@ function HabitLibraryModal({
           })}
         </div>
 
-        <div className="space-y-2 border-t border-zinc-200/80 px-4 py-3 dark:border-zinc-800">
+        <div className="space-y-3 border-t border-zinc-200/80 px-4 py-3 dark:border-zinc-800">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Nuevo hábito</p>
+          {/* Icon picker grid */}
+          <div className="grid grid-cols-10 gap-1">
+            {ICON_OPTIONS.map((iconName) => {
+              const Icon = HABIT_ICON_MAP[iconName]
+              return (
+                <button
+                  key={iconName}
+                  type="button"
+                  onClick={() => setNewEmoji(iconName)}
+                  title={iconName}
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors',
+                    newEmoji === iconName
+                      ? 'border-[#ff4800] bg-[#ff4800]/10 text-[#ff4800]'
+                      : 'border-zinc-200 bg-zinc-50 text-ink-muted hover:border-zinc-300 hover:text-ink-primary dark:border-zinc-700 dark:bg-zinc-900/50',
+                  )}
+                >
+                  {Icon && <Icon className="h-3.5 w-3.5" />}
+                </button>
+              )
+            })}
+          </div>
           <div className="flex gap-2">
-            <select
-              className="rounded-xl border border-zinc-300 bg-zinc-50 px-2 py-2 text-sm text-ink-primary dark:border-zinc-600 dark:bg-zinc-900"
-              value={newEmoji}
-              onChange={(e) => setNewEmoji(e.target.value)}
-            >
-              {EMOJI_OPTIONS.map((e) => (
-                <option key={e} value={e}>
-                  {e}
-                </option>
-              ))}
-            </select>
             <input
               placeholder="Nombre del hábito…"
               className="flex-1 rounded-xl border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus:border-emerald-500 dark:border-zinc-600 dark:bg-zinc-900"

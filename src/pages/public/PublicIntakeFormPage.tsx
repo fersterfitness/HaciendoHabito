@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Sun, Moon, Check } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Sun, Moon, Check, BicepsFlexed, Salad, Zap } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
+import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
 import { supabase } from '@/lib/supabase'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 
@@ -19,10 +20,13 @@ function numericFromPriceLabel(label: string): number {
 const PUBLIC_PLAN_SOLO_CREDENTIAL_LINE =
   'Lic. en alto rendimiento (estudiante) · Prof. Educación física · Especialización deportiva'
 const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
-  'Plan conjunto con Cristian Vázquez — Licenciado/a en Nutrición y especialización deportiva'
+  'Cristian Crossetto — Licenciado/a en Nutrición y especialización deportiva'
+const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
+  'Tomás Ferster + Cristian Crossetto — Plan integral de entrenamiento y nutrición'
 
 const SEGMENT_SOLO_SUB = 'Solo Tomás Ferster'
-const SEGMENT_CRIS_SUB = 'Nutrición deportiva · plan conjunto'
+const SEGMENT_CRIS_SUB = 'Nutrición deportiva · Cristian Crossetto'
+const SEGMENT_FULL_SUB = 'Entrenamiento + Nutrición'
 
 function isLikelyYouTube(url: string): boolean {
   return /(?:youtube\.com\/watch\?v=|youtu\.be\/)/i.test(url)
@@ -393,7 +397,7 @@ function PublicAuthTopBar() {
   )
 }
 
-/** Panel izquierdo: marca + planes */
+/** Panel izquierdo: marca + selector de profesional + planes */
 function LeftBrandPanel({
   theme,
   plansAll,
@@ -415,77 +419,142 @@ function LeftBrandPanel({
   selectedPlanId: string | null
   onSelectPlan: (id: string) => void
 }) {
-  const nSolo = plansAll.filter((p) => p.catalogSegment === 'solo').length
-  const nWithCris = plansAll.filter((p) => p.catalogSegment === 'with_cris').length
-  const dualCatalog = nSolo > 0 && nWithCris > 0
+  const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
+
+  const professionalCards: {
+    segment: WebPlanCatalogSegment
+    label: string
+    sub: string
+    credential: string
+    icon: React.ReactNode
+    imageUrl: string | null
+    fallback: string
+  }[] = [
+    {
+      segment: 'solo',
+      label: 'Entrenador',
+      sub: SEGMENT_SOLO_SUB,
+      credential: PUBLIC_PLAN_SOLO_CREDENTIAL_LINE,
+      icon: <BicepsFlexed className="h-4 w-4" />,
+      imageUrl: soloSegmentImageUrl,
+      fallback: 'TF',
+    },
+    {
+      segment: 'with_cris',
+      label: 'Nutricionista',
+      sub: SEGMENT_CRIS_SUB,
+      credential: PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE,
+      icon: <Salad className="h-4 w-4" />,
+      imageUrl: withCrisSegmentImageUrl,
+      fallback: 'CC',
+    },
+    {
+      segment: 'full',
+      label: 'Full',
+      sub: SEGMENT_FULL_SUB,
+      credential: PUBLIC_PLAN_FULL_CREDENTIAL_LINE,
+      icon: <Zap className="h-4 w-4" />,
+      imageUrl: null,
+      fallback: 'TF+CC',
+    },
+  ]
+
   return (
-    <div className="relative lg:w-[44%] min-h-[340px] lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 overflow-hidden">
+    <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 overflow-hidden">
       <HeroBgLayers theme={theme} />
 
-      <div className="relative z-[2] h-full min-h-[inherit] flex flex-col p-6 sm:p-9">
-        <div className="flex-1 flex flex-col items-center text-center px-2 py-4 lg:py-2">
-          <div className="relative mb-5">
+      <div className="relative z-[2] h-full min-h-[inherit] flex flex-col p-5 sm:p-7 lg:p-9">
+        <div className="flex-1 flex flex-col items-center text-center px-2 py-3 lg:py-2">
+          {/* Logo */}
+          <div className="relative mb-3 lg:mb-5">
             <div
               className="pointer-events-none absolute -inset-8 rounded-[2rem] blur-3xl opacity-50"
-              style={{
-                background: `radial-gradient(circle at 50% 50%, ${ACCENT} 0%, transparent 65%)`,
-              }}
+              style={{ background: `radial-gradient(circle at 50% 50%, ${ACCENT} 0%, transparent 65%)` }}
             />
             <div className="relative flex justify-center px-2">
               <img
                 src="/logo-brand.png"
                 alt="Haciéndolo hábito"
-                className="h-20 w-auto max-w-[min(360px,calc(100vw-3.5rem))] object-contain object-center drop-shadow-[0_4px_28px_rgba(0,0,0,0.5)] sm:h-24 sm:max-w-[420px] lg:h-28 lg:max-w-[min(480px,90%)]"
+                className="h-14 w-auto max-w-[min(280px,calc(100vw-3.5rem))] object-contain object-center drop-shadow-[0_4px_28px_rgba(0,0,0,0.5)] sm:h-20 sm:max-w-[360px] lg:h-28 lg:max-w-[min(480px,90%)]"
               />
             </div>
           </div>
 
-          <h2 className="text-[1.45rem] sm:text-3xl lg:text-[1.7rem] font-bold text-white tracking-tight drop-shadow-lg max-w-[16rem] lg:max-w-none">
+          <h2 className="text-xl sm:text-2xl lg:text-[1.7rem] font-bold text-white tracking-tight drop-shadow-lg mb-3 lg:mb-4">
             Haciéndolo hábito
           </h2>
-          {dualCatalog ? (
-            <div className="mb-5 w-full max-w-[340px]">
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => onSelectCatalogSegment('solo')}
-                  title={PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}
-                  className={[
-                    'rounded-xl border px-3 py-3 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5 active:translate-y-0',
-                    catalogSegment === 'solo'
-                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/50'
-                      : 'border-white/15 bg-black/22 hover:border-white/25',
-                  ].join(' ')}
-                  aria-pressed={catalogSegment === 'solo'}
-                >
-                  <CatalogSegmentThumbnail imageUrl={soloSegmentImageUrl} titleFallback="F" />
-                  <p className="text-[12px] font-semibold text-white leading-tight tracking-tight">Mis planes</p>
-                  <p className="mt-1 text-[10px] text-white/60 leading-snug">{SEGMENT_SOLO_SUB}</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSelectCatalogSegment('with_cris')}
-                  title={PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
-                  className={[
-                    'rounded-xl border px-3 py-3 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5 active:translate-y-0',
-                    catalogSegment === 'with_cris'
-                      ? 'border-[#ffcc33]/85 bg-black/35 ring-2 ring-[#ffcc33]/50'
-                      : 'border-white/15 bg-black/22 hover:border-white/25',
-                  ].join(' ')}
-                  aria-pressed={catalogSegment === 'with_cris'}
-                >
-                  <CatalogSegmentThumbnail imageUrl={withCrisSegmentImageUrl} titleFallback="F+C" compactFallback />
-                  <p className="text-[12px] font-semibold text-white leading-tight tracking-tight">Con Cristian</p>
-                  <p className="mt-1 text-[10px] text-white/60 leading-snug">{SEGMENT_CRIS_SUB}</p>
-                </button>
-              </div>
-            </div>
-          ) : null}
 
-          <div className="mt-3 mb-5">
+          {/* 3 Professional cards — grid 3 columnas compacto */}
+          <div className="mb-4 lg:mb-5 w-full max-w-full sm:max-w-[380px]">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/65 font-semibold mb-3">Elegí tu profesional</p>
+            <div className="grid grid-cols-3 gap-2">
+              {professionalCards.map((card) => {
+                const isSelected = catalogSegment === card.segment
+                return (
+                  <button
+                    key={card.segment}
+                    type="button"
+                    onClick={() => onSelectCatalogSegment(card.segment)}
+                    title={card.credential}
+                    className={[
+                      'flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 text-center transition-all backdrop-blur-sm hover:-translate-y-0.5 active:translate-y-0',
+                      isSelected
+                        ? 'border-[#ffcc33]/80 bg-[#3b2d0f]/70 ring-1 ring-[#ffcc33]/40 shadow-[0_0_28px_-8px_rgba(255,204,51,0.55)]'
+                        : 'border-white/12 bg-black/20 hover:border-white/22 hover:bg-black/28',
+                    ].join(' ')}
+                    aria-pressed={isSelected}
+                  >
+                    {/* Avatar / foto */}
+                    <div className="h-14 w-14 overflow-hidden rounded-xl ring-1 ring-white/10 shrink-0">
+                      {card.imageUrl ? (
+                        <img src={card.imageUrl} alt="" className="h-full w-full object-cover object-top" />
+                      ) : card.segment === 'full' ? (
+                        <div className="h-full w-full flex items-center justify-center bg-[#ffcc33]/15">
+                          <Zap className="h-5 w-5 text-[#ffe99f]" />
+                        </div>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-white/8">
+                          <span className="text-[11px] font-bold text-[#ffe99f]">{card.fallback}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Ícono de rol */}
+                    <div className={['h-5 w-5 flex items-center justify-center', isSelected ? 'text-[#ffe99f]' : 'text-white/40'].join(' ')}>
+                      {card.icon}
+                    </div>
+
+                    {/* Texto */}
+                    <p className={['text-[11px] font-bold leading-tight', isSelected ? 'text-white' : 'text-white/85'].join(' ')}>
+                      {card.label}
+                    </p>
+                    <p className={['text-[9px] leading-snug line-clamp-2', isSelected ? 'text-white/65' : 'text-white/40'].join(' ')}>
+                      {card.sub}
+                    </p>
+
+                    {/* Indicador seleccionado */}
+                    {isSelected && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full border border-[#ffcc33]/40 bg-[#ffcc33]/10 px-1.5 py-0.5 text-[8px] font-semibold text-[#ffe99f]">
+                        <Check className="h-2 w-2" />OK
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Plans stack for selected segment */}
+          <div className="mt-1 mb-3 lg:mt-2 lg:mb-5 w-full max-w-full sm:max-w-[380px]">
             {plansVisible.length === 0 ? (
-              <p className="max-w-[300px] text-center text-[11px] text-white/60 lg:text-left mx-auto lg:mx-0">
-                {catalogSegment === null ? 'Seleccioná arriba qué línea querés para ver planes.' : 'Próximamente cargaremos planes en esta línea.'}
+              <p className="max-w-[280px] text-center text-[11px] text-white/60 mx-auto">
+                {catalogSegment === null
+                  ? 'Seleccioná arriba con quién querés trabajar.'
+                  : catalogSegment === 'full'
+                    ? hasPlansForSegment('full')
+                      ? null
+                      : 'Plan Full: incluye entrenamiento + nutrición con ambos profesionales.'
+                    : 'Próximamente cargaremos planes en esta línea.'}
               </p>
             ) : (
               <PlansStack
@@ -493,6 +562,11 @@ function LeftBrandPanel({
                 selectedPlanId={selectedPlanId}
                 onSelectPlan={onSelectPlan}
               />
+            )}
+            {catalogSegment === 'full' && plansVisible.length === 0 && (
+              <p className="mt-3 max-w-[280px] text-center text-[11px] text-white/50 mx-auto">
+                Completá el formulario para continuar. Un asesor se contactará con vos con los detalles del plan.
+              </p>
             )}
           </div>
         </div>
@@ -536,9 +610,10 @@ export function PublicIntakeFormPage() {
     catalogSegment,
   ])
 
-  /** Mis planes / Fer → Ferster (entrenamiento). Con Cristian → nutrición. */
-  const intakeKind = useMemo<'entrenamiento' | 'nutricion'>(() => {
-    return catalogSegment === 'with_cris' ? 'nutricion' : 'entrenamiento'
+  const intakeKind = useMemo<'entrenamiento' | 'nutricion' | 'full'>(() => {
+    if (catalogSegment === 'with_cris') return 'nutricion'
+    if (catalogSegment === 'full') return 'full'
+    return 'entrenamiento'
   }, [catalogSegment])
 
   const selectedPlan = selectedPlanId
@@ -546,13 +621,14 @@ export function PublicIntakeFormPage() {
     : null
 
   useEffect(() => {
-    const nSolo = plans.filter((p) => p.catalogSegment === 'solo').length
-    const nWith = plans.filter((p) => p.catalogSegment === 'with_cris').length
-    if (nSolo > 0 && nWith === 0) setCatalogSegment('solo')
-    else if (nWith > 0 && nSolo === 0) setCatalogSegment('with_cris')
-    else if (nSolo > 0 && nWith > 0) {
-      setCatalogSegment((curr) => (curr === 'solo' || curr === 'with_cris' ? curr : 'solo'))
-    }
+    const segments = new Set(plans.map((p) => p.catalogSegment))
+    setCatalogSegment((curr) => {
+      if (curr && segments.has(curr)) return curr
+      if (segments.has('solo')) return 'solo'
+      if (segments.has('with_cris')) return 'with_cris'
+      if (segments.has('full')) return 'full'
+      return 'solo'
+    })
   }, [plans])
 
   useEffect(() => {
@@ -625,7 +701,10 @@ export function PublicIntakeFormPage() {
       >
       const mapped: PlanDetail[] = ((data as Row[]) ?? []).map((row) => {
         const id = row.slug
-        const segment: WebPlanCatalogSegment = row.catalog_segment === 'with_cris' ? 'with_cris' : 'solo'
+        const segment: WebPlanCatalogSegment =
+          row.catalog_segment === 'with_cris' ? 'with_cris'
+          : row.catalog_segment === 'full' ? 'full'
+          : 'solo'
         const displayBadge = row.display_badge ?? null
         return {
           id,
@@ -687,7 +766,7 @@ export function PublicIntakeFormPage() {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 pt-16 sm:pt-4 py-10 relative">
         <PublicAuthTopBar />
-        <div className="w-full max-w-[960px] rounded-3xl overflow-hidden border border-surface-border bg-surface-card shadow-card dark:shadow-2xl flex flex-col lg:flex-row">
+        <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-2xl flex flex-col lg:flex-row min-h-screen sm:min-h-0">
           <LeftBrandPanel
             theme={theme}
             plansAll={plans}
@@ -699,7 +778,7 @@ export function PublicIntakeFormPage() {
             selectedPlanId={selectedPlanId}
             onSelectPlan={handleSelectPlan}
           />
-          <div className="flex-1 flex flex-col items-center justify-center p-10 sm:p-14 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-14 text-center">
             <div
               className="mb-6 flex h-16 w-16 items-center justify-center rounded-full"
               style={{ backgroundColor: `${ACCENT}22` }}
@@ -718,9 +797,9 @@ export function PublicIntakeFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 pt-16 sm:pt-4 py-8 md:py-12 relative">
+    <div className="min-h-screen bg-surface-base flex items-start justify-center sm:items-center p-0 sm:p-4 sm:pt-4 sm:py-8 md:py-12 relative">
       <PublicAuthTopBar />
-      <div className="w-full max-w-[960px] rounded-3xl overflow-hidden border border-surface-border bg-surface-card shadow-card dark:shadow-2xl flex flex-col lg:flex-row">
+      <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-2xl flex flex-col lg:flex-row min-h-screen sm:min-h-0">
         <LeftBrandPanel
           theme={theme}
           plansAll={plans}
@@ -734,15 +813,22 @@ export function PublicIntakeFormPage() {
         />
 
         {/* Panel derecho — selector de tipo o formulario */}
-        <div className="flex-1 px-6 sm:px-10 py-10 lg:py-12 lg:pl-10 lg:pr-12 lg:h-[min(100vh-5rem,860px)]">
+        <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:h-[min(100vh-5rem,860px)] lg:overflow-hidden">
           {isMobile ? (
             selectedPlan ? (
               <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
             ) : (
-              <div className="h-full overflow-y-auto">
+              <div>
                 <TestimonialsSection urls={testimonialVideos} />
                 {intakeKind === 'nutricion' ? (
                   <IntakeNutritionForm
+                    selectedPlanSlug={selectedPlanId}
+                    selectedPlanLabel={selectedPlan?.name ?? null}
+                    selectedPlanPrice={selectedPlan?.price ?? null}
+                    onSuccess={() => setDone(true)}
+                  />
+                ) : intakeKind === 'full' ? (
+                  <IntakeFullForm
                     selectedPlanSlug={selectedPlanId}
                     selectedPlanLabel={selectedPlan?.name ?? null}
                     selectedPlanPrice={selectedPlan?.price ?? null}
@@ -771,6 +857,13 @@ export function PublicIntakeFormPage() {
                   <TestimonialsSection urls={testimonialVideos} />
                   {intakeKind === 'nutricion' ? (
                     <IntakeNutritionForm
+                      selectedPlanSlug={selectedPlanId}
+                      selectedPlanLabel={selectedPlan?.name ?? null}
+                      selectedPlanPrice={selectedPlan?.price ?? null}
+                      onSuccess={() => setDone(true)}
+                    />
+                  ) : intakeKind === 'full' ? (
+                    <IntakeFullForm
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan?.price ?? null}

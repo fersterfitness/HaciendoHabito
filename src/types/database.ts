@@ -477,7 +477,7 @@ export interface RoutineBlueprint {
   updated_at: string
 }
 
-export type WebPlanCatalogSegment = 'solo' | 'with_cris'
+export type WebPlanCatalogSegment = 'solo' | 'with_cris' | 'full'
 
 export interface WebPlan {
   id: string

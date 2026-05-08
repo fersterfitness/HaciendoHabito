@@ -23,7 +23,7 @@ const schema = z.object({
   description: z.string().min(2, 'Ingresá una descripción'),
   amount: z.coerce.number().min(0.01, 'Ingresá el monto'),
   expense_type: z.enum(['fijo', 'variable']),
-  payment_method: z.enum(['efectivo_debito', 'efectivo_ars', 'cuenta_dni', 'tarjeta_credito', 'transferencia', 'otro']),
+  payment_method: z.enum(['efectivo_debito', 'efectivo_ars', 'cuenta_dni', 'mercadopago', 'debito', 'tarjeta_credito', 'transferencia', 'otro']),
   scope: z.enum(['business', 'personal']),
   notes: z.string().optional(),
 })

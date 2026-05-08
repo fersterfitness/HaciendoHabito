@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { ClipboardList, FileDown, Pencil, Plus, Search, Trash2, ChevronDown, Filter, X, ArrowDownUp } from 'lucide-react'
+import { ClipboardList, FileDown, Pencil, Plus, Search, Trash2, ChevronDown, Filter, X, ArrowDownUp, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -12,6 +12,7 @@ import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWor
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn, formatDate } from '@/lib/utils'
+import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
 import { parsePlanningData } from '@/lib/nutrition/planningWorkbookTypes'
@@ -19,7 +20,40 @@ import type { PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTy
 import type { Json, TrainerStudentMealPlan } from '@/types/database'
 
 type PlanRow = TrainerStudentMealPlan & {
-  student?: { full_name: string } | null
+  student?: {
+    full_name: string
+    avatar_path: string | null
+    intake_ferster: { pathology?: string; pathology_detail?: string | null } | null
+    intake_nutrition: { digestive_intolerances?: string } | null
+  } | null
+}
+
+// Solo los 3 colores de marca
+const PLAN_COLORS = [
+  { bar: 'bg-brand-secondary',  avatar: 'bg-brand-secondary/15 text-brand-secondary'  },
+  { bar: 'bg-brand-tertiary',   avatar: 'bg-brand-tertiary/15 text-brand-tertiary'    },
+  { bar: 'bg-brand-primary',    avatar: 'bg-brand-primary/15 text-brand-primary'      },
+]
+
+function strColorIdx(str: string): number {
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
+  return Math.abs(h) % PLAN_COLORS.length
+}
+
+/** Extrae condiciones alimentarias del alumno (patología + intolerancia). */
+function getStudentConditions(student: PlanRow['student']): string[] {
+  const items: string[] = []
+  const fi = student?.intake_ferster
+  if (fi?.pathology === 'yes' && fi.pathology_detail?.trim()) {
+    items.push(fi.pathology_detail.trim())
+  }
+  const ni = student?.intake_nutrition
+  const intol = ni?.digestive_intolerances?.trim()
+  if (intol && intol.toLowerCase() !== 'no' && intol.toLowerCase() !== 'ninguna') {
+    items.push(intol)
+  }
+  return items
 }
 
 type MealPlanOriginFilter = '' | 'from_template' | 'direct'
@@ -235,6 +269,9 @@ export function MealPlansPage() {
   const [pdfBusyDetail, setPdfBusyDetail] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<PlanRow | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   const entityColumn = profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno'
 
@@ -243,7 +280,7 @@ export function MealPlansPage() {
     setLoading(true)
     const { data, error } = await supabase
       .from('trainer_student_meal_plans')
-      .select('*, student:students(full_name)')
+      .select('*, student:students(full_name, avatar_path, intake_ferster, intake_nutrition)')
       .eq('owner_id', user.id)
       .order('updated_at', { ascending: false })
     setLoading(false)
@@ -346,6 +383,27 @@ export function MealPlansPage() {
     void fetchPlans()
   }
 
+  function startRename(p: PlanRow, e: React.MouseEvent) {
+    e.stopPropagation()
+    setRenamingId(p.id)
+    setRenameValue(p.title)
+    setTimeout(() => renameInputRef.current?.select(), 30)
+  }
+
+  async function commitRename(id: string) {
+    const trimmed = renameValue.trim()
+    if (!trimmed || !user?.id) { setRenamingId(null); return }
+    const { error } = await supabase
+      .from('trainer_student_meal_plans')
+      .update({ title: trimmed })
+      .eq('id', id)
+      .eq('owner_id', user.id)
+    if (error) { toast.error(error.message); return }
+    setPlans((prev) => prev.map((p) => p.id === id ? { ...p, title: trimmed } : p))
+    setRenamingId(null)
+    toast.success('Plan renombrado.')
+  }
+
   function openFullPage(p: PlanRow) {
     navigate(`/students/${p.student_id}/meal-plan/${p.id}`)
   }
@@ -442,7 +500,7 @@ export function MealPlansPage() {
                 <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
                 <p className="truncate text-[11px] text-ink-muted">
                   {SORT_SUBTITLE[tableSort]}
-                  {search.trim() ? ` · texto “${search.trim()}”` : ''}
+                  {search.trim() ? ` · texto "${search.trim()}"` : ''}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -468,7 +526,7 @@ export function MealPlansPage() {
                     <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Plan</th>
                     <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityColumn}</th>
                     <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Actualización</th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Origen</th>
+                    <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Condición</th>
                     <th className="whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
                       Acciones
                     </th>
@@ -477,6 +535,9 @@ export function MealPlansPage() {
                 <tbody className="divide-y divide-surface-border/70 bg-surface-card">
                   {filteredSorted.map((p) => {
                     const isSelected = selectedPlanId === p.id
+                    const ci = strColorIdx(p.student?.full_name ?? p.id)
+                    const colors = PLAN_COLORS[ci]
+                    const isRenaming = renamingId === p.id
                     return (
                       <tr
                         key={p.id}
@@ -484,28 +545,96 @@ export function MealPlansPage() {
                           'cursor-pointer transition-colors',
                           isSelected ? 'bg-surface-elevated/45' : 'hover:bg-surface-elevated/35',
                         )}
-                        onClick={() => setSelectedPlanId(p.id)}
+                        onClick={() => !isRenaming && setSelectedPlanId(p.id)}
                       >
-                        <td className="min-w-[10rem] px-4 py-2.5 sm:min-w-[12rem] sm:px-5">
-                          <span className="break-words font-semibold leading-snug tracking-tight text-ink-primary">{p.title}</span>
+                        {/* Columna Plan con barra de color + renombrar inline */}
+                        <td className="min-w-[10rem] px-0 py-0 sm:min-w-[12rem]">
+                          <div className="flex items-center gap-0">
+                            <div className={cn('w-1 self-stretch shrink-0 rounded-none', colors.bar)} />
+                            <div className="flex-1 px-4 py-2.5 sm:px-5">
+                              {isRenaming ? (
+                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    ref={renameInputRef}
+                                    value={renameValue}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') void commitRename(p.id)
+                                      if (e.key === 'Escape') setRenamingId(null)
+                                    }}
+                                    onBlur={() => void commitRename(p.id)}
+                                    className="flex-1 min-w-0 rounded-lg border border-brand-secondary/40 bg-surface-input px-2.5 py-1 text-sm font-semibold text-ink-primary outline-none focus:ring-1 focus:ring-brand-secondary/50"
+                                    autoFocus
+                                  />
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => { e.preventDefault(); void commitRename(p.id) }}
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-secondary/15 text-brand-secondary hover:bg-brand-secondary/25 transition-colors shrink-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Check className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 group/title">
+                                  <span className="break-words font-semibold leading-snug tracking-tight text-ink-primary">{p.title}</span>
+                                  <button
+                                    type="button"
+                                    title="Renombrar"
+                                    onClick={(e) => startRename(p, e)}
+                                    className="opacity-0 group-hover/title:opacity-100 shrink-0 rounded p-0.5 text-ink-muted hover:text-brand-secondary transition-all"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </td>
+                        {/* Columna Alumno con foto de perfil */}
                         <td
                           className="max-w-[13rem] truncate px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5"
                           title={p.student?.full_name ?? undefined}
                         >
-                          {p.student?.full_name ?? '—'}
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const photoUrl = studentAvatarPublicUrl(p.student?.avatar_path ?? null)
+                              return photoUrl ? (
+                                <img
+                                  src={photoUrl}
+                                  alt={p.student?.full_name ?? ''}
+                                  className="h-6 w-6 shrink-0 rounded-md border border-surface-border object-cover"
+                                />
+                              ) : (
+                                <div className={cn('flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold shrink-0', colors.avatar)}>
+                                  {(p.student?.full_name ?? '?').charAt(0).toUpperCase()}
+                                </div>
+                              )
+                            })()}
+                            <span className="truncate">{p.student?.full_name ?? '—'}</span>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5">{formatDate(p.updated_at)}</td>
-                        <td className="px-4 py-2.5 sm:px-5">
-                          {p.cloned_from_id ? (
-                            <span className="inline-flex rounded border border-zinc-300/55 bg-zinc-500/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-700 dark:border-zinc-600 dark:text-zinc-400">
-                              Plantilla
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded border border-zinc-200/65 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted dark:border-zinc-700">
-                              Directo
-                            </span>
-                          )}
+                        <td className="px-4 py-2.5 sm:px-5 max-w-[16rem]">
+                          {(() => {
+                            const conditions = getStudentConditions(p.student)
+                            if (conditions.length === 0) {
+                              return <span className="text-xs text-ink-muted">—</span>
+                            }
+                            return (
+                              <div className="flex flex-wrap gap-1">
+                                {conditions.map((c, i) => (
+                                  <span
+                                    key={i}
+                                    title={c}
+                                    className="inline-flex items-center rounded border border-status-expiring/30 bg-status-expiring/10 px-2 py-0.5 text-[10px] font-medium text-status-expiring max-w-[14rem] truncate"
+                                  >
+                                    {c}
+                                  </span>
+                                ))}
+                              </div>
+                            )
+                          })()}
                         </td>
                         <td className="px-4 py-2.5 sm:px-5">
                           <div className="flex items-center justify-end gap-1.5">

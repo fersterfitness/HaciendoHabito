@@ -14,6 +14,7 @@ import {
   StickyNote,
   ChevronDown,
 } from 'lucide-react'
+import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -35,10 +36,12 @@ type Tab = 'income' | 'expenses'
 const MES_LABELS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 const METHOD_LABEL: Record<string, string> = {
-  efectivo_debito: 'Efectivo / débito',
-  efectivo_ars: 'Efectivo (ARS)',
+  efectivo_ars: 'Efectivo',
+  efectivo_debito: 'Efectivo / Débito',
   cuenta_dni: 'Cuenta DNI',
-  tarjeta_credito: 'Tarjeta crédito',
+  mercadopago: 'MercadoPago',
+  debito: 'Débito',
+  tarjeta_credito: 'Crédito',
   transferencia: 'Transferencia',
   otro: 'Otro',
 }
@@ -558,8 +561,8 @@ export function FinancesPage() {
                         <td className="px-3 py-2 sm:px-4">
                           <Badge status={income.status} className="text-[10px]" />
                         </td>
-                        <td className="hidden max-w-[8rem] truncate px-3 py-2 text-xs text-ink-secondary lg:table-cell lg:px-4" title={paymentMethodLabel(income.payment_method)}>
-                          {paymentMethodLabel(income.payment_method)}
+                        <td className="hidden px-3 py-2 lg:table-cell lg:px-4">
+                          <PaymentMethodBadge method={income.payment_method} />
                         </td>
                         <td className="px-2 py-2 text-center">
                           {income.notes?.trim() ? (
@@ -647,8 +650,8 @@ export function FinancesPage() {
                           {expense.expense_type === 'fijo' ? 'Fijo' : 'Variable'}
                         </span>
                       </td>
-                      <td className="hidden max-w-[8rem] truncate px-3 py-2 text-xs text-ink-secondary lg:table-cell lg:px-4" title={paymentMethodLabel(expense.payment_method)}>
-                        {paymentMethodLabel(expense.payment_method)}
+                      <td className="hidden px-3 py-2 lg:table-cell lg:px-4">
+                        <PaymentMethodBadge method={expense.payment_method} />
                       </td>
                       <td className="px-3 py-1.5 sm:px-4">
                         <div className="flex items-center justify-end gap-1">

@@ -50,6 +50,7 @@ type LoggedInRouteProps = {
   canSeeNutritionFoodsGuide: boolean
   canSeeAppointments: boolean
   canSeeTrainerAssignedMealPlansPage: boolean
+  canSeeFinances: boolean
 }
 
 /**
@@ -63,6 +64,7 @@ function renderLoggedInRoutes({
   canSeeNutritionFoodsGuide,
   canSeeAppointments,
   canSeeTrainerAssignedMealPlansPage,
+  canSeeFinances,
 }: LoggedInRouteProps) {
   return (
     <>
@@ -146,13 +148,13 @@ function renderLoggedInRoutes({
 
       <Route path="appointments" element={canSeeAppointments ? <NutritionAppointmentsPage /> : <Navigate to="/dashboard" replace />} />
 
-      <Route path="finances" element={canSeeTraining ? <FinancesPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/income" element={canSeeTraining ? <Navigate to="/finances?tab=income" replace /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/expenses" element={canSeeTraining ? <Navigate to="/finances?tab=expenses" replace /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/income/new" element={canSeeTraining ? <IncomeFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/income/:id/edit" element={canSeeTraining ? <IncomeFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/expenses/new" element={canSeeTraining ? <ExpenseFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/expenses/:id/edit" element={canSeeTraining ? <ExpenseFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances" element={canSeeFinances ? <FinancesPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/income" element={canSeeFinances ? <Navigate to="/finances?tab=income" replace /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/expenses" element={canSeeFinances ? <Navigate to="/finances?tab=expenses" replace /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/income/new" element={canSeeFinances ? <IncomeFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/income/:id/edit" element={canSeeFinances ? <IncomeFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/expenses/new" element={canSeeFinances ? <ExpenseFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/expenses/:id/edit" element={canSeeFinances ? <ExpenseFormPage /> : <Navigate to="/dashboard" replace />} />
 
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="settings" element={<SettingsPage />} />
@@ -178,6 +180,7 @@ function AppRoutes() {
   const role = useAuthStore((state) => state.profile?.role)
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
+  const canSeeFinances = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
   const canSeeNutritionFoodsGuide =
     role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const canSeeAppointments = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
@@ -193,6 +196,7 @@ function AppRoutes() {
     canSeeNutritionFoodsGuide,
     canSeeAppointments,
     canSeeTrainerAssignedMealPlansPage,
+    canSeeFinances,
   }
 
   return (

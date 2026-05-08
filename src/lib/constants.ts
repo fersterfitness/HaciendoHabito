@@ -33,10 +33,12 @@ export const PDF_STATUSES = [
 ] as const
 
 export const PAYMENT_METHODS = [
-  { value: 'efectivo_debito', label: 'Efectivo / Débito' },
   { value: 'efectivo_ars', label: 'Efectivo (ARS)' },
+  { value: 'efectivo_debito', label: 'Efectivo / Débito' },
   { value: 'cuenta_dni', label: 'Cuenta DNI' },
-  { value: 'tarjeta_credito', label: 'Tarjeta de Crédito' },
+  { value: 'mercadopago', label: 'MercadoPago' },
+  { value: 'debito', label: 'Tarjeta Débito' },
+  { value: 'tarjeta_credito', label: 'Tarjeta Crédito' },
   { value: 'transferencia', label: 'Transferencia' },
   { value: 'otro', label: 'Otro' },
 ] as const

@@ -16,7 +16,7 @@ export function useRoutines() {
       setLoading(true)
       let query = supabase
         .from('routines')
-        .select('*, student:students(full_name, level, status)')
+        .select('*, student:students(full_name, level, status, avatar_path)')
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false })
 

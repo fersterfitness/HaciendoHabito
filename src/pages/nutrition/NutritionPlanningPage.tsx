@@ -1297,7 +1297,15 @@ export function NutritionPlanningPage() {
                 size="sm"
                 icon={<UserPlus className="h-3.5 w-3.5" aria-hidden />}
                 className="h-8 shrink-0"
-                onClick={() => { setAssignTitle('Plan de alimentación'); setAssignOpen(true) }}
+                onClick={() => {
+                  const now = new Date()
+                  const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+                  const first = assignStudents[0]
+                  const firstName = first?.full_name.split(' ')[0] ?? ''
+                  setAssignStudentId(first?.id ?? '')
+                  setAssignTitle(firstName ? `Plan ${MONTHS[now.getMonth()]} · ${firstName}` : `Plan ${MONTHS[now.getMonth()]}`)
+                  setAssignOpen(true)
+                }}
               >
                 Asignar
               </Button>
@@ -2943,7 +2951,16 @@ export function NutritionPlanningPage() {
             <select
               className={cn(selectPlanClasses, 'mb-4')}
               value={assignStudentId}
-              onChange={(e) => setAssignStudentId(e.target.value)}
+              onChange={(e) => {
+                const id = e.target.value
+                setAssignStudentId(id)
+                const student = assignStudents.find((s) => s.id === id)
+                if (student) {
+                  const now = new Date()
+                  const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+                  setAssignTitle(`Plan ${MONTHS[now.getMonth()]} · ${student.full_name.split(' ')[0]}`)
+                }
+              }}
             >
               {assignStudents.length === 0 ? (
                 <option value="">No hay alumnos cargados</option>

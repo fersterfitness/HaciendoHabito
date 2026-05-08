@@ -119,6 +119,7 @@ export function getSidebarBlocks(role: AppRole | undefined): SidebarBlock[] {
 
   if (role === 'nutritionist') {
     blocks.push({ kind: 'items', items: [NAV_NUTRITIONIST_PATIENTS] })
+    blocks.push({ kind: 'section', title: 'Finanzas', items: NAV_FINANCE })
   }
 
   if (showNutrition) {
@@ -149,9 +150,10 @@ export function getMobileNavItems(role: AppRole | undefined): NavItem[] {
     return [
       NAV_HOME,
       NAV_APPOINTMENTS,
+      NAV_NUTRITIONIST_PATIENTS,
       NAV_NUTRITION[0],
       NAV_NUTRITION[3],
-      NAV_NUTRITIONIST_PATIENTS,
+      ...NAV_FINANCE,
     ]
   }
   // trainer (default) + admin-like sin duplicar rutas no usadas en mobile anterior
