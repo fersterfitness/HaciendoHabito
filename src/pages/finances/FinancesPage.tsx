@@ -414,7 +414,7 @@ export function FinancesPage() {
                 tab === 'income' ? 'bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400',
               )}
             >
-              {incomes.length}
+              {incomesFiltered.length}
             </span>
           </button>
           <button
@@ -435,7 +435,7 @@ export function FinancesPage() {
                 tab === 'expenses' ? 'bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400',
               )}
             >
-              {expenses.length}
+              {expensesFiltered.length}
             </span>
           </button>
         </div>
@@ -505,6 +505,42 @@ export function FinancesPage() {
           </div>
         </div>
 
+        {/* Desglose por método de pago */}
+        {!loading && (tab === 'income' ? incomesFiltered.length : expensesFiltered.length) > 0 && (() => {
+          const rows = tab === 'income' ? incomesFiltered : expensesFiltered
+          const byMethod: Record<string, number> = {}
+          rows.forEach((r) => {
+            const m = r.payment_method ?? 'otro'
+            byMethod[m] = (byMethod[m] ?? 0) + (r as Income).amount
+          })
+          const entries = Object.entries(byMethod).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
+          if (entries.length === 0) return null
+          return (
+            <div className="rounded-md border border-zinc-200/70 bg-surface-card px-4 py-3 dark:border-zinc-700/65">
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                {tab === 'income' ? 'Ingresos' : 'Gastos'} por método de pago
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {entries.map(([method, total]) => (
+                  <div
+                    key={method}
+                    className="flex items-center gap-2 rounded-lg border border-zinc-200/60 bg-zinc-50/60 px-3 py-1.5 dark:border-zinc-700/55 dark:bg-zinc-900/40"
+                  >
+                    <PaymentMethodBadge method={method as Income['payment_method']} />
+                    <span className="text-sm font-semibold tabular-nums text-ink-primary">{formatCurrency(total)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-300/50 bg-zinc-100/60 px-3 py-1.5 dark:border-zinc-600/40 dark:bg-zinc-800/35">
+                  <span className="text-[11px] font-medium text-ink-muted">Total</span>
+                  <span className="text-sm font-bold tabular-nums text-ink-primary">
+                    {formatCurrency(entries.reduce((s, [, v]) => s + v, 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Listados compactos */}
         {loading ? (
           <div className="flex justify-center py-12">
@@ -533,10 +569,7 @@ export function FinancesPage() {
                       <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
                       <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
-                      <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Medio</th>
-                      <th className="w-12 px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-ink-muted" title="Notas">
-                        {/* icon column */}
-                      </th>
+                      <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Medio · Notas</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                     </tr>
                   </thead>
@@ -562,16 +595,14 @@ export function FinancesPage() {
                           <Badge status={income.status} className="text-[10px]" />
                         </td>
                         <td className="hidden px-3 py-2 lg:table-cell lg:px-4">
-                          <PaymentMethodBadge method={income.payment_method} />
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          {income.notes?.trim() ? (
-                            <span title={income.notes} className="inline-flex text-ink-muted">
-                              <StickyNote className="h-3.5 w-3.5" aria-label="Hay notas" />
-                            </span>
-                          ) : (
-                            <span className="text-zinc-300 dark:text-zinc-700">—</span>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            <PaymentMethodBadge method={income.payment_method} />
+                            {income.notes?.trim() && (
+                              <p className="max-w-[16rem] text-[11px] text-ink-muted leading-snug" title={income.notes}>
+                                {income.notes}
+                              </p>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-1.5 sm:px-4">
                           <div className="flex items-center justify-end gap-1">
@@ -624,7 +655,7 @@ export function FinancesPage() {
                     <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Categoría</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
                     <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
-                    <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Medio</th>
+                    <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Medio · Notas</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                   </tr>
                 </thead>
@@ -651,7 +682,14 @@ export function FinancesPage() {
                         </span>
                       </td>
                       <td className="hidden px-3 py-2 lg:table-cell lg:px-4">
-                        <PaymentMethodBadge method={expense.payment_method} />
+                        <div className="flex flex-col gap-1">
+                          <PaymentMethodBadge method={expense.payment_method} />
+                          {expense.notes?.trim() && (
+                            <p className="max-w-[16rem] text-[11px] text-ink-muted leading-snug" title={expense.notes}>
+                              {expense.notes}
+                            </p>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-1.5 sm:px-4">
                         <div className="flex items-center justify-end gap-1">

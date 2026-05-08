@@ -79,6 +79,7 @@ export const STUDENT_PLANS = [
   'HÁBITOS DEPORTISTA',
   'HÁBITOS PLATINO',
   'HÁBITOS PREMIUM',
+  'HÁBITOS ÉLITE',
 ] as const
 
 export const INCOME_TYPES = [

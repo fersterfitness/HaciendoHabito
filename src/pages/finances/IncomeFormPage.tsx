@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { PAYMENT_METHODS, FINANCE_SCOPES, INCOME_STATUSES, INCOME_TYPES, INCOME_CATEGORIES } from '@/lib/constants'
+
+/** Planes con split automático 50 % → Vida Personal */
+const SPLIT_PLANS: string[] = ['HÁBITOS PREMIUM', 'HÁBITOS PLATINO', 'HÁBITOS ÉLITE']
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
 import { emptyToNull } from '@/lib/formUtils'
 import type { Student } from '@/types/database'
@@ -87,7 +90,29 @@ export function IncomeFormPage() {
     } else {
       const { error } = await supabase.from('income').insert(payload)
       if (error) { toast.error(error.message); return }
-      toast.success('Ingreso registrado')
+
+      // Auto-split: si es un plan PREMIUM/PLATINO/ÉLITE en ámbito "business",
+      // crear automáticamente el 50 % como ingreso en Vida Personal.
+      if (values.scope === 'business' && SPLIT_PLANS.includes(values.income_type)) {
+        const splitAmount = Math.round(values.amount / 2)
+        const splitPayload = {
+          ...payload,
+          scope: 'personal' as const,
+          amount: splitAmount,
+          description: `[HH→Personal] ${values.description}`,
+          notes: `Split automático: 50 % del ingreso de Haciéndolo hábito por plan ${values.income_type}. Monto original: $${values.amount.toLocaleString('es-AR')}.`,
+        }
+        const { error: splitErr } = await supabase.from('income').insert(splitPayload)
+        if (splitErr) {
+          toast.error(`Ingreso registrado, pero no se pudo crear el split personal: ${splitErr.message}`)
+        } else {
+          toast.success(`Ingreso registrado + $${splitAmount.toLocaleString('es-AR')} acreditados en Vida personal`)
+          navigate('/finances?tab=income')
+          return
+        }
+      } else {
+        toast.success('Ingreso registrado')
+      }
     }
     navigate('/finances?tab=income')
   }
