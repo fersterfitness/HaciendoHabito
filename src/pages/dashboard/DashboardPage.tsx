@@ -11,13 +11,11 @@ import {
   TrendingDown,
   BarChart3,
   Salad,
-  ClipboardList,
   UtensilsCrossed,
   Cake,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   Wallet,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -42,6 +40,9 @@ interface Stats {
   pendingAppointments: number
   activeNutritionPlans: number
   nutritionDocuments: number
+  /** Ingresos cobrados en el mes actual */
+  currentMonthIncome: number
+  prevMonthIncome: number
   /** Flujos mes vs mes anterior (cards: comparativa bajo el total). */
   momStudentsThis: number
   momStudentsPrev: number
@@ -259,6 +260,8 @@ export function DashboardPage() {
     pendingAppointments: 0,
     activeNutritionPlans: 0,
     nutritionDocuments: 0,
+    currentMonthIncome: 0,
+    prevMonthIncome: 0,
     momStudentsThis: 0,
     momStudentsPrev: 0,
     momRoutinesThis: 0,
@@ -280,7 +283,6 @@ export function DashboardPage() {
   const [birthdays, setBirthdays] = useState<{ id: string; full_name: string; daysUntil: number }[]>([])
   const [todayApps, setTodayApps] = useState<{ id: string; title: string; starts_at: string; student_name: string }[]>([])
   const [loading, setLoading] = useState(true)
-  const [dashboardDetailOpen, setDashboardDetailOpen] = useState(true)
 
   const mergedExpiring = useMemo((): MergedExpiringItem[] => {
     const items: MergedExpiringItem[] = []
@@ -557,6 +559,15 @@ export function DashboardPage() {
           }))
       )
 
+      const mb2 = monthBoundsISO()
+      const allIncomeRows = (incomeRows ?? []) as { income_date: string; amount: number }[]
+      const currentMonthIncome = allIncomeRows
+        .filter((r) => r.income_date >= mb2.startThis.slice(0, 10) && r.income_date < mb2.startNext.slice(0, 10))
+        .reduce((s, r) => s + r.amount, 0)
+      const prevMonthIncome = allIncomeRows
+        .filter((r) => r.income_date >= mb2.startPrev.slice(0, 10) && r.income_date < mb2.startThis.slice(0, 10))
+        .reduce((s, r) => s + r.amount, 0)
+
       setStats({
         activeStudents: activeStudents ?? 0,
         activeRoutines: activeRoutines ?? 0,
@@ -564,6 +575,8 @@ export function DashboardPage() {
         pendingAppointments: pendingAppointments ?? 0,
         activeNutritionPlans: activeNutritionPlans ?? 0,
         nutritionDocuments: nutritionDocuments ?? 0,
+        currentMonthIncome,
+        prevMonthIncome,
         momStudentsThis,
         momStudentsPrev,
         momRoutinesThis,
@@ -610,22 +623,69 @@ export function DashboardPage() {
     )
   }
 
+  // Income MoM delta
+  const incomeDelta = stats.prevMonthIncome === 0
+    ? 0
+    : Math.round(((stats.currentMonthIncome - stats.prevMonthIncome) / stats.prevMonthIncome) * 100)
+
+  // Today label
+  const todayLabel = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+
   return (
     <div>
       <Header title="Inicio" />
 
-      <div className="px-4 lg:px-6 py-8 space-y-8">
-        {/* KPIs */}
+      <div className="px-4 lg:px-6 py-6 space-y-6">
+
+        {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
+        {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3)) && (
+          <div className="rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">{todayLabel}</p>
+            <div className="flex flex-wrap gap-2">
+              {todayApps.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => navigate('/appointments')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15 transition-colors"
+                >
+                  <Calendar className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
+                  <span>{new Date(a.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} · {a.student_name}</span>
+                </button>
+              ))}
+              {birthdays.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => navigate(`/students/${b.id}`)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-status-expiring/25 bg-status-expiring/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expiring/15 transition-colors"
+                >
+                  <Cake className="h-3.5 w-3.5 text-status-expiring shrink-0" />
+                  <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
+                </button>
+              ))}
+              {mergedExpiring.filter(r => r.days <= 3).map((row) => (
+                <button
+                  key={`exp-${row.id}`}
+                  type="button"
+                  onClick={() => navigate(row.href)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-status-expired/25 bg-status-expired/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expired/15 transition-colors"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-status-expired shrink-0" />
+                  <span>{row.title} · {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Vence hoy' : `${row.days}d`}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── KPIs ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard
             title={activePeopleLabel}
             value={stats.activeStudents}
             icon={<Users className="h-5 w-5" />}
-            monthOverMonth={{
-              thisMonth: stats.momStudentsThis,
-              prevMonth: stats.momStudentsPrev,
-              scopeLabel: 'Altas',
-            }}
+            monthOverMonth={{ thisMonth: stats.momStudentsThis, prevMonth: stats.momStudentsPrev, scopeLabel: 'Altas' }}
             onClick={() => navigate('/students')}
           />
           {canSeeTraining ? (
@@ -634,350 +694,181 @@ export function DashboardPage() {
                 title="Rutinas vigentes"
                 value={stats.activeRoutines}
                 icon={<Dumbbell className="h-5 w-5" />}
-                monthOverMonth={{
-                  thisMonth: stats.momRoutinesThis,
-                  prevMonth: stats.momRoutinesPrev,
-                  scopeLabel: 'Nuevas rutinas',
-                }}
+                monthOverMonth={{ thisMonth: stats.momRoutinesThis, prevMonth: stats.momRoutinesPrev, scopeLabel: 'Nuevas rutinas' }}
                 onClick={() => navigate('/routines')}
               />
               <StatCard
-                title="Planes alimentación vigentes"
+                title="Planes alimentación"
                 value={stats.activeMealPlans}
                 icon={<UtensilsCrossed className="h-5 w-5" />}
-                monthOverMonth={{
-                  thisMonth: stats.momMealPlansThis,
-                  prevMonth: stats.momMealPlansPrev,
-                  scopeLabel: 'Planes nuevos',
-                }}
+                monthOverMonth={{ thisMonth: stats.momMealPlansThis, prevMonth: stats.momMealPlansPrev, scopeLabel: 'Planes nuevos' }}
                 onClick={() => navigate('/meal-plans')}
               />
-              <StatCard
-                title="Turnos pendientes"
-                subtitle="Desde hoy · programados o confirmados"
-                value={stats.pendingAppointments}
-                icon={<Calendar className="h-5 w-5" />}
-                monthOverMonth={{
-                  thisMonth: stats.momAppointmentsThis,
-                  prevMonth: stats.momAppointmentsPrev,
-                  scopeLabel: 'Turnos nuevos',
-                }}
-                onClick={() => navigate('/appointments')}
-              />
+              {/* Income KPI */}
+              <div
+                className="relative overflow-hidden rounded-2xl border border-surface-border bg-surface-card p-4 cursor-pointer hover:border-brand-secondary/40 transition-colors group"
+                onClick={() => navigate('/finances')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && navigate('/finances')}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-xs font-medium text-ink-muted leading-snug">Ingresos · este mes</p>
+                  <Wallet className="h-4 w-4 shrink-0 text-ink-muted group-hover:text-brand-secondary transition-colors" />
+                </div>
+                <p className="text-2xl font-bold tabular-nums text-ink-primary">
+                  ${stats.currentMonthIncome.toLocaleString('es-AR')}
+                </p>
+                {incomeDelta !== 0 && (
+                  <div className={cn(
+                    'mt-1.5 inline-flex items-center gap-1 text-xs font-medium',
+                    incomeDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired',
+                  )}>
+                    {incomeDelta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                    {incomeDelta > 0 ? '+' : ''}{incomeDelta}% vs mes ant.
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <>
-              <StatCard
-                title="Planes nutrición"
-                value={stats.activeNutritionPlans}
-                icon={<Salad className="h-5 w-5" />}
-                monthOverMonth={{
-                  thisMonth: stats.momNutPlansThis,
-                  prevMonth: stats.momNutPlansPrev,
-                  scopeLabel: 'Planes nuevos',
-                }}
-                onClick={() => navigate('/nutrition')}
-              />
-              <StatCard
-                title="PDFs antropometría"
-                value={stats.nutritionDocuments}
-                icon={<FileText className="h-5 w-5" />}
-                monthOverMonth={{
-                  thisMonth: stats.momNutDocsThis,
-                  prevMonth: stats.momNutDocsPrev,
-                  scopeLabel: 'PDFs subidos',
-                }}
-                onClick={() => navigate('/nutrition')}
-              />
-              <StatCard
-                title="Diagnósticos"
-                value={stats.nutritionDocuments}
-                icon={<MessageSquare className="h-5 w-5" />}
-                monthOverMonth={{
-                  thisMonth: stats.momNutDocsThis,
-                  prevMonth: stats.momNutDocsPrev,
-                  scopeLabel: 'PDFs subidos',
-                }}
-                onClick={() => navigate('/nutrition-pdfs')}
-              />
+              <StatCard title="Planes nutrición" value={stats.activeNutritionPlans} icon={<Salad className="h-5 w-5" />}
+                monthOverMonth={{ thisMonth: stats.momNutPlansThis, prevMonth: stats.momNutPlansPrev, scopeLabel: 'Planes nuevos' }}
+                onClick={() => navigate('/nutrition')} />
+              <StatCard title="PDFs antropometría" value={stats.nutritionDocuments} icon={<FileText className="h-5 w-5" />}
+                monthOverMonth={{ thisMonth: stats.momNutDocsThis, prevMonth: stats.momNutDocsPrev, scopeLabel: 'PDFs subidos' }}
+                onClick={() => navigate('/nutrition')} />
+              <StatCard title="Diagnósticos" value={stats.nutritionDocuments} icon={<MessageSquare className="h-5 w-5" />}
+                monthOverMonth={{ thisMonth: stats.momNutDocsThis, prevMonth: stats.momNutDocsPrev, scopeLabel: 'PDFs subidos' }}
+                onClick={() => navigate('/nutrition-pdfs')} />
             </>
           )}
         </div>
 
-        {/* Operación del día (visible sin desplegar) */}
-        {todayApps.length > 0 && (
-          <Card>
-            <CardHeader>
+
+        {/* ── Gráfico ingresos ─────────────────────────────────────── */}
+        {canSeeTraining && (
+          <Card className="overflow-hidden p-0">
+            <CardHeader className="px-5 pt-4 pb-0">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-ink-muted" />
-                <CardTitle className="font-medium">
-                  Hoy · {todayApps.length} {todayApps.length === 1 ? 'turno' : 'turnos'}
-                </CardTitle>
+                <BarChart3 className="h-4 w-4 text-ink-muted" />
+                <CardTitle className="font-medium">Ingresos cobrados · 6 meses</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/appointments')}>
-                Ver agenda
-              </Button>
-            </CardHeader>
-            <div className="divide-y divide-surface-border rounded-xl border border-surface-border overflow-hidden">
-              {todayApps.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 px-3 py-2.5 bg-surface-elevated/30">
-                  <span className="text-xs font-semibold tabular-nums text-ink-secondary w-11 shrink-0">
-                    {new Date(a.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-ink-primary truncate">{a.title}</p>
-                    <p className="text-xs text-ink-muted">{a.student_name}</p>
+              {growthData.length > 0 && (() => {
+                const last = growthData[growthData.length - 1]
+                return (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-2">
+                    <span className="font-semibold text-ink-primary tabular-nums">${last.revenue.toLocaleString('es-AR')}</span>
+                    <span className="text-ink-muted tabular-nums">{last.users} {last.users === 1 ? 'alta' : 'altas'}</span>
+                    {last.change !== 0 && (
+                      <span className={cn('inline-flex items-center gap-1 font-medium tabular-nums', last.change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
+                        {last.change > 0 ? <TrendingUp className="h-3.5 w-3.5 opacity-70" /> : <TrendingDown className="h-3.5 w-3.5 opacity-70" />}
+                        {last.change > 0 ? '+' : ''}{last.change}% vs mes anterior
+                      </span>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => navigate('/appointments')}>
-                Ver semana
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/appointments')}>
-                Agendar nuevo
-              </Button>
+                )
+              })()}
+            </CardHeader>
+            <div className="pt-3 pb-2">
+              {growthData.length > 0 ? <MonthlyDualLineChart data={growthData} /> : (
+                <p className="text-center text-sm text-ink-muted py-12 px-4">Sin ingresos cobrados en los últimos 6 meses</p>
+              )}
             </div>
           </Card>
         )}
 
-        <button
-          type="button"
-          aria-expanded={dashboardDetailOpen}
-          onClick={() => setDashboardDetailOpen((v) => !v)}
-          className={cn(
-            'w-full flex items-center justify-between gap-3 rounded-xl border border-surface-border',
-            'bg-surface-card px-4 py-3 text-left text-sm font-medium text-ink-secondary',
-            'hover:bg-surface-elevated/50 hover:text-ink-primary transition-colors'
-          )}
-        >
-          <span>{dashboardDetailOpen ? 'Ocultar detalle' : 'Mostrar detalle y análisis'}</span>
-          {dashboardDetailOpen ? (
-            <ChevronUp className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
-          ) : (
-            <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
-          )}
-        </button>
-
-        {dashboardDetailOpen && (
-          <div className="space-y-8 pt-4 border-t border-surface-border/70">
-            {birthdays.length > 0 && (
-              <div>
-                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
-                  Cumpleaños próximos
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {birthdays.map((b) => (
-                    <div
-                      key={b.id}
-                      className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-surface-border bg-surface-elevated/40 text-sm"
-                    >
-                      <Cake className="h-3.5 w-3.5 text-ink-muted shrink-0" aria-hidden />
-                      <span className="font-medium text-ink-primary">{b.full_name}</span>
-                      <span className="text-[11px] text-ink-muted">
-                        {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `En ${b.daysUntil} días`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+        {/* ── Vencimientos próximos ────────────────────────────────── */}
+        {showUnifiedExpiringCard && (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <CardTitle className="font-medium">Próximos vencimientos</CardTitle>
+                <p className="text-xs text-ink-muted">Rutinas y planes · próximos 14 días</p>
               </div>
-            )}
-
-            {stats.activeStudents > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex flex-col gap-0.5">
-                    <CardTitle className="text-base font-medium">Retención</CardTitle>
-                    <p className="text-xs text-ink-muted">Alumnos activos por antigüedad</p>
-                  </div>
-                </CardHeader>
-                <div className="rounded-xl border border-surface-border overflow-hidden bg-surface-elevated/20">
-                  <div className="grid grid-cols-3 divide-x divide-surface-border">
-                    {[
-                      { label: '+3 meses', value: retention.m3 },
-                      { label: '+6 meses', value: retention.m6 },
-                      { label: '+12 meses', value: retention.m12 },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="px-3 py-4 text-center">
-                        <p className="text-2xl font-semibold tabular-nums text-ink-primary">{value}</p>
-                        <p className="text-[11px] text-ink-muted mt-1">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {canSeeTraining && (
-              <Card className="overflow-hidden p-0">
-                <CardHeader className="px-5 pt-4 pb-0">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-ink-muted" />
-                    <CardTitle className="font-medium">Ingresos cobrados</CardTitle>
-                  </div>
-                  {growthData.length > 0 && (() => {
-                    const last = growthData[growthData.length - 1]
-                    return (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-2">
-                        <span className="font-semibold text-ink-primary tabular-nums">
-                          ${last.revenue.toLocaleString('es-AR')}
-                        </span>
-                        <span className="text-ink-muted tabular-nums">
-                          {last.users} {last.users === 1 ? 'alta' : 'altas'}
-                        </span>
-                        {last.change !== 0 && (
-                          <span
-                            className={cn(
-                              'inline-flex items-center gap-1 font-medium tabular-nums',
-                              last.change > 0
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-status-expired'
-                            )}
-                          >
-                            {last.change > 0 ? (
-                              <TrendingUp className="h-3.5 w-3.5 opacity-70" aria-hidden />
-                            ) : (
-                              <TrendingDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
-                            )}
-                            {last.change > 0 ? '+' : ''}
-                            {last.change}% vs mes anterior
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })()}
-                </CardHeader>
-                <div className="pt-3 pb-2">
-                  {growthData.length > 0 ? (
-                    <MonthlyDualLineChart data={growthData} />
-                  ) : (
-                    <p className="text-center text-sm text-ink-muted py-12 px-4">
-                      Sin ingresos cobrados en los últimos 6 meses
-                    </p>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {showUnifiedExpiringCard && (
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <CardTitle className="font-medium">Próximos vencimientos</CardTitle>
-                    <p className="text-xs text-ink-muted">Rutinas y planes del alumno · ventana próximos 14 días</p>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-1 shrink-0">
-                    {canSeeTraining && (
-                      <Button variant="ghost" size="sm" onClick={() => navigate('/routines')}>
-                        Rutinas
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>
-                      Alumnos
-                    </Button>
-                  </div>
-                </CardHeader>
-                {mergedExpiring.length === 0 ? (
-                  <p className="text-sm text-ink-muted py-6 text-center">Nada próximo en esta ventana</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {mergedExpiring.map((row) => (
-                      <button
-                        key={`${row.kind}-${row.id}`}
-                        type="button"
-                        onClick={() => navigate(row.href)}
-                        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-surface-border/80 bg-surface-elevated/35 hover:bg-surface-elevated transition-colors text-left"
-                      >
-                        <div className="min-w-0 flex gap-3 items-start">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted w-[4.75rem] shrink-0 pt-0.5">
-                            {row.kind === 'routine' ? 'Rutina' : 'Plan'}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-ink-primary truncate">{row.title}</p>
-                            <p className="text-xs text-ink-muted truncate">{row.subtitle}</p>
-                          </div>
-                        </div>
-                        <span
-                          className={cn(
-                            'text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border border-surface-border shrink-0',
-                            row.days < 0 && 'border-status-expired/35 text-status-expired',
-                            row.days >= 0 &&
-                              row.days <= 3 &&
-                              'border-status-expiring/35 text-status-expiring'
-                          )}
-                        >
-                          {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Hoy' : `${row.days}d`}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader className="pb-1">
-                <CardTitle className="font-medium">Enlaces rápidos</CardTitle>
-                <p className="text-xs text-ink-muted">Atajos (el resto está en la barra lateral)</p>
-              </CardHeader>
-              <div className="rounded-xl border border-surface-border divide-y divide-surface-border overflow-hidden">
-                {[
-                  { label: 'Nuevo alumno', icon: Users, href: '/students/new', show: true },
-                  { label: 'Nueva rutina', icon: Dumbbell, href: '/routines/new', show: canSeeTraining },
-                  { label: 'Agenda y turnos', icon: Calendar, href: '/appointments', show: true },
-                  { label: 'Finanzas', icon: Wallet, href: '/finances', show: canSeeTraining },
-                  { label: 'Nutrición', icon: Salad, href: '/nutrition', show: canSeeNutrition },
-                  { label: 'Armar plan de alimentación', icon: ClipboardList, href: '/nutrition/planning', show: canSeeNutritionFoodsGuide },
-                  { label: 'PDFs rutinas', icon: FileText, href: '/routine-pdfs', show: canSeeTraining },
-                  { label: 'Consultas y feedback', icon: MessageSquare, href: '/feedback', show: canSeeTraining },
-                  { label: 'PDFs nutrición', icon: FileText, href: '/nutrition-pdfs', show: canSeeNutrition },
-                ]
-                  .filter((item) => item.show)
-                  .map(({ label, icon: Icon, href }) => (
-                    <button
-                      key={href}
-                      type="button"
-                      onClick={() => navigate(href)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-elevated/60 transition-colors"
-                    >
-                      <Icon className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
-                      <span className="text-sm text-ink-primary flex-1">{label}</span>
-                      <span className="text-[11px] font-medium text-ink-muted">
-                        Ir
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted/70" aria-hidden />
-                    </button>
-                  ))}
+              <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                {canSeeTraining && <Button variant="ghost" size="sm" onClick={() => navigate('/routines')}>Rutinas</Button>}
+                <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>Alumnos</Button>
               </div>
-            </Card>
-
-            {notifications.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-medium">Notificaciones</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>
-                    Ver todas
-                  </Button>
-                </CardHeader>
-                <div className="space-y-1.5">
-                  {notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className="flex gap-3 px-3 py-2.5 rounded-xl border border-surface-border/70 bg-surface-elevated/25"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-ink-muted mt-1.5 shrink-0" />
+            </CardHeader>
+            {mergedExpiring.length === 0 ? (
+              <p className="text-sm text-ink-muted py-6 text-center">Nada próximo en esta ventana</p>
+            ) : (
+              <div className="space-y-1.5">
+                {mergedExpiring.map((row) => (
+                  <button
+                    key={`${row.kind}-${row.id}`}
+                    type="button"
+                    onClick={() => navigate(row.href)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-surface-border/80 bg-surface-elevated/35 hover:bg-surface-elevated transition-colors text-left"
+                  >
+                    <div className="min-w-0 flex gap-3 items-start">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted w-[4.75rem] shrink-0 pt-0.5">
+                        {row.kind === 'routine' ? 'Rutina' : 'Plan'}
+                      </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink-primary">{n.title}</p>
-                        <p className="text-xs text-ink-secondary leading-snug">{n.body}</p>
+                        <p className="text-sm font-medium text-ink-primary truncate">{row.title}</p>
+                        <p className="text-xs text-ink-muted truncate">{row.subtitle}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </Card>
+                    <span className={cn(
+                      'text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border border-surface-border shrink-0',
+                      row.days < 0 && 'border-status-expired/35 text-status-expired',
+                      row.days >= 0 && row.days <= 3 && 'border-status-expiring/35 text-status-expiring',
+                    )}>
+                      {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Hoy' : `${row.days}d`}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
+          </Card>
         )}
+
+        {/* ── Retención ───────────────────────────────────────────── */}
+        {stats.activeStudents > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex flex-col gap-0.5">
+                <CardTitle className="text-base font-medium">Retención</CardTitle>
+                <p className="text-xs text-ink-muted">Alumnos activos por antigüedad</p>
+              </div>
+            </CardHeader>
+            <div className="rounded-xl border border-surface-border overflow-hidden bg-surface-elevated/20">
+              <div className="grid grid-cols-3 divide-x divide-surface-border">
+                {[{ label: '+3 meses', value: retention.m3 }, { label: '+6 meses', value: retention.m6 }, { label: '+12 meses', value: retention.m12 }]
+                  .map(({ label, value }) => (
+                    <div key={label} className="px-3 py-4 text-center">
+                      <p className="text-2xl font-semibold tabular-nums text-ink-primary">{value}</p>
+                      <p className="text-[11px] text-ink-muted mt-1">{label}</p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* ── Notificaciones ──────────────────────────────────────── */}
+        {notifications.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-medium">Notificaciones</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>Ver todas</Button>
+            </CardHeader>
+            <div className="space-y-1.5">
+              {notifications.map((n) => (
+                <div key={n.id} className="flex gap-3 px-3 py-2.5 rounded-xl border border-surface-border/70 bg-surface-elevated/25">
+                  <div className="w-1.5 h-1.5 rounded-full bg-ink-muted mt-1.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-primary">{n.title}</p>
+                    <p className="text-xs text-ink-secondary leading-snug">{n.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
       </div>
     </div>
   )

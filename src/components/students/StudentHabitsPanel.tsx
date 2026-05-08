@@ -421,19 +421,23 @@ export function StudentHabitsPanel({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="col-span-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-3 text-center dark:bg-emerald-500/[0.12] sm:col-span-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-900 dark:text-emerald-400">Promedio general</p>
-                  <p className="text-3xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{overallPct}%</p>
+              <div
+                className="grid gap-2"
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}
+              >
+                {/* Promedio general */}
+                <div className="flex flex-col items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-center dark:bg-emerald-500/[0.12]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Promedio</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{overallPct}%</p>
+                  <p className="mt-0.5 text-[10px] text-emerald-600/70 dark:text-emerald-500/70">{stats.length} hábitos</p>
                 </div>
-                {stats.slice(0, 3).map(({ habit, done, total, pct: p }) => (
-                  <div key={habit.id} className="rounded-lg border border-zinc-200/75 bg-surface-card p-3 text-center dark:border-zinc-700">
-                    <p className="text-base">{habit.emoji}</p>
-                    <p className="truncate text-[10px] text-ink-muted">{habit.name}</p>
-                    <p className="text-lg font-bold tabular-nums text-ink-primary">{p}%</p>
-                    <p className="text-[10px] text-ink-muted">
-                      {done}/{total}
-                    </p>
+                {/* Todos los hábitos activos */}
+                {stats.map(({ habit, done, total, pct: p }) => (
+                  <div key={habit.id} className="flex flex-col items-center justify-center rounded-lg border border-zinc-200/75 bg-surface-card p-3 text-center dark:border-zinc-700">
+                    <p className="text-base leading-none">{habit.emoji}</p>
+                    <p className="mt-1 truncate w-full text-[10px] text-ink-muted">{habit.name}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-ink-primary">{p}%</p>
+                    <p className="mt-0.5 text-[10px] tabular-nums text-ink-muted">{done}/{total}</p>
                   </div>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, Loader2, Trash2 } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, Loader2, Trash2, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { StudentProgressPhoto } from '@/types/database'
@@ -41,6 +42,91 @@ function formatYmLabel(ym: string): string {
   }
 }
 
+function PhotoLightbox({
+  urls,
+  index,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  urls: string[]
+  index: number
+  onClose: () => void
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const src = urls[index]
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') onPrev()
+      if (e.key === 'ArrowRight') onNext()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, onPrev, onNext])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {/* Counter */}
+      {urls.length > 1 && (
+        <span className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+          {index + 1} / {urls.length}
+        </span>
+      )}
+
+      {/* Prev */}
+      {urls.length > 1 && index > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPrev() }}
+          className="absolute left-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={src}
+        alt=""
+        className="max-h-[90dvh] max-w-[90dvw] rounded-xl object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* Next */}
+      {urls.length > 1 && index < urls.length - 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onNext() }}
+          className="absolute right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+    </div>,
+    document.body,
+  )
+}
+
 type Props = {
   studentId: string
   /** Entrenador/admin dueño del alumno: puede subir y borrar */
@@ -54,6 +140,8 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
   const [uploading, setUploading] = useState(false)
   const [month, setMonth] = useState(() => ymNow())
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [lightboxUrls, setLightboxUrls] = useState<string[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -164,6 +252,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
   }
 
   return (
+    <>
     <div className="border-t border-surface-border/70 pt-4 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -227,49 +316,68 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
         </div>
       ) : (
         <div className="space-y-6">
-          {byMonth.map(([ym, rows]) => (
-            <div key={ym}>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{formatYmLabel(ym)}</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {rows.map((ph) => {
-                  const url = studentBucketPublicUrl(ph.storage_path)
-                  return (
-                    <figure
-                      key={ph.id}
-                      className="relative group aspect-[3/4] overflow-hidden rounded border border-zinc-200/55 bg-zinc-100/20 dark:border-zinc-800/65 dark:bg-zinc-950/40"
-                    >
-                      {url ? (
-                        <img src={url} alt={`Progreso ${ym}`} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-xs text-ink-muted">Sin vista previa</div>
-                      )}
-                      {canManage ? (
-                        <button
-                          type="button"
-                          title="Eliminar"
-                          aria-label="Eliminar foto"
-                          disabled={deletingId === ph.id}
-                          className={cn(
-                            'absolute top-2 right-2 p-1.5 rounded-lg bg-black/55 text-white opacity-90 hover:bg-status-expired',
-                            'transition-opacity opacity-100',
-                          )}
-                          onClick={() => void removePhoto(ph)}
-                        >
-                          {deletingId === ph.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          )}
-                        </button>
-                      ) : null}
-                    </figure>
-                  )
-                })}
+          {byMonth.map(([ym, rows]) => {
+            const monthUrls = rows.map((ph) => studentBucketPublicUrl(ph.storage_path)).filter(Boolean) as string[]
+            return (
+              <div key={ym}>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{formatYmLabel(ym)}</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  {rows.map((ph, photoIdx) => {
+                    const url = studentBucketPublicUrl(ph.storage_path)
+                    return (
+                      <figure
+                        key={ph.id}
+                        className="relative group aspect-[3/4] overflow-hidden rounded-xl border border-zinc-200/55 bg-zinc-100/20 dark:border-zinc-800/65 dark:bg-zinc-950/40 cursor-pointer"
+                      >
+                        {url ? (
+                          <img
+                            src={url}
+                            alt={`Progreso ${ym}`}
+                            className="w-full h-full object-cover"
+                            onClick={() => { setLightboxUrls(monthUrls); setLightboxIndex(photoIdx) }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-xs text-ink-muted">Sin vista previa</div>
+                        )}
+                        {canManage ? (
+                          <button
+                            type="button"
+                            title="Eliminar"
+                            aria-label="Eliminar foto"
+                            disabled={deletingId === ph.id}
+                            className={cn(
+                              'absolute top-2 right-2 p-1.5 rounded-lg bg-black/55 text-white opacity-0 group-hover:opacity-100 hover:bg-status-expired',
+                              'transition-opacity',
+                            )}
+                            onClick={(e) => { e.stopPropagation(); void removePhoto(ph) }}
+                          >
+                            {deletingId === ph.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                            )}
+                          </button>
+                        ) : null}
+                      </figure>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
+
+    {lightboxUrls.length > 0 && (
+      <PhotoLightbox
+        urls={lightboxUrls}
+        index={lightboxIndex}
+        onClose={() => setLightboxUrls([])}
+        onPrev={() => setLightboxIndex((i) => Math.max(0, i - 1))}
+        onNext={() => setLightboxIndex((i) => Math.min(lightboxUrls.length - 1, i + 1))}
+      />
+    )}
+    </>
   )
 }

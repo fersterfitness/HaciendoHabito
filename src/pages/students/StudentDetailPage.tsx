@@ -684,143 +684,231 @@ export function StudentDetailView({
         {/* ── Rutina ── */}
         {sheetTab === 'rutina' && (() => {
           const rutinaHistorialVacío = routines.length === 0
+          const fi = student.intake_ferster as Record<string, unknown> | null
+
+          // Labels para chips de perfil de entrenamiento
+          const goalLabel: Record<string, string> = {
+            healthy_life: 'Vida saludable', sport: 'Deporte', cut_lean: 'Bajar / definir', bulk: 'Ganar músculo',
+          }
+          const expLabel: Record<string, string> = {
+            never: 'Sin experiencia', less_than_1y: '< 1 año', '1_to_3y': '1–3 años', more_than_3y: '+3 años',
+          }
+          const intensityLabel: Record<string, string> = {
+            light: 'Intensidad suave', moderate: 'Intensidad moderada', intense: 'Intensidad alta', very_intense: 'Muy intensa',
+          }
+          const equipLabel: Record<string, string> = {
+            none: 'Sin equipo', home: 'Casa', gym_basic: 'Gym básico', gym_advanced: 'Gym completo',
+          }
+
+          // Chips de perfil visibles si hay intake_ferster
+          const profileChips: { label: string }[] = fi ? [
+            fi.main_goal ? { label: goalLabel[fi.main_goal as string] ?? String(fi.main_goal) } : null,
+            fi.training_since ? { label: expLabel[fi.training_since as string] ?? String(fi.training_since) } : null,
+            fi.days_per_week ? { label: `${fi.days_per_week}× / semana` } : null,
+            fi.training_intensity ? { label: intensityLabel[fi.training_intensity as string] ?? String(fi.training_intensity) } : null,
+            fi.equipment ? { label: equipLabel[fi.equipment as string] ?? String(fi.equipment) } : null,
+          ].filter(Boolean) as { label: string }[] : []
+
+          // Progreso barra rutina activa
+          const routineProgressPct = activeRoutine?.start_date && activeRoutine?.end_date
+            ? Math.min(100, Math.max(0, (
+                (Date.now() - new Date(activeRoutine.start_date).getTime()) /
+                (new Date(activeRoutine.end_date).getTime() - new Date(activeRoutine.start_date).getTime())
+              ) * 100))
+            : 0
+
+          // Semanas de duración de una rutina
+          function routineWeeks(r: Routine): number | null {
+            if (!r.start_date || !r.end_date) return null
+            const days = Math.round((new Date(r.end_date).getTime() - new Date(r.start_date).getTime()) / 86_400_000)
+            return Math.max(1, Math.round(days / 7))
+          }
+
           return (
           <div className="space-y-8">
+
+            {/* ── Rutina activa ── */}
             {activeRoutine ? (
-              <section>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200/55 pb-4 dark:border-zinc-800/55">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Rutina activa</p>
-                    <p className="mt-2 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{activeRoutine.name}</p>
-                    {activeRoutine.objective?.trim() ? (
-                      <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">{activeRoutine.objective}</p>
-                    ) : null}
-                  </div>
-                  <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
+              <section className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 dark:border-zinc-700/60 dark:bg-zinc-900/40 overflow-hidden">
+                {/* Barra de progreso top */}
+                <div className="h-1 w-full bg-zinc-200/70 dark:bg-zinc-800">
+                  <div
+                    className="h-full bg-[#ff4800] transition-all duration-700"
+                    style={{ width: `${routineProgressPct}%` }}
+                  />
                 </div>
-                <dl className="mt-5 grid gap-8 sm:grid-cols-3">
-                  <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Inicio</dt>
-                    <dd className="mt-1.5 text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{formatDate(activeRoutine.start_date)}</dd>
+                <div className="p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Rutina activa</p>
+                      <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{activeRoutine.name}</p>
+                      {activeRoutine.objective?.trim() ? (
+                        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{activeRoutine.objective}</p>
+                      ) : null}
+                    </div>
+                    <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
                   </div>
-                  <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Vencimiento</dt>
-                    <dd className="mt-1.5 text-sm tabular-nums font-medium text-zinc-900 dark:text-zinc-100">{formatDate(activeRoutine.end_date)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Días restantes</dt>
-                    <dd
-                      className={cn(
-                        'mt-1.5 text-sm tabular-nums',
-                        daysUntil(activeRoutine.end_date) <= 7 ? 'font-semibold text-zinc-950 dark:text-zinc-50' : 'text-zinc-700 dark:text-zinc-300',
-                      )}
+
+                  <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
+                    <div>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Inicio</dt>
+                      <dd className="mt-1 text-sm tabular-nums text-zinc-700 dark:text-zinc-300">{formatDate(activeRoutine.start_date)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Vencimiento</dt>
+                      <dd className="mt-1 text-sm tabular-nums font-medium text-zinc-700 dark:text-zinc-300">{formatDate(activeRoutine.end_date)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Días restantes</dt>
+                      <dd className={cn(
+                        'mt-1 text-sm tabular-nums font-semibold',
+                        daysUntil(activeRoutine.end_date) <= 7 ? 'text-status-expired' : 'text-zinc-900 dark:text-zinc-50',
+                      )}>
+                        {Math.max(0, daysUntil(activeRoutine.end_date))}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {/* Chips perfil entrenamiento */}
+                  {profileChips.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
+                      {profileChips.map((c) => (
+                        <span key={c.label} className="rounded-md border border-zinc-200/80 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                          {c.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      size="sm"
+                      className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100] sm:flex-1"
+                      onClick={() => navigate(`/routines/${activeRoutine.id}`)}
                     >
-                      {Math.max(0, daysUntil(activeRoutine.end_date))}
-                    </dd>
+                      Abrir rutina
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<FileText className="h-3.5 w-3.5" />}
+                      onClick={() => navigate('/routine-pdfs')}
+                      className="sm:flex-1"
+                    >
+                      PDF
+                    </Button>
                   </div>
-                </dl>
-                <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    size="sm"
-                    icon={<Dumbbell className="h-3.5 w-3.5" />}
-                    className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100] sm:flex-1"
-                    onClick={() => navigate(`/routines/${activeRoutine.id}`)}
-                  >
-                    Abrir rutina
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<FileText className="h-3.5 w-3.5" />}
-                    onClick={() => navigate('/routine-pdfs')}
-                    className="sm:flex-1"
-                  >
-                    PDF
-                  </Button>
                 </div>
               </section>
             ) : (
-              <div className="relative border-b border-dashed border-zinc-300/70 pb-8 dark:border-zinc-700/40">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-200/80 to-transparent dark:via-zinc-700/50" aria-hidden />
-                <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
-                    <Dumbbell className="h-5 w-5 text-zinc-500 dark:text-zinc-400" aria-hidden />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Ahora mismo</p>
-                    <p className="mt-2 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Sin rutina activa</p>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                      Creá una rutina nueva o marcá una del historial como activa cuando corresponda.
+              /* ── Empty state sin rutina ── */
+              <div className="rounded-xl border border-dashed border-zinc-300/80 dark:border-zinc-700/60 overflow-hidden">
+                <div className="flex items-stretch">
+                  {/* Acento izquierdo */}
+                  <div className="w-1 shrink-0 bg-zinc-300/60 dark:bg-zinc-700/60" />
+                  <div className="flex-1 px-5 py-6">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Sin rutina activa</p>
+                    <p className="mt-2 text-[15px] font-semibold text-zinc-800 dark:text-zinc-100">
+                      {student.full_name.split(' ')[0]} no tiene una rutina asignada
                     </p>
-                    {!rutinaHistorialVacío ? (
-                      <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">Este {entitySingular} ya tiene rutinas en el histórico: abrila para activarlas o renovar períodos desde ahí.</p>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      icon={<Plus className="h-3.5 w-3.5" />}
-                      className={cn(
-                        '!mt-5 !border-0 shadow-none hover:!bg-[#e04100]',
-                        rutinaHistorialVacío ? '!bg-[#ff4800] !text-white' : '!bg-zinc-200 !text-zinc-900 hover:!bg-zinc-300 dark:!bg-zinc-800 dark:!text-zinc-100 dark:hover:!bg-zinc-700',
+                    <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-500">
+                      {rutinaHistorialVacío
+                        ? 'Creá la primera rutina para este alumno.'
+                        : 'Tiene rutinas en el historial. Podés abrirlas para renovar o activar un período.'}
+                    </p>
+
+                    {/* Chips perfil entrenamiento si hay datos */}
+                    {profileChips.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {profileChips.map((c) => (
+                          <span key={c.label} className="rounded-md border border-zinc-200 bg-zinc-100/80 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                            {c.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        icon={<Plus className="h-3.5 w-3.5" />}
+                        className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
+                        onClick={() => navigate(`/routines/new?student=${id}`)}
+                      >
+                        {rutinaHistorialVacío ? 'Crear rutina' : 'Nueva rutina'}
+                      </Button>
+                      {!rutinaHistorialVacío && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => navigate(`/routines/new?student=${id}`)}
+                        >
+                          Ver historial
+                        </Button>
                       )}
-                      onClick={() => navigate(`/routines/new?student=${id}`)}
-                    >
-                      {rutinaHistorialVacío ? 'Crear primera rutina' : 'Nueva rutina'}
-                    </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* ── Historial ── */}
             <section>
-              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200/55 pb-3 dark:border-zinc-800/55">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/55 pb-3 dark:border-zinc-800/55">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Historial</p>
-                  <h3 className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Rutinas anteriores</h3>
+                  <h3 className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Rutinas anteriores</h3>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   icon={<Plus className="h-3.5 w-3.5" />}
                   className={cn(
-                    '!h-9 font-semibold',
+                    '!h-8 text-[12px] font-semibold',
                     rutinaHistorialVacío
-                      ? 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
-                      : '!text-[#ff4800] hover:bg-[#ff4800]/10 dark:!text-[#ff4800] dark:hover:bg-[#ff4800]/10',
+                      ? 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-300'
+                      : '!text-[#ff4800] hover:bg-[#ff4800]/10',
                   )}
                   onClick={() => navigate(`/routines/new?student=${id}`)}
                 >
                   Nueva
                 </Button>
               </div>
+
               {rutinaHistorialVacío ? (
-                <div className="py-8 text-center">
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">Sin historial</p>
-                  <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    Cuando cargues rutinas, las vas a ver ordenadas aquí con fechas y estado.
-                  </p>
-                </div>
+                <p className="py-6 text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                  Todavía no hay rutinas registradas.
+                </p>
               ) : (
-                <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
-                  {routines.map((r) => (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/routines/${r.id}`)}
-                        className="group flex w-full items-center gap-3 py-3.5 text-left transition-colors hover:bg-zinc-50/90 dark:hover:bg-zinc-900/40"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-zinc-200/65 text-zinc-400 transition-colors group-hover:border-zinc-300 group-hover:text-zinc-600 dark:border-zinc-700 dark:group-hover:border-zinc-600 dark:group-hover:text-zinc-300">
-                          <Dumbbell className="h-3.5 w-3.5" aria-hidden />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-50">{r.name}</p>
-                          <p className="mt-0.5 text-[11px] tabular-nums text-zinc-500">
-                            {formatDate(r.start_date)} · {formatDate(r.end_date)}
-                          </p>
-                        </div>
-                        <span className={routineStatusPillClass(r.status, true)}>{intakeRoutinePhrase(r.status)}</span>
-                      </button>
-                    </li>
-                  ))}
+                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                  {routines.map((r) => {
+                    const weeks = routineWeeks(r)
+                    return (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/routines/${r.id}`)}
+                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-50">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-zinc-500">
+                              <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
+                              {weeks != null && (
+                                <span className="rounded bg-zinc-100 px-1.5 py-px font-medium dark:bg-zinc-800">
+                                  {weeks} sem.
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className={routineStatusPillClass(r.status, true)}>{intakeRoutinePhrase(r.status)}</span>
+                            <span className="text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-700 dark:group-hover:text-zinc-400">›</span>
+                          </div>
+                        </button>
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </section>

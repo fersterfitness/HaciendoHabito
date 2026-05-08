@@ -25,8 +25,8 @@ type Props = {
   studentId: string
   fullName: string
   avatarPath: string | null
-  /** `sm` listado, `md` compacto, `lg` ficha destacada */
-  size?: 'sm' | 'md' | 'lg'
+  /** `sm` listado, `md2` listado grande, `md` compacto, `lg` ficha destacada */
+  size?: 'sm' | 'md2' | 'md' | 'lg'
   className?: string
   /** Dentro de una fila clicable: evita navegar al hacer clic en la foto */
   stopRowNavigation?: boolean
@@ -56,9 +56,11 @@ export function StudentAvatar({
       ? 'w-[7.5rem] h-[7.5rem] sm:w-36 sm:h-36 rounded-2xl text-3xl sm:text-4xl'
       : size === 'md'
         ? 'w-14 h-14 rounded-2xl text-lg'
-        : 'w-8 h-8 rounded-lg text-xs'
+        : size === 'md2'
+          ? 'w-11 h-11 rounded-xl text-base'
+          : 'w-8 h-8 rounded-lg text-xs'
 
-  const overlayRounded = size === 'sm' ? 'rounded-lg' : 'rounded-2xl'
+  const overlayRounded = size === 'sm' ? 'rounded-lg' : size === 'md2' ? 'rounded-xl' : 'rounded-2xl'
 
   async function upload(file: File) {
     if (file.size > STUDENT_AVATAR_MAX_BYTES) {
@@ -153,7 +155,7 @@ export function StudentAvatar({
           <img
             src={url!}
             alt={fullName}
-            className="absolute inset-0 box-border h-full w-full object-contain object-center p-1"
+            className="absolute inset-0 h-full w-full object-cover object-top"
             onError={() => setBrokenImg(true)}
           />
         ) : (

@@ -16,6 +16,7 @@ import {
   Tag,
   ArrowDownUp,
   Utensils,
+  ChevronRight,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { Header } from '@/components/layout/Header'
@@ -36,6 +37,16 @@ const LEVEL_LABELS: Record<string, string> = {
   inicial: 'Inicial',
   intermedio: 'Intermedio',
   avanzado: 'Avanzado',
+}
+
+function calcAge(birthDate: string | null): number | null {
+  if (!birthDate) return null
+  const today = new Date()
+  const bd = new Date(birthDate + 'T00:00:00')
+  let age = today.getFullYear() - bd.getFullYear()
+  const m = today.getMonth() - bd.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--
+  return age >= 0 && age < 120 ? age : null
 }
 
 const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = [
@@ -833,202 +844,185 @@ function StudentDirectoryTable({
   hasMealPlanStudentIds: Set<string>
 }) {
   const iconWrapBase =
-    'relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border bg-surface-elevated/25'
+    'relative inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-surface-elevated/25'
   const iconStrike =
     "after:content-[''] after:absolute after:left-1/2 after:top-1/2 after:h-[2px] after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-[-35deg] after:bg-current after:opacity-55"
 
+  const tableHeader = (
+    <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="min-w-0">
+        <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel}</h2>
+        <p className="truncate text-[11px] text-ink-muted">{sortSubtitle}</p>
+      </div>
+      <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
+        {students.length === 1 ? '1 registro' : `${students.length} registros`}
+      </span>
+    </div>
+  )
+
   return (
     <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">
-      <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel}</h2>
-          <p className="truncate text-[11px] text-ink-muted">
-            {sortSubtitle}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-          <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
-            {students.length === 1 ? '1 registro' : `${students.length} registros`}
-          </span>
-        </div>
+      {tableHeader}
+
+      {/* ── Mobile cards (< sm) ──────────────────────────────────── */}
+      <div className="sm:hidden divide-y divide-surface-border/60">
+        {students.map((student) => {
+          const isSelected = selectedStudentId === student.id
+          const hasRoutine = activeRoutineStudentIds.has(student.id)
+          const hasPlan = hasMealPlanStudentIds.has(student.id)
+          const age = calcAge(student.birth_date ?? null)
+          return (
+            <div
+              key={student.id}
+              onClick={() => onRowClick(student.id)}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
+                isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-zinc-400' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
+              )}
+            >
+              <StudentAvatar
+                studentId={student.id}
+                fullName={student.full_name}
+                avatarPath={student.avatar_path ?? null}
+                size="md2"
+                stopRowNavigation
+                onPathChange={() => onAvatarUpdated()}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-semibold text-sm text-ink-primary">{student.full_name}</span>
+                  {age !== null && (
+                    <span className="shrink-0 text-[11px] text-ink-muted">{age}a</span>
+                  )}
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                  <StatusToggle student={student} onChanged={onStatusChanged} />
+                  {student.plan_end_date && <PlanDaysChip date={student.plan_end_date} />}
+                </div>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
+                    <span className={cn(iconWrapBase, hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
+                      <Dumbbell className="h-3 w-3" />
+                    </span>
+                  </Tooltip>
+                  <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
+                    <span className={cn(iconWrapBase, hasPlan ? 'border-surface-border/75 text-brand-tertiary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasPlan && iconStrike)}>
+                      <Utensils className="h-3 w-3" />
+                    </span>
+                  </Tooltip>
+                  <span className="text-[11px] text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onRowClick(student.id) }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary hover:border-brand-secondary/40 hover:text-brand-secondary transition-colors"
+                >
+                  Abrir <ChevronRight className="h-3 w-3" />
+                </button>
+                <div className="flex gap-0.5">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }} className="rounded p-1 text-ink-muted hover:text-ink-primary transition-colors" title="Editar">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }} className="rounded p-1 text-ink-muted hover:text-status-expired transition-colors" title="Eliminar">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      <div className="max-h-[min(68vh,36rem)] overflow-auto">
+      {/* ── Desktop table (≥ sm) ─────────────────────────────────── */}
+      <div className="hidden sm:block max-h-[min(68vh,36rem)] overflow-auto">
         <table className="w-full border-collapse text-[13px] leading-snug">
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
-              <th
-                scope="col"
-                className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
-              >
-                {entityLabelColumn}
-              </th>
-              <th
-                scope="col"
-                className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
-              >
-                Nivel
-              </th>
-              <th
-                scope="col"
-                className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
-              >
-                Estado
-              </th>
-              <th
-                scope="col"
-                className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
-              >
-                Email
-              </th>
-              <th
-                scope="col"
-                className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted xl:table-cell xl:px-5"
-              >
-                Teléfono
-              </th>
-              <th scope="col" className="w-12 sm:w-[4.25rem]" aria-hidden />
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>
+              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5">Nivel</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Vence</th>
+              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5">Email</th>
+              <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border/70 bg-surface-card">
             {students.map((student) => {
               const isSelected = selectedStudentId === student.id
+              const hasRoutine = activeRoutineStudentIds.has(student.id)
+              const hasPlan = hasMealPlanStudentIds.has(student.id)
+              const age = calcAge(student.birth_date ?? null)
               return (
                 <tr
                   key={student.id}
                   onClick={() => onRowClick(student.id)}
-                  className={cn(
-                    'group cursor-pointer transition-colors',
-                    'hover:bg-surface-elevated/35',
-                    isSelected && 'bg-surface-elevated/45',
-                  )}
+                  className={cn('group cursor-pointer transition-colors', 'hover:bg-surface-elevated/35', isSelected && 'bg-surface-elevated/45')}
                 >
-                  <td
-                    className={cn(
-                      'px-4 py-2.5 sm:px-5',
-                      isSelected && 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)]',
-                      !isSelected && 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
-                    )}
-                  >
+                  <td className={cn('px-4 py-2.5 sm:px-5', isSelected ? 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]')}>
                     <div className="flex items-center gap-3">
                       <StudentAvatar
                         studentId={student.id}
                         fullName={student.full_name}
                         avatarPath={student.avatar_path ?? null}
-                        size="sm"
+                        size="md2"
                         stopRowNavigation
                         onPathChange={() => onAvatarUpdated()}
                       />
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="min-w-0 flex-1 truncate font-semibold text-ink-primary">
-                            {student.full_name}
-                          </span>
-
-                          <div className="flex w-[66px] shrink-0 items-center justify-end gap-1.5">
-                            {/* Rutina */}
-                            {(() => {
-                              const hasRoutine = activeRoutineStudentIds.has(student.id)
-                              const tip = hasRoutine ? 'Con rutina' : 'Sin rutina'
-                              return (
-                                <Tooltip content={tip}>
-                                  <span
-                                    className={cn(
-                                      iconWrapBase,
-                                      hasRoutine
-                                        ? 'border-surface-border/75 text-brand-secondary'
-                                        : 'border-dashed border-surface-border/80 text-ink-muted',
-                                      !hasRoutine && iconStrike,
-                                    )}
-                                  >
-                                    <Dumbbell className={cn('h-3.5 w-3.5', !hasRoutine && 'opacity-70')} />
-                                  </span>
-                                </Tooltip>
-                              )
-                            })()}
-
-                            {/* Alimentación */}
-                            {(() => {
-                              const hasPlan = hasMealPlanStudentIds.has(student.id)
-                              const tip = hasPlan ? 'Con plan' : 'Sin plan'
-                              return (
-                                <Tooltip content={tip}>
-                                  <span
-                                    className={cn(
-                                      iconWrapBase,
-                                      hasPlan
-                                        ? 'border-surface-border/75 text-brand-tertiary'
-                                        : 'border-dashed border-surface-border/80 text-ink-muted',
-                                      !hasPlan && iconStrike,
-                                    )}
-                                  >
-                                    <Utensils className={cn('h-3.5 w-3.5', !hasPlan && 'opacity-70')} />
-                                  </span>
-                                </Tooltip>
-                              )
-                            })()}
+                          <span className="min-w-0 flex-1 truncate font-semibold text-ink-primary">{student.full_name}</span>
+                          {age !== null && <span className="shrink-0 text-[11px] text-ink-muted tabular-nums">{age}a</span>}
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
+                              <span className={cn(iconWrapBase, hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
+                                <Dumbbell className="h-3 w-3" />
+                              </span>
+                            </Tooltip>
+                            <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
+                              <span className={cn(iconWrapBase, hasPlan ? 'border-surface-border/75 text-brand-tertiary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasPlan && iconStrike)}>
+                                <Utensils className="h-3 w-3" />
+                              </span>
+                            </Tooltip>
                           </div>
-                          {(() => {
-                            const raw = localStorage.getItem(`tags_${student.id}`)
-                            if (!raw) return null
-                            try {
-                              const tags = JSON.parse(raw) as string[]
-                              return tags.slice(0, 2).map((t) => (
-                                <span
-                                  key={t}
-                                  className="hidden items-center gap-0.5 rounded-md border border-surface-border/70 bg-surface-elevated/20 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted md:inline-flex"
-                                >
-                                  <Tag className="h-2.5 w-2.5" />
-                                  {t}
-                                </span>
-                              ))
-                            } catch {
-                              return null
-                            }
-                          })()}
                         </div>
-                        {student.email ? (
-                          <span className="truncate text-[11px] text-ink-muted lg:hidden">{student.email}</span>
-                        ) : null}
+                        {student.email ? <span className="truncate text-[11px] text-ink-muted lg:hidden">{student.email}</span> : null}
                       </div>
                     </div>
                   </td>
                   <td className="hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
-                    <span className="text-[13px]">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                    <span className="text-[12px]">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   </td>
                   <td className="px-4 py-2.5 sm:px-5">
                     <StatusToggle student={student} onChanged={onStatusChanged} />
                   </td>
+                  <td className="px-4 py-2.5 sm:px-5">
+                    {student.plan_end_date ? (
+                      <PlanDaysChip date={student.plan_end_date} />
+                    ) : (
+                      <span className="text-[11px] text-ink-muted/50">—</span>
+                    )}
+                  </td>
                   <td className="hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
                     <span className="text-[12px]">{student.email ?? '—'}</span>
                   </td>
-                  <td className="hidden tabular-nums text-ink-muted xl:table-cell xl:px-5 xl:py-2.5">
-                    <span className="text-[12px]">{student.phone ?? '—'}</span>
-                  </td>
                   <td className="px-2 sm:px-3">
-                    <div className="flex items-center justify-end gap-0.5">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onEdit(student.id)
-                        }}
-                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
-                        title="Editar"
+                        onClick={(e) => { e.stopPropagation(); onRowClick(student.id) }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary opacity-0 group-hover:opacity-100 hover:border-brand-secondary/40 hover:text-brand-secondary transition-all"
+                        title="Abrir ficha"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        Abrir <ChevronRight className="h-3 w-3" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDelete(student)
-                        }}
-                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired sm:opacity-0 sm:group-hover:opacity-100 opacity-100"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
+                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary opacity-0 group-hover:opacity-100"
+                        title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }}
+                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired opacity-0 group-hover:opacity-100"
+                        title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </td>
                 </tr>
