@@ -32,9 +32,13 @@ type PlanRow = TrainerStudentMealPlan & {
 
 // Solo los 3 colores de marca
 const PLAN_COLORS = [
-  { bar: 'bg-brand-secondary',  avatar: 'bg-brand-secondary/15 text-brand-secondary'  },
-  { bar: 'bg-brand-tertiary',   avatar: 'bg-brand-tertiary/15 text-brand-tertiary'    },
-  { bar: 'bg-brand-primary',    avatar: 'bg-brand-primary/15 text-brand-primary'      },
+  { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },
+  { bar: 'bg-brand-tertiary', avatar: 'bg-brand-tertiary/15 text-brand-tertiary' },
+  {
+    bar: 'bg-[#ff4800]',
+    avatar:
+      'bg-[#ff5508]/15 text-[#ff5508] dark:bg-[#ff5508]/18 dark:text-[#ffa065]',
+  },
 ]
 
 function strColorIdx(str: string): number {
@@ -646,7 +650,7 @@ export function MealPlansPage() {
                                 e.stopPropagation()
                                 void handlePdf(p)
                               }}
-                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-brand-primary/10 hover:text-brand-primary disabled:opacity-50"
+                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-[#ff5508]/10 hover:text-[#ff5508] disabled:opacity-50 dark:hover:bg-[#ff5508]/14 dark:hover:text-[#ffa065]"
                             >
                               <FileDown className="h-3.5 w-3.5" />
                               {pdfBusyId === p.id ? 'PDF…' : 'PDF'}

@@ -18,6 +18,12 @@ export const trainerCtaSidebarActiveRingClassName = 'ring-[#ff4800]/35'
 export const trainerCtaFocusBorderClassName =
   'focus:border-[#ff5508] dark:focus:border-[#ffa065]'
 
+/** Borde + anillo focus en selects/textarea (sin `--brand-primary` verde). */
+export const trainerCtaFocusInputChromeClassName = cn(
+  trainerCtaFocusBorderClassName,
+  'focus:ring-2 focus:ring-[#ff4800]/25 dark:focus:ring-[#ffa065]/28',
+)
+
 /** Fondo suave tipo item activo (nav móvil, etc.). */
 export const trainerCtaTintBgClassName = 'bg-[#ff5508]/10 dark:bg-[#ff5508]/16'
 

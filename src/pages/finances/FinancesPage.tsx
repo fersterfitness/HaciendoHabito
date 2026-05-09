@@ -584,7 +584,7 @@ export function FinancesPage() {
         {/* Listados compactos */}
         {loading ? (
           <div className="flex justify-center py-12">
-            <Spinner size="lg" />
+            <Spinner size="lg" accent="trainerCta" />
           </div>
         ) : tab === 'income' ? (
           filteredIncomes.length === 0 ? (

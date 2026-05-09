@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn, getInitials } from '@/lib/utils'
 import {
   STUDENT_AVATAR_BUCKET,
@@ -150,10 +151,16 @@ export function StudentAvatar({
         onClick={openPicker}
         className={cn(
           dim,
-          'relative overflow-hidden flex items-center justify-center font-bold text-brand-primary',
-          'bg-brand-primary/10 hover:bg-brand-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50',
+          'relative flex items-center justify-center overflow-hidden font-bold focus:outline-none',
           busy && 'opacity-60 pointer-events-none',
-          showPhoto ? 'ring-0 p-0 bg-surface-elevated' : '',
+          showPhoto
+            ? 'bg-surface-elevated p-0 ring-0 focus-visible:ring-2 focus-visible:ring-[#ff4800]/35'
+            : cn(
+                trainerCtaAccentTextClassName,
+                trainerCtaTintBgClassName,
+                'hover:bg-[#ff5508]/14 dark:hover:bg-[#ff5508]/22',
+                'focus-visible:ring-2 focus-visible:ring-[#ff4800]/42',
+              ),
         )}
       >
         {showPhoto ? (

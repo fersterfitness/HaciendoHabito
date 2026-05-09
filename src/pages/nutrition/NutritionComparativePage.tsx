@@ -7,7 +7,11 @@ import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import { slugify } from '@/lib/utils'
+import {
+  trainerCtaFocusInputChromeClassName,
+  trainerCtaSolidBgClassName,
+} from '@/lib/primaryGradientCtaClasses'
+import { cn, slugify } from '@/lib/utils'
 import type { Student, NutritionPatientDocument, NutritionMeasurement } from '@/types/database'
 import { NutritionComparativePdfDocument } from '@/lib/pdf/NutritionComparativePdfDocument'
 import {
@@ -367,14 +371,24 @@ export function NutritionComparativePage() {
             <button
               type="button"
               onClick={() => setMode('pdf')}
-              className={`text-xs px-3 py-1.5 rounded-lg border ${mode === 'pdf' ? 'bg-brand-primary text-white border-brand-primary' : 'border-surface-border text-ink-secondary'}`}
+              className={cn(
+                'rounded-lg border px-3 py-1.5 text-xs transition-colors',
+                mode === 'pdf'
+                  ? cn(trainerCtaSolidBgClassName, 'border-[#ff4800] text-white dark:border-[#f04a00]')
+                  : 'border-surface-border text-ink-secondary',
+              )}
             >
               PDF vs PDF
             </button>
             <button
               type="button"
               onClick={() => setMode('manual')}
-              className={`text-xs px-3 py-1.5 rounded-lg border ${mode === 'manual' ? 'bg-brand-primary text-white border-brand-primary' : 'border-surface-border text-ink-secondary'}`}
+              className={cn(
+                'rounded-lg border px-3 py-1.5 text-xs transition-colors',
+                mode === 'manual'
+                  ? cn(trainerCtaSolidBgClassName, 'border-[#ff4800] text-white dark:border-[#f04a00]')
+                  : 'border-surface-border text-ink-secondary',
+              )}
             >
               Manual vs Manual
             </button>
@@ -383,7 +397,7 @@ export function NutritionComparativePage() {
             <button
               type="button"
               onClick={handleOpenUploadPicker}
-              className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-brand-primary/50 transition-colors text-ink-secondary hover:text-ink-primary"
+              className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-[#ff5508]/55 transition-colors text-ink-secondary hover:text-ink-primary"
             >
               <Upload className="h-3.5 w-3.5" />
               {uploading ? 'Subiendo...' : 'Cargar antropometría (PDF)'}
@@ -411,7 +425,10 @@ export function NutritionComparativePage() {
                   setFromDocId('')
                   setToDocId('')
                 }}
-                className="mt-1 w-full bg-surface-elevated text-ink-primary rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+                className={cn(
+                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
+                  trainerCtaFocusInputChromeClassName,
+                )}
               >
                 <option value="">Seleccionar...</option>
                 {students.map((s) => (
@@ -425,7 +442,10 @@ export function NutritionComparativePage() {
                 <select
                   value={fromDocId}
                   onChange={(e) => setFromDocId(e.target.value)}
-                  className="mt-1 w-full bg-surface-elevated text-ink-primary rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+                  className={cn(
+                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
+                  trainerCtaFocusInputChromeClassName,
+                )}
                 >
                   <option value="">Seleccionar...</option>
                   {patientDocs.map((d) => (
@@ -436,7 +456,10 @@ export function NutritionComparativePage() {
                 <select
                   value={fromMeasurementId}
                   onChange={(e) => setFromMeasurementId(e.target.value)}
-                  className="mt-1 w-full bg-surface-elevated text-ink-primary rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+                  className={cn(
+                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
+                  trainerCtaFocusInputChromeClassName,
+                )}
                 >
                   <option value="">Seleccionar...</option>
                   {patientMeasurements.map((m) => (
@@ -453,7 +476,10 @@ export function NutritionComparativePage() {
                 <select
                   value={toDocId}
                   onChange={(e) => setToDocId(e.target.value)}
-                  className="mt-1 w-full bg-surface-elevated text-ink-primary rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+                  className={cn(
+                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
+                  trainerCtaFocusInputChromeClassName,
+                )}
                 >
                   <option value="">Seleccionar...</option>
                   {patientDocs.map((d) => (
@@ -464,7 +490,10 @@ export function NutritionComparativePage() {
                 <select
                   value={toMeasurementId}
                   onChange={(e) => setToMeasurementId(e.target.value)}
-                  className="mt-1 w-full bg-surface-elevated text-ink-primary rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary outline-none"
+                  className={cn(
+                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
+                  trainerCtaFocusInputChromeClassName,
+                )}
                 >
                   <option value="">Seleccionar...</option>
                   {patientMeasurements.map((m) => (
@@ -503,7 +532,10 @@ export function NutritionComparativePage() {
             value={interpretation}
             onChange={(e) => setInterpretation(e.target.value)}
             rows={8}
-            className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+            className={cn(
+              'w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-ink-primary focus:outline-none',
+              trainerCtaFocusInputChromeClassName,
+            )}
           />
           <p className="text-xs text-ink-muted mt-2">
             Si un PDF viene escaneado sin texto embebido, será necesario incorporar OCR en el siguiente paso.
@@ -512,6 +544,7 @@ export function NutritionComparativePage() {
 
         <Button
           className="w-full"
+          variant="gradientPrimary"
           icon={<Download className="h-4 w-4" />}
           loading={generating}
           onClick={generatePdf}

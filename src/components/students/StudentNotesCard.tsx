@@ -1,6 +1,7 @@
 import { useMemo, Fragment, type ReactNode } from 'react'
 import { ClipboardList } from 'lucide-react'
 import { Card, CardTitle } from '@/components/ui/Card'
+import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { parseStudentNotesDisplay, type StudentNoteRow } from '@/lib/studentNotesDisplay'
 
@@ -68,7 +69,13 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
           {variant === 'minimal' ? (
             <ClipboardList className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
           ) : (
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+            <span
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-xl',
+                trainerCtaTintBgClassName,
+                trainerCtaAccentTextClassName,
+              )}
+            >
               <ClipboardList className="h-4 w-4" aria-hidden />
             </span>
           )}
@@ -101,7 +108,13 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
         {variant === 'minimal' ? (
           <ClipboardList className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
         ) : (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+          <span
+            className={cn(
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+              trainerCtaTintBgClassName,
+              trainerCtaAccentTextClassName,
+            )}
+          >
             <ClipboardList className="h-4 w-4" aria-hidden />
           </span>
         )}
@@ -126,7 +139,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
                   'inline-flex max-w-full px-2 py-1 text-[11px] font-medium leading-snug text-ink-secondary',
                   variant === 'minimal'
                     ? 'border border-surface-border/70'
-                    : 'rounded-lg border border-brand-primary/25 bg-brand-primary/8 text-brand-primary',
+                    : 'rounded-lg border border-[#ff5508]/25 bg-[#ff5508]/[0.08] text-[#ff5508] dark:text-[#ffa065]',
                 )}
               >
                 {batch.content}
