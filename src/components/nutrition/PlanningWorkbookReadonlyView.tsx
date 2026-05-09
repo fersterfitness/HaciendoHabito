@@ -316,9 +316,11 @@ export function PlanningWorkbookReadonlyView({
                             ) : null}
                           </td>
                           <td className="px-2 py-2 tabular-nums text-ink-secondary text-[11px]">
-                            {r.qtyPresentation === 'units' && r.unitsLabel?.trim()
-                              ? `${r.unitsLabel.trim()} u. (~${r.qtyG || '?'} g)`
-                              : r.qtyG || '—'}
+                            {r.qtyPresentation === 'volume' && r.unitsLabel?.trim()
+                              ? `${r.unitsLabel.trim()} ml (~${r.qtyG || '?'} g)`
+                              : r.qtyPresentation === 'units' && r.unitsLabel?.trim()
+                                ? `${r.unitsLabel.trim()} u. (~${r.qtyG || '?'} g)`
+                                : r.qtyG || '—'}
                           </td>
                           {showTechnical ? (
                             <>

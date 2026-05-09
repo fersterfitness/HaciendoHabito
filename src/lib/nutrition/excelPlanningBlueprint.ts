@@ -6,8 +6,8 @@ export interface PlanningBlueprintRowDef {
   name: string
   hint?: string
   /** Nueva plantilla: cómo muestra Cantidad para el alumno/PDF por defecto. */
-  qtyPresentation?: 'grams' | 'units'
-  /** Ej. «2» cuando es por unidades. */
+  qtyPresentation?: 'grams' | 'units' | 'volume'
+  /** Ej. «2» (uds.) o «200» (ml) según modo. */
   unitsLabel?: string
 }
 
@@ -41,8 +41,8 @@ export const EXCEL_PLANNING_BLUEPRINT: PlanningSectionBlueprintDef[] = [
       { name: 'Clara de huevo (unidad)', hint: '~33 g por clara grande.', qtyPresentation: 'units' },
       { name: 'Yema de huevo (unidad)', hint: '~17 g por yema grande.', qtyPresentation: 'units' },
       { name: 'Whey protein "Gentech 7900"' },
-      { name: 'Leche descremada % (ml)', hint: '1 ml ≈ 1 g para el cálculo.' },
-      { name: 'Leche Zero lactosa "La Serenísima" (ml)', hint: '1 ml ≈ 1 g.' },
+      { name: 'Leche descremada % (ml)', hint: '1 ml ≈ 1 g para el cálculo.', qtyPresentation: 'volume' },
+      { name: 'Leche Zero lactosa "La Serenísima" (ml)', hint: '1 ml ≈ 1 g.', qtyPresentation: 'volume' },
       { name: 'Queso cremoso %', qtyPresentation: 'units', hint: 'Mejor como fetas o porción; usar gramos sólo cuando el formato sea especial.' },
       { name: 'Queso cremoso light port salut %', qtyPresentation: 'units', hint: 'Unidad habitual = feta típica; gramos sólo orientativos para la sumatoria.' },
       { name: 'Ricotta magra', hint: 'También se puede cargar como cucharadas soperas (~30–40 g c/u).' },

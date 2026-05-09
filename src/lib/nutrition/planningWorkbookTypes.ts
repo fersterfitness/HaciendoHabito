@@ -2,14 +2,17 @@ import type { Json } from '@/types/database'
 
 /** Estado serializado en nutrition_planning_workbooks.data */
 
+/** Cómo mostrar la cantidad al alumno/PDF. `grams` = solo g; `units` = porciones (uds.); `volume` = bebidas (ml). Siempre hace falta `qtyG` para el cómputo. */
+export type QtyPresentationMode = 'grams' | 'units' | 'volume'
+
 export interface PlanningFoodRowState {
   id: string
   name: string
   /** Sugerencia (ej. unidad → gramos orientativos) */
   hint?: string
-  /** Cómo leer «Cantidad»: gramos (default) o unidades para el texto al alumno/PDF. Siempre cargá también gramos equivalentes para totales. */
-  qtyPresentation?: 'grams' | 'units'
-  /** Texto de unidades si qtyPresentation = units (ej. «2», «½»). */
+  /** Cómo leer «Cantidad» para el texto al alumno/PDF. Siempre cargá gramos (`qtyG`) para totales. */
+  qtyPresentation?: QtyPresentationMode
+  /** Unidades (ej. «2») si `units`; mililitros (ej. «200») si `volume`. */
   unitsLabel?: string
   /** Cantidad en gramos para el cómputo */
   qtyG: string
@@ -70,7 +73,7 @@ export type MealSlotPick =
       /** infer = deducir desde nombre/hint; crudo/cocido = forzar leyenda. */
       preparation?: MealPreparationChoice
       /** Copiado al agregar desde la fila; si no, se usa la fila viva. */
-      qtyPresentation?: 'grams' | 'units'
+      qtyPresentation?: QtyPresentationMode
       unitsLabel?: string
     }
   | {
@@ -81,7 +84,7 @@ export type MealSlotPick =
       nameSnapshot: string
       hintSnapshot?: string
       preparation?: MealPreparationChoice
-      qtyPresentation?: 'grams' | 'units'
+      qtyPresentation?: QtyPresentationMode
       unitsLabel?: string
     }
 
@@ -135,8 +138,10 @@ export function normalizePicksByMeal(raw: unknown): MealDistributionState['picks
       const preparation: MealPreparationChoice | undefined =
         prepRaw === 'crudo' || prepRaw === 'cocido' || prepRaw === 'infer' ? prepRaw : undefined
       const qtyPresentationRaw = o.qtyPresentation
-      const qtyPresentation: 'grams' | 'units' | undefined =
-        qtyPresentationRaw === 'units' || qtyPresentationRaw === 'grams' ? qtyPresentationRaw : undefined
+      const qtyPresentation: QtyPresentationMode | undefined =
+        qtyPresentationRaw === 'units' || qtyPresentationRaw === 'grams' || qtyPresentationRaw === 'volume'
+          ? qtyPresentationRaw
+          : undefined
       const unitsLabel = typeof o.unitsLabel === 'string' ? o.unitsLabel : undefined
       if (kind === 'library') {
         const libraryFoodId = typeof o.libraryFoodId === 'string' ? o.libraryFoodId : ''

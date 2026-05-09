@@ -4,9 +4,10 @@ import {
   DEFAULT_MEAL_DISTRIBUTION,
   DEFAULT_STUDENT_ORIENTATIVE_GUIDE,
   type PlanningWorkbookStateV1,
+  type QtyPresentationMode,
 } from '@/lib/nutrition/planningWorkbookTypes'
 
-function shouldForceUnits(name: string, qtyPresentation?: 'grams' | 'units'): boolean {
+function shouldForceUnits(name: string, qtyPresentation?: QtyPresentationMode): boolean {
   if (qtyPresentation) return false
   return /\(unidad\)/i.test(name)
 }

@@ -47,6 +47,7 @@ import type {
   MealSlotPick,
   PlanningFoodRowState,
   PlanningWorkbookStateV1,
+  QtyPresentationMode,
 } from '@/lib/nutrition/planningWorkbookTypes'
 import {
   MEAL_SLOT_LABELS,
@@ -742,9 +743,31 @@ export function NutritionPlanningPage() {
     patchPicksForSlot(slot, [...cur, pick])
   }
 
-  function updateMealPickQty(slot: MealSlotKey, pickId: string, qtyG: string) {
-    const list = (mealDistribution.picksByMeal?.[slot] ?? []).map((p) => (p.id === pickId ? { ...p, qtyG } : p))
+  /** Ajuste fino de gramos, modo (g / unidades) y texto de uds. en la solapa Día · PDF. */
+  function patchMealPick(
+    slot: MealSlotKey,
+    pickId: string,
+    updates: { qtyG?: string; qtyPresentation?: QtyPresentationMode; unitsLabel?: string | null },
+  ) {
+    const list = (mealDistribution.picksByMeal?.[slot] ?? []).map((p) => {
+      if (p.id !== pickId) return p
+      const o = { ...p } as Record<string, unknown>
+      if (updates.qtyG !== undefined) o.qtyG = updates.qtyG
+      if (updates.qtyPresentation !== undefined) {
+        o.qtyPresentation = updates.qtyPresentation
+        if (updates.qtyPresentation === 'grams') delete o.unitsLabel
+      }
+      if (updates.unitsLabel !== undefined) {
+        if (updates.unitsLabel === null || updates.unitsLabel === '') delete o.unitsLabel
+        else o.unitsLabel = updates.unitsLabel
+      }
+      return o as MealSlotPick
+    })
     patchPicksForSlot(slot, list)
+  }
+
+  function updateMealPickQty(slot: MealSlotKey, pickId: string, qtyG: string) {
+    patchMealPick(slot, pickId, { qtyG })
   }
 
   function removeMealPick(slot: MealSlotKey, pickId: string) {
@@ -808,11 +831,17 @@ export function NutritionPlanningPage() {
     const prep = p.preparation && p.preparation !== 'infer' ? p.preparation : undefined
     let clone: MealSlotPick
     const qp =
-      p.qtyPresentation === 'units' && p.unitsLabel?.trim()
-        ? ({ qtyPresentation: 'units' as const, unitsLabel: p.unitsLabel.trim() } as const)
-        : p.qtyPresentation === 'grams'
-          ? ({ qtyPresentation: 'grams' as const } as const)
-          : ({} as const)
+      p.qtyPresentation === 'units'
+        ? p.unitsLabel?.trim()
+          ? ({ qtyPresentation: 'units' as const, unitsLabel: p.unitsLabel.trim() } as const)
+          : ({ qtyPresentation: 'units' as const } as const)
+        : p.qtyPresentation === 'volume'
+          ? p.unitsLabel?.trim()
+            ? ({ qtyPresentation: 'volume' as const, unitsLabel: p.unitsLabel.trim() } as const)
+            : ({ qtyPresentation: 'volume' as const } as const)
+          : p.qtyPresentation === 'grams'
+            ? ({ qtyPresentation: 'grams' as const } as const)
+            : ({} as const)
     if (p.kind === 'plan_row') {
       clone = {
         id: newMealPickId(),
@@ -905,9 +934,13 @@ export function NutritionPlanningPage() {
       const qtyPres =
         row.qtyPresentation === 'units' && row.unitsLabel?.trim()
           ? ({ qtyPresentation: 'units' as const, unitsLabel: row.unitsLabel.trim() } as const)
-          : row.qtyPresentation === 'grams'
-            ? ({ qtyPresentation: 'grams' as const } as const)
-            : ({} as const)
+          : row.qtyPresentation === 'volume' && row.unitsLabel?.trim()
+            ? ({ qtyPresentation: 'volume' as const, unitsLabel: row.unitsLabel.trim() } as const)
+            : row.qtyPresentation === 'volume'
+              ? ({ qtyPresentation: 'volume' as const } as const)
+              : row.qtyPresentation === 'grams'
+                ? ({ qtyPresentation: 'grams' as const } as const)
+                : ({} as const)
       appendMealPick(mealPickSlot, {
         id: newMealPickId(),
         kind: 'plan_row',
@@ -1834,11 +1867,9 @@ export function NutritionPlanningPage() {
                 Distribución del día
               </h2>
             </div>
-            <p className="text-sm text-ink-muted mt-1 leading-relaxed">
-              Cada comida es un bloque en <strong>orden vertical</strong> (como el PDF): tabla con un alimento por fila, separación clara entre desayuno, almuerzo, etc. Cargá desde la solapa{' '}
-              <strong className="text-zinc-800 dark:text-zinc-200">Tablas HH</strong> o desde <strong>Mi lista</strong>. Notas opcionales al pie de cada momento. Activá{' '}
-              <strong>media mañana / tarde</strong> si aplican. El panel siguiente actualiza{' '}
-              <strong className="text-zinc-800 dark:text-zinc-200">kcal y gramos de P / HC / G</strong> con lo que sumás en tablas, Mi lista y esta distribución (metas de gramos = peso × g/kg del apartado 2).
+            <p className="text-sm text-ink-muted mt-1 leading-snug max-w-3xl">
+              Una fila por alimento (orden = PDF). Cargá desde <strong className="text-ink-secondary">Tablas HH</strong> o{' '}
+              <strong className="text-ink-secondary">Mi lista</strong> · notas al pie de cada momento. El resumen de kcal arriba se actualiza con lo que sumes acá y en tablas.
             </p>
             <label className="block mt-4 space-y-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
@@ -1861,24 +1892,24 @@ export function NutritionPlanningPage() {
 
           {/* Kcal + macros en vivo (sticky) */}
           <div className="sticky top-2 z-20">
-            <div className="space-y-2 rounded-md border border-zinc-200/80 bg-white/95 px-4 py-3 shadow-none backdrop-blur-sm dark:border-zinc-700/65 dark:bg-zinc-950/60">
+            <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:border-zinc-800/80 dark:bg-surface-card/95">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-ink-muted">
                     Kcal del plan (en vivo)
                   </span>
-                  <span className="text-2xl font-bold tabular-nums leading-none text-zinc-900 dark:text-zinc-50 sm:text-3xl">
+                  <span className="text-2xl font-bold tabular-nums leading-none text-ink-primary sm:text-3xl">
                     {fmt1(intakeTotals.kcal)}
                   </span>
-                  <span className="text-xs text-zinc-600 dark:text-zinc-400">kcal sumadas</span>
+                  <span className="text-xs text-ink-muted">kcal sumadas</span>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
                   <div>
-                    <p className="text-[9px] font-semibold uppercase text-zinc-500 dark:text-zinc-500">Meta</p>
+                    <p className="text-[9px] font-semibold uppercase text-ink-muted">Meta</p>
                     <p className="font-semibold text-ink-primary">{targetKcal > 0 ? `${fmt1(targetKcal)} kcal` : '—'}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold uppercase text-zinc-500 dark:text-zinc-500">Restante</p>
+                    <p className="text-[9px] font-semibold uppercase text-ink-muted">Restante</p>
                     <p
                       className={cn(
                         'text-lg font-bold',
@@ -1886,7 +1917,7 @@ export function NutritionPlanningPage() {
                           ? 'text-base font-medium text-ink-muted'
                           : remainderKcalTarget && remainderKcalTarget.kcal < 0
                             ? 'text-status-expired'
-                            : 'text-zinc-800 dark:text-zinc-200',
+                            : 'text-ink-primary',
                       )}
                     >
                       {remainderKcalTarget
@@ -1898,20 +1929,20 @@ export function NutritionPlanningPage() {
                   </div>
                   {targetKcal > 0 ? (
                     <div>
-                      <p className="text-[9px] font-semibold uppercase text-zinc-500 dark:text-zinc-500">Del objetivo</p>
-                      <p className="font-semibold text-zinc-800 dark:text-zinc-200">{`${Math.round((100 * intakeTotals.kcal) / targetKcal)} %`}</p>
+                      <p className="text-[9px] font-semibold uppercase text-ink-muted">Del objetivo</p>
+                      <p className="font-semibold text-ink-primary">{`${Math.round((100 * intakeTotals.kcal) / targetKcal)} %`}</p>
                     </div>
                   ) : null}
                 </div>
               </div>
 
               <div
-                className="rounded-md border border-zinc-200/70 bg-zinc-50/70 px-2 py-2 dark:border-zinc-700/65 dark:bg-zinc-900/40 sm:py-2.5"
+                className="rounded-lg border border-surface-border bg-surface-muted/50 px-2 py-2 dark:bg-zinc-900/35 sm:py-2.5"
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
-                <p className="mb-1.5 px-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400 sm:text-left">
-                  Macros en vivo (g) — se actualizan al cargar tablas, Mi lista o comidas del día
+                <p className="mb-1.5 px-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-ink-muted sm:text-left">
+                  Macros en vivo (g) · tablas, Mi lista y esta distribución
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   <LiveMacroCell abbr="Proteínas" intakeG={intakeTotals.proteinG} goalG={guideTotals.proteinG} />
@@ -1921,9 +1952,9 @@ export function NutritionPlanningPage() {
               </div>
 
               {targetKcal > 0 ? (
-                <div className="h-2 overflow-hidden rounded-full border border-zinc-200/80 bg-zinc-200/80 dark:border-zinc-700 dark:bg-zinc-800">
+                <div className="h-2 overflow-hidden rounded-full border border-surface-border bg-surface-muted dark:bg-zinc-800/80">
                   <div
-                    className="h-full rounded-full bg-zinc-700 transition-[width] duration-300 ease-out dark:bg-zinc-400"
+                    className="h-full rounded-full bg-ink-primary/55 transition-[width] duration-300 ease-out dark:bg-ink-secondary/80"
                     style={{
                       width: `${Math.min(100, Math.max(0, (100 * intakeTotals.kcal) / targetKcal))}%`,
                     }}
@@ -1935,7 +1966,7 @@ export function NutritionPlanningPage() {
                   />
                 </div>
               ) : (
-                <p className="text-[11px] leading-snug text-zinc-600 dark:text-zinc-400">
+                <p className="text-[11px] leading-snug text-ink-muted">
                   Cargá <strong className="font-semibold text-ink-primary">Calorías propuestas</strong> en la sección 2 para ver
                   cuánto te falta descontar respecto a la meta.
                 </p>
@@ -2095,13 +2126,13 @@ export function NutritionPlanningPage() {
                     key={key}
                     role="region"
                     aria-labelledby={`meal-slot-title-${key}`}
-                    className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card text-sm shadow-none dark:border-zinc-700/65"
+                    className="overflow-hidden rounded-xl border border-surface-border bg-surface-card text-sm shadow-sm dark:border-zinc-800/75 dark:bg-surface-card"
                   >
                     {/* Cabecera de momento — alineada al PDF (franja + título) */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 bg-slate-100 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 dark:bg-zinc-900/45">
                       <span
                         id={`meal-slot-title-${key}`}
-                        className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-300"
+                        className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted"
                       >
                         {label}
                       </span>
@@ -2109,23 +2140,35 @@ export function NutritionPlanningPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="shrink-0 h-8 text-xs gap-1 border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-900/50"
+                        className="shrink-0 h-8 text-xs gap-1 border-surface-border bg-surface-card dark:bg-surface-elevated/90"
                         icon={<Plus className="h-3.5 w-3.5" aria-hidden />}
                         onClick={() => setMealPickSlot(key)}
                       >
                         Desde tablas / Mi lista
                       </Button>
                     </div>
-                    <div className="bg-slate-50/80 dark:bg-slate-950/40">
+                    <div className="bg-surface-muted/25 dark:bg-neutral-950/30">
                       {picks.length > 0 ? (
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[520px] border-collapse text-sm">
                             <thead>
-                              <tr className="border-b border-surface-border bg-surface-elevated/90 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
-                                <th className="text-left px-3 py-2 min-w-0">Alimento</th>
-                                <th className="text-left px-2 py-2 hidden md:table-cell">Macros (orient.)</th>
-                                <th className="text-right px-2 py-2 whitespace-nowrap w-[7rem]">Cantidad</th>
-                                <th className="text-right px-2 py-2 w-[6.5rem]">g</th>
+                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-[10px] font-semibold uppercase tracking-wide text-ink-muted dark:bg-zinc-900/40">
+                                <th className="min-w-0 px-3 py-2 text-left">Alimento</th>
+                                <th className="hidden px-2 py-2 text-left md:table-cell" title="Macronutrientes orientativos de esta porción">
+                                  Macros
+                                </th>
+                                <th
+                                  className="min-w-[8.5rem] px-2 py-2 text-right align-bottom"
+                                  title="Texto que ve el alumno (unidades, g o ml según corresponda)"
+                                >
+                                  <span className="block">Para el alumno</span>
+                                </th>
+                                <th
+                                  className="max-w-[20rem] min-w-[14rem] px-2 py-2 text-left align-bottom"
+                                  title="Modo y gramos equivalentes: las uds./ml son para cómo se lee el plan; los totales de macros usan gramos (al cambiar de modo, si hay gramos en Tablas HH se pueden copiar)."
+                                >
+                                  <span className="block">Registro</span>
+                                </th>
                                 <th className="w-11 px-1 py-2" aria-label="Quitar" />
                               </tr>
                             </thead>
@@ -2142,26 +2185,41 @@ export function NutritionPlanningPage() {
                                   qtyPresentation: mq.qtyPresentation,
                                   unitsLabel: mq.unitsLabel,
                                 })
+                                const modeSelectValue =
+                                  mq.qtyPresentation === 'volume'
+                                    ? 'volume'
+                                    : mq.qtyPresentation === 'units'
+                                      ? 'units'
+                                      : 'grams'
                                 return (
                                   <Fragment key={p.id}>
                                     <tr
                                       className={cn(
                                         'border-b border-surface-border align-top',
-                                        rowIdx % 2 === 0 ? 'bg-white dark:bg-slate-900/35' : 'bg-slate-50/90 dark:bg-slate-900/20',
+                                        rowIdx % 2 === 0
+                                          ? 'bg-surface-card dark:bg-zinc-950/35'
+                                          : 'bg-surface-muted/45 dark:bg-zinc-900/22',
                                       )}
                                     >
-                                      <td className="px-3 py-2.5 align-top min-w-0 max-w-[40%]">
-                                        <p className="font-semibold text-ink-primary text-[13px] leading-snug">
+                                      <td className="min-w-0 max-w-[40%] px-3 py-2.5 align-top">
+                                        <p className="text-[13px] font-semibold leading-snug text-ink-primary">
                                           {displayNameForMealPick(p)}
                                         </p>
-                                        {studentQty.prepLine ? (
-                                          <p className="text-[10px] text-emerald-700 dark:text-emerald-400/90 leading-snug mt-1">
-                                            {studentQty.prepLine}
-                                          </p>
-                                        ) : null}
-                                        {hintText ? (
-                                          <p className="mt-1 border-l-2 border-zinc-300/90 pl-2 text-[10px] italic leading-snug text-ink-muted dark:border-zinc-600">
-                                            Tip / unidad: {hintText}
+                                        {studentQty.prepLine || hintText ? (
+                                          <p className="mt-1 text-[10px] leading-snug">
+                                            {studentQty.prepLine ? (
+                                              <span className="text-emerald-700 dark:text-emerald-400/90">
+                                                {studentQty.prepLine}
+                                              </span>
+                                            ) : null}
+                                            {studentQty.prepLine && hintText ? (
+                                              <span className="text-ink-muted"> · </span>
+                                            ) : null}
+                                            {hintText ? (
+                                              <span className="italic text-ink-muted" title={hintText}>
+                                                {hintText}
+                                              </span>
+                                            ) : null}
                                           </p>
                                         ) : null}
                                         <div className="mt-2 space-y-1.5 md:hidden">
@@ -2187,15 +2245,103 @@ export function NutritionPlanningPage() {
                                         </p>
                                       </td>
                                       <td className="px-2 py-2 align-top">
-                                        <div className="flex items-center justify-end gap-1">
-                                          <span className="text-[10px] text-ink-muted">g</span>
-                                          <Input
-                                            className="h-8 w-[4.25rem] text-xs tabular-nums"
-                                            inputMode="decimal"
-                                            value={p.qtyG}
-                                            onChange={(e) => updateMealPickQty(key, p.id, e.target.value)}
-                                            aria-label={`Gramos · ${displayNameForMealPick(p)}`}
-                                          />
+                                        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end sm:gap-x-2 sm:gap-y-2">
+                                          <label className="flex min-w-0 flex-col gap-0.5 sm:items-end">
+                                            <span className="text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                              Modo
+                                            </span>
+                                            <select
+                                              className={cn(selectPlanClasses, 'h-8 w-full min-w-[6.5rem] text-[11px] sm:w-[7rem]')}
+                                              value={modeSelectValue}
+                                              onChange={(e) => {
+                                                const v = e.target.value
+                                                const planRowG =
+                                                  p.kind === 'plan_row'
+                                                    ? wb.sections
+                                                        .find((s) => s.key === p.secKey)
+                                                        ?.rows.find((r) => r.id === p.rowId)
+                                                        ?.qtyG?.trim() ?? ''
+                                                    : ''
+                                                if (v === 'units') {
+                                                  const fallbackU =
+                                                    p.unitsLabel?.trim() ||
+                                                    mq.unitsLabel?.trim() ||
+                                                    '1'
+                                                  const nextG = p.qtyG.trim() || planRowG
+                                                  patchMealPick(key, p.id, {
+                                                    qtyPresentation: 'units',
+                                                    unitsLabel: fallbackU,
+                                                    ...(nextG && nextG !== p.qtyG.trim()
+                                                      ? { qtyG: nextG }
+                                                      : {}),
+                                                  })
+                                                } else if (v === 'volume') {
+                                                  const fallbackMl =
+                                                    p.unitsLabel?.trim() || mq.unitsLabel?.trim() || ''
+                                                  const nextG = p.qtyG.trim() || planRowG
+                                                  patchMealPick(key, p.id, {
+                                                    qtyPresentation: 'volume',
+                                                    unitsLabel: fallbackMl,
+                                                    ...(nextG && nextG !== p.qtyG.trim()
+                                                      ? { qtyG: nextG }
+                                                      : {}),
+                                                  })
+                                                } else {
+                                                  patchMealPick(key, p.id, { qtyPresentation: 'grams' })
+                                                }
+                                              }}
+                                              aria-label={`Modo de cantidad · ${displayNameForMealPick(p)}`}
+                                            >
+                                              <option value="grams">Gramos</option>
+                                              <option value="units">Unidades</option>
+                                              <option value="volume">Mililitros</option>
+                                            </select>
+                                          </label>
+                                          {modeSelectValue === 'units' || modeSelectValue === 'volume' ? (
+                                            <label className="flex min-w-0 flex-col gap-0.5 sm:items-end">
+                                              <span className="text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                                {modeSelectValue === 'volume' ? 'ml' : 'Uds.'}
+                                              </span>
+                                              <Input
+                                                className="h-8 w-full min-w-[4rem] text-xs tabular-nums sm:w-[4.25rem]"
+                                                inputMode="decimal"
+                                                value={p.unitsLabel ?? ''}
+                                                placeholder={modeSelectValue === 'volume' ? '200' : '1'}
+                                                onChange={(e) =>
+                                                  patchMealPick(key, p.id, { unitsLabel: e.target.value })
+                                                }
+                                                aria-label={
+                                                  modeSelectValue === 'volume'
+                                                    ? `Mililitros · ${displayNameForMealPick(p)}`
+                                                    : `Cantidad en unidades · ${displayNameForMealPick(p)}`
+                                                }
+                                              />
+                                            </label>
+                                          ) : null}
+                                          <label
+                                            className="flex min-w-0 flex-1 flex-col gap-0.5 sm:max-w-[11rem] sm:items-end"
+                                            title={
+                                              modeSelectValue !== 'grams'
+                                                ? 'Solo para sumar macros del día; el alumno ve sobre todo uds./ml. En líquidos suele coincidir con los ml.'
+                                                : undefined
+                                            }
+                                          >
+                                            <span className="text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                              {modeSelectValue === 'grams'
+                                                ? 'Gramos'
+                                                : 'Equiv. gramos'}
+                                            </span>
+                                            <div className="flex w-full items-center justify-end gap-1 sm:justify-end">
+                                              <Input
+                                                className="h-8 min-w-0 flex-1 text-xs tabular-nums sm:max-w-[5rem]"
+                                                inputMode="decimal"
+                                                value={p.qtyG}
+                                                onChange={(e) => updateMealPickQty(key, p.id, e.target.value)}
+                                                aria-label={`Gramos equivalentes · ${displayNameForMealPick(p)}`}
+                                              />
+                                              <span className="shrink-0 text-[10px] text-ink-muted">g</span>
+                                            </div>
+                                          </label>
                                         </div>
                                       </td>
                                       <td className="px-1 py-2 align-top text-center">
@@ -2209,12 +2355,12 @@ export function NutritionPlanningPage() {
                                         </button>
                                       </td>
                                     </tr>
-                                    <tr className="border-b border-surface-border bg-surface-muted/50 dark:bg-slate-900/45">
-                                      <td colSpan={5} className="px-3 py-2">
+                                    <tr className="border-b border-surface-border bg-surface-muted/55 dark:bg-zinc-900/35">
+                                      <td colSpan={5} className="border-t border-surface-border/70 px-3 py-2.5">
                                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
                                           <button
                                             type="button"
-                                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1.5 text-[10px] font-medium text-ink-secondary hover:bg-surface-elevated w-fit"
+                                            className="inline-flex w-fit items-center justify-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1.5 text-[10px] font-medium text-ink-secondary hover:bg-surface-elevated"
                                             title="Actualizar tip desde la fila del plan o las notas de Mi lista"
                                             onClick={() => syncPickHintSnapshot(key, p.id)}
                                           >
@@ -2245,8 +2391,8 @@ export function NutritionPlanningPage() {
                                             <span id={`prep-desc-${p.id}`} className="sr-only">
                                               Define cómo se muestra crudo o cocido en el PDF para este alimento.
                                             </span>
-                                            <span className="text-[9px] text-ink-muted uppercase tracking-wide shrink-0">
-                                              Referencia PDF
+                                            <span className="shrink-0 text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                              PDF
                                             </span>
                                             <select
                                               className={cn(
@@ -2280,7 +2426,7 @@ export function NutritionPlanningPage() {
                           para agregar el primero (queda uno debajo del otro, como en el PDF).
                         </p>
                       )}
-                      <div className="border-t border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/30 px-3 py-3">
+                      <div className="border-t border-surface-border bg-surface-muted/30 px-3 py-3 dark:bg-zinc-900/25">
                         <label className="block space-y-1">
                           <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
                             Notas del momento (opcional)
@@ -2559,25 +2705,28 @@ export function NutritionPlanningPage() {
                               <select
                                 className="h-8 w-full rounded-md border border-surface-inputBorder bg-surface-input px-1 text-[10px] text-ink-primary"
                                 value={r.qtyPresentation ?? 'grams'}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                  const v = e.target.value
                                   patchRow(sec.key, r.id, {
-                                    qtyPresentation: e.target.value === 'units' ? 'units' : 'grams',
+                                    qtyPresentation:
+                                      v === 'units' ? 'units' : v === 'volume' ? 'volume' : 'grams',
                                   })
-                                }
+                                }}
                                 aria-label={`Modo cantidad · ${r.name}`}
                               >
                                 <option value="grams">g</option>
                                 <option value="units">u.</option>
+                                <option value="volume">ml</option>
                               </select>
                             </td>
                             <td className="px-1 py-1 align-top">
                               <Input
                                 className="h-8 text-[10px] px-1"
                                 value={r.unitsLabel ?? ''}
-                                placeholder="2"
-                                disabled={(r.qtyPresentation ?? 'grams') !== 'units'}
+                                placeholder={(r.qtyPresentation ?? 'grams') === 'volume' ? '200' : '2'}
+                                disabled={(r.qtyPresentation ?? 'grams') === 'grams'}
                                 onChange={(e) => patchRow(sec.key, r.id, { unitsLabel: e.target.value })}
-                                aria-label={`Unidades · ${r.name}`}
+                                aria-label={`Uds. o ml · ${r.name}`}
                               />
                             </td>
                             <td className="px-1.5 py-1 align-top">

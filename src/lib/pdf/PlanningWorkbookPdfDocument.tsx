@@ -441,13 +441,19 @@ function appendixDetailLinesCompact(row: PlanningFoodRowState): string {
   const hint = row.hint?.trim()
   const ul = row.unitsLabel?.trim()
   const base =
-    row.qtyPresentation === 'units'
+    row.qtyPresentation === 'volume'
       ? ul
-        ? `${ul} u. (~${fmtGramOrDash(q)} g)`
+        ? `${ul} ml (~${fmtGramOrDash(q)} g)`
         : q > 0
-          ? `Por unidades (cargá uds. en tabla): equiv. masa ~${fmtGramOrDash(q)} g`
-          : 'Por unidades: cargá uds. y gramos equiv. en tabla'
-      : `${fmtGramOrDash(q)} g · ~${cdas}`
+          ? `Por ml (cargá en tabla): equiv. masa ~${fmtGramOrDash(q)} g`
+          : 'Por mililitros: cargá ml y gramos equiv. en tabla'
+      : row.qtyPresentation === 'units'
+        ? ul
+          ? `${ul} u. (~${fmtGramOrDash(q)} g)`
+          : q > 0
+            ? `Por unidades (cargá uds. en tabla): equiv. masa ~${fmtGramOrDash(q)} g`
+            : 'Por unidades: cargá uds. y gramos equiv. en tabla'
+        : `${fmtGramOrDash(q)} g · ~${cdas}`
   const lines = [base]
   if (prep) lines.push(prep)
   else if (hint) lines.push(truncate(`Nota: ${hint}`, 140))

@@ -2,6 +2,7 @@ import type {
   MealPreparationChoice,
   MealSlotPick,
   PlanningWorkbookStateV1,
+  QtyPresentationMode,
 } from '@/lib/nutrition/planningWorkbookTypes'
 import { parseLocaleNumberOrZero } from '@/lib/nutrition/planningCalculations'
 
@@ -65,13 +66,14 @@ export function preparacionElegidaLine(
   return preparacionAlumnoLine(name, hint)
 }
 
-/** Unifica lectura por unidades vs gramos en picks (fila activa del plan si aplica). */
+/** Unifica lectura por gramos / unidades / ml en picks (fila activa del plan si aplica). */
 export function resolveMealPickQtyPresentation(
   p: MealSlotPick,
   wb: PlanningWorkbookStateV1,
-): { qtyPresentation?: 'grams' | 'units'; unitsLabel?: string } {
+): { qtyPresentation?: QtyPresentationMode; unitsLabel?: string } {
   const ulSnap = p.unitsLabel?.trim()
   if (p.kind === 'library') {
+    if (p.qtyPresentation === 'volume') return { qtyPresentation: 'volume', unitsLabel: ulSnap || undefined }
     if (p.qtyPresentation === 'units') return { qtyPresentation: 'units', unitsLabel: ulSnap || undefined }
     if (p.qtyPresentation === 'grams') return { qtyPresentation: 'grams' }
     return {}
@@ -81,6 +83,9 @@ export function resolveMealPickQtyPresentation(
   const ulRow = row?.unitsLabel?.trim()
   const rpm = row?.qtyPresentation
   if (rpm === 'grams') return { qtyPresentation: 'grams' }
+  if (rpm === 'volume' || p.qtyPresentation === 'volume') {
+    return { qtyPresentation: 'volume', unitsLabel: ulSnap || ulRow || undefined }
+  }
   if (rpm === 'units' || p.qtyPresentation === 'units') {
     return { qtyPresentation: 'units', unitsLabel: ulSnap || ulRow || undefined }
   }
@@ -94,7 +99,7 @@ export function buildStudentQuantitySummaryLines(opts: {
   nameSnapshot: string
   hint?: string
   preparation?: MealPreparationChoice
-  qtyPresentation?: 'grams' | 'units'
+  qtyPresentation?: QtyPresentationMode
   unitsLabel?: string
   /** PDF compacto: menos texto en la línea de gramos (sigue mostrando cdas. orientativas). */
   compact?: boolean
@@ -105,7 +110,23 @@ export function buildStudentQuantitySummaryLines(opts: {
   const units = opts.unitsLabel?.trim()
 
   let gramsPart: string
-  if (opts.qtyPresentation === 'units') {
+  if (opts.qtyPresentation === 'volume') {
+    if (units) {
+      gramsPart =
+        g > 0
+          ? opts.compact
+            ? `${units} ml (~${fmtGramOrDash(g)} g)`
+            : `${units} ml · equivalente en gramos para el plan ~${fmtGramOrDash(g)} g (bebidas: ~1 ml ≈ 1 g si no indica otra cosa).`
+          : `${units} ml · cargá también gramos equivalentes para el cómputo.`
+    } else {
+      gramsPart =
+        g > 0
+          ? opts.compact
+            ? `${fmtGramOrDash(g)} g — cargá ml en «Mililitros»`
+            : `Modo mililitros: cargá los ml en el plan · masa orientativa ~${fmtGramOrDash(g)} g.`
+          : 'Mililitros: indicá ml y gramos equivalentes en el plan (para bebidas suele ser similar).'
+    }
+  } else if (opts.qtyPresentation === 'units') {
     if (units) {
       gramsPart =
         g > 0
