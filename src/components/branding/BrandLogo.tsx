@@ -7,7 +7,8 @@ type BrandLogoSize = 'sm' | 'md' | 'lg'
 const box: Record<BrandLogoSize, string> = {
   sm: 'h-[3.25rem] w-[3.25rem]',
   md: 'h-16 w-16',
-  lg: 'h-[min(22rem,92vw)] w-[min(22rem,92vw)] sm:h-[28rem] sm:w-[28rem]',
+  /** Login: misma anchura efectiva que `max-w-sm` (columna del formulario), sin desbordar. */
+  lg: 'aspect-square mx-auto box-border size-[min(20rem,min(92vw,_48vh))] sm:size-[min(22.5rem,min(100%,42vh))] max-sm:size-[min(19rem,min(94vw,_50svh))]',
 }
 
 /** Rail: sombra más marcada + leve elevación en un ícono chico. */
@@ -40,7 +41,11 @@ export function BrandLogo({ size = 'md', className, decorative }: BrandLogoProps
         width={512}
         height={512}
         draggable={false}
-        className={cn('max-h-full max-w-full select-none object-contain', floatBySize[size])}
+        className={cn(
+          'max-h-full max-w-full select-none object-contain object-center',
+          size === 'lg' && '-translate-x-[3%]',
+          floatBySize[size],
+        )}
       />
     </span>
   )
