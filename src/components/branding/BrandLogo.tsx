@@ -4,11 +4,9 @@ const logoUrl = '/logo-brand.png'
 
 type BrandLogoSize = 'sm' | 'md' | 'lg'
 
-const box: Record<BrandLogoSize, string> = {
+const boxCompact: Record<Exclude<BrandLogoSize, 'lg'>, string> = {
   sm: 'h-[3.25rem] w-[3.25rem]',
   md: 'h-16 w-16',
-  /** Login: misma anchura efectiva que `max-w-sm` (columna del formulario), sin desbordar. */
-  lg: 'aspect-square mx-auto box-border size-[min(20rem,min(92vw,_48vh))] sm:size-[min(22.5rem,min(100%,42vh))] max-sm:size-[min(19rem,min(94vw,_50svh))]',
 }
 
 /** Rail: sombra más marcada + leve elevación en un ícono chico. */
@@ -30,9 +28,17 @@ type BrandLogoProps = {
  */
 export function BrandLogo({ size = 'md', className, decorative }: BrandLogoProps) {
   const alt = decorative ? '' : 'Haciéndolo Hábito'
+  const wrapperClass =
+    size === 'lg'
+      ? cn(
+          'relative mx-auto box-border flex min-h-0 min-w-0 w-full max-w-full items-center justify-center overflow-visible',
+          'aspect-square max-h-[min(24rem,_52svh)]'
+        )
+      : cn('inline-flex shrink-0 items-center justify-center', boxCompact[size])
+
   return (
     <span
-      className={cn('inline-flex shrink-0 items-center justify-center', box[size], className)}
+      className={cn(wrapperClass, className)}
       {...(decorative ? { 'aria-hidden': true } : {})}
     >
       <img
@@ -42,8 +48,8 @@ export function BrandLogo({ size = 'md', className, decorative }: BrandLogoProps
         height={512}
         draggable={false}
         className={cn(
-          'max-h-full max-w-full select-none object-contain object-center',
-          size === 'lg' && '-translate-x-[3%]',
+          'max-h-full max-w-full select-none object-contain',
+          size === 'lg' ? 'object-[46%_50%]' : 'object-center',
           floatBySize[size],
         )}
       />

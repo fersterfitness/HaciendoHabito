@@ -75,11 +75,10 @@ export function LoginPage() {
         </button>
       </div>
 
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-3">
-          <BrandLogo size="lg" className="mx-auto mb-1" />
-          <p className="text-sm text-ink-secondary">Panel de acceso</p>
+      <div className="flex w-full max-w-sm flex-col items-stretch">
+        <div className="mb-2 flex w-full flex-col items-center gap-1 px-px">
+          <BrandLogo size="lg" />
+          <p className="w-full text-center text-sm text-ink-secondary">Panel de acceso</p>
         </div>
 
         <div className="bg-surface-card border border-surface-border rounded-2xl p-6 shadow-card dark:shadow-none">
