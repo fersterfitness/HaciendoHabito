@@ -111,20 +111,28 @@ export function IntakeChangeablePlansSection({
 
   const selectedRing = useMemo(() => {
     if (lightChrome) {
-      return 'ring-1 ring-neutral-200 shadow-sm bg-white'
+      return [
+        'border border-neutral-200/90 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/45',
+        'shadow-[0_5px_22px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,0.95)]',
+        'ring-1 ring-neutral-900/[0.045]',
+      ].join(' ')
     }
     if (badgeVariant === 'amber') {
       return darkChrome
-        ? 'ring-1 ring-white/18 bg-white/[0.05] border-l-[3px] border-white/45'
+        ? 'border border-white/[0.11] bg-white/[0.045] border-l-[2px] border-l-white/32 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
         : 'ring-[1px] ring-neutral-300 bg-white shadow-sm dark:ring-neutral-600 dark:bg-transparent'
     }
     return darkChrome
-      ? 'ring-1 ring-white/22 bg-white/[0.06] border-l-[3px] border-white/40'
+      ? 'border border-white/[0.12] bg-white/[0.055] border-l-[2px] border-l-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
       : 'ring-[1px] ring-neutral-300 shadow-sm dark:shadow-none dark:ring-neutral-600'
   }, [badgeVariant, darkChrome, lightChrome])
 
   const unselectedRow = lightChrome
-    ? 'rounded-[14px] border border-neutral-200/95 bg-white shadow-sm ring-0 hover:border-neutral-300 hover:shadow'
+    ? [
+        'rounded-[14px] border border-neutral-200/90 bg-gradient-to-b from-white to-neutral-50/75',
+        'shadow-[0_2px_12px_rgba(15,23,42,0.05)] ring-1 ring-neutral-900/[0.03]',
+        'hover:border-neutral-300/95 hover:shadow-[0_6px_22px_rgba(15,23,42,0.09)]',
+      ].join(' ')
     : darkChrome
       ? 'bg-black/25 ring-1 ring-white/10 shadow-none hover:bg-white/[0.07] hover:ring-white/15'
       : 'shadow-sm ring-1 ring-neutral-200/80 dark:shadow-none dark:ring-neutral-800 hover:ring-neutral-300 dark:hover:ring-neutral-700'
@@ -171,7 +179,11 @@ export function IntakeChangeablePlansSection({
         <div
           className={cn(
             'inline-flex self-start rounded-full p-[3px] sm:self-auto',
-            lightChrome ? 'bg-neutral-200/90' : darkChrome ? 'bg-white/10' : 'bg-neutral-200/80 dark:bg-neutral-700/80',
+            lightChrome
+              ? 'bg-neutral-200/95 shadow-[inset_0_1px_2px_rgba(15,23,42,0.07)]'
+              : darkChrome
+                ? 'bg-white/10'
+                : 'bg-neutral-200/80 dark:bg-neutral-700/80',
           )}
           role="group"
           aria-label="Modalidad de pago"
@@ -232,7 +244,13 @@ export function IntakeChangeablePlansSection({
               }}
               transition={{ type: 'spring', bounce: 0.35, duration: 0.55 }}
               className={cn(
-                'relative cursor-pointer overflow-hidden rounded-[14px] transition-colors duration-200',
+                'relative cursor-pointer overflow-hidden rounded-[14px] outline-none transition-colors duration-200',
+                'focus-visible:ring-2 focus-visible:ring-offset-0',
+                darkChrome
+                  ? 'focus-visible:ring-white/18'
+                  : lightChrome
+                    ? 'focus-visible:ring-neutral-400/35'
+                    : 'focus-visible:ring-neutral-400/40 dark:focus-visible:ring-neutral-500/40',
                 darkChrome ? '' : !lightChrome ? 'rounded-[18px]' : '',
                 lightChrome ? 'rounded-[14px]' : '',
                 isSelected ? selectedRing : unselectedRow,
@@ -313,12 +331,16 @@ export function IntakeChangeablePlansSection({
                       }}
                       className="overflow-hidden"
                     >
-                      <div
-                        className={cn(
-                          'mb-0.5 mt-3 border-t border-dashed pt-3 sm:mt-3.5 sm:pt-3.5',
-                          darkChrome ? 'border-white/12' : 'border-neutral-200',
-                        )}
-                      >
+                      <div className="mb-0.5 mt-3 pt-3 sm:mt-3.5 sm:pt-3.5">
+                        <div
+                          className={cn(
+                            'mb-3 h-px w-full',
+                            darkChrome
+                              ? 'bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.05)_22%,rgba(255,255,255,0.24)_50%,rgba(255,255,255,0.05)_78%,transparent_100%)]'
+                              : 'bg-[linear-gradient(90deg,transparent_0%,rgba(163,163,163,0.12)_18%,rgba(163,163,163,0.5)_50%,rgba(163,163,163,0.12)_82%,transparent_100%)]',
+                          )}
+                          aria-hidden
+                        />
                         {plan.features.length > 0 ? (
                           <p
                             className={cn(
@@ -401,7 +423,7 @@ export function IntakeChangeablePlansSection({
             darkChrome
               ? 'border border-white/14 bg-white/[0.07] text-white hover:bg-white/[0.11] focus-visible:ring-1 focus-visible:ring-white/25 focus-visible:ring-offset-0'
               : lightChrome || !embedded
-              ? 'border border-neutral-300 bg-white text-neutral-900 shadow-sm hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-100'
+              ? 'border border-neutral-200/95 bg-gradient-to-b from-white to-neutral-50/90 text-neutral-900 shadow-[0_3px_14px_rgba(15,23,42,0.07)] hover:bg-neutral-50/95 focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-100'
               : 'border border-neutral-600 bg-neutral-800 px-8 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950',
           )}
         >

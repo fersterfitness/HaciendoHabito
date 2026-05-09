@@ -15,6 +15,7 @@ import {
   intakeFormCtaButtonClass,
   intakeFormFieldLabelClass,
   intakeFormInputClass,
+  intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
 
@@ -296,13 +297,15 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
 
       {/* Plan badge */}
       {selectedPlanLabel ? (
-        <div className="mb-3 flex min-h-[2.5rem] items-baseline gap-2 rounded-lg border border-zinc-200/90 bg-zinc-500/[0.06] px-2.5 py-2 dark:border-zinc-600/90 dark:bg-white/[0.04]">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <div className={intakePublicSelectedPlanBarClass}>
+          <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-600 dark:text-white/55">
             Plan
           </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-primary">{selectedPlanLabel}</span>
+          <span className="min-w-0 flex-1 truncate text-[15px] font-bold leading-tight text-ink-primary">
+            {selectedPlanLabel}
+          </span>
           {selectedPlanPrice && (
-            <span className="shrink-0 text-sm font-bold tabular-nums text-ink-primary">{selectedPlanPrice}</span>
+            <span className="shrink-0 text-[15px] font-bold tabular-nums text-ink-primary">{selectedPlanPrice}</span>
           )}
         </div>
       ) : (

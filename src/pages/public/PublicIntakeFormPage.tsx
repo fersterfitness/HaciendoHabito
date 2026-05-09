@@ -52,10 +52,12 @@ function IntakeProAvatar({
   label,
   url,
   sizeClass = 'h-8 w-8',
+  theme = 'dark',
 }: {
   label: string
   url?: string | null
   sizeClass?: string
+  theme?: 'light' | 'dark'
 }) {
   const [failed, setFailed] = useState(false)
   useEffect(() => {
@@ -66,14 +68,24 @@ function IntakeProAvatar({
     <img
       src={url!.trim()}
       alt=""
-      className={`${sizeClass} shrink-0 rounded-lg object-cover object-top ring-1 ring-white/20`}
+      className={cn(
+        sizeClass,
+        'shrink-0 rounded-lg object-cover object-top ring-1',
+        theme === 'light' ? 'ring-neutral-200/80' : 'ring-white/20',
+      )}
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
     />
   ) : (
     <span
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-lg bg-white/12 px-0.5 text-[9px] font-bold uppercase leading-tight text-white/90 ring-1 ring-white/15`}
+      className={cn(
+        sizeClass,
+        'flex shrink-0 items-center justify-center rounded-lg px-0.5 text-[9px] font-bold uppercase leading-tight ring-1',
+        theme === 'light'
+          ? 'bg-neutral-200/90 text-neutral-800 ring-neutral-300/70'
+          : 'bg-white/12 text-white/90 ring-white/15',
+      )}
       aria-hidden
     >
       {initialsFromProfessionalName(label)}
@@ -131,20 +143,27 @@ function IntakeAvatarSelect({
   }, [open])
 
   const triggerClass = cn(
-    'relative flex w-full items-center gap-2 rounded-lg border px-2.5 py-[0.42rem] pr-9 text-left text-[13px] leading-tight shadow-none transition-colors',
-    'focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-38',
+    'relative flex w-full items-center gap-2 rounded-lg border px-2.5 py-[0.42rem] pr-9 text-left text-[13px] leading-tight transition-colors',
+    'focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-38',
     theme === 'dark'
-      ? 'border-white/[0.08] bg-[#141414] text-white focus:border-white/30 disabled:border-white/[0.05] disabled:bg-[#141414]'
-      : 'border-white/[0.1] bg-[#171717] text-white focus:border-white/30 disabled:bg-[#141414]',
+      ? 'border-white/[0.08] bg-[#141414] text-white shadow-none focus:border-white/30 focus:ring-white/20 disabled:border-white/[0.05] disabled:bg-[#141414]'
+      : 'border-neutral-200/95 bg-white/95 text-neutral-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_1px_2px_rgba(15,23,42,0.05)] focus:border-neutral-300 focus:ring-neutral-400/30 disabled:bg-neutral-100/85 disabled:text-neutral-500',
     disabled && 'cursor-not-allowed',
-    !disabled && options.length > 0 && 'cursor-pointer hover:bg-white/[0.04]',
+    !disabled &&
+      options.length > 0 &&
+      (theme === 'dark' ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-pointer hover:bg-neutral-50/95'),
   )
 
   const showTriggerContent = !disabled && options.length > 0 && selected
 
+  const labelClass =
+    theme === 'dark'
+      ? 'text-white/42'
+      : 'text-neutral-600'
+
   return (
     <div ref={rootRef} className="min-w-0">
-      <label htmlFor={id} className="mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em] text-white/42">
+      <label htmlFor={id} className={cn('mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em]', labelClass)}>
         {label}
       </label>
       <div className="relative">
@@ -164,15 +183,25 @@ function IntakeAvatarSelect({
         >
           {showTriggerContent ? (
             <>
-              <IntakeProAvatar label={selected!.label} url={selected.avatarUrl} />
+              <IntakeProAvatar theme={theme} label={selected!.label} url={selected.avatarUrl} />
               <span className="min-w-0 flex-1 truncate">{selected!.label}</span>
             </>
           ) : (
-            <span className="min-w-0 flex-1 truncate text-white/55">{disabled || options.length === 0 ? emptyLabel : '—'}</span>
+            <span
+              className={cn(
+                'min-w-0 flex-1 truncate',
+                theme === 'dark' ? 'text-white/55' : 'text-neutral-500',
+              )}
+            >
+              {disabled || options.length === 0 ? emptyLabel : '—'}
+            </span>
           )}
         </button>
         <span
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400"
+          className={cn(
+            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px]',
+            theme === 'dark' ? 'text-neutral-400' : 'text-neutral-500',
+          )}
           aria-hidden
         >
           ▾
@@ -182,22 +211,32 @@ function IntakeAvatarSelect({
           <ul
             id={listId}
             role="listbox"
-            className="absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-60 overflow-auto rounded-lg border border-white/[0.14] bg-[#0f0f0f] py-1 shadow-xl"
+            className={cn(
+              'absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-60 overflow-auto rounded-lg border py-1',
+              theme === 'dark'
+                ? 'border-white/[0.14] bg-[#0f0f0f] shadow-xl'
+                : 'border-neutral-200/95 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.06)]',
+            )}
           >
             {options.map((o) => (
               <li key={o.id} role="option" aria-selected={value === o.id}>
                 <button
                   type="button"
                   className={cn(
-                    'flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-[13px] text-white transition-colors',
-                    value === o.id ? 'bg-white/12' : 'hover:bg-white/10',
+                    'flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-[13px] transition-colors',
+                    theme === 'dark'
+                      ? cn('text-white', value === o.id ? 'bg-white/12' : 'hover:bg-white/10')
+                      : cn(
+                          'text-neutral-900',
+                          value === o.id ? 'bg-neutral-100' : 'hover:bg-neutral-50',
+                        ),
                   )}
                   onClick={() => {
                     onChange(o.id)
                     setOpen(false)
                   }}
                 >
-                  <IntakeProAvatar label={o.label} url={o.avatarUrl} />
+                  <IntakeProAvatar theme={theme} label={o.label} url={o.avatarUrl} />
                   <span className="min-w-0 flex-1">{o.label}</span>
                 </button>
               </li>
@@ -230,7 +269,13 @@ function IntakeMinimalSelect({
 }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={id} className="mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em] text-white/42">
+      <label
+        htmlFor={id}
+        className={cn(
+          'mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em]',
+          theme === 'dark' ? 'text-white/42' : 'text-neutral-600',
+        )}
+      >
         {label}
       </label>
       <div className="relative">
@@ -241,18 +286,21 @@ function IntakeMinimalSelect({
           title={hint}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            'w-full appearance-none rounded-lg border px-3 py-[0.42rem] pr-9 text-[13px] leading-tight shadow-none transition-colors',
-            'focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-38',
+            'w-full appearance-none rounded-lg border px-3 py-[0.42rem] pr-9 text-[13px] leading-tight transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-38',
             theme === 'dark'
-              ? 'border-white/[0.08] bg-[#141414] text-white focus:border-white/30 disabled:border-white/[0.05] disabled:bg-[#141414]'
-              : 'border-white/[0.1] bg-[#171717] text-white focus:border-white/30 disabled:bg-[#141414]',
+              ? 'border-white/[0.08] bg-[#141414] text-white shadow-none focus:border-white/30 focus:ring-white/20 disabled:border-white/[0.05] disabled:bg-[#141414]'
+              : 'border-neutral-200/95 bg-white/95 text-neutral-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_1px_2px_rgba(15,23,42,0.05)] focus:border-neutral-300 focus:ring-neutral-400/30 disabled:cursor-not-allowed disabled:bg-neutral-100/85 disabled:text-neutral-500',
             disabled && 'cursor-not-allowed',
           )}
         >
           {children}
         </select>
         <span
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400"
+          className={cn(
+            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px]',
+            theme === 'dark' ? 'text-neutral-400' : 'text-neutral-500',
+          )}
           aria-hidden
         >
           ▾
@@ -274,16 +322,16 @@ function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
 
   let title = 'Cupos disponibles'
   let body = trimmed || 'Hay lugar para nuevas consultas.'
-  let tone = 'border-white/20 bg-white/[0.06]'
+  let tone = 'border-white/[0.26] bg-white/[0.11]'
 
   if (!slotsOpen) {
     title = 'Cupos cerrados por ahora'
     body = trimmed || 'En este momento no estamos tomando nuevas inscripciones. Podés igual dejar tus datos y te contactamos cuando haya lugar.'
-    tone = 'border-white/25 bg-black/35'
+    tone = 'border-white/[0.28] bg-black/40'
   } else if (typeof slotsRemaining === 'number') {
     if (slotsRemaining <= 0 && !trimmed) {
       body = 'No quedan cupos numerados disponibles.'
-      tone = 'border-amber-500/35 bg-black/35'
+      tone = 'border-amber-400/45 bg-black/40'
     } else if (slotsRemaining <= 3) {
       title = slotsRemaining <= 0 ? 'Sin cupos numerados' : 'Quedan pocos lugares'
       body = trimmed || (
@@ -291,16 +339,22 @@ function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
           ? `Aproximadamente ${slotsRemaining} cupo${slotsRemaining === 1 ? '' : 's'} disponibles.`
           : 'Consultanos por lista de espera.'
       )
-      tone = 'border-white/18 bg-white/[0.05]'
+      tone = 'border-white/[0.24] bg-white/[0.09]'
     } else if (trimmed) {
       body = trimmed
     }
   }
 
   return (
-    <div className={`mb-4 rounded-2xl border px-4 py-3 text-left backdrop-blur-sm ${tone}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">{title}</p>
-      <p className="mt-1 text-sm leading-relaxed text-white/90">{body}</p>
+    <div
+      className={`mb-4 flex min-h-[2.5rem] items-center gap-2 overflow-hidden rounded-2xl border px-3 py-2 backdrop-blur-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_8px_28px_rgba(0,0,0,0.22)] ${tone}`}
+      title={`${title} — ${body}`}
+    >
+      <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-white/88">{title}</span>
+      <span className="shrink-0 text-white/35" aria-hidden>
+        ·
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight text-white/95">{body}</span>
     </div>
   )
 }
@@ -745,7 +799,14 @@ function LeftBrandPanel({
             </div>
 
             {/* Superficie única: opciones + planes sin doble marco */}
-            <div className="relative z-[1] rounded-2xl border border-white/[0.07] bg-black/38 p-4 shadow-none backdrop-blur-md sm:p-[1.1rem]">
+            <div
+              className={cn(
+                'relative z-[1] rounded-2xl border p-4 backdrop-blur-md sm:p-[1.1rem]',
+                theme === 'light'
+                  ? 'border-white/45 bg-white/28 shadow-[0_10px_40px_rgba(15,23,42,0.11),inset_0_1px_0_rgba(255,255,255,0.72)]'
+                  : 'border-white/[0.07] bg-black/38 shadow-none',
+              )}
+            >
               <div className="grid grid-cols-1 gap-2">
                   <IntakeMinimalSelect
                     theme={theme}
@@ -791,7 +852,13 @@ function LeftBrandPanel({
 
               {plansVisible.length > 0 ? (
                 <>
-                  <div className="my-4 border-t border-white/[0.055] pt-1" aria-hidden />
+                  <div
+                    className={cn(
+                      'my-4 border-t pt-1',
+                      theme === 'light' ? 'border-neutral-200/45' : 'border-white/[0.055]',
+                    )}
+                    aria-hidden
+                  />
                   <IntakeChangeablePlansSection
                     title="Tu plan"
                     footerText="Podés cancelar cuando quieras."

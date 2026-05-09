@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ArrowLeft, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { FormSection } from '@/components/ui/FormSection'
 import { Input, Textarea } from '@/components/ui/Input'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -123,6 +122,29 @@ function parseItems(text: string) {
 }
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  return (
+    <Card className="overflow-hidden p-0 shadow-sm">
+      <div className="border-b border-surface-border bg-surface-elevated/45 px-4 py-3 sm:px-5">
+        <h2 className="text-base font-semibold tracking-tight text-ink-primary">{title}</h2>
+        {subtitle ? (
+          <p className="mt-1 max-w-prose text-xs leading-snug text-ink-secondary">{subtitle}</p>
+        ) : null}
+      </div>
+      <div className="space-y-4 p-4 sm:p-5">{children}</div>
+    </Card>
+  )
+}
+
+function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-surface-border bg-surface-card/60 p-4 dark:bg-surface-card/40">
+      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-muted">{title}</h3>
+      <div className="space-y-4">{children}</div>
+    </div>
+  )
+}
 
 function newPlanDraft(sortOrder: number): EditableWebPlan {
   const slug = `plan-${Date.now().toString(36)}`
@@ -517,280 +539,323 @@ export function WebPlansSettingsPage() {
         actions={<Button size="sm" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/settings')}>Configuración</Button>}
       />
 
-      <div className="px-4 lg:px-6 py-6 space-y-4">
-        <Card className="p-4 space-y-4">
-          <FormSection title="Fotos del selector de profesional (/form)">
-            <p className="text-xs text-ink-secondary">
-              Podés <strong>subir</strong> una imagen por línea (se guarda en Storage y escribe la URL pública debajo). También pegás cualquier HTTPS.
-              Migración necesaria para subir desde acá: bucket `web-intake-catalog` en Supabase.
-            </p>
-            <input
-              ref={soloFileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => void uploadSegmentHero('solo', e.target.files?.length ? e.target.files[0] : undefined)}
-            />
-            <input
-              ref={crisFileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => void uploadSegmentHero('with_cris', e.target.files?.length ? e.target.files[0] : undefined)}
-            />
-            <input
-              ref={fullFileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => void uploadSegmentHero('full', e.target.files?.length ? e.target.files[0] : undefined)}
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button" size="sm" variant="outline"
-                loading={soloUploadBusy} icon={<Upload className="h-4 w-4" />}
-                disabled={!catalogUserId} onClick={() => soloFileRef.current?.click()}
-              >
-                Subir · Entrenador
-              </Button>
-              <Button
-                type="button" size="sm" variant="outline"
-                loading={crisUploadBusy} icon={<Upload className="h-4 w-4" />}
-                disabled={!catalogUserId} onClick={() => crisFileRef.current?.click()}
-              >
-                Subir · Nutricionista
-              </Button>
-              <Button
-                type="button" size="sm" variant="outline"
-                loading={fullUploadBusy} icon={<Upload className="h-4 w-4" />}
-                disabled={!catalogUserId} onClick={() => fullFileRef.current?.click()}
-              >
-                Subir · Full
-              </Button>
-            </div>
-            <Input
-              label="URL imagen · Entrenador (Tomás Ferster)"
-              placeholder="https://..."
-              value={soloSegmentImg}
-              maxLength={LIMITS.segmentImgUrl}
-              onChange={(e) => setSoloSegmentImg(e.target.value)}
-            />
-            <Input
-              label="URL imagen · Nutricionista (Cristian Crossetto)"
-              placeholder="https://..."
-              value={withCrisSegmentImg}
-              maxLength={LIMITS.segmentImgUrl}
-              onChange={(e) => setWithCrisSegmentImg(e.target.value)}
-            />
-            <Input
-              label="URL imagen · Full (Tomás + Cristian)"
-              placeholder="https://..."
-              value={fullSegmentImg}
-              maxLength={LIMITS.segmentImgUrl}
-              onChange={(e) => setFullSegmentImg(e.target.value)}
-            />
-            <Button type="button" size="sm" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
-              Guardar fotos del selector
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 lg:px-6">
+        <div className="rounded-xl border border-surface-border bg-surface-elevated/40 px-4 py-3">
+          <p className="text-sm leading-relaxed text-ink-secondary">
+            <span className="font-semibold text-ink-primary">Qué editás acá y qué pasa en /form</span>
+            <br />
+            Arriba: fotos del selector, cupos y testimonios (configuración general). Abajo: un bloque por cada plan — debe
+            coincidir con la <strong className="text-ink-primary">modalidad</strong> (solo entreno / solo nutrición / full),
+            los <strong className="text-ink-primary">precios</strong> mensual y anual del toggle, y el texto de «Incluye» en
+            la card del formulario.
+          </p>
+        </div>
+
+        <SectionCard
+          title="1 · Fotos del selector"
+          subtitle="Avatares al elegir entrenador o nutricionista. Subí JPG/PNG/WebP (bucket web-intake-catalog) o pegá URL HTTPS."
+        >
+          <input
+            ref={soloFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => void uploadSegmentHero('solo', e.target.files?.length ? e.target.files[0] : undefined)}
+          />
+          <input
+            ref={crisFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => void uploadSegmentHero('with_cris', e.target.files?.length ? e.target.files[0] : undefined)}
+          />
+          <input
+            ref={fullFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => void uploadSegmentHero('full', e.target.files?.length ? e.target.files[0] : undefined)}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              loading={soloUploadBusy}
+              icon={<Upload className="h-4 w-4" />}
+              disabled={!catalogUserId}
+              onClick={() => soloFileRef.current?.click()}
+            >
+              Subir · Entrenador
             </Button>
-          </FormSection>
-          <FormSection title="Cupos e inscripciones (/form)">
-            <p className="text-xs text-ink-secondary">
-              Activá o desactivá si hay lugar para nuevas personas. El mensaje y el número se muestran en el formulario público
-              para alinear expectativas con Cris.
-            </p>
-            <label className="flex cursor-pointer items-center gap-2.5 py-2 text-sm text-ink-secondary">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-surface-border accent-brand-primary"
-                checked={intakeSlotsOpen}
-                onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
-              />
-              Hay cupos / aceptamos consultas nuevas
-            </label>
-            <Input
-              label="Cupos restantes (opcional, número entero)"
-              placeholder="Ej. 3 · vacío = no mostrar número"
-              value={intakeSlotsRemaining}
-              onChange={(e) => setIntakeSlotsRemaining(e.target.value.replace(/\D/g, ''))}
-            />
-            <Textarea
-              label="Mensaje público corto"
-              placeholder='Ej. "Quedan pocos lugares en marzo" o "Lista de espera"'
-              rows={3}
-              maxLength={LIMITS.slotsMsg}
-              value={intakeSlotsMessage}
-              hint={`${intakeSlotsMessage.length}/${LIMITS.slotsMsg}`}
-              onChange={(e) => setIntakeSlotsMessage(e.target.value)}
-            />
-            <Button type="button" size="sm" variant="secondary" onClick={() => void handleSaveIntakeSlots()} loading={assetsSaving}>
-              Guardar cupos
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              loading={crisUploadBusy}
+              icon={<Upload className="h-4 w-4" />}
+              disabled={!catalogUserId}
+              onClick={() => crisFileRef.current?.click()}
+            >
+              Subir · Nutricionista
             </Button>
-          </FormSection>
-          <FormSection title="Videos testimonios (/form)">
-            <p className="text-xs text-ink-secondary">
-              Pegá una URL por línea (YouTube/Vimeo o link directo `.mp4`). Se mostrará una grilla de videos en el formulario público.
-            </p>
-            <Textarea
-              label="URLs (una por línea)"
-              rows={5}
-              placeholder={'https://...\nhttps://...'}
-              value={testimonialUrlsText}
-              onChange={(e) => setTestimonialUrlsText(e.target.value)}
-            />
-            <Button type="button" size="sm" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
-              Guardar testimonios
-            </Button>
-          </FormSection>
-          <hr className="border-surface-border" />
-          <div>
-            <p className="text-xs text-ink-secondary mb-4">
-              Límites: título {LIMITS.title}, precios mensual {LIMITS.price} · anual {LIMITS.priceYearly} (opcional), descripción corta {LIMITS.short}, detalle {LIMITS.intro},
-              etiqueta opcional de card {LIMITS.badge}, ítem de lista {LIMITS.item}. Podés dar de alta nuevos planes; el slug
-              del borrador sólo editable hasta el primer guardado.
-            </p>
-            <Button type="button" size="sm" variant="outline" icon={<Plus className="h-4 w-4" />} onClick={addPlan}>
-              Agregar plan
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              loading={fullUploadBusy}
+              icon={<Upload className="h-4 w-4" />}
+              disabled={!catalogUserId}
+              onClick={() => fullFileRef.current?.click()}
+            >
+              Subir · Full
             </Button>
           </div>
-        </Card>
+          <Input
+            label="URL · Entrenador"
+            placeholder="https://..."
+            value={soloSegmentImg}
+            maxLength={LIMITS.segmentImgUrl}
+            onChange={(e) => setSoloSegmentImg(e.target.value)}
+          />
+          <Input
+            label="URL · Nutricionista"
+            placeholder="https://..."
+            value={withCrisSegmentImg}
+            maxLength={LIMITS.segmentImgUrl}
+            onChange={(e) => setWithCrisSegmentImg(e.target.value)}
+          />
+          <Input
+            label="URL · Full (ambos)"
+            placeholder="https://..."
+            value={fullSegmentImg}
+            maxLength={LIMITS.segmentImgUrl}
+            onChange={(e) => setFullSegmentImg(e.target.value)}
+          />
+          <Button type="button" size="sm" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
+            Guardar fotos
+          </Button>
+        </SectionCard>
+
+        <SectionCard
+          title="2 · Cupos"
+          subtitle="Misma barra compacta de «Cupos disponibles» que arriba del formulario. Número opcional."
+        >
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-surface-border accent-brand-primary"
+              checked={intakeSlotsOpen}
+              onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
+            />
+            Aceptamos consultas nuevas
+          </label>
+          <Input
+            label="Cupos restantes (opcional)"
+            placeholder="Vacío = no mostrar número"
+            value={intakeSlotsRemaining}
+            onChange={(e) => setIntakeSlotsRemaining(e.target.value.replace(/\D/g, ''))}
+          />
+          <Textarea
+            label="Mensaje (una línea ideal)"
+            placeholder='Ej. "Hay lugar para nuevas consultas."'
+            rows={2}
+            maxLength={LIMITS.slotsMsg}
+            value={intakeSlotsMessage}
+            hint={`${intakeSlotsMessage.length}/${LIMITS.slotsMsg}`}
+            onChange={(e) => setIntakeSlotsMessage(e.target.value)}
+          />
+          <Button type="button" size="sm" variant="secondary" onClick={() => void handleSaveIntakeSlots()} loading={assetsSaving}>
+            Guardar cupos
+          </Button>
+        </SectionCard>
+
+        <SectionCard title="3 · Testimonios en video" subtitle="Una URL por línea. Grilla en /form.">
+          <Textarea
+            label="URLs"
+            rows={5}
+            placeholder={'https://...\nhttps://...'}
+            value={testimonialUrlsText}
+            onChange={(e) => setTestimonialUrlsText(e.target.value)}
+          />
+          <Button type="button" size="sm" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
+            Guardar testimonios
+          </Button>
+        </SectionCard>
+
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/35 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <details className="min-w-0 text-sm">
+            <summary className="cursor-pointer font-medium text-ink-primary hover:underline">
+              Límites de caracteres y reglas del slug
+            </summary>
+            <p className="mt-2 max-w-prose text-xs leading-relaxed text-ink-secondary">
+              Título {LIMITS.title}, precio {LIMITS.price}, anual {LIMITS.priceYearly} (opcional), descripción corta {LIMITS.short},
+              detalle {LIMITS.intro}, etiqueta {LIMITS.badge}, credencial {LIMITS.credentialLine}, ítem {LIMITS.item}. En planes
+              nuevos el slug solo se edita hasta el primer «Guardar planes».
+            </p>
+          </details>
+          <Button type="button" size="sm" variant="outline" icon={<Plus className="h-4 w-4" />} onClick={addPlan} className="shrink-0">
+            Agregar plan
+          </Button>
+        </div>
 
         {loading ? (
           <Card className="p-6 text-sm text-ink-secondary">Cargando planes...</Card>
         ) : (
           sortedPlans.map((plan, idx) => (
-            <Card key={plan.slug} className="p-4">
-              <FormSection title={`Plan ${idx + 1}`}>
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-[200px] flex-1">
-                    <Input
-                      label="Slug (URL / identificador)"
-                      value={plan.slug}
-                      disabled={!draftSlugs.includes(plan.slug)}
-                      hint={
-                        draftSlugs.includes(plan.slug)
-                          ? 'Editable solo en borrador nuevo. Ej. plan-consulta-nutricion'
-                          : 'Guardado en la base — no editable acá.'
-                      }
-                      onChange={(e) => {
-                        if (draftSlugs.includes(plan.slug)) onDraftSlugChange(plan.slug, e.target.value)
-                      }}
-                      onBlur={() => finalizeDraftSlug(plan.slug)}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  {draftSlugs.includes(plan.slug) ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 text-status-expired border-status-expired/40"
-                      icon={<Trash2 className="h-4 w-4" />}
-                      onClick={() => removeDraft(plan.slug)}
-                    >
-                      Quitar borrador
-                    </Button>
-                  ) : null}
+            <Card key={plan.slug} className="overflow-hidden p-0 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-elevated/45 px-4 py-3 sm:px-5">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-ink-primary">
+                    Plan {idx + 1}
+                    <span className="ml-1.5 font-normal text-ink-secondary">· {plan.title}</span>
+                  </h2>
+                  <p className="mt-0.5 font-mono text-xs text-ink-muted">{plan.slug}</p>
                 </div>
-                <label className="flex cursor-pointer items-center gap-2.5 pb-4 text-sm text-ink-secondary">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-surface-border accent-brand-primary"
-                    checked={plan.is_active}
-                    onChange={(e) => updatePlan(plan.slug, { is_active: e.target.checked })}
+                {draftSlugs.includes(plan.slug) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-status-expired/40 text-status-expired"
+                    icon={<Trash2 className="h-4 w-4" />}
+                    onClick={() => removeDraft(plan.slug)}
+                  >
+                    Quitar borrador
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className="space-y-5 p-4 sm:p-5">
+                <FieldGroup title="Identificación y modalidad">
+                  <div className="flex flex-wrap items-start gap-3">
+                    <div className="min-w-[min(100%,260px)] flex-1">
+                      <Input
+                        label="Slug (identificador en URL)"
+                        value={plan.slug}
+                        disabled={!draftSlugs.includes(plan.slug)}
+                        hint={draftSlugs.includes(plan.slug) ? 'Solo en borrador nuevo' : 'Fijado al guardar'}
+                        onChange={(e) => {
+                          if (draftSlugs.includes(plan.slug)) onDraftSlugChange(plan.slug, e.target.value)
+                        }}
+                        onBlur={() => finalizeDraftSlug(plan.slug)}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-surface-border accent-brand-primary"
+                      checked={plan.is_active}
+                      onChange={(e) => updatePlan(plan.slug, { is_active: e.target.checked })}
+                    />
+                    Plan activo (visible en el catálogo del /form)
+                  </label>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-ink-secondary">Modalidad (igual que el desplegable del /form)</label>
+                    <select
+                      value={plan.catalog_segment}
+                      onChange={(e) =>
+                        updatePlan(plan.slug, { catalog_segment: e.target.value as WebPlanCatalogSegment })
+                      }
+                      className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
+                    >
+                      <option value="solo">Solo entrenamiento</option>
+                      <option value="with_cris">Solo nutrición</option>
+                      <option value="full">Entreno + nutrición</option>
+                    </select>
+                    <p className="mt-1.5 text-[11px] text-ink-muted">
+                      El plan aparece cuando el visitante elige esa modalidad. El orden en pantalla lo define el orden de esta lista.
+                    </p>
+                  </div>
+                </FieldGroup>
+
+                <FieldGroup title="Card del plan (badge y credencial)">
+                  <Input
+                    label="Etiqueta en la card (opcional)"
+                    value={plan.display_badge ?? ''}
+                    placeholder="Ej. Plan deportista"
+                    maxLength={LIMITS.badge}
+                    hint={`${(plan.display_badge ?? '').length}/${LIMITS.badge}`}
+                    onChange={(e) => updatePlan(plan.slug, { display_badge: e.target.value || null })}
                   />
-                  Visible en el formulario web (plan activo)
-                </label>
-                <label className="block text-xs font-medium text-ink-secondary mb-1">Catálogo público</label>
-                <select
-                  value={plan.catalog_segment}
-                  onChange={(e) =>
-                    updatePlan(plan.slug, { catalog_segment: e.target.value as WebPlanCatalogSegment })
-                  }
-                  className="mb-2 w-full max-w-xs rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
-                >
-                  <option value="solo">Solo entrenamiento (1.ª tarjeta)</option>
-                  <option value="with_cris">Solo nutrición (2.ª tarjeta)</option>
-                  <option value="full">Entrenamiento + nutrición (3.ª tarjeta Full)</option>
-                </select>
-                <p className="mb-4 max-w-xl text-[11px] text-ink-muted">
-                  Para otro profesional o texto especial en la tarjeta, usá «Credencial visible» abajo (reemplaza el texto por
-                  defecto del segmento en el detalle del plan).
-                </p>
-                <Input
-                  label="Etiqueta en la card (opcional)"
-                  value={plan.display_badge ?? ''}
-                  placeholder="Ej. Nutrición, Consulta inicial…"
-                  maxLength={LIMITS.badge}
-                  hint={`Vacío → se deduce por el slug conocido (${(plan.display_badge ?? '').length}/${LIMITS.badge})`}
-                  onChange={(e) => updatePlan(plan.slug, { display_badge: e.target.value || null })}
-                />
-                <Textarea
-                  label="Credencial visible — texto libre (opcional)"
-                  placeholder="Vacío → se usa la credencial estándar del segmento en /form."
-                  rows={3}
-                  maxLength={LIMITS.credentialLine}
-                  value={plan.credential_line_override ?? ''}
-                  hint={`Ej. nombre y título de otra profesional · ${(plan.credential_line_override ?? '').length}/${LIMITS.credentialLine}`}
-                  onChange={(e) => updatePlan(plan.slug, { credential_line_override: e.target.value || null })}
-                />
-                <Input
-                  label="Título"
-                  value={plan.title}
-                  maxLength={LIMITS.title}
-                  hint={`${plan.title.length}/${LIMITS.title}`}
-                  onChange={(e) => updatePlan(plan.slug, { title: e.target.value })}
-                />
-                <Input
-                  label="Precio (mensual)"
-                  value={plan.price_label}
-                  maxLength={LIMITS.price}
-                  hint={`${plan.price_label.length}/${LIMITS.price}`}
-                  onChange={(e) => updatePlan(plan.slug, { price_label: e.target.value })}
-                />
-                <Input
-                  label="Precio anual (opcional)"
-                  value={plan.price_yearly_label ?? ''}
-                  placeholder="Ej. $600.000 · vacío = valor referencial 10× mensual en el formulario"
-                  maxLength={LIMITS.priceYearly}
-                  hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly}`}
-                  onChange={(e) =>
-                    updatePlan(plan.slug, { price_yearly_label: e.target.value.trim() ? e.target.value : null })
-                  }
-                />
-                <Textarea
-                  label="Descripción corta (card)"
-                  value={plan.short_description}
-                  maxLength={LIMITS.short}
-                  hint={`${plan.short_description.length}/${LIMITS.short}`}
-                  onChange={(e) => updatePlan(plan.slug, { short_description: e.target.value })}
-                />
-                <Textarea
-                  label="Detalle principal"
-                  value={plan.intro_text}
-                  maxLength={LIMITS.intro}
-                  hint={`${plan.intro_text.length}/${LIMITS.intro}`}
-                  onChange={(e) => updatePlan(plan.slug, { intro_text: e.target.value })}
-                />
-                <Textarea
-                  label="Incluye (una línea por ítem)"
-                  value={toMultiline(plan.includes_items)}
-                  hint="Cada línea: máximo 180 caracteres."
-                  onChange={(e) => updatePlan(plan.slug, { includes_items: parseItems(e.target.value) })}
-                />
-                <Textarea
-                  label="De regalo (una línea por ítem)"
-                  value={toMultiline(plan.gifts_items)}
-                  hint="Cada línea: máximo 180 caracteres."
-                  onChange={(e) => updatePlan(plan.slug, { gifts_items: parseItems(e.target.value) })}
-                />
-              </FormSection>
+                  <Textarea
+                    label="Credencial / subtítulo (opcional)"
+                    placeholder="Si está vacío, se usa el texto por defecto del segmento al abrir el detalle."
+                    rows={3}
+                    maxLength={LIMITS.credentialLine}
+                    value={plan.credential_line_override ?? ''}
+                    hint={`${(plan.credential_line_override ?? '').length}/${LIMITS.credentialLine}`}
+                    onChange={(e) => updatePlan(plan.slug, { credential_line_override: e.target.value || null })}
+                  />
+                </FieldGroup>
+
+                <FieldGroup title="Título y precios (toggle Mensual / Anual en /form)">
+                  <Input
+                    label="Título"
+                    value={plan.title}
+                    maxLength={LIMITS.title}
+                    hint={`${plan.title.length}/${LIMITS.title}`}
+                    onChange={(e) => updatePlan(plan.slug, { title: e.target.value })}
+                  />
+                  <Input
+                    label="Precio mensual"
+                    value={plan.price_label}
+                    maxLength={LIMITS.price}
+                    hint={`${plan.price_label.length}/${LIMITS.price}`}
+                    onChange={(e) => updatePlan(plan.slug, { price_label: e.target.value })}
+                  />
+                  <Input
+                    label="Precio anual (opcional)"
+                    value={plan.price_yearly_label ?? ''}
+                    placeholder="Vacío → se muestra 10× el mensual"
+                    maxLength={LIMITS.priceYearly}
+                    hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly}`}
+                    onChange={(e) =>
+                      updatePlan(plan.slug, { price_yearly_label: e.target.value.trim() ? e.target.value : null })
+                    }
+                  />
+                </FieldGroup>
+
+                <FieldGroup title="Textos largos (card, detalle, listas)">
+                  <Textarea
+                    label="Descripción corta (vista en card)"
+                    value={plan.short_description}
+                    maxLength={LIMITS.short}
+                    hint={`${plan.short_description.length}/${LIMITS.short}`}
+                    onChange={(e) => updatePlan(plan.slug, { short_description: e.target.value })}
+                  />
+                  <Textarea
+                    label="Detalle al ampliar plan"
+                    value={plan.intro_text}
+                    maxLength={LIMITS.intro}
+                    hint={`${plan.intro_text.length}/${LIMITS.intro}`}
+                    onChange={(e) => updatePlan(plan.slug, { intro_text: e.target.value })}
+                  />
+                  <Textarea
+                    label="Incluye — una línea por ítem"
+                    value={toMultiline(plan.includes_items)}
+                    hint="Máx. 180 caracteres por línea."
+                    onChange={(e) => updatePlan(plan.slug, { includes_items: parseItems(e.target.value) })}
+                  />
+                  <Textarea
+                    label="De regalo — una línea por ítem"
+                    value={toMultiline(plan.gifts_items)}
+                    hint="Máx. 180 caracteres por línea."
+                    onChange={(e) => updatePlan(plan.slug, { gifts_items: parseItems(e.target.value) })}
+                  />
+                </FieldGroup>
+              </div>
             </Card>
           ))
         )}
 
-        <Button icon={<Save className="h-4 w-4" />} onClick={handleSave} loading={saving}>
-          Guardar planes
-        </Button>
+        <div className="border-t border-surface-border pt-2">
+          <Button className="w-full sm:w-auto" icon={<Save className="h-4 w-4" />} onClick={handleSave} loading={saving}>
+            Guardar planes
+          </Button>
+        </div>
       </div>
     </div>
   )
