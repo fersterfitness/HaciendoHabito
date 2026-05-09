@@ -1,9 +1,17 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { NutritionAnamnesisPayloadV1 } from '@/lib/nutrition/anamnesisPayload'
 import { FOOD_FREQUENCY_ITEMS } from '@/lib/nutrition/anamnesisPayload'
+import {
+  trainerCtaAccentTextClassName,
+  trainerCtaFocusBorderClassName,
+  trainerCtaFormAccentClassName,
+} from '@/lib/primaryGradientCtaClasses'
+import { cn } from '@/lib/utils'
 
-const FIELD =
-  'mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary placeholder:text-ink-muted px-3 py-2.5 text-sm focus:outline-none focus:border-brand-primary'
+const FIELD = cn(
+  'mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary placeholder:text-ink-muted px-3 py-2.5 text-sm focus:outline-none',
+  trainerCtaFocusBorderClassName,
+)
 const LABEL = 'block text-xs text-ink-secondary font-medium mb-2'
 
 interface Props {
@@ -12,7 +20,16 @@ interface Props {
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <h4 className="text-sm font-semibold text-brand-primary border-b border-surface-border pb-2 mb-3">{children}</h4>
+  return (
+    <h4
+      className={cn(
+        'mb-3 border-b border-surface-border pb-2 text-sm font-semibold',
+        trainerCtaAccentTextClassName,
+      )}
+    >
+      {children}
+    </h4>
+  )
 }
 
 function TwoCol({ children }: { children: React.ReactNode }) {
@@ -54,7 +71,7 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-ink-muted leading-relaxed border-l-4 border-brand-primary/30 pl-4">
+      <p className="border-l-4 border-[#ff5508]/30 pl-4 text-sm leading-relaxed text-ink-muted">
         Completá el cuestionario para complementar la consulta inicial. Coincide con el formato de planificación nutricional
         habitual.
       </p>
@@ -169,7 +186,7 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
               name="act"
               checked={radioActividad === 'si'}
               onChange={() => patch({ actividadFisicaAfirmativo: 'si' })}
-              className="accent-brand-primary"
+              className={trainerCtaFormAccentClassName}
             />
             Sí
           </label>
@@ -179,7 +196,7 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
               name="act"
               checked={radioActividad === 'no'}
               onChange={() => patch({ actividadFisicaAfirmativo: 'no' })}
-              className="accent-brand-primary"
+              className={trainerCtaFormAccentClassName}
             />
             No
           </label>
@@ -313,7 +330,7 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
               {value.foodFrequency
                 .filter((row) => !(FOOD_FREQUENCY_ITEMS as readonly string[]).includes(row.food))
                 .map((row, i) => (
-                  <tr key={`extra-${row.food}-${i}`} className="border-b border-surface-border/70 bg-brand-primary/5">
+                  <tr key={`extra-${row.food}-${i}`} className="border-b border-surface-border/70 bg-[#ff5508]/[0.06]">
                     <td className="px-3 py-1.5">{row.food}</td>
                     <td className="px-3 py-1">
                       <input

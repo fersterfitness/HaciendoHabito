@@ -68,6 +68,7 @@ import type {
   NutritionPlanningWorkbookTemplate,
   Student,
 } from '@/types/database'
+import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn, formatDate } from '@/lib/utils'
 import {
   orphanLibraryDraftLibIds,
@@ -1245,7 +1246,7 @@ export function NutritionPlanningPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Spinner />
+        <Spinner accent="trainerCta" />
       </div>
     )
   }
@@ -1259,7 +1260,7 @@ export function NutritionPlanningPage() {
             {/* Save status */}
             <span className="hidden lg:flex items-center gap-1 text-[11px] text-ink-muted whitespace-nowrap select-none">
               {saveState === 'saving' ? (
-                <><Loader2 className="h-3 w-3 animate-spin" aria-hidden />Guardando…</>
+                <><Loader2 className={cn('h-3 w-3 animate-spin', trainerCtaAccentTextClassName)} aria-hidden />Guardando…</>
               ) : saveState === 'dirty' ? (
                 'Guardando…'
               ) : workbookUpdatedAt ? (
@@ -2501,7 +2502,7 @@ export function NutritionPlanningPage() {
 
           {!libraryHydrated ? (
             <div className="flex justify-center py-10">
-              <Spinner />
+              <Spinner accent="trainerCta" />
             </div>
           ) : libraryFoods.length === 0 ? (
             <div className="px-4 py-6 text-sm text-ink-secondary space-y-2 border-t border-surface-border/80 bg-surface-muted/20">
@@ -3045,7 +3046,7 @@ export function NutritionPlanningPage() {
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
               {libraryRefreshing ? (
                 <div className="flex justify-center py-12">
-                  <Spinner />
+                  <Spinner accent="trainerCta" />
                 </div>
               ) : libraryFoods.length === 0 ? (
                 <p className="text-sm text-ink-muted leading-relaxed">

@@ -8,6 +8,8 @@ import {
   normalizeWeeklyGrid,
   removeMealRowAt,
 } from '@/lib/nutrition/weeklyPlanGrid'
+import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
+import { cn } from '@/lib/utils'
 
 interface Props {
   mergeWeekends: boolean
@@ -43,7 +45,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
       <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-ink-secondary">
         <input
           type="checkbox"
-          className="rounded border-surface-inputBorder accent-brand-primary"
+          className={cn('rounded border-surface-inputBorder', trainerCtaFormAccentClassName)}
           checked={mergeWeekends}
           onChange={(e) => onMergeWeekendsChange(e.target.checked)}
         />

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
+import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { formatDate, daysUntil, cn } from '@/lib/utils'
 import { ROUTINE_STATUSES } from '@/lib/constants'
 import {
@@ -1477,7 +1478,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                         return n
                       })
                     }}
-                    className="accent-brand-primary"
+                    className={trainerCtaFormAccentClassName}
                   />
                   {d.day_name}
                 </label>

@@ -113,7 +113,7 @@ export function NutritionPage() {
 
         {loading ? (
           <div className="flex justify-center py-14">
-            <Spinner size="lg" />
+            <Spinner size="lg" accent="trainerCta" />
           </div>
         ) : filteredRows.length === 0 ? (
           <EmptyState

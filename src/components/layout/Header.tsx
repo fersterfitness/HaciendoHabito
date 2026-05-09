@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
+import {
+  trainerCtaAccentTextClassName,
+  trainerCtaSolidBgClassName,
+} from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
@@ -77,9 +81,9 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
           {theme === 'dark' ? (
-            <Sun className="h-4 w-4" />
+            <Sun className={cn('h-4 w-4', trainerCtaAccentTextClassName)} aria-hidden />
           ) : (
-            <Moon className="h-4 w-4" />
+            <Moon className={cn('h-4 w-4', trainerCtaAccentTextClassName)} aria-hidden />
           )}
         </button>
 
@@ -89,7 +93,12 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-brand-primary rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+            <span
+              className={cn(
+                'absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white',
+                trainerCtaSolidBgClassName,
+              )}
+            >
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}

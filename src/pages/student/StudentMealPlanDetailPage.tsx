@@ -80,7 +80,7 @@ export function StudentMealPlanDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Spinner />
+        <Spinner accent="trainerCta" />
       </div>
     )
   }

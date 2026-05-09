@@ -1,4 +1,5 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
+import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
@@ -19,7 +20,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             {label}
-            {props.required && <span className="text-brand-primary ml-1">*</span>}
+            {props.required && (
+              <span className={cn('ml-1', trainerCtaAccentTextClassName)}>*</span>
+            )}
           </label>
         )}
         <div className="relative">
@@ -75,7 +78,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             {label}
-            {props.required && <span className="text-brand-primary ml-1">*</span>}
+            {props.required && (
+              <span className={cn('ml-1', trainerCtaAccentTextClassName)}>*</span>
+            )}
           </label>
         )}
         <textarea
@@ -120,7 +125,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             {label}
-            {props.required && <span className="text-brand-primary ml-1">*</span>}
+            {props.required && (
+              <span className={cn('ml-1', trainerCtaAccentTextClassName)}>*</span>
+            )}
           </label>
         )}
         <div className="relative">

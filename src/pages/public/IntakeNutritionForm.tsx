@@ -97,7 +97,12 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
 
   async function goNext() {
     const fields = STEP_FIELDS[step]
-    const ok = await trigger(fields.length ? fields : undefined, { shouldFocus: true })
+    // Pasos sin lista explícita: avanzar sin `trigger(undefined)` — eso validaría TODO el schema y bloquearía al fallar campos de pasos posteriores.
+    if (fields.length === 0) {
+      setStep((s) => Math.min(s + 1, STEP_TITLES.length - 1))
+      return
+    }
+    const ok = await trigger(fields, { shouldFocus: true })
     if (ok) setStep((s) => Math.min(s + 1, STEP_TITLES.length - 1))
   }
 
@@ -206,11 +211,23 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
         ))}
       </div>
       {/* Progress bar */}
-      <div className="mb-4 h-0.5 rounded-full bg-surface-elevated overflow-hidden">
+      <div className="mb-4 flex items-center gap-2">
         <div
-          className="h-full rounded-full bg-zinc-500 transition-all duration-500 dark:bg-zinc-400"
-          style={{ width: `${((step + 1) / STEP_TITLES.length) * 100}%` }}
-        />
+          className="h-0.5 min-h-[2px] flex-1 overflow-hidden rounded-full bg-surface-border/80 dark:bg-zinc-700/80"
+          role="progressbar"
+          aria-valuenow={Math.round(((step + 1) / STEP_TITLES.length) * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Progreso del cuestionario"
+        >
+          <div
+            className="h-full rounded-full bg-brand-primary transition-[width] duration-500 ease-out"
+            style={{ width: `${((step + 1) / STEP_TITLES.length) * 100}%` }}
+          />
+        </div>
+        <span className="shrink-0 text-[8px] font-semibold tabular-nums leading-none text-brand-primary sm:text-[9px]">
+          {Math.round(((step + 1) / STEP_TITLES.length) * 100)}%
+        </span>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">

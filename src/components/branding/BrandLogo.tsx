@@ -7,7 +7,7 @@ type BrandLogoSize = 'sm' | 'md' | 'lg'
 const box: Record<BrandLogoSize, string> = {
   sm: 'h-[3.25rem] w-[3.25rem]',
   md: 'h-16 w-16',
-  lg: 'h-[13rem] w-[13rem] sm:h-[16rem] sm:w-[16rem]',
+  lg: 'h-[min(22rem,92vw)] w-[min(22rem,92vw)] sm:h-[28rem] sm:w-[28rem]',
 }
 
 /** Rail: sombra más marcada + leve elevación en un ícono chico. */

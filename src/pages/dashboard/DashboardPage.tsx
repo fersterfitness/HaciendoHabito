@@ -450,7 +450,7 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
             <span className={cn(
               'text-[9px] font-medium tabular-nums',
               i === 0 ? 'text-ink-muted/50' : '',
-              i > 0 && m.changePctCombinedNet > 0 && 'text-emerald-600/90 dark:text-emerald-400/90',
+              i > 0 && m.changePctCombinedNet > 0 && 'text-brand-primary',
               i > 0 && m.changePctCombinedNet < 0 && 'text-status-expired',
               i > 0 && m.changePctCombinedNet === 0 && 'text-ink-muted/50',
             )}
@@ -1099,7 +1099,7 @@ export function DashboardPage() {
                   {incomeDelta !== 0 ? (
                     <span className={cn(
                       'inline-flex items-center gap-1 text-xs font-semibold',
-                      incomeDelta > 0 ? 'text-emerald-500' : 'text-status-expired',
+                      incomeDelta > 0 ? 'text-brand-primary' : 'text-status-expired',
                     )}>
                       {incomeDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {incomeDelta > 0 ? '+' : ''}{incomeDelta}%
@@ -1148,7 +1148,7 @@ export function DashboardPage() {
                   {incomeDelta !== 0 ? (
                     <span className={cn(
                       'inline-flex items-center gap-1 text-xs font-semibold',
-                      incomeDelta > 0 ? 'text-emerald-500' : 'text-status-expired',
+                      incomeDelta > 0 ? 'text-brand-primary' : 'text-status-expired',
                     )}>
                       {incomeDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {incomeDelta > 0 ? '+' : ''}{incomeDelta}%
@@ -1192,7 +1192,7 @@ export function DashboardPage() {
                         {expenseChartModel.ambitoCount === 1 ? 'ámbito' : 'ámbitos'}
                       </span>
                       {pct !== 0 ? (
-                        <span className={cn('inline-flex items-center gap-1 font-medium tabular-nums', pct > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
+                        <span className={cn('inline-flex items-center gap-1 font-medium tabular-nums', pct > 0 ? 'text-brand-primary' : 'text-status-expired')}>
                           {pct > 0 ? <TrendingUp className="h-3.5 w-3.5 opacity-70" /> : <TrendingDown className="h-3.5 w-3.5 opacity-70" />}
                           {pct > 0 ? '+' : ''}{pct}% neto combinado vs mes anterior
                         </span>

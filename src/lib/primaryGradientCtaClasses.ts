@@ -1,5 +1,26 @@
 import { cn } from '@/lib/utils'
 
+/** Texto/icono alineado al CTA naranja (entrenador); no usa `--brand-primary` del rol nutricionista. */
+export const trainerCtaAccentTextClassName =
+  'text-[#ff5508] dark:text-[#ffa065]'
+
+/** Badge / pastilla sólida tipo marca naranja (p. ej. contador en campana). */
+export const trainerCtaSolidBgClassName = 'bg-[#ff4800] dark:bg-[#f04a00]'
+
+/** `accent-color` en checkboxes/radios alineado al CTA entrenador. */
+export const trainerCtaFormAccentClassName =
+  'accent-[#ff5508] dark:accent-[#ffa065]'
+
+/** Anillo de ítem activo (sidebar) sin `--brand-primary` verde del rol. */
+export const trainerCtaSidebarActiveRingClassName = 'ring-[#ff4800]/35'
+
+/** Borde de foco en inputs “crudos” alineado al CTA naranja. */
+export const trainerCtaFocusBorderClassName =
+  'focus:border-[#ff5508] dark:focus:border-[#ffa065]'
+
+/** Fondo suave tipo item activo (nav móvil, etc.). */
+export const trainerCtaTintBgClassName = 'bg-[#ff5508]/10 dark:bg-[#ff5508]/16'
+
 /** Estilo compartido del CTA naranja (degradé horizontal): Nuevo alumno, Nueva rutina, Nuevo plan, etc. */
 export const primaryGradientCtaClassName = cn(
   'inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold text-white',

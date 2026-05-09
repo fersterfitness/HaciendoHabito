@@ -352,7 +352,7 @@ export function NutritionComparativePage() {
     return (
       <div>
         <Header title="Diagnóstico comparativo" showBack />
-        <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+        <div className="flex justify-center py-16"><Spinner size="lg" accent="trainerCta" /></div>
       </div>
     )
   }

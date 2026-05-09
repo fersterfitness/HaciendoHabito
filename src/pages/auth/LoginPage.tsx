@@ -77,8 +77,8 @@ export function LoginPage() {
 
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <BrandLogo size="lg" className="mx-auto mb-4" />
+        <div className="text-center mb-3">
+          <BrandLogo size="lg" className="mx-auto mb-1" />
           <p className="text-sm text-ink-secondary">Panel de acceso</p>
         </div>
 

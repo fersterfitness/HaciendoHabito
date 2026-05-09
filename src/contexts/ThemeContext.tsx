@@ -32,12 +32,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('hh-theme', theme)
   }, [theme])
 
+  /** Solo nutricionista usa tema verde; admin y entrenador siempre marca naranja (sin `data-role-theme`). */
   useEffect(() => {
     const root = document.documentElement
     root.removeAttribute('data-role-theme')
-    if (role === 'nutritionist') {
-      root.setAttribute('data-role-theme', 'nutritionist')
-    }
+    if (role === 'nutritionist') root.setAttribute('data-role-theme', 'nutritionist')
   }, [role])
 
   function toggleTheme() {

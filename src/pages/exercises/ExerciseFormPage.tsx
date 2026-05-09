@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { slugify } from '@/lib/utils'
+import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
+import { cn, slugify } from '@/lib/utils'
 import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
 import type { MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -254,7 +255,7 @@ export function ExerciseFormPage() {
             <input
               type="checkbox"
               id="is_active"
-              className="accent-brand-primary h-4 w-4"
+              className={cn('h-4 w-4', trainerCtaFormAccentClassName)}
               {...register('is_active')}
             />
             <label htmlFor="is_active" className="text-sm text-ink-secondary cursor-pointer">

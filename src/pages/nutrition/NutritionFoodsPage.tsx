@@ -17,6 +17,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { supabase } from '@/lib/supabase'
+import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
 import { filterFoodCatalogEs, type FoodCatalogItemEs } from '@/lib/nutrition/foodCatalogEs'
@@ -403,7 +404,7 @@ export function NutritionFoodsPage() {
           </p>
           {loading ? (
             <div className="flex justify-center py-10">
-              <Spinner />
+              <Spinner accent="trainerCta" />
             </div>
           ) : rows.length === 0 ? (
             <EmptyState
@@ -742,7 +743,13 @@ export function NutritionFoodsPage() {
                     size="sm"
                     className="border-zinc-200 text-zinc-800 shadow-none hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80"
                     disabled={fdcSearching || fdcQuery.trim().length < 2}
-                    icon={fdcSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    icon={
+                      fdcSearching ? (
+                        <Loader2 className={cn('w-4 h-4 animate-spin', trainerCtaAccentTextClassName)} />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )
+                    }
                     onClick={() => runFdcSearch()}
                   >
                     Buscar
@@ -760,7 +767,7 @@ export function NutritionFoodsPage() {
                         >
                           <span className="line-clamp-2">{h.description}</span>
                           {detailLoadingId === h.fdcId ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            <Loader2 className={cn('w-3.5 h-3.5 shrink-0 animate-spin', trainerCtaAccentTextClassName)} />
                           ) : null}
                         </button>
                       </li>

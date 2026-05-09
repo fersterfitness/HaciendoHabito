@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { getMobileNavItems } from '@/config/navigation'
@@ -46,11 +47,11 @@ function DrawerNavItem({
       className={cn(
         'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
         active
-          ? 'bg-brand-primary/10 text-brand-primary'
+          ? cn(trainerCtaTintBgClassName, trainerCtaAccentTextClassName)
           : 'text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
       )}
     >
-      <Icon className={cn('h-4 w-4 shrink-0', active && 'text-brand-primary')} />
+      <Icon className={cn('h-4 w-4 shrink-0', active && trainerCtaAccentTextClassName)} />
       {label}
     </NavLink>
   )
@@ -101,11 +102,11 @@ export function MobileNav() {
                 className={cn(
                   'flex flex-col items-center gap-1 px-2 py-2 rounded-xl shrink-0 min-w-[56px]',
                   'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
-                  active ? 'text-brand-primary' : 'text-ink-muted hover:text-ink-secondary',
+                  active ? trainerCtaAccentTextClassName : 'text-ink-muted hover:text-ink-secondary',
                 )}
               >
-                <div className={cn('p-1.5 rounded-lg transition-colors', active && 'bg-brand-primary/10')}>
-                  <Icon className={cn('h-4 w-4', active && 'text-brand-primary')} />
+                <div className={cn('p-1.5 rounded-lg transition-colors', active && trainerCtaTintBgClassName)}>
+                  <Icon className={cn('h-4 w-4', active && trainerCtaAccentTextClassName)} />
                 </div>
                 <span className="text-[10px] font-medium leading-none text-center max-w-[4.5rem] truncate">
                   {item.label}
@@ -121,11 +122,11 @@ export function MobileNav() {
             className={cn(
               'flex flex-col items-center gap-1 px-2 py-2 rounded-xl shrink-0 min-w-[56px]',
               'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
-              drawerOpen ? 'text-brand-primary' : 'text-ink-muted hover:text-ink-secondary',
+              drawerOpen ? trainerCtaAccentTextClassName : 'text-ink-muted hover:text-ink-secondary',
             )}
           >
-            <div className={cn('p-1.5 rounded-lg transition-colors', drawerOpen && 'bg-brand-primary/10')}>
-              <MoreHorizontal className={cn('h-4 w-4', drawerOpen && 'text-brand-primary')} />
+            <div className={cn('p-1.5 rounded-lg transition-colors', drawerOpen && trainerCtaTintBgClassName)}>
+              <MoreHorizontal className={cn('h-4 w-4', drawerOpen && trainerCtaAccentTextClassName)} />
             </div>
             <span className="text-[10px] font-medium leading-none">Más</span>
           </button>

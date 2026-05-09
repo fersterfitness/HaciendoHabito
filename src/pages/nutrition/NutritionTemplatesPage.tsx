@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
+import { Spinner } from '@/components/ui/Spinner'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -210,7 +211,12 @@ export function NutritionTemplatesPage() {
                 placeholder="Nombre opcional…"
                 className="rounded-xl bg-surface-input border border-surface-inputBorder px-3 py-2 text-sm min-w-[12rem]"
               />
-              <Button type="button" icon={<Plus className="h-4 w-4" />} onClick={() => createPlan()}>
+              <Button
+                type="button"
+                variant="gradientPrimary"
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => createPlan()}
+              >
                 Crear plan
               </Button>
             </div>
@@ -231,7 +237,9 @@ export function NutritionTemplatesPage() {
             </label>
           </div>
           {loading ? (
-            <p className="text-sm text-ink-muted">Cargando…</p>
+            <div className="flex justify-center py-10">
+              <Spinner size="lg" accent="trainerCta" />
+            </div>
           ) : filteredPlans.length === 0 ? (
             <p className="text-sm text-ink-muted">Todavía no cargaste planes o no hay coincidencias.</p>
           ) : (

@@ -301,7 +301,7 @@ export function NutritionPatientDetailPage() {
       <div>
         <Header title="Carpeta nutricional" showBack />
         <div className="flex justify-center py-16">
-          <Spinner size="lg" />
+          <Spinner size="lg" accent="trainerCta" />
         </div>
       </div>
     )

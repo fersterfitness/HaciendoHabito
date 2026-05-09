@@ -461,7 +461,7 @@ export function MealPlansPage() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <Spinner size="lg" />
+            <Spinner size="lg" accent="trainerCta" />
           </div>
         ) : plans.length === 0 ? (
           <EmptyState

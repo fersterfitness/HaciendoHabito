@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Header } from '@/components/layout/Header'
+import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -93,8 +94,8 @@ export function SettingsPage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-border/60 transition-colors text-sm font-medium text-ink-secondary"
               >
                 {theme === 'dark'
-                  ? <><Sun className="h-4 w-4 text-brand-primary" /> Claro</>
-                  : <><Moon className="h-4 w-4 text-brand-primary" /> Oscuro</>
+                  ? <><Sun className={cn('h-4 w-4', trainerCtaAccentTextClassName)} /> Claro</>
+                  : <><Moon className={cn('h-4 w-4', trainerCtaAccentTextClassName)} /> Oscuro</>
                 }
               </button>
             </div>
@@ -140,7 +141,9 @@ export function SettingsPage() {
                 {...register('role')}
               />
             </FormSection>
-            <Button type="submit" loading={isSubmitting}>Guardar cambios</Button>
+            <Button type="submit" variant="gradientPrimary" loading={isSubmitting}>
+              Guardar cambios
+            </Button>
           </form>
         </Card>
 

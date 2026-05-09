@@ -5,6 +5,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { BrandLogo } from '@/components/branding/BrandLogo'
 import { Settings, LogOut } from 'lucide-react'
+import { trainerCtaSidebarActiveRingClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -149,7 +150,10 @@ function RailNavLink({
           'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-secondary/45 dark:focus-visible:ring-brand-secondary/35',
           'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
           isActive
-            ? 'bg-zinc-200 text-zinc-900 ring-2 ring-brand-primary/35 ring-offset-2 ring-offset-zinc-100 shadow-sm dark:bg-white/[0.18] dark:text-white dark:ring-brand-secondary/40 dark:ring-offset-[rgb(var(--surface-sidebar))]'
+            ? cn(
+                'bg-zinc-200 text-zinc-900 ring-2 ring-offset-2 ring-offset-zinc-100 shadow-sm dark:bg-white/[0.18] dark:text-white dark:ring-brand-secondary/40 dark:ring-offset-[rgb(var(--surface-sidebar))]',
+                trainerCtaSidebarActiveRingClassName,
+              )
             : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 motion-safe:hover:scale-[1.06] dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
         )}
         aria-current={isActive ? 'page' : undefined}

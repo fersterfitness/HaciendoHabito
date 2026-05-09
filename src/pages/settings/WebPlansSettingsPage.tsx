@@ -15,6 +15,8 @@ import {
   WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES,
   webIntakeImageExt,
 } from '@/lib/webIntakeCatalogAssets'
+import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
+import { cn } from '@/lib/utils'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -632,7 +634,7 @@ export function WebPlansSettingsPage() {
             maxLength={LIMITS.segmentImgUrl}
             onChange={(e) => setFullSegmentImg(e.target.value)}
           />
-          <Button type="button" size="sm" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
+          <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
             Guardar fotos
           </Button>
         </SectionCard>
@@ -644,7 +646,7 @@ export function WebPlansSettingsPage() {
           <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-surface-border accent-brand-primary"
+              className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
               checked={intakeSlotsOpen}
               onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
             />
@@ -678,7 +680,7 @@ export function WebPlansSettingsPage() {
             value={testimonialUrlsText}
             onChange={(e) => setTestimonialUrlsText(e.target.value)}
           />
-          <Button type="button" size="sm" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
+          <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
             Guardar testimonios
           </Button>
         </SectionCard>
@@ -746,7 +748,7 @@ export function WebPlansSettingsPage() {
                   <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-surface-border accent-brand-primary"
+                      className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
                       checked={plan.is_active}
                       onChange={(e) => updatePlan(plan.slug, { is_active: e.target.checked })}
                     />
@@ -852,7 +854,13 @@ export function WebPlansSettingsPage() {
         )}
 
         <div className="border-t border-surface-border pt-2">
-          <Button className="w-full sm:w-auto" icon={<Save className="h-4 w-4" />} onClick={handleSave} loading={saving}>
+          <Button
+            className="w-full sm:w-auto"
+            variant="gradientPrimary"
+            icon={<Save className="h-4 w-4" />}
+            onClick={handleSave}
+            loading={saving}
+          >
             Guardar planes
           </Button>
         </div>
