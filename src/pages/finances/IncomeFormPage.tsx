@@ -12,11 +12,13 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { PAYMENT_METHODS, FINANCE_SCOPES, INCOME_STATUSES, INCOME_TYPES, INCOME_CATEGORIES } from '@/lib/constants'
-
-/** Planes con split automático 50 % → Vida Personal */
-const SPLIT_PLANS: string[] = ['HÁBITOS PREMIUM', 'HÁBITOS PLATINO', 'HÁBITOS ÉLITE']
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
 import { emptyToNull } from '@/lib/formUtils'
+import {
+  buildPersonalFullMirrorIncomeRow,
+  buildPersonalHalfIncomeRow,
+  personalHalfAmount,
+} from '@/lib/financePersonalSplit'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -91,27 +93,33 @@ export function IncomeFormPage() {
       const { error } = await supabase.from('income').insert(payload)
       if (error) { toast.error(error.message); return }
 
-      // Auto-split: si es un plan PREMIUM/PLATINO/ÉLITE en ámbito "business",
-      // crear automáticamente el 50 % como ingreso en Vida Personal.
-      if (values.scope === 'business' && SPLIT_PLANS.includes(values.income_type)) {
-        const splitAmount = Math.round(values.amount / 2)
-        const splitPayload = {
-          ...payload,
-          scope: 'personal' as const,
-          amount: splitAmount,
-          description: `[HH→Personal] ${values.description}`,
-          notes: `Split automático: 50 % del ingreso de Haciéndolo hábito por plan ${values.income_type}. Monto original: $${values.amount.toLocaleString('es-AR')}.`,
-        }
-        const { error: splitErr } = await supabase.from('income').insert(splitPayload)
+      const splitRow = buildPersonalHalfIncomeRow(payload)
+      if (splitRow) {
+        const { error: splitErr } = await supabase.from('income').insert(splitRow)
         if (splitErr) {
-          toast.error(`Ingreso registrado, pero no se pudo crear el split personal: ${splitErr.message}`)
+          toast.error(`Ingreso registrado, pero no se pudo crear la mitad en vida personal: ${splitErr.message}`)
         } else {
-          toast.success(`Ingreso registrado + $${splitAmount.toLocaleString('es-AR')} acreditados en Vida personal`)
+          const splitAmount = personalHalfAmount(values.amount)
+          toast.success(`Ingreso registrado + $${splitAmount.toLocaleString('es-AR')} en vida personal (50 % proyecto)`)
           navigate('/finances?tab=income')
           return
         }
       } else {
-        toast.success('Ingreso registrado')
+        const mirrorRow = buildPersonalFullMirrorIncomeRow(payload)
+        if (mirrorRow) {
+          const { error: mirrorErr } = await supabase.from('income').insert(mirrorRow)
+          if (mirrorErr) {
+            toast.error(`Ingreso registrado, pero no la copia en vida personal: ${mirrorErr.message}`)
+          } else {
+            toast.success(
+              `Ingreso registrado + $${values.amount.toLocaleString('es-AR', { minimumFractionDigits: 0 })} en vida personal (copia íntegra)`,
+            )
+            navigate('/finances?tab=income')
+            return
+          }
+        } else {
+          toast.success('Ingreso registrado')
+        }
       }
     }
     navigate('/finances?tab=income')
@@ -205,8 +213,8 @@ export function IncomeFormPage() {
               {...register('scope')}
             />
             <Textarea
-              label="Notas adicionales"
-              placeholder="Observaciones..."
+              label="Notas (junto al concepto del pago)"
+              placeholder="Ej: cuotas restantes, acuerdos…"
               rows={2}
               {...register('notes')}
             />

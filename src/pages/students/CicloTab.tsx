@@ -5,6 +5,7 @@ import {
   ReferenceLine, ReferenceArea, Tooltip, Legend,
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
+import { useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -73,21 +74,89 @@ const PHASE_META: Record<Phase, { label: string; desc: string }> = {
   nuevo_ciclo:    { label: 'Ciclo completado', desc: 'El ciclo estimado terminó. Registrá el nuevo período cuando inicie.' },
 }
 
+/** Pista rápida para mensajes seguimiento (WhatsApp): alinea ciclo menstrual con la planificación semanal de la rutina. */
+function formatRoutineCycleCoachLine(
+  phase: Phase,
+  routineName: string,
+  approxWeekLabel: string,
+): string {
+  const base = `Rutina activa «${routineName}» · ${approxWeekLabel}.`
+  if (phase === 'menstruacion')
+    return `${base} Coordiná mensajes y cargas esperando menor tolerancia estos días.`
+  if (phase === 'folicular' || phase === 'ovulacion')
+    return `${base} Buen momento para feedback de intensidad/volumen y objetivos más exigentes si la persona se siente bien.`
+  if (phase === 'lutea')
+    return `${base} Proponé cargas más moderadas y foco en sensaciones; aclará que pueden ver retención.`
+  return `${base}`
+}
+
+function approxRoutineWeekHint(routine: {
+  start_date: string
+  end_date: string
+}): string | null {
+  const start = new Date(routine.start_date + 'T12:00:00')
+  const end = new Date(routine.end_date + 'T23:59:59')
+  const today = new Date()
+  today.setHours(12, 0, 0, 0)
+  const last = end.getTime()
+  const first = start.getTime()
+  if (today.getTime() < first || today.getTime() > last) return null
+  const elapsed = Math.floor((today.getTime() - first) / 86_400_000) + 1
+  const totalDays = Math.max(1, Math.ceil((last - first) / 86_400_000) + 1)
+  const w = Math.ceil(elapsed / 7)
+  const wMax = Math.max(1, Math.ceil(totalDays / 7))
+  return `Semana aprox. ${Math.min(w, wMax)} de ${wMax} del plan vigente`
+}
+
 // ─── CicloTab ─────────────────────────────────────────────────────────────────
 
 export function CicloTab({ studentId }: { studentId: string }) {
   const { user } = useAuthStore()
+  const { theme } = useTheme()
   const [cycles,     setCycles]     = useState<MenstrualCycle[]>([])
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
   const [deleting,   setDeleting]   = useState<string | null>(null)
+  type ActiveRoutineRow = { name: string; start_date: string; end_date: string }
+  const [activeRoutine, setActiveRoutine] = useState<ActiveRoutineRow | null>(null)
 
   useEffect(() => {
-    supabase.from('menstrual_cycles')
-      .select('*').eq('student_id', studentId)
+    let cancelled = false
+    supabase
+      .from('menstrual_cycles')
+      .select('*')
+      .eq('student_id', studentId)
       .order('cycle_start_date', { ascending: false })
-      .then(({ data }) => { setCycles((data as MenstrualCycle[]) ?? []); setLoading(false) })
+      .then(({ data }) => {
+        if (cancelled) return
+        setCycles((data as MenstrualCycle[]) ?? [])
+        setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [studentId])
+
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('routines')
+        .select('name, start_date, end_date')
+        .eq('owner_id', user.id)
+        .eq('student_id', studentId)
+        .in('status', ['activa', 'por_vencer'])
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!cancelled && data) setActiveRoutine(data as ActiveRoutineRow)
+      else if (!cancelled) setActiveRoutine(null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [studentId, user?.id])
 
   async function addCycle(startDate: string, cycleLen: number, notes: string) {
     if (!user) return
@@ -175,10 +244,29 @@ export function CicloTab({ studentId }: { studentId: string }) {
                 </div>
               ))}
             </dl>
+
+            {activeRoutine ? (
+              <div className="mt-4 rounded-xl border border-brand-secondary/35 bg-brand-secondary/[0.06] px-3 py-3 dark:border-brand-secondary/45 dark:bg-brand-secondary/[0.08]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-secondary">Planificación · rutina + ciclo</p>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-700 dark:text-zinc-200">
+                  {(() => {
+                    const w = approxRoutineWeekHint(activeRoutine)
+                    if (!w)
+                      return `Hay una rutina activa («${activeRoutine.name}»); la fecha actual está fuera del rango configurado para estimar semana.`
+                    return formatRoutineCycleCoachLine(cycleInfo.phase, activeRoutine.name, w)
+                  })()}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl border border-zinc-200/60 px-3 py-2.5 text-xs text-zinc-600 dark:border-zinc-700/65 dark:text-zinc-400">
+                Sin rutina activa cargada para esta alumna; solo mostramos el ciclo menstrual. Para cruzarlo con el microciclo de
+                trabajo, activá una rutina con fechas desde el perfil del alumno.
+              </p>
+            )}
           </div>
 
           {/* Gráfico hormonal */}
-          <CycleGraph dayInCycle={cycleInfo.dayInCycle} cycleLen={cycleInfo.cycleLen} />
+          <CycleGraph dayInCycle={cycleInfo.dayInCycle} cycleLen={cycleInfo.cycleLen} isDark={theme === 'dark'} />
         </>
       ) : (
         <EmptyState
@@ -264,7 +352,7 @@ function CustomTooltip({ active, payload, label }: any) {
   )
 }
 
-function CycleGraph({ dayInCycle, cycleLen }: { dayInCycle: number; cycleLen: number }) {
+function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycleLen: number; isDark: boolean }) {
   const data = useMemo(() => buildChartData(cycleLen), [cycleLen])
   const todayDay = Math.min(Math.max(dayInCycle, 1), cycleLen)
 
@@ -272,6 +360,20 @@ function CycleGraph({ dayInCycle, cycleLen }: { dayInCycle: number; cycleLen: nu
   const menEnd = Math.round(5 / 28 * cycleLen)
   const folEnd = Math.round(13 / 28 * cycleLen)
   const ovEnd  = Math.round(16 / 28 * cycleLen)
+
+  const tick = isDark ? '#cbd5e1' : '#57534e'
+  const rail = isDark ? 'rgba(148,163,184,0.25)' : 'rgba(120,113,108,0.35)'
+  const zoneLabelColor = isDark ? '#cbd5e1' : '#44403c'
+  const estrogenStroke = '#d97706'
+  const lhStroke = '#e11d48'
+  const fshStroke = '#0284c7'
+  const progStroke = '#7c3aed'
+  const hoyStroke = isDark ? '#fbbf24' : '#b45309'
+
+  const zMen = isDark ? 'rgba(251,113,133,0.09)' : 'rgba(244,114,182,0.12)'
+  const zFol = isDark ? 'rgba(251,191,36,0.08)' : 'rgba(250,204,21,0.14)'
+  const zOv = isDark ? 'rgba(74,222,128,0.07)' : 'rgba(74,222,128,0.12)'
+  const zLut = isDark ? 'rgba(167,139,250,0.08)' : 'rgba(196,181,253,0.2)'
 
   return (
     <div className="border-b border-zinc-200/55 pb-4 dark:border-zinc-800/55">
@@ -281,22 +383,22 @@ function CycleGraph({ dayInCycle, cycleLen }: { dayInCycle: number; cycleLen: nu
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -28 }}>
 
           {/* Phase background zones */}
-          <ReferenceArea x1={1}      x2={menEnd}   fill="rgba(113,113,122,0.08)" label={{ value: 'Menst.', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
-          <ReferenceArea x1={menEnd} x2={folEnd}  fill="rgba(113,113,122,0.05)" label={{ value: 'Folicular', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
-          <ReferenceArea x1={folEnd} x2={ovEnd} fill="rgba(113,113,122,0.07)" label={{ value: 'Ovul.', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
-          <ReferenceArea x1={ovEnd}  x2={cycleLen} fill="rgba(113,113,122,0.06)" label={{ value: 'Lútea', position: 'insideTop', fontSize: 9, fill: '#a1a1aa', fontWeight: 600 }} />
+          <ReferenceArea x1={1}      x2={menEnd}   fill={zMen} label={{ value: 'Menstr.', position: 'insideTop', fontSize: 9, fill: zoneLabelColor, fontWeight: 600 }} />
+          <ReferenceArea x1={menEnd} x2={folEnd}  fill={zFol} label={{ value: 'Folicular', position: 'insideTop', fontSize: 9, fill: zoneLabelColor, fontWeight: 600 }} />
+          <ReferenceArea x1={folEnd} x2={ovEnd} fill={zOv} label={{ value: 'Ovulación', position: 'insideTop', fontSize: 9, fill: zoneLabelColor, fontWeight: 600 }} />
+          <ReferenceArea x1={ovEnd}  x2={cycleLen} fill={zLut} label={{ value: 'Lútea', position: 'insideTop', fontSize: 9, fill: zoneLabelColor, fontWeight: 600 }} />
 
           <XAxis
             dataKey="day"
             ticks={[1, 7, 14, 21, cycleLen]}
-            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.35)' }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+            tick={{ fontSize: 10, fill: tick }}
+            axisLine={{ stroke: rail }}
             tickLine={false}
           />
           <YAxis
             domain={[0, 1]}
             tickFormatter={(v) => `${Math.round(v * 100)}%`}
-            tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }}
+            tick={{ fontSize: 9, fill: tick }}
             axisLine={false}
             tickLine={false}
           />
@@ -305,24 +407,26 @@ function CycleGraph({ dayInCycle, cycleLen }: { dayInCycle: number; cycleLen: nu
 
           <Legend
             wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-            formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.55)', textTransform: 'capitalize' }}>{value}</span>}
+            formatter={(value) => (
+              <span className={isDark ? 'text-zinc-300 capitalize' : 'text-zinc-600 capitalize'}>{value}</span>
+            )}
           />
 
           {/* Today line */}
           {dayInCycle >= 1 && dayInCycle <= cycleLen && (
             <ReferenceLine
               x={todayDay}
-              stroke="#52525b"
+              stroke={hoyStroke}
               strokeWidth={1.25}
               strokeDasharray="4 3"
-              label={{ value: 'Hoy', position: 'top', fontSize: 9, fill: '#52525b', fontWeight: 600 }}
+              label={{ value: 'Hoy', position: 'top', fontSize: 9, fill: hoyStroke, fontWeight: 700 }}
             />
           )}
 
-          <Line dataKey="fsh"          name="FSH"          stroke="#a1a1aa" strokeWidth={1.25} strokeDasharray="4 3" dot={false} type="monotone" />
-          <Line dataKey="lh"           name="LH"           stroke="#71717a" strokeWidth={1.25} dot={false} type="monotone" />
-          <Line dataKey="estrogenos"   name="Estrógenos"   stroke="#d4d4d8" strokeWidth={2} dot={false} type="monotone" />
-          <Line dataKey="progesterona" name="Progesterona" stroke="#d4d4d8" strokeWidth={1.5} strokeDasharray="6 4" dot={false} type="monotone" />
+          <Line dataKey="fsh"          name="FSH"          stroke={fshStroke} strokeWidth={1.35} strokeDasharray="4 3" dot={false} type="monotone" />
+          <Line dataKey="lh"           name="LH"           stroke={lhStroke} strokeWidth={1.35} dot={false} type="monotone" />
+          <Line dataKey="estrogenos"   name="Estrógenos"   stroke={estrogenStroke} strokeWidth={2.25} dot={false} type="monotone" />
+          <Line dataKey="progesterona" name="Progesterona" stroke={progStroke} strokeWidth={1.75} strokeDasharray="6 4" dot={false} type="monotone" />
         </LineChart>
       </ResponsiveContainer>
     </div>

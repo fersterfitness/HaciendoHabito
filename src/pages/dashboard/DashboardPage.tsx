@@ -29,6 +29,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { cn, daysUntil, formatCurrency } from '@/lib/utils'
+import { FINANCE_SCOPES } from '@/lib/constants'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import type { Routine, Notification } from '@/types/database'
@@ -43,16 +44,29 @@ interface RecentIncomeRow {
 }
 
 const LEVEL_META = [
-  { key: 'inicial',     label: 'Inicial',     color: '#10b981', bg: 'bg-emerald-500' },
-  { key: 'intermedio',  label: 'Intermedio',  color: '#f59e0b', bg: 'bg-amber-500'   },
-  { key: 'avanzado',    label: 'Avanzado',    color: '#8b5cf6', bg: 'bg-violet-500'  },
+  { key: 'inicial', label: 'Inicial' },
+  { key: 'intermedio', label: 'Intermedio' },
+  { key: 'avanzado', label: 'Avanzado' },
 ]
 
-const GOAL_META: Record<string, { label: string; color: string; bg: string }> = {
-  healthy_life: { label: 'Vida saludable', color: '#10b981', bg: 'bg-emerald-500' },
-  sport:        { label: 'Deporte',         color: '#3b82f6', bg: 'bg-blue-500'    },
-  cut_lean:     { label: 'Bajar / Definir', color: '#f59e0b', bg: 'bg-amber-500'  },
-  bulk:         { label: 'Ganar músculo',   color: '#8b5cf6', bg: 'bg-violet-500' },
+/** Ciclo secondary / tertiary para filas sin semántica fija de color. */
+const BRAND_ROW_ACCENT_PAIR = [
+  { dot: 'bg-brand-secondary', bar: 'bg-brand-secondary', text: 'text-brand-secondary' },
+  { dot: 'bg-brand-tertiary', bar: 'bg-brand-tertiary', text: 'text-brand-tertiary' },
+] as const
+
+/** Tres niveles alumno: igual patrón S / T / S que antes. */
+const LEVEL_BRAND_ACCENT = [
+  BRAND_ROW_ACCENT_PAIR[0],
+  BRAND_ROW_ACCENT_PAIR[1],
+  BRAND_ROW_ACCENT_PAIR[0],
+] satisfies typeof BRAND_ROW_ACCENT_PAIR[number][]
+
+const GOAL_META: Record<string, { label: string }> = {
+  healthy_life: { label: 'Vida saludable' },
+  sport: { label: 'Deporte' },
+  cut_lean: { label: 'Bajar / Definir' },
+  bulk: { label: 'Ganar músculo' },
 }
 
 interface Stats {
@@ -117,57 +131,223 @@ function monthBoundsISO() {
   }
 }
 
-function buildChartData({
-  incomeRows,
-  studentRows,
-}: {
-  incomeRows: { income_date: string; amount: number }[]
-  studentRows: { created_at: string }[]
-}) {
-  const now = new Date()
-  return Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const revenue = incomeRows
-      .filter((r) => r.income_date.startsWith(key))
-      .reduce((s, r) => s + r.amount, 0)
-    const users = studentRows.filter((s) => (s.created_at ?? '').slice(0, 7) === key).length
-    return { label: MONTH_LABELS[d.getMonth()], revenue, users, month: key }
-  }).map((item, i, arr) => {
-    const prev = arr[i - 1]?.revenue ?? 0
-    const change = prev === 0 ? 0 : Math.round(((item.revenue - prev) / prev) * 100)
-    return { ...item, change }
-  })
+/** Mapa rápido scope (DB) → etiqueta conocida · si agregás valores en FINANCE_SCOPES, el gráfico las reconoce. */
+const KNOWN_FINANCE_SCOPE_LABEL: Record<string, string> = Object.fromEntries(
+  FINANCE_SCOPES.map((s) => [s.value, s.label]),
+)
+
+function expenseScopeDisplayLabel(scopeKey: string): string {
+  const k = scopeKey.trim()
+  if (!k) return KNOWN_FINANCE_SCOPE_LABEL.business ?? 'Haciéndolo hábito'
+  if (KNOWN_FINANCE_SCOPE_LABEL[k]) return KNOWN_FINANCE_SCOPE_LABEL[k]
+  return k.replace(/_/g, ' ')
 }
 
-// ─── MonthlyAreaChart (Recharts) ──────────────────────────────────────────────
-interface ChartPoint {
+/** Filas de gastos para la serie temporal del dashboard (últimos 6 meses). */
+interface DashboardExpenseRow {
+  expense_date: string
+  amount: number
+  /** `business` = HH, `personal` = vida personal; otros valores aparecen como líneas extra si existieran en BD. */
+  scope: string | null
+}
+
+/** Ingresos cobrados con ámbito (misma fecha `sinceStr` que el dashboard). */
+interface DashboardIncomeScopeRow {
+  income_date: string
+  amount: number
+  scope: string | null
+}
+
+/** Paleta derivada de brand.secondary ↔ brand.tertiary (violetero → magenta). */
+function expenseChartStroke(index: number): string {
+  const PALETTE = [
+    'rgba(169, 121, 255, 0.94)',
+    'rgba(255, 79, 234, 0.92)',
+    'rgba(206, 102, 255, 0.92)',
+    'rgba(238, 96, 232, 0.90)',
+    'rgba(144, 88, 255, 0.92)',
+    'rgba(255, 138, 224, 0.90)',
+    'rgba(186, 130, 255, 0.91)',
+    'rgba(255, 118, 244, 0.88)',
+    'rgba(152, 106, 255, 0.89)',
+    'rgba(223, 110, 250, 0.91)',
+    'rgba(178, 98, 255, 0.89)',
+    'rgba(250, 92, 215, 0.87)',
+  ]
+  return PALETTE[index % PALETTE.length]
+}
+
+interface ExpenseSeriesMeta {
+  key: string
   label: string
-  revenue: number
-  users: number
-  change: number
+  color: string
+}
+
+interface ScopeMonthDetail {
+  cobrados: number
+  gastos: number
+}
+
+interface ExpenseChartMonthRow {
+  label: string
+  /** Una serie de datos por línea: neto mensual (= cobrados − gastos por ámbito). */
+  values: Record<string, number>
+  /** Desglose por línea para el tooltip. */
+  detail: Record<string, ScopeMonthDetail>
+  /** Σ netos todos los ámbitos (único numero para Δ % inferior). */
+  combinedNetSum: number
+  changePctCombinedNet: number
+}
+
+interface ExpenseChartModel {
+  months: ExpenseChartMonthRow[]
+  series: ExpenseSeriesMeta[]
+  ambitoCount: number
+}
+
+/**
+ * Una línea por ámbito; el punto del mes combina cobros + egresos en un solo número:
+ * **neto = ingresos cobrados − gastos**. Si sumaran distinto modo, cambiar acá solo.
+ */
+function buildFinanceScopeChartModel(
+  expenseRows: DashboardExpenseRow[],
+  incomeRows: DashboardIncomeScopeRow[],
+): ExpenseChartModel | null {
+  if (!expenseRows.length && !incomeRows.length) return null
+
+  const now = new Date()
+  const normExp = expenseRows.map((r) => ({
+    datePrefix: r.expense_date.slice(0, 7),
+    amount: r.amount,
+    scope: (r.scope ?? 'business').trim() || 'business',
+  }))
+  const normInc = incomeRows.map((r) => ({
+    datePrefix: r.income_date.slice(0, 7),
+    amount: r.amount,
+    scope: (r.scope ?? 'business').trim() || 'business',
+  }))
+
+  const totalsHint = new Map<string, number>()
+  for (const r of normExp) totalsHint.set(r.scope, (totalsHint.get(r.scope) ?? 0) + r.amount)
+  for (const r of normInc) totalsHint.set(r.scope, (totalsHint.get(r.scope) ?? 0) + r.amount)
+
+  const predefinedScopeValues = FINANCE_SCOPES.map((s) => s.value)
+  const predefinedSet = new Set<string>(predefinedScopeValues as string[])
+  const unknownInData = [...totalsHint.keys()]
+    .filter((k) => !predefinedSet.has(k))
+    .sort((a, b) => (totalsHint.get(b) ?? 0) - (totalsHint.get(a) ?? 0))
+
+  const scopeOrder = [...predefinedScopeValues, ...unknownInData]
+
+  const series: ExpenseSeriesMeta[] = []
+  let keyNum = 0
+  const scopeToKey = new Map(scopeOrder.map((sv) => [sv, `s${keyNum++}`]))
+
+  for (let si = 0; si < scopeOrder.length; si++) {
+    const sv = scopeOrder[si]
+    series.push({
+      key: scopeToKey.get(sv)!,
+      label: expenseScopeDisplayLabel(sv),
+      color: expenseChartStroke(si),
+    })
+  }
+
+  const months: ExpenseChartMonthRow[] = []
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = MONTH_LABELS[d.getMonth()]
+
+    const detail: Record<string, ScopeMonthDetail> = {}
+    const values: Record<string, number> = {}
+    for (const s of series) {
+      detail[s.key] = { cobrados: 0, gastos: 0 }
+      values[s.key] = 0
+    }
+
+    for (const r of normExp) {
+      if (r.datePrefix !== monthKey) continue
+      const k = scopeToKey.get(r.scope)
+      if (!k) continue
+      detail[k].gastos += r.amount
+    }
+
+    for (const r of normInc) {
+      if (r.datePrefix !== monthKey) continue
+      const k = scopeToKey.get(r.scope)
+      if (!k) continue
+      detail[k].cobrados += r.amount
+    }
+
+    let combinedNetSum = 0
+    for (const s of series) {
+      const { cobrados, gastos } = detail[s.key]
+      const net = cobrados - gastos
+      values[s.key] = net
+      combinedNetSum += net
+    }
+
+    const prevComb = months.length > 0 ? months[months.length - 1].combinedNetSum : undefined
+    let changePctCombinedNet = 0
+    if (prevComb === undefined) {
+      changePctCombinedNet = 0
+    } else if (prevComb === 0) {
+      changePctCombinedNet = combinedNetSum === 0 ? 0 : combinedNetSum > 0 ? 100 : -100
+    } else {
+      changePctCombinedNet = Math.round(((combinedNetSum - prevComb) / Math.abs(prevComb)) * 100)
+    }
+
+    months.push({
+      label,
+      values,
+      detail,
+      combinedNetSum,
+      changePctCombinedNet,
+    })
+  }
+
+  return { months, series, ambitoCount: scopeOrder.length }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
+function ExpenseScopesTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
-  const { revenue, users, change } = payload[0].payload as ChartPoint
+  const raw = payload[0].payload as Record<string, unknown>
+  const series = (raw.__series as ExpenseSeriesMeta[]) ?? []
+  const detail = (raw.__detail as Record<string, ScopeMonthDetail>) ?? {}
+
   return (
-    <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
+    <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg max-w-[260px]">
       <p className="font-semibold text-ink-primary">{label}</p>
-      <div className="mt-1 space-y-0.5">
-        <p className="text-ink-primary font-semibold text-sm tabular-nums">
-          ${revenue.toLocaleString('es-AR')}
-        </p>
-        <p className="text-ink-secondary text-[11px] tabular-nums">
-          {users} {users === 1 ? 'alta' : 'altas'}
-        </p>
+      <div className="mt-1.5 space-y-2">
+        {series.map((s) => {
+          const d = detail[s.key] ?? { cobrados: 0, gastos: 0 }
+          const net = Number(raw[s.key] ?? 0)
+          return (
+            <div key={s.key} className="border-b border-surface-border/50 pb-2 last:border-0 last:pb-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                  <span className="truncate font-medium text-ink-secondary">{s.label}</span>
+                </span>
+                <span className={cn(
+                  'shrink-0 text-[12px] font-bold tabular-nums',
+                  net >= 0 ? 'text-status-generated' : 'text-status-expired',
+                )}
+                >
+                  {formatCurrency(net)}
+                </span>
+              </div>
+              <p className="mt-1 pl-3 text-[10px] leading-snug text-ink-muted tabular-nums">
+                Cobrado ${d.cobrados.toLocaleString('es-AR')} · Gastos ${d.gastos.toLocaleString('es-AR')}
+              </p>
+            </div>
+          )
+        })}
       </div>
-      {change !== 0 && (
-        <p className={`font-medium mt-0.5 ${change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired'}`}>
-          {change > 0 ? '+' : ''}{change}% vs mes ant.
-        </p>
-      )}
+      <p className="mt-2 border-t border-surface-border pt-2 text-[11px] font-semibold tabular-nums text-ink-primary">
+        Σ netos: {formatCurrency(Number(raw.combinedNetSum ?? 0))}
+      </p>
     </div>
   )
 }
@@ -182,14 +362,26 @@ function CustomXTick({ x, y, payload }: any) {
   )
 }
 
-const CHART_SECONDARY = 'rgba(169, 121, 255, 0.92)' // brand.secondary
-const CHART_TERTIARY = 'rgba(255, 79, 234, 0.90)' // brand.tertiary
+function expenseChartRechartsData(model: ExpenseChartModel) {
+  return model.months.map((m) => {
+    const row: Record<string, unknown> = {
+      label: m.label,
+      combinedNetSum: m.combinedNetSum,
+      changePctCombinedNet: m.changePctCombinedNet,
+      __series: model.series,
+      __detail: m.detail,
+    }
+    for (const { key } of model.series) row[key] = m.values[key] ?? 0
+    return row
+  })
+}
 
-function MonthlyDualLineChart({ data }: { data: ChartPoint[] }) {
+function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
+  const data = expenseChartRechartsData(model)
   return (
     <div className="w-full px-1 pb-2">
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data} margin={{ top: 10, right: 14, bottom: 0, left: 0 }}>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
           <CartesianGrid
             vertical={false}
             stroke="rgba(113,113,122,0.14)"
@@ -205,65 +397,75 @@ function MonthlyDualLineChart({ data }: { data: ChartPoint[] }) {
           />
 
           <YAxis
-            yAxisId="left"
-            tickFormatter={(v) => v === 0 ? '' : `$${(v / 1000).toFixed(0)}k`}
+            tickFormatter={(v) => {
+              if (v === 0) return ''
+              const sign = v < 0 ? '−' : ''
+              const abs = Math.abs(v)
+              if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(0)}k`
+              return `${sign}$${Math.round(abs)}`
+            }}
             tick={{ fontSize: 9, fill: 'rgba(148,163,184,0.75)' }}
             axisLine={false}
             tickLine={false}
             width={36}
           />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            tickFormatter={(v) => (v === 0 ? '' : String(v))}
-            tick={{ fontSize: 9, fill: 'rgba(148,163,184,0.55)' }}
-            axisLine={false}
-            tickLine={false}
-            width={24}
-          />
 
           <Tooltip
-            content={<CustomTooltip />}
+            content={<ExpenseScopesTooltip />}
             cursor={{ stroke: 'rgba(148,163,184,0.28)', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.55 }}
           />
 
-          <Line
-            type="monotone"
-            yAxisId="left"
-            dataKey="revenue"
-            stroke={CHART_SECONDARY}
-            strokeWidth={1.35}
-            dot={false}
-            activeDot={{ r: 4, fill: CHART_SECONDARY, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 2 }}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            yAxisId="right"
-            dataKey="users"
-            stroke={CHART_TERTIARY}
-            strokeWidth={1.35}
-            dot={false}
-            activeDot={{ r: 4, fill: CHART_TERTIARY, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 2 }}
-            isAnimationActive={false}
-          />
+          {model.series.map((s) => (
+            <Line
+              key={s.key}
+              type="monotone"
+              dataKey={s.key}
+              name={s.label}
+              stroke={s.color}
+              strokeWidth={1.35}
+              dot={false}
+              activeDot={{ r: 4, fill: s.color, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 2 }}
+              isAnimationActive={false}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
 
+      {/* Una línea = un ámbito (valor mensual ya mezcla cobros − gastos). */}
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 border-t border-surface-border/50 px-1 pt-2.5">
+        {model.series.map((s) => (
+          <div key={s.key} className="flex max-w-[13rem] min-w-0 items-center gap-1.5 text-[11px] text-ink-secondary">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+            <span className="truncate" title={s.label}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Δ mes a mes de la suma de netos entre ámbitos */}
       <div className="flex mt-1 px-9">
-        {data.map((d) => (
-          <div key={d.label} className="flex-1 flex justify-center">
+        {model.months.map((m, i) => (
+          <div key={m.label} className="flex flex-1 justify-center">
             <span className={cn(
-              'text-[9px] font-medium',
-              d.change > 0 && 'text-emerald-600/90 dark:text-emerald-400/90',
-              d.change < 0 && 'text-status-expired',
-              d.change === 0 && 'text-ink-muted/50',
-            )}>
-              {d.change > 0 ? '+' : ''}{d.change !== 0 ? `${d.change}%` : '—'}
+              'text-[9px] font-medium tabular-nums',
+              i === 0 ? 'text-ink-muted/50' : '',
+              i > 0 && m.changePctCombinedNet > 0 && 'text-emerald-600/90 dark:text-emerald-400/90',
+              i > 0 && m.changePctCombinedNet < 0 && 'text-status-expired',
+              i > 0 && m.changePctCombinedNet === 0 && 'text-ink-muted/50',
+            )}
+            >
+              {i === 0 ? '—' : (
+                <>
+                  {m.changePctCombinedNet > 0 ? '+' : ''}
+                  {m.changePctCombinedNet !== 0 ? `${m.changePctCombinedNet}%` : '0%'}
+                </>
+              )}
             </span>
           </div>
         ))}
       </div>
+      <p className="mt-1 text-center text-[9px] text-ink-muted/70 px-8">
+        Porcentajes: variación del neto combinado (Σ ámbitos) vs el mes anterior
+      </p>
     </div>
   )
 }
@@ -303,7 +505,7 @@ export function DashboardPage() {
   const [expiring, setExpiring] = useState<ExpiringRoutine[]>([])
   const [expiringPlans, setExpiringPlans] = useState<ExpiringPlan[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [growthData, setGrowthData] = useState<ChartPoint[]>([])
+  const [expenseChartModel, setExpenseChartModel] = useState<ExpenseChartModel | null>(null)
   const [retention, setRetention] = useState({ m3: 0, m6: 0, m12: 0 })
   const [birthdays, setBirthdays] = useState<{ id: string; full_name: string; daysUntil: number }[]>([])
   const [todayApps, setTodayApps] = useState<{ id: string; title: string; starts_at: string; student_name: string }[]>([])
@@ -374,6 +576,7 @@ export function DashboardPage() {
         { data: expiringData },
         { data: notifData },
         { data: incomeRows },
+        { data: expenseRowsRaw },
         { data: expiringPlansData },
         { data: studentDates },
         { data: todayAppsData },
@@ -409,8 +612,15 @@ export function DashboardPage() {
           : Promise.resolve({ data: [] } as { data: unknown[] }),
         supabase.from('notifications').select('*').eq('user_id', user!.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
         canSeeFinances
-          ? supabase.from('income').select('income_date, amount').eq('owner_id', user!.id).eq('status', 'cobrado').gte('income_date', sinceStr)
-          : Promise.resolve({ data: [] } as { data: { income_date: string; amount: number }[] }),
+          ? supabase.from('income').select('income_date, amount, scope').eq('owner_id', user!.id).eq('status', 'cobrado').gte('income_date', sinceStr)
+          : Promise.resolve({ data: [] } as { data: { income_date: string; amount: number; scope?: string | null }[] }),
+        canSeeFinances
+          ? supabase
+              .from('expenses')
+              .select('expense_date, amount, scope')
+              .eq('owner_id', user!.id)
+              .gte('expense_date', sinceStr)
+          : Promise.resolve({ data: [] } as { data: DashboardExpenseRow[] }),
         // Alumnos con plan por vencer (próximos 14 días) o ya vencido
         supabase.from('students')
           .select('id, full_name, plan_end_date, status')
@@ -592,7 +802,7 @@ export function DashboardPage() {
       )
 
       const mb2 = monthBoundsISO()
-      const allIncomeRows = (incomeRows ?? []) as { income_date: string; amount: number }[]
+      const allIncomeRows = (incomeRows ?? []) as { income_date: string; amount: number; scope?: string | null }[]
       const currentMonthIncome = allIncomeRows
         .filter((r) => r.income_date >= mb2.startThis.slice(0, 10) && r.income_date < mb2.startNext.slice(0, 10))
         .reduce((s, r) => s + r.amount, 0)
@@ -625,13 +835,13 @@ export function DashboardPage() {
       setExpiring((expiringData as unknown as ExpiringRoutine[]) ?? [])
       setExpiringPlans((expiringPlansData as unknown as ExpiringPlan[]) ?? [])
       setNotifications(notifData ?? [])
-      setGrowthData(
+      setExpenseChartModel(
         canSeeFinances
-          ? buildChartData({
-              incomeRows: (incomeRows ?? []) as { income_date: string; amount: number }[],
-              studentRows: ((studentDates ?? []) as { created_at: string }[]),
-            })
-          : []
+          ? buildFinanceScopeChartModel(
+              (expenseRowsRaw ?? []) as DashboardExpenseRow[],
+              (incomeRows ?? []) as DashboardIncomeScopeRow[],
+            )
+          : null,
       )
 
       // Últimos cobros + distribución por nivel (parallel)
@@ -933,33 +1143,56 @@ export function DashboardPage() {
         </div>
 
 
-        {/* ── Gráfico ingresos ─────────────────────────────────────── */}
+        {/* ── Por ámbito · 6 meses (un neto por línea; sin punteados) ─────────── */}
         {canSeeFinances && (
           <Card className="overflow-hidden p-0">
             <CardHeader className="px-5 pt-4 pb-0">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-ink-muted" />
-                <CardTitle className="font-medium">Ingresos cobrados · 6 meses</CardTitle>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-ink-muted" />
+                  <CardTitle className="font-medium">Por ámbito · 6 meses</CardTitle>
+                </div>
+                <p className="text-[11px] text-ink-muted sm:max-w-[55%] sm:text-right">
+                  Una línea por ámbito con un <span className="font-medium text-ink-secondary">único número al mes</span>: cobrado menos gastos (neto). Pasá el mouse para ver el desglose.
+                </p>
               </div>
-              {growthData.length > 0 && (() => {
-                const last = growthData[growthData.length - 1]
+              {expenseChartModel && (() => {
+                const lasts = expenseChartModel.months[expenseChartModel.months.length - 1]
+                const pct = lasts.changePctCombinedNet
+                const perScope = expenseChartModel.series
+                  .map((s) => `${s.label}: ${formatCurrency(lasts.values[s.key] ?? 0)}`)
+                  .join(' · ')
                 return (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-2">
-                    <span className="font-semibold text-ink-primary tabular-nums">${last.revenue.toLocaleString('es-AR')}</span>
-                    <span className="text-ink-muted tabular-nums">{last.users} {last.users === 1 ? 'alta' : 'altas'}</span>
-                    {last.change !== 0 && (
-                      <span className={cn('inline-flex items-center gap-1 font-medium tabular-nums', last.change > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
-                        {last.change > 0 ? <TrendingUp className="h-3.5 w-3.5 opacity-70" /> : <TrendingDown className="h-3.5 w-3.5 opacity-70" />}
-                        {last.change > 0 ? '+' : ''}{last.change}% vs mes anterior
+                  <div className="flex flex-col gap-1.5 text-xs mt-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="font-semibold tabular-nums text-ink-primary">
+                        Σ neto {lasts.label}: {formatCurrency(lasts.combinedNetSum)}
                       </span>
-                    )}
+                      <span className="text-ink-muted tabular-nums">
+                        {expenseChartModel.ambitoCount}{' '}
+                        {expenseChartModel.ambitoCount === 1 ? 'ámbito' : 'ámbitos'}
+                      </span>
+                      {pct !== 0 ? (
+                        <span className={cn('inline-flex items-center gap-1 font-medium tabular-nums', pct > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
+                          {pct > 0 ? <TrendingUp className="h-3.5 w-3.5 opacity-70" /> : <TrendingDown className="h-3.5 w-3.5 opacity-70" />}
+                          {pct > 0 ? '+' : ''}{pct}% neto combinado vs mes anterior
+                        </span>
+                      ) : (
+                        <span className="text-ink-muted">Igual neto combinado vs mes anterior</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] leading-snug text-ink-muted">{perScope}</p>
                   </div>
                 )
               })()}
             </CardHeader>
             <div className="pt-3 pb-2">
-              {growthData.length > 0 ? <MonthlyDualLineChart data={growthData} /> : (
-                <p className="text-center text-sm text-ink-muted py-12 px-4">Sin ingresos cobrados en los últimos 6 meses</p>
+              {expenseChartModel ? (
+                <ExpenseScopesLineChart model={expenseChartModel} />
+              ) : (
+                <p className="text-center text-sm text-ink-muted py-12 px-4">
+                  Sin datos en los últimos 6 meses · registrá ingresos o gastos desde Finanzas
+                </p>
               )}
             </div>
           </Card>
@@ -1006,12 +1239,12 @@ export function DashboardPage() {
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <span className={cn(
-                              'inline-flex rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
-                              row.status === 'cobrado'
-                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                                : 'border-status-expiring/30 bg-status-expiring/10 text-status-expiring',
+                              'inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
+                              row.status === 'cobrado' && 'border-brand-secondary/40 bg-brand-secondary/15 text-brand-secondary',
+                              row.status === 'pendiente' && 'border-brand-tertiary/40 bg-brand-tertiary/12 text-brand-tertiary',
+                              row.status !== 'cobrado' && row.status !== 'pendiente' && 'border-surface-border/50 bg-surface-elevated/50 text-ink-muted',
                             )}>
-                              {row.status === 'cobrado' ? 'Cobrado' : 'Pendiente'}
+                              {row.status === 'cobrado' ? 'Cobrado' : row.status === 'pendiente' ? 'Pendiente' : 'Cancelado'}
                             </span>
                           </td>
                         </tr>
@@ -1033,22 +1266,22 @@ export function DashboardPage() {
               </CardHeader>
               <div className="space-y-4">
                 {levelDist.map((lvl, i) => {
-                  const meta = LEVEL_META[i]
+                  const accent = LEVEL_BRAND_ACCENT[i] ?? LEVEL_BRAND_ACCENT[0]
                   return (
                     <div key={lvl.key}>
                       <div className="mb-1.5 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className={cn('h-2 w-2 rounded-full', meta.bg)} />
+                          <span className={cn('h-2 w-2 shrink-0 rounded-full ring-2 ring-black/10 dark:ring-white/10', accent.dot)} />
                           <span className="font-medium text-ink-primary">{lvl.label}</span>
                         </div>
                         <div className="flex items-center gap-2 tabular-nums">
                           <span className="text-ink-muted">{lvl.count}</span>
-                          <span className="w-9 text-right font-semibold text-ink-primary">{lvl.pct}%</span>
+                          <span className="w-9 text-right font-semibold tabular-nums text-ink-primary">{lvl.pct}%</span>
                         </div>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-surface-elevated">
                         <div
-                          className="h-full rounded-full transition-all duration-700 bg-brand-secondary"
+                          className={cn('h-full rounded-full transition-all duration-700', accent.bar)}
                           style={{ width: `${lvl.pct}%` }}
                         />
                       </div>
@@ -1080,7 +1313,11 @@ export function DashboardPage() {
               <div className="flex items-end gap-3 mb-4">
                 <p className={cn(
                   'text-5xl font-bold tabular-nums leading-none',
-                  habitAvg >= 70 ? 'text-emerald-500' : habitAvg >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
+                  habitAvg >= 70
+                    ? 'text-brand-secondary'
+                    : habitAvg >= 40
+                      ? 'text-brand-tertiary'
+                      : 'text-brand-secondary/55 dark:text-brand-tertiary/55',
                 )}>
                   {habitAvg}<span className="text-2xl font-semibold">%</span>
                 </p>
@@ -1088,29 +1325,29 @@ export function DashboardPage() {
               </div>
               {/* Top 5 ranking */}
               <div className="space-y-2.5">
-                {habitTop5.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate(`/students/${s.id}`)}>
-                    <span className="w-4 text-[11px] font-bold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-medium text-ink-primary truncate group-hover:text-brand-secondary transition-colors">{s.name}</p>
-                        <span className={cn(
-                          'text-[11px] font-semibold tabular-nums shrink-0 ml-2',
-                          s.pct >= 70 ? 'text-emerald-500' : s.pct >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
-                        )}>{s.pct}%</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-surface-elevated">
-                        <div
-                          className={cn(
-                            'h-full rounded-full transition-all duration-500',
-                            s.pct >= 70 ? 'bg-emerald-500' : s.pct >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary',
-                          )}
-                          style={{ width: `${s.pct}%` }}
-                        />
+                {habitTop5.map((s, i) => {
+                  const accent = BRAND_ROW_ACCENT_PAIR[i % BRAND_ROW_ACCENT_PAIR.length]
+                  return (
+                    <div key={s.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate(`/students/${s.id}`)}>
+                      <span className="w-4 text-[11px] font-bold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className={cn('h-2 w-2 shrink-0 rounded-full ring-2 ring-black/10 dark:ring-white/10', accent.dot)} />
+                            <p className="truncate text-xs font-medium text-ink-primary group-hover:text-brand-secondary transition-colors">{s.name}</p>
+                          </div>
+                          <span className={cn('text-[11px] font-semibold tabular-nums shrink-0', accent.text)}>{s.pct}%</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-surface-elevated">
+                          <div
+                            className={cn('h-full rounded-full transition-all duration-500', accent.bar)}
+                            style={{ width: `${s.pct}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </Card>
 
@@ -1126,23 +1363,23 @@ export function DashboardPage() {
                 <p className="py-8 text-center text-sm text-ink-muted">Sin datos de objetivos aún</p>
               ) : (
                 <div className="space-y-4">
-                  {goalDist.map((g) => {
-                    const meta = GOAL_META[g.key]
+                  {goalDist.map((g, i) => {
+                    const accent = BRAND_ROW_ACCENT_PAIR[i % BRAND_ROW_ACCENT_PAIR.length]
                     return (
                       <div key={g.key}>
                         <div className="mb-1.5 flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
-                            <span className={cn('h-2 w-2 rounded-full', meta?.bg ?? 'bg-ink-muted')} />
+                            <span className={cn('h-2 w-2 shrink-0 rounded-full ring-2 ring-black/10 dark:ring-white/10', accent.dot)} />
                             <span className="font-medium text-ink-primary">{g.label}</span>
                           </div>
                           <div className="flex items-center gap-2 tabular-nums">
                             <span className="text-ink-muted">{g.count}</span>
-                            <span className="w-9 text-right font-semibold text-ink-primary">{g.pct}%</span>
+                            <span className="w-9 text-right font-semibold tabular-nums text-ink-primary">{g.pct}%</span>
                           </div>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-surface-elevated">
                           <div
-                            className="h-full rounded-full transition-all duration-700 bg-brand-secondary"
+                            className={cn('h-full rounded-full transition-all duration-700', accent.bar)}
                             style={{ width: `${g.pct}%` }}
                           />
                         </div>

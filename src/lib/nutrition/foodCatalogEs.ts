@@ -1,6 +1,9 @@
 /**
- * Referencias orientativas por 100 g en español (valores típicos de tablas domésticas;
- * no reemplazan análisis de laboratorio). El entrenador puede ajustar antes de guardar.
+ * Referencias por 100 g orientadas a planificación clínica/educativa (no reemplazan análisis).
+ * Regla base: carnes, tubérculos legumbres típicos y arroz/pasta en valores **cocidos**; lácteos,
+ * avena en seco, cereales en hojuela, frutos secos y pan en estado habitual de consumo (**crudo /
+ * listo** o según nombre). Valores alineados como referencia breve con USDA FoodData Central /
+ * tablas similares — conviene **«Buscar USDA FDC»** en la pantalla de alimentos para alimentos nuevos.
  */
 import type { NutritionFoodPortionBasis } from '@/types/database'
 
@@ -14,6 +17,8 @@ export interface FoodCatalogItemEs {
   fiber_g_per_100g: number
   energy_kcal_per_100g: number
   portion_basis: NutritionFoodPortionBasis
+  /** Ej. unidades domésticas (huevo, feta de pan): sigue figurando macros por 100 g. */
+  serving_examples?: string
 }
 
 export const FOOD_CATALOG_ES: FoodCatalogItemEs[] = [
@@ -22,7 +27,18 @@ export const FOOD_CATALOG_ES: FoodCatalogItemEs[] = [
   { id: 'fideos-secos-cocidos', nombre: 'Fideos secos (cocidos)', grupo: 'Cereales', protein_g_per_100g: 3.5, fat_g_per_100g: 0.9, carbs_g_per_100g: 25, fiber_g_per_100g: 1.8, energy_kcal_per_100g: 131, portion_basis: 'cocido' },
   { id: 'avena-hojuela', nombre: 'Avena en hojuelas (seca)', grupo: 'Cereales', protein_g_per_100g: 13, fat_g_per_100g: 7, carbs_g_per_100g: 66, fiber_g_per_100g: 10, energy_kcal_per_100g: 389, portion_basis: 'crudo' },
   { id: 'quinoa-cocida', nombre: 'Quinoa cocida', grupo: 'Cereales', protein_g_per_100g: 4.4, fat_g_per_100g: 1.9, carbs_g_per_100g: 19, fiber_g_per_100g: 2.8, energy_kcal_per_100g: 120, portion_basis: 'cocido' },
-  { id: 'pan-miga', nombre: 'Pan francés / miga', grupo: 'Cereales', protein_g_per_100g: 9, fat_g_per_100g: 3.2, carbs_g_per_100g: 49, fiber_g_per_100g: 2.7, energy_kcal_per_100g: 265, portion_basis: 'cocido' },
+  {
+    id: 'pan-miga',
+    nombre: 'Pan francés / de miga (como viene de panadería)',
+    grupo: 'Cereales',
+    protein_g_per_100g: 9,
+    fat_g_per_100g: 3.2,
+    carbs_g_per_100g: 49,
+    fiber_g_per_100g: 2.7,
+    energy_kcal_per_100g: 265,
+    portion_basis: 'crudo',
+    serving_examples: '1 feta delgada ≈25–35 g · 2 fetas medianas ≈50–65 g.',
+  },
   { id: 'batata-cocida', nombre: 'Batata / camote cocida', grupo: 'Tubérculos', protein_g_per_100g: 1.6, fat_g_per_100g: 0.1, carbs_g_per_100g: 21, fiber_g_per_100g: 3, energy_kcal_per_100g: 90, portion_basis: 'cocido' },
   { id: 'papa-cocida', nombre: 'Papa cocida', grupo: 'Tubérculos', protein_g_per_100g: 1.7, fat_g_per_100g: 0.1, carbs_g_per_100g: 16, fiber_g_per_100g: 1.8, energy_kcal_per_100g: 77, portion_basis: 'cocido' },
 
@@ -38,14 +54,36 @@ export const FOOD_CATALOG_ES: FoodCatalogItemEs[] = [
   { id: 'cerdo-lomo-magro', nombre: 'Cerdo lomo magro (cocido)', grupo: 'Carnes', protein_g_per_100g: 29, fat_g_per_100g: 6, carbs_g_per_100g: 0, fiber_g_per_100g: 0, energy_kcal_per_100g: 180, portion_basis: 'cocido' },
   { id: 'pescado-blanco', nombre: 'Pescado blanco (cocido: merluza, abadejo)', grupo: 'Pescado', protein_g_per_100g: 19, fat_g_per_100g: 1.5, carbs_g_per_100g: 0, fiber_g_per_100g: 0, energy_kcal_per_100g: 90, portion_basis: 'cocido' },
   { id: 'atun-lata-agua', nombre: 'Atún en lata (al agua, escurrido)', grupo: 'Pescado', protein_g_per_100g: 24, fat_g_per_100g: 1, carbs_g_per_100g: 0, fiber_g_per_100g: 0, energy_kcal_per_100g: 116, portion_basis: 'cocido' },
-  { id: 'huevo-entero', nombre: 'Huevo entero (crudo o cocido)', grupo: 'Huevos', protein_g_per_100g: 13, fat_g_per_100g: 11, carbs_g_per_100g: 1.1, fiber_g_per_100g: 0, energy_kcal_per_100g: 143, portion_basis: 'no_especificado' },
+  {
+    id: 'huevo-entero',
+    nombre: 'Huevo de gallina entero (referencia tamaño medio, cocido)',
+    grupo: 'Huevos',
+    protein_g_per_100g: 13,
+    fat_g_per_100g: 11,
+    carbs_g_per_100g: 1.1,
+    fiber_g_per_100g: 0,
+    energy_kcal_per_100g: 143,
+    portion_basis: 'cocido',
+    serving_examples: '1 huevo mediano cocido ≈44–50 g (sin cáscara); grande ≈56–63 g.',
+  },
   { id: 'clara-huevo', nombre: 'Clara de huevo', grupo: 'Huevos', protein_g_per_100g: 11, fat_g_per_100g: 0.2, carbs_g_per_100g: 0.7, fiber_g_per_100g: 0, energy_kcal_per_100g: 52, portion_basis: 'no_especificado' },
 
   // Lácteos
   { id: 'leche-descremada', nombre: 'Leche descremada', grupo: 'Lácteos', protein_g_per_100g: 3.4, fat_g_per_100g: 0.1, carbs_g_per_100g: 5, fiber_g_per_100g: 0, energy_kcal_per_100g: 35, portion_basis: 'no_especificado' },
   { id: 'leche-entera', nombre: 'Leche entera', grupo: 'Lácteos', protein_g_per_100g: 3.3, fat_g_per_100g: 3.3, carbs_g_per_100g: 4.8, fiber_g_per_100g: 0, energy_kcal_per_100g: 64, portion_basis: 'no_especificado' },
   { id: 'yogur-natural', nombre: 'Yogur natural (sin azúcar añadida)', grupo: 'Lácteos', protein_g_per_100g: 4, fat_g_per_100g: 3.3, carbs_g_per_100g: 4.7, fiber_g_per_100g: 0, energy_kcal_per_100g: 66, portion_basis: 'no_especificado' },
-  { id: 'queso-blanco-descremado', nombre: 'Queso blanco / ricotta descremada', grupo: 'Lácteos', protein_g_per_100g: 11, fat_g_per_100g: 4.6, carbs_g_per_100g: 3, fiber_g_per_100g: 0, energy_kcal_per_100g: 98, portion_basis: 'no_especificado' },
+  {
+    id: 'queso-blanco-descremado',
+    nombre: 'Queso blanco / ricotta descremada',
+    grupo: 'Lácteos',
+    protein_g_per_100g: 11,
+    fat_g_per_100g: 4.6,
+    carbs_g_per_100g: 3,
+    fiber_g_per_100g: 0,
+    energy_kcal_per_100g: 98,
+    portion_basis: 'no_especificado',
+    serving_examples: '2 cdas. untable ≈28–32 g · 1 rodaja fina firme ≈28–35 g.',
+  },
   { id: 'queso-cremoso', nombre: 'Queso cremoso tipo untable', grupo: 'Lácteos', protein_g_per_100g: 6, fat_g_per_100g: 23, carbs_g_per_100g: 4, fiber_g_per_100g: 0, energy_kcal_per_100g: 250, portion_basis: 'no_especificado' },
 
   // Verduras y frutas

@@ -158,8 +158,8 @@ export function ExpenseFormPage() {
               {...register('scope')}
             />
             <Textarea
-              label="Notas adicionales"
-              placeholder="Observaciones..."
+              label="Notas junto al método (ej. cuotas, acuerdos)"
+              placeholder="Texto libre…"
               rows={2}
               {...register('notes')}
             />

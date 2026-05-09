@@ -9,7 +9,7 @@ import { FormSection } from '@/components/ui/FormSection'
 import { Input, Textarea } from '@/components/ui/Input'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
+import type { WebIntakeCatalogSettings, WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import toast from 'react-hot-toast'
 import {
   WEB_INTAKE_CATALOG_BUCKET,
@@ -30,6 +30,7 @@ type EditableWebPlan = Pick<
   | 'is_active'
   | 'catalog_segment'
   | 'display_badge'
+  | 'credential_line_override'
 >
 
 const LIMITS = {
@@ -39,8 +40,10 @@ const LIMITS = {
   intro: 3500,
   badge: 48,
   item: 180,
+  credentialLine: 420,
   segmentImgUrl: 600,
   testimonialUrl: 900,
+  slotsMsg: 280,
 } as const
 
 const FALLBACK_PLANS: EditableWebPlan[] = [
@@ -61,6 +64,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     is_active: true,
     catalog_segment: 'solo',
     display_badge: null,
+    credential_line_override: null,
   },
   {
     slug: 'plan-nutricion',
@@ -79,6 +83,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     is_active: true,
     catalog_segment: 'solo',
     display_badge: null,
+    credential_line_override: null,
   },
   {
     slug: 'plan-full',
@@ -97,6 +102,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     is_active: true,
     catalog_segment: 'solo',
     display_badge: null,
+    credential_line_override: null,
   },
 ]
 
@@ -128,6 +134,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
     is_active: true,
     catalog_segment: 'solo',
     display_badge: null,
+    credential_line_override: null,
   }
 }
 
@@ -143,6 +150,9 @@ export function WebPlansSettingsPage() {
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
   const [withCrisSegmentImg, setWithCrisSegmentImg] = useState('')
   const [fullSegmentImg, setFullSegmentImg] = useState('')
+  const [intakeSlotsOpen, setIntakeSlotsOpen] = useState(true)
+  const [intakeSlotsRemaining, setIntakeSlotsRemaining] = useState('')
+  const [intakeSlotsMessage, setIntakeSlotsMessage] = useState('')
   const [testimonialUrlsText, setTestimonialUrlsText] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
   const soloFileRef = useRef<HTMLInputElement>(null)
@@ -158,10 +168,16 @@ export function WebPlansSettingsPage() {
     ;(async () => {
       const { data } = await supabase.from('web_intake_catalog_settings').select('*').eq('id', 1).maybeSingle()
       if (!data) return
-      setSoloSegmentImg(data.solo_segment_image_url ?? '')
-      setWithCrisSegmentImg(data.with_cris_segment_image_url ?? '')
-      setFullSegmentImg((data as Record<string, unknown>).full_segment_image_url as string ?? '')
-      setTestimonialUrlsText(((data.testimonial_videos as string[] | null) ?? []).join('\n'))
+      const row = data as WebIntakeCatalogSettings
+      setSoloSegmentImg(row.solo_segment_image_url ?? '')
+      setWithCrisSegmentImg(row.with_cris_segment_image_url ?? '')
+      setFullSegmentImg(row.full_segment_image_url ?? '')
+      setTestimonialUrlsText(((row.testimonial_videos ?? []) as string[]).join('\n'))
+      if (typeof row.intake_slots_open === 'boolean') setIntakeSlotsOpen(row.intake_slots_open)
+      if (row.intake_slots_remaining != null && Number.isFinite(row.intake_slots_remaining)) {
+        setIntakeSlotsRemaining(String(row.intake_slots_remaining))
+      } else setIntakeSlotsRemaining('')
+      setIntakeSlotsMessage(row.intake_slots_public_message ?? '')
     })()
   }, [canManage])
 
@@ -219,6 +235,42 @@ export function WebPlansSettingsPage() {
     }
   }
 
+  async function handleSaveIntakeSlots() {
+    let remaining: number | null = null
+    const trimmed = intakeSlotsRemaining.trim()
+    if (trimmed) {
+      const n = Number.parseInt(trimmed, 10)
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error('Cupos restantes: número entero ≥ 0 o vacío.')
+        return
+      }
+      remaining = n
+    }
+    const msg = intakeSlotsMessage.trim()
+    if (msg.length > LIMITS.slotsMsg) {
+      toast.error(`El mensaje de cupos no puede superar ${LIMITS.slotsMsg} caracteres.`)
+      return
+    }
+    setAssetsSaving(true)
+    try {
+      const { error } = await supabase.from('web_intake_catalog_settings').upsert({
+        id: 1,
+        intake_slots_open: intakeSlotsOpen,
+        intake_slots_remaining: remaining,
+        intake_slots_public_message: msg ? msg : null,
+      })
+      if (error) {
+        toast.error(
+          error.message.includes('intake_slots') ? 'Ejecutá la migración SQL de cupos (web_intake_catalog_settings).' : error.message,
+        )
+        return
+      }
+      toast.success('Estado de cupos guardado')
+    } finally {
+      setAssetsSaving(false)
+    }
+  }
+
   async function uploadSegmentHero(field: 'solo' | 'with_cris' | 'full', file: File | null | undefined) {
     if (!file || !catalogUserId) return
     if (file.size > WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES) {
@@ -230,9 +282,18 @@ export function WebPlansSettingsPage() {
       toast.error('Usá JPG, PNG o WebP')
       return
     }
-    const slug = field === 'solo' ? 'solo-line' : field === 'with_cris' ? 'with-cris-line' : 'full-line'
-    const setBusy = field === 'solo' ? setSoloUploadBusy : field === 'with_cris' ? setCrisUploadBusy : setFullUploadBusy
-    const setUrl = field === 'solo' ? setSoloSegmentImg : field === 'with_cris' ? setWithCrisSegmentImg : setFullSegmentImg
+    const slug =
+      field === 'solo' ? 'solo-line'
+      : field === 'with_cris' ? 'with-cris-line'
+      : 'full-line'
+    const setBusy =
+      field === 'solo' ? setSoloUploadBusy
+      : field === 'with_cris' ? setCrisUploadBusy
+      : setFullUploadBusy
+    const setUrl =
+      field === 'solo' ? setSoloSegmentImg
+      : field === 'with_cris' ? setWithCrisSegmentImg
+      : setFullSegmentImg
     const path = `${catalogUserId}/segment-${slug}.${ext}`
     setBusy(true)
     try {
@@ -284,6 +345,7 @@ export function WebPlansSettingsPage() {
         is_active: row.is_active,
         catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
         display_badge: row.display_badge ?? null,
+        credential_line_override: row.credential_line_override ?? null,
       }))
       if (rows.length > 0) {
         setPlans(rows)
@@ -362,6 +424,10 @@ export function WebPlansSettingsPage() {
       if (!plan.intro_text.trim() || plan.intro_text.length > LIMITS.intro) return 'El detalle principal supera el límite.'
       const b = plan.display_badge?.trim()
       if (b && b.length > LIMITS.badge) return `La etiqueta del plan («${plan.slug}») supera ${LIMITS.badge} caracteres.`
+      const cred = plan.credential_line_override?.trim()
+      if (cred && cred.length > LIMITS.credentialLine) {
+        return `La línea de credencial libre del plan «${plan.slug}» supera ${LIMITS.credentialLine} caracteres.`
+      }
       if (plan.includes_items.length === 0 || plan.gifts_items.length === 0) return 'Cada plan necesita al menos un ítem en Incluye y De regalo.'
       if (plan.includes_items.some((item) => item.length > LIMITS.item) || plan.gifts_items.some((item) => item.length > LIMITS.item)) {
         return 'Hay ítems muy largos; límite 180 caracteres por línea.'
@@ -389,6 +455,9 @@ export function WebPlansSettingsPage() {
       is_active: plan.is_active,
       catalog_segment: plan.catalog_segment,
       display_badge: plan.display_badge?.trim() ? plan.display_badge.trim().slice(0, LIMITS.badge) : null,
+      credential_line_override: plan.credential_line_override?.trim()
+        ? plan.credential_line_override.trim().slice(0, LIMITS.credentialLine)
+        : null,
     }))
     const { error } = await supabase.from('web_plans').upsert(payload, { onConflict: 'slug' })
     setSaving(false)
@@ -411,6 +480,7 @@ export function WebPlansSettingsPage() {
       is_active: row.is_active,
       catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
       display_badge: row.display_badge ?? null,
+      credential_line_override: row.credential_line_override ?? null,
     }))
     if (rows.length > 0) setPlans(rows)
   }
@@ -510,6 +580,39 @@ export function WebPlansSettingsPage() {
               Guardar fotos del selector
             </Button>
           </FormSection>
+          <FormSection title="Cupos e inscripciones (/form)">
+            <p className="text-xs text-ink-secondary">
+              Activá o desactivá si hay lugar para nuevas personas. El mensaje y el número se muestran en el formulario público
+              para alinear expectativas con Cris.
+            </p>
+            <label className="flex cursor-pointer items-center gap-2.5 py-2 text-sm text-ink-secondary">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-surface-border accent-brand-primary"
+                checked={intakeSlotsOpen}
+                onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
+              />
+              Hay cupos / aceptamos consultas nuevas
+            </label>
+            <Input
+              label="Cupos restantes (opcional, número entero)"
+              placeholder="Ej. 3 · vacío = no mostrar número"
+              value={intakeSlotsRemaining}
+              onChange={(e) => setIntakeSlotsRemaining(e.target.value.replace(/\D/g, ''))}
+            />
+            <Textarea
+              label="Mensaje público corto"
+              placeholder='Ej. "Quedan pocos lugares en marzo" o "Lista de espera"'
+              rows={3}
+              maxLength={LIMITS.slotsMsg}
+              value={intakeSlotsMessage}
+              hint={`${intakeSlotsMessage.length}/${LIMITS.slotsMsg}`}
+              onChange={(e) => setIntakeSlotsMessage(e.target.value)}
+            />
+            <Button type="button" size="sm" variant="secondary" onClick={() => void handleSaveIntakeSlots()} loading={assetsSaving}>
+              Guardar cupos
+            </Button>
+          </FormSection>
           <FormSection title="Videos testimonios (/form)">
             <p className="text-xs text-ink-secondary">
               Pegá una URL por línea (YouTube/Vimeo o link directo `.mp4`). Se mostrará una grilla de videos en el formulario público.
@@ -590,11 +693,16 @@ export function WebPlansSettingsPage() {
                   onChange={(e) =>
                     updatePlan(plan.slug, { catalog_segment: e.target.value as WebPlanCatalogSegment })
                   }
-                  className="mb-4 w-full max-w-xs rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
+                  className="mb-2 w-full max-w-xs rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                 >
-                  <option value="solo">Solo tu línea / tu foto</option>
-                  <option value="with_cris">Planes conjunto · Cristian Vázquez</option>
+                  <option value="solo">Solo entrenamiento (1.ª tarjeta)</option>
+                  <option value="with_cris">Solo nutrición (2.ª tarjeta)</option>
+                  <option value="full">Entrenamiento + nutrición (3.ª tarjeta Full)</option>
                 </select>
+                <p className="mb-4 max-w-xl text-[11px] text-ink-muted">
+                  Para otro profesional o texto especial en la tarjeta, usá «Credencial visible» abajo (reemplaza el texto por
+                  defecto del segmento en el detalle del plan).
+                </p>
                 <Input
                   label="Etiqueta en la card (opcional)"
                   value={plan.display_badge ?? ''}
@@ -602,6 +710,15 @@ export function WebPlansSettingsPage() {
                   maxLength={LIMITS.badge}
                   hint={`Vacío → se deduce por el slug conocido (${(plan.display_badge ?? '').length}/${LIMITS.badge})`}
                   onChange={(e) => updatePlan(plan.slug, { display_badge: e.target.value || null })}
+                />
+                <Textarea
+                  label="Credencial visible — texto libre (opcional)"
+                  placeholder="Vacío → se usa la credencial estándar del segmento en /form."
+                  rows={3}
+                  maxLength={LIMITS.credentialLine}
+                  value={plan.credential_line_override ?? ''}
+                  hint={`Ej. nombre y título de otra profesional · ${(plan.credential_line_override ?? '').length}/${LIMITS.credentialLine}`}
+                  onChange={(e) => updatePlan(plan.slug, { credential_line_override: e.target.value || null })}
                 />
                 <Input
                   label="Título"

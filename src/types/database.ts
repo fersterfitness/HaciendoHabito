@@ -490,11 +490,28 @@ export interface WebPlan {
   gifts_items: string[]
   /** Formulario público: línea solo vs planes conjuntos (Cristian Vázquez). */
   catalog_segment: WebPlanCatalogSegment
+  /** Texto libre tipo credencial en la card de detalle del plan; vacío = usar la del segmento. */
+  credential_line_override?: string | null
   /** Etiqueta corta tipo chip (ej. Entrenamiento); null = usar heurística por slug */
   display_badge: string | null
   sort_order: number
   is_active: boolean
   created_at: string
+  updated_at: string
+}
+
+/** Fila única típica id=1: assets y cupos del formulario público /form. */
+export interface WebIntakeCatalogSettings {
+  id: number
+  solo_segment_image_url: string | null
+  with_cris_segment_image_url: string | null
+  full_segment_image_url: string | null
+  /** Tras migración 20260516120000. */
+  cris_solo_segment_image_url?: string | null
+  testimonial_videos: string[] | null
+  intake_slots_open?: boolean
+  intake_slots_remaining?: number | null
+  intake_slots_public_message?: string | null
   updated_at: string
 }
 

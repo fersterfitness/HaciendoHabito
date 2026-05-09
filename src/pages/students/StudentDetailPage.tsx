@@ -27,6 +27,8 @@ import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan, Income } from '@/types/database'
+import { INCOME_TYPES, PAYMENT_METHODS } from '@/lib/constants'
+import { buildPersonalFullMirrorIncomeRow, buildPersonalHalfIncomeRow } from '@/lib/financePersonalSplit'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
 import {
@@ -1104,12 +1106,9 @@ function PagosTab({
   const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
   const ultimoPago    = payments.find((p) => p.status === 'cobrado')
 
-  const METHOD_LABEL: Record<string, string> = {
-    efectivo_debito: 'Efectivo/Débito',
-    tarjeta_credito: 'Tarjeta',
-    transferencia:   'Transferencia',
-    otro:            'Otro',
-  }
+  const METHOD_LABEL: Record<string, string> = Object.fromEntries(
+    PAYMENT_METHODS.map((m) => [m.value, m.label]),
+  ) as Record<string, string>
 
   return (
     <div className="space-y-4">
@@ -1961,8 +1960,8 @@ function QuickPayModal({
 }) {
   const { user } = useAuthStore()
   const [amount,  setAmount]  = useState('')
-  const [method,  setMethod]  = useState('efectivo_debito')
-  const [type,    setType]    = useState('mensualidad')
+  const [method,  setMethod]  = useState('efectivo_ars')
+  const [type,    setType]    = useState(INCOME_TYPES[0] ?? 'Otro')
   const [date,    setDate]    = useState(new Date().toISOString().split('T')[0])
   const [notes,   setNotes]   = useState('')
   const [saving,  setSaving]  = useState(false)
@@ -1972,20 +1971,52 @@ function QuickPayModal({
     const amt = Number(amount)
     if (!amt || amt <= 0) { toast.error('Ingresá un monto válido'); return }
     setSaving(true)
-    const { error } = await supabase.from('income').insert({
-      owner_id:       user.id,
-      student_id:     studentId,
-      amount:         amt,
-      payment_method: method,
-      income_type:    type,
-      income_date:    date,
-      description:    `Pago de ${studentName}`,
-      category:       'entrenamiento',
-      status:         'cobrado',
-      notes:          notes || null,
-    })
+    const mainRow = {
+      owner_id: user.id,
+      student_id: studentId,
+      amount: amt,
+      payment_method: method as Income['payment_method'],
+      income_type: type,
+      income_date: date,
+      description: `Pago de ${studentName}`,
+      category: 'Entrenamiento',
+      status: 'cobrado' as const,
+      notes: notes.trim() ? notes.trim() : null,
+      scope: 'business' as const,
+    }
+    const { error } = await supabase.from('income').insert(mainRow)
+    if (error) {
+      setSaving(false)
+      toast.error(error.message)
+      return
+    }
+    const split = buildPersonalHalfIncomeRow(mainRow)
+    if (split) {
+      const { error: splitErr } = await supabase.from('income').insert(split)
+      setSaving(false)
+      if (splitErr) {
+        toast.error(`Pago guardado pero no la mitad en vida personal: ${splitErr.message}`)
+        onClose()
+        return
+      }
+      toast.success('Pago + mitad proyecto en vida personal ✓')
+      onClose()
+      return
+    }
+    const mirror = buildPersonalFullMirrorIncomeRow(mainRow)
+    if (mirror) {
+      const { error: mirrorErr } = await supabase.from('income').insert(mirror)
+      setSaving(false)
+      if (mirrorErr) {
+        toast.error(`Pago guardado pero no la copia en vida personal: ${mirrorErr.message}`)
+        onClose()
+        return
+      }
+      toast.success('Pago HH + copia íntegra en vida personal ✓')
+      onClose()
+      return
+    }
     setSaving(false)
-    if (error) { toast.error(error.message); return }
     toast.success('Pago registrado ✓')
     onClose()
   }
@@ -2021,15 +2052,14 @@ function QuickPayModal({
           <div className="grid grid-cols-2 gap-3">
             {/* Tipo */}
             <div>
-              <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo</label>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
               <select
                 className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
                 value={type} onChange={(e) => setType(e.target.value)}
               >
-                <option value="mensualidad">Mensualidad</option>
-                <option value="clase_suelta">Clase suelta</option>
-                <option value="plan_nutricional">Plan nutricional</option>
-                <option value="otro">Otro</option>
+                {INCOME_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
             </div>
             {/* Método */}
@@ -2039,10 +2069,9 @@ function QuickPayModal({
                 className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
                 value={method} onChange={(e) => setMethod(e.target.value)}
               >
-                <option value="efectivo_debito">Efectivo / Débito</option>
-                <option value="transferencia">Transferencia</option>
-                <option value="tarjeta_credito">Tarjeta crédito</option>
-                <option value="otro">Otro</option>
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -2059,9 +2088,9 @@ function QuickPayModal({
 
           {/* Notas */}
           <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
+            <label className="block text-xs font-medium text-ink-secondary mb-1">Notas libres (ej. cuotas)</label>
             <input
-              placeholder="ej: mes de mayo..."
+              placeholder="ej: quedan 2 cuotas, mes mayo…"
               className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
               value={notes} onChange={(e) => setNotes(e.target.value)}
             />

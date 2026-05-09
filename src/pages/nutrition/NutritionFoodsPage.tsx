@@ -118,8 +118,9 @@ export function NutritionFoodsPage() {
     setFiber(String(item.fiber_g_per_100g))
     setKcal(String(item.energy_kcal_per_100g))
     setCategory(normalizeFoodCategory(item.grupo))
+    const extras = item.serving_examples ? `\n\nReferencia porción: ${item.serving_examples}` : ''
     setNotes(
-      'Valores orientativos por 100 g. Ajustá si usás otra preparación o marca.'
+      `Valores por 100 g; conviene cruzar con USDA FoodData Central (búsqueda en esta pantalla) si cambiás marca o corte.${extras}`,
     )
     toast.success('Listo: revisá y tocá «Guardar» si te sirve.')
   }
@@ -474,8 +475,9 @@ export function NutritionFoodsPage() {
             Lista en español (lo más simple)
           </h2>
           <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Empezá a escribir en el buscador para ver coincidencias. Tocá un ítem y se rellenan los valores; podés editar todo
-            antes de guardar.
+            Empezá a escribir en el buscador para ver coincidencias. Esta lista prioriza pesos <strong>cocidos</strong> en
+            carnes y guarniciones típicas; avena, lácteos, pan y cereales en seco o listos según uso. Para alimentos nuevos,
+            usá abajo <strong>Buscar USDA FDC</strong> (base pública con identificador) y revisá la porción antes de guardar.
           </p>
           <div ref={catalogPopoverRef} className="relative space-y-2">
             <Input
@@ -526,17 +528,24 @@ export function NutritionFoodsPage() {
                           <li key={item.id} role="option">
                             <button
                               type="button"
-                              className="flex w-full justify-between gap-2 bg-transparent px-3 py-2 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/80"
+                              className="flex w-full flex-col gap-0.5 bg-transparent px-3 py-2 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/80 sm:flex-row sm:items-start sm:justify-between"
                               onClick={() => applyCatalogItem(item)}
                             >
-                              <span className="font-medium text-ink-primary">{item.nombre}</span>
-                              <span className="text-[10px] text-ink-muted shrink-0 tabular-nums">
-                                {item.portion_basis === 'cocido'
-                                  ? 'cocido'
-                                  : item.portion_basis === 'crudo'
-                                    ? 'crudo'
-                                    : '—'}
-                              </span>
+                              <span className="min-w-0 font-medium text-ink-primary">{item.nombre}</span>
+                              <div className="flex shrink-0 flex-col items-end gap-0.5 sm:ml-2">
+                                <span className="text-[10px] text-ink-muted tabular-nums">
+                                  {item.portion_basis === 'cocido'
+                                    ? 'base cocido'
+                                    : item.portion_basis === 'crudo'
+                                      ? 'base crudo / listo'
+                                      : '—'}
+                                </span>
+                                {item.serving_examples ? (
+                                  <span className="max-w-[14rem] text-right text-[9px] leading-snug text-ink-muted">
+                                    {item.serving_examples}
+                                  </span>
+                                ) : null}
+                              </div>
                             </button>
                           </li>
                         ))}

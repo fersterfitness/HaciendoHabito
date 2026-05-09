@@ -11,7 +11,6 @@ import {
   Download,
   MessageCircle,
   AlertCircle,
-  StickyNote,
   ChevronDown,
 } from 'lucide-react'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
@@ -194,6 +193,26 @@ export function FinancesPage() {
     return (e.scope ?? 'business') === scopeFilter
   })
 
+  const filteredIncomes = incomesFiltered.filter(
+    (i) =>
+      i.description.toLowerCase().includes(search.toLowerCase()) ||
+      (i.student?.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      i.category.toLowerCase().includes(search.toLowerCase()) ||
+      i.income_type.toLowerCase().includes(search.toLowerCase()),
+  )
+  const filteredExpenses = expensesFiltered.filter(
+    (e) =>
+      e.description.toLowerCase().includes(search.toLowerCase()) ||
+      e.category.toLowerCase().includes(search.toLowerCase()) ||
+      (e.subcategory ?? '').toLowerCase().includes(search.toLowerCase()),
+  )
+
+  /** Totales alineados al listado cuando hay búsqueda en la pestaña activa. */
+  const incomesForAggregates = tab === 'income' && search.trim() !== '' ? filteredIncomes : incomesFiltered
+  const expensesForAggregates = tab === 'expenses' && search.trim() !== '' ? filteredExpenses : expensesFiltered
+  /** Cuotas de alumnos: solo cobros HH (negocio). */
+  const businessIncomesOnly = incomes.filter((i) => (i.scope ?? 'business') === 'business')
+
   useEffect(() => {
     fetchAll()
   }, [fetchAll])
@@ -237,9 +256,9 @@ export function FinancesPage() {
     fetchAll()
   }
 
-  const totalIngresos = incomesFiltered.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
-  const totalPendiente = incomesFiltered.filter((i) => i.status === 'pendiente').reduce((s, i) => s + i.amount, 0)
-  const totalGastos = expensesFiltered.reduce((s, e) => s + e.amount, 0)
+  const totalIngresos = incomesForAggregates.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
+  const totalPendiente = incomesForAggregates.filter((i) => i.status === 'pendiente').reduce((s, i) => s + i.amount, 0)
+  const totalGastos = expensesForAggregates.reduce((s, e) => s + e.amount, 0)
   const balance = totalIngresos - totalGastos
 
   const now = new Date()
@@ -247,10 +266,10 @@ export function FinancesPage() {
   const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`
   const MES_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  const thisMesTotal = incomesFiltered
+  const thisMesTotal = incomesForAggregates
     .filter((i) => i.status === 'cobrado' && i.income_date.startsWith(thisMonthKey))
     .reduce((s, i) => s + i.amount, 0)
-  const prevMesTotal = incomesFiltered
+  const prevMesTotal = incomesForAggregates
     .filter((i) => i.status === 'cobrado' && i.income_date.startsWith(prevMonthKey))
     .reduce((s, i) => s + i.amount, 0)
   const mesDelta = prevMesTotal > 0 ? Math.round(((thisMesTotal - prevMesTotal) / prevMesTotal) * 100) : null
@@ -260,7 +279,7 @@ export function FinancesPage() {
       const raw = localStorage.getItem(`cuota_mensual_${s.id}`)
       if (!raw) return null
       const cuota = Number(raw)
-      const paid = incomesFiltered
+      const paid = businessIncomesOnly
         .filter((i) => i.status === 'cobrado' && i.student_id === s.id && i.income_date.startsWith(thisMonthKey))
         .reduce((sum, i) => sum + i.amount, 0)
       if (paid >= cuota) return null
@@ -271,25 +290,11 @@ export function FinancesPage() {
   const annualChartData = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const total = incomesFiltered
+    const total = incomesForAggregates
       .filter((inc) => inc.status === 'cobrado' && inc.income_date.startsWith(key))
       .reduce((s, inc) => s + inc.amount, 0)
     return { mes: MES_LABELS[d.getMonth()], total, isCurrent: key === thisMonthKey }
   })
-
-  const filteredIncomes = incomesFiltered.filter(
-    (i) =>
-      i.description.toLowerCase().includes(search.toLowerCase()) ||
-      (i.student?.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      i.category.toLowerCase().includes(search.toLowerCase()) ||
-      i.income_type.toLowerCase().includes(search.toLowerCase()),
-  )
-  const filteredExpenses = expensesFiltered.filter(
-    (e) =>
-      e.description.toLowerCase().includes(search.toLowerCase()) ||
-      e.category.toLowerCase().includes(search.toLowerCase()) ||
-      (e.subcategory ?? '').toLowerCase().includes(search.toLowerCase()),
-  )
 
   function exportCSV() {
     const isIncome = tab === 'income'
@@ -362,6 +367,15 @@ export function FinancesPage() {
           />
           <MetricTile label="Total gastos" value={formatCurrency(totalGastos)} />
         </div>
+        <p className="text-[11px] leading-relaxed text-ink-muted">
+          Los montos siguen el filtro &ldquo;
+          {scopeFilter === 'all' ? 'Todos los ámbitos' : scopeFilter === 'business' ? 'Haciéndolo hábito' : 'Vida personal'}
+          &rdquo;.
+          {search.trim() !== ''
+            ? ` Con búsqueda activa en la pestaña ${tab === 'income' ? 'Ingresos' : 'Gastos'}, balance y barras cuentan solo filas que coinciden con esa búsqueda.`
+            : ''}
+          {' '}En ingresos, el desglose por método usa solo montos marcados como cobrados (plata efectiva).
+        </p>
 
         {/* Comparación mensual */}
         <div className="grid grid-cols-2 gap-2.5 lg:gap-3">
@@ -507,34 +521,43 @@ export function FinancesPage() {
 
         {/* Desglose por método de pago */}
         {!loading && (tab === 'income' ? incomesFiltered.length : expensesFiltered.length) > 0 && (() => {
-          const rows = tab === 'income' ? incomesFiltered : expensesFiltered
+          const rowsBase =
+            tab === 'income'
+              ? search.trim() ? filteredIncomes : incomesFiltered
+              : search.trim() ? filteredExpenses : expensesFiltered
+          const rows =
+            tab === 'income'
+              ? rowsBase.filter((r) => (r as Income).status === 'cobrado')
+              : rowsBase
           const byMethod: Record<string, number> = {}
           rows.forEach((r) => {
             const m = r.payment_method ?? 'otro'
-            byMethod[m] = (byMethod[m] ?? 0) + (r as Income).amount
+            byMethod[m] = (byMethod[m] ?? 0) + r.amount
           })
           const entries = Object.entries(byMethod).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
           if (entries.length === 0) return null
+          const grandTotal = entries.reduce((s, [, v]) => s + v, 0)
           return (
             <div className="rounded-md border border-zinc-200/70 bg-surface-card px-4 py-3 dark:border-zinc-700/65">
               <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-                {tab === 'income' ? 'Ingresos' : 'Gastos'} por método de pago
+                {tab === 'income' ? 'Ingresos cobrados' : 'Gastos registrados'} por método de pago
+              </p>
+              <p className="-mt-2 mb-2.5 text-[11px] text-ink-muted">
+                Vas viendo cada canal por separado; el total reproduce la suma de esas cifras ({formatCurrency(grandTotal)}).
               </p>
               <div className="flex flex-wrap gap-2">
                 {entries.map(([method, total]) => (
                   <div
                     key={method}
-                    className="flex items-center gap-2 rounded-lg border border-zinc-200/60 bg-zinc-50/60 px-3 py-1.5 dark:border-zinc-700/55 dark:bg-zinc-900/40"
+                    className="flex min-w-[9.5rem] flex-1 flex-col gap-1 rounded-lg border border-zinc-200/60 bg-zinc-50/60 px-3 py-2 dark:border-zinc-700/55 dark:bg-zinc-900/40 sm:min-w-0 sm:flex-initial sm:flex-row sm:items-center"
                   >
                     <PaymentMethodBadge method={method as Income['payment_method']} />
                     <span className="text-sm font-semibold tabular-nums text-ink-primary">{formatCurrency(total)}</span>
                   </div>
                 ))}
-                <div className="flex items-center gap-2 rounded-lg border border-zinc-300/50 bg-zinc-100/60 px-3 py-1.5 dark:border-zinc-600/40 dark:bg-zinc-800/35">
-                  <span className="text-[11px] font-medium text-ink-muted">Total</span>
-                  <span className="text-sm font-bold tabular-nums text-ink-primary">
-                    {formatCurrency(entries.reduce((s, [, v]) => s + v, 0))}
-                  </span>
+                <div className="flex min-w-[9.5rem] flex-1 flex-col gap-0.5 rounded-lg border border-zinc-300/50 bg-zinc-100/60 px-3 py-2 dark:border-zinc-600/40 dark:bg-zinc-800/35 sm:flex-initial sm:justify-center">
+                  <span className="text-[11px] font-medium text-ink-muted">Total ({entries.length} {entries.length === 1 ? 'medio' : 'medios'})</span>
+                  <span className="text-sm font-bold tabular-nums text-ink-primary">{formatCurrency(grandTotal)}</span>
                 </div>
               </div>
             </div>
@@ -569,7 +592,7 @@ export function FinancesPage() {
                       <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
                       <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
-                      <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Medio · Notas</th>
+                      <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                     </tr>
                   </thead>
@@ -594,14 +617,17 @@ export function FinancesPage() {
                         <td className="px-3 py-2 sm:px-4">
                           <Badge status={income.status} className="text-[10px]" />
                         </td>
-                        <td className="hidden px-3 py-2 lg:table-cell lg:px-4">
-                          <div className="flex flex-col gap-1">
-                            <PaymentMethodBadge method={income.payment_method} />
-                            {income.notes?.trim() && (
-                              <p className="max-w-[16rem] text-[11px] text-ink-muted leading-snug" title={income.notes}>
-                                {income.notes}
-                              </p>
-                            )}
+                        <td className="max-w-[20rem] px-3 py-2 sm:px-4">
+                          <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
+                            <PaymentMethodBadge method={income.payment_method} className="shrink-0" />
+                            {income.notes?.trim() ? (
+                              <span
+                                className="min-w-0 flex-1 whitespace-pre-wrap text-[11px] leading-snug text-ink-muted"
+                                title={income.notes}
+                              >
+                                {income.notes.trim()}
+                              </span>
+                            ) : null}
                           </div>
                         </td>
                         <td className="px-3 py-1.5 sm:px-4">
@@ -655,7 +681,7 @@ export function FinancesPage() {
                     <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Categoría</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
                     <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
-                    <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Medio · Notas</th>
+                    <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                   </tr>
                 </thead>
@@ -681,14 +707,17 @@ export function FinancesPage() {
                           {expense.expense_type === 'fijo' ? 'Fijo' : 'Variable'}
                         </span>
                       </td>
-                      <td className="hidden px-3 py-2 lg:table-cell lg:px-4">
-                        <div className="flex flex-col gap-1">
-                          <PaymentMethodBadge method={expense.payment_method} />
-                          {expense.notes?.trim() && (
-                            <p className="max-w-[16rem] text-[11px] text-ink-muted leading-snug" title={expense.notes}>
-                              {expense.notes}
-                            </p>
-                          )}
+                      <td className="max-w-[20rem] px-3 py-2 sm:px-4">
+                        <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
+                          <PaymentMethodBadge method={expense.payment_method} className="shrink-0" />
+                          {expense.notes?.trim() ? (
+                            <span
+                              className="min-w-0 flex-1 whitespace-pre-wrap text-[11px] leading-snug text-ink-muted"
+                              title={expense.notes ?? undefined}
+                            >
+                              {expense.notes.trim()}
+                            </span>
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-3 py-1.5 sm:px-4">

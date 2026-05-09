@@ -28,6 +28,49 @@ const SEGMENT_SOLO_SUB = 'Tomás Ferster — Prof. Educación Física · Lic. en
 const SEGMENT_CRIS_SUB = 'Cristian Crossetto — Lic. en Nutrición · Esp. en Nutrición deportiva'
 const SEGMENT_FULL_SUB = 'Entrenamiento + Nutrición'
 
+type PublicIntakeSlots = {
+  slotsOpen: boolean
+  slotsRemaining: number | null
+  slotsMessage: string | null
+}
+
+function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
+  const { slotsOpen, slotsRemaining, slotsMessage } = spots
+  const trimmed = slotsMessage?.trim() || ''
+
+  let title = 'Cupos disponibles'
+  let body = trimmed || 'Hay lugar para nuevas consultas.'
+  let tone = 'border-[#ffcc33]/35 bg-[#ffcc33]/10'
+
+  if (!slotsOpen) {
+    title = 'Cupos cerrados por ahora'
+    body = trimmed || 'En este momento no estamos tomando nuevas inscripciones. Podés igual dejar tus datos y te contactamos cuando haya lugar.'
+    tone = 'border-white/25 bg-black/35'
+  } else if (typeof slotsRemaining === 'number') {
+    if (slotsRemaining <= 0 && !trimmed) {
+      body = 'No quedan cupos numerados disponibles.'
+      tone = 'border-amber-500/35 bg-black/35'
+    } else if (slotsRemaining <= 3) {
+      title = slotsRemaining <= 0 ? 'Sin cupos numerados' : 'Quedan pocos lugares'
+      body = trimmed || (
+        slotsRemaining > 0
+          ? `Aproximadamente ${slotsRemaining} cupo${slotsRemaining === 1 ? '' : 's'} disponibles.`
+          : 'Consultanos por lista de espera.'
+      )
+      tone = 'border-[#ffcc33]/35 bg-[#ffcc33]/8'
+    } else if (trimmed) {
+      body = trimmed
+    }
+  }
+
+  return (
+    <div className={`mb-4 rounded-2xl border px-4 py-3 text-left backdrop-blur-sm ${tone}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-white/90">{body}</p>
+    </div>
+  )
+}
+
 function isLikelyYouTube(url: string): boolean {
   return /(?:youtube\.com\/watch\?v=|youtu\.be\/)/i.test(url)
 }
@@ -107,6 +150,7 @@ type PlanDetail = {
   id: string
   catalogSegment: WebPlanCatalogSegment
   displayBadge: string | null
+  credentialLineOverride: string | null
   name: string
   price: string
   badge: string
@@ -137,6 +181,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
     id: 'plan-entrenamiento',
     catalogSegment: 'solo',
     displayBadge: null,
+    credentialLineOverride: null,
     name: 'Primer Plan Entrenamiento',
     price: '$60.000',
     badge: 'Entrenamiento',
@@ -157,6 +202,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
     id: 'plan-nutricion',
     catalogSegment: 'solo',
     displayBadge: null,
+    credentialLineOverride: null,
     name: 'Segundo Plan Nutrición',
     price: '$80.000',
     badge: 'Nutrición',
@@ -177,6 +223,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
     id: 'plan-full',
     catalogSegment: 'solo',
     displayBadge: null,
+    credentialLineOverride: null,
     name: 'Plan Full',
     price: '$100.000',
     badge: 'Full',
@@ -287,9 +334,17 @@ function PlanDetailView({
 
         <p className="mt-4 whitespace-pre-wrap break-words text-sm text-white/85 leading-relaxed">{plan.intro}</p>
 
-        {plan.catalogSegment === 'with_cris' ? (
+        {plan.credentialLineOverride?.trim() ? (
+          <p className="mt-4 border-l-2 border-[#ffcc33]/70 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95 whitespace-pre-wrap">
+            {plan.credentialLineOverride.trim()}
+          </p>
+        ) : plan.catalogSegment === 'with_cris' ? (
           <p className="mt-4 border-l-2 border-[#ffcc33]/70 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95">
             {PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
+          </p>
+        ) : plan.catalogSegment === 'full' ? (
+          <p className="mt-4 border-l-2 border-[#ffcc33]/65 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95">
+            {PUBLIC_PLAN_FULL_CREDENTIAL_LINE}
           </p>
         ) : plan.catalogSegment === 'solo' ? (
           <p className="mt-4 text-sm leading-relaxed text-white/75">{PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}</p>
@@ -434,7 +489,7 @@ function LeftBrandPanel({
   }[] = [
     {
       segment: 'solo',
-      label: 'Entrenador',
+      label: 'Solo entrenamiento',
       sub: SEGMENT_SOLO_SUB,
       credential: PUBLIC_PLAN_SOLO_CREDENTIAL_LINE,
       icon: <BicepsFlexed className="h-4 w-4" />,
@@ -443,7 +498,7 @@ function LeftBrandPanel({
     },
     {
       segment: 'with_cris',
-      label: 'Nutricionista',
+      label: 'Solo nutrición',
       sub: SEGMENT_CRIS_SUB,
       credential: PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE,
       icon: <Salad className="h-4 w-4" />,
@@ -452,7 +507,7 @@ function LeftBrandPanel({
     },
     {
       segment: 'full',
-      label: 'Full',
+      label: 'Entrenamiento + nutrición',
       sub: SEGMENT_FULL_SUB,
       credential: PUBLIC_PLAN_FULL_CREDENTIAL_LINE,
       icon: <Zap className="h-4 w-4" />,
@@ -571,11 +626,11 @@ function LeftBrandPanel({
               <p className="max-w-[280px] text-center text-[11px] text-white/60 mx-auto">
                 {catalogSegment === null
                   ? 'Seleccioná arriba con quién querés trabajar.'
-                  : catalogSegment === 'full'
+                    : catalogSegment === 'full'
                     ? hasPlansForSegment('full')
                       ? null
                       : 'Plan Full: incluye entrenamiento + nutrición con ambos profesionales.'
-                    : 'Próximamente cargaremos planes en esta línea.'}
+                      : 'Próximamente cargaremos planes en esta línea.'}
               </p>
             ) : (
               <PlansStack
@@ -626,6 +681,11 @@ export function PublicIntakeFormPage() {
   const [soloSegmentImgUrl, setSoloSegmentImgUrl] = useState<string | null>(null)
   const [withCrisSegmentImgUrl, setWithCrisSegmentImgUrl] = useState<string | null>(null)
   const [fullSegmentImgUrl, setFullSegmentImgUrl] = useState<string | null>(null)
+  const [publicSpots, setPublicSpots] = useState<PublicIntakeSlots>({
+    slotsOpen: true,
+    slotsRemaining: null,
+    slotsMessage: null,
+  })
   const [testimonialVideos, setTestimonialVideos] = useState<string[]>([])
   const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
     plans,
@@ -681,14 +741,22 @@ export function PublicIntakeFormPage() {
     ;(async () => {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
-        .select('solo_segment_image_url, with_cris_segment_image_url, full_segment_image_url, testimonial_videos')
+        .select(
+          'solo_segment_image_url, with_cris_segment_image_url, full_segment_image_url, testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message',
+        )
         .eq('id', 1)
         .maybeSingle()
       if (!mounted) return
       if (data) {
-        setSoloSegmentImgUrl(data.solo_segment_image_url)
-        setWithCrisSegmentImgUrl(data.with_cris_segment_image_url)
-        setFullSegmentImgUrl((data as Record<string, unknown>).full_segment_image_url as string | null ?? null)
+        const d = data as Record<string, unknown>
+        setSoloSegmentImgUrl(data.solo_segment_image_url as string | null)
+        setWithCrisSegmentImgUrl(data.with_cris_segment_image_url as string | null)
+        setFullSegmentImgUrl((d.full_segment_image_url as string | null) ?? null)
+        setPublicSpots({
+          slotsOpen: d.intake_slots_open !== false,
+          slotsRemaining: typeof d.intake_slots_remaining === 'number' ? d.intake_slots_remaining : null,
+          slotsMessage: typeof d.intake_slots_public_message === 'string' ? d.intake_slots_public_message : null,
+        })
         setTestimonialVideos(((data.testimonial_videos as string[] | null) ?? []).filter(Boolean))
       }
     })()
@@ -703,7 +771,7 @@ export function PublicIntakeFormPage() {
       const { data, error } = await supabase
         .from('web_plans')
         .select(
-          'slug, title, price_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, catalog_segment, display_badge',
+          'slug, title, price_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, catalog_segment, display_badge, credential_line_override',
         )
         .eq('is_active', true)
         .order('sort_order')
@@ -721,18 +789,22 @@ export function PublicIntakeFormPage() {
         | 'is_active'
         | 'catalog_segment'
         | 'display_badge'
+        | 'credential_line_override'
       >
       const mapped: PlanDetail[] = ((data as Row[]) ?? []).map((row) => {
         const id = row.slug
+        const rawSeg = String(row.catalog_segment ?? 'solo')
         const segment: WebPlanCatalogSegment =
-          row.catalog_segment === 'with_cris' ? 'with_cris'
-          : row.catalog_segment === 'full' ? 'full'
+          rawSeg === 'with_cris' ? 'with_cris'
+          : rawSeg === 'full' ? 'full'
           : 'solo'
         const displayBadge = row.display_badge ?? null
+        const credentialLineOverride = row.credential_line_override ?? null
         return {
           id,
           catalogSegment: segment,
           displayBadge,
+          credentialLineOverride,
           name: row.title,
           price: row.price_label,
           badge: planCardBadge({ id, displayBadge }),
@@ -844,6 +916,7 @@ export function PublicIntakeFormPage() {
               <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
             ) : (
               <div>
+                <IntakeSlotsBanner spots={publicSpots} />
                 <TestimonialsSection urls={testimonialVideos} />
                 {intakeKind === 'nutricion' ? (
                   <IntakeNutritionForm
@@ -879,6 +952,7 @@ export function PublicIntakeFormPage() {
                 }}
               >
               <div style={{ backfaceVisibility: 'hidden' }} className="scrollbar-hide">
+                  <IntakeSlotsBanner spots={publicSpots} />
                   <TestimonialsSection urls={testimonialVideos} />
                   {intakeKind === 'nutricion' ? (
                     <IntakeNutritionForm
