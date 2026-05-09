@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Plus, Search, Dumbbell, Trash2, Pencil, Tags, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { cn } from '@/lib/utils'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import type { Exercise, MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -69,6 +71,9 @@ export function ExercisesPage() {
   const [showCategoryPanel, setShowCategoryPanel] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [creatingCategory, setCreatingCategory] = useState(false)
+  const exercisesSearchRef = useRef<HTMLInputElement>(null)
+
+  useSlashSearchFocus(exercisesSearchRef)
 
   const reloadMuscleGroups = useCallback(async () => {
     const { data, error } = await supabase.from('muscle_groups').select('*').order('sort_order')
@@ -168,7 +173,8 @@ export function ExercisesPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="min-h-10 min-w-0 flex-1">
             <Input
-              placeholder="Buscar por nombre, músculo o equipamiento..."
+              ref={exercisesSearchRef}
+              placeholder="Buscar por nombre, músculo o equipamiento… ( / para enfocar )"
               leftIcon={<Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -196,11 +202,9 @@ export function ExercisesPage() {
             </Button>
             <Button
               type="button"
-              variant="primary"
-              size="md"
+              variant="gradientPrimary"
               icon={<Plus className="h-[1.125rem] w-[1.125rem]" strokeWidth={2.25} />}
               onClick={() => navigate('/exercises/new')}
-              className="h-10 shrink-0 rounded-md bg-[#ff4800] px-3.5 text-sm font-semibold text-white shadow-none hover:bg-[#e04100] hover:shadow-none"
             >
               Nuevo
             </Button>
@@ -325,12 +329,16 @@ export function ExercisesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200/40 dark:divide-zinc-800/60">
-                {filtered.map((exercise) => {
+                {filtered.map((exercise, rowIndex) => {
                   const colorIdx = exercise.muscle_group ? (muscleColorMap.get(exercise.muscle_group.id) ?? 0) : -1
                   const palette = colorIdx >= 0 ? getMuscleColor(colorIdx) : null
                   return (
-                    <tr key={exercise.id} className="transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/35">
-                      <td className="px-3 py-2 sm:px-4">
+                    <tr
+                      key={exercise.id}
+                      style={tableRowEnterStyle(rowIndex)}
+                      className="transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/35"
+                    >
+                      <td className="hh-row-drop-in px-3 py-2 sm:px-4">
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           <span className="font-semibold tracking-tight text-ink-primary">{exercise.name}</span>
                           {!exercise.is_active && (
@@ -340,7 +348,7 @@ export function ExercisesPage() {
                           )}
                         </div>
                       </td>
-                      <td className="hidden px-3 py-2 sm:table-cell sm:px-4">
+                      <td className="hh-row-drop-in hidden px-3 py-2 sm:table-cell sm:px-4">
                         {exercise.muscle_group && palette ? (
                           <span className={cn(
                             'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
@@ -353,15 +361,15 @@ export function ExercisesPage() {
                           <span className="text-ink-muted">—</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 sm:px-4">
+                      <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 sm:px-4">
                         <span className={difficultyBadgeClass(exercise.difficulty)}>
                           {DIFFICULTY_LABEL[exercise.difficulty] ?? exercise.difficulty}
                         </span>
                       </td>
-                      <td className="hidden max-w-[14rem] truncate px-3 py-2 text-xs text-ink-muted lg:table-cell lg:px-4" title={(exercise.equipment ?? []).join(', ') || undefined}>
+                      <td className="hh-row-drop-in hidden max-w-[14rem] truncate px-3 py-2 text-xs text-ink-muted lg:table-cell lg:px-4" title={(exercise.equipment ?? []).join(', ') || undefined}>
                         {exercise.equipment && exercise.equipment.length > 0 ? exercise.equipment.join(', ') : '—'}
                       </td>
-                      <td className="px-2 py-1.5 sm:px-3">
+                      <td className="hh-row-drop-in px-2 py-1.5 sm:px-3">
                         <div className="flex items-center justify-end gap-0.5">
                           <button
                             type="button"

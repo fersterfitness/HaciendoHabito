@@ -143,12 +143,14 @@ function RailNavLink({
       <NavLink
         to={to}
         className={cn(
-          'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
+          'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none',
+          'transition-[color,background-color,box-shadow,transform] duration-200 ease-out',
+          'motion-safe:active:scale-[0.96]',
           'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-secondary/45 dark:focus-visible:ring-brand-secondary/35',
           'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
           isActive
-            ? 'bg-zinc-200 text-zinc-900 dark:bg-white/[0.16] dark:text-white'
-            : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
+            ? 'bg-zinc-200 text-zinc-900 ring-2 ring-brand-primary/35 ring-offset-2 ring-offset-zinc-100 shadow-sm dark:bg-white/[0.18] dark:text-white dark:ring-brand-secondary/40 dark:ring-offset-[rgb(var(--surface-sidebar))]'
+            : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 motion-safe:hover:scale-[1.06] dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
         )}
         aria-current={isActive ? 'page' : undefined}
         aria-label={label}

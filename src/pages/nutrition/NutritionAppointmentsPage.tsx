@@ -1,20 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Spinner } from '@/components/ui/Spinner'
 import { Tooltip as UiTooltip } from '@/components/ui/Tooltip'
 import { Popover } from '@/components/ui/Popover'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   CalendarClock,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Download,
+  ExternalLink,
   Grid2x2,
   List,
   MessageCircle,
+  Search,
+  Sparkles,
+  UserRound,
 } from 'lucide-react'
 import {
   buildAppointmentConfirmationWaUrl,
@@ -25,12 +33,12 @@ import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import type { Appointment, Student, AppointmentStatus } from '@/types/database'
+import type { Appointment, AppointmentReminder, Student, AppointmentStatus } from '@/types/database'
 import toast from 'react-hot-toast'
 import {
   addDays, addMonths, addWeeks, eachDayOfInterval,
-  endOfMonth, endOfWeek, format, getMonth, isSameDay, isToday,
-  parseISO, startOfMonth, startOfWeek,
+  endOfDay, endOfMonth, endOfWeek, format, getMonth, isSameDay, isToday,
+  isWithinInterval, parseISO, startOfDay, startOfMonth, startOfWeek,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -50,7 +58,10 @@ async function parseFunctionErrorMessage(error: unknown) {
   }
 }
 
-type AppointmentRow = Appointment & { student?: Pick<Student, 'full_name' | 'phone'> | null }
+type AppointmentRow = Appointment & {
+  student?: Pick<Student, 'full_name' | 'phone'> | null
+  reminders?: AppointmentReminder[] | null
+}
 
 function whatsappToast(title: string, whatsappUrl: string, dismissLabel = 'Listo') {
   toast.custom(
@@ -112,13 +123,103 @@ function agendaCardAccent(status: AppointmentStatus): string {
   return 'border-l-zinc-500/85 dark:border-l-zinc-500/55'
 }
 
+const FALLBACK_DURATION_MIN = 45
+
+/** Fin del turno en ms (usa `ends_at` o duración por defecto). */
+function appointmentEndMs(a: Pick<Appointment, 'starts_at' | 'ends_at'>, fallbackMin = FALLBACK_DURATION_MIN): number {
+  if (a.ends_at) return new Date(a.ends_at).getTime()
+  return new Date(a.starts_at).getTime() + fallbackMin * 60 * 1000
+}
+
+function intervalsOverlap(s1: number, e1: number, s2: number, e2: number): boolean {
+  return s1 < e2 && e1 > s2
+}
+
+function findOverlappingAppointment(
+  apps: AppointmentRow[],
+  startMs: number,
+  endMs: number,
+  excludeIds: Set<string>,
+): AppointmentRow | undefined {
+  for (const a of apps) {
+    if (excludeIds.has(a.id)) continue
+    if (a.status === 'cancelled') continue
+    const s = new Date(a.starts_at).getTime()
+    const e = appointmentEndMs(a)
+    if (intervalsOverlap(startMs, endMs, s, e)) return a
+  }
+  return undefined
+}
+
+function appointmentInProgress(a: AppointmentRow, now = Date.now()): boolean {
+  if (a.status !== 'scheduled' && a.status !== 'confirmed') return false
+  const s = new Date(a.starts_at).getTime()
+  const e = appointmentEndMs(a)
+  return now >= s && now < e
+}
+
+const REMINDER_CHANNEL_LABEL: Record<string, string> = {
+  app: 'App',
+  email: 'Email',
+  whatsapp: 'WhatsApp',
+}
+
+function formatReminderLine(reminders: AppointmentReminder[] | null | undefined): string | null {
+  if (!reminders?.length) return null
+  const sorted = [...reminders].sort((x, y) => x.scheduled_for.localeCompare(y.scheduled_for))
+  return sorted
+    .map((r) => {
+      const when = format(parseISO(r.scheduled_for), 'EEE d MMM HH:mm', { locale: es })
+      const ch = REMINDER_CHANNEL_LABEL[r.channel] ?? r.channel
+      return `${ch}: ${when}`
+    })
+    .join(' · ')
+}
+
+function escapeIcsText(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+}
+
+function formatIcsUtc(d: Date): string {
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+}
+
+function buildTurnosIcsFile(rows: AppointmentRow[], filenameHint: string): { blob: Blob; filename: string } {
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'PRODID:-//Haciendo Habito//Turnos//ES',
+  ]
+  for (const a of rows) {
+    if (a.status === 'cancelled') continue
+    const s = new Date(a.starts_at)
+    const e = new Date(appointmentEndMs(a))
+    lines.push('BEGIN:VEVENT', `UID:${a.id}@hh-turnos`)
+    lines.push(`DTSTAMP:${formatIcsUtc(new Date())}`)
+    lines.push(`DTSTART:${formatIcsUtc(s)}`)
+    lines.push(`DTEND:${formatIcsUtc(e)}`)
+    lines.push(`SUMMARY:${escapeIcsText(a.title || 'Turno')}`)
+    const who = a.student?.full_name
+    if (who) lines.push(`DESCRIPTION:${escapeIcsText(who)}`)
+    if (a.location?.trim()) lines.push(`LOCATION:${escapeIcsText(a.location.trim())}`)
+    lines.push('END:VEVENT')
+  }
+  lines.push('END:VCALENDAR')
+  const safe = filenameHint.replace(/[^\w-]+/g, '_').slice(0, 40)
+  return {
+    blob: new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' }),
+    filename: `turnos_${safe || 'export'}.ics`,
+  }
+}
+
 const FIELD_ROW =
   'mt-1 w-full rounded-lg bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm placeholder:text-ink-muted/60'
 
 /** Opciones de duración del turno (minutos, de 15 en 15 hasta 8 h). */
 const APPOINTMENT_DURATION_OPTIONS_MINUTES = Array.from({ length: 32 }, (_, i) => (i + 1) * 15)
 
-export function NutritionAppointmentsPage() {
+export function AppointmentsPage() {
   const { user, profile } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -137,15 +238,39 @@ export function NutritionAppointmentsPage() {
   })
   const [recurring, setRecurring]       = useState(false)
   const [recurWeeks, setRecurWeeks]     = useState(4)
+  const [listQuery, setListQuery]       = useState('')
+  const [upcomingStatusFilter, setUpcomingStatusFilter] = useState<'all' | 'scheduled' | 'confirmed'>('all')
   // Week view appointment popover
   const [weekPopoverOpen, setWeekPopoverOpen] = useState(false)
   const [weekPopoverApptId, setWeekPopoverApptId] = useState<string | null>(null)
 
+  const navigate = useAppNavigate()
+  const reduceMotion = useReducedMotion()
   const profileType = profile?.role === 'nutritionist' ? 'nutritionist' : 'trainer'
+  const personWord = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
   const [completingId, setCompletingId] = useState<string | null>(null)
   const [completingNote, setCompletingNote] = useState('')
 
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students])
+
+  const listMotion = useMemo(() => {
+    if (reduceMotion) {
+      return {
+        parent: { hidden: {}, visible: {} },
+        item: { hidden: {}, visible: {} },
+      }
+    }
+    return {
+      parent: {
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } },
+      },
+      item: {
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] } },
+      },
+    }
+  }, [reduceMotion])
 
   useEffect(() => {
     if (!user) return
@@ -161,13 +286,47 @@ export function NutritionAppointmentsPage() {
       ])
       if (stErr || apErr) {
         toast.error(stErr?.message ?? apErr?.message ?? 'No se pudieron cargar turnos')
+        setStudents([])
+        setAppointments([])
       } else {
         setStudents((stData as Student[]) ?? [])
-        setAppointments((apData as AppointmentRow[]) ?? [])
+        const base = ((apData as AppointmentRow[]) ?? []).slice().sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+        const ids = base.map((a) => a.id)
+        const reminderByAppt = new Map<string, AppointmentReminder[]>()
+        if (ids.length) {
+          const { data: remData, error: remErr } = await supabase
+            .from('appointment_reminders')
+            .select('*')
+            .in('appointment_id', ids)
+          if (!remErr && remData) {
+            for (const r of remData as AppointmentReminder[]) {
+              const list = reminderByAppt.get(r.appointment_id) ?? []
+              list.push(r)
+              reminderByAppt.set(r.appointment_id, list)
+            }
+          }
+        }
+        setAppointments(
+          base.map((a) => ({
+            ...a,
+            reminders: reminderByAppt.get(a.id) ?? [],
+          })),
+        )
       }
       setLoading(false)
     })()
   }, [user])
+
+  /** Sugerencia de título al elegir alumno/paciente (solo si el título sigue vacío). */
+  useEffect(() => {
+    if (!form.student_id) return
+    const st = students.find((s) => s.id === form.student_id)
+    if (!st?.full_name) return
+    setForm((prev) => {
+      if (prev.title.trim() !== '') return prev
+      return { ...prev, title: `Seguimiento — ${st.full_name}` }
+    })
+  }, [form.student_id, students])
 
   const upcoming = useMemo(() => appointments.filter((a) => a.status === 'scheduled' || a.status === 'confirmed'), [appointments])
   const history = useMemo(() => appointments.filter((a) => a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show'), [appointments])
@@ -201,6 +360,63 @@ export function NutritionAppointmentsPage() {
         .sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
     [appointments]
   )
+
+  const matchesListFilters = useMemo(() => {
+    return (a: AppointmentRow) => {
+      if (upcomingStatusFilter === 'scheduled' && a.status !== 'scheduled') return false
+      if (upcomingStatusFilter === 'confirmed' && a.status !== 'confirmed') return false
+      const q = listQuery.trim().toLowerCase()
+      if (!q) return true
+      const name = (a.student?.full_name ?? '').toLowerCase()
+      const title = (a.title ?? '').toLowerCase()
+      return name.includes(q) || title.includes(q)
+    }
+  }, [listQuery, upcomingStatusFilter])
+
+  const filteredUpcoming = useMemo(() => upcoming.filter(matchesListFilters), [upcoming, matchesListFilters])
+
+  const filteredWeekAppointments = useMemo(
+    () => weekAppointments.filter(matchesListFilters),
+    [weekAppointments, matchesListFilters],
+  )
+
+  const filteredHistory = useMemo(() => {
+    const q = listQuery.trim().toLowerCase()
+    return history.filter((a) => {
+      if (!q) return true
+      const name = (a.student?.full_name ?? '').toLowerCase()
+      const title = (a.title ?? '').toLowerCase()
+      return name.includes(q) || title.includes(q)
+    })
+  }, [history, listQuery])
+
+  function exportVisibleWeekToIcs() {
+    if (!weekDays.length) return
+    const rangeStart = startOfDay(weekDays[0])
+    const rangeEnd = endOfDay(weekDays[6])
+    const inWeek = appointments.filter((a) => {
+      if (a.status === 'cancelled') return false
+      const t = parseISO(a.starts_at)
+      return isWithinInterval(t, { start: rangeStart, end: rangeEnd })
+    })
+    if (!inWeek.length) {
+      toast.error('No hay turnos esta semana para exportar')
+      return
+    }
+    const { blob, filename } = buildTurnosIcsFile(inWeek, format(weekAnchor, 'yyyy-MM-dd'))
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Archivo .ics descargado')
+  }
+
+  function goToWeekFromDay(day: Date) {
+    setWeekAnchor(startOfWeek(day, { weekStartsOn: 1 }))
+    setViewMode('week')
+  }
 
   function openAppointmentConfirmationWa(a: AppointmentRow) {
     const phoneRaw = appointmentPhoneRaw(a, studentById)
@@ -259,6 +475,18 @@ export function NutritionAppointmentsPage() {
 
       // Recurring: insert N copies spaced by 7 days
       if (recurring && recurWeeks > 1) {
+        for (let i = 0; i < recurWeeks; i++) {
+          const offset = i * 7 * 24 * 60 * 60 * 1000
+          const slotStart = startMs + offset
+          const slotEnd = endMs + offset
+          const clash = findOverlappingAppointment(appointments, slotStart, slotEnd, new Set())
+          if (clash) {
+            toast.error(
+              `La ocurrencia ${i + 1}/${recurWeeks} se solapa con «${clash.title}» (${format(parseISO(clash.starts_at), "d MMM HH:mm", { locale: es })}).`,
+            )
+            return
+          }
+        }
         const rows = Array.from({ length: recurWeeks }, (_, i) => {
           const offset = i * 7 * 24 * 60 * 60 * 1000
           return {
@@ -283,6 +511,14 @@ export function NutritionAppointmentsPage() {
         setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
         setRecurring(false); setRecurWeeks(4)
         toast.success(`${recurWeeks} turnos recurrentes agendados`)
+        return
+      }
+
+      const clashSingle = findOverlappingAppointment(appointments, startMs, endMs, new Set())
+      if (clashSingle) {
+        toast.error(
+          `Ese horario se solapa con «${clashSingle.title}» (${format(parseISO(clashSingle.starts_at), "EEE d MMM HH:mm", { locale: es })}).`,
+        )
         return
       }
 
@@ -324,7 +560,7 @@ export function NutritionAppointmentsPage() {
           status: 'pending',
         },
       ]
-      await supabase.from('appointment_reminders').insert(reminderRows)
+      const { data: remInserted } = await supabase.from('appointment_reminders').insert(reminderRows).select('*')
       const { data: calendarData, error: calendarError } = await supabase.functions.invoke('create-google-calendar-event', {
         body: { appointmentId: appointment.id },
       })
@@ -355,7 +591,11 @@ export function NutritionAppointmentsPage() {
         toast.error('Turno guardado, pero no se recibió ID de Google Calendar')
       }
 
-      setAppointments((prev) => [...prev, appointment].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
+      const appointmentWithReminders: AppointmentRow = {
+        ...appointment,
+        reminders: (remInserted as AppointmentReminder[] | null) ?? [],
+      }
+      setAppointments((prev) => [...prev, appointmentWithReminders].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
       setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
 
       const studentName = appointment.student?.full_name ?? '—'
@@ -582,6 +822,71 @@ export function NutritionAppointmentsPage() {
           </PageToolbar>
 
           <div className="p-4 sm:p-6">
+          <div className="mb-5 space-y-3 sm:mb-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
+              <div className="min-w-0 flex flex-1 flex-col gap-1">
+                <label
+                  htmlFor="appt-search"
+                  className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                >
+                  Buscar
+                </label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" aria-hidden />
+                  <Input
+                    id="appt-search"
+                    value={listQuery}
+                    onChange={(e) => setListQuery(e.target.value)}
+                    placeholder={`Nombre del ${personWord} o título…`}
+                    className="h-9 border-surface-border bg-surface-input pl-9 text-sm"
+                    aria-label="Buscar turnos por nombre o título"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
+                <span
+                  id="appt-status-label"
+                  className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                >
+                  Estado
+                </span>
+                <select
+                  value={upcomingStatusFilter}
+                  onChange={(e) => setUpcomingStatusFilter(e.target.value as 'all' | 'scheduled' | 'confirmed')}
+                  aria-labelledby="appt-status-label"
+                  className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 dark:border-zinc-600 dark:bg-zinc-900/40"
+                >
+                  <option value="all">Programado o confirmado</option>
+                  <option value="scheduled">Solo programados</option>
+                  <option value="confirmed">Solo confirmados</option>
+                </select>
+              </div>
+              {viewMode === 'week' && (
+                <div className="flex flex-col gap-1 lg:w-auto lg:shrink-0">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none">
+                    Exportar
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full justify-center gap-1.5 border-zinc-300/80 px-3 text-xs sm:w-auto dark:border-zinc-600"
+                    onClick={exportVisibleWeekToIcs}
+                  >
+                    <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Exportar .ics
+                  </Button>
+                </div>
+              )}
+            </div>
+            <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-[10px] leading-relaxed text-ink-muted dark:border-zinc-700/80">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500/85" aria-hidden />
+              <span>
+                <span className="font-medium text-ink-secondary">Tip:</span> en vista mes, tocá un día para abrir esa semana.
+              </span>
+            </p>
+          </div>
+
           {viewMode === 'month' ? (
             <div>
               {/* Day-of-week header */}
@@ -596,47 +901,65 @@ export function NutritionAppointmentsPage() {
               <div className="grid grid-cols-7 gap-px bg-surface-border rounded-xl overflow-hidden">
                 {monthDays.map((day) => {
                   const dayAppts = appointments
-                    .filter((a) => a.status !== 'cancelled' && isSameDay(parseISO(a.starts_at), day))
+                    .filter(
+                      (a) =>
+                        a.status !== 'cancelled' &&
+                        matchesListFilters(a) &&
+                        isSameDay(parseISO(a.starts_at), day),
+                    )
                     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
                   const isCurrentMonth = getMonth(day) === getMonth(monthAnchor)
                   const today = isToday(day)
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`bg-surface-elevated min-h-[80px] p-1.5 ${!isCurrentMonth ? 'opacity-40' : ''}`}
+                      className={`bg-surface-elevated min-h-[80px] p-1 ${!isCurrentMonth ? 'opacity-40' : ''}`}
                     >
-                      <span className={cn(
-                        'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold mb-1',
-                        today
-                          ? 'bg-zinc-500/[0.12] text-zinc-900 ring-2 ring-zinc-400/45 dark:bg-zinc-500/[0.2] dark:text-zinc-100 dark:ring-zinc-500/40'
-                          : 'text-ink-secondary',
-                      )}>
-                        {format(day, 'd')}
-                      </span>
-                      <div className="space-y-0.5">
-                        {dayAppts.slice(0, 3).map((a) => (
-                          <UiTooltip
-                            key={a.id}
-                            content={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
-                          >
-                            <div
-                              className={cn(
-                                'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
-                                a.status === 'confirmed'
-                                  ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
-                                  : a.status === 'scheduled'
-                                    ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
-                                    : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
-                              )}
-                            >
-                              {format(parseISO(a.starts_at), 'HH:mm')} {a.student?.full_name?.split(' ')[0] ?? a.title}
-                            </div>
-                          </UiTooltip>
-                        ))}
-                        {dayAppts.length > 3 && (
-                          <p className="text-[9px] text-ink-muted pl-1">+{dayAppts.length - 3} más</p>
+                      <button
+                        type="button"
+                        onClick={() => goToWeekFromDay(day)}
+                        className={cn(
+                          'w-full min-h-[4.5rem] rounded-lg p-1 text-left outline-none transition-colors motion-safe:duration-200',
+                          'hover:bg-surface-card/75 focus-visible:ring-2 focus-visible:ring-brand-secondary/40 dark:hover:bg-surface-card/25',
                         )}
-                      </div>
+                        aria-label={`Abrir semana del ${format(day, "EEEE d 'de' MMMM", { locale: es })}`}
+                      >
+                        <span className={cn(
+                          'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold mb-1',
+                          today
+                            ? 'bg-zinc-500/[0.12] text-zinc-900 ring-2 ring-zinc-400/45 dark:bg-zinc-500/[0.2] dark:text-zinc-100 dark:ring-zinc-500/40'
+                            : 'text-ink-secondary',
+                        )}>
+                          {format(day, 'd')}
+                        </span>
+                        <div className="space-y-0.5 pointer-events-none">
+                          {dayAppts.slice(0, 3).map((a) => (
+                            <UiTooltip
+                              key={a.id}
+                              content={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
+                            >
+                              <div
+                                className={cn(
+                                  'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
+                                  appointmentInProgress(a) &&
+                                    'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
+                                  a.status === 'confirmed'
+                                    ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
+                                    : a.status === 'scheduled'
+                                      ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
+                                      : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
+                                )}
+                              >
+                                {format(parseISO(a.starts_at), 'HH:mm')}{' '}
+                                {a.student?.full_name?.split(' ')[0] ?? a.title}
+                              </div>
+                            </UiTooltip>
+                          ))}
+                          {dayAppts.length > 3 && (
+                            <p className="text-[9px] text-ink-muted pl-1">+{dayAppts.length - 3} más</p>
+                          )}
+                        </div>
+                      </button>
                     </div>
                   )
                 })}
@@ -645,15 +968,15 @@ export function NutritionAppointmentsPage() {
           ) : viewMode === 'week' ? (
             <div className="grid md:grid-cols-7 gap-2">
               {weekDays.map((day) => {
-                const dayAppointments = weekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
+                const dayAppointments = filteredWeekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
                 const dayIsToday = isToday(day)
                 return (
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      'rounded-xl border min-h-44 p-2 transition-shadow',
+                      'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
                       dayIsToday
-                        ? 'border-zinc-300/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] dark:border-zinc-600 dark:bg-zinc-500/[0.1] dark:shadow-black/20'
+                        ? 'border-zinc-300/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:border-zinc-600 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
                         : 'border-surface-border bg-surface-elevated/50',
                     )}
                   >
@@ -664,6 +987,11 @@ export function NutritionAppointmentsPage() {
                       )}
                     >
                       {format(day, 'EEE', { locale: es })}
+                      {dayIsToday ? (
+                        <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
+                          · Hoy
+                        </span>
+                      ) : null}
                     </p>
                     <p className={cn('text-sm font-semibold', dayIsToday ? 'text-zinc-950 dark:text-zinc-50' : 'text-ink-primary')}>
                       {format(day, 'd')}
@@ -687,7 +1015,9 @@ export function NutritionAppointmentsPage() {
                                 type="button"
                                 onClick={onClick}
                                 className={cn(
-                                  'w-full text-left rounded-lg border px-2 py-1 transition-colors border-l-[3px]',
+                                  'w-full text-left rounded-lg border px-2 py-1 transition-all border-l-[3px] motion-safe:duration-200',
+                                  appointmentInProgress(a) &&
+                                    'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
                                   a.status === 'confirmed'
                                     ? 'border border-emerald-500/25 border-l-emerald-500 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.13]'
                                     : a.status === 'scheduled'
@@ -700,6 +1030,11 @@ export function NutritionAppointmentsPage() {
                                 <p className="text-[11px] text-ink-secondary">
                                   {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                                 </p>
+                                {appointmentInProgress(a) ? (
+                                  <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
+                                    En curso
+                                  </p>
+                                ) : null}
                               </button>
                             )}
                           >
@@ -707,6 +1042,27 @@ export function NutritionAppointmentsPage() {
                             <p className="text-[11px] text-ink-muted">
                               {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? '—'}
                             </p>
+                            {appointmentInProgress(a) && (
+                              <p className="text-[10px] font-semibold text-amber-800 dark:text-amber-300/90">En curso ahora</p>
+                            )}
+                            {formatReminderLine(a.reminders) ? (
+                              <p className="text-[10px] leading-snug text-ink-muted rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
+                                Recordatorios: {formatReminderLine(a.reminders)}
+                              </p>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigate(`/students/${a.student_id}`)
+                                setWeekPopoverOpen(false)
+                                setWeekPopoverApptId(null)
+                              }}
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-surface-card/70 px-2.5 py-1.5 text-[11px] font-medium text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                            >
+                              <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              Ficha del {personWord}
+                              <ExternalLink className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
+                            </button>
                             {(a.status === 'scheduled' || a.status === 'confirmed') && (
                               <div className="space-y-1 pt-1 border-t border-surface-border">
                                 <button
@@ -748,26 +1104,57 @@ export function NutritionAppointmentsPage() {
               })}
             </div>
           ) : (
-            <div className="space-y-2 mt-1">
-              {upcoming.length === 0 ? (
-                <p className="text-sm text-ink-secondary">No hay turnos agendados.</p>
+            <motion.div
+              className="space-y-2 mt-1"
+              initial={reduceMotion ? false : 'hidden'}
+              animate="visible"
+              variants={listMotion.parent}
+            >
+              {filteredUpcoming.length === 0 ? (
+                <p className="text-sm text-ink-secondary">
+                  {listQuery.trim() || upcomingStatusFilter !== 'all'
+                    ? 'Ningún turno coincide con la búsqueda o el filtro de estado.'
+                    : 'No hay turnos agendados.'}
+                </p>
               ) : (
-                upcoming.map((a) => (
-                  <div
+                filteredUpcoming.map((a) => (
+                  <motion.div
                     key={a.id}
+                    variants={listMotion.item}
                     className={cn(
                       'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px]',
                       agendaCardAccent(a.status),
+                      appointmentInProgress(a) && 'ring-1 ring-amber-400/40 shadow-sm shadow-amber-500/5',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-ink-primary">{a.title}</p>
                         <p className="text-xs text-ink-secondary">
-                          {a.student?.full_name ?? 'Paciente'} · {new Date(a.starts_at).toLocaleString('es-AR')}
+                          {a.student?.full_name ?? (profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno')} ·{' '}
+                          {new Date(a.starts_at).toLocaleString('es-AR')}
                         </p>
+                        {appointmentInProgress(a) ? (
+                          <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/90">
+                            En curso
+                          </p>
+                        ) : null}
+                        {formatReminderLine(a.reminders) ? (
+                          <p className="mt-1 text-[10px] leading-snug text-ink-muted">
+                            Recordatorios: {formatReminderLine(a.reminders)}
+                          </p>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/students/${a.student_id}`)}
+                          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-ink-secondary underline-offset-2 transition-colors hover:text-brand-secondary hover:underline"
+                        >
+                          <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          Ver ficha del {personWord}
+                          <ExternalLink className="h-3 w-3" aria-hidden />
+                        </button>
                       </div>
-                      <span className={`text-[10px] px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
+                      <span className={`shrink-0 text-[10px] px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
                         {STATUS_LABEL_ES[a.status]}
                       </span>
                     </div>
@@ -843,10 +1230,10 @@ export function NutritionAppointmentsPage() {
                         </button>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 ))
               )}
-            </div>
+            </motion.div>
           )}
           </div>
         </Card>
@@ -865,7 +1252,7 @@ export function NutritionAppointmentsPage() {
           <div className="p-4 sm:p-5 space-y-4">
             <div className="grid md:grid-cols-2 gap-3">
               <label className="text-xs font-medium text-ink-muted">
-                Paciente
+                {profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno'}
                 <select
                   value={form.student_id}
                   onChange={(e) => setForm((prev) => ({ ...prev, student_id: e.target.value }))}
@@ -973,13 +1360,18 @@ export function NutritionAppointmentsPage() {
           <CardTitle className="mb-2 font-medium text-base">Historial reciente</CardTitle>
           {history.length === 0 ? (
             <p className="text-sm text-ink-secondary">Todavía no hay turnos completados o cerrados.</p>
+          ) : filteredHistory.length === 0 ? (
+            <p className="text-sm text-ink-secondary">Nada coincide con la búsqueda actual.</p>
           ) : (
             <div className="space-y-2">
-              {history.slice(0, 8).map((a) => (
-                <div
+              {filteredHistory.slice(0, 12).map((a, rowIndex) => (
+                <motion.div
                   key={a.id}
+                  initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, delay: Math.min(rowIndex, 14) * 0.04, ease: [0.16, 1, 0.3, 1] }}
                   className={cn(
-                    'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px]',
+                    'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px] motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-sm',
                     a.status === 'completed' && 'border-l-emerald-500/85',
                     a.status === 'cancelled' && 'border-l-status-expired/70',
                     a.status === 'no_show' && 'border-l-amber-500/80',
@@ -992,8 +1384,17 @@ export function NutritionAppointmentsPage() {
                     </span>
                   </div>
                   <p className="text-xs text-ink-secondary mt-0.5">
-                    {a.student?.full_name ?? 'Paciente'} · {new Date(a.starts_at).toLocaleString('es-AR')}
+                    {a.student?.full_name ?? (profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno')} ·{' '}
+                    {new Date(a.starts_at).toLocaleString('es-AR')}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/students/${a.student_id}`)}
+                    className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-ink-muted transition-colors hover:text-brand-secondary"
+                  >
+                    <UserRound className="h-3 w-3 shrink-0" aria-hidden />
+                    Ficha del {personWord}
+                  </button>
                   {a.notes && (
                     <p className="mt-1 text-xs text-ink-muted bg-surface-border/30 rounded-lg px-2.5 py-1.5 italic leading-snug">
                       {a.notes}
@@ -1010,7 +1411,7 @@ export function NutritionAppointmentsPage() {
                       Feedback WA
                     </button>
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
@@ -1020,3 +1421,5 @@ export function NutritionAppointmentsPage() {
     </div>
   )
 }
+
+export { AppointmentsPage as NutritionAppointmentsPage }

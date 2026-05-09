@@ -835,7 +835,7 @@ export function StudentDetailView({
                         size="sm"
                         icon={<Plus className="h-3.5 w-3.5" />}
                         className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
-                        onClick={() => navigate(`/routines/new?student=${id}`)}
+                        onClick={() => navigate(`/routines?create=1&student=${id}`)}
                       >
                         {rutinaHistorialVacío ? 'Crear rutina' : 'Nueva rutina'}
                       </Button>
@@ -843,7 +843,7 @@ export function StudentDetailView({
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={() => navigate(`/routines/new?student=${id}`)}
+                          onClick={() => navigate(`/routines?create=1&student=${id}`)}
                         >
                           Ver historial
                         </Button>
@@ -871,7 +871,7 @@ export function StudentDetailView({
                       ? 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-300'
                       : '!text-[#ff4800] hover:bg-[#ff4800]/10',
                   )}
-                  onClick={() => navigate(`/routines/new?student=${id}`)}
+                  onClick={() => navigate(`/routines?create=1&student=${id}`)}
                 >
                   Nueva
                 </Button>

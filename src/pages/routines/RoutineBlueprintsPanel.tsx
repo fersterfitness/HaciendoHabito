@@ -59,7 +59,7 @@ export function RoutineBlueprintsPanel() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <p className="text-sm text-ink-secondary leading-relaxed max-w-[52rem]">
           Guardá plantillas desde el detalle de una rutina (botón <strong className="text-ink-primary">Plantilla</strong>). Al{' '}
-          <Link to="/routines/new" className="text-brand-primary font-medium hover:underline">
+          <Link to="/routines?create=1" className="text-brand-primary font-medium hover:underline">
             crear una rutina nueva
           </Link>
           , elegí una entrada del <strong className="text-ink-primary">diccionario</strong> para copiar bloques, días y ejercicios.
@@ -68,7 +68,7 @@ export function RoutineBlueprintsPanel() {
           size="sm"
           className="shrink-0"
           icon={<Plus className="h-4 w-4" />}
-          onClick={() => navigate('/routines/new')}
+          onClick={() => navigate('/routines?create=1')}
         >
           Nueva rutina con plantilla
         </Button>
@@ -108,7 +108,7 @@ export function RoutineBlueprintsPanel() {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Link
-                  to={`/routines/new?blueprint=${bp.id}`}
+                  to={`/routines?create=1&blueprint=${bp.id}`}
                   className="p-2 rounded-lg text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
                   title="Crear rutina con esta plantilla"
                 >

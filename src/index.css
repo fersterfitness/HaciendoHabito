@@ -98,6 +98,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   /* Controles nativos acordes al tema (evita select / scrollbars «claros» en oscuro). */
   html.dark {
     color-scheme: dark;
@@ -148,6 +154,35 @@
 }
 
 @layer utilities {
+  /** Lista de alumnos: cada fila “cae” desde arriba (lento + escalonado desde TS). */
+  @keyframes hh-row-drop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-2.75rem);
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  .hh-row-drop-in {
+    animation: hh-row-drop-in 1.28s cubic-bezier(0.25, 0.9, 0.35, 1) both;
+    animation-delay: var(--row-enter-delay, 0ms);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hh-row-drop-in {
+      animation: none;
+      animation-delay: 0ms;
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
   .text-balance {
     text-wrap: balance;
   }

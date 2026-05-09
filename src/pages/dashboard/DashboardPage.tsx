@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
+import { useCountUp } from '@/hooks/useCountUp'
 import {
   Users,
   Dumbbell,
@@ -29,6 +30,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { cn, daysUntil, formatCurrency } from '@/lib/utils'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { FINANCE_SCOPES } from '@/lib/constants'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
@@ -517,6 +519,11 @@ export function DashboardPage() {
   const [goalDist, setGoalDist] = useState<{ key: string; label: string; count: number; pct: number }[]>([])
   const [habitAvg, setHabitAvg] = useState(0)
   const [habitTop5, setHabitTop5] = useState<{ id: string; name: string; pct: number }[]>([])
+
+  const animatedIncome = useCountUp(stats.currentMonthIncome, {
+    duration: 2600,
+    enabled: !loading,
+  })
 
   const mergedExpiring = useMemo((): MergedExpiringItem[] => {
     const items: MergedExpiringItem[] = []
@@ -1046,6 +1053,7 @@ export function DashboardPage() {
           <StatCard
             title={activePeopleLabel}
             value={stats.activeStudents}
+            countUp
             icon={<Users className="h-5 w-5" />}
             monthOverMonth={{ thisMonth: stats.momStudentsThis, prevMonth: stats.momStudentsPrev, scopeLabel: 'Altas' }}
             onClick={() => navigate('/students')}
@@ -1055,6 +1063,7 @@ export function DashboardPage() {
               <StatCard
                 title="Rutinas vigentes"
                 value={stats.activeRoutines}
+                countUp
                 icon={<Dumbbell className="h-5 w-5" />}
                 monthOverMonth={{ thisMonth: stats.momRoutinesThis, prevMonth: stats.momRoutinesPrev, scopeLabel: 'Nuevas rutinas' }}
                 onClick={() => navigate('/routines')}
@@ -1062,6 +1071,7 @@ export function DashboardPage() {
               <StatCard
                 title="Planes alimentación"
                 value={stats.activeMealPlans}
+                countUp
                 icon={<UtensilsCrossed className="h-5 w-5" />}
                 monthOverMonth={{ thisMonth: stats.momMealPlansThis, prevMonth: stats.momMealPlansPrev, scopeLabel: 'Planes nuevos' }}
                 onClick={() => navigate('/meal-plans')}
@@ -1083,7 +1093,7 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary">
-                  {formatCurrency(stats.currentMonthIncome)}
+                  {formatCurrency(animatedIncome)}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   {incomeDelta !== 0 ? (
@@ -1101,12 +1111,21 @@ export function DashboardPage() {
             </>
           ) : (
             <>
-              <StatCard title="Planes nutrición" value={stats.activeNutritionPlans} icon={<Salad className="h-5 w-5" />}
+              <StatCard
+                title="Planes nutrición"
+                value={stats.activeNutritionPlans}
+                countUp
+                icon={<Salad className="h-5 w-5" />}
                 monthOverMonth={{ thisMonth: stats.momNutPlansThis, prevMonth: stats.momNutPlansPrev, scopeLabel: 'Planes nuevos' }}
                 onClick={() => navigate('/nutrition')} />
-              <StatCard title="PDFs antropometría" value={stats.nutritionDocuments} icon={<FileText className="h-5 w-5" />}
+              <StatCard
+                title="PDFs antropometría"
+                value={stats.nutritionDocuments}
+                countUp
+                icon={<FileText className="h-5 w-5" />}
                 monthOverMonth={{ thisMonth: stats.momNutDocsThis, prevMonth: stats.momNutDocsPrev, scopeLabel: 'PDFs subidos' }}
-                onClick={() => navigate('/nutrition')} />
+                onClick={() => navigate('/nutrition')}
+              />
               {/* Income KPI — hero card con gradiente */}
               <div
                 className="relative overflow-hidden rounded-2xl border border-brand-secondary/30 bg-gradient-to-br from-brand-secondary/20 via-surface-card to-surface-card p-4 cursor-pointer transition-all hover:border-brand-secondary/50 hover:shadow-md hover:shadow-brand-secondary/10 group col-span-2 lg:col-span-1"
@@ -1123,7 +1142,7 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary">
-                  {formatCurrency(stats.currentMonthIncome)}
+                  {formatCurrency(animatedIncome)}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   {incomeDelta !== 0 ? (
@@ -1225,19 +1244,24 @@ export function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border/40">
-                      {recentIncome.map((row) => (
-                        <tr key={row.id} className="hover:bg-surface-elevated/30 transition-colors cursor-pointer" onClick={() => navigate('/finances')}>
-                          <td className="px-4 py-2.5">
+                      {recentIncome.map((row, rowIndex) => (
+                        <tr
+                          key={row.id}
+                          style={tableRowEnterStyle(rowIndex)}
+                          className="hover:bg-surface-elevated/30 transition-colors cursor-pointer"
+                          onClick={() => navigate('/finances')}
+                        >
+                          <td className="hh-row-drop-in px-4 py-2.5">
                             <p className="font-medium text-ink-primary truncate max-w-[130px]">{row.student_name ?? '—'}</p>
                             <p className="text-[10px] text-ink-muted tabular-nums">{new Date(row.income_date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</p>
                           </td>
-                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-ink-primary whitespace-nowrap">
+                          <td className="hh-row-drop-in px-3 py-2.5 text-right font-semibold tabular-nums text-ink-primary whitespace-nowrap">
                             {formatCurrency(row.amount)}
                           </td>
-                          <td className="hidden px-3 py-2.5 sm:table-cell">
+                          <td className="hh-row-drop-in hidden px-3 py-2.5 sm:table-cell">
                             <PaymentMethodBadge method={row.payment_method} className="text-[10px]" />
                           </td>
-                          <td className="px-3 py-2.5 text-center">
+                          <td className="hh-row-drop-in px-3 py-2.5 text-center">
                             <span className={cn(
                               'inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
                               row.status === 'cobrado' && 'border-brand-secondary/40 bg-brand-secondary/15 text-brand-secondary',

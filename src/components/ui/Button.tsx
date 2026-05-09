@@ -1,9 +1,10 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { primaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'gradientPrimary'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   loading?: boolean
   icon?: ReactNode
@@ -45,16 +46,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    const isGradientCta = variant === 'gradientPrimary'
+
     return (
       <button
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center rounded-xl transition-colors duration-150',
-          'focus:outline-none focus:ring-2 focus:ring-brand-secondary/45 focus:ring-offset-2 focus:ring-offset-[rgb(var(--surface-base))]',
-          'disabled:opacity-50 disabled:pointer-events-none',
-          variantStyles[variant],
-          sizeStyles[size],
+          'inline-flex items-center justify-center',
+          isGradientCta
+            ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', primaryGradientCtaClassName)
+            : cn(
+                'rounded-xl transition-colors duration-150',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
+                'dark:focus-visible:ring-offset-zinc-900',
+                'disabled:opacity-50 disabled:pointer-events-none',
+                variantStyles[variant],
+                sizeStyles[size],
+              ),
           className
         )}
         {...props}

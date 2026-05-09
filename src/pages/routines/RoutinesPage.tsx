@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
@@ -25,9 +26,11 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Popover } from '@/components/ui/Popover'
 import { cn, formatDate, daysUntil } from '@/lib/utils'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
 import { RoutinePdfsPanel } from '@/pages/routines/RoutinePdfsPanel'
+import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
 import type { Routine, RoutineStatus, Student } from '@/types/database'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -384,6 +387,31 @@ export function RoutinesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabPlantillas = searchParams.get('tab') === 'plantillas'
   const tabPdfs = searchParams.get('tab') === 'pdfs'
+  const showNewRoutineModal = searchParams.get('create') === '1'
+
+  const openNewRoutineModal = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('create', '1')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
+
+  const closeNewRoutineModal = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('create')
+        next.delete('student')
+        next.delete('blueprint')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
   const { user } = useAuthStore()
   const { routines, loading, fetchRoutines, deleteRoutine } = useRoutines()
   const [search, setSearch] = useState('')
@@ -520,17 +548,7 @@ export function RoutinesPage() {
     fetchRoutines()
   }, [fetchRoutines])
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement).tagName
-      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA' && tabPlantillas !== true && tabPdfs !== true) {
-        e.preventDefault()
-        searchRef.current?.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [tabPlantillas, tabPdfs])
+  useSlashSearchFocus(searchRef, !tabPlantillas && !tabPdfs)
 
   function startRename(r: RoutineWithStudent, e: React.MouseEvent) {
     e.stopPropagation()
@@ -716,20 +734,15 @@ export function RoutinesPage() {
                   </span>
                 )}
 
-                <button
+                <Button
                   type="button"
+                  variant="gradientPrimary"
                   title="Nueva rutina"
-                  onClick={() => navigate('/routines/new')}
-                  className={cn(
-                    'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-white',
-                    'bg-[#ff4800] shadow-none outline-none transition-colors hover:bg-[#e04100]',
-                    'focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
-                    'dark:focus-visible:ring-offset-zinc-900',
-                  )}
+                  onClick={openNewRoutineModal}
+                  icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
                 >
-                  <Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />
                   Nueva rutina
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -744,7 +757,7 @@ export function RoutinesPage() {
                 description="Creá la primera rutina para un alumno."
                 action={{
                   label: 'Nueva rutina',
-                  onClick: () => navigate('/routines/new'),
+                  onClick: openNewRoutineModal,
                   icon: <Plus className="h-4 w-4" />,
                 }}
               />
@@ -800,17 +813,18 @@ export function RoutinesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border/70 bg-surface-card">
-                      {filteredSorted.map((r) => {
+                      {filteredSorted.map((r, rowIndex) => {
                         const ci = strColorIdx(r.student?.full_name ?? r.id)
                         const colors = ROUTINE_COLORS[ci]
                         return (
                         <tr
                           key={r.id}
+                          style={tableRowEnterStyle(rowIndex)}
                           className="cursor-pointer transition-colors hover:bg-surface-elevated/35"
                           onClick={() => renamingId !== r.id && navigate(`/routines/${r.id}`)}
                         >
                           {/* Rutina con barra de color + rename inline */}
-                          <td className="min-w-[10rem] px-0 py-0 sm:min-w-[12rem]">
+                          <td className={cn('hh-row-drop-in min-w-[10rem] px-0 py-0 sm:min-w-[12rem]')}>
                             <div className="flex items-stretch gap-0">
                               <div className={cn('w-1 self-stretch shrink-0', colors.bar)} />
                               <div className="flex-1 px-4 py-2.5 sm:px-5">
@@ -854,7 +868,12 @@ export function RoutinesPage() {
                             </div>
                           </td>
                           {/* Alumno con foto */}
-                          <td className="max-w-[13rem] px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5" title={r.student?.full_name ?? undefined}>
+                          <td
+                            className={cn(
+                              'hh-row-drop-in max-w-[13rem] px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5',
+                            )}
+                            title={r.student?.full_name ?? undefined}
+                          >
                             <div className="flex items-center gap-2">
                               {(() => {
                                 const photoUrl = studentAvatarPublicUrl((r.student as RoutineWithStudent['student'])?.avatar_path ?? null)
@@ -873,19 +892,19 @@ export function RoutinesPage() {
                               <span className="truncate">{r.student?.full_name ?? '—'}</span>
                             </div>
                           </td>
-                          <td className="whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5">
+                          <td className={cn('hh-row-drop-in whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5')}>
                             {formatDate(r.start_date)} → {formatDate(r.end_date)}
                           </td>
-                          <td className="px-4 py-2.5 sm:px-5">
+                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <Badge status={r.level} />
                           </td>
-                          <td className="px-4 py-2.5 sm:px-5">
+                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <span className={routineStatusBadgeClass(r.status)}>{phraseRoutineStatus(r.status)}</span>
                           </td>
-                          <td className="px-4 py-2.5 sm:px-5">
+                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <RoutineDaysChip endDate={r.end_date} />
                           </td>
-                          <td className="px-4 py-2.5 sm:px-5">
+                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={(e) => {
@@ -930,6 +949,15 @@ export function RoutinesPage() {
           </div>
         )}
       </div>
+
+      <NewRoutineModal
+        open={showNewRoutineModal}
+        title="Registrar rutina"
+        onClose={closeNewRoutineModal}
+        onCreated={(id) => navigate(`/routines/${id}`)}
+        initialStudentId={searchParams.get('student') ?? undefined}
+        initialBlueprintId={searchParams.get('blueprint') ?? undefined}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

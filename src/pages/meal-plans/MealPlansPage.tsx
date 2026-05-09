@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ClipboardList, FileDown, Pencil, Plus, Search, Trash2, ChevronDown, Filter, X, ArrowDownUp, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -12,6 +13,7 @@ import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWor
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn, formatDate } from '@/lib/utils'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
@@ -296,17 +298,7 @@ export function MealPlansPage() {
     void fetchPlans()
   }, [fetchPlans])
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement).tagName
-      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
-        e.preventDefault()
-        searchRef.current?.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  useSlashSearchFocus(searchRef)
 
   const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId) ?? null, [plans, selectedPlanId])
   const detailWb = useMemo(() => planWorkbookFromRow(selectedPlan), [selectedPlan])
@@ -455,20 +447,15 @@ export function MealPlansPage() {
               </span>
             )}
 
-            <button
+            <Button
               type="button"
+              variant="gradientPrimary"
               title="Armar plan y asignar"
               onClick={() => navigate('/nutrition/planning')}
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-white',
-                'bg-[#ff4800] shadow-none outline-none transition-colors hover:bg-[#e04100]',
-                'focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
-                'dark:focus-visible:ring-offset-zinc-900',
-              )}
+              icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
             >
-              <Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />
               Nuevo Plan
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -533,7 +520,7 @@ export function MealPlansPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border/70 bg-surface-card">
-                  {filteredSorted.map((p) => {
+                  {filteredSorted.map((p, rowIndex) => {
                     const isSelected = selectedPlanId === p.id
                     const ci = strColorIdx(p.student?.full_name ?? p.id)
                     const colors = PLAN_COLORS[ci]
@@ -541,6 +528,7 @@ export function MealPlansPage() {
                     return (
                       <tr
                         key={p.id}
+                        style={tableRowEnterStyle(rowIndex)}
                         className={cn(
                           'cursor-pointer transition-colors',
                           isSelected ? 'bg-surface-elevated/45' : 'hover:bg-surface-elevated/35',
@@ -548,7 +536,7 @@ export function MealPlansPage() {
                         onClick={() => !isRenaming && setSelectedPlanId(p.id)}
                       >
                         {/* Columna Plan con barra de color + renombrar inline */}
-                        <td className="min-w-[10rem] px-0 py-0 sm:min-w-[12rem]">
+                        <td className={cn('hh-row-drop-in min-w-[10rem] px-0 py-0 sm:min-w-[12rem]')}>
                           <div className="flex items-center gap-0">
                             <div className={cn('w-1 self-stretch shrink-0 rounded-none', colors.bar)} />
                             <div className="flex-1 px-4 py-2.5 sm:px-5">
@@ -593,7 +581,9 @@ export function MealPlansPage() {
                         </td>
                         {/* Columna Alumno con foto de perfil */}
                         <td
-                          className="max-w-[13rem] truncate px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5"
+                          className={cn(
+                            'hh-row-drop-in max-w-[13rem] truncate px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5',
+                          )}
                           title={p.student?.full_name ?? undefined}
                         >
                           <div className="flex items-center gap-2">
@@ -614,8 +604,10 @@ export function MealPlansPage() {
                             <span className="truncate">{p.student?.full_name ?? '—'}</span>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5">{formatDate(p.updated_at)}</td>
-                        <td className="px-4 py-2.5 sm:px-5 max-w-[16rem]">
+                        <td className={cn('hh-row-drop-in whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5')}>
+                          {formatDate(p.updated_at)}
+                        </td>
+                        <td className={cn('hh-row-drop-in max-w-[16rem] px-4 py-2.5 sm:px-5')}>
                           {(() => {
                             const conditions = getStudentConditions(p.student)
                             if (conditions.length === 0) {
@@ -636,7 +628,7 @@ export function MealPlansPage() {
                             )
                           })()}
                         </td>
-                        <td className="px-4 py-2.5 sm:px-5">
+                        <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={(e) => {

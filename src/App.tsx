@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthInit } from '@/hooks/useAuth'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
@@ -43,6 +43,18 @@ import { MealPlansPage } from '@/pages/meal-plans/MealPlansPage'
 import { PublicIntakeFormPage } from '@/pages/public/PublicIntakeFormPage'
 import type { AppRole } from '@/types/database'
 
+/** `/routines/new` → `/routines?create=1` conservando `student` y `blueprint`. */
+function RoutinesNewToQueryRedirect() {
+  const [sp] = useSearchParams()
+  const next = new URLSearchParams()
+  next.set('create', '1')
+  const student = sp.get('student')
+  const blueprint = sp.get('blueprint')
+  if (student) next.set('student', student)
+  if (blueprint) next.set('blueprint', blueprint)
+  return <Navigate to={`/routines?${next.toString()}`} replace />
+}
+
 type LoggedInRouteProps = {
   role: AppRole | undefined
   canSeeTraining: boolean
@@ -73,7 +85,7 @@ function renderLoggedInRoutes({
 
       {/* Alumnos */}
       <Route path="students" element={<StudentsPage />} />
-      <Route path="students/new" element={<StudentFormPage />} />
+      <Route path="students/new" element={<Navigate to="/students?create=1" replace />} />
       <Route
         path="students/:id/meal-plan/:planId"
         element={
@@ -109,7 +121,10 @@ function renderLoggedInRoutes({
         }
       />
       <Route path="routines" element={canSeeTraining ? <RoutinesPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="routines/new" element={canSeeTraining ? <RoutineFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route
+        path="routines/new"
+        element={canSeeTraining ? <RoutinesNewToQueryRedirect /> : <Navigate to="/dashboard" replace />}
+      />
       <Route path="routines/blueprints" element={canSeeTraining ? <RoutineBlueprintsPage /> : <Navigate to="/dashboard" replace />} />
       <Route path="routines/:id" element={canSeeTraining ? <RoutineDetailPage /> : <Navigate to="/dashboard" replace />} />
       <Route path="routines/:id/edit" element={canSeeTraining ? <RoutineFormPage /> : <Navigate to="/dashboard" replace />} />

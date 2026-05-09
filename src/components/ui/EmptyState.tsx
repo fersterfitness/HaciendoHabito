@@ -31,7 +31,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
       {description && <p className="text-sm text-ink-secondary max-w-xs">{description}</p>}
       {action && (
         <div className="mt-6">
-          <Button onClick={action.onClick} icon={action.icon}>
+          <Button variant="gradientPrimary" onClick={action.onClick} icon={action.icon}>
             {action.label}
           </Button>
         </div>

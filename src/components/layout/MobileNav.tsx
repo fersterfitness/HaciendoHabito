@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { getMobileNavItems } from '@/config/navigation'
@@ -62,6 +63,7 @@ export function MobileNav() {
   const role = profile?.role
   const allItems = getMobileNavItems(role)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const reduceMotion = useReducedMotion()
 
   const primaryItems = allItems.slice(0, MAX_PRIMARY)
   const drawerItems = allItems.slice(MAX_PRIMARY)
@@ -97,7 +99,8 @@ export function MobileNav() {
                 key={item.href + item.label}
                 to={to}
                 className={cn(
-                  'flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-150 shrink-0 min-w-[56px]',
+                  'flex flex-col items-center gap-1 px-2 py-2 rounded-xl shrink-0 min-w-[56px]',
+                  'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
                   active ? 'text-brand-primary' : 'text-ink-muted hover:text-ink-secondary',
                 )}
               >
@@ -116,7 +119,8 @@ export function MobileNav() {
             type="button"
             onClick={() => setDrawerOpen(true)}
             className={cn(
-              'flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-150 shrink-0 min-w-[56px]',
+              'flex flex-col items-center gap-1 px-2 py-2 rounded-xl shrink-0 min-w-[56px]',
+              'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
               drawerOpen ? 'text-brand-primary' : 'text-ink-muted hover:text-ink-secondary',
             )}
           >
@@ -128,17 +132,33 @@ export function MobileNav() {
         </div>
       </nav>
 
-      {/* Drawer overlay + sheet */}
-      {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end print:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
-            onClick={() => setDrawerOpen(false)}
-          />
+      {/* Drawer overlay + sheet (entrada/salida animada; respeta prefers-reduced-motion) */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            key="mobile-more-drawer"
+            className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end print:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+              aria-hidden
+              onClick={() => setDrawerOpen(false)}
+            />
 
-          {/* Sheet */}
-          <div className="relative z-10 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden">
+            <motion.div
+              className="relative z-10 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden"
+              initial={reduceMotion ? false : { y: '100%' }}
+              animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
+              transition={
+                reduceMotion
+                  ? { duration: 0.15 }
+                  : { duration: 0.34, ease: [0.16, 1, 0.3, 1] }
+              }
+            >
             {/* Handle + header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-surface-border/60 shrink-0">
               <div className="flex items-center gap-3">
@@ -213,9 +233,10 @@ export function MobileNav() {
                 Cerrar sesión
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

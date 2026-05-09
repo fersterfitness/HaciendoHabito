@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
+import { useCountUp } from '@/hooks/useCountUp'
 import {
   Plus,
   TrendingUp,
@@ -23,11 +24,14 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { cn, formatDate, formatCurrency } from '@/lib/utils'
+import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
+import { Button } from '@/components/ui/Button'
 import type { Income, Expense, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { FINANCE_SCOPES } from '@/lib/constants'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
 type Tab = 'income' | 'expenses'
@@ -159,6 +163,8 @@ export function FinancesPage() {
   const [deleteIncomeTarget, setDeleteIncomeTarget] = useState<IncomeWithStudent | null>(null)
   const [deleteExpenseTarget, setDeleteExpenseTarget] = useState<Expense | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [dataUpdatedAt, setDataUpdatedAt] = useState<Date | null>(null)
+  const financesSearchRef = useRef<HTMLInputElement>(null)
 
   const fetchAll = useCallback(async () => {
     if (!user) return
@@ -180,8 +186,11 @@ export function FinancesPage() {
       setStudents((studentData as Student[]) ?? [])
     } finally {
       setLoading(false)
+      setDataUpdatedAt(new Date())
     }
   }, [user])
+
+  useSlashSearchFocus(financesSearchRef)
 
   const incomesFiltered = incomes.filter((i) => {
     if (scopeFilter === 'all') return true
@@ -274,6 +283,13 @@ export function FinancesPage() {
     .reduce((s, i) => s + i.amount, 0)
   const mesDelta = prevMesTotal > 0 ? Math.round(((thisMesTotal - prevMesTotal) / prevMesTotal) * 100) : null
 
+  const animBalance = useCountUp(Math.round(balance), { duration: 2600, enabled: !loading })
+  const animCobradoTotal = useCountUp(Math.round(totalIngresos), { duration: 2200, enabled: !loading })
+  const animPendiente = useCountUp(Math.round(totalPendiente), { duration: 2200, enabled: !loading })
+  const animGastos = useCountUp(Math.round(totalGastos), { duration: 2200, enabled: !loading })
+  const animEsteMes = useCountUp(Math.round(thisMesTotal), { duration: 2200, enabled: !loading })
+  const animMesAnterior = useCountUp(Math.round(prevMesTotal), { duration: 2200, enabled: !loading })
+
   const deudores = students
     .map((s) => {
       const raw = localStorage.getItem(`cuota_mensual_${s.id}`)
@@ -334,6 +350,8 @@ export function FinancesPage() {
     a.download = `${isIncome ? 'ingresos' : 'gastos'}_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    const n = Math.max(0, rows.length - 1)
+    toast.success(n === 1 ? 'CSV descargado (1 fila)' : `CSV descargado (${n} filas)`)
   }
 
   /** Rejilla neutra · barras en verdes (actual un poco más intenso) */
@@ -350,22 +368,12 @@ export function FinancesPage() {
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3">
           <MetricTile
             label="Balance neto"
-            value={formatCurrency(balance)}
-            valueClassName={
-              balance >= 0
-                ? 'text-status-generated'
-                : 'text-status-expired'
-            }
-            containerClassName={balance < 0 ? 'border-status-expired/35 bg-status-expired/10' : undefined}
+            value={formatCurrency(animBalance)}
+            valueClassName="text-brand-tertiary"
           />
-          <MetricTile label="Cobrado total" value={formatCurrency(totalIngresos)} />
-          <MetricTile
-            label="Pendiente"
-            value={formatCurrency(totalPendiente)}
-            valueClassName="text-status-pending"
-            containerClassName="border-status-pending/35 bg-status-pending/10"
-          />
-          <MetricTile label="Total gastos" value={formatCurrency(totalGastos)} />
+          <MetricTile label="Cobrado total" value={formatCurrency(animCobradoTotal)} />
+          <MetricTile label="Pendiente" value={formatCurrency(animPendiente)} />
+          <MetricTile label="Total gastos" value={formatCurrency(animGastos)} />
         </div>
         <p className="text-[11px] leading-relaxed text-ink-muted">
           Los montos siguen el filtro &ldquo;
@@ -397,13 +405,13 @@ export function FinancesPage() {
               )}
             </p>
             <p className="text-lg font-semibold tracking-tight text-ink-primary tabular-nums sm:text-xl">
-              {formatCurrency(thisMesTotal)}
+              {formatCurrency(animEsteMes)}
             </p>
           </div>
           <div className="flex flex-col gap-1 rounded-md border border-zinc-200/70 bg-surface-card p-3 dark:border-zinc-700/65">
             <p className="text-[11px] font-medium text-ink-muted">{MES_LABELS[prevMonthDate.getMonth()]} cobrado</p>
             <p className="text-lg font-semibold tracking-tight text-ink-secondary tabular-nums sm:text-xl">
-              {formatCurrency(prevMesTotal)}
+              {formatCurrency(animMesAnterior)}
             </p>
           </div>
         </div>
@@ -458,8 +466,11 @@ export function FinancesPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="min-h-10 min-w-0 flex-1">
             <Input
+              ref={financesSearchRef}
               placeholder={
-                tab === 'income' ? 'Buscar por alumno, tipo, categoría...' : 'Buscar por descripción o categoría...'
+                tab === 'income'
+                  ? 'Buscar por alumno, tipo, categoría… ( / para enfocar )'
+                  : 'Buscar por descripción o categoría… ( / para enfocar )'
               }
               leftIcon={<Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />}
               value={search}
@@ -502,22 +513,28 @@ export function FinancesPage() {
               <Download className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
               CSV
             </button>
-            <button
+            <Button
               type="button"
+              variant="gradientPrimary"
               title={tab === 'income' ? 'Registrar ingreso' : 'Registrar gasto'}
               onClick={() => navigate(tab === 'income' ? '/finances/income/new' : '/finances/expenses/new')}
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-white shadow-none',
-                'bg-[#ff4800] transition-colors hover:bg-[#e04100]',
-                'focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
-                'dark:focus-visible:ring-offset-zinc-900',
-              )}
+              icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
             >
-              <Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />
               {tab === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto'}
-            </button>
+            </Button>
           </div>
         </div>
+        {dataUpdatedAt && !loading ? (
+          <p className="text-[10px] text-ink-muted tabular-nums">
+            Datos actualizados ·{' '}
+            {dataUpdatedAt.toLocaleString('es-AR', {
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </p>
+        ) : null}
 
         {/* Desglose por método de pago */}
         {!loading && (tab === 'income' ? incomesFiltered.length : expensesFiltered.length) > 0 && (() => {
@@ -597,10 +614,14 @@ export function FinancesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200/40 dark:divide-zinc-800/65">
-                    {filteredIncomes.map((income) => (
-                      <tr key={income.id} className="transition-colors hover:bg-zinc-50/85 dark:hover:bg-zinc-900/40">
-                        <td className="whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(income.income_date)}</td>
-                        <td className="max-w-[12rem] px-3 py-2 sm:max-w-none sm:px-4">
+                    {filteredIncomes.map((income, rowIndex) => (
+                      <tr
+                        key={income.id}
+                        style={tableRowEnterStyle(rowIndex)}
+                        className="transition-colors hover:bg-zinc-50/85 dark:hover:bg-zinc-900/40"
+                      >
+                        <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(income.income_date)}</td>
+                        <td className="hh-row-drop-in max-w-[12rem] px-3 py-2 sm:max-w-none sm:px-4">
                           <p className="truncate font-semibold text-ink-primary" title={income.student?.full_name ?? income.description}>
                             {income.student?.full_name ?? income.description}
                           </p>
@@ -608,16 +629,16 @@ export function FinancesPage() {
                             {income.income_type} · {income.category}
                           </p>
                         </td>
-                        <td className="hidden max-w-[14rem] truncate px-3 py-2 text-ink-secondary md:table-cell md:px-4" title={`${income.income_type} · ${income.category}`}>
+                        <td className="hh-row-drop-in hidden max-w-[14rem] truncate px-3 py-2 text-ink-secondary md:table-cell md:px-4" title={`${income.income_type} · ${income.category}`}>
                           {income.income_type} · {income.category}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-ink-primary sm:px-4">
+                        <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-ink-primary sm:px-4">
                           {formatCurrency(income.amount)}
                         </td>
-                        <td className="px-3 py-2 sm:px-4">
+                        <td className="hh-row-drop-in px-3 py-2 sm:px-4">
                           <Badge status={income.status} className="text-[10px]" />
                         </td>
-                        <td className="max-w-[20rem] px-3 py-2 sm:px-4">
+                        <td className="hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4">
                           <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
                             <PaymentMethodBadge method={income.payment_method} className="shrink-0" />
                             {income.notes?.trim() ? (
@@ -630,7 +651,7 @@ export function FinancesPage() {
                             ) : null}
                           </div>
                         </td>
-                        <td className="px-3 py-1.5 sm:px-4">
+                        <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
@@ -686,10 +707,14 @@ export function FinancesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200/40 dark:divide-zinc-800/65">
-                  {filteredExpenses.map((expense) => (
-                    <tr key={expense.id} className="transition-colors hover:bg-zinc-50/85 dark:hover:bg-zinc-900/40">
-                      <td className="whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(expense.expense_date)}</td>
-                      <td className="max-w-[14rem] px-3 py-2 sm:max-w-none sm:px-4">
+                  {filteredExpenses.map((expense, rowIndex) => (
+                    <tr
+                      key={expense.id}
+                      style={tableRowEnterStyle(rowIndex)}
+                      className="transition-colors hover:bg-zinc-50/85 dark:hover:bg-zinc-900/40"
+                    >
+                      <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(expense.expense_date)}</td>
+                      <td className="hh-row-drop-in max-w-[14rem] px-3 py-2 sm:max-w-none sm:px-4">
                         <p className="truncate font-semibold text-ink-primary" title={expense.description}>
                           {expense.description}
                         </p>
@@ -697,17 +722,17 @@ export function FinancesPage() {
                           <p className="truncate text-[11px] text-ink-muted sm:hidden">{expense.subcategory}</p>
                         )}
                       </td>
-                      <td className="hidden truncate px-3 py-2 text-ink-secondary sm:table-cell sm:px-4" title={expense.category}>
+                      <td className="hh-row-drop-in hidden truncate px-3 py-2 text-ink-secondary sm:table-cell sm:px-4" title={expense.category}>
                         {expense.category}
                         {expense.subcategory ? ` · ${expense.subcategory}` : ''}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-ink-primary sm:px-4">{formatCurrency(expense.amount)}</td>
-                      <td className="px-3 py-2 sm:px-4">
+                      <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-ink-primary sm:px-4">{formatCurrency(expense.amount)}</td>
+                      <td className="hh-row-drop-in px-3 py-2 sm:px-4">
                         <span className={expenseTypePillClass(expense.expense_type)}>
                           {expense.expense_type === 'fijo' ? 'Fijo' : 'Variable'}
                         </span>
                       </td>
-                      <td className="max-w-[20rem] px-3 py-2 sm:px-4">
+                      <td className="hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4">
                         <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
                           <PaymentMethodBadge method={expense.payment_method} className="shrink-0" />
                           {expense.notes?.trim() ? (
@@ -720,7 +745,7 @@ export function FinancesPage() {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-3 py-1.5 sm:px-4">
+                      <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"

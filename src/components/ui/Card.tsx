@@ -20,7 +20,7 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
         'bg-surface-card rounded-2xl border border-surface-border/80',
         'shadow-card',
         hover &&
-          'hover:border-surface-border hover:bg-surface-elevated/30 hover:shadow-card-md transition-colors duration-200 cursor-pointer',
+          'hover:border-surface-border hover:bg-surface-elevated/30 hover:shadow-card-md transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out motion-safe:hover:-translate-y-px cursor-pointer',
         paddingStyles[padding],
         className
       )}

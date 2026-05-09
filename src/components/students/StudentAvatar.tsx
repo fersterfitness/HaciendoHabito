@@ -25,8 +25,8 @@ type Props = {
   studentId: string
   fullName: string
   avatarPath: string | null
-  /** `sm` listado, `md2` listado grande, `md` compacto, `lg` ficha destacada */
-  size?: 'sm' | 'md2' | 'md' | 'lg'
+  /** `xs` tabla densa (24px, alineado a listados rutinas/planes), `sm` listado, `md2` listado grande, `md` compacto, `lg` ficha destacada */
+  size?: 'xs' | 'sm' | 'md2' | 'md' | 'lg'
   className?: string
   /** Dentro de una fila clicable: evita navegar al hacer clic en la foto */
   stopRowNavigation?: boolean
@@ -58,9 +58,14 @@ export function StudentAvatar({
         ? 'w-14 h-14 rounded-2xl text-lg'
         : size === 'md2'
           ? 'w-11 h-11 rounded-xl text-base'
-          : 'w-8 h-8 rounded-lg text-xs'
+          : size === 'sm'
+            ? 'w-8 h-8 rounded-lg text-xs'
+            : size === 'xs'
+              ? 'w-6 h-6 rounded-md text-[10px]'
+              : 'w-8 h-8 rounded-lg text-xs'
 
-  const overlayRounded = size === 'sm' ? 'rounded-lg' : size === 'md2' ? 'rounded-xl' : 'rounded-2xl'
+  const overlayRounded =
+    size === 'xs' ? 'rounded-md' : size === 'sm' ? 'rounded-lg' : size === 'md2' ? 'rounded-xl' : 'rounded-2xl'
 
   async function upload(file: File) {
     if (file.size > STUDENT_AVATAR_MAX_BYTES) {
@@ -155,6 +160,8 @@ export function StudentAvatar({
           <img
             src={url!}
             alt={fullName}
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-cover object-top"
             onError={() => setBrokenImg(true)}
           />
@@ -169,7 +176,13 @@ export function StudentAvatar({
         >
           <Camera
             className={
-              size === 'sm' ? 'h-3.5 w-3.5' : size === 'md' ? 'h-5 w-5' : 'h-7 w-7'
+              size === 'xs'
+                ? 'h-3 w-3'
+                : size === 'sm'
+                  ? 'h-3.5 w-3.5'
+                  : size === 'md'
+                    ? 'h-5 w-5'
+                    : 'h-7 w-7'
             }
             aria-hidden
           />

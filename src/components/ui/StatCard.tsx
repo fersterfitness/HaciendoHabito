@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo } from 'react'
 import { ArrowDownRight, ArrowUpRight, Plus } from 'lucide-react'
+import { useCountUp } from '@/hooks/useCountUp'
 import { cn } from '@/lib/utils'
 
 export interface StatCardAction {
@@ -10,6 +11,8 @@ export interface StatCardAction {
 interface StatCardProps {
   title: string
   value: string | number
+  /** Si es true y `value` es número, cuenta desde 0 al montar (p. ej. Inicio). */
+  countUp?: boolean
   subtitle?: string
   icon: ReactNode
   /** Conteos del mes actual y del anterior (delta positivo = verde, negativo = rojo). Suele medir un flujo distinto del número principal. */
@@ -23,6 +26,7 @@ interface StatCardProps {
 export function StatCard({
   title,
   value,
+  countUp = false,
   subtitle,
   icon,
   monthOverMonth,
@@ -30,6 +34,13 @@ export function StatCard({
   onClick,
   className,
 }: StatCardProps) {
+  const numericTarget = typeof value === 'number' ? value : 0
+  const animated = useCountUp(numericTarget, {
+    duration: 2200,
+    enabled: countUp && typeof value === 'number',
+  })
+  const displayValue = countUp && typeof value === 'number' ? animated : value
+
   const comparison = useMemo(() => {
     if (!monthOverMonth) return null
     const { thisMonth: t, prevMonth: p, scopeLabel } = monthOverMonth
@@ -88,7 +99,7 @@ export function StatCard({
       </div>
 
       <p className="text-[32px] font-semibold text-ink-primary tabular-nums leading-none tracking-tight">
-        {value}
+        {displayValue}
       </p>
 
       {subtitle && (

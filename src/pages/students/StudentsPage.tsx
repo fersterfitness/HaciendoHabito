@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import {} from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { StudentDetailView } from './StudentDetailPage'
 import {
@@ -26,7 +26,11 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { Popover } from '@/components/ui/Popover'
 import { cn } from '@/lib/utils'
+import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
+import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
+import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
 import { TableSkeleton } from '@/components/ui/Skeleton'
@@ -447,10 +451,35 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
 
 export function StudentsPage() {
   const navigate = useAppNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const role = useAuthStore((state) => state.profile?.role)
   const user = useAuthStore((state) => state.user)
   const entityLabel = role === 'nutritionist' ? 'Pacientes' : 'Alumnos'
   const entityLabelSingular = role === 'nutritionist' ? 'paciente' : 'alumno'
+  const showNewStudentModal = searchParams.get('create') === '1'
+
+  const openNewStudentModal = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('create', '1')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
+
+  const closeNewStudentModal = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('create')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
+
   const { students, loading, fetchStudents, deleteStudent } = useStudents()
   const [localStudents, setLocalStudents] = useState<Student[]>([])
   const [search, setSearch] = useState('')
@@ -521,18 +550,7 @@ export function StudentsPage() {
     }
   }, [user?.id, role])
 
-  // Keyboard shortcut: press '/' to focus search
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement).tagName
-      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
-        e.preventDefault()
-        searchRef.current?.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  useSlashSearchFocus(searchRef)
 
   useEffect(() => {
     if (!selectedStudentId) return
@@ -708,21 +726,15 @@ export function StudentsPage() {
               </span>
             )}
 
-            <button
+            <Button
               type="button"
-              onClick={() => navigate('/students/new')}
+              variant="gradientPrimary"
+              onClick={openNewStudentModal}
               title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm font-semibold text-white',
-                'bg-[#ff4800] shadow-none outline-none transition-colors',
-                'hover:bg-[#e04100]',
-                'focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
-                'dark:focus-visible:ring-offset-zinc-900',
-              )}
+              icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
             >
-              <Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />
               {role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -738,7 +750,7 @@ export function StudentsPage() {
             description={`Creá tu primer ${entityLabelSingular} para comenzar a gestionar rutinas y planes.`}
             action={{
               label: `Nuevo ${entityLabelSingular}`,
-              onClick: () => navigate('/students/new'),
+              onClick: openNewStudentModal,
               icon: <Plus className="h-4 w-4" />,
             }}
           />
@@ -800,6 +812,13 @@ export function StudentsPage() {
           </div>
         </>
       )}
+
+      <NewStudentModal
+        open={showNewStudentModal}
+        title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
+        onClose={closeNewStudentModal}
+        onCreated={(id) => navigate(`/students/${id}`)}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -866,7 +885,7 @@ function StudentDirectoryTable({
 
       {/* ── Mobile cards (< sm) ──────────────────────────────────── */}
       <div className="sm:hidden divide-y divide-surface-border/60">
-        {students.map((student) => {
+        {students.map((student, rowIndex) => {
           const isSelected = selectedStudentId === student.id
           const hasRoutine = activeRoutineStudentIds.has(student.id)
           const hasPlan = hasMealPlanStudentIds.has(student.id)
@@ -875,8 +894,9 @@ function StudentDirectoryTable({
             <div
               key={student.id}
               onClick={() => onRowClick(student.id)}
+              style={tableRowEnterStyle(rowIndex)}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
+                'hh-row-drop-in flex items-center gap-2 px-4 py-2.5 cursor-pointer transition-colors',
                 isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-zinc-400' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
               )}
             >
@@ -884,13 +904,13 @@ function StudentDirectoryTable({
                 studentId={student.id}
                 fullName={student.full_name}
                 avatarPath={student.avatar_path ?? null}
-                size="md2"
+                size="xs"
                 stopRowNavigation
                 onPathChange={() => onAvatarUpdated()}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate font-semibold text-sm text-ink-primary">{student.full_name}</span>
+                  <span className="truncate font-semibold text-[13px] leading-snug text-ink-primary">{student.full_name}</span>
                   {age !== null && (
                     <span className="shrink-0 text-[11px] text-ink-muted">{age}a</span>
                   )}
@@ -949,7 +969,7 @@ function StudentDirectoryTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border/70 bg-surface-card">
-            {students.map((student) => {
+            {students.map((student, rowIndex) => {
               const isSelected = selectedStudentId === student.id
               const hasRoutine = activeRoutineStudentIds.has(student.id)
               const hasPlan = hasMealPlanStudentIds.has(student.id)
@@ -958,21 +978,33 @@ function StudentDirectoryTable({
                 <tr
                   key={student.id}
                   onClick={() => onRowClick(student.id)}
-                  className={cn('group cursor-pointer transition-colors', 'hover:bg-surface-elevated/35', isSelected && 'bg-surface-elevated/45')}
+                  style={tableRowEnterStyle(rowIndex)}
+                  className={cn(
+                    'group cursor-pointer transition-colors',
+                    'hover:bg-surface-elevated/35',
+                    isSelected && 'bg-surface-elevated/45',
+                  )}
                 >
-                  <td className={cn('px-4 py-2.5 sm:px-5', isSelected ? 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]')}>
-                    <div className="flex items-center gap-3">
+                  <td
+                    className={cn(
+                      'hh-row-drop-in px-4 py-2.5 sm:px-5',
+                      isSelected ? 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
                       <StudentAvatar
                         studentId={student.id}
                         fullName={student.full_name}
                         avatarPath={student.avatar_path ?? null}
-                        size="md2"
+                        size="xs"
                         stopRowNavigation
                         onPathChange={() => onAvatarUpdated()}
                       />
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="min-w-0 flex-1 truncate font-semibold text-ink-primary">{student.full_name}</span>
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug text-ink-primary">
+                            {student.full_name}
+                          </span>
                           {age !== null && <span className="shrink-0 text-[11px] text-ink-muted tabular-nums">{age}a</span>}
                           <div className="flex shrink-0 items-center gap-1">
                             <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
@@ -991,23 +1023,23 @@ function StudentDirectoryTable({
                       </div>
                     </div>
                   </td>
-                  <td className="hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
+                  <td className="hh-row-drop-in hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
                     <span className="text-[12px]">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   </td>
-                  <td className="px-4 py-2.5 sm:px-5">
+                  <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
                     <StatusToggle student={student} onChanged={onStatusChanged} />
                   </td>
-                  <td className="px-4 py-2.5 sm:px-5">
+                  <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
                     {student.plan_end_date ? (
                       <PlanDaysChip date={student.plan_end_date} />
                     ) : (
                       <span className="text-[11px] text-ink-muted/50">—</span>
                     )}
                   </td>
-                  <td className="hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
+                  <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
                     <span className="text-[12px]">{student.email ?? '—'}</span>
                   </td>
-                  <td className="px-2 sm:px-3">
+                  <td className="hh-row-drop-in px-2 sm:px-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
