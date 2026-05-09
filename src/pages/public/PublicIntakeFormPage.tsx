@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Sun, Moon, Check, BicepsFlexed, Salad, Zap } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, Sun, Moon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
 import { supabase } from '@/lib/supabase'
+import {
+  IntakeChangeablePlansSection,
+  intakePlansToPricingPlans,
+} from '@/components/public/IntakeChangeablePlansSection'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
-
-const ACCENT = '#ffcc33'
 
 /** Ordena precios tipo «$60.000», «$100.000», etc. (sólo dígitos). */
 function numericFromPriceLabel(label: string): number {
@@ -24,9 +27,240 @@ const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
 const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
   'Tomás Ferster + Cristian Crossetto — Plan integral de entrenamiento y nutrición'
 
-const SEGMENT_SOLO_SUB = 'Tomás Ferster — Prof. Educación Física · Lic. en Alto Rendimiento'
-const SEGMENT_CRIS_SUB = 'Cristian Crossetto — Lic. en Nutrición · Esp. en Nutrición deportiva'
-const SEGMENT_FULL_SUB = 'Entrenamiento + Nutrición'
+/** Define cómo agrupan los planes en `web_plans.catalog_segment`. */
+const INTAKE_MODALITY_OPTIONS: { segment: WebPlanCatalogSegment; label: string }[] = [
+  { segment: 'solo', label: 'Solo entrenamiento' },
+  { segment: 'with_cris', label: 'Solo nutrición' },
+  { segment: 'full', label: 'Entreno + nutrición' },
+]
+
+/** Sumá filas cuando haya más entrenadores disponibles en la misma línea. */
+const INTAKE_TRAINER_OPTIONS: { id: string; label: string }[] = [{ id: 'tomas-ferster', label: 'Tomás Ferster' }]
+
+/** Sumá filas cuando haya más nutricionistas. */
+const INTAKE_NUTRITION_OPTIONS: { id: string; label: string }[] = [{ id: 'cris-crossetto', label: 'Cristian Crossetto' }]
+
+function initialsFromProfessionalName(label: string): string {
+  const parts = label.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
+  return `${parts[0]!.charAt(0)}${parts[1]!.charAt(0)}`.toUpperCase()
+}
+
+/** Cuadrado con esquinas redondeadas (alineado a inputs / tarjetas), no óvalo ni cápsula. */
+function IntakeProAvatar({
+  label,
+  url,
+  sizeClass = 'h-8 w-8',
+}: {
+  label: string
+  url?: string | null
+  sizeClass?: string
+}) {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    setFailed(false)
+  }, [url])
+  const showImg = Boolean(url?.trim() && !failed)
+  return showImg ? (
+    <img
+      src={url!.trim()}
+      alt=""
+      className={`${sizeClass} shrink-0 rounded-lg object-cover object-top ring-1 ring-white/20`}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <span
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-lg bg-white/12 px-0.5 text-[9px] font-bold uppercase leading-tight text-white/90 ring-1 ring-white/15`}
+      aria-hidden
+    >
+      {initialsFromProfessionalName(label)}
+    </span>
+  )
+}
+
+type IntakeAvatarOption = { id: string; label: string; avatarUrl?: string | null }
+
+/**
+ * Selector con foto al lado del nombre (el `<select>` nativo no permite imágenes en opciones).
+ */
+function IntakeAvatarSelect({
+  id,
+  label,
+  hint,
+  value,
+  disabled = false,
+  onChange,
+  theme,
+  options,
+  emptyLabel = 'No aplica',
+}: {
+  id: string
+  label: string
+  hint?: string
+  value: string
+  disabled?: boolean
+  onChange: (v: string) => void
+  theme: 'light' | 'dark'
+  options: IntakeAvatarOption[]
+  /** Texto cuando está deshabilitado o sin opciones. */
+  emptyLabel?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const listId = `${id}-listbox`
+
+  const selected = options.find((o) => o.id === value)
+
+  useEffect(() => {
+    if (!open) return
+    const onDocDown = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const triggerClass = cn(
+    'relative flex w-full items-center gap-2 rounded-lg border px-2.5 py-[0.42rem] pr-9 text-left text-[13px] leading-tight shadow-none transition-colors',
+    'focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-38',
+    theme === 'dark'
+      ? 'border-white/[0.08] bg-[#141414] text-white focus:border-white/30 disabled:border-white/[0.05] disabled:bg-[#141414]'
+      : 'border-white/[0.1] bg-[#171717] text-white focus:border-white/30 disabled:bg-[#141414]',
+    disabled && 'cursor-not-allowed',
+    !disabled && options.length > 0 && 'cursor-pointer hover:bg-white/[0.04]',
+  )
+
+  const showTriggerContent = !disabled && options.length > 0 && selected
+
+  return (
+    <div ref={rootRef} className="min-w-0">
+      <label htmlFor={id} className="mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em] text-white/42">
+        {label}
+      </label>
+      <div className="relative">
+        <button
+          id={id}
+          type="button"
+          disabled={disabled || options.length === 0}
+          title={hint}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={open ? listId : undefined}
+          onClick={() => {
+            if (disabled || options.length === 0) return
+            setOpen((o) => !o)
+          }}
+          className={triggerClass}
+        >
+          {showTriggerContent ? (
+            <>
+              <IntakeProAvatar label={selected!.label} url={selected.avatarUrl} />
+              <span className="min-w-0 flex-1 truncate">{selected!.label}</span>
+            </>
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-white/55">{disabled || options.length === 0 ? emptyLabel : '—'}</span>
+          )}
+        </button>
+        <span
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400"
+          aria-hidden
+        >
+          ▾
+        </span>
+
+        {open && options.length > 0 ? (
+          <ul
+            id={listId}
+            role="listbox"
+            className="absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-60 overflow-auto rounded-lg border border-white/[0.14] bg-[#0f0f0f] py-1 shadow-xl"
+          >
+            {options.map((o) => (
+              <li key={o.id} role="option" aria-selected={value === o.id}>
+                <button
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-[13px] text-white transition-colors',
+                    value === o.id ? 'bg-white/12' : 'hover:bg-white/10',
+                  )}
+                  onClick={() => {
+                    onChange(o.id)
+                    setOpen(false)
+                  }}
+                >
+                  <IntakeProAvatar label={o.label} url={o.avatarUrl} />
+                  <span className="min-w-0 flex-1">{o.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function IntakeMinimalSelect({
+  id,
+  label,
+  hint,
+  value,
+  disabled = false,
+  onChange,
+  children,
+  theme,
+}: {
+  id: string
+  label: string
+  hint?: string
+  value: string
+  disabled?: boolean
+  onChange: (v: string) => void
+  children: ReactNode
+  theme: 'light' | 'dark'
+}) {
+  return (
+    <div className="min-w-0">
+      <label htmlFor={id} className="mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em] text-white/42">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          disabled={disabled}
+          value={value}
+          title={hint}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            'w-full appearance-none rounded-lg border px-3 py-[0.42rem] pr-9 text-[13px] leading-tight shadow-none transition-colors',
+            'focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-38',
+            theme === 'dark'
+              ? 'border-white/[0.08] bg-[#141414] text-white focus:border-white/30 disabled:border-white/[0.05] disabled:bg-[#141414]'
+              : 'border-white/[0.1] bg-[#171717] text-white focus:border-white/30 disabled:bg-[#141414]',
+            disabled && 'cursor-not-allowed',
+          )}
+        >
+          {children}
+        </select>
+        <span
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400"
+          aria-hidden
+        >
+          ▾
+        </span>
+      </div>
+    </div>
+  )
+}
 
 type PublicIntakeSlots = {
   slotsOpen: boolean
@@ -40,7 +274,7 @@ function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
 
   let title = 'Cupos disponibles'
   let body = trimmed || 'Hay lugar para nuevas consultas.'
-  let tone = 'border-[#ffcc33]/35 bg-[#ffcc33]/10'
+  let tone = 'border-white/20 bg-white/[0.06]'
 
   if (!slotsOpen) {
     title = 'Cupos cerrados por ahora'
@@ -57,7 +291,7 @@ function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
           ? `Aproximadamente ${slotsRemaining} cupo${slotsRemaining === 1 ? '' : 's'} disponibles.`
           : 'Consultanos por lista de espera.'
       )
-      tone = 'border-[#ffcc33]/35 bg-[#ffcc33]/8'
+      tone = 'border-white/18 bg-white/[0.05]'
     } else if (trimmed) {
       body = trimmed
     }
@@ -138,9 +372,9 @@ function CatalogSegmentThumbnail({
           onError={() => setFailed(true)}
         />
       ) : compactFallback ? (
-        <span className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-bold leading-tight text-[#ffe99f]">{titleFallback}</span>
+        <span className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-bold leading-tight text-white/80">{titleFallback}</span>
       ) : (
-        <span className="flex h-full w-full items-center justify-center text-xl font-black text-[#ffe99f]">{titleFallback}</span>
+        <span className="flex h-full w-full items-center justify-center text-xl font-black text-white/85">{titleFallback}</span>
       )}
     </div>
   )
@@ -153,6 +387,7 @@ type PlanDetail = {
   credentialLineOverride: string | null
   name: string
   price: string
+  priceYearly: string | null
   badge: string
   shortDescription: string
   intro: string
@@ -184,6 +419,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
     credentialLineOverride: null,
     name: 'Primer Plan Entrenamiento',
     price: '$60.000',
+    priceYearly: '$600.000',
     badge: 'Entrenamiento',
     shortDescription: 'Entrenamiento personalizado con seguimiento mensual.',
     intro:
@@ -205,6 +441,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
     credentialLineOverride: null,
     name: 'Segundo Plan Nutrición',
     price: '$80.000',
+    priceYearly: '$800.000',
     badge: 'Nutrición',
     shortDescription: 'Plan nutricional + seguimiento para sostener hábitos.',
     intro:
@@ -226,6 +463,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
     credentialLineOverride: null,
     name: 'Plan Full',
     price: '$100.000',
+    priceYearly: '$1.000.000',
     badge: 'Full',
     shortDescription: 'Combina entrenamiento + nutrición en un plan integral.',
     intro:
@@ -242,132 +480,87 @@ const DEFAULT_PLANS: PlanDetail[] = [
   },
 ]
 
-function PlansStack({
-  plans,
-  selectedPlanId,
-  onSelectPlan,
-}: {
-  plans: PlanDetail[]
-  selectedPlanId: string | null
-  onSelectPlan: (id: string) => void
-}) {
-  return (
-    <div className="space-y-3 w-full">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-white/65 font-semibold">Planes disponibles</p>
-      <div className="space-y-3">
-        {plans.map((plan) => (
-          <button
-            type="button"
-            key={plan.id}
-            onClick={() => onSelectPlan(plan.id)}
-            className={[
-              'w-full text-left rounded-2xl border p-4 transition-all backdrop-blur-sm hover:-translate-y-0.5',
-              selectedPlanId === plan.id
-                ? 'border-2 border-[#ffcc33]/80 bg-[#3b2d0f] text-white shadow-[0_0_38px_-8px_rgba(255,204,51,0.72)] scale-[1.01]'
-                : 'border-white/15 bg-black/25 text-white',
-            ].join(' ')}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="inline-flex items-center rounded-full border border-white/15 bg-black/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#ffe99f] mb-1.5">
-                  {plan.badge}
-                </span>
-                <p className="text-sm font-semibold">{plan.name}</p>
-                <p className={selectedPlanId === plan.id ? 'text-white/80 text-[11px] mt-0.5' : 'text-white/65 text-[11px] mt-0.5'}>
-                  {plan.shortDescription}
-                </p>
-              </div>
-              {selectedPlanId === plan.id ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-[#ffcc33]/20 px-2 py-0.5 text-[10px] font-semibold text-[#ffe99f]">
-                    Seleccionado
-                  </span>
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#ffcc33]/60 bg-[#ffcc33]/15">
-                    <Check className="h-3 w-3 text-[#ffe99f]" />
-                  </span>
-                </div>
-              ) : null}
-            </div>
+function formatArsRounded(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return ''
+  return `$${Math.round(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
+}
 
-            <p className="mt-3 mb-3">
-              <span className="text-2xl font-bold">{plan.price}</span>
-            </p>
+/** Precio anual configurado en panel, o valor referencial 10× mensual si falta. */
+function effectiveYearlyLabel(monthlyLabel: string, yearlyLabel: string | null | undefined): string {
+  const t = yearlyLabel?.trim()
+  if (t) return t
+  const n = numericFromPriceLabel(monthlyLabel)
+  if (n <= 0) return monthlyLabel
+  return formatArsRounded(n * 10)
+}
 
-            <ul className="space-y-1.5">
-              {plan.info.slice(0, 3).map((feature) => (
-                <li
-                  key={feature}
-                  className={selectedPlanId === plan.id ? 'flex items-center gap-2 text-xs text-white/85' : 'flex items-center gap-2 text-xs text-white/75'}
-                >
-                  <Check className={selectedPlanId === plan.id ? 'h-3.5 w-3.5 text-[#ffe99f]' : 'h-3.5 w-3.5 text-[#f4d76f]'} />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 px-1 text-center text-[10px] leading-snug text-white/55">
-              Tocá la tarjeta para ver todos los ítems y el detalle completo.
-            </p>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+function displayPriceForPlan(plan: PlanDetail, billing: 'monthly' | 'annual'): string {
+  return billing === 'monthly' ? plan.price : effectiveYearlyLabel(plan.price, plan.priceYearly)
 }
 
 function PlanDetailView({
   plan,
+  planBilling,
   onBack,
 }: {
   plan: PlanDetail
+  planBilling: 'monthly' | 'annual'
   onBack: () => void
 }) {
   return (
     <div className="h-full min-h-0 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain scrollbar-hide px-1 pb-20 lg:pb-1">
-      <div className="rounded-2xl border border-[#ffcc33]/35 bg-[#3b2d0f] p-5 sm:p-6 text-white">
+      <div className="rounded-2xl border border-white/12 bg-zinc-950/85 p-5 sm:p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[#ffe99f]">Detalle del plan</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/55">Detalle del plan</p>
             <h2 className="text-xl sm:text-2xl font-bold mt-1">{plan.name}</h2>
           </div>
-          <span className="text-2xl font-extrabold">{plan.price}</span>
+          <div className="text-right">
+            <span className="block text-2xl font-extrabold tabular-nums">
+              {displayPriceForPlan(plan, planBilling)}
+            </span>
+            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
+              {planBilling === 'annual' ? 'Modalidad anual' : 'Por mes'}
+            </span>
+          </div>
         </div>
 
         <p className="mt-4 whitespace-pre-wrap break-words text-sm text-white/85 leading-relaxed">{plan.intro}</p>
 
         {plan.credentialLineOverride?.trim() ? (
-          <p className="mt-4 border-l-2 border-[#ffcc33]/70 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95 whitespace-pre-wrap">
+          <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90 whitespace-pre-wrap">
             {plan.credentialLineOverride.trim()}
           </p>
         ) : plan.catalogSegment === 'with_cris' ? (
-          <p className="mt-4 border-l-2 border-[#ffcc33]/70 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95">
+          <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90">
             {PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
           </p>
         ) : plan.catalogSegment === 'full' ? (
-          <p className="mt-4 border-l-2 border-[#ffcc33]/65 pl-3 text-sm font-medium leading-relaxed text-[#ffe99f]/95">
+          <p className="mt-4 border-l-2 border-white/30 pl-3 text-sm font-medium leading-relaxed text-white/90">
             {PUBLIC_PLAN_FULL_CREDENTIAL_LINE}
           </p>
         ) : plan.catalogSegment === 'solo' ? (
           <p className="mt-4 text-sm leading-relaxed text-white/75">{PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}</p>
         ) : null}
 
-        <div className="mt-5 pt-4 border-t border-[#f0c419]/20">
-          <p className="text-sm font-semibold text-[#ffe99f] mb-2">Incluye</p>
+        <div className="mt-5 pt-4 border-t border-white/10">
+          <p className="text-sm font-semibold text-white mb-2">Incluye</p>
           <ul className="space-y-2">
             {plan.info.map((item) => (
               <li key={item} className="flex items-start gap-2 text-sm text-white/85 leading-relaxed">
-                <Check className="h-4 w-4 mt-0.5 text-[#ffe99f] shrink-0" />
+                <Check className="h-4 w-4 mt-0.5 text-white/70 shrink-0" />
                 <span>{item}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-[#f0c419]/20">
-          <p className="text-sm font-semibold text-[#ffe99f] mb-2">De regalo</p>
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <p className="text-sm font-semibold text-white mb-2">De regalo</p>
           <ul className="space-y-2">
             {plan.gifts.map((gift) => (
               <li key={gift} className="flex items-start gap-2 text-sm text-white/85 leading-relaxed">
-                <Check className="h-4 w-4 mt-0.5 text-[#ffe99f] shrink-0" />
+                <Check className="h-4 w-4 mt-0.5 text-white/70 shrink-0" />
                 <span>{gift}</span>
               </li>
             ))}
@@ -377,7 +570,7 @@ function PlanDetailView({
         <button
           type="button"
           onClick={onBack}
-          className="mt-6 hidden lg:block w-full rounded-xl border border-[#ffcc33]/45 bg-[#ffcc33]/12 px-4 py-2.5 text-sm font-semibold text-[#ffe99f] hover:bg-[#ffcc33]/20 transition-colors"
+          className="mt-6 hidden lg:block w-full rounded-xl border border-white/18 bg-white/[0.07] px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.11] transition-colors"
         >
           Elegir este plan y volver al formulario
         </button>
@@ -387,7 +580,7 @@ function PlanDetailView({
         <button
           type="button"
           onClick={onBack}
-          className="w-full rounded-xl border border-[#ffcc33]/55 bg-[#3b2d0f] px-4 py-3 text-sm font-semibold text-[#ffe99f] shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)]"
+          className="w-full rounded-xl border border-white/16 bg-zinc-950/90 px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] hover:bg-white/[0.05]"
         >
           Continuar con este plan
         </button>
@@ -409,7 +602,10 @@ function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
         </div>
         <div
           className="absolute inset-0 z-[1] pointer-events-none opacity-35 mix-blend-overlay"
-          style={{ background: `radial-gradient(ellipse 120% 80% at 50% -10%, ${ACCENT}45, transparent 55%)` }}
+          style={{
+            background:
+              'radial-gradient(ellipse 120% 80% at 50% -10%, rgba(255,255,255,0.12), transparent 55%)',
+          }}
         />
       </>
     )
@@ -423,7 +619,9 @@ function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
       </div>
       <div
         className="absolute inset-0 z-[1] pointer-events-none opacity-50 mix-blend-screen"
-        style={{ background: `radial-gradient(ellipse 120% 80% at 50% -10%, ${ACCENT}50, transparent 55%)` }}
+        style={{
+          background: 'radial-gradient(ellipse 120% 80% at 50% -10%, rgba(255,255,255,0.14), transparent 55%)',
+        }}
       />
     </>
   )
@@ -435,7 +633,7 @@ function PublicAuthTopBar() {
     <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
       <Link
         to="/login"
-        className="inline-flex items-center gap-1.5 rounded-xl border border-surface-border bg-surface-card px-3 py-2 text-xs font-medium text-ink-secondary hover:text-ink-primary hover:border-[#ffcc33]/45 transition-colors shadow-sm"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-surface-border bg-surface-card px-3 py-2 text-xs font-medium text-ink-secondary transition-colors hover:border-zinc-400/50 hover:text-ink-primary dark:hover:border-zinc-500/50 shadow-sm"
       >
         Ir al panel
         <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -458,211 +656,182 @@ function LeftBrandPanel({
   plansAll,
   plansVisible,
   catalogSegment,
-  soloSegmentImageUrl,
-  withCrisSegmentImageUrl,
-  fullSegmentImageUrl,
   onSelectCatalogSegment,
   selectedPlanId,
   onSelectPlan,
+  onConfirmPlan,
+  planBilling,
+  onPlanBillingChange,
+  soloSegmentImageUrl,
+  withCrisSegmentImageUrl,
+  crisSoloSegmentImageUrl,
 }: {
   theme: 'light' | 'dark'
   plansAll: PlanDetail[]
   plansVisible: PlanDetail[]
   catalogSegment: WebPlanCatalogSegment | null
-  soloSegmentImageUrl: string | null
-  withCrisSegmentImageUrl: string | null
-  fullSegmentImageUrl: string | null
   onSelectCatalogSegment: (s: WebPlanCatalogSegment) => void
   selectedPlanId: string | null
   onSelectPlan: (id: string) => void
+  /** Igual que antes: pasar al detalle / volteo del formulario. */
+  onConfirmPlan: () => void
+  planBilling: 'monthly' | 'annual'
+  onPlanBillingChange: (v: 'monthly' | 'annual') => void
+  /** Fotos del panel Ajustes → Planes web (`web_intake_catalog_settings`). */
+  soloSegmentImageUrl: string | null
+  withCrisSegmentImageUrl: string | null
+  crisSoloSegmentImageUrl: string | null
 }) {
   const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
 
-  const professionalCards: {
-    segment: WebPlanCatalogSegment
-    label: string
-    sub: string
-    credential: string
-    icon: React.ReactNode
-    imageUrl: string | null
-    fallback: string
-  }[] = [
-    {
-      segment: 'solo',
-      label: 'Solo entrenamiento',
-      sub: SEGMENT_SOLO_SUB,
-      credential: PUBLIC_PLAN_SOLO_CREDENTIAL_LINE,
-      icon: <BicepsFlexed className="h-4 w-4" />,
-      imageUrl: soloSegmentImageUrl,
-      fallback: 'TF',
-    },
-    {
-      segment: 'with_cris',
-      label: 'Solo nutrición',
-      sub: SEGMENT_CRIS_SUB,
-      credential: PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE,
-      icon: <Salad className="h-4 w-4" />,
-      imageUrl: withCrisSegmentImageUrl,
-      fallback: 'CC',
-    },
-    {
-      segment: 'full',
-      label: 'Entrenamiento + nutrición',
-      sub: SEGMENT_FULL_SUB,
-      credential: PUBLIC_PLAN_FULL_CREDENTIAL_LINE,
-      icon: <Zap className="h-4 w-4" />,
-      imageUrl: fullSegmentImageUrl,
-      fallback: 'TF+CC',
-    },
-  ]
+  const [trainerChoice, setTrainerChoice] = useState(INTAKE_TRAINER_OPTIONS[0]?.id ?? '')
+  const [nutritionChoice, setNutritionChoice] = useState(INTAKE_NUTRITION_OPTIONS[0]?.id ?? '')
+
+  const modalitySegment: WebPlanCatalogSegment =
+    catalogSegment !== null && INTAKE_MODALITY_OPTIONS.some((o) => o.segment === catalogSegment)
+      ? catalogSegment
+      : 'solo'
+
+  const includeTraining = modalitySegment === 'solo' || modalitySegment === 'full'
+  const includeNutrition = modalitySegment === 'with_cris' || modalitySegment === 'full'
+
+  const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
+    () =>
+      INTAKE_TRAINER_OPTIONS.map((o) => ({
+        ...o,
+        avatarUrl: o.id === 'tomas-ferster' ? soloSegmentImageUrl : null,
+      })),
+    [soloSegmentImageUrl],
+  )
+
+  const nutritionAvatarUrl: string | null =
+    modalitySegment === 'with_cris'
+      ? crisSoloSegmentImageUrl ?? withCrisSegmentImageUrl
+      : withCrisSegmentImageUrl
+
+  const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
+    () =>
+      INTAKE_NUTRITION_OPTIONS.map((o) => ({
+        ...o,
+        avatarUrl: o.id === 'cris-crossetto' ? nutritionAvatarUrl : null,
+      })),
+    [nutritionAvatarUrl],
+  )
 
   return (
     <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 overflow-hidden">
       <HeroBgLayers theme={theme} />
 
-      <div className="relative z-[2] h-full min-h-[inherit] flex flex-col p-5 sm:p-7 lg:p-9">
-        <div className="flex-1 flex flex-col items-center text-center px-2 py-3 lg:py-2">
-          {/* Logo */}
-          <div className="relative mb-3 lg:mb-5">
-            <div
-              className="pointer-events-none absolute -inset-8 rounded-[2rem] blur-3xl opacity-50"
-              style={{ background: `radial-gradient(circle at 50% 50%, ${ACCENT} 0%, transparent 65%)` }}
-            />
-            <div className="relative flex justify-center px-2">
+      <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [-webkit-overflow-scrolling:touch]">
+          <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] shrink-0 space-y-4">
+            {/* Marca: una sola lectura */}
+            <div className="relative flex items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
+              <div
+                className="pointer-events-none absolute left-1/2 top-6 h-24 w-[min(100%,20rem)] -translate-x-1/2 rounded-full opacity-28 blur-3xl sm:left-[18%] sm:translate-x-0"
+                style={{
+                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.1), transparent 72%)',
+                }}
+                aria-hidden
+              />
               <img
                 src="/logo-brand.png"
                 alt="Haciéndolo hábito"
-                className="h-14 w-auto max-w-[min(280px,calc(100vw-3.5rem))] object-contain object-center drop-shadow-[0_4px_28px_rgba(0,0,0,0.5)] sm:h-20 sm:max-w-[360px] lg:h-28 lg:max-w-[min(480px,90%)]"
+                className="relative z-[1] h-8 w-auto max-w-[120px] object-contain object-left opacity-95 sm:h-9 sm:max-w-[132px]"
               />
+              <p className="relative z-[1] min-w-0 truncate text-[15px] font-bold leading-snug tracking-tight text-white/95 sm:text-base">
+                Haciéndolo hábito
+              </p>
             </div>
-          </div>
 
-          <h2 className="text-xl sm:text-2xl lg:text-[1.7rem] font-bold text-white tracking-tight drop-shadow-lg mb-3 lg:mb-4">
-            Haciéndolo hábito
-          </h2>
-
-          {/* 3 Professional cards — grid 3 columnas estilo perfil */}
-          <div className="mb-4 lg:mb-5 w-full max-w-full sm:max-w-[390px]">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/65 font-semibold mb-3">Elegí tu profesional</p>
-            <div className="grid grid-cols-3 gap-2.5">
-              {professionalCards.map((card) => {
-                const isSelected = catalogSegment === card.segment
-                return (
-                  <button
-                    key={card.segment}
-                    type="button"
-                    onClick={() => onSelectCatalogSegment(card.segment)}
-                    title={card.credential}
-                    className={[
-                      'flex flex-col rounded-2xl border overflow-hidden text-center transition-all backdrop-blur-sm hover:scale-[1.02] active:scale-[0.99]',
-                      isSelected
-                        ? 'border-[#ffcc33]/80 ring-2 ring-[#ffcc33]/35 shadow-[0_0_32px_-8px_rgba(255,204,51,0.6)]'
-                        : 'border-white/12 hover:border-white/25',
-                    ].join(' ')}
-                    aria-pressed={isSelected}
+            {/* Superficie única: opciones + planes sin doble marco */}
+            <div className="relative z-[1] rounded-2xl border border-white/[0.07] bg-black/38 p-4 shadow-none backdrop-blur-md sm:p-[1.1rem]">
+              <div className="grid grid-cols-1 gap-2">
+                  <IntakeMinimalSelect
+                    theme={theme}
+                    id="intake-modality"
+                    label="Modalidad"
+                    hint="Define qué tipo de planes se muestran a continuación"
+                    value={modalitySegment}
+                    onChange={(raw) =>
+                      onSelectCatalogSegment(raw as WebPlanCatalogSegment)
+                    }
                   >
-                    {/* Foto / avatar — proporción 3:4 retrato */}
-                    <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                      <div className="absolute inset-0">
-                        {card.imageUrl ? (
-                          <img
-                            src={card.imageUrl}
-                            alt={card.label}
-                            className="h-full w-full object-cover object-top"
-                          />
-                        ) : card.segment === 'full' ? (
-                          <div className="h-full w-full flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-[#2a1f00] to-[#1a1200]">
-                            <div className="flex gap-1.5 items-center">
-                              <BicepsFlexed className="h-4 w-4 text-[#ffe99f]/70" />
-                              <span className="text-white/30 text-xs">+</span>
-                              <Salad className="h-4 w-4 text-[#ffe99f]/70" />
-                            </div>
-                            <span className="text-[10px] font-bold text-[#ffe99f]/60 tracking-wide">FULL</span>
-                          </div>
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-b from-white/8 to-white/4">
-                            <span className="text-2xl font-black text-[#ffe99f]/50">{card.fallback}</span>
-                          </div>
-                        )}
-                        {/* Gradiente inferior para leer el texto */}
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
-                        {/* Ícono de rol — badge flotante arriba izquierda */}
-                        <div className={[
-                          'absolute top-1.5 left-1.5 h-5 w-5 rounded-lg flex items-center justify-center backdrop-blur-sm',
-                          isSelected ? 'bg-[#ffcc33]/25 text-[#ffe99f]' : 'bg-black/40 text-white/50',
-                        ].join(' ')}>
-                          {card.icon}
-                        </div>
-                        {/* Check seleccionado — badge arriba derecha */}
-                        {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-[#ffcc33] flex items-center justify-center">
-                            <Check className="h-3 w-3 text-black" strokeWidth={3} />
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    {INTAKE_MODALITY_OPTIONS.map((o) => (
+                      <option key={o.segment} value={o.segment}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </IntakeMinimalSelect>
 
-                    {/* Texto debajo de la foto */}
-                    <div className={[
-                      'flex-1 px-2 pt-2 pb-2.5 flex flex-col gap-0.5',
-                      isSelected ? 'bg-[#3b2d0f]/80' : 'bg-black/30',
-                    ].join(' ')}>
-                      <p className={['text-[11px] font-bold leading-tight', isSelected ? 'text-white' : 'text-white/85'].join(' ')}>
-                        {card.label}
-                      </p>
-                      <p className={['text-[8.5px] leading-snug', isSelected ? 'text-white/60' : 'text-white/38'].join(' ')}>
-                        {card.sub}
-                      </p>
-                    </div>
-                  </button>
-                )
-              })}
+                  <IntakeAvatarSelect
+                    theme={theme}
+                    id="intake-trainer"
+                    label="Entrenador"
+                    hint={`${PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}`}
+                    value={includeTraining ? trainerChoice : ''}
+                    disabled={!includeTraining}
+                    emptyLabel="No aplica"
+                    onChange={(v) => setTrainerChoice(v)}
+                    options={includeTraining ? trainerAvatarOptions : []}
+                  />
+
+                  <IntakeAvatarSelect
+                    theme={theme}
+                    id="intake-nutrition"
+                    label="Nutricionista"
+                    hint={`${PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}`}
+                    value={includeNutrition ? nutritionChoice : ''}
+                    disabled={!includeNutrition}
+                    emptyLabel="No aplica"
+                    onChange={(v) => setNutritionChoice(v)}
+                    options={includeNutrition ? nutritionAvatarOptions : []}
+                  />
+              </div>
+
+              {plansVisible.length > 0 ? (
+                <>
+                  <div className="my-4 border-t border-white/[0.055] pt-1" aria-hidden />
+                  <IntakeChangeablePlansSection
+                    title="Tu plan"
+                    footerText="Podés cancelar cuando quieras."
+                    buttonText="Ver detalle"
+                    plans={intakePlansToPricingPlans(plansVisible)}
+                    selectedPlanId={selectedPlanId}
+                    onSelectPlan={onSelectPlan}
+                    onContinue={onConfirmPlan}
+                    billing={planBilling}
+                    onBillingChange={onPlanBillingChange}
+                    badgeVariant="amber"
+                    tone="card"
+                    embedded
+                    flush
+                    uiTheme={theme}
+                  />
+                </>
+              ) : (
+                <p className="mt-3 text-center text-[11px] leading-relaxed text-white/52">
+                  {catalogSegment === null
+                    ? 'Elegí una opción del paso 1.'
+                    : catalogSegment === 'full' && !hasPlansForSegment('full')
+                      ? 'Plan integral entrenamiento + nutrición. Si no ves planes, cargalos desde el panel.'
+                      : 'Próximamente sumaremos opciones para esta línea.'}
+                </p>
+              )}
+
+              {catalogSegment === 'full' && plansVisible.length === 0 && (
+                <p className="mt-2 text-center text-[10px] text-white/40">
+                  Podés avanzar con el formulario; un asesor te cuenta los detalles del plan Full.
+                </p>
+              )}
             </div>
-          </div>
-
-          {/* Plans stack for selected segment */}
-          <div className="mt-1 mb-3 lg:mt-2 lg:mb-5 w-full max-w-full sm:max-w-[390px]">
-            {plansVisible.length === 0 ? (
-              <p className="max-w-[280px] text-center text-[11px] text-white/60 mx-auto">
-                {catalogSegment === null
-                  ? 'Seleccioná arriba con quién querés trabajar.'
-                    : catalogSegment === 'full'
-                    ? hasPlansForSegment('full')
-                      ? null
-                      : 'Plan Full: incluye entrenamiento + nutrición con ambos profesionales.'
-                      : 'Próximamente cargaremos planes en esta línea.'}
-              </p>
-            ) : (
-              <PlansStack
-                plans={plansVisible}
-                selectedPlanId={selectedPlanId}
-                onSelectPlan={onSelectPlan}
-              />
-            )}
-            {catalogSegment === 'full' && plansVisible.length === 0 && (
-              <p className="mt-3 max-w-[280px] text-center text-[11px] text-white/50 mx-auto">
-                Completá el formulario para continuar. Un asesor se contactará con vos con los detalles del plan.
-              </p>
-            )}
           </div>
         </div>
 
-        <div className="shrink-0 mt-auto pt-5 border-t border-white/15 hidden lg:block">
-          <p className="text-white text-base sm:text-lg font-semibold leading-tight text-center lg:text-left drop-shadow-md mb-3 whitespace-nowrap mx-auto lg:mx-0">
+        <div className="relative z-[1] mt-auto hidden shrink-0 border-t border-white/[0.06] pt-2.5 lg:block">
+          <p className="mx-auto max-w-sm text-center text-[10px] font-medium leading-snug text-white/48 lg:mx-0 lg:text-left">
             Hábitos que transforman, día a día.
           </p>
-          <div className="flex gap-2 justify-center lg:justify-start">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="h-2 rounded-full transition-all"
-                style={{
-                  width: i === 0 ? '2rem' : '0.5rem',
-                  backgroundColor: i === 0 ? ACCENT : 'rgba(255,255,255,0.4)',
-                }}
-              />
-            ))}
-          </div>
         </div>
       </div>
     </div>
@@ -675,22 +844,31 @@ export function PublicIntakeFormPage() {
   const [plans, setPlans] = useState<PlanDetail[]>(DEFAULT_PLANS)
   const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
+  const [planBilling, setPlanBilling] = useState<'monthly' | 'annual'>('monthly')
   const [isPlanFlipped, setIsPlanFlipped] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const flipTimerRef = useRef<number | null>(null)
-  const [soloSegmentImgUrl, setSoloSegmentImgUrl] = useState<string | null>(null)
-  const [withCrisSegmentImgUrl, setWithCrisSegmentImgUrl] = useState<string | null>(null)
-  const [fullSegmentImgUrl, setFullSegmentImgUrl] = useState<string | null>(null)
   const [publicSpots, setPublicSpots] = useState<PublicIntakeSlots>({
     slotsOpen: true,
     slotsRemaining: null,
     slotsMessage: null,
   })
   const [testimonialVideos, setTestimonialVideos] = useState<string[]>([])
+  const [catalogSegmentImages, setCatalogSegmentImages] = useState<{
+    solo: string | null
+    withCris: string | null
+    crisSolo: string | null
+  }>({ solo: null, withCris: null, crisSolo: null })
   const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
     plans,
     catalogSegment,
   ])
+
+  useEffect(() => {
+    if (plansVisible.length === 0) return
+    const valid = Boolean(selectedPlanId && plansVisible.some((p) => p.id === selectedPlanId))
+    if (!valid) setSelectedPlanId(plansVisible[0].id)
+  }, [plansVisible, selectedPlanId])
 
   const intakeKind = useMemo<'entrenamiento' | 'nutricion' | 'full'>(() => {
     if (catalogSegment === 'with_cris') return 'nutricion'
@@ -742,22 +920,25 @@ export function PublicIntakeFormPage() {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
         .select(
-          'solo_segment_image_url, with_cris_segment_image_url, full_segment_image_url, testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message',
+          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_cris_segment_image_url, cris_solo_segment_image_url',
         )
         .eq('id', 1)
         .maybeSingle()
       if (!mounted) return
       if (data) {
         const d = data as Record<string, unknown>
-        setSoloSegmentImgUrl(data.solo_segment_image_url as string | null)
-        setWithCrisSegmentImgUrl(data.with_cris_segment_image_url as string | null)
-        setFullSegmentImgUrl((d.full_segment_image_url as string | null) ?? null)
         setPublicSpots({
           slotsOpen: d.intake_slots_open !== false,
           slotsRemaining: typeof d.intake_slots_remaining === 'number' ? d.intake_slots_remaining : null,
           slotsMessage: typeof d.intake_slots_public_message === 'string' ? d.intake_slots_public_message : null,
         })
         setTestimonialVideos(((data.testimonial_videos as string[] | null) ?? []).filter(Boolean))
+        const str = (k: string) => (typeof d[k] === 'string' && (d[k] as string).trim() ? (d[k] as string).trim() : null)
+        setCatalogSegmentImages({
+          solo: str('solo_segment_image_url'),
+          withCris: str('with_cris_segment_image_url'),
+          crisSolo: str('cris_solo_segment_image_url'),
+        })
       }
     })()
     return () => {
@@ -771,7 +952,7 @@ export function PublicIntakeFormPage() {
       const { data, error } = await supabase
         .from('web_plans')
         .select(
-          'slug, title, price_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, catalog_segment, display_badge, credential_line_override',
+          'slug, title, price_label, price_yearly_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, catalog_segment, display_badge, credential_line_override',
         )
         .eq('is_active', true)
         .order('sort_order')
@@ -781,6 +962,7 @@ export function PublicIntakeFormPage() {
         | 'slug'
         | 'title'
         | 'price_label'
+        | 'price_yearly_label'
         | 'short_description'
         | 'intro_text'
         | 'includes_items'
@@ -807,6 +989,7 @@ export function PublicIntakeFormPage() {
           credentialLineOverride,
           name: row.title,
           price: row.price_label,
+          priceYearly: row.price_yearly_label ?? null,
           badge: planCardBadge({ id, displayBadge }),
           shortDescription: row.short_description,
           intro: row.intro_text,
@@ -832,6 +1015,13 @@ export function PublicIntakeFormPage() {
       window.clearTimeout(flipTimerRef.current)
       flipTimerRef.current = null
     }
+  }
+
+  /** Elige plan en la lista estilo pricing (Watermelon): no voltea el panel; usa Continuar para eso. */
+  function handlePickPlan(planId: string) {
+    clearFlipTimer()
+    setIsPlanFlipped(false)
+    setSelectedPlanId(planId)
   }
 
   function handleSelectPlan(planId: string) {
@@ -867,19 +1057,19 @@ export function PublicIntakeFormPage() {
             plansAll={plans}
             plansVisible={plansVisible}
             catalogSegment={catalogSegment}
-            soloSegmentImageUrl={soloSegmentImgUrl}
-            withCrisSegmentImageUrl={withCrisSegmentImgUrl}
-            fullSegmentImageUrl={fullSegmentImgUrl}
             onSelectCatalogSegment={setCatalogSegment}
             selectedPlanId={selectedPlanId}
-            onSelectPlan={handleSelectPlan}
+            onSelectPlan={handlePickPlan}
+            planBilling={planBilling}
+            onPlanBillingChange={setPlanBilling}
+            onConfirmPlan={() => {}}
+            soloSegmentImageUrl={catalogSegmentImages.solo}
+            withCrisSegmentImageUrl={catalogSegmentImages.withCris}
+            crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
           />
           <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-14 text-center">
-            <div
-              className="mb-6 flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ backgroundColor: `${ACCENT}22` }}
-            >
-              <CheckCircle2 className="h-9 w-9" style={{ color: ACCENT }} aria-hidden />
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-200/90 dark:bg-white/[0.08]">
+              <CheckCircle2 className="h-9 w-9 text-zinc-600 dark:text-zinc-400" aria-hidden />
             </div>
             <h1 className="text-2xl font-bold text-ink-primary tracking-tight mb-2">Recibimos tus datos</h1>
             <p className="text-ink-secondary text-sm max-w-sm leading-relaxed">
@@ -901,19 +1091,24 @@ export function PublicIntakeFormPage() {
           plansAll={plans}
           plansVisible={plansVisible}
           catalogSegment={catalogSegment}
-          soloSegmentImageUrl={soloSegmentImgUrl}
-          withCrisSegmentImageUrl={withCrisSegmentImgUrl}
-          fullSegmentImageUrl={fullSegmentImgUrl}
           onSelectCatalogSegment={setCatalogSegment}
           selectedPlanId={selectedPlanId}
-          onSelectPlan={handleSelectPlan}
+          onSelectPlan={handlePickPlan}
+          planBilling={planBilling}
+          onPlanBillingChange={setPlanBilling}
+          onConfirmPlan={() => {
+            if (selectedPlanId) handleSelectPlan(selectedPlanId)
+          }}
+          soloSegmentImageUrl={catalogSegmentImages.solo}
+          withCrisSegmentImageUrl={catalogSegmentImages.withCris}
+          crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
         />
 
         {/* Panel derecho — selector de tipo o formulario */}
         <div className="flex-1 flex flex-col px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:overflow-y-auto lg:max-h-[min(100vh-2rem,1200px)]">
           {isMobile ? (
             selectedPlan ? (
-              <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
+              <PlanDetailView plan={selectedPlan} planBilling={planBilling} onBack={handleBackToForm} />
             ) : (
               <div>
                 <IntakeSlotsBanner spots={publicSpots} />
@@ -922,21 +1117,21 @@ export function PublicIntakeFormPage() {
                   <IntakeNutritionForm
                     selectedPlanSlug={selectedPlanId}
                     selectedPlanLabel={selectedPlan?.name ?? null}
-                    selectedPlanPrice={selectedPlan?.price ?? null}
+                    selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                     onSuccess={() => setDone(true)}
                   />
                 ) : intakeKind === 'full' ? (
                   <IntakeFullForm
                     selectedPlanSlug={selectedPlanId}
                     selectedPlanLabel={selectedPlan?.name ?? null}
-                    selectedPlanPrice={selectedPlan?.price ?? null}
+                    selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                     onSuccess={() => setDone(true)}
                   />
                 ) : (
                   <IntakeFersterForm
                     selectedPlanSlug={selectedPlanId}
                     selectedPlanLabel={selectedPlan?.name ?? null}
-                    selectedPlanPrice={selectedPlan?.price ?? null}
+                    selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                     onSuccess={() => setDone(true)}
                   />
                 )}
@@ -958,21 +1153,21 @@ export function PublicIntakeFormPage() {
                     <IntakeNutritionForm
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan?.price ?? null}
+                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       onSuccess={() => setDone(true)}
                     />
                   ) : intakeKind === 'full' ? (
                     <IntakeFullForm
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan?.price ?? null}
+                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       onSuccess={() => setDone(true)}
                     />
                   ) : (
                     <IntakeFersterForm
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan?.price ?? null}
+                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       onSuccess={() => setDone(true)}
                     />
                   )}
@@ -983,7 +1178,7 @@ export function PublicIntakeFormPage() {
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
                   {selectedPlan ? (
-                    <PlanDetailView plan={selectedPlan} onBack={handleBackToForm} />
+                    <PlanDetailView plan={selectedPlan} planBilling={planBilling} onBack={handleBackToForm} />
                   ) : null}
                 </div>
               </div>

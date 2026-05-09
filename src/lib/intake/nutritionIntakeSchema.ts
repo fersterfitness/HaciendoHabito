@@ -105,6 +105,9 @@ export const nutritionIntakeSchema = z
     other_notes:         z.string().max(2000).default(''),
 
     // ── Meta ──────────────────────────────────────────────────────────────────
+    payment_preference: z.enum(['cash', 'mercadopago'], {
+      required_error: 'Elegí una forma de pago',
+    }),
     website:        z.literal(''),
     accept_privacy: z.boolean().refine((v) => v === true, { message: 'Tenés que aceptar para continuar' }),
   })
@@ -177,5 +180,6 @@ export function nutritionDefaults(): Partial<NutritionIntakeFormValues> & { webs
     bad_habit_2: '',
     bad_habit_3: '',
     other_notes: '',
+    payment_preference: 'mercadopago',
   }
 }

@@ -28,6 +28,9 @@ export const fersterIntakeSchema = z
     four_meals: z.enum(['yes', 'no', 'rarely']),
     sleep_hours: z.enum(['lt5', '5_6', '6_7', '8_plus']),
     supplements: z.enum(['yes', 'no']),
+    payment_preference: z.enum(['cash', 'mercadopago'], {
+      required_error: 'Elegí una forma de pago',
+    }),
     accept_privacy: z.boolean().refine((v) => v === true, { message: 'Tenés que aceptar para continuar' }),
     website: z.literal(''),
   })
@@ -81,5 +84,6 @@ export function fersterDefaults(): Partial<FersterIntakeFormValues> & { website:
     four_meals: 'yes',
     sleep_hours: '6_7',
     supplements: 'no',
+    payment_preference: 'mercadopago',
   }
 }

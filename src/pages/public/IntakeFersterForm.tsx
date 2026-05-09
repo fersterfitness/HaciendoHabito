@@ -4,15 +4,20 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@/lib/utils'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import toast from 'react-hot-toast'
-import { AlertCircle, ChevronLeft, ChevronRight, ImagePlus, User, Mail, Phone, Calendar, X } from 'lucide-react'
+import {
+  intakeAttachPlusBox,
+  intakeFormCtaButtonClass,
+  intakeFormFieldLabelClass,
+  intakeFormInputClass,
+} from '@/lib/intake/intakeFormUi'
 import {
   fersterIntakeSchema,
   fersterDefaults,
   type FersterIntakeFormValues,
 } from '@/lib/intake/fersterIntakeSchema'
 import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
+import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
 
-const ACCENT = '#ffcc33'
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
 
@@ -91,25 +96,20 @@ const STEP_FIELDS: (keyof FersterIntakeFormValues)[][] = [
     'sleep_hours',
     'supplements',
   ],
-  ['accept_privacy'],
+  [],
+  ['payment_preference', 'accept_privacy'],
 ]
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+    <label className={intakeFormFieldLabelClass()}>
       {children}
-      {required ? <span style={{ color: ACCENT }}>*</span> : null}
+      {required ? <span className="text-zinc-500 dark:text-zinc-400">*</span> : null}
     </label>
   )
 }
 
-const inputClass = (err?: string) =>
-  cn(
-    'w-full rounded-xl border px-4 py-3 text-sm transition-shadow',
-    'bg-surface-input border-surface-inputBorder text-ink-primary placeholder:text-ink-muted',
-    'focus:outline-none focus:ring-2 focus:ring-[#ffcc33]/55 focus:border-transparent',
-    err && 'border-status-expired focus:ring-status-expired/35',
-  )
+const inputClass = intakeFormInputClass
 
 function checkFileSize(f: File): boolean {
   if (f.size > MAX_BYTES) {
@@ -299,64 +299,57 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
     onSuccess()
   }
 
-  const stepTitles = ['Tus datos', 'Entrenamiento', 'Salud y hábitos', 'Fotos y envío']
+  const stepTitles = ['Datos', 'Entreno', 'Salud', 'Fotos', 'Pago']
 
   return (
     <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
-      <h1 className="text-2xl sm:text-[1.65rem] font-bold text-ink-primary tracking-tight mb-1">
-        Formulario de registro
-      </h1>
-      <p className="text-sm text-ink-secondary mb-2">
-        Plan personalizado — <span className="font-medium">Haciéndolo hábito</span>
-      </p>
+      <h1 className="text-xl font-bold text-ink-primary tracking-tight mb-0.5">Formulario de registro</h1>
+      <p className="text-xs text-ink-secondary mb-2">Plan personalizado · Haciéndolo hábito</p>
 
       {/* Plan badge / no-plan nudge */}
       {selectedPlanLabel ? (
-        <div
-          className="mb-4 flex items-center gap-2.5 rounded-xl border px-3 py-2.5"
-          style={{ borderColor: `${ACCENT}55`, backgroundColor: `${ACCENT}12` }}
-        >
-          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>Plan elegido</span>
-          <span className="text-sm font-semibold text-ink-primary truncate">{selectedPlanLabel}</span>
+        <div className="mb-3 flex min-h-[2.5rem] items-baseline gap-2 rounded-lg border border-zinc-200/90 bg-zinc-500/[0.06] px-2.5 py-2 dark:border-zinc-600/90 dark:bg-white/[0.04]">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Plan
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-primary">{selectedPlanLabel}</span>
           {selectedPlanPrice ? (
-            <span className="ml-auto shrink-0 text-sm font-bold" style={{ color: ACCENT }}>{selectedPlanPrice}</span>
+            <span className="shrink-0 text-sm font-bold tabular-nums text-ink-primary">{selectedPlanPrice}</span>
           ) : null}
         </div>
       ) : (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-expiring/40 bg-status-expiring/8 px-3 py-2.5">
-          <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" />
-          <p className="text-xs text-ink-secondary">
-            Seleccioná un plan en el panel izquierdo antes de continuar.
-          </p>
+        <div className="mb-3 rounded-lg border-l-2 border-status-expiring bg-status-expiring/8 px-2.5 py-2">
+          <p className="text-[11px] leading-snug text-ink-secondary">Elegí un plan en el panel izquierdo.</p>
         </div>
       )}
 
       {/* Step tabs */}
-      <div className="flex gap-1 mb-2">
+      <div className="mb-1.5 flex gap-0.5">
         {stepTitles.map((t, i) => (
           <button
             key={t}
             type="button"
             onClick={() => setStep(i)}
             className={cn(
-              'flex-1 rounded-lg py-2 px-1 text-[10px] sm:text-xs font-semibold transition-colors text-center leading-tight',
-              step === i ? 'text-white shadow-sm' : 'bg-surface-elevated text-ink-muted hover:text-ink-secondary',
+              'flex-1 rounded-md px-0.5 py-1.5 text-[9px] sm:text-[10px] font-semibold transition-colors text-center leading-none',
+              step === i
+                ? 'bg-zinc-600 text-white shadow-[inset_0_-2px_0_0_rgb(63_63_70)] dark:bg-zinc-500 dark:shadow-[inset_0_-2px_0_0_rgb(82_82_91)]'
+                : 'bg-surface-elevated text-ink-muted hover:text-ink-secondary',
             )}
-            style={step === i ? { backgroundColor: ACCENT } : undefined}
           >
             {i + 1}. {t}
           </button>
         ))}
       </div>
       {/* Progress bar */}
-      <div className="mb-5 h-1 rounded-full bg-surface-elevated overflow-hidden">
+      <div className="mb-4 h-0.5 rounded-full bg-surface-elevated overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${((step + 1) / stepTitles.length) * 100}%`, backgroundColor: ACCENT }}
+          className="h-full rounded-full bg-zinc-500 transition-all duration-500 dark:bg-zinc-400"
+          style={{ width: `${((step + 1) / stepTitles.length) * 100}%` }}
         />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         {step === 0 && (
           <>
             <div className="grid grid-cols-2 gap-4">
@@ -424,15 +417,15 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
               <FieldLabel required>Género</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-                  <input type="radio" value="M" className="accent-[#ffcc33]" {...register('gender')} />
+                  <input type="radio" value="M" className="accent-zinc-600 dark:accent-zinc-500" {...register('gender')} />
                   Masculino
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-                  <input type="radio" value="F" className="accent-[#ffcc33]" {...register('gender')} />
+                  <input type="radio" value="F" className="accent-zinc-600 dark:accent-zinc-500" {...register('gender')} />
                   Femenino
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-                  <input type="radio" value="otro" className="accent-[#ffcc33]" {...register('gender')} />
+                  <input type="radio" value="otro" className="accent-zinc-600 dark:accent-zinc-500" {...register('gender')} />
                   Otros
                 </label>
               </div>
@@ -563,11 +556,11 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
               <FieldLabel required>¿Patología o medicamentos?</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-[#ffcc33]" {...register('pathology')} />
+                  <input type="radio" value="no" className="accent-zinc-600 dark:accent-zinc-500" {...register('pathology')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="yes" className="accent-[#ffcc33]" {...register('pathology')} />
+                  <input type="radio" value="yes" className="accent-zinc-600 dark:accent-zinc-500" {...register('pathology')} />
                   Sí (detallar abajo y adjuntar estudios en el último paso)
                 </label>
               </div>
@@ -618,11 +611,11 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
               <FieldLabel required>¿Consumís suplementos?</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-[#ffcc33]" {...register('supplements')} />
+                  <input type="radio" value="no" className="accent-zinc-600 dark:accent-zinc-500" {...register('supplements')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="yes" className="accent-[#ffcc33]" {...register('supplements')} />
+                  <input type="radio" value="yes" className="accent-zinc-600 dark:accent-zinc-500" {...register('supplements')} />
                   Sí
                 </label>
               </div>
@@ -634,56 +627,63 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
           <>
             {/* Summary card */}
             {(watchedFirstName || watchedEmail || watchedPhone) && (
-              <div className="mb-2 rounded-xl border border-surface-border bg-surface-elevated/60 p-3 space-y-1.5">
-                <p className="text-[10px] uppercase tracking-widest text-ink-muted font-semibold mb-2">Revisá tus datos</p>
+              <div className="mb-2 space-y-1 rounded-lg border border-surface-border bg-surface-elevated/50 p-2.5">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-ink-muted">Revisión</p>
                 {(watchedFirstName || watchedLastName) && (
-                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
-                    <User className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
-                    <span>{[watchedFirstName, watchedLastName].filter(Boolean).join(' ')}</span>
-                  </div>
+                  <p className="text-xs text-ink-secondary">
+                    <span className="text-ink-muted">Nombre · </span>
+                    {[watchedFirstName, watchedLastName].filter(Boolean).join(' ')}
+                  </p>
                 )}
                 {watchedEmail && (
-                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
-                    <Mail className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
-                    <span className="truncate">{watchedEmail}</span>
-                  </div>
+                  <p className="truncate text-xs text-ink-secondary">
+                    <span className="text-ink-muted">Email · </span>
+                    {watchedEmail}
+                  </p>
                 )}
                 {watchedPhone && (
-                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
-                    <Phone className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
-                    <span>{watchedPhone}</span>
-                  </div>
+                  <p className="text-xs text-ink-secondary">
+                    <span className="text-ink-muted">Tel. · </span>
+                    {watchedPhone}
+                  </p>
                 )}
                 {selectedPlanLabel && (
-                  <div className="flex items-center gap-2 text-sm text-ink-secondary">
-                    <Calendar className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
-                    <span>{selectedPlanLabel}</span>
-                    {selectedPlanPrice ? <span className="ml-auto font-semibold" style={{ color: ACCENT }}>{selectedPlanPrice}</span> : null}
-                  </div>
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-ink-secondary">
+                    <span className="text-ink-muted">Plan · </span>
+                    <span className="font-medium">{selectedPlanLabel}</span>
+                    {selectedPlanPrice ? (
+                      <span className="ml-auto font-semibold tabular-nums text-ink-primary">
+                        {selectedPlanPrice}
+                      </span>
+                    ) : null}
+                  </p>
                 )}
               </div>
             )}
 
-            <p className="text-xs text-ink-secondary leading-relaxed">
-              Las fotos y estudios son <span className="font-medium">opcionales</span>. Imágenes claras
-              (frontal, lateral, espalda, hasta 5, máx. 10 MB c/u).
+            <p className="text-[11px] leading-snug text-ink-muted">
+              Fotos y estudios opcionales. Hasta 5 imágenes, 10 MB c/u.
             </p>
 
             {/* Medical file */}
             <div>
               <FieldLabel>Estudios médicos (PDF o imagen, opcional)</FieldLabel>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
-                <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
-                <span className="text-sm text-ink-secondary truncate">
-                  {medicalFile ? medicalFile.name : 'Elegir archivo…'}
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-surface-border bg-surface-elevated/40 px-2.5 py-2 transition-colors hover:border-zinc-400/50 hover:bg-zinc-500/[0.06] dark:hover:border-white/20 dark:hover:bg-white/[0.04]">
+                <span className={intakeAttachPlusBox()} aria-hidden>+</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-ink-secondary">
+                  {medicalFile ? medicalFile.name : 'Elegir archivo'}
                 </span>
                 {medicalFile && (
                   <button
                     type="button"
-                    className="ml-auto shrink-0 rounded-full p-0.5 hover:bg-surface-border/50"
-                    onClick={(e) => { e.preventDefault(); setMedicalFile(null) }}
+                    aria-label="Quitar archivo"
+                    className="shrink-0 rounded px-1.5 py-0.5 text-xs text-ink-muted hover:bg-surface-border/50 hover:text-ink-secondary"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setMedicalFile(null)
+                    }}
                   >
-                    <X className="h-3.5 w-3.5 text-ink-muted" />
+                    ×
                   </button>
                 )}
                 <input
@@ -698,10 +698,10 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
             {/* Progress photos */}
             <div>
               <FieldLabel>Fotografías análisis (opcional, hasta 5)</FieldLabel>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
-                <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
-                <span className="text-sm text-ink-secondary">
-                  {progressFiles.length > 0 ? `${progressFiles.length} foto(s) elegida(s)` : 'Elegir fotos…'}
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-surface-border bg-surface-elevated/40 px-2.5 py-2 transition-colors hover:border-zinc-400/50 hover:bg-zinc-500/[0.06] dark:hover:border-white/20 dark:hover:bg-white/[0.04]">
+                <span className={intakeAttachPlusBox()} aria-hidden>+</span>
+                <span className="text-xs text-ink-secondary">
+                  {progressFiles.length > 0 ? `${progressFiles.length} foto(s)` : 'Elegir fotos'}
                 </span>
                 <input
                   type="file"
@@ -714,11 +714,12 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
               {progressPreviews.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {progressPreviews.map((src, idx) => (
-                    <div key={src} className="relative h-16 w-16 overflow-hidden rounded-lg border border-surface-border">
+                    <div key={src} className="relative h-14 w-14 overflow-hidden rounded-md border border-surface-border">
                       <img src={src} alt="" className="h-full w-full object-cover" />
                       <button
                         type="button"
-                        className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5"
+                        aria-label="Quitar foto"
+                        className="absolute right-0 top-0 flex h-5 min-w-[1.25rem] items-center justify-center rounded-bl bg-black/65 px-1 text-xs text-white hover:bg-black/80"
                         onClick={() => {
                           const next = progressFiles.filter((_, i) => i !== idx)
                           URL.revokeObjectURL(src)
@@ -726,7 +727,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
                           setProgressPreviews((p) => p.filter((_, i) => i !== idx))
                         }}
                       >
-                        <X className="h-3 w-3 text-white" />
+                        ×
                       </button>
                     </div>
                   ))}
@@ -737,22 +738,26 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
             {/* Profile photo */}
             <div>
               <FieldLabel>Foto para registro visual (opcional)</FieldLabel>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/40 px-4 py-3 transition-colors hover:border-[#ffcc33]/50 hover:bg-[#ffcc33]/5">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-surface-border bg-surface-elevated/40 px-2.5 py-2 transition-colors hover:border-zinc-400/50 hover:bg-zinc-500/[0.06] dark:hover:border-white/20 dark:hover:bg-white/[0.04]">
                 {profilePreview ? (
-                  <img src={profilePreview} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                  <img src={profilePreview} alt="" className="h-8 w-8 shrink-0 rounded-md object-cover" />
                 ) : (
-                  <ImagePlus className="h-5 w-5 shrink-0 text-ink-muted" />
+                  <span className={intakeAttachPlusBox()} aria-hidden>+</span>
                 )}
-                <span className="text-sm text-ink-secondary truncate">
-                  {profileFile ? profileFile.name : 'Elegir foto…'}
+                <span className="min-w-0 flex-1 truncate text-xs text-ink-secondary">
+                  {profileFile ? profileFile.name : 'Elegir foto'}
                 </span>
                 {profileFile && (
                   <button
                     type="button"
-                    className="ml-auto shrink-0 rounded-full p-0.5 hover:bg-surface-border/50"
-                    onClick={(e) => { e.preventDefault(); handleProfileFile(null) }}
+                    aria-label="Quitar foto de perfil"
+                    className="shrink-0 rounded px-1.5 py-0.5 text-xs text-ink-muted hover:bg-surface-border/50 hover:text-ink-secondary"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleProfileFile(null)
+                    }}
                   >
-                    <X className="h-3.5 w-3.5 text-ink-muted" />
+                    ×
                   </button>
                 )}
                 <input
@@ -764,11 +769,18 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
               </label>
             </div>
 
+            <input type="text" tabIndex={-1} autoComplete="off" className="sr-only" aria-hidden {...register('website')} />
+          </>
+        )}
+
+        {step === 4 && (
+          <>
+            <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message} />
+
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card"
-                style={{ accentColor: ACCENT }}
+                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input accent-zinc-600 focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card dark:accent-zinc-500"
                 {...register('accept_privacy')}
               />
               <span className="text-sm text-ink-secondary leading-snug">
@@ -783,43 +795,31 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
           </>
         )}
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-2 pt-1">
           {step > 0 ? (
             <button
               type="button"
               onClick={() => setStep((s) => s - 1)}
-              className="inline-flex items-center justify-center gap-1 rounded-xl border border-surface-border px-4 py-3 text-sm font-medium text-ink-secondary hover:bg-surface-elevated"
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-surface-border px-3 py-2 text-xs font-medium text-ink-secondary hover:bg-surface-elevated"
             >
-              <ChevronLeft className="h-4 w-4" />
-              Atrás
+              ← Atrás
             </button>
           ) : (
-            <span className="w-24" />
+            <span className="w-16" />
           )}
           <div className="flex-1" />
           {step < STEP_FIELDS.length - 1 ? (
-            <button
-              type="button"
-              onClick={() => void goNext()}
-              className="inline-flex items-center justify-center gap-1 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg"
-              style={{ backgroundColor: ACCENT, boxShadow: `0 8px 24px -4px ${ACCENT}66` }}
-            >
-              Siguiente
-              <ChevronRight className="h-4 w-4" />
+            <button type="button" onClick={() => void goNext()} className={intakeFormCtaButtonClass}>
+              Siguiente →
             </button>
           ) : (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-60"
-              style={{ backgroundColor: ACCENT, boxShadow: `0 8px 24px -4px ${ACCENT}66` }}
-            >
-              {isSubmitting ? 'Enviando…' : 'Enviar registro'}
+            <button type="submit" disabled={isSubmitting} className={cn(intakeFormCtaButtonClass, 'px-5')}>
+              {isSubmitting ? 'Enviando…' : 'Enviar'}
             </button>
           )}
         </div>
 
-        <p className="text-center text-[11px] text-ink-muted pt-2">Ferster Fitness · Haciéndolo hábito</p>
+        <p className="pt-1.5 text-center text-[10px] text-ink-muted">Ferster Fitness · Haciéndolo hábito</p>
       </form>
     </div>
   )

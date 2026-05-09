@@ -22,6 +22,7 @@ type EditableWebPlan = Pick<
   | 'slug'
   | 'title'
   | 'price_label'
+  | 'price_yearly_label'
   | 'short_description'
   | 'intro_text'
   | 'includes_items'
@@ -36,6 +37,7 @@ type EditableWebPlan = Pick<
 const LIMITS = {
   title: 120,
   price: 24,
+  priceYearly: 28,
   short: 140,
   intro: 3500,
   badge: 48,
@@ -51,6 +53,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     slug: 'plan-entrenamiento',
     title: 'Primer Plan Entrenamiento',
     price_label: '$60.000',
+    price_yearly_label: '$600.000',
     short_description: 'Entrenamiento personalizado con seguimiento mensual.',
     intro_text:
       'Plan avanzado de entrenamiento orientado al rendimiento físico, con enfoque en fuerza, resistencia y recuperación. Seguimiento continuo y ajustes según objetivos.',
@@ -70,6 +73,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     slug: 'plan-nutricion',
     title: 'Segundo Plan Nutrición',
     price_label: '$80.000',
+    price_yearly_label: '$800.000',
     short_description: 'Plan nutricional + seguimiento para sostener hábitos.',
     intro_text:
       'Plan premium de acompañamiento integral en nutrición para establecer y mantener hábitos saludables de forma sostenida, con planificación adaptada a tu contexto.',
@@ -89,6 +93,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     slug: 'plan-full',
     title: 'Plan Full',
     price_label: '$100.000',
+    price_yearly_label: '$1.000.000',
     short_description: 'Combina entrenamiento + nutrición en un plan integral.',
     intro_text:
       'Plan integral que abarca entrenamiento y nutrición en conjunto, orientado a maximizar resultados con acompañamiento completo, estrategia personalizada y seguimiento continuo.',
@@ -125,6 +130,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
     slug,
     title: 'Nuevo plan',
     price_label: '$—',
+    price_yearly_label: null,
     short_description: 'Editá la descripción corta que verán en la tarjeta (8–140 caracteres).',
     intro_text:
       'Detalle que se muestra al tocar «más info». Podés extenderlo hasta 3500 caracteres con el nombre original del servicio y lo que incluye.',
@@ -337,6 +343,7 @@ export function WebPlansSettingsPage() {
         slug: row.slug,
         title: row.title,
         price_label: row.price_label,
+        price_yearly_label: row.price_yearly_label ?? null,
         short_description: row.short_description,
         intro_text: row.intro_text,
         includes_items: row.includes_items ?? [],
@@ -420,6 +427,10 @@ export function WebPlansSettingsPage() {
       seen.add(s)
       if (!plan.title.trim() || plan.title.length > LIMITS.title) return 'Revisá el título de los planes.'
       if (!plan.price_label.trim() || plan.price_label.length > LIMITS.price) return 'Revisá el precio de los planes.'
+      const pyl = plan.price_yearly_label?.trim()
+      if (pyl && pyl.length > LIMITS.priceYearly) {
+        return 'Revisá el precio anual de los planes.'
+      }
       if (!plan.short_description.trim() || plan.short_description.length > LIMITS.short) return 'La descripción corta supera el límite.'
       if (!plan.intro_text.trim() || plan.intro_text.length > LIMITS.intro) return 'El detalle principal supera el límite.'
       const b = plan.display_badge?.trim()
@@ -447,6 +458,7 @@ export function WebPlansSettingsPage() {
       slug: plan.slug,
       title: plan.title.trim(),
       price_label: plan.price_label.trim(),
+      price_yearly_label: plan.price_yearly_label?.trim() ? plan.price_yearly_label.trim().slice(0, LIMITS.priceYearly) : null,
       short_description: plan.short_description.trim(),
       intro_text: plan.intro_text.trim(),
       includes_items: plan.includes_items,
@@ -472,6 +484,7 @@ export function WebPlansSettingsPage() {
       slug: row.slug,
       title: row.title,
       price_label: row.price_label,
+      price_yearly_label: row.price_yearly_label ?? null,
       short_description: row.short_description,
       intro_text: row.intro_text,
       includes_items: row.includes_items ?? [],
@@ -631,7 +644,7 @@ export function WebPlansSettingsPage() {
           <hr className="border-surface-border" />
           <div>
             <p className="text-xs text-ink-secondary mb-4">
-              Límites: título {LIMITS.title}, precio {LIMITS.price}, descripción corta {LIMITS.short}, detalle {LIMITS.intro},
+              Límites: título {LIMITS.title}, precios mensual {LIMITS.price} · anual {LIMITS.priceYearly} (opcional), descripción corta {LIMITS.short}, detalle {LIMITS.intro},
               etiqueta opcional de card {LIMITS.badge}, ítem de lista {LIMITS.item}. Podés dar de alta nuevos planes; el slug
               del borrador sólo editable hasta el primer guardado.
             </p>
@@ -728,11 +741,21 @@ export function WebPlansSettingsPage() {
                   onChange={(e) => updatePlan(plan.slug, { title: e.target.value })}
                 />
                 <Input
-                  label="Precio"
+                  label="Precio (mensual)"
                   value={plan.price_label}
                   maxLength={LIMITS.price}
                   hint={`${plan.price_label.length}/${LIMITS.price}`}
                   onChange={(e) => updatePlan(plan.slug, { price_label: e.target.value })}
+                />
+                <Input
+                  label="Precio anual (opcional)"
+                  value={plan.price_yearly_label ?? ''}
+                  placeholder="Ej. $600.000 · vacío = valor referencial 10× mensual en el formulario"
+                  maxLength={LIMITS.priceYearly}
+                  hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly}`}
+                  onChange={(e) =>
+                    updatePlan(plan.slug, { price_yearly_label: e.target.value.trim() ? e.target.value : null })
+                  }
                 />
                 <Textarea
                   label="Descripción corta (card)"

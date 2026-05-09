@@ -316,6 +316,8 @@ export type NutritionIntakeStored = {
   other_notes: string
   submitted_at: string
   uploads: Record<string, string>
+  /** Preferencia declarada en /form (efectivo vs Mercado Pago). */
+  payment_preference?: 'cash' | 'mercadopago'
 }
 
 /** Cuestionario web Ferster (/form); `uploads` mapea clave → ruta en bucket `student-intake`. */
@@ -337,6 +339,8 @@ export type FersterIntakeStored = {
   gender_other?: string | null
   submitted_at?: string
   uploads?: Record<string, string>
+  /** Preferencia declarada en /form (efectivo vs Mercado Pago). */
+  payment_preference?: 'cash' | 'mercadopago'
 }
 
 export interface Student {
@@ -484,6 +488,8 @@ export interface WebPlan {
   slug: string
   title: string
   price_label: string
+  /** Precio modalidad anual en /form; opcional. */
+  price_yearly_label?: string | null
   short_description: string
   intro_text: string
   includes_items: string[]

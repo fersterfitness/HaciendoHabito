@@ -192,6 +192,16 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
             {student.address ? (
               <Field label="Dirección" value={student.address} className="sm:col-span-2" />
             ) : null}
+            <Field
+              label="Preferencia de pago (/form)"
+              value={
+                i?.payment_preference === 'cash'
+                  ? 'Efectivo'
+                  : i?.payment_preference === 'mercadopago'
+                    ? 'Mercado Pago'
+                    : null
+              }
+            />
           </div>
         </Section>
 
