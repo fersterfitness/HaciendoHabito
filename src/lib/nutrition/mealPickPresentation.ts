@@ -4,6 +4,7 @@ import type {
   PlanningWorkbookStateV1,
   QtyPresentationMode,
 } from '@/lib/nutrition/planningWorkbookTypes'
+import type { NutritionFoodMacroQtyPresentation } from '@/types/database'
 import { parseLocaleNumberOrZero } from '@/lib/nutrition/planningCalculations'
 
 /** Orientativo HH: ~15 g por cucharada sopera (varía por alimento). */
@@ -70,12 +71,18 @@ export function preparacionElegidaLine(
 export function resolveMealPickQtyPresentation(
   p: MealSlotPick,
   wb: PlanningWorkbookStateV1,
+  libraryFoods?: readonly { id: string; macro_qty_presentation?: NutritionFoodMacroQtyPresentation | null }[],
 ): { qtyPresentation?: QtyPresentationMode; unitsLabel?: string } {
   const ulSnap = p.unitsLabel?.trim()
   if (p.kind === 'library') {
     if (p.qtyPresentation === 'volume') return { qtyPresentation: 'volume', unitsLabel: ulSnap || undefined }
     if (p.qtyPresentation === 'units') return { qtyPresentation: 'units', unitsLabel: ulSnap || undefined }
     if (p.qtyPresentation === 'grams') return { qtyPresentation: 'grams' }
+    const lib = libraryFoods?.find((f) => f.id === p.libraryFoodId)
+    const fb = lib?.macro_qty_presentation
+    if (fb === 'volume') return { qtyPresentation: 'volume', unitsLabel: ulSnap || undefined }
+    if (fb === 'units') return { qtyPresentation: 'units', unitsLabel: ulSnap || undefined }
+    if (fb === 'grams') return { qtyPresentation: 'grams' }
     return {}
   }
   const sec = wb.sections.find((s) => s.key === p.secKey)

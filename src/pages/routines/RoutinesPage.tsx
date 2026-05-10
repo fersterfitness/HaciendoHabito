@@ -42,8 +42,8 @@ type RoutineWithStudent = Routine & {
 
 const ROUTINE_COLORS = [
   { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },
-  { bar: 'bg-brand-tertiary',  avatar: 'bg-brand-tertiary/15 text-brand-tertiary'   },
-  { bar: 'bg-brand-primary',   avatar: 'bg-brand-primary/15 text-brand-primary'     },
+  { bar: 'bg-brand-tertiary', avatar: 'bg-brand-tertiary/15 text-brand-tertiary' },
+  { bar: 'bg-[#ff4800]', avatar: 'bg-[#ff5508]/15 text-[#ff5508] dark:bg-[#ff5508]/18 dark:text-[#ffa065]' },
 ]
 
 function strColorIdx(str: string): number {

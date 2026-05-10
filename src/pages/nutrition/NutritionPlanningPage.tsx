@@ -155,6 +155,14 @@ function formatLibNutrientForPlanning(n: number | null | undefined): string {
   return String(n)
 }
 
+/** Leyenda /100 según cómo guardó el alimento en Guía (g, ml o modo uds.). */
+function libSavedMacroRefSuffix(lib: NutritionFoodLibrary): string {
+  const m = lib.macro_qty_presentation ?? 'grams'
+  if (m === 'volume') return '/100 ml'
+  if (m === 'units') return '/100 g · uds.'
+  return '/100 g'
+}
+
 /** Celda compacta P / HC / G en la misma vista que kcal (alta visibilidad en claro y oscuro). */
 function LiveMacroCell({
   abbr,
@@ -311,7 +319,7 @@ export function NutritionPlanningPage() {
       const { data, error } = await supabase
         .from('nutrition_food_library')
         .select(
-          'id, owner_id, display_name, category, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, portion_basis, source_label, notes, created_at, updated_at',
+          'id, owner_id, display_name, category, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, portion_basis, macro_qty_presentation, source_label, notes, created_at, updated_at',
         )
         .eq('owner_id', user.id)
         .order('category', { ascending: true })
@@ -961,6 +969,13 @@ export function NutritionPlanningPage() {
       }
       const slot = mealPickSlot
       const notesSnap = lib.notes?.trim()
+      const mq = lib.macro_qty_presentation ?? 'grams'
+      const qtyPresLib =
+        mq === 'volume'
+          ? ({ qtyPresentation: 'volume' as const } as const)
+          : mq === 'units'
+            ? ({ qtyPresentation: 'units' as const } as const)
+            : ({ qtyPresentation: 'grams' as const } as const)
       const pick: MealSlotPick = {
         id: newMealPickId(),
         kind: 'library',
@@ -969,6 +984,7 @@ export function NutritionPlanningPage() {
         nameSnapshot: lib.display_name,
         ...(notesSnap ? { hintSnapshot: notesSnap } : {}),
         ...(mealPickPreparation !== 'infer' ? { preparation: mealPickPreparation } : {}),
+        ...qtyPresLib,
       }
       userHasEdited.current = true
       setWb((prev) => {
@@ -1116,6 +1132,7 @@ export function NutritionPlanningPage() {
 
   function applyFoodToPlanRow(lib: NutritionFoodLibrary, secKey: string, rowId: string) {
     const qty = (wbRef.current.libraryQtyDraft?.[lib.id] ?? '').trim()
+    const mq = lib.macro_qty_presentation ?? 'grams'
     patchRow(secKey, rowId, {
       name: lib.display_name,
       refCarbs: formatLibNutrientForPlanning(lib.carbs_g_per_100g),
@@ -1124,6 +1141,8 @@ export function NutritionPlanningPage() {
       refKcal: formatLibNutrientForPlanning(lib.energy_kcal_per_100g),
       qtyG: qty,
       hint: undefined,
+      qtyPresentation: mq,
+      unitsLabel: '',
     })
     const sec = wb.sections.find((s) => s.key === secKey)
     toast.success(`${lib.display_name} · ${sec?.title ?? 'tabla'}`)
@@ -2177,7 +2196,7 @@ export function NutritionPlanningPage() {
                               {picks.map((p, rowIdx) => {
                                 const macroLine = macroLineForMealPick(p)
                                 const hintText = hintForPickDisplay(p)
-                                const mq = resolveMealPickQtyPresentation(p, wb)
+                                const mq = resolveMealPickQtyPresentation(p, wb, libraryFoods)
                                 const studentQty = buildStudentQuantitySummaryLines({
                                   gramsStr: p.qtyG,
                                   nameSnapshot: p.nameSnapshot,
@@ -2520,11 +2539,27 @@ export function NutritionPlanningPage() {
                 <thead>
                   <tr className="border-b border-surface-border text-left bg-surface-muted/30">
                     <th className="px-3 py-2 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[260px]">Alimento</th>
-                    <th className="px-2 py-2 font-semibold w-[76px]">Cant. g</th>
-                    <th className="px-2 py-2 font-semibold w-[64px]">HC /100</th>
-                    <th className="px-2 py-2 font-semibold w-[64px]">P /100</th>
-                    <th className="px-2 py-2 font-semibold w-[64px]">G /100</th>
-                    <th className="px-2 py-2 font-semibold w-[72px]">kcal /100</th>
+                    <th
+                      className="px-2 py-2 font-semibold w-[76px]"
+                      title="Cantidad en la misma unidad que la referencia /100 de cada fila (g o ml según Guía)."
+                    >
+                      Cant.
+                    </th>
+                    <th
+                      className="px-2 py-2 font-semibold w-[64px]"
+                      title="Carbohidratos de referencia por 100 g o 100 ml según Guía."
+                    >
+                      HC /100
+                    </th>
+                    <th className="px-2 py-2 font-semibold w-[64px]" title="Proteínas de referencia por 100 g o 100 ml.">
+                      P /100
+                    </th>
+                    <th className="px-2 py-2 font-semibold w-[64px]" title="Grasas de referencia por 100 g o 100 ml.">
+                      G /100
+                    </th>
+                    <th className="px-2 py-2 font-semibold w-[72px]" title="Energía de referencia por 100 g o 100 ml.">
+                      kcal /100
+                    </th>
                     <th className="px-2 py-2 font-semibold w-[72px]">HC</th>
                     <th className="px-2 py-2 font-semibold w-[72px]">P</th>
                     <th className="px-2 py-2 font-semibold w-[72px]">G</th>
@@ -2545,6 +2580,13 @@ export function NutritionPlanningPage() {
                     }
                     const outLib =
                       qDraft > 0 ? scaledFromRefs(qDraft, libRefs) : ZERO_TOTALS
+                    const refSuffix = libSavedMacroRefSuffix(lib)
+                    const qtyAria =
+                      lib.macro_qty_presentation === 'volume'
+                        ? `Mililitros (referencia ${refSuffix}) · ${lib.display_name}`
+                        : lib.macro_qty_presentation === 'units'
+                          ? `Gramos (ref. ${refSuffix}) · ${lib.display_name}`
+                          : `Gramos · ${lib.display_name}`
                     return (
                       <tr key={lib.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
                         <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
@@ -2574,7 +2616,7 @@ export function NutritionPlanningPage() {
                             value={wb.libraryQtyDraft?.[lib.id] ?? ''}
                             onChange={(e) => patchLibraryQtyDraft(lib.id, e.target.value)}
                             onBlur={() => void flushPersist()}
-                            aria-label={`Gramos · ${lib.display_name}`}
+                            aria-label={qtyAria}
                           />
                         </td>
                         <td className="px-2 py-2 tabular-nums text-ink-secondary align-middle">{fmt1(lib.carbs_g_per_100g ?? NaN)}</td>
@@ -2604,7 +2646,8 @@ export function NutritionPlanningPage() {
         </section>
 
         <div className="rounded-lg border border-dashed border-surface-border bg-surface-muted/15 px-3 py-2 text-xs text-ink-secondary">
-          <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por 100 g para copiar o ajustar rápido al armar el día; el seguimiento contra objetivos está arriba.
+          <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por 100 g o 100 ml según cómo
+          guardaste cada ítem en Guía; el seguimiento contra objetivos está arriba.
         </div>
 
         <div className="space-y-5">
@@ -3073,7 +3116,8 @@ export function NutritionPlanningPage() {
                         <span className="font-medium text-ink-primary block text-sm">{lib.display_name}</span>
                         <span className="text-[11px] text-ink-muted tabular-nums mt-1 inline-block">
                           HC {formatLibNutrientForPlanning(lib.carbs_g_per_100g)} · P {formatLibNutrientForPlanning(lib.protein_g_per_100g)} · G{' '}
-                          {formatLibNutrientForPlanning(lib.fat_g_per_100g)} · {formatLibNutrientForPlanning(lib.energy_kcal_per_100g)} kcal /100 g
+                          {formatLibNutrientForPlanning(lib.fat_g_per_100g)} · {formatLibNutrientForPlanning(lib.energy_kcal_per_100g)} kcal{' '}
+                          {libSavedMacroRefSuffix(lib)}
                         </span>
                       </button>
                     </li>

@@ -22,7 +22,12 @@ import { cn } from '@/lib/utils'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
 import { filterFoodCatalogEs, type FoodCatalogItemEs } from '@/lib/nutrition/foodCatalogEs'
 import { useAuthStore } from '@/stores/authStore'
-import type { NutritionFoodLibrary, NutritionFoodPortionBasis, NutritionFoodExternalSource } from '@/types/database'
+import type {
+  NutritionFoodLibrary,
+  NutritionFoodMacroQtyPresentation,
+  NutritionFoodPortionBasis,
+  NutritionFoodExternalSource,
+} from '@/types/database'
 import toast from 'react-hot-toast'
 
 type FdcHit = { fdcId: number; description: string; dataType: string | null }
@@ -31,6 +36,12 @@ const PORTION_OPTS: { v: NutritionFoodPortionBasis; label: string }[] = [
   { v: 'no_especificado', label: 'No indicado' },
   { v: 'crudo', label: 'Peso en crudo' },
   { v: 'cocido', label: 'Peso cocido' },
+]
+
+const MACRO_QTY_OPTS: { v: NutritionFoodMacroQtyPresentation; label: string }[] = [
+  { v: 'grams', label: 'Gramos (100 g)' },
+  { v: 'units', label: 'Unidad (uds.)' },
+  { v: 'volume', label: 'Mililitros (100 ml)' },
 ]
 
 const CATALOGO_LABEL = 'Catálogo guía (español)'
@@ -49,6 +60,17 @@ function sourceBadge(row: NutritionFoodLibrary): string {
   if (row.external_source === 'usda_fdc') return 'Base internacional (USDA)'
   if (row.source_label?.includes('Catálogo')) return 'Lista en español'
   return 'A mano'
+}
+
+function macroQtyMiListaSuffix(m: NutritionFoodMacroQtyPresentation | null | undefined): string {
+  switch (m) {
+    case 'volume':
+      return '(por 100 ml)'
+    case 'units':
+      return '(ref. 100 g · uds. en plan)'
+    default:
+      return '(por 100 g)'
+  }
 }
 
 export function NutritionFoodsPage() {
@@ -73,6 +95,7 @@ export function NutritionFoodsPage() {
   const [externalFdcId, setExternalFdcId] = useState<string>('')
   const [sourceLabel, setSourceLabel] = useState('')
   const [portionBasis, setPortionBasis] = useState<NutritionFoodPortionBasis>('no_especificado')
+  const [macroQtyPresentation, setMacroQtyPresentation] = useState<NutritionFoodMacroQtyPresentation>('grams')
   const [protein, setProtein] = useState('')
   const [fat, setFat] = useState('')
   const [carbs, setCarbs] = useState('')
@@ -92,6 +115,7 @@ export function NutritionFoodsPage() {
     setExternalFdcId('')
     setSourceLabel('')
     setPortionBasis('no_especificado')
+    setMacroQtyPresentation('grams')
     setProtein('')
     setFat('')
     setCarbs('')
@@ -113,6 +137,7 @@ export function NutritionFoodsPage() {
     setExternalFdcId('')
     setSourceLabel(CATALOGO_LABEL)
     setPortionBasis(item.portion_basis)
+    setMacroQtyPresentation('grams')
     setProtein(String(item.protein_g_per_100g))
     setFat(String(item.fat_g_per_100g))
     setCarbs(String(item.carbs_g_per_100g))
@@ -182,6 +207,7 @@ export function NutritionFoodsPage() {
     setExternalFdcId(row.external_fdc_id != null ? String(row.external_fdc_id) : '')
     setSourceLabel(row.source_label ?? '')
     setPortionBasis(row.portion_basis)
+    setMacroQtyPresentation(row.macro_qty_presentation ?? 'grams')
     setProtein(row.protein_g_per_100g != null ? String(row.protein_g_per_100g) : '')
     setFat(row.fat_g_per_100g != null ? String(row.fat_g_per_100g) : '')
     setCarbs(row.carbs_g_per_100g != null ? String(row.carbs_g_per_100g) : '')
@@ -271,6 +297,7 @@ export function NutritionFoodsPage() {
       setKcal(m?.energy_kcal_per_100g != null ? String(m.energy_kcal_per_100g) : '')
       if (payload.basisHint) toast(payload.basisHint, { duration: 5000 })
       setCategory('USDA / internacional')
+      setMacroQtyPresentation('grams')
       toast.success('Importado. Los nombres suelen venir en inglés: podés editarlos antes de guardar.')
     } finally {
       setDetailLoadingId(null)
@@ -305,6 +332,7 @@ export function NutritionFoodsPage() {
       fiber_g_per_100g: parseDecimal(fiber),
       energy_kcal_per_100g: parseDecimal(kcal),
       portion_basis: portionBasis,
+      macro_qty_presentation: macroQtyPresentation,
       source_label: sourceLabel.trim() === '' ? null : sourceLabel.trim(),
       notes: notes.trim() === '' ? null : notes.trim(),
     }
@@ -429,7 +457,7 @@ export function NutritionFoodsPage() {
                           <p className="text-xs text-ink-muted mt-0.5">
                             Prot {r.protein_g_per_100g ?? '—'} g · Grasas {r.fat_g_per_100g ?? '—'} g · Carbos{' '}
                             {r.carbs_g_per_100g ?? '—'} g · Fibra {r.fiber_g_per_100g ?? '—'} g · {r.energy_kcal_per_100g ?? '—'}{' '}
-                            kcal <span className="text-ink-secondary/90">(por 100 g)</span>
+                            kcal <span className="text-ink-secondary/90">{macroQtyMiListaSuffix(r.macro_qty_presentation)}</span>
                           </p>
                           <p className="text-[11px] text-ink-muted mt-1">
                             {r.portion_basis === 'cocido'
@@ -653,8 +681,49 @@ export function NutritionFoodsPage() {
                   )}
                 />
               </div>
-              <div className="sm:col-span-2 text-[11px] text-zinc-600 dark:text-zinc-400">
-                Valores por <strong>100 gramos</strong> (como en planillas).
+              <div className="sm:col-span-2 flex flex-col gap-2 rounded-md border border-zinc-200/70 bg-zinc-50/40 p-3 dark:border-zinc-700/60 dark:bg-zinc-900/25">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+                  <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400 min-w-0 flex-1">
+                    {macroQtyPresentation === 'volume' ? (
+                      <>
+                        Valores por <strong>100 mililitros</strong> (como en planillas de bebidas). Los mismos campos numéricos
+                        aplican a esa base.
+                      </>
+                    ) : macroQtyPresentation === 'units' ? (
+                      <>
+                        Valores nutricionales por <strong>100 gramos</strong>; al armar el plan se usará modo{' '}
+                        <strong>unidades</strong> (completás uds. y gramos equivalentes en la tabla).
+                      </>
+                    ) : (
+                      <>
+                        Valores por <strong>100 gramos</strong> (como en planillas).
+                      </>
+                    )}
+                  </p>
+                  <div className="shrink-0 w-full sm:w-[11.5rem]">
+                    <label
+                      htmlFor="nutrition-food-macro-qty"
+                      className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400"
+                    >
+                      Referencia al planificar
+                    </label>
+                    <select
+                      id="nutrition-food-macro-qty"
+                      value={macroQtyPresentation}
+                      onChange={(e) => setMacroQtyPresentation(e.target.value as NutritionFoodMacroQtyPresentation)}
+                      className={cn(
+                        'w-full px-3 py-2 text-sm text-ink-primary outline-none bg-white dark:bg-zinc-950',
+                        INPUT_GRAY_FOCUS_CLASS,
+                      )}
+                    >
+                      {MACRO_QTY_OPTS.map((o) => (
+                        <option key={o.v} value={o.v}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Proteínas (g)</label>

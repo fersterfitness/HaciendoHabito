@@ -21,6 +21,9 @@ export type PlanType = 'entrenamiento' | 'nutricion' | 'combo'
 export type NutritionAttendanceStatus = 'P' | 'A' | 'ST'
 export type NutritionDocumentCategory = 'antropometria' | 'anamnesis'
 export type NutritionFoodPortionBasis = 'crudo' | 'cocido' | 'no_especificado'
+
+/** Referencia al guardar en Guía: cómo se usa al armar el plan (cantidad en g, uds. o ml para el alumno). */
+export type NutritionFoodMacroQtyPresentation = 'grams' | 'units' | 'volume'
 export type NutritionFoodExternalSource = 'manual' | 'usda_fdc'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type ReminderChannel = 'app' | 'email' | 'whatsapp'
@@ -717,6 +720,7 @@ export interface NutritionFoodLibrary {
   fiber_g_per_100g: number | null
   energy_kcal_per_100g: number | null
   portion_basis: NutritionFoodPortionBasis
+  macro_qty_presentation: NutritionFoodMacroQtyPresentation
   source_label: string | null
   notes: string | null
   created_at: string
