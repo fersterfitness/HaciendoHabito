@@ -832,12 +832,10 @@ function HabitLibraryModal({
     setToggling(null)
   }
 
-  const EMOJI_OPTIONS = ['✅', '💧', '🏋️', '💊', '👟', '📋', '📚', '⚖️', '🥗', '😴', '🧘', '🚴', '🫀', '🧠', '💪', '🎯']
-
   return (
     <div className="fixed inset-0 z-[10050] flex items-end justify-center sm:items-center">
       <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Cerrar" onClick={onClose} />
-      <div className="relative flex max-h-[80vh] w-full flex-col rounded-t-2xl border border-zinc-200 bg-surface-card shadow-2xl sm:max-w-md sm:rounded-2xl dark:border-zinc-700">
+      <div className="relative flex max-h-[80vh] w-full flex-col rounded-t-2xl border border-zinc-200 bg-surface-card shadow-lg sm:max-w-md sm:rounded-2xl dark:border-zinc-700 dark:shadow-xl">
         <div className="flex items-center justify-between border-b border-zinc-200/80 px-4 pb-3 pt-4 dark:border-zinc-800">
           <h3 className="text-sm font-semibold text-ink-primary">Gestionar hábitos</h3>
           <button type="button" onClick={onClose} className="text-ink-muted hover:text-ink-primary">

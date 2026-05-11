@@ -13,6 +13,7 @@ import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { PAYMENT_METHODS, FINANCE_SCOPES, INCOME_STATUSES, INCOME_TYPES, INCOME_CATEGORIES } from '@/lib/constants'
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
+import { SaveStatusBar } from '@/components/ui/SaveStatusBar'
 import { emptyToNull } from '@/lib/formUtils'
 import {
   buildPersonalFullMirrorIncomeRow,
@@ -44,7 +45,7 @@ export function IncomeFormPage() {
   const { user } = useAuthStore()
   const [students, setStudents] = useState<Student[]>([])
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting, isDirty } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       income_date: format(new Date(), 'yyyy-MM-dd'),
@@ -137,6 +138,7 @@ export function IncomeFormPage() {
       <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
         <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <SaveStatusBar isSubmitting={isSubmitting} isDirty={isDirty} />
           <FormErrorSummary errors={errors} />
 
           <FormSection title="Fecha y alumno">

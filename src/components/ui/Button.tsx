@@ -1,10 +1,17 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { primaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'gradientPrimary'
+  variant?:
+    | 'primary'
+    | 'secondary'
+    | 'ghost'
+    | 'danger'
+    | 'outline'
+    | 'gradientPrimary'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   loading?: boolean
   icon?: ReactNode
@@ -58,8 +65,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', primaryGradientCtaClassName)
             : cn(
                 'rounded-xl transition-colors duration-150',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
-                'dark:focus-visible:ring-offset-zinc-900',
+                appFocusRingClassName,
                 'disabled:opacity-50 disabled:pointer-events-none',
                 variantStyles[variant],
                 sizeStyles[size],
@@ -73,7 +79,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ) : (
           icon && iconPosition === 'left' && <span className="shrink-0">{icon}</span>
         )}
-        {children && <span>{children}</span>}
+        {children && (
+          <span className="inline-flex items-center gap-1.5 [&_svg]:shrink-0">{children}</span>
+        )}
         {!loading && icon && iconPosition === 'right' && (
           <span className="shrink-0">{icon}</span>
         )}

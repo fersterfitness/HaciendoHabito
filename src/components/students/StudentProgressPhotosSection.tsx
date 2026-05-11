@@ -108,7 +108,7 @@ function PhotoLightbox({
       <img
         src={src}
         alt=""
-        className="max-h-[90dvh] max-w-[90dvw] rounded-xl object-contain shadow-2xl"
+        className="max-h-[90dvh] max-w-[90dvw] rounded-xl object-contain shadow-xl"
         onClick={(e) => e.stopPropagation()}
       />
 

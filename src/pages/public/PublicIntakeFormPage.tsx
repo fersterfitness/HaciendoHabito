@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check, CheckCircle2, Sun, Moon } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
@@ -403,37 +404,6 @@ function TestimonialsSection({ urls }: { urls: string[] }) {
   )
 }
 
-function CatalogSegmentThumbnail({
-  imageUrl,
-  titleFallback,
-  compactFallback,
-}: {
-  imageUrl: string | null
-  titleFallback: string
-  compactFallback?: boolean
-}) {
-  const [failed, setFailed] = useState(false)
-  const showImg = Boolean(imageUrl && !failed)
-  return (
-    <div className="mx-auto mb-2 w-16 h-20 shrink-0 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10">
-      {showImg ? (
-        <img
-          src={imageUrl!}
-          alt=""
-          className="h-full w-full object-cover object-top"
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailed(true)}
-        />
-      ) : compactFallback ? (
-        <span className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-bold leading-tight text-white/80">{titleFallback}</span>
-      ) : (
-        <span className="flex h-full w-full items-center justify-center text-xl font-black text-white/85">{titleFallback}</span>
-      )}
-    </div>
-  )
-}
-
 type PlanDetail = {
   id: string
   catalogSegment: WebPlanCatalogSegment
@@ -698,7 +668,7 @@ function PublicAuthTopBar() {
         className="p-2 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-card border border-surface-border transition-all"
         title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
       >
-        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        {theme === 'dark' ? <ThemeToggleSunIcon /> : <ThemeToggleMoonIcon />}
       </button>
     </div>
   )
@@ -1118,7 +1088,7 @@ export function PublicIntakeFormPage() {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 pt-16 sm:pt-4 py-10 relative">
         <PublicAuthTopBar />
-        <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-2xl flex flex-col lg:flex-row min-h-screen sm:min-h-0">
+        <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
           <LeftBrandPanel
             theme={theme}
             plansAll={plans}
@@ -1152,7 +1122,7 @@ export function PublicIntakeFormPage() {
   return (
     <div className="min-h-screen bg-surface-base flex items-start justify-center sm:items-center p-0 sm:p-4 sm:pt-4 sm:py-8 md:py-12 relative">
       <PublicAuthTopBar />
-      <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-2xl flex flex-col lg:flex-row min-h-screen sm:min-h-0">
+      <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
         <LeftBrandPanel
           theme={theme}
           plansAll={plans}

@@ -12,11 +12,11 @@ export function AnimatedOutlet() {
   return (
     <motion.div
       key={pathname}
-      className="flex min-h-0 min-w-0 flex-1 flex-col"
+      className="flex min-h-0 min-w-0 flex-1 flex-col pt-1 sm:pt-2"
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.28,
+        duration: reduceMotion ? 0 : 0.28,
         ease: [0.16, 1, 0.3, 1],
       }}
     >

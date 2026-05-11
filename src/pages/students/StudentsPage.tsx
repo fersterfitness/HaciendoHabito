@@ -495,6 +495,7 @@ export function StudentsPage() {
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const studentPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchStudents()
@@ -551,6 +552,14 @@ export function StudentsPage() {
   }, [user?.id, role])
 
   useSlashSearchFocus(searchRef)
+
+  useEffect(() => {
+    if (!selectedStudentId) return
+    const id = window.requestAnimationFrame(() => {
+      studentPanelRef.current?.focus()
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [selectedStudentId])
 
   useEffect(() => {
     if (!selectedStudentId) return
@@ -791,11 +800,13 @@ export function StudentsPage() {
             onClick={() => setSelectedStudentId(null)}
           />
           <div
+            ref={studentPanelRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal
             aria-labelledby="student-sheet-title"
             className={cn(
-              'fixed z-[9991] flex flex-col overflow-hidden border border-surface-border/85 bg-surface-panel shadow-[0_20px_50px_-12px_rgba(0,0,0,0.14)] dark:bg-surface-panel dark:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.55)]',
+              'fixed z-[9991] flex flex-col overflow-hidden border border-surface-border/85 bg-surface-panel shadow-lg dark:bg-surface-panel dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]',
               /* Móvil: panel centrado · sm+: entra deslizando de derecha → izquierda */
               'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-panel-soft motion-safe:sm:animate-panel-slide-in',
               /* Móvil: tarjeta con margen en los cuatro lados (estilo modal Gray) */
@@ -845,7 +856,7 @@ function StudentDirectoryTable({
   onDelete,
   onStatusChanged,
   activeRoutineStudentIds,
-  routineExpiryMap,
+  routineExpiryMap: _routineExpiryMap,
   hasMealPlanStudentIds,
 }: {
   entityLabel: string
@@ -897,6 +908,7 @@ function StudentDirectoryTable({
               style={tableRowEnterStyle(rowIndex)}
               className={cn(
                 'hh-row-drop-in flex items-center gap-2 px-4 py-2.5 cursor-pointer transition-colors',
+                'outline-none focus-within:bg-surface-elevated/35',
                 isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-zinc-400' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
               )}
             >
@@ -942,10 +954,10 @@ function StudentDirectoryTable({
                   Abrir <ChevronRight className="h-3 w-3" />
                 </button>
                 <div className="flex gap-0.5">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }} className="rounded p-1 text-ink-muted hover:text-ink-primary transition-colors" title="Editar">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg p-1 text-ink-muted hover:text-ink-primary transition-colors" title="Editar">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }} className="rounded p-1 text-ink-muted hover:text-status-expired transition-colors" title="Eliminar">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg p-1 text-ink-muted hover:text-status-expired transition-colors" title="Eliminar">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -980,8 +992,8 @@ function StudentDirectoryTable({
                   onClick={() => onRowClick(student.id)}
                   style={tableRowEnterStyle(rowIndex)}
                   className={cn(
-                    'group cursor-pointer transition-colors',
-                    'hover:bg-surface-elevated/35',
+                    'group cursor-pointer transition-colors outline-none',
+                    'hover:bg-surface-elevated/35 focus-within:bg-surface-elevated/35',
                     isSelected && 'bg-surface-elevated/45',
                   )}
                 >
@@ -1044,16 +1056,16 @@ function StudentDirectoryTable({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onRowClick(student.id) }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary opacity-0 group-hover:opacity-100 hover:border-brand-secondary/40 hover:text-brand-secondary transition-all"
+                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand-secondary/40 hover:text-brand-secondary"
                         title="Abrir ficha"
                       >
                         Abrir <ChevronRight className="h-3 w-3" />
                       </button>
                       <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
-                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary opacity-0 group-hover:opacity-100"
+                        className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                         title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
                       <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }}
-                        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired opacity-0 group-hover:opacity-100"
+                        className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                         title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </td>

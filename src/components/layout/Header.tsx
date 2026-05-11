@@ -1,14 +1,13 @@
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Bell, ChevronLeft, Sun, Moon } from 'lucide-react'
+import { Bell, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
-import {
-  trainerCtaAccentTextClassName,
-  trainerCtaSolidBgClassName,
-} from '@/lib/primaryGradientCtaClasses'
+import { trainerCtaSolidBgClassName } from '@/lib/primaryGradientCtaClasses'
+import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
@@ -57,39 +56,47 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
     <header
       className={cn(
         'sticky top-0 z-30 flex items-center h-14 sm:h-16 px-4 lg:px-6 gap-3',
-        'border-b border-surface-border/70 bg-surface-base/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/75',
+        'border-b bg-surface-base/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/75',
+        profile?.role === 'nutritionist'
+          ? 'border-emerald-500/25 dark:border-emerald-400/20'
+          : 'border-surface-border/70',
         className,
       )}
     >
       {showBack && (
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+          className={cn(
+            'p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors',
+            appFocusRingClassName,
+          )}
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
       )}
 
-      <h1 className="flex-1 text-lg font-semibold text-ink-primary truncate">{title}</h1>
+      <h1 className="flex-1 text-lg font-semibold tracking-tight text-ink-primary truncate">{title}</h1>
 
       <div className="flex items-center gap-1">
         {actions}
 
         <button
           onClick={toggleTheme}
-          className="p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors"
+          className={cn(
+            'p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
+            appFocusRingClassName,
+          )}
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
-          {theme === 'dark' ? (
-            <Sun className={cn('h-4 w-4', trainerCtaAccentTextClassName)} aria-hidden />
-          ) : (
-            <Moon className={cn('h-4 w-4', trainerCtaAccentTextClassName)} aria-hidden />
-          )}
+          {theme === 'dark' ? <ThemeToggleSunIcon /> : <ThemeToggleMoonIcon />}
         </button>
 
         <button
           onClick={() => navigate('/notifications')}
-          className="relative p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors"
+          className={cn(
+            'relative p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
+            appFocusRingClassName,
+          )}
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
@@ -107,7 +114,10 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         <button
           type="button"
           onClick={() => navigate('/profile')}
-          className="ml-1 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50"
+          className={cn(
+            'ml-1 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50',
+            appFocusRingClassName,
+          )}
           title="Perfil"
         >
           {profile ? (

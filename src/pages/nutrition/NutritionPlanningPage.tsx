@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { toastNutritionPlanSuccess } from '@/lib/toastNutritionPlan'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -829,7 +830,7 @@ export function NutritionPlanningPage() {
       return rest as MealSlotPick
     })
     patchPicksForSlot(slot, list)
-    toast.success('Tip sincronizado con la Guía / plantilla.')
+    toastNutritionPlanSuccess('Tip sincronizado con la Guía / plantilla.', 'tip-synced')
   }
 
   function duplicateMealPick(fromSlot: MealSlotKey, pickId: string, toSlot: MealSlotKey) {
@@ -877,7 +878,7 @@ export function NutritionPlanningPage() {
     }
     const dest = mealDistribution.picksByMeal?.[toSlot] ?? []
     patchPicksForSlot(toSlot, [...dest, clone])
-    toast.success(`Copiado a «${MEAL_SLOT_LABELS[toSlot]}».`)
+    toastNutritionPlanSuccess(`Copiado a «${MEAL_SLOT_LABELS[toSlot]}».`, 'copy-slot')
   }
 
   /** Hint para PDF / alumno: snapshot guardado o texto vivo de fila / Mi lista. */
@@ -1009,7 +1010,7 @@ export function NutritionPlanningPage() {
       })
     }
     setMealPickSlot(null)
-    toast.success('Alimento agregado al momento.')
+    toastNutritionPlanSuccess('Alimento agregado al momento.', 'food-added')
   }
 
   function patchPerson<K extends keyof PlanningWorkbookStateV1['person']>(k: K, v: PlanningWorkbookStateV1['person'][K]) {
@@ -1089,7 +1090,7 @@ export function NutritionPlanningPage() {
         }
       })
 
-      toast.success('Datos de referencia cargados desde la ficha (podés editarlos).')
+      toastNutritionPlanSuccess('Datos de referencia cargados desde la ficha (podés editarlos).', 'refs-loaded')
     },
     [user?.id],
   )
@@ -1145,7 +1146,7 @@ export function NutritionPlanningPage() {
       unitsLabel: '',
     })
     const sec = wb.sections.find((s) => s.key === secKey)
-    toast.success(`${lib.display_name} · ${sec?.title ?? 'tabla'}`)
+    toastNutritionPlanSuccess(`${lib.display_name} · ${sec?.title ?? 'tabla'}`, 'library-picked')
   }
 
   function applyFoodFromLibrary(lib: NutritionFoodLibrary) {
@@ -1191,7 +1192,7 @@ export function NutritionPlanningPage() {
       toast.error(error.message)
       return
     }
-    toast.success('Plan asignado. El alumno lo ve en «Mi plan de alimentación» si tiene la cuenta vinculada.')
+    toastNutritionPlanSuccess('Plan asignado. El alumno lo ve en «Mi plan de alimentación» si tiene la cuenta vinculada.', 'plan-assigned')
     setAssignOpen(false)
   }
 
@@ -1204,7 +1205,7 @@ export function NutritionPlanningPage() {
         studentName,
         fileBaseName: 'plan-alimentacion',
       })
-      toast.success('PDF descargado.')
+      toastNutritionPlanSuccess('PDF descargado.', 'pdf-download')
     } catch (e) {
       console.error(e)
       toast.error('No se pudo generar el PDF.')
@@ -1220,7 +1221,7 @@ export function NutritionPlanningPage() {
     setWorkbookTplSaving(true)
     try {
       await insertPlanningWorkbookTemplate(name, workbookTplDesc.trim() || null, planningDataToJson(wbRef.current))
-      toast.success('Plantilla guardada en la nube.')
+      toastNutritionPlanSuccess('Plantilla guardada en la nube.', 'template-cloud-save')
       setWorkbookTplSaveOpen(false)
       setWorkbookTplName('')
       setWorkbookTplDesc('')
@@ -1258,7 +1259,7 @@ export function NutritionPlanningPage() {
       return
     }
     if (resetRow?.updated_at) setWorkbookUpdatedAt(resetRow.updated_at)
-    toast.success('Plantilla restablecida.')
+    toastNutritionPlanSuccess('Plantilla restablecida.', 'template-reset')
     setSaveState('saved')
   }
 
@@ -1745,7 +1746,7 @@ export function NutritionPlanningPage() {
                       const m = String(Math.round(calcTdeeMale * 10) / 10)
                       const f = String(Math.round(calcTdeeFemale * 10) / 10)
                       setWb((p) => ({ ...p, person: { ...p.person, tdeeMale: m, tdeeFemale: f } }))
-                      toast.success('Mantención manual actualizada con el TDEE calculado.')
+                      toastNutritionPlanSuccess('Mantención manual actualizada con el TDEE calculado.', 'maintenance-tdee')
                     }}
                   >
                     Guardar TDEE en PDF (h/m)
@@ -1761,7 +1762,7 @@ export function NutritionPlanningPage() {
                       if (!Number.isFinite(calcTdeeMale)) return
                       userHasEdited.current = true
                       setWb((p) => ({ ...p, proposedKcal: String(Math.round(calcTdeeMale * 10) / 10) }))
-                      toast.success('Calorías propuestas = TDEE hombre.')
+                      toastNutritionPlanSuccess('Calorías propuestas = TDEE hombre.', 'cal-tdee-m')
                     }}
                   >
                     TDEE H → meta kcal
@@ -1777,7 +1778,7 @@ export function NutritionPlanningPage() {
                       if (!Number.isFinite(calcTdeeFemale)) return
                       userHasEdited.current = true
                       setWb((p) => ({ ...p, proposedKcal: String(Math.round(calcTdeeFemale * 10) / 10) }))
-                      toast.success('Calorías propuestas = TDEE mujer.')
+                      toastNutritionPlanSuccess('Calorías propuestas = TDEE mujer.', 'cal-tdee-f')
                     }}
                   >
                     TDEE M → meta kcal
@@ -2059,7 +2060,7 @@ export function NutritionPlanningPage() {
                       setTemplateSaveName('')
                       setSaveTemplateOpen(false)
                       setTemplateListVersion((v) => v + 1)
-                      toast.success('Plantilla guardada en este navegador.')
+                      toastNutritionPlanSuccess('Plantilla guardada en este navegador.', 'template-local-save')
                     }}
                   >
                     Guardar
@@ -2095,7 +2096,7 @@ export function NutritionPlanningPage() {
                       onClick={() => {
                         removeMealDistributionTemplate(t.id)
                         setTemplateListVersion((v) => v + 1)
-                        toast.success('Plantilla eliminada.')
+                        toastNutritionPlanSuccess('Plantilla eliminada.', 'template-deleted')
                       }}
                     >
                       Quitar
@@ -2842,7 +2843,7 @@ export function NutritionPlanningPage() {
           <div
             role="dialog"
             aria-labelledby="meal-pick-title"
-            className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700"
+            className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-md dark:border-zinc-700"
           >
             <h3 id="meal-pick-title" className="text-base font-semibold text-ink-primary pr-8">
               Agregar a «{MEAL_SLOT_LABELS[mealPickSlot]}»
@@ -2995,7 +2996,7 @@ export function NutritionPlanningPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setTableTargetLib(null)}
           />
-          <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700">
+          <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-md dark:border-zinc-700">
             <h3 className="text-base font-semibold text-ink-primary pr-8">
               ¿En qué fila va «{tableTargetLib.display_name}»?
             </h3>
@@ -3052,7 +3053,7 @@ export function NutritionPlanningPage() {
           <div
             role="dialog"
             aria-labelledby="library-picker-title"
-            className="relative flex max-h-[min(85vh,640px)] w-full flex-col rounded-t-xl border border-zinc-200/80 bg-surface-card shadow-lg dark:border-zinc-700 sm:max-w-lg sm:rounded-xl"
+            className="relative flex max-h-[min(85vh,640px)] w-full flex-col rounded-t-xl border border-zinc-200/80 bg-surface-card shadow-md dark:border-zinc-700 sm:max-w-lg sm:rounded-xl"
           >
             <div className="flex shrink-0 items-start justify-between gap-2 border-b border-surface-border p-4">
               <div>
@@ -3136,7 +3137,7 @@ export function NutritionPlanningPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => !assignSaving && setAssignOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700">
+          <div className="relative w-full max-w-md rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-md dark:border-zinc-700">
             <h3 className="text-base font-semibold text-ink-primary">Asignar plan a un alumno</h3>
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se guarda una copia del contenido actual del plan. El alumno la ve en su cuenta si su usuario está vinculado en la ficha.
@@ -3187,7 +3188,7 @@ export function NutritionPlanningPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => !workbookTplSaving && setWorkbookTplSaveOpen(false)}
           />
-          <div className="relative w-full max-w-md space-y-3 rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-lg dark:border-zinc-700">
+          <div className="relative w-full max-w-md space-y-3 rounded-xl border border-zinc-200/80 bg-surface-card p-5 shadow-md dark:border-zinc-700">
             <h3 className="text-base font-semibold text-ink-primary">Guardar plantilla del libro (Excel)</h3>
             <p className="text-xs text-ink-muted leading-relaxed">
               Se guarda todo el plan actual (tablas, distribución, guías, TDEE, etc.) en tu cuenta para reutilizarlo después con «Cargar».
@@ -3237,7 +3238,7 @@ export function NutritionPlanningPage() {
           const label = t.name
           replaceMealDistribution(t.mealDistribution)
           setApplyTemplateTarget(null)
-          toast.success(`Se aplicó la plantilla «${label}».`)
+          toastNutritionPlanSuccess(`Se aplicó la plantilla «${label}».`, 'template-applied')
         }}
         title="Aplicar plantilla"
         description={
@@ -3265,7 +3266,7 @@ export function NutritionPlanningPage() {
             const next = workbookFromTemplateData(t.data)
             userHasEdited.current = true
             setWb(next)
-            toast.success(`Se cargó «${t.name}».`)
+            toastNutritionPlanSuccess(`Se cargó «${t.name}».`, 'template-loaded')
           } catch (e) {
             toast.error(e instanceof Error ? e.message : 'No se pudo aplicar.')
           }

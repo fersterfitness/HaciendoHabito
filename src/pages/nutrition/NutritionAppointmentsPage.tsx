@@ -31,6 +31,7 @@ import {
 import { parseGoogleCalendarSyncFailure } from '@/lib/googleCalendarSyncErrors'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { cn } from '@/lib/utils'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { Appointment, AppointmentReminder, Student, AppointmentStatus } from '@/types/database'
@@ -870,10 +871,10 @@ export function AppointmentsPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 w-full justify-center gap-1.5 border-zinc-300/80 px-3 text-xs sm:w-auto dark:border-zinc-600"
+                    icon={<Download className="h-3.5 w-3.5" aria-hidden />}
+                    className="h-9 w-full whitespace-nowrap border-zinc-300/80 px-3 text-xs sm:w-auto dark:border-zinc-600"
                     onClick={exportVisibleWeekToIcs}
                   >
-                    <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     Exportar .ics
                   </Button>
                 </div>
@@ -919,8 +920,9 @@ export function AppointmentsPage() {
                         type="button"
                         onClick={() => goToWeekFromDay(day)}
                         className={cn(
-                          'w-full min-h-[4.5rem] rounded-lg p-1 text-left outline-none transition-colors motion-safe:duration-200',
-                          'hover:bg-surface-card/75 focus-visible:ring-2 focus-visible:ring-brand-secondary/40 dark:hover:bg-surface-card/25',
+                          'w-full min-h-[4.5rem] rounded-lg p-1 text-left transition-colors motion-safe:duration-200',
+                          'hover:bg-surface-card/75 dark:hover:bg-surface-card/25',
+                          appFocusRingClassName,
                         )}
                         aria-label={`Abrir semana del ${format(day, "EEEE d 'de' MMMM", { locale: es })}`}
                       >

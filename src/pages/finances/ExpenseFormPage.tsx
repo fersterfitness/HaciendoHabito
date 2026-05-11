@@ -13,6 +13,7 @@ import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { PAYMENT_METHODS, FINANCE_SCOPES, EXPENSE_TYPES, EXPENSE_CATEGORIES } from '@/lib/constants'
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
+import { SaveStatusBar } from '@/components/ui/SaveStatusBar'
 import { emptyToNull } from '@/lib/formUtils'
 import toast from 'react-hot-toast'
 
@@ -36,7 +37,7 @@ export function ExpenseFormPage() {
   const navigate = useAppNavigate()
   const { user } = useAuthStore()
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting, isDirty } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       expense_date: format(new Date(), 'yyyy-MM-dd'),
@@ -90,6 +91,7 @@ export function ExpenseFormPage() {
       <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
         <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <SaveStatusBar isSubmitting={isSubmitting} isDirty={isDirty} />
           <FormErrorSummary errors={errors} />
 
           <FormSection title="Fecha y categoría">

@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthInit } from '@/hooks/useAuth'
@@ -5,43 +6,59 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/stores/authStore'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthGuard } from '@/components/layout/AuthGuard'
+import { PageRouteFallback } from '@/components/layout/PageRouteFallback'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/students/StudentsPage'
-import { StudentFormPage } from '@/pages/students/StudentFormPage'
-import { StudentDetailPage } from '@/pages/students/StudentDetailPage'
-import { RoutinesPage } from '@/pages/routines/RoutinesPage'
-import { RoutineFormPage } from '@/pages/routines/RoutineFormPage'
-import { RoutineDetailPage } from '@/pages/routines/RoutineDetailPage'
-import { RoutineEditorPage } from '@/pages/routines/RoutineEditorPage'
-import { RoutineBlueprintsPage } from '@/pages/routines/RoutineBlueprintsPage'
-import { HabitsPage } from '@/pages/habits/HabitsPage'
-import { ExercisesPage } from '@/pages/exercises/ExercisesPage'
-import { ExerciseFormPage } from '@/pages/exercises/ExerciseFormPage'
-import { FinancesPage } from '@/pages/finances/FinancesPage'
-import { IncomeFormPage } from '@/pages/finances/IncomeFormPage'
-import { ExpenseFormPage } from '@/pages/finances/ExpenseFormPage'
-import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
-import { SettingsPage } from '@/pages/settings/SettingsPage'
-import { WebPlansSettingsPage } from '@/pages/settings/WebPlansSettingsPage'
-import { PlaceholderPage } from '@/pages/PlaceholderPage'
-import { FeedbackPage } from '@/pages/feedback/FeedbackPage'
-import { FeedbackFormPage } from '@/pages/feedback/FeedbackFormPage'
-import { FeedbackDetailPage } from '@/pages/feedback/FeedbackDetailPage'
-import { NutritionPage } from '@/pages/nutrition/NutritionPage'
-import { NutritionPatientDetailPage } from '@/pages/nutrition/NutritionPatientDetailPage'
-import { NutritionComparativePage } from '@/pages/nutrition/NutritionComparativePage'
-import { NutritionEvolutionPage } from '@/pages/nutrition/NutritionEvolutionPage'
-import { NutritionAppointmentsPage } from '@/pages/nutrition/NutritionAppointmentsPage'
-import { NutritionTemplatesPage } from '@/pages/nutrition/NutritionTemplatesPage'
-import { NutritionFoodsPage } from '@/pages/nutrition/NutritionFoodsPage'
-import { NutritionPlanningPage } from '@/pages/nutrition/NutritionPlanningPage'
-import { StudentMealPlansPage } from '@/pages/student/StudentMealPlansPage'
-import { StudentMealPlanDetailPage } from '@/pages/student/StudentMealPlanDetailPage'
-import { TrainerStudentMealPlanPage } from '@/pages/students/TrainerStudentMealPlanPage'
-import { MealPlansPage } from '@/pages/meal-plans/MealPlansPage'
-import { PublicIntakeFormPage } from '@/pages/public/PublicIntakeFormPage'
 import type { AppRole } from '@/types/database'
+
+const StudentFormPage = lazy(() => import('@/pages/students/StudentFormPage').then((m) => ({ default: m.StudentFormPage })))
+const StudentDetailPage = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })))
+const TrainerStudentMealPlanPage = lazy(() =>
+  import('@/pages/students/TrainerStudentMealPlanPage').then((m) => ({ default: m.TrainerStudentMealPlanPage })),
+)
+const MealPlansPage = lazy(() => import('@/pages/meal-plans/MealPlansPage').then((m) => ({ default: m.MealPlansPage })))
+const RoutinesPage = lazy(() => import('@/pages/routines/RoutinesPage').then((m) => ({ default: m.RoutinesPage })))
+const RoutineFormPage = lazy(() => import('@/pages/routines/RoutineFormPage').then((m) => ({ default: m.RoutineFormPage })))
+const RoutineDetailPage = lazy(() => import('@/pages/routines/RoutineDetailPage').then((m) => ({ default: m.RoutineDetailPage })))
+const RoutineEditorPage = lazy(() => import('@/pages/routines/RoutineEditorPage').then((m) => ({ default: m.RoutineEditorPage })))
+const RoutineBlueprintsPage = lazy(() => import('@/pages/routines/RoutineBlueprintsPage').then((m) => ({ default: m.RoutineBlueprintsPage })))
+const HabitsPage = lazy(() => import('@/pages/habits/HabitsPage').then((m) => ({ default: m.HabitsPage })))
+const ExercisesPage = lazy(() => import('@/pages/exercises/ExercisesPage').then((m) => ({ default: m.ExercisesPage })))
+const ExerciseFormPage = lazy(() => import('@/pages/exercises/ExerciseFormPage').then((m) => ({ default: m.ExerciseFormPage })))
+const FinancesPage = lazy(() => import('@/pages/finances/FinancesPage').then((m) => ({ default: m.FinancesPage })))
+const IncomeFormPage = lazy(() => import('@/pages/finances/IncomeFormPage').then((m) => ({ default: m.IncomeFormPage })))
+const ExpenseFormPage = lazy(() => import('@/pages/finances/ExpenseFormPage').then((m) => ({ default: m.ExpenseFormPage })))
+const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const WebPlansSettingsPage = lazy(() => import('@/pages/settings/WebPlansSettingsPage').then((m) => ({ default: m.WebPlansSettingsPage })))
+const PlaceholderPage = lazy(() => import('@/pages/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })))
+const FeedbackPage = lazy(() => import('@/pages/feedback/FeedbackPage').then((m) => ({ default: m.FeedbackPage })))
+const FeedbackFormPage = lazy(() => import('@/pages/feedback/FeedbackFormPage').then((m) => ({ default: m.FeedbackFormPage })))
+const FeedbackDetailPage = lazy(() => import('@/pages/feedback/FeedbackDetailPage').then((m) => ({ default: m.FeedbackDetailPage })))
+const NutritionPage = lazy(() => import('@/pages/nutrition/NutritionPage').then((m) => ({ default: m.NutritionPage })))
+const NutritionPatientDetailPage = lazy(() =>
+  import('@/pages/nutrition/NutritionPatientDetailPage').then((m) => ({ default: m.NutritionPatientDetailPage })),
+)
+const NutritionComparativePage = lazy(() =>
+  import('@/pages/nutrition/NutritionComparativePage').then((m) => ({ default: m.NutritionComparativePage })),
+)
+const NutritionEvolutionPage = lazy(() => import('@/pages/nutrition/NutritionEvolutionPage').then((m) => ({ default: m.NutritionEvolutionPage })))
+const NutritionAppointmentsPage = lazy(() =>
+  import('@/pages/nutrition/NutritionAppointmentsPage').then((m) => ({ default: m.NutritionAppointmentsPage })),
+)
+const NutritionTemplatesPage = lazy(() => import('@/pages/nutrition/NutritionTemplatesPage').then((m) => ({ default: m.NutritionTemplatesPage })))
+const NutritionFoodsPage = lazy(() => import('@/pages/nutrition/NutritionFoodsPage').then((m) => ({ default: m.NutritionFoodsPage })))
+const NutritionPlanningPage = lazy(() => import('@/pages/nutrition/NutritionPlanningPage').then((m) => ({ default: m.NutritionPlanningPage })))
+const StudentMealPlansPage = lazy(() => import('@/pages/student/StudentMealPlansPage').then((m) => ({ default: m.StudentMealPlansPage })))
+const StudentMealPlanDetailPage = lazy(() =>
+  import('@/pages/student/StudentMealPlanDetailPage').then((m) => ({ default: m.StudentMealPlanDetailPage })),
+)
+const PublicIntakeFormPage = lazy(() => import('@/pages/public/PublicIntakeFormPage').then((m) => ({ default: m.PublicIntakeFormPage })))
+
+function withPageSuspense(node: ReactNode) {
+  return <Suspense fallback={<PageRouteFallback />}>{node}</Suspense>
+}
 
 /** `/routines/new` → `/routines?create=1` conservando `student` y `blueprint`. */
 function RoutinesNewToQueryRedirect() {
@@ -90,23 +107,23 @@ function renderLoggedInRoutes({
         path="students/:id/meal-plan/:planId"
         element={
           role === 'trainer' || role === 'admin' ? (
-            <TrainerStudentMealPlanPage />
+            withPageSuspense(<TrainerStudentMealPlanPage />)
           ) : (
             <Navigate to="/dashboard" replace />
           )
         }
       />
-      <Route path="students/:id" element={<StudentDetailPage />} />
-      <Route path="students/:id/edit" element={<StudentFormPage />} />
+      <Route path="students/:id" element={withPageSuspense(<StudentDetailPage />)} />
+      <Route path="students/:id/edit" element={withPageSuspense(<StudentFormPage />)} />
 
       {/* Alumno */}
       <Route
         path="my/meal-plans/:planId"
-        element={role === 'student' ? <StudentMealPlanDetailPage /> : <Navigate to="/dashboard" replace />}
+        element={role === 'student' ? withPageSuspense(<StudentMealPlanDetailPage />) : <Navigate to="/dashboard" replace />}
       />
       <Route
         path="my/meal-plans"
-        element={role === 'student' ? <StudentMealPlansPage /> : <Navigate to="/dashboard" replace />}
+        element={role === 'student' ? withPageSuspense(<StudentMealPlansPage />) : <Navigate to="/dashboard" replace />}
       />
 
       {/* Rutinas */}
@@ -114,76 +131,76 @@ function renderLoggedInRoutes({
         path="meal-plans"
         element={
           canSeeTrainerAssignedMealPlansPage ? (
-            <MealPlansPage />
+            withPageSuspense(<MealPlansPage />)
           ) : (
             <Navigate to="/dashboard" replace />
           )
         }
       />
-      <Route path="routines" element={canSeeTraining ? <RoutinesPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="routines" element={canSeeTraining ? withPageSuspense(<RoutinesPage />) : <Navigate to="/dashboard" replace />} />
       <Route
         path="routines/new"
         element={canSeeTraining ? <RoutinesNewToQueryRedirect /> : <Navigate to="/dashboard" replace />}
       />
-      <Route path="routines/blueprints" element={canSeeTraining ? <RoutineBlueprintsPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="routines/:id" element={canSeeTraining ? <RoutineDetailPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="routines/:id/edit" element={canSeeTraining ? <RoutineFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="routines/:id/editor" element={canSeeTraining ? <RoutineEditorPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="routines/blueprints" element={canSeeTraining ? withPageSuspense(<RoutineBlueprintsPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="routines/:id" element={canSeeTraining ? withPageSuspense(<RoutineDetailPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="routines/:id/edit" element={canSeeTraining ? withPageSuspense(<RoutineFormPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="routines/:id/editor" element={canSeeTraining ? withPageSuspense(<RoutineEditorPage />) : <Navigate to="/dashboard" replace />} />
 
       <Route
         path="routine-pdfs"
         element={canSeeTraining ? <Navigate to="/routines?tab=pdfs" replace /> : <Navigate to="/dashboard" replace />}
       />
 
-      <Route path="habits" element={canSeeTraining ? <HabitsPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="habits" element={canSeeTraining ? withPageSuspense(<HabitsPage />) : <Navigate to="/dashboard" replace />} />
 
-      <Route path="feedback" element={canSeeTraining ? <FeedbackPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="feedback/new" element={canSeeTraining ? <FeedbackFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="feedback/:id" element={canSeeTraining ? <FeedbackDetailPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="feedback" element={canSeeTraining ? withPageSuspense(<FeedbackPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="feedback/new" element={canSeeTraining ? withPageSuspense(<FeedbackFormPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="feedback/:id" element={canSeeTraining ? withPageSuspense(<FeedbackDetailPage />) : <Navigate to="/dashboard" replace />} />
 
-      <Route path="exercises" element={canSeeTraining ? <ExercisesPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="exercises/new" element={canSeeTraining ? <ExerciseFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="exercises/:id/edit" element={canSeeTraining ? <ExerciseFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="exercises" element={canSeeTraining ? withPageSuspense(<ExercisesPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="exercises/new" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="exercises/:id/edit" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
 
-      <Route path="nutrition" element={canSeeNutrition ? <NutritionPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="nutrition/evolution" element={canSeeNutrition ? <NutritionEvolutionPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition" element={canSeeNutrition ? withPageSuspense(<NutritionPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition/evolution" element={canSeeNutrition ? withPageSuspense(<NutritionEvolutionPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="nutrition/appointments" element={<Navigate to="/appointments" replace />} />
-      <Route path="nutrition/plans" element={canSeeNutrition ? <NutritionTemplatesPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition/plans" element={canSeeNutrition ? withPageSuspense(<NutritionTemplatesPage />) : <Navigate to="/dashboard" replace />} />
       <Route
         path="nutrition/foods"
-        element={canSeeNutritionFoodsGuide ? <NutritionFoodsPage /> : <Navigate to="/dashboard" replace />}
+        element={canSeeNutritionFoodsGuide ? withPageSuspense(<NutritionFoodsPage />) : <Navigate to="/dashboard" replace />}
       />
       <Route
         path="nutrition/planning"
-        element={canSeeNutritionFoodsGuide ? <NutritionPlanningPage /> : <Navigate to="/dashboard" replace />}
+        element={canSeeNutritionFoodsGuide ? withPageSuspense(<NutritionPlanningPage />) : <Navigate to="/dashboard" replace />}
       />
       <Route path="nutrition/templates" element={<Navigate to="/nutrition/plans" replace />} />
-      <Route path="nutrition/:id" element={canSeeNutrition ? <NutritionPatientDetailPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="nutrition-pdfs" element={canSeeNutrition ? <NutritionComparativePage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition/:id" element={canSeeNutrition ? withPageSuspense(<NutritionPatientDetailPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition-pdfs" element={canSeeNutrition ? withPageSuspense(<NutritionComparativePage />) : <Navigate to="/dashboard" replace />} />
 
-      <Route path="appointments" element={canSeeAppointments ? <NutritionAppointmentsPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="appointments" element={canSeeAppointments ? withPageSuspense(<NutritionAppointmentsPage />) : <Navigate to="/dashboard" replace />} />
 
-      <Route path="finances" element={canSeeFinances ? <FinancesPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances" element={canSeeFinances ? withPageSuspense(<FinancesPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="finances/income" element={canSeeFinances ? <Navigate to="/finances?tab=income" replace /> : <Navigate to="/dashboard" replace />} />
       <Route path="finances/expenses" element={canSeeFinances ? <Navigate to="/finances?tab=expenses" replace /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/income/new" element={canSeeFinances ? <IncomeFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/income/:id/edit" element={canSeeFinances ? <IncomeFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/expenses/new" element={canSeeFinances ? <ExpenseFormPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="finances/expenses/:id/edit" element={canSeeFinances ? <ExpenseFormPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/income/new" element={canSeeFinances ? withPageSuspense(<IncomeFormPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/income/:id/edit" element={canSeeFinances ? withPageSuspense(<IncomeFormPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/expenses/new" element={canSeeFinances ? withPageSuspense(<ExpenseFormPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="finances/expenses/:id/edit" element={canSeeFinances ? withPageSuspense(<ExpenseFormPage />) : <Navigate to="/dashboard" replace />} />
 
-      <Route path="notifications" element={<NotificationsPage />} />
-      <Route path="settings" element={<SettingsPage />} />
+      <Route path="notifications" element={withPageSuspense(<NotificationsPage />)} />
+      <Route path="settings" element={withPageSuspense(<SettingsPage />)} />
       <Route
         path="settings/web-plans"
         element={
           role === 'admin' || role === 'trainer' || role === 'nutritionist' ? (
-            <WebPlansSettingsPage />
+            withPageSuspense(<WebPlansSettingsPage />)
           ) : (
             <Navigate to="/dashboard" replace />
           )
         }
       />
-      <Route path="profile" element={<PlaceholderPage title="Perfil" />} />
+      <Route path="profile" element={withPageSuspense(<PlaceholderPage title="Perfil" />)} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </>
@@ -218,7 +235,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
-      <Route path="/form" element={<PublicIntakeFormPage />} />
+      <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
 
       <Route element={<AuthGuard />}>
         <Route element={<AppLayout />}>{renderLoggedInRoutes(loggedInProps)}</Route>
@@ -242,6 +259,7 @@ function ThemedToaster() {
     <Toaster
       position="top-right"
       toastOptions={{
+        duration: 3200,
         style: {
           background: isDark ? '#1E1E1E' : '#FFFFFF',
           color: isDark ? '#F5F5F5' : '#0F0F23',
@@ -253,12 +271,14 @@ function ThemedToaster() {
             : '0 4px 12px rgb(0 0 0 / 0.08)',
         },
         success: {
+          duration: 2800,
           iconTheme: { primary: TOAST_SUCCESS_ICON, secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
           style: {
             borderColor: isDark ? 'rgba(34, 197, 94, 0.35)' : 'rgba(22, 163, 74, 0.25)',
           },
         },
         error: {
+          duration: 4800,
           iconTheme: { primary: '#EF4444', secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
         },
         loading: {

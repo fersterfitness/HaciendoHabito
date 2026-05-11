@@ -6,7 +6,6 @@ import {
   Users,
   Dumbbell,
   FileText,
-  MessageSquare,
   Calendar,
   TrendingUp,
   TrendingDown,
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
-  Tooltip, CartesianGrid,
+  Tooltip as RechartsTooltip, CartesianGrid,
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -29,7 +28,8 @@ import { StatCard } from '@/components/ui/StatCard'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/Skeleton'
-import { cn, daysUntil, formatCurrency } from '@/lib/utils'
+import { cn, daysUntil, formatCurrency, formatDate } from '@/lib/utils'
+import { financeUi } from '@/lib/uiGlossary'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { FINANCE_SCOPES } from '@/lib/constants'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
@@ -341,15 +341,39 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
                 </span>
               </div>
               <p className="mt-1 pl-3 text-[10px] leading-snug text-ink-muted tabular-nums">
-                Cobrado ${d.cobrados.toLocaleString('es-AR')} · Gastos ${d.gastos.toLocaleString('es-AR')}
+                {financeUi.cobrado} ${d.cobrados.toLocaleString('es-AR')} · {financeUi.gastos} ${d.gastos.toLocaleString('es-AR')}
               </p>
             </div>
           )
         })}
       </div>
       <p className="mt-2 border-t border-surface-border pt-2 text-[11px] font-semibold tabular-nums text-ink-primary">
-        Σ netos: {formatCurrency(Number(raw.combinedNetSum ?? 0))}
+        {financeUi.netosSum}: {formatCurrency(Number(raw.combinedNetSum ?? 0))}
       </p>
+      {(() => {
+        const idx = Number(raw.__monthIndex ?? 0)
+        const pct = Number(raw.changePctCombinedNet ?? 0)
+        if (idx === 0) {
+          return (
+            <p className="mt-1.5 text-[10px] leading-snug text-ink-muted">
+              Primer mes del rango: sin comparación vs mes anterior.
+            </p>
+          )
+        }
+        return (
+          <p
+            className={cn(
+              'mt-1.5 border-t border-surface-border pt-1.5 text-[10px] font-medium tabular-nums',
+              pct > 0 && 'text-status-generated',
+              pct < 0 && 'text-status-expired',
+              pct === 0 && 'text-ink-muted',
+            )}
+          >
+            Σ netos vs mes anterior: {pct > 0 ? '+' : ''}
+            {pct === 0 ? '0%' : `${pct}%`}
+          </p>
+        )
+      })()}
     </div>
   )
 }
@@ -365,11 +389,12 @@ function CustomXTick({ x, y, payload }: any) {
 }
 
 function expenseChartRechartsData(model: ExpenseChartModel) {
-  return model.months.map((m) => {
+  return model.months.map((m, i) => {
     const row: Record<string, unknown> = {
       label: m.label,
       combinedNetSum: m.combinedNetSum,
       changePctCombinedNet: m.changePctCombinedNet,
+      __monthIndex: i,
       __series: model.series,
       __detail: m.detail,
     }
@@ -412,7 +437,7 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
             width={36}
           />
 
-          <Tooltip
+          <RechartsTooltip
             content={<ExpenseScopesTooltip />}
             cursor={{ stroke: 'rgba(148,163,184,0.28)', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.55 }}
           />
@@ -432,42 +457,6 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
           ))}
         </LineChart>
       </ResponsiveContainer>
-
-      {/* Una línea = un ámbito (valor mensual ya mezcla cobros − gastos). */}
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 border-t border-surface-border/50 px-1 pt-2.5">
-        {model.series.map((s) => (
-          <div key={s.key} className="flex max-w-[13rem] min-w-0 items-center gap-1.5 text-[11px] text-ink-secondary">
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-            <span className="truncate" title={s.label}>{s.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Δ mes a mes de la suma de netos entre ámbitos */}
-      <div className="flex mt-1 px-9">
-        {model.months.map((m, i) => (
-          <div key={m.label} className="flex flex-1 justify-center">
-            <span className={cn(
-              'text-[9px] font-medium tabular-nums',
-              i === 0 ? 'text-ink-muted/50' : '',
-              i > 0 && m.changePctCombinedNet > 0 && 'text-brand-primary',
-              i > 0 && m.changePctCombinedNet < 0 && 'text-status-expired',
-              i > 0 && m.changePctCombinedNet === 0 && 'text-ink-muted/50',
-            )}
-            >
-              {i === 0 ? '—' : (
-                <>
-                  {m.changePctCombinedNet > 0 ? '+' : ''}
-                  {m.changePctCombinedNet !== 0 ? `${m.changePctCombinedNet}%` : '0%'}
-                </>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="mt-1 text-center text-[9px] text-ink-muted/70 px-8">
-        Porcentajes: variación del neto combinado (Σ ámbitos) vs el mes anterior
-      </p>
     </div>
   )
 }
@@ -480,8 +469,6 @@ export function DashboardPage() {
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
   const canSeeFinances = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
-  const canSeeNutritionFoodsGuide =
-    role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [stats, setStats] = useState<Stats>({
     activeStudents: 0,
     activeRoutines: 0,
@@ -512,6 +499,7 @@ export function DashboardPage() {
   const [birthdays, setBirthdays] = useState<{ id: string; full_name: string; daysUntil: number }[]>([])
   const [todayApps, setTodayApps] = useState<{ id: string; title: string; starts_at: string; student_name: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [dataUpdatedAt, setDataUpdatedAt] = useState<Date | null>(null)
   const [recentIncome, setRecentIncome] = useState<RecentIncomeRow[]>([])
   const [levelDist, setLevelDist] = useState<{ key: string; label: string; count: number; pct: number }[]>([])
   const [pendingIncomeTotal, setPendingIncomeTotal] = useState(0)
@@ -556,7 +544,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (!user) return
-    loadDashboard()
+    void loadDashboard()
   }, [user])
 
   async function loadDashboard() {
@@ -573,21 +561,106 @@ export function DashboardPage() {
       startOfLocalDay.setHours(0, 0, 0, 0)
       const appointmentsPendingFromISO = startOfLocalDay.toISOString()
 
-      const [
-        { count: activeStudents },
-        { count: activeRoutines },
-        { count: activeMealPlans },
-        { count: pendingAppointments },
-        { count: activeNutritionPlans },
-        { count: nutritionDocuments },
-        { data: expiringData },
-        { data: notifData },
-        { data: incomeRows },
-        { data: expenseRowsRaw },
-        { data: expiringPlansData },
-        { data: studentDates },
-        { data: todayAppsData },
-      ] = await Promise.all([
+      const momPromises: PromiseLike<{ count: number | null }>[] = []
+      momPromises.push(
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', user!.id)
+          .eq('status', 'activo')
+          .gte('created_at', mb.startThis)
+          .lt('created_at', mb.startNext),
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', user!.id)
+          .eq('status', 'activo')
+          .gte('created_at', mb.startPrev)
+          .lt('created_at', mb.startThis),
+      )
+      if (canSeeTraining) {
+        momPromises.push(
+          supabase
+            .from('routines')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('routines')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+          supabase
+            .from('trainer_student_meal_plans')
+            .select('id, students!inner(status)', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('students.status', 'activo')
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('trainer_student_meal_plans')
+            .select('id, students!inner(status)', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('students.status', 'activo')
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+          supabase
+            .from('appointments')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('profile_type', 'trainer')
+            .in('status', ['scheduled', 'confirmed'])
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('appointments')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .eq('profile_type', 'trainer')
+            .in('status', ['scheduled', 'confirmed'])
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+        )
+      } else if (canSeeNutrition) {
+        momPromises.push(
+          supabase
+            .from('nutrition_plans')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startThis)
+            .lt('created_at', mb.startNext),
+          supabase
+            .from('nutrition_plans')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .in('status', ['activa', 'por_vencer'])
+            .gte('created_at', mb.startPrev)
+            .lt('created_at', mb.startThis),
+          supabase
+            .from('nutrition_patient_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .gte('uploaded_at', mb.startThis)
+            .lt('uploaded_at', mb.startNext),
+          supabase
+            .from('nutrition_patient_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', user!.id)
+            .gte('uploaded_at', mb.startPrev)
+            .lt('uploaded_at', mb.startThis),
+        )
+      }
+
+      /** Una sola ronda de red: KPIs + finanzas + alumnos (incl. level) + MoM + cola que no depende de IDs para hábitos. */
+      const DASHBOARD_BASE_QUERIES = 13
+      const momLen = momPromises.length
+
+      const r = await Promise.all([
         supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
         canSeeTraining
           ? supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
@@ -628,7 +701,6 @@ export function DashboardPage() {
               .eq('owner_id', user!.id)
               .gte('expense_date', sinceStr)
           : Promise.resolve({ data: [] } as { data: DashboardExpenseRow[] }),
-        // Alumnos con plan por vencer (próximos 14 días) o ya vencido
         supabase.from('students')
           .select('id, full_name, plan_end_date, status')
           .eq('owner_id', user!.id)
@@ -637,7 +709,7 @@ export function DashboardPage() {
           .lte('plan_end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0])
           .order('plan_end_date', { ascending: true })
           .limit(5),
-        supabase.from('students').select('id, full_name, birth_date, created_at, avatar_path').eq('owner_id', user!.id).eq('status', 'activo'),
+        supabase.from('students').select('id, full_name, birth_date, created_at, avatar_path, level').eq('owner_id', user!.id).eq('status', 'activo'),
         supabase
           .from('appointments')
           .select('id, title, starts_at, student:students(full_name)')
@@ -646,103 +718,49 @@ export function DashboardPage() {
           .gte('starts_at', `${new Date().toISOString().split('T')[0]}T00:00:00`)
           .lte('starts_at', `${new Date().toISOString().split('T')[0]}T23:59:59`)
           .order('starts_at'),
+        ...momPromises,
+        canSeeFinances
+          ? supabase
+              .from('income')
+              .select('id, amount, income_date, status, payment_method, student:students(full_name)')
+              .eq('owner_id', user!.id)
+              .order('income_date', { ascending: false })
+              .limit(7)
+          : Promise.resolve({ data: [] }),
+        canSeeFinances
+          ? supabase.from('income').select('amount').eq('owner_id', user!.id).neq('status', 'cobrado')
+          : Promise.resolve({ data: [] as { amount: number }[] }),
+        canSeeTraining
+          ? supabase.from('routines').select('student_id').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
+          : Promise.resolve({ data: [] as { student_id: string }[] }),
+        supabase.from('students').select('intake_ferster').eq('owner_id', user!.id).eq('status', 'activo').not('intake_ferster', 'is', null),
       ])
 
-      const momPromises: Promise<{ count: number | null }>[] = [
-        supabase
-          .from('students')
-          .select('id', { count: 'exact', head: true })
-          .eq('owner_id', user!.id)
-          .eq('status', 'activo')
-          .gte('created_at', mb.startThis)
-          .lt('created_at', mb.startNext),
-        supabase
-          .from('students')
-          .select('id', { count: 'exact', head: true })
-          .eq('owner_id', user!.id)
-          .eq('status', 'activo')
-          .gte('created_at', mb.startPrev)
-          .lt('created_at', mb.startThis),
-      ]
-      if (canSeeTraining) {
-        momPromises.push(
-          supabase
-            .from('routines')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .in('status', ['activa', 'por_vencer'])
-            .gte('created_at', mb.startThis)
-            .lt('created_at', mb.startNext),
-          supabase
-            .from('routines')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .in('status', ['activa', 'por_vencer'])
-            .gte('created_at', mb.startPrev)
-            .lt('created_at', mb.startThis),
-          supabase
-            .from('trainer_student_meal_plans')
-            .select('id, students!inner(status)', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .eq('students.status', 'activo')
-            .gte('created_at', mb.startThis)
-            .lt('created_at', mb.startNext),
-          supabase
-            .from('trainer_student_meal_plans')
-            .select('id, students!inner(status)', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .eq('students.status', 'activo')
-            .gte('created_at', mb.startPrev)
-            .lt('created_at', mb.startThis),
-          supabase
-            .from('appointments')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .eq('profile_type', 'trainer')
-            .in('status', ['scheduled', 'confirmed'])
-            .gte('created_at', mb.startThis)
-            .lt('created_at', mb.startNext),
-          supabase
-            .from('appointments')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .eq('profile_type', 'trainer')
-            .in('status', ['scheduled', 'confirmed'])
-            .gte('created_at', mb.startPrev)
-            .lt('created_at', mb.startThis)
-        )
-      } else if (canSeeNutrition) {
-        momPromises.push(
-          supabase
-            .from('nutrition_plans')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .in('status', ['activa', 'por_vencer'])
-            .gte('created_at', mb.startThis)
-            .lt('created_at', mb.startNext),
-          supabase
-            .from('nutrition_plans')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .in('status', ['activa', 'por_vencer'])
-            .gte('created_at', mb.startPrev)
-            .lt('created_at', mb.startThis),
-          supabase
-            .from('nutrition_patient_documents')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .gte('uploaded_at', mb.startThis)
-            .lt('uploaded_at', mb.startNext),
-          supabase
-            .from('nutrition_patient_documents')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', user!.id)
-            .gte('uploaded_at', mb.startPrev)
-            .lt('uploaded_at', mb.startThis)
-        )
-      }
+      const { count: activeStudents } = r[0]
+      const { count: activeRoutines } = r[1]
+      const { count: activeMealPlans } = r[2]
+      const { count: pendingAppointments } = r[3]
+      const { count: activeNutritionPlans } = r[4]
+      const { count: nutritionDocuments } = r[5]
+      const { data: expiringData } = r[6] as { data: unknown[] }
+      const { data: notifData } = r[7]
+      const { data: incomeRows } = r[8]
+      const { data: expenseRowsRaw } = r[9]
+      const { data: expiringPlansData } = r[10]
+      const { data: studentDates } = r[11]
+      const { data: todayAppsData } = r[12]
 
-      const momRes = await Promise.all(momPromises)
+      const momRes = r.slice(DASHBOARD_BASE_QUERIES, DASHBOARD_BASE_QUERIES + momLen) as { count: number | null }[]
+      const tail = DASHBOARD_BASE_QUERIES + momLen
+      type IncomeRecentRow = { id: string; amount: number; income_date: string; status: string; payment_method: string; student?: { full_name?: string } | null }
+      type PendingAmountRow = { amount: number }
+      type RoutineStudentRow = { student_id: string }
+      type GoalRow = { intake_ferster: Record<string, unknown> | null }
+
+      const recentRes = r[tail] as { data: IncomeRecentRow[] | null }
+      const pendingRes = r[tail + 1] as { data: PendingAmountRow[] | null }
+      const activeRoutineIdsRes = r[tail + 2] as { data: RoutineStudentRow[] | null }
+      const goalsRes = r[tail + 3] as { data: GoalRow[] | null }
       let mi = 0
       const momStudentsThis = momRes[mi++]?.count ?? 0
       const momStudentsPrev = momRes[mi++]?.count ?? 0
@@ -783,7 +801,6 @@ export function DashboardPage() {
       })
 
       // Birthdays in next 7 days
-      const todayMD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       const bdayList = (dates as { id: string; full_name: string; birth_date: string | null; created_at: string }[])
         .filter((s) => s.birth_date)
         .map((s) => {
@@ -851,66 +868,41 @@ export function DashboardPage() {
           : null,
       )
 
-      // Últimos cobros + distribución por nivel (parallel)
-      const [recentRes, levelsRes] = await Promise.all([
-        canSeeFinances
-          ? supabase
-              .from('income')
-              .select('id, amount, income_date, status, payment_method, student:students(full_name)')
-              .eq('owner_id', user!.id)
-              .order('income_date', { ascending: false })
-              .limit(7)
-          : Promise.resolve({ data: [] }),
-        supabase
-          .from('students')
-          .select('level')
-          .eq('owner_id', user!.id)
-          .eq('status', 'activo'),
-      ])
-
-      // Recent income
-      const recentRows = ((recentRes.data ?? []) as { id: string; amount: number; income_date: string; status: string; payment_method: string; student?: { full_name?: string } | null }[])
-        .map((r) => ({
-          id: r.id,
-          student_name: r.student?.full_name ?? null,
-          amount: r.amount,
-          status: r.status,
-          payment_method: r.payment_method,
-          income_date: r.income_date,
-        }))
+      const recentRows = ((recentRes.data ?? []) as IncomeRecentRow[]).map((row) => ({
+        id: row.id,
+        student_name: row.student?.full_name ?? null,
+        amount: row.amount,
+        status: row.status,
+        payment_method: row.payment_method,
+        income_date: row.income_date,
+      }))
       setRecentIncome(recentRows)
 
-      // Level distribution
-      const levels = (levelsRes.data ?? []) as { level: string }[]
-      const total = levels.length
+      const levels = (studentDates ?? []) as { level: string }[]
+      const totalLevels = levels.length
       const dist = LEVEL_META.map((m) => {
         const count = levels.filter((l) => l.level === m.key).length
-        return { key: m.key, label: m.label, count, pct: total === 0 ? 0 : Math.round((count / total) * 100) }
+        return { key: m.key, label: m.label, count, pct: totalLevels === 0 ? 0 : Math.round((count / totalLevels) * 100) }
       })
       setLevelDist(dist)
 
-      // ── Tercer bloque: cobros pendientes, sin rutina, objetivos, hábitos ─
       const allStudents = ((studentDates ?? []) as { id: string; full_name: string; birth_date: string | null; created_at: string; avatar_path: string | null }[])
       const studentIds = allStudents.map((s) => s.id)
       const now3 = new Date()
       const monthStartStr = `${now3.getFullYear()}-${String(now3.getMonth() + 1).padStart(2, '0')}-01`
       const todayStr = now3.toISOString().split('T')[0]
 
-      const [pendingRes, activeRoutineIdsRes, goalsRes, habitLogsMonthRes, habitSelectionsRes] = await Promise.all([
-        canSeeFinances
-          ? supabase.from('income').select('amount').eq('owner_id', user!.id).neq('status', 'cobrado')
-          : Promise.resolve({ data: [] as { amount: number }[] }),
-        canSeeTraining
-          ? supabase.from('routines').select('student_id').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
-          : Promise.resolve({ data: [] as { student_id: string }[] }),
-        supabase.from('students').select('intake_ferster').eq('owner_id', user!.id).eq('status', 'activo').not('intake_ferster', 'is', null),
-        studentIds.length > 0
-          ? supabase.from('habit_logs').select('student_id, log_date, habit_id').in('student_id', studentIds).gte('log_date', monthStartStr).lte('log_date', todayStr)
-          : Promise.resolve({ data: [] as { student_id: string; log_date: string; habit_id: string }[] }),
-        studentIds.length > 0
-          ? supabase.from('student_habit_selections').select('student_id, habit_id').in('student_id', studentIds)
-          : Promise.resolve({ data: [] as { student_id: string; habit_id: string }[] }),
-      ])
+      let habitLogsMonthRes: { data: { student_id: string; log_date: string; habit_id: string }[] | null }
+      let habitSelectionsRes: { data: { student_id: string; habit_id: string }[] | null }
+      if (studentIds.length > 0) {
+        ;[habitLogsMonthRes, habitSelectionsRes] = await Promise.all([
+          supabase.from('habit_logs').select('student_id, log_date, habit_id').in('student_id', studentIds).gte('log_date', monthStartStr).lte('log_date', todayStr),
+          supabase.from('student_habit_selections').select('student_id, habit_id').in('student_id', studentIds),
+        ])
+      } else {
+        habitLogsMonthRes = { data: [] }
+        habitSelectionsRes = { data: [] }
+      }
 
       // 1. Cobros pendientes
       const pendingRows = (pendingRes.data ?? []) as { amount: number }[]
@@ -960,6 +952,8 @@ export function DashboardPage() {
       setHabitAvg(avgHabit)
       setHabitTop5([...perStudentHabit].sort((a, b) => b.pct - a.pct).slice(0, 5))
 
+      setDataUpdatedAt(new Date())
+
     } finally {
       setLoading(false)
     }
@@ -993,6 +987,11 @@ export function DashboardPage() {
   return (
     <div>
       <Header title="Inicio" />
+      {dataUpdatedAt && !loading && (
+        <p className="px-4 pt-1 text-[10px] text-ink-muted tabular-nums lg:px-6" aria-live="polite">
+          Datos del tablero actualizados · {formatDate(dataUpdatedAt, 'dd/MM/yyyy HH:mm')}
+        </p>
+      )}
 
       <div className="px-4 lg:px-6 py-6 space-y-6">
 
@@ -1099,7 +1098,7 @@ export function DashboardPage() {
                   {incomeDelta !== 0 ? (
                     <span className={cn(
                       'inline-flex items-center gap-1 text-xs font-semibold',
-                      incomeDelta > 0 ? 'text-brand-primary' : 'text-status-expired',
+                      incomeDelta > 0 ? 'text-status-generated' : 'text-status-expired',
                     )}>
                       {incomeDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {incomeDelta > 0 ? '+' : ''}{incomeDelta}%
@@ -1148,7 +1147,7 @@ export function DashboardPage() {
                   {incomeDelta !== 0 ? (
                     <span className={cn(
                       'inline-flex items-center gap-1 text-xs font-semibold',
-                      incomeDelta > 0 ? 'text-brand-primary' : 'text-status-expired',
+                      incomeDelta > 0 ? 'text-status-generated' : 'text-status-expired',
                     )}>
                       {incomeDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {incomeDelta > 0 ? '+' : ''}{incomeDelta}%
@@ -1165,45 +1164,11 @@ export function DashboardPage() {
         {/* ── Por ámbito · 6 meses (un neto por línea; sin punteados) ─────────── */}
         {canSeeFinances && (
           <Card className="overflow-hidden p-0">
-            <CardHeader className="px-5 pt-4 pb-0">
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-ink-muted" />
-                  <CardTitle className="font-medium">Por ámbito · 6 meses</CardTitle>
-                </div>
-                <p className="text-[11px] text-ink-muted sm:max-w-[55%] sm:text-right">
-                  Una línea por ámbito con un <span className="font-medium text-ink-secondary">único número al mes</span>: cobrado menos gastos (neto). Pasá el mouse para ver el desglose.
-                </p>
+            <CardHeader className="px-5 pt-4 pb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-ink-muted" />
+                <CardTitle className="font-medium">Por ámbito · 6 meses</CardTitle>
               </div>
-              {expenseChartModel && (() => {
-                const lasts = expenseChartModel.months[expenseChartModel.months.length - 1]
-                const pct = lasts.changePctCombinedNet
-                const perScope = expenseChartModel.series
-                  .map((s) => `${s.label}: ${formatCurrency(lasts.values[s.key] ?? 0)}`)
-                  .join(' · ')
-                return (
-                  <div className="flex flex-col gap-1.5 text-xs mt-2">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="font-semibold tabular-nums text-ink-primary">
-                        Σ neto {lasts.label}: {formatCurrency(lasts.combinedNetSum)}
-                      </span>
-                      <span className="text-ink-muted tabular-nums">
-                        {expenseChartModel.ambitoCount}{' '}
-                        {expenseChartModel.ambitoCount === 1 ? 'ámbito' : 'ámbitos'}
-                      </span>
-                      {pct !== 0 ? (
-                        <span className={cn('inline-flex items-center gap-1 font-medium tabular-nums', pct > 0 ? 'text-brand-primary' : 'text-status-expired')}>
-                          {pct > 0 ? <TrendingUp className="h-3.5 w-3.5 opacity-70" /> : <TrendingDown className="h-3.5 w-3.5 opacity-70" />}
-                          {pct > 0 ? '+' : ''}{pct}% neto combinado vs mes anterior
-                        </span>
-                      ) : (
-                        <span className="text-ink-muted">Igual neto combinado vs mes anterior</span>
-                      )}
-                    </div>
-                    <p className="text-[11px] leading-snug text-ink-muted">{perScope}</p>
-                  </div>
-                )
-              })()}
             </CardHeader>
             <div className="pt-3 pb-2">
               {expenseChartModel ? (
@@ -1419,50 +1384,46 @@ export function DashboardPage() {
 
         {/* ── Alumnos sin rutina activa ─────────────────────────────── */}
         {canSeeTraining && studentsWithoutRoutine.length > 0 && (
-          <Card className="overflow-hidden">
-            {/* Header con acento izquierdo */}
-            <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-surface-border/50">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-secondary/12 shrink-0">
-                  <Dumbbell className="h-4 w-4 text-brand-secondary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-ink-primary">Sin rutina activa</p>
-                  <p className="text-[11px] text-ink-muted">
-                    {studentsWithoutRoutine.length} {studentsWithoutRoutine.length === 1 ? 'alumno activo' : 'alumnos activos'} sin rutina vigente
-                  </p>
-                </div>
+          <Card padding="none" className="overflow-hidden">
+            <div className="flex items-center justify-between gap-2 border-b border-surface-border/40 px-3 py-2 sm:px-3.5">
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-[13px] font-semibold text-ink-primary">Sin rutina activa</p>
+                <p className="truncate text-[10px] text-ink-muted">
+                  {studentsWithoutRoutine.length === 1
+                    ? '1 alumno activo sin rutina vigente'
+                    : `${studentsWithoutRoutine.length} alumnos activos sin rutina vigente`}
+                </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>Ver alumnos</Button>
+              <Button variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-xs" onClick={() => navigate('/students')}>
+                Ver alumnos
+              </Button>
             </div>
-            <div className="divide-y divide-surface-border/40">
+            <div className="divide-y divide-surface-border/35">
               {studentsWithoutRoutine.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => navigate(`/students/${s.id}`)}
-                  className="w-full flex items-center justify-between gap-3 px-5 py-3 hover:bg-surface-elevated/50 transition-colors text-left group"
+                  className="group flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left transition-colors hover:bg-surface-elevated/50 sm:px-3.5"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
                     {(() => {
                       const photoUrl = studentAvatarPublicUrl(s.avatar_path)
                       return photoUrl ? (
                         <img
                           src={photoUrl}
                           alt={s.full_name}
-                          className="h-8 w-8 shrink-0 rounded-lg border border-surface-border object-cover"
+                          className="h-6 w-6 shrink-0 rounded-md border border-surface-border object-cover"
                         />
                       ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand-secondary/20 bg-brand-secondary/10 shrink-0">
-                          <span className="text-[11px] font-bold text-brand-secondary">
-                            {s.full_name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-surface-border/80 bg-surface-elevated/60">
+                          <span className="text-[10px] font-semibold text-ink-muted">{s.full_name.charAt(0).toUpperCase()}</span>
                         </div>
                       )
                     })()}
-                    <p className="text-sm font-medium text-ink-primary truncate group-hover:text-brand-secondary transition-colors">{s.full_name}</p>
+                    <p className="truncate text-[13px] font-medium text-ink-primary group-hover:text-brand-secondary transition-colors">{s.full_name}</p>
                   </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-ink-muted shrink-0 -translate-x-1 group-hover:translate-x-0 opacity-50 group-hover:opacity-100 transition-all" />
+                  <ChevronRight className="h-3 w-3 shrink-0 text-ink-muted opacity-45 transition-opacity group-hover:opacity-100" />
                 </button>
               ))}
             </div>
@@ -1471,42 +1432,51 @@ export function DashboardPage() {
 
         {/* ── Vencimientos próximos ────────────────────────────────── */}
         {showUnifiedExpiringCard && (
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <CardTitle className="font-medium">Próximos vencimientos</CardTitle>
-                <p className="text-xs text-ink-muted">Rutinas y planes · próximos 14 días</p>
+          <Card padding="sm">
+            <CardHeader className="mb-2 items-start gap-x-3 gap-y-1 sm:items-center">
+              <div className="min-w-0 leading-tight">
+                <CardTitle className="text-[13px] font-semibold leading-snug">Próximos vencimientos</CardTitle>
+                <p className="text-[10px] text-ink-muted">Rutinas y planes · 14 días</p>
               </div>
-              <div className="flex flex-wrap justify-end gap-1 shrink-0">
-                {canSeeTraining && <Button variant="ghost" size="sm" onClick={() => navigate('/routines')}>Rutinas</Button>}
-                <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>Alumnos</Button>
+              <div className="flex shrink-0 flex-wrap justify-end gap-0.5 sm:ml-auto">
+                {canSeeTraining && (
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => navigate('/routines')}>
+                    Rutinas
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => navigate('/students')}>
+                  Alumnos
+                </Button>
               </div>
             </CardHeader>
             {mergedExpiring.length === 0 ? (
-              <p className="text-sm text-ink-muted py-6 text-center">Nada próximo en esta ventana</p>
+              <p className="py-3 text-center text-xs text-ink-muted">Nada próximo en esta ventana</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {mergedExpiring.map((row) => (
                   <button
                     key={`${row.kind}-${row.id}`}
                     type="button"
                     onClick={() => navigate(row.href)}
-                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-surface-border/80 bg-surface-elevated/35 hover:bg-surface-elevated transition-colors text-left"
+                    className="flex w-full items-center justify-between gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/30 px-2.5 py-1.5 text-left transition-colors hover:bg-surface-elevated/55"
                   >
-                    <div className="min-w-0 flex gap-3 items-start">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted w-[4.75rem] shrink-0 pt-0.5">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <span className="w-[4rem] shrink-0 pt-[1px] text-[9px] font-semibold uppercase tracking-wide text-ink-muted">
                         {row.kind === 'routine' ? 'Rutina' : 'Plan'}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink-primary truncate">{row.title}</p>
-                        <p className="text-xs text-ink-muted truncate">{row.subtitle}</p>
+                        <p className="truncate text-[13px] font-medium text-ink-primary">{row.title}</p>
+                        <p className="truncate text-[11px] text-ink-muted">{row.subtitle}</p>
                       </div>
                     </div>
-                    <span className={cn(
-                      'text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border border-surface-border shrink-0',
-                      row.days < 0 && 'border-status-expired/35 text-status-expired',
-                      row.days >= 0 && row.days <= 3 && 'border-status-expiring/35 text-status-expiring',
-                    )}>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded px-1.5 py-[1px] text-[10px] font-semibold tabular-nums',
+                        row.days < 0 && 'border border-status-expired/30 text-status-expired',
+                        row.days >= 0 && row.days <= 3 && 'border border-status-expiring/30 text-status-expiring',
+                        row.days > 3 && 'border border-surface-border/80 text-ink-secondary',
+                      )}
+                    >
                       {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Hoy' : `${row.days}d`}
                     </span>
                   </button>

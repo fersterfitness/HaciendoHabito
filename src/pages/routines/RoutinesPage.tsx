@@ -971,7 +971,7 @@ export function RoutinesPage() {
 
       {duplicateTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-4 rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl">
+          <div className="w-full max-w-sm space-y-4 rounded-2xl border border-surface-border bg-surface-card p-5 shadow-lg">
             <h2 className="text-base font-bold text-ink-primary">Duplicar rutina</h2>
             <p className="text-sm text-ink-secondary">
               <span className="font-medium text-ink-primary">&quot;{duplicateTarget.name}&quot;</span> será copiada con todos sus ejercicios a:

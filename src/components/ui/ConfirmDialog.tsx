@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { Button } from './Button'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
+import { cn } from '@/lib/utils'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -40,10 +42,15 @@ export function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-fade-in">
+      <div className="relative w-full max-w-sm animate-fade-in rounded-2xl border border-surface-border bg-surface-card p-6 shadow-lg">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-ink-muted hover:text-ink-primary transition-colors"
+          type="button"
+          className={cn(
+            'absolute right-4 top-4 rounded-lg p-1 text-ink-muted transition-colors hover:text-ink-primary',
+            appFocusRingClassName,
+          )}
+          aria-label="Cerrar"
         >
           <X className="h-4 w-4" />
         </button>

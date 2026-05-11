@@ -1,5 +1,6 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
@@ -39,9 +40,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'text-ink-primary placeholder:text-ink-muted text-sm',
               'px-3 py-2.5 h-10',
               'transition-colors duration-150',
-              'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
+              appFocusRingClassName,
+              'focus-visible:border-brand-secondary',
               'disabled:opacity-50 disabled:cursor-not-allowed',
-              error && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
+              error &&
+                'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/25',
               leftIcon && 'pl-9',
               rightIcon && 'pr-9',
               className
@@ -91,9 +94,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             'text-ink-primary placeholder:text-ink-muted text-sm',
             'px-3 py-2.5 min-h-[80px] resize-y',
             'transition-colors duration-150',
-            'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
+            appFocusRingClassName,
+            'focus-visible:border-brand-secondary',
             'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
+            error &&
+              'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/25',
             className
           )}
           {...props}
@@ -139,9 +144,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               'text-ink-primary text-sm',
               'pl-3 pr-10 py-2.5 h-10',
               'transition-colors duration-150 appearance-none cursor-pointer',
-              'focus:outline-none focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
+              appFocusRingClassName,
+              'focus-visible:border-brand-secondary',
               'disabled:opacity-50 disabled:cursor-not-allowed',
-              error && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
+              error &&
+                'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/25',
               className
             )}
             {...props}

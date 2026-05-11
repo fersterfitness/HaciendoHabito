@@ -30,7 +30,6 @@ import type { Income, Expense, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
-import { FINANCE_SCOPES } from '@/lib/constants'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
@@ -58,10 +57,6 @@ const STATUS_CSV_LABEL: Record<string, string> = {
 const EXPENSE_TYPE_LABEL_CSV: Record<string, string> = {
   fijo: 'Fijo',
   variable: 'Variable',
-}
-
-function paymentMethodLabel(m: string): string {
-  return METHOD_LABEL[m] ?? m.replace(/_/g, ' / ')
 }
 
 function buildPaymentReminderWaUrl(phone: string | null | undefined, studentName: string, amount: number, mesLabel: string): string | null {
@@ -141,7 +136,7 @@ function AnnualIncomeTooltip({
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
       <p className="mt-1.5 border-t border-zinc-200 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
-        Ingresos cobrados
+        Cobrado (ingresos)
       </p>
     </div>
   )

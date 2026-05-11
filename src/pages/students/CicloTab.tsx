@@ -457,7 +457,7 @@ function AddCycleModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-2xl">
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-lg">
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
           <h3 className="text-sm font-semibold text-ink-primary">Registrar período</h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>

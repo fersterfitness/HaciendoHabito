@@ -11,9 +11,6 @@ export const trainerCtaSolidBgClassName = 'bg-[#ff4800] dark:bg-[#f04a00]'
 export const trainerCtaFormAccentClassName =
   'accent-[#ff5508] dark:accent-[#ffa065]'
 
-/** Anillo de ítem activo (sidebar) sin `--brand-primary` verde del rol. */
-export const trainerCtaSidebarActiveRingClassName = 'ring-[#ff4800]/35'
-
 /** Borde de foco en inputs “crudos” alineado al CTA naranja. */
 export const trainerCtaFocusBorderClassName =
   'focus:border-[#ff5508] dark:focus:border-[#ffa065]'

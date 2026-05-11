@@ -111,7 +111,7 @@ export function StatCard({
           className={cn(
             'mt-auto pt-0.5 flex flex-nowrap items-center gap-0.5 min-w-0',
             'text-[10px] sm:text-[11px] font-semibold tabular-nums leading-none',
-            comparison.delta > 0 && 'text-brand-primary',
+            comparison.delta > 0 && 'text-status-generated',
             comparison.delta < 0 && 'text-status-expired',
             comparison.delta === 0 && 'text-ink-muted'
           )}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, Link } from 'react-router-dom'
 import { BrandLogo } from '@/components/branding/BrandLogo'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Mail, Lock, ArrowRight, Zap, Sun, Moon } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Zap } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -71,7 +72,7 @@ export function LoginPage() {
           className="p-2 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-card border border-surface-border transition-all"
           title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
         >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {theme === 'dark' ? <ThemeToggleSunIcon /> : <ThemeToggleMoonIcon />}
         </button>
       </div>
 

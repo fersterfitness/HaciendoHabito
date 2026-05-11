@@ -693,7 +693,7 @@ export function MealPlansPage() {
             aria-modal
             aria-labelledby="meal-plan-detail-title"
             className={cn(
-              'fixed z-[9991] flex flex-col overflow-hidden rounded-2xl border border-surface-border/85 bg-surface-card shadow-[0_20px_50px_-12px_rgba(0,0,0,0.14)] dark:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.55)]',
+              'fixed z-[9991] flex flex-col overflow-hidden rounded-2xl border border-surface-border/85 bg-surface-card shadow-lg dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]',
               'motion-reduce:animate-none motion-safe:max-sm:animate-panel-soft motion-safe:sm:animate-panel-slide-in',
               'inset-3 sm:inset-auto sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-5xl lg:right-6 lg:top-6 lg:bottom-6 xl:max-w-6xl',
             )}

@@ -5,13 +5,13 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { BrandLogo } from '@/components/branding/BrandLogo'
 import { Settings, LogOut } from 'lucide-react'
-import { trainerCtaSidebarActiveRingClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
 import type { AppRole } from '@/types/database'
 import { getSidebarBlocks } from '@/config/navigation'
+import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
 const RAIL_W = 'w-[56px]'
@@ -125,6 +125,16 @@ function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+/** Activo: fondo negro (claro) / blanco (oscuro); icono hereda color, mismo trazo que el resto. */
+const railNavActiveClassName = cn(
+  'bg-black text-white',
+  'dark:bg-white dark:text-black',
+)
+
+const railNavBaseTransition = cn(
+  'transition-[color,background-color] duration-150 ease-out',
+)
+
 function RailNavLink({
   to,
   label,
@@ -143,23 +153,24 @@ function RailNavLink({
     <SidebarRailTooltip label={label}>
       <NavLink
         to={to}
+        onMouseEnter={() => prefetchRouteChunkByHref(to)}
+        onFocus={() => prefetchRouteChunkByHref(to)}
         className={cn(
           'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none',
-          'transition-[color,background-color,box-shadow,transform] duration-200 ease-out',
-          'motion-safe:active:scale-[0.96]',
+          railNavBaseTransition,
           'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-secondary/45 dark:focus-visible:ring-brand-secondary/35',
           'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
           isActive
-            ? cn(
-                'bg-zinc-200 text-zinc-900 ring-2 ring-offset-2 ring-offset-zinc-100 shadow-sm dark:bg-white/[0.18] dark:text-white dark:ring-brand-secondary/40 dark:ring-offset-[rgb(var(--surface-sidebar))]',
-                trainerCtaSidebarActiveRingClassName,
-              )
-            : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 motion-safe:hover:scale-[1.06] dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
+            ? railNavActiveClassName
+            : cn(
+                'text-zinc-500/90 hover:bg-black/[0.035] hover:text-zinc-900',
+                'dark:text-white/42 dark:hover:bg-white/[0.04] dark:hover:text-white',
+              ),
         )}
         aria-current={isActive ? 'page' : undefined}
         aria-label={label}
       >
-        <Icon className="size-[17px] shrink-0" strokeWidth={isActive ? 2.25 : 2} aria-hidden />
+        <Icon className="size-[17px] shrink-0" strokeWidth={2} aria-hidden />
       </NavLink>
     </SidebarRailTooltip>
   )
@@ -200,8 +211,10 @@ function RailIconButton({
 export function Sidebar() {
   const { profile, reset } = useAuthStore()
   const navigate = useAppNavigate()
+  const { pathname } = useLocation()
   const role = profile?.role
   const sidebarBlocks = getSidebarBlocks(role)
+  const profilePathActive = isPathActive(pathname, '/profile', true)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -295,19 +308,24 @@ export function Sidebar() {
           <NavLink
             to="/profile"
             className={cn(
-              'relative flex size-[34px] shrink-0 items-center justify-center overflow-hidden rounded-xl outline-none transition-opacity hover:opacity-95',
+              'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none',
               'focus-visible:ring-2 focus-visible:ring-zinc-400/90 focus-visible:ring-offset-2',
               'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-white/35 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+              profilePathActive
+                ? cn(railNavBaseTransition, railNavActiveClassName)
+                : cn('overflow-hidden transition-opacity duration-200 ease-out hover:opacity-95'),
             )}
             aria-label={profileTip}
+            aria-current={profilePathActive ? 'page' : undefined}
           >
-            <AvatarOrInitials
-              fullName={profile?.full_name ?? '?'}
-              avatarUrl={profile?.avatar_url}
-              size="sm"
-              rounded="xl"
-              className="!font-bold"
-            />
+            <span className={cn('relative z-[1] flex size-full overflow-hidden rounded-[10px]')}>
+              <AvatarOrInitials
+                fullName={profile?.full_name ?? '?'}
+                avatarUrl={profile?.avatar_url}
+                size="sm"
+                rounded="xl"
+              />
+            </span>
           </NavLink>
         </SidebarRailTooltip>
 

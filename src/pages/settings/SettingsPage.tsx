@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Moon, Sun, LayoutTemplate } from 'lucide-react'
+import { LayoutTemplate } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Header } from '@/components/layout/Header'
-import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
+import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { cn } from '@/lib/utils'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -93,10 +93,15 @@ export function SettingsPage() {
                 onClick={toggleTheme}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-border/60 transition-colors text-sm font-medium text-ink-secondary"
               >
-                {theme === 'dark'
-                  ? <><Sun className={cn('h-4 w-4', trainerCtaAccentTextClassName)} /> Claro</>
-                  : <><Moon className={cn('h-4 w-4', trainerCtaAccentTextClassName)} /> Oscuro</>
-                }
+                {theme === 'dark' ? (
+                  <>
+                    <ThemeToggleSunIcon /> Claro
+                  </>
+                ) : (
+                  <>
+                    <ThemeToggleMoonIcon /> Oscuro
+                  </>
+                )}
               </button>
             </div>
           </FormSection>

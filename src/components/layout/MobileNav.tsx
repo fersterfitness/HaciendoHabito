@@ -3,8 +3,10 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { useAuthStore } from '@/stores/authStore'
 import { getMobileNavItems } from '@/config/navigation'
+import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 import { Settings, LogOut, X, MoreHorizontal, UserCircle, type LucideIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -44,8 +46,11 @@ function DrawerNavItem({
     <NavLink
       to={to}
       onClick={onClose}
+      onMouseEnter={() => prefetchRouteChunkByHref(to)}
+      onFocus={() => prefetchRouteChunkByHref(to)}
       className={cn(
         'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+        appFocusRingClassName,
         active
           ? cn(trainerCtaTintBgClassName, trainerCtaAccentTextClassName)
           : 'text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
@@ -99,9 +104,12 @@ export function MobileNav() {
               <NavLink
                 key={item.href + item.label}
                 to={to}
+                onMouseEnter={() => prefetchRouteChunkByHref(to)}
+                onFocus={() => prefetchRouteChunkByHref(to)}
                 className={cn(
-                  'flex flex-col items-center gap-1 px-2 py-2 rounded-xl shrink-0 min-w-[56px]',
+                  'flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 shrink-0 sm:min-w-[56px]',
                   'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
+                  appFocusRingClassName,
                   active ? trainerCtaAccentTextClassName : 'text-ink-muted hover:text-ink-secondary',
                 )}
               >
@@ -120,8 +128,9 @@ export function MobileNav() {
             type="button"
             onClick={() => setDrawerOpen(true)}
             className={cn(
-              'flex flex-col items-center gap-1 px-2 py-2 rounded-xl shrink-0 min-w-[56px]',
+              'flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 shrink-0 sm:min-w-[56px]',
               'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
+              appFocusRingClassName,
               drawerOpen ? trainerCtaAccentTextClassName : 'text-ink-muted hover:text-ink-secondary',
             )}
           >
@@ -151,7 +160,7 @@ export function MobileNav() {
             />
 
             <motion.div
-              className="relative z-10 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden"
+              className="relative z-10 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-lg dark:shadow-xl max-h-[85dvh] flex flex-col overflow-hidden"
               initial={reduceMotion ? false : { y: '100%' }}
               animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
               transition={

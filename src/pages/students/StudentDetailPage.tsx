@@ -5,7 +5,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Pencil, Trash2, Dumbbell, FileText, FileDown, Plus,
   Mail, Phone, Calendar, Zap, X, ChevronDown,
-  StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Share2,
+  StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag,
   Maximize2, UserRound, UtensilsCrossed, TrendingUp, Scale,
   CalendarCheck,
 } from 'lucide-react'
@@ -938,7 +938,13 @@ export function StudentDetailView({
               </p>
             </div>
             {mealPlans.length === 0 ? (
-              <p className="pt-4 text-sm text-zinc-500">Todavía no hay planes asignados a este alumno.</p>
+              <EmptyState
+                className="py-10"
+                icon={<ClipboardList className="h-7 w-7" aria-hidden />}
+                title="Sin planes asignados"
+                description="Asigná un plan desde Plan de alimentación para verlo en esta ficha."
+                action={{ label: 'Ir a planes de alimentación', onClick: () => navigate('/meal-plans') }}
+              />
             ) : (
               <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
                 {mealPlans.map((p) => (
@@ -1500,7 +1506,7 @@ function AddRmModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-2xl">
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-lg">
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
           <h3 className="text-sm font-semibold text-ink-primary">Registrar 1RM</h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
@@ -2024,7 +2030,7 @@ function QuickPayModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-2xl">
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-lg">
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
           <div>
             <h3 className="text-sm font-semibold text-ink-primary">Registrar pago</h3>

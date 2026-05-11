@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn, getInitials } from '@/lib/utils'
 import {
@@ -51,6 +52,17 @@ export function StudentAvatar({
 
   const url = studentAvatarPublicUrl(avatarPath)
   const showPhoto = Boolean(url && !brokenImg)
+
+  const imgSizes =
+    size === 'lg'
+      ? '(max-width: 640px) 120px, 144px'
+      : size === 'md'
+        ? '56px'
+        : size === 'md2'
+          ? '44px'
+          : size === 'xs'
+            ? '24px'
+            : '32px'
 
   const dim =
     size === 'lg'
@@ -151,15 +163,15 @@ export function StudentAvatar({
         onClick={openPicker}
         className={cn(
           dim,
-          'relative flex items-center justify-center overflow-hidden font-bold focus:outline-none',
+          'relative flex items-center justify-center overflow-hidden font-bold',
+          appFocusRingClassName,
           busy && 'opacity-60 pointer-events-none',
           showPhoto
-            ? 'bg-surface-elevated p-0 ring-0 focus-visible:ring-2 focus-visible:ring-[#ff4800]/35'
+            ? 'bg-surface-elevated p-0 ring-0'
             : cn(
                 trainerCtaAccentTextClassName,
                 trainerCtaTintBgClassName,
                 'hover:bg-[#ff5508]/14 dark:hover:bg-[#ff5508]/22',
-                'focus-visible:ring-2 focus-visible:ring-[#ff4800]/42',
               ),
         )}
       >
@@ -169,6 +181,7 @@ export function StudentAvatar({
             alt={fullName}
             loading="lazy"
             decoding="async"
+            sizes={imgSizes}
             className="absolute inset-0 h-full w-full object-cover object-top"
             onError={() => setBrokenImg(true)}
           />
@@ -216,6 +229,7 @@ export function StudentAvatar({
           disabled={busy}
           className={cn(
             'absolute z-[3] flex items-center justify-center rounded-full bg-surface-card border border-surface-border font-bold text-ink-muted hover:text-status-expired hover:border-status-expired/40 shadow-sm',
+            appFocusRingClassName,
             size === 'lg'
               ? '-top-2 -right-2 h-8 w-8 text-sm'
               : '-top-1 -right-1 h-5 w-5 text-[10px]',

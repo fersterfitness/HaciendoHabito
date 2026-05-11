@@ -5,6 +5,7 @@ import { Search, Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 
 type Result = {
   id: string
@@ -125,7 +126,7 @@ export function GlobalSearch() {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-2xl shadow-lg dark:shadow-xl overflow-hidden">
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-border">
           <Search className="h-4 w-4 text-ink-muted shrink-0" />
@@ -135,10 +136,21 @@ export function GlobalSearch() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Buscar alumnos, rutinas, planes..."
-            className="flex-1 bg-transparent text-sm text-ink-primary placeholder:text-ink-muted outline-none"
+            className={cn(
+              'flex-1 min-h-10 rounded-lg bg-transparent text-sm text-ink-primary placeholder:text-ink-muted',
+              appFocusRingClassName,
+            )}
           />
           {query && (
-            <button onClick={() => setQuery('')} className="text-ink-muted hover:text-ink-primary">
+            <button
+              type="button"
+              aria-label="Limpiar búsqueda"
+              onClick={() => setQuery('')}
+              className={cn(
+                'rounded-lg p-1.5 text-ink-muted transition-colors hover:text-ink-primary',
+                appFocusRingClassName,
+              )}
+            >
               <X className="h-3.5 w-3.5" />
             </button>
           )}
@@ -174,10 +186,12 @@ export function GlobalSearch() {
                         return (
                           <li key={`${r.kind}-${r.id}`}>
                             <button
+                              type="button"
                               onClick={() => go(r.href)}
                               onMouseEnter={() => setActive(i)}
                               className={cn(
                                 'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
+                                appFocusRingClassName,
                                 active === i ? 'bg-surface-elevated' : 'hover:bg-surface-elevated/50',
                               )}
                             >

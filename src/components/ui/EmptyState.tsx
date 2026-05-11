@@ -11,10 +11,19 @@ interface EmptyStateProps {
     onClick: () => void
     icon?: ReactNode
   }
+  /** CTA del estado vacío: degradé naranja o `outline`. */
+  actionVariant?: 'gradientPrimary' | 'outline'
   className?: string
 }
 
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  actionVariant = 'gradientPrimary',
+  className,
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -28,10 +37,16 @@ export function EmptyState({ icon, title, description, action, className }: Empt
         </div>
       )}
       <h3 className="text-base font-semibold text-ink-primary mb-1">{title}</h3>
-      {description && <p className="text-sm text-ink-secondary max-w-xs">{description}</p>}
+      {description && (
+        <p className="max-w-sm text-sm leading-relaxed text-ink-secondary">{description}</p>
+      )}
       {action && (
         <div className="mt-6">
-          <Button variant="gradientPrimary" onClick={action.onClick} icon={action.icon}>
+          <Button
+            variant={actionVariant}
+            onClick={action.onClick}
+            icon={action.icon}
+          >
             {action.label}
           </Button>
         </div>

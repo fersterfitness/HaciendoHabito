@@ -410,7 +410,7 @@ export function WebPlansSettingsPage() {
     if (!draftSlugs.includes(prevKey)) return
     const row = plans.find((p) => p.slug === prevKey)
     if (!row) return
-    let t = sanitizeSlugRaw(row.slug).replace(/^-+|-+$/g, '')
+    const t = sanitizeSlugRaw(row.slug).replace(/^-+|-+$/g, '')
     if (!t) {
       const fallback = `plan-${Date.now().toString(36)}`
       setDraftSlugs((ds) => ds.map((s) => (s === prevKey ? fallback : s)))

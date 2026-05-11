@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
 import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { formatDate, daysUntil, cn } from '@/lib/utils'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { ROUTINE_STATUSES } from '@/lib/constants'
 import {
   type ExerciseMeta,
@@ -914,7 +915,7 @@ export function RoutineDetailPage() {
       {blueprintModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBlueprintModalOpen(false)} />
-          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-2xl">
+          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-lg">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-ink-primary">Guardar en diccionario de plantillas</h3>
               <button type="button" onClick={() => setBlueprintModalOpen(false)} className="text-ink-muted hover:text-ink-primary">
@@ -1044,7 +1045,7 @@ function BlockCard({
         {expanded ? <ChevronDown className="h-4 w-4 text-ink-muted" /> : <ChevronRight className="h-4 w-4 text-ink-muted" />}
 
         <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button title="Copiar días a otra semana" onClick={onOpenCopyMenu} className="text-ink-muted hover:text-brand-primary transition-colors">
+          <button title="Copiar días a otra semana" type="button" onClick={onOpenCopyMenu} className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-brand-primary', appFocusRingClassName)}>
             <Copy className="h-3.5 w-3.5" />
           </button>
           {showCopyMenu && (
@@ -1055,7 +1056,7 @@ function BlockCard({
                 {otherBlocks.length === 0
                   ? <p className="px-3 py-2 text-xs text-ink-muted">No hay otras semanas</p>
                   : otherBlocks.map((b) => (
-                      <button key={b.id} onClick={() => onCopyTo(b.id)} className="w-full text-left px-3 py-2 text-xs text-ink-primary hover:bg-surface-elevated transition-colors">
+                      <button key={b.id} type="button" onClick={() => onCopyTo(b.id)} className={cn('w-full rounded-sm px-3 py-2 text-left text-xs text-ink-primary transition-colors hover:bg-surface-elevated', appFocusRingClassName)}>
                         {b.name}
                       </button>
                     ))
@@ -1066,21 +1067,23 @@ function BlockCard({
         </div>
 
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onMoveBlock('up') }}
           title="Mover semana arriba"
-          className="text-ink-muted hover:text-ink-primary transition-colors"
+          className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
         >
           <ArrowUp className="h-3.5 w-3.5" />
         </button>
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onMoveBlock('down') }}
           title="Mover semana abajo"
-          className="text-ink-muted hover:text-ink-primary transition-colors"
+          className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
         >
           <ArrowDown className="h-3.5 w-3.5" />
         </button>
 
-        <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors">
+        <button type="button" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-status-expired', appFocusRingClassName)}>
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -1093,7 +1096,11 @@ function BlockCard({
               <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Fecha inicio</label>
               <input
                 type="date"
-                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none"
+                className={cn(
+                  'w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary',
+                  appFocusRingClassName,
+                  'focus-visible:border-brand-primary',
+                )}
                 value={block.start_date ?? ''}
                 onChange={(e) => onUpdateBlock({ start_date: e.target.value || null })}
               />
@@ -1102,7 +1109,11 @@ function BlockCard({
               <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Fecha fin</label>
               <input
                 type="date"
-                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none"
+                className={cn(
+                  'w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary',
+                  appFocusRingClassName,
+                  'focus-visible:border-brand-primary',
+                )}
                 value={block.end_date ?? ''}
                 onChange={(e) => onUpdateBlock({ end_date: e.target.value || null })}
               />
@@ -1321,7 +1332,11 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                   <Link2 className="h-3.5 w-3.5 text-brand-primary" />
                   <span className="text-xs font-bold text-brand-primary">Seleccioná los ejercicios del circuito</span>
                 </div>
-                <button onClick={() => { setCircuitMode(false); setSelectedIds(new Set()) }} className="text-ink-muted hover:text-ink-primary">
+                <button
+                  type="button"
+                  onClick={() => { setCircuitMode(false); setSelectedIds(new Set()) }}
+                  className={cn('rounded-md p-1 text-ink-muted hover:text-ink-primary', appFocusRingClassName)}
+                >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -1331,10 +1346,12 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                 )}
                 {freeExercises.map(ex => (
                   <button
+                    type="button"
                     key={ex.id}
                     onClick={() => toggleSelect(ex.id)}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',
+                      appFocusRingClassName,
                       selectedIds.has(ex.id) ? 'bg-brand-primary/15' : 'hover:bg-brand-primary/8'
                     )}
                   >
@@ -1445,7 +1462,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
       {copyPrescriptionOpen && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCopyPrescriptionOpen(false)} />
-          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-2xl max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-lg max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-ink-primary">Copiar a otros días de esta semana</h3>
               <button type="button" onClick={() => setCopyPrescriptionOpen(false)} className="text-ink-muted hover:text-ink-primary">
@@ -1863,7 +1880,7 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
+      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[80vh] flex flex-col shadow-lg">
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
           <h3 className="text-sm font-semibold text-ink-primary">Seleccionar ejercicio</h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
