@@ -8,17 +8,16 @@ import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
 import { supabase } from '@/lib/supabase'
+import { IntakeChangeablePlansSection } from '@/components/public/IntakeChangeablePlansSection'
 import {
-  IntakeChangeablePlansSection,
+  type PlanBilling,
+  bundlePrice3Months,
+  bundlePrice6Months,
+  effectiveYearlyLabel,
+  numericFromPriceLabel,
   intakePlansToPricingPlans,
-} from '@/components/public/IntakeChangeablePlansSection'
+} from '@/lib/publicIntakePlanPricing'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
-
-/** Ordena precios tipo «$60.000», «$100.000», etc. (sólo dígitos). */
-function numericFromPriceLabel(label: string): number {
-  const digits = label.replace(/\s/g, '').replace(/[^\d]/g, '')
-  return digits ? parseInt(digits, 10) : 0
-}
 
 /** Texto completo (detalle del plan / tooltip). En el selector sólo usamos líneas cortas. */
 const PUBLIC_PLAN_SOLO_CREDENTIAL_LINE =
@@ -472,7 +471,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
   },
   {
     id: 'plan-nutricion',
-    catalogSegment: 'solo',
+    catalogSegment: 'with_cris',
     displayBadge: null,
     credentialLineOverride: null,
     name: 'Segundo Plan Nutrición',
@@ -494,7 +493,7 @@ const DEFAULT_PLANS: PlanDetail[] = [
   },
   {
     id: 'plan-full',
-    catalogSegment: 'solo',
+    catalogSegment: 'full',
     displayBadge: null,
     credentialLineOverride: null,
     name: 'Plan Full',
@@ -516,22 +515,30 @@ const DEFAULT_PLANS: PlanDetail[] = [
   },
 ]
 
-function formatArsRounded(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return ''
-  return `$${Math.round(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
+function displayPriceForPlan(plan: PlanDetail, billing: PlanBilling): string {
+  switch (billing) {
+    case 'monthly':
+      return plan.price
+    case 'months3':
+      return bundlePrice3Months(plan.price)
+    case 'months6':
+      return bundlePrice6Months(plan.price)
+    case 'annual':
+      return effectiveYearlyLabel(plan.price, plan.priceYearly)
+  }
 }
 
-/** Precio anual configurado en panel, o valor referencial 10× mensual si falta. */
-function effectiveYearlyLabel(monthlyLabel: string, yearlyLabel: string | null | undefined): string {
-  const t = yearlyLabel?.trim()
-  if (t) return t
-  const n = numericFromPriceLabel(monthlyLabel)
-  if (n <= 0) return monthlyLabel
-  return formatArsRounded(n * 10)
-}
-
-function displayPriceForPlan(plan: PlanDetail, billing: 'monthly' | 'annual'): string {
-  return billing === 'monthly' ? plan.price : effectiveYearlyLabel(plan.price, plan.priceYearly)
+function planBillingCaption(billing: PlanBilling): string {
+  switch (billing) {
+    case 'monthly':
+      return 'Por mes'
+    case 'months3':
+      return 'Total · 3 meses'
+    case 'months6':
+      return 'Total · 6 meses'
+    case 'annual':
+      return 'Por año · pago único'
+  }
 }
 
 function PlanDetailView({
@@ -540,7 +547,7 @@ function PlanDetailView({
   onBack,
 }: {
   plan: PlanDetail
-  planBilling: 'monthly' | 'annual'
+  planBilling: PlanBilling
   onBack: () => void
 }) {
   return (
@@ -548,7 +555,7 @@ function PlanDetailView({
       <div className="rounded-2xl border border-white/12 bg-zinc-950/85 p-5 sm:p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/55">Detalle del plan</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/55">Detalle de la oferta</p>
             <h2 className="text-xl sm:text-2xl font-bold mt-1">{plan.name}</h2>
           </div>
           <div className="text-right">
@@ -556,7 +563,7 @@ function PlanDetailView({
               {displayPriceForPlan(plan, planBilling)}
             </span>
             <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
-              {planBilling === 'annual' ? 'Modalidad anual' : 'Por mes'}
+              {planBillingCaption(planBilling)}
             </span>
           </div>
         </div>
@@ -712,8 +719,8 @@ function LeftBrandPanel({
   onSelectPlan: (id: string) => void
   /** Igual que antes: pasar al detalle / volteo del formulario. */
   onConfirmPlan: () => void
-  planBilling: 'monthly' | 'annual'
-  onPlanBillingChange: (v: 'monthly' | 'annual') => void
+  planBilling: PlanBilling
+  onPlanBillingChange: (v: PlanBilling) => void
   /** Fotos del panel Ajustes → Planes web (`web_intake_catalog_settings`). */
   soloSegmentImageUrl: string | null
   withCrisSegmentImageUrl: string | null
@@ -757,12 +764,12 @@ function LeftBrandPanel({
   )
 
   return (
-    <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 overflow-hidden">
+    <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 min-w-0">
       <HeroBgLayers theme={theme} />
 
       <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
-        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [-webkit-overflow-scrolling:touch]">
-          <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] shrink-0 space-y-4">
+        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0">
+          <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] min-w-0 shrink-0 space-y-4">
             {/* Marca: una sola lectura */}
             <div className="relative flex items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
               <div
@@ -796,7 +803,7 @@ function LeftBrandPanel({
                     theme={theme}
                     id="intake-modality"
                     label="Modalidad"
-                    hint="Define qué tipo de planes se muestran a continuación"
+                    hint="Sólo se listan ofertas de esta modalidad; el entrenador/nutricionista de arriba no cambia la lista."
                     value={modalitySegment}
                     onChange={(raw) =>
                       onSelectCatalogSegment(raw as WebPlanCatalogSegment)
@@ -844,7 +851,7 @@ function LeftBrandPanel({
                     aria-hidden
                   />
                   <IntakeChangeablePlansSection
-                    title="Tu plan"
+                    title="Ofertas"
                     footerText="Podés cancelar cuando quieras."
                     buttonText="Ver detalle"
                     plans={intakePlansToPricingPlans(plansVisible)}
@@ -898,7 +905,7 @@ export function PublicIntakeFormPage() {
   const [plans, setPlans] = useState<PlanDetail[]>(DEFAULT_PLANS)
   const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
-  const [planBilling, setPlanBilling] = useState<'monthly' | 'annual'>('monthly')
+  const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
   const [isPlanFlipped, setIsPlanFlipped] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const flipTimerRef = useRef<number | null>(null)
@@ -1020,9 +1027,10 @@ export function PublicIntakeFormPage() {
       const { data, error } = await supabase
         .from('web_plans')
         .select(
-          'slug, title, price_label, price_yearly_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, catalog_segment, display_badge, credential_line_override',
+          'slug, title, price_label, price_yearly_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
         )
         .eq('is_active', true)
+        .eq('show_in_public_intake', true)
         .order('sort_order')
       if (error || !mounted) return
       type Row = Pick<

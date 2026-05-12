@@ -6,10 +6,14 @@ import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  type PlanBilling,
+  type IntakeNormalizedPricingPlan,
+} from '@/lib/publicIntakePlanPricing'
 
 export type PlanId = string
 
-export type PlanBilling = 'monthly' | 'annual'
+export type { PlanBilling }
 
 export type IntakePricingUiTheme = 'light' | 'dark'
 
@@ -18,22 +22,11 @@ export interface PricingFeatureItem {
   hasInfo?: boolean
 }
 
-interface NormalizedPricingPlan {
-  id: PlanId
-  name: string
-  description: string
-  priceMonthlyDisplay: string
-  priceYearlyDisplay: string
-  badge?: string | null
-  featuresLabel?: string
-  features: PricingFeatureItem[]
-}
-
 export interface IntakeChangeablePlansSectionProps {
   title?: string
   footerText?: string
   buttonText?: string
-  plans: NormalizedPricingPlan[]
+  plans: IntakeNormalizedPricingPlan[]
   selectedPlanId: PlanId | null
   onSelectPlan: (id: PlanId) => void
   onContinue?: () => void
@@ -47,24 +40,6 @@ export interface IntakeChangeablePlansSectionProps {
   flush?: boolean
   billing: PlanBilling
   onBillingChange: (mode: PlanBilling) => void
-}
-
-function numericFromPriceLabel(label: string): number {
-  const digits = label.replace(/\s/g, '').replace(/[^\d]/g, '')
-  return digits ? parseInt(digits, 10) : 0
-}
-
-function formatArsRounded(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return ''
-  return `$${Math.round(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
-}
-
-function effectiveYearlyLabel(monthlyLabel: string, yearlyLabel: string | null | undefined): string {
-  const t = yearlyLabel?.trim()
-  if (t) return t
-  const n = numericFromPriceLabel(monthlyLabel)
-  if (n <= 0) return monthlyLabel
-  return formatArsRounded(n * 10)
 }
 
 function normalizeBadgeClass(variant: 'green' | 'amber', dark: boolean) {
@@ -140,9 +115,11 @@ export function IntakeChangeablePlansSection({
   if (plans.length === 0) return null
 
   const toggleActive =
-    darkChrome ? 'bg-white/95 text-neutral-900 shadow-sm' : 'bg-white text-neutral-900 shadow-sm'
+    darkChrome
+      ? 'bg-white text-neutral-900 shadow-[0_2px_10px_rgba(0,0,0,0.22)] ring-1 ring-black/[0.05]'
+      : 'bg-white text-neutral-900 shadow-[0_2px_8px_rgba(15,23,42,0.08)] ring-1 ring-neutral-900/[0.04]'
   const toggleInactive =
-    darkChrome ? 'text-white/45 hover:text-white/70' : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400'
+    darkChrome ? 'text-white/45 hover:text-white/72' : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400'
 
   return (
     <div
@@ -162,7 +139,10 @@ export function IntakeChangeablePlansSection({
     >
       <div
         className={cn(
-          'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+          // Embebido en /form: siempre columna para que el toggle use todo el ancho y no lo corte overflow del padre.
+          flushEmbed
+            ? 'flex flex-col items-stretch gap-2.5'
+            : 'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
           flushEmbed ? 'px-0 py-1' : darkChrome ? 'px-2 py-1.5' : lightChrome ? 'px-2 pb-1 pt-0.5 sm:px-3 sm:pb-2 sm:pt-1' : 'px-3 py-4',
           embedded && heroTone && 'px-0',
           darkInsetChrome && 'border-b border-white/[0.07] pb-2.5',
@@ -178,21 +158,25 @@ export function IntakeChangeablePlansSection({
         </h2>
         <div
           className={cn(
-            'inline-flex self-start rounded-full p-[3px] sm:self-auto',
+            flushEmbed
+              ? 'flex w-full min-w-0 flex-nowrap overflow-x-auto rounded-xl p-1 [-webkit-overflow-scrolling:touch] scrollbar-hide'
+              : 'inline-flex max-w-full flex-nowrap self-start overflow-x-auto rounded-xl p-1 [-webkit-overflow-scrolling:touch] scrollbar-hide sm:self-auto',
             lightChrome
-              ? 'bg-neutral-200/95 shadow-[inset_0_1px_2px_rgba(15,23,42,0.07)]'
+              ? 'border border-neutral-300/55 bg-neutral-200/90 shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)]'
               : darkChrome
-                ? 'bg-white/10'
-                : 'bg-neutral-200/80 dark:bg-neutral-700/80',
+                ? 'border border-white/[0.09] bg-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
+                : 'border border-neutral-300/50 bg-neutral-200/80 shadow-[inset_0_1px_1px_rgba(15,23,42,0.05)] dark:border-neutral-600/80 dark:bg-neutral-700/80 dark:shadow-none',
           )}
           role="group"
-          aria-label="Modalidad de pago"
+          aria-label="Plazo de pago: solo cambia el precio en las cards. Lo que ofrece cada opción está en cada oferta."
         >
           <button
             type="button"
             onClick={() => onBillingChange('monthly')}
             className={cn(
-              'rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-[0.06em] transition-all sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+              flushEmbed
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
+                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
               billing === 'monthly' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'monthly'}
@@ -201,9 +185,37 @@ export function IntakeChangeablePlansSection({
           </button>
           <button
             type="button"
+            onClick={() => onBillingChange('months3')}
+            className={cn(
+              flushEmbed
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
+                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+              billing === 'months3' ? toggleActive : toggleInactive,
+            )}
+            aria-pressed={billing === 'months3'}
+          >
+            x3 meses
+          </button>
+          <button
+            type="button"
+            onClick={() => onBillingChange('months6')}
+            className={cn(
+              flushEmbed
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
+                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+              billing === 'months6' ? toggleActive : toggleInactive,
+            )}
+            aria-pressed={billing === 'months6'}
+          >
+            x6 meses
+          </button>
+          <button
+            type="button"
             onClick={() => onBillingChange('annual')}
             className={cn(
-              'rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-[0.06em] transition-all sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+              flushEmbed
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
+                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
               billing === 'annual' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'annual'}
@@ -224,13 +236,24 @@ export function IntakeChangeablePlansSection({
           const isSelected = selectedPlanId === plan.id
           const badgeCls = badgeChipClass(plan.badge, badgeVariant, darkChrome)
           const priceMain =
-            billing === 'monthly' ? plan.priceMonthlyDisplay : plan.priceYearlyDisplay
+            billing === 'monthly'
+              ? plan.priceMonthlyDisplay
+              : billing === 'months3'
+                ? plan.price3MonthsDisplay
+                : billing === 'months6'
+                  ? plan.price6MonthsDisplay
+                  : plan.priceYearlyDisplay
           const priceSub =
-            billing === 'monthly' ? 'Por mes' : 'Por año · pago único'
+            billing === 'monthly'
+              ? 'Por mes'
+              : billing === 'months3'
+                ? 'Total · 3 meses'
+                : billing === 'months6'
+                  ? 'Total · 6 meses'
+                  : 'Por año · pago único'
 
           return (
             <motion.div
-              layout
               key={plan.id}
               role="button"
               tabIndex={0}
@@ -432,27 +455,4 @@ export function IntakeChangeablePlansSection({
       </div>
     </div>
   )
-}
-
-export function intakePlansToPricingPlans(
-  plans: Array<{
-    id: string
-    name: string
-    shortDescription: string
-    price: string
-    priceYearly?: string | null
-    badge: string
-    info: string[]
-  }>,
-): NormalizedPricingPlan[] {
-  return plans.map((p) => ({
-    id: p.id,
-    name: p.name,
-    description: p.shortDescription,
-    priceMonthlyDisplay: p.price,
-    priceYearlyDisplay: effectiveYearlyLabel(p.price, p.priceYearly),
-    badge: p.badge,
-    featuresLabel: 'Incluye',
-    features: p.info.map((text) => ({ text })),
-  }))
 }

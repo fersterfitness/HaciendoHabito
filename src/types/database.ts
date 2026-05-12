@@ -515,6 +515,8 @@ export interface WebPlan {
   display_badge: string | null
   sort_order: number
   is_active: boolean
+  /** Si false, la oferta no se lista como card en /form. El toggle Mensual/x3/x6/Anual sólo cambia precios; el contenido lo define cada fila. */
+  show_in_public_intake: boolean
   created_at: string
   updated_at: string
 }

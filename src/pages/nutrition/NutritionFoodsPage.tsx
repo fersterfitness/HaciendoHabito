@@ -95,6 +95,10 @@ export function NutritionFoodsPage() {
   const [externalFdcId, setExternalFdcId] = useState<string>('')
   const [sourceLabel, setSourceLabel] = useState('')
   const [portionBasis, setPortionBasis] = useState<NutritionFoodPortionBasis>('no_especificado')
+  /** Tupla explícita: evita autofix `const [, set…]` que dispara ReferenceError en el JSX. */
+  const macroQtyPresentationTuple = useState<NutritionFoodMacroQtyPresentation>('grams')
+  const macroQtyPresentation = macroQtyPresentationTuple[0]
+  const setMacroQtyPresentation = macroQtyPresentationTuple[1]
   const [macroRefBasisG, setMacroRefBasisG] = useState('100')
   const [protein, setProtein] = useState('')
   const [fat, setFat] = useState('')
@@ -128,7 +132,7 @@ export function NutritionFoodsPage() {
     setFdcQuery('')
     setCatalogQuery('')
     setCatalogPanelOpen(false)
-  }, [])
+  }, [setMacroQtyPresentation])
 
   function applyCatalogItem(item: FoodCatalogItemEs) {
     setCatalogPanelOpen(false)

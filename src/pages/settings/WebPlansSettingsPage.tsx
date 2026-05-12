@@ -30,6 +30,7 @@ type EditableWebPlan = Pick<
   | 'gifts_items'
   | 'sort_order'
   | 'is_active'
+  | 'show_in_public_intake'
   | 'catalog_segment'
   | 'display_badge'
   | 'credential_line_override'
@@ -67,6 +68,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
     sort_order: 1,
     is_active: true,
+    show_in_public_intake: true,
     catalog_segment: 'solo',
     display_badge: null,
     credential_line_override: null,
@@ -87,7 +89,8 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
     sort_order: 2,
     is_active: true,
-    catalog_segment: 'solo',
+    show_in_public_intake: true,
+    catalog_segment: 'with_cris',
     display_badge: null,
     credential_line_override: null,
   },
@@ -107,7 +110,8 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
     sort_order: 3,
     is_active: true,
-    catalog_segment: 'solo',
+    show_in_public_intake: true,
+    catalog_segment: 'full',
     display_badge: null,
     credential_line_override: null,
   },
@@ -153,7 +157,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
   const slug = `plan-${Date.now().toString(36)}`
   return {
     slug,
-    title: 'Nuevo plan',
+    title: 'Nueva oferta',
     price_label: '$—',
     price_yearly_label: null,
     short_description: 'Editá la descripción corta que verán en la tarjeta (8–140 caracteres).',
@@ -163,6 +167,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
     gifts_items: ['Bonificación o material de regalo.'],
     sort_order: sortOrder,
     is_active: true,
+    show_in_public_intake: true,
     catalog_segment: 'solo',
     display_badge: null,
     credential_line_override: null,
@@ -411,6 +416,7 @@ export function WebPlansSettingsPage() {
         gifts_items: row.gifts_items ?? [],
         sort_order: row.sort_order,
         is_active: row.is_active,
+        show_in_public_intake: row.show_in_public_intake !== false,
         catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
         display_badge: row.display_badge ?? null,
         credential_line_override: row.credential_line_override ?? null,
@@ -459,7 +465,7 @@ export function WebPlansSettingsPage() {
       return
     }
     if (plans.some((p) => p.slug !== prevKey && p.slug === t)) {
-      toast.error('Ese slug ya lo usa otro plan.')
+      toast.error('Ese slug ya lo usa otra oferta.')
       return
     }
     setDraftSlugs((ds) => ds.map((s) => (s === prevKey ? t : s)))
@@ -482,25 +488,25 @@ export function WebPlansSettingsPage() {
   function validate() {
     const seen = new Set<string>()
     for (const plan of plans) {
-      if (!SLUG_RE.test(plan.slug.trim())) return 'Revisá el slug de cada plan (minúsculas, números y guiones).'
+      if (!SLUG_RE.test(plan.slug.trim())) return 'Revisá el slug de cada oferta (minúsculas, números y guiones).'
       const s = plan.slug.trim()
       if (seen.has(s)) return `Slug duplicado: ${s}`
       seen.add(s)
-      if (!plan.title.trim() || plan.title.length > LIMITS.title) return 'Revisá el título de los planes.'
-      if (!plan.price_label.trim() || plan.price_label.length > LIMITS.price) return 'Revisá el precio de los planes.'
+      if (!plan.title.trim() || plan.title.length > LIMITS.title) return 'Revisá el título de las ofertas.'
+      if (!plan.price_label.trim() || plan.price_label.length > LIMITS.price) return 'Revisá el precio mensual de las ofertas.'
       const pyl = plan.price_yearly_label?.trim()
       if (pyl && pyl.length > LIMITS.priceYearly) {
-        return 'Revisá el precio anual de los planes.'
+        return 'Revisá el precio anual opcional de las ofertas.'
       }
       if (!plan.short_description.trim() || plan.short_description.length > LIMITS.short) return 'La descripción corta supera el límite.'
       if (!plan.intro_text.trim() || plan.intro_text.length > LIMITS.intro) return 'El detalle principal supera el límite.'
       const b = plan.display_badge?.trim()
-      if (b && b.length > LIMITS.badge) return `La etiqueta del plan («${plan.slug}») supera ${LIMITS.badge} caracteres.`
+      if (b && b.length > LIMITS.badge) return `La etiqueta de la oferta («${plan.slug}») supera ${LIMITS.badge} caracteres.`
       const cred = plan.credential_line_override?.trim()
       if (cred && cred.length > LIMITS.credentialLine) {
-        return `La línea de credencial libre del plan «${plan.slug}» supera ${LIMITS.credentialLine} caracteres.`
+        return `La línea de credencial libre de la oferta «${plan.slug}» supera ${LIMITS.credentialLine} caracteres.`
       }
-      if (plan.includes_items.length === 0 || plan.gifts_items.length === 0) return 'Cada plan necesita al menos un ítem en Incluye y De regalo.'
+      if (plan.includes_items.length === 0 || plan.gifts_items.length === 0) return 'Cada oferta necesita al menos un ítem en Incluye y De regalo.'
       if (plan.includes_items.some((item) => item.length > LIMITS.item) || plan.gifts_items.some((item) => item.length > LIMITS.item)) {
         return 'Hay ítems muy largos; límite 180 caracteres por línea.'
       }
@@ -526,6 +532,7 @@ export function WebPlansSettingsPage() {
       gifts_items: plan.gifts_items,
       sort_order: plan.sort_order,
       is_active: plan.is_active,
+      show_in_public_intake: plan.show_in_public_intake !== false,
       catalog_segment: plan.catalog_segment,
       display_badge: plan.display_badge?.trim() ? plan.display_badge.trim().slice(0, LIMITS.badge) : null,
       credential_line_override: plan.credential_line_override?.trim()
@@ -539,7 +546,7 @@ export function WebPlansSettingsPage() {
       return
     }
     setDraftSlugs([])
-    toast.success('Planes web actualizados')
+    toast.success('Ofertas web actualizadas')
     const { data } = await supabase.from('web_plans').select('*').order('sort_order')
     const rows = ((data as WebPlan[]) ?? []).map((row) => ({
       slug: row.slug,
@@ -552,6 +559,7 @@ export function WebPlansSettingsPage() {
       gifts_items: row.gifts_items ?? [],
       sort_order: row.sort_order,
       is_active: row.is_active,
+      show_in_public_intake: row.show_in_public_intake !== false,
       catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
       display_badge: row.display_badge ?? null,
       credential_line_override: row.credential_line_override ?? null,
@@ -583,11 +591,10 @@ export function WebPlansSettingsPage() {
           <p className="text-sm leading-relaxed text-ink-secondary">
             <span className="font-semibold text-ink-primary">Qué editás acá y qué pasa en /form</span>
             <br />
-            Arriba: fotos del selector, <strong className="text-ink-primary">etiquetas de modalidad</strong>, cupos y testimonios
-            (configuración general). Abajo: un bloque por cada plan — debe coincidir con la{' '}
-            <strong className="text-ink-primary">modalidad</strong> (solo entreno / solo nutrición / full),
-            los <strong className="text-ink-primary">precios</strong> mensual y anual del toggle, y el texto de «Incluye» en
-            la card del formulario.
+            Arriba: fotos del selector, <strong className="text-ink-primary">etiquetas de modalidad</strong> (Ferster / Nutrición / Full), cupos y
+            testimonios. Abajo: <strong className="text-ink-primary">ofertas</strong> por modalidad — cada fila es una card en el /form con lo que
+            incluye, regalos y textos. El visitante elige <strong className="text-ink-primary">Mensual, x3, x6 o Anual</strong> arriba de las cards:{' '}
+            <strong className="text-ink-primary">sólo cambia el precio</strong>, no el contenido de la oferta.
           </p>
         </div>
 
@@ -761,23 +768,23 @@ export function WebPlansSettingsPage() {
             <p className="mt-2 max-w-prose text-xs leading-relaxed text-ink-secondary">
               Título {LIMITS.title}, precio {LIMITS.price}, anual {LIMITS.priceYearly} (opcional), descripción corta {LIMITS.short},
               detalle {LIMITS.intro}, etiqueta {LIMITS.badge}, credencial {LIMITS.credentialLine}, ítem {LIMITS.item}. En planes
-              nuevos el slug solo se edita hasta el primer «Guardar planes».
+              nuevos el slug solo se edita hasta el primer «Guardar ofertas».
             </p>
           </details>
           <Button type="button" size="sm" variant="outline" icon={<Plus className="h-4 w-4" />} onClick={addPlan} className="shrink-0">
-            Agregar plan
+            Agregar oferta
           </Button>
         </div>
 
         {loading ? (
-          <Card className="p-6 text-sm text-ink-secondary">Cargando planes...</Card>
+          <Card className="p-6 text-sm text-ink-secondary">Cargando ofertas…</Card>
         ) : (
           sortedPlans.map((plan, idx) => (
             <Card key={plan.slug} className="overflow-hidden p-0 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-elevated/45 px-4 py-3 sm:px-5">
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold text-ink-primary">
-                    Plan {idx + 1}
+                    Oferta {idx + 1}
                     <span className="ml-1.5 font-normal text-ink-secondary">· {plan.title}</span>
                   </h2>
                   <p className="mt-0.5 font-mono text-xs text-ink-muted">{plan.slug}</p>
@@ -820,8 +827,21 @@ export function WebPlansSettingsPage() {
                       checked={plan.is_active}
                       onChange={(e) => updatePlan(plan.slug, { is_active: e.target.checked })}
                     />
-                    Plan activo (visible en el catálogo del /form)
+                    Plan activo (oferta habilitada en la base)
                   </label>
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
+                    <input
+                      type="checkbox"
+                      className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
+                      checked={plan.show_in_public_intake !== false}
+                      onChange={(e) => updatePlan(plan.slug, { show_in_public_intake: e.target.checked })}
+                    />
+                    Mostrar esta oferta en el /form
+                  </label>
+                  <p className="text-[11px] leading-snug text-ink-muted -mt-2 pl-7">
+                    Desmarcá si no querés que aparezca como card (ej. oferta pausada). En el /form, Mensual / x3 / x6 / Anual sólo cambian los
+                    importes; lo que ofrece cada card lo definís en esta oferta (incluye, regalos, textos).
+                  </p>
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-ink-secondary">Modalidad (igual que el desplegable del /form)</label>
                     <select
@@ -836,12 +856,12 @@ export function WebPlansSettingsPage() {
                       <option value="full">ENTRENO+NUTRICIÓN (full)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      El plan aparece cuando el visitante elige esa modalidad en el formulario web. El orden en pantalla lo define el orden de esta lista.
+                      Debe coincidir con la opción del /form (Ferster / Nutrición / Full): sólo se muestran las ofertas de esa modalidad. El orden define el orden de las cards.
                     </p>
                   </div>
                 </FieldGroup>
 
-                <FieldGroup title="Card del plan (badge y credencial)">
+                <FieldGroup title="Card de la oferta (badge y credencial)">
                   <Input
                     label="Etiqueta en la card (opcional)"
                     value={plan.display_badge ?? ''}
@@ -861,19 +881,19 @@ export function WebPlansSettingsPage() {
                   />
                 </FieldGroup>
 
-                <FieldGroup title="Título y precios (toggle Mensual / Anual en /form)">
+                <FieldGroup title="Título y precios (base para el toggle de plazos en /form)">
                   <Input
                     label="Título"
                     value={plan.title}
                     maxLength={LIMITS.title}
-                    hint={`${plan.title.length}/${LIMITS.title}`}
+                    hint={`${plan.title.length}/${LIMITS.title} · Nombre de la oferta en la card.`}
                     onChange={(e) => updatePlan(plan.slug, { title: e.target.value })}
                   />
                   <Input
                     label="Precio mensual"
                     value={plan.price_label}
                     maxLength={LIMITS.price}
-                    hint={`${plan.price_label.length}/${LIMITS.price}`}
+                    hint={`${plan.price_label.length}/${LIMITS.price} · Base para calcular x3, x6 y anual sugerido en el /form.`}
                     onChange={(e) => updatePlan(plan.slug, { price_label: e.target.value })}
                   />
                   <Input
@@ -881,7 +901,7 @@ export function WebPlansSettingsPage() {
                     value={plan.price_yearly_label ?? ''}
                     placeholder="Vacío → se muestra 10× el mensual"
                     maxLength={LIMITS.priceYearly}
-                    hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly}`}
+                    hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly} · En /form, x3 y x6 meses se calculan desde el mensual con descuento referencial (no se editan acá).`}
                     onChange={(e) =>
                       updatePlan(plan.slug, { price_yearly_label: e.target.value.trim() ? e.target.value : null })
                     }
@@ -897,7 +917,7 @@ export function WebPlansSettingsPage() {
                     onChange={(e) => updatePlan(plan.slug, { short_description: e.target.value })}
                   />
                   <Textarea
-                    label="Detalle al ampliar plan"
+                    label="Detalle al ampliar la oferta"
                     value={plan.intro_text}
                     maxLength={LIMITS.intro}
                     hint={`${plan.intro_text.length}/${LIMITS.intro}`}
@@ -929,7 +949,7 @@ export function WebPlansSettingsPage() {
             onClick={handleSave}
             loading={saving}
           >
-            Guardar planes
+            Guardar ofertas
           </Button>
         </div>
       </div>

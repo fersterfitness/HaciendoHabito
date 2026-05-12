@@ -356,7 +356,8 @@ const styles = StyleSheet.create({
   },
   orientativeBox: {
     marginTop: 10,
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     backgroundColor: C.bgSoft,
     borderRadius: 6,
     borderWidth: 1,
@@ -369,7 +370,8 @@ const styles = StyleSheet.create({
   },
   orientativeAvoidWrap: {
     marginTop: 8,
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 6,
     borderLeftWidth: 4,
     borderLeftColor: '#ea580c',
@@ -459,15 +461,34 @@ function stripKcalMentionsForPdf(text: string): string {
     .trim()
 }
 
-const EVITAR_ORIENT_PDF_MARKER = '❌ EVITAR ESTAS ACTITUDES'
+/** Helvetica en react-pdf no posiciona bien los emoji: suelen tapar la primera letra. Quitamos pictogramas en el PDF. */
+function stripEmojiFromPdfText(s: string): string {
+  return s
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .replace(/\uFE0F/g, '')
+    .replace(/[\u200D\u2060]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
-function splitOrientativeGuideForPdf(text: string): { head: string; avoidBlock?: string } {
-  const i = text.indexOf(EVITAR_ORIENT_PDF_MARKER)
-  if (i === -1) return { head: text }
-  return {
-    head: text.slice(0, i).trim(),
-    avoidBlock: text.slice(i).trim(),
+/** Título del recuadro naranja en PDF (sin emoji). */
+const EVITAR_SECTION_TITLE_PDF = 'EVITAR ESTAS ACTITUDES'
+
+/** Marcadores para partir la guía: primero el histórico con emoji, luego el texto plano. */
+const EVITAR_MARKERS_FOR_SPLIT = ['❌ EVITAR ESTAS ACTITUDES', 'EVITAR ESTAS ACTITUDES'] as const
+
+function splitOrientativeGuideForPdf(text: string): { head: string; avoidBody?: string } {
+  for (const marker of EVITAR_MARKERS_FOR_SPLIT) {
+    const i = text.indexOf(marker)
+    if (i !== -1) {
+      return {
+        head: text.slice(0, i).trim(),
+        avoidBody: text.slice(i + marker.length).trim(),
+      }
+    }
   }
+  return { head: text }
 }
 
 /** Versión corta para el cuerpo compacto del PDF. */
@@ -751,16 +772,17 @@ export function PlanningWorkbookPdfDocument({
               <View style={styles.orientativeBox}>
                 {(() => {
                   const cleaned = stripKcalMentionsForPdf(orientGuideRaw.trim())
-                  const { head, avoidBlock } = splitOrientativeGuideForPdf(cleaned)
+                  const { head, avoidBody } = splitOrientativeGuideForPdf(cleaned)
+                  const headPdf = stripEmojiFromPdfText(head)
                   return (
                     <>
-                      {head ? <Text style={styles.orientativeBody}>{head}</Text> : null}
-                      {avoidBlock ? (
+                      {headPdf ? <Text style={styles.orientativeBody}>{headPdf}</Text> : null}
+                      {avoidBody !== undefined ? (
                         <View style={styles.orientativeAvoidWrap}>
-                          <Text style={styles.orientativeAvoidTitle}>{EVITAR_ORIENT_PDF_MARKER}</Text>
-                          <Text style={styles.orientativeAvoidBody}>
-                            {avoidBlock.slice(EVITAR_ORIENT_PDF_MARKER.length).trim()}
-                          </Text>
+                          <Text style={styles.orientativeAvoidTitle}>{EVITAR_SECTION_TITLE_PDF}</Text>
+                          {avoidBody.length > 0 ? (
+                            <Text style={styles.orientativeAvoidBody}>{stripEmojiFromPdfText(avoidBody)}</Text>
+                          ) : null}
                         </View>
                       ) : null}
                     </>
