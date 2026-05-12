@@ -7,6 +7,7 @@ import {
   normalizeMealDistribution,
 } from '@/lib/nutrition/planningWorkbookTypes'
 import {
+  coerceMacroRefBasisG,
   grandTotalsFromWorkbook,
   parseLocaleNumberOrZero,
   scaledFromRefs,
@@ -247,12 +248,16 @@ export function PlanningWorkbookReadonlyView({
             if (q <= 0) continue
             secTotals = sumTotals(
               secTotals,
-              scaledFromRefs(q, {
-                carbs: parseLocaleNumberOrZero(r.refCarbs),
-                protein: parseLocaleNumberOrZero(r.refProt),
-                fat: parseLocaleNumberOrZero(r.refFat),
-                kcal: parseLocaleNumberOrZero(r.refKcal),
-              }),
+              scaledFromRefs(
+                q,
+                {
+                  carbs: parseLocaleNumberOrZero(r.refCarbs),
+                  protein: parseLocaleNumberOrZero(r.refProt),
+                  fat: parseLocaleNumberOrZero(r.refFat),
+                  kcal: parseLocaleNumberOrZero(r.refKcal),
+                },
+                coerceMacroRefBasisG(parseLocaleNumberOrZero(r.refBasisG ?? '')),
+              ),
             )
           }
           return (
@@ -306,7 +311,8 @@ export function PlanningWorkbookReadonlyView({
                         fat: parseLocaleNumberOrZero(r.refFat),
                         kcal: parseLocaleNumberOrZero(r.refKcal),
                       }
-                      const out = q > 0 ? scaledFromRefs(q, refVals) : ZERO_TOTALS
+                      const rowBasis = coerceMacroRefBasisG(parseLocaleNumberOrZero(r.refBasisG ?? ''))
+                      const out = q > 0 ? scaledFromRefs(q, refVals, rowBasis) : ZERO_TOTALS
                       return (
                         <tr key={r.id} className="border-b border-surface-border/80">
                           <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">

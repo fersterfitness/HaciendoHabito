@@ -3,7 +3,6 @@ import { fersterGoalLabel } from '@/lib/fersterIntakeLabels'
 import {
   buildStudentQuantitySummaryLines,
   fmtGramOrDash,
-  GRAMOS_POR_CUCHARADA_SOPERA,
   approxCucharadasSoperasLabel,
   preparacionAlumnoLine,
   resolveMealPickQtyPresentation,
@@ -150,13 +149,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 14,
+    bottom: 12,
     left: 28,
     right: 28,
-    fontSize: 6.5,
-    color: '#94a3b8',
+    fontSize: 7,
+    color: '#64748b',
     textAlign: 'center',
-    lineHeight: 1.3,
+    lineHeight: 1.45,
+    fontFamily: 'Helvetica-Bold',
   },
   sectionHeading: {
     fontSize: 7.5,
@@ -362,18 +362,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  orientativeTitle: {
-    fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
-    color: C.muted,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
   orientativeBody: {
     fontSize: 7.5,
     color: C.body,
     lineHeight: 1.42,
+  },
+  orientativeAvoidWrap: {
+    marginTop: 8,
+    padding: 8,
+    borderRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ea580c',
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  orientativeAvoidTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#9a3412',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  orientativeAvoidBody: {
+    fontSize: 7.8,
+    color: '#7c2d12',
+    lineHeight: 1.45,
+    fontFamily: 'Helvetica',
   },
   secAppendixStrip: {
     marginTop: 2,
@@ -433,6 +449,27 @@ function splitMultilineBody(text: string): { first: string; rest: string[] } {
   return { first: lines[0] ?? '', rest: lines.slice(1) }
 }
 
+/** PDF alumno: sin menciones numéricas de kcal en la guía libre (pedido plan impreso). */
+function stripKcalMentionsForPdf(text: string): string {
+  return text
+    .replace(/\b\d+[.,]?\d*\s*kcal\b/gi, '')
+    .replace(/\s*·\s*$/gm, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+const EVITAR_ORIENT_PDF_MARKER = '❌ EVITAR ESTAS ACTITUDES'
+
+function splitOrientativeGuideForPdf(text: string): { head: string; avoidBlock?: string } {
+  const i = text.indexOf(EVITAR_ORIENT_PDF_MARKER)
+  if (i === -1) return { head: text }
+  return {
+    head: text.slice(0, i).trim(),
+    avoidBlock: text.slice(i).trim(),
+  }
+}
+
 /** Versión corta para el cuerpo compacto del PDF. */
 function appendixDetailLinesCompact(row: PlanningFoodRowState): string {
   const q = parseLocaleNumberOrZero(row.qtyG)
@@ -482,13 +519,6 @@ function formatPersonStrip(wb: PlanningWorkbookStateV1, studentName?: string | n
   if (w) bits.push(`${w} kg`)
   if (p.sex === 'M') bits.push('M')
   else if (p.sex === 'F') bits.push('F')
-  const pk = wb.proposedKcal?.trim()
-  if (pk) bits.push(`Meta ~${pk} kcal`)
-  const tm = p.tdeeMale?.trim()
-  const tf = p.tdeeFemale?.trim()
-  if (p.sex === 'M' && tm) bits.push(`Mant. ref. ~${tm} kcal`)
-  else if (p.sex === 'F' && tf) bits.push(`Mant. ref. ~${tf} kcal`)
-  else if (tm || tf) bits.push(`Mant. ref. ~${tm ?? '—'} / ~${tf ?? '—'} kcal (h/m)`)
   if (bits.length === 0) return null
   return bits.join(' · ')
 }
@@ -502,7 +532,7 @@ export function PlanningWorkbookPdfDocument({
 }: {
   wb: PlanningWorkbookStateV1
   professionalName?: string | null
-  /** Nombre para la franja del alumno (además de peso / sexo / kcal del workbook). */
+  /** Nombre para la franja del alumno (además de peso / sexo). Sin kcal en PDF. */
   studentName?: string | null
   brandLogoSrc?: string | null
   generatedAt?: Date
@@ -614,10 +644,6 @@ export function PlanningWorkbookPdfDocument({
             {hasDistMoments ? (
               <>
                 <Text style={styles.sectionHeading}>Distribución por momentos</Text>
-                <Text style={styles.sectionIntro}>
-                  Preferí cargar huevos, pan/crackers por unidades («Uds.»): los gramos en tabla son sólo equivalencia para el cómputo del plan. Pesos cotidianos pensados cocidos cuando la fila así lo dice. En untables cdas. (~
-                  {GRAMOS_POR_CUCHARADA_SOPERA} g/cda.).
-                </Text>
                 {mealLayout
                   .filter((b) => {
                     const picks = md.picksByMeal?.[b.slot] ?? []
@@ -723,15 +749,30 @@ export function PlanningWorkbookPdfDocument({
 
             {orientGuideRaw.length > 0 ? (
               <View style={styles.orientativeBox}>
-                <Text style={styles.orientativeTitle}>Guía orientativa · hortalizas, equivalencias y proteínas</Text>
-                <Text style={styles.orientativeBody}>{orientGuideRaw.trim()}</Text>
+                {(() => {
+                  const cleaned = stripKcalMentionsForPdf(orientGuideRaw.trim())
+                  const { head, avoidBlock } = splitOrientativeGuideForPdf(cleaned)
+                  return (
+                    <>
+                      {head ? <Text style={styles.orientativeBody}>{head}</Text> : null}
+                      {avoidBlock ? (
+                        <View style={styles.orientativeAvoidWrap}>
+                          <Text style={styles.orientativeAvoidTitle}>{EVITAR_ORIENT_PDF_MARKER}</Text>
+                          <Text style={styles.orientativeAvoidBody}>
+                            {avoidBlock.slice(EVITAR_ORIENT_PDF_MARKER.length).trim()}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </>
+                  )
+                })()}
               </View>
             ) : null}
           </>
         )}
 
         <Text style={styles.footer} fixed>
-          No es prescripción médica · orientación general: ajustá con tu profesional.
+          Orientación nutricional general · no sustituye indicación individual ni prescripción médica.
         </Text>
       </Page>
     </Document>

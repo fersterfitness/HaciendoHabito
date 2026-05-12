@@ -98,7 +98,7 @@ const STEP_FIELDS: (keyof FersterIntakeFormValues)[][] = [
     'supplements',
   ],
   [],
-  ['payment_preference', 'accept_privacy'],
+  ['payment_preference', 'payment_notes', 'accept_privacy'],
 ]
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {

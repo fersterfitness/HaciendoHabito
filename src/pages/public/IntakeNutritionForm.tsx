@@ -36,7 +36,7 @@ const STEP_FIELDS: (keyof NutritionIntakeFormValues)[][] = [
   [],
   [],
   [],
-  ['payment_preference', 'accept_privacy'],
+  ['payment_preference', 'payment_notes', 'accept_privacy'],
 ]
 
 const STEP_TITLES = ['Datos', 'Salud', 'Actividad', '24 h', 'Hábitos', 'Pago']

@@ -27,11 +27,14 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ObjectivesGuideMatrixTable } from '@/components/nutrition/ObjectivesGuideMatrixTable'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
 import {
+  coerceMacroRefBasisG,
   diffTotals,
+  libraryMacroRefBasisG,
   pctKcalMacros,
   parseLocaleNumber,
   parseLocaleNumberOrZero,
@@ -127,7 +130,7 @@ const PLANNING_MAIN_TAB_DEFS = [
   {
     id: 'tablas' as const,
     label: 'Tablas HH',
-    hint: 'Mi lista y valores /100 g',
+    hint: 'Mi lista · referencia Guía y gramos por porción',
     Icon: Table2,
   },
 ] as const
@@ -156,12 +159,13 @@ function formatLibNutrientForPlanning(n: number | null | undefined): string {
   return String(n)
 }
 
-/** Leyenda /100 según cómo guardó el alimento en Guía (g, ml o modo uds.). */
+/** Leyenda de referencia según cómo guardó el alimento en Guía (g, ml o modo uds.). */
 function libSavedMacroRefSuffix(lib: NutritionFoodLibrary): string {
   const m = lib.macro_qty_presentation ?? 'grams'
+  const g = libraryMacroRefBasisG(lib)
   if (m === 'volume') return '/100 ml'
-  if (m === 'units') return '/100 g · uds.'
-  return '/100 g'
+  if (m === 'units') return `/${g} g · uds.`
+  return `/${g} g`
 }
 
 /** Celda compacta P / HC / G en la misma vista que kcal (alta visibilidad en claro y oscuro). */
@@ -218,9 +222,21 @@ function LiveMacroCell({
 function TotalsBadge({
   label,
   compact,
+  energyKcalOverride,
+  energyKcalFootnote,
   ...t
-}: MacroTotals & { label: string; compact?: boolean }) {
+}: MacroTotals & {
+  label: string
+  compact?: boolean
+  /** Si hay meta calórica (TDEE ± déficit), mostrarla en lugar de 4P+4C+9G sobre los gramos objetivo. */
+  energyKcalOverride?: number
+  energyKcalFootnote?: string
+}) {
   const pct = pctKcalMacros(t)
+  const kcalLine =
+    energyKcalOverride != null && Number.isFinite(energyKcalOverride) && energyKcalOverride > 0
+      ? energyKcalOverride
+      : t.kcal
   return (
     <div
       className={cn(
@@ -232,8 +248,11 @@ function TotalsBadge({
         {label}
       </p>
       <p className={cn('tabular-nums text-ink-secondary', compact ? 'text-xs mt-0.5 leading-snug' : 'mt-1')}>
-        HC {fmt1(t.carbsG)} · P {fmt1(t.proteinG)} · G {fmt1(t.fatG)} · {fmt1(t.kcal)} kcal
+        HC {fmt1(t.carbsG)} · P {fmt1(t.proteinG)} · G {fmt1(t.fatG)} · {fmt1(kcalLine)} kcal
       </p>
+      {energyKcalFootnote ? (
+        <p className="mt-1 text-[9px] leading-snug text-ink-muted">{energyKcalFootnote}</p>
+      ) : null}
       {pct && !compact && (
         <p className="text-[11px] text-ink-muted mt-1 tabular-nums">
           Distribución aprox.: P {pct.p.toFixed(0)} % · HC {pct.c.toFixed(0)} % · G {pct.f.toFixed(0)} %
@@ -368,6 +387,7 @@ export function NutritionPlanningPage() {
           p: lib.protein_g_per_100g ?? 0,
           f: lib.fat_g_per_100g ?? 0,
           k: lib.energy_kcal_per_100g ?? 0,
+          b: libraryMacroRefBasisG(lib),
         }
         changed = true
       }
@@ -701,6 +721,14 @@ export function NutritionPlanningPage() {
     [calcBmrFemale, activityOk, activityFac],
   )
 
+  const sexTdeeKcal = useMemo(() => {
+    if (wb.person.sex === 'M' && Number.isFinite(calcTdeeMale) && calcTdeeMale > 0) return calcTdeeMale
+    if (wb.person.sex === 'F' && Number.isFinite(calcTdeeFemale) && calcTdeeFemale > 0) return calcTdeeFemale
+    const raw = wb.person.sex === 'M' ? wb.person.tdeeMale : wb.person.sex === 'F' ? wb.person.tdeeFemale : ''
+    const n = parseLocaleNumber(raw)
+    return Number.isFinite(n) && n > 0 ? n : NaN
+  }, [wb.person.sex, wb.person.tdeeMale, wb.person.tdeeFemale, calcTdeeMale, calcTdeeFemale])
+
   const intakeTotals = useMemo(() => plannedNutritionTotalsFromWorkbook(wb), [wb])
   const remainderVsGuide =
     weightKg > 0 && (guideTotals.carbsG > 0 || guideTotals.proteinG > 0 || guideTotals.fatG > 0)
@@ -911,22 +939,31 @@ export function NutritionPlanningPage() {
       const sec = wb.sections.find((s) => s.key === p.secKey)
       const row = sec?.rows.find((r) => r.id === p.rowId)
       if (!row) return null
-      const t = scaledFromRefs(q, {
-        carbs: parseLocaleNumberOrZero(row.refCarbs),
-        protein: parseLocaleNumberOrZero(row.refProt),
-        fat: parseLocaleNumberOrZero(row.refFat),
-        kcal: parseLocaleNumberOrZero(row.refKcal),
-      })
+      const t = scaledFromRefs(
+        q,
+        {
+          carbs: parseLocaleNumberOrZero(row.refCarbs),
+          protein: parseLocaleNumberOrZero(row.refProt),
+          fat: parseLocaleNumberOrZero(row.refFat),
+          kcal: parseLocaleNumberOrZero(row.refKcal),
+        },
+        coerceMacroRefBasisG(parseLocaleNumberOrZero(row.refBasisG ?? '')),
+      )
       return `Esta porción: HC ${fmt1(t.carbsG)} · P ${fmt1(t.proteinG)} · G ${fmt1(t.fatG)} · ${fmt1(t.kcal)} kcal`
     }
     const lib = libraryFoods.find((f) => f.id === p.libraryFoodId)
     if (!lib) return null
-    const t = scaledFromRefs(q, {
-      carbs: lib.carbs_g_per_100g ?? 0,
-      protein: lib.protein_g_per_100g ?? 0,
-      fat: lib.fat_g_per_100g ?? 0,
-      kcal: lib.energy_kcal_per_100g ?? 0,
-    })
+    const basis = libraryMacroRefBasisG(lib)
+    const t = scaledFromRefs(
+      q,
+      {
+        carbs: lib.carbs_g_per_100g ?? 0,
+        protein: lib.protein_g_per_100g ?? 0,
+        fat: lib.fat_g_per_100g ?? 0,
+        kcal: lib.energy_kcal_per_100g ?? 0,
+      },
+      basis,
+    )
     return `Esta porción: HC ${fmt1(t.carbsG)} · P ${fmt1(t.proteinG)} · G ${fmt1(t.fatG)} · ${fmt1(t.kcal)} kcal`
   }
 
@@ -1000,6 +1037,7 @@ export function NutritionPlanningPage() {
             p: lib.protein_g_per_100g ?? 0,
             f: lib.fat_g_per_100g ?? 0,
             k: lib.energy_kcal_per_100g ?? 0,
+            b: libraryMacroRefBasisG(lib),
           },
         }
         return {
@@ -1121,6 +1159,7 @@ export function NutritionPlanningPage() {
           p: lib.protein_g_per_100g ?? 0,
           f: lib.fat_g_per_100g ?? 0,
           k: lib.energy_kcal_per_100g ?? 0,
+          b: libraryMacroRefBasisG(lib),
         }
       }
       return {
@@ -1140,6 +1179,7 @@ export function NutritionPlanningPage() {
       refProt: formatLibNutrientForPlanning(lib.protein_g_per_100g),
       refFat: formatLibNutrientForPlanning(lib.fat_g_per_100g),
       refKcal: formatLibNutrientForPlanning(lib.energy_kcal_per_100g),
+      refBasisG: String(libraryMacroRefBasisG(lib)),
       qtyG: qty,
       hint: undefined,
       qtyPresentation: mq,
@@ -1596,21 +1636,53 @@ export function NutritionPlanningPage() {
                   </div>
                 </div>
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <TotalsBadge label="Objetivo · gramos (peso × g/kg)" {...guideTotals} compact />
+                  <TotalsBadge
+                    label="Objetivo · gramos (peso × g/kg)"
+                    {...guideTotals}
+                    compact
+                    energyKcalOverride={
+                      Number.isFinite(sexTdeeKcal) && sexTdeeKcal > 0
+                        ? sexTdeeKcal
+                        : targetKcal > 0
+                          ? targetKcal
+                          : undefined
+                    }
+                    energyKcalFootnote={
+                      Number.isFinite(sexTdeeKcal) && sexTdeeKcal > 0
+                        ? [
+                            targetKcal > 0 ? `Meta del día (déficit/superávit): ${fmt1(targetKcal)} kcal.` : '',
+                            `Suma térmica 4·P+4·C+9·G de esos gramos objetivo: ${fmt1(macrosKcalGuess)} kcal (orientativa).`,
+                          ]
+                            .filter(Boolean)
+                            .join(' ')
+                        : targetKcal > 0 && Math.abs(macrosKcalGuess - targetKcal) > 3
+                          ? 'Las kcal mostradas son la meta del día (arriba). La suma térmica 4·P+4·C+9·G de esos gramos puede diferir si ajustás déficit/superávit sobre el TDEE.'
+                          : targetKcal > 0
+                            ? 'Alineado a la meta calórica del día.'
+                            : undefined
+                    }
+                  />
                   <div className="rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-sm space-y-1.5">
-                    <p className="text-[9px] uppercase tracking-wide text-ink-muted font-bold">Total cantidad · kcal desde esos macros</p>
+                    <p className="text-[9px] uppercase tracking-wide text-ink-muted font-bold">Meta calórica del día</p>
                     <p className="text-base font-semibold tabular-nums text-ink-primary">
-                      {weightKg > 0 ? `${macrosKcalGuess.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
+                      {targetKcal > 0 ? `${targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
                     </p>
-                    {weightKg > 0 && targetKcal > 0 ? (
-                      <p className="text-[11px] text-ink-secondary tabular-nums">
-                        vs {targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal meta · Δ{' '}
-                        {(macrosKcalGuess - targetKcal).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                    {weightKg > 0 ? (
+                      <p className="text-[10px] text-ink-muted tabular-nums">
+                        Suma térmica de los g/kg (4·P+4·C+9·G):{' '}
+                        {macrosKcalGuess.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal
+                        {targetKcal > 0 ? (
+                          <>
+                            {' '}
+                            · Δ respecto a meta{' '}
+                            {(macrosKcalGuess - targetKcal).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                          </>
+                        ) : null}
                       </p>
                     ) : null}
                     {weightKg > 0 && targetKcal > 0 && guidePctVsTarget ? (
                       <p className="text-[10px] text-ink-muted tabular-nums">
-                        % sobre meta: HC {guidePctVsTarget.c.toFixed(0)} · P {guidePctVsTarget.p.toFixed(0)} · G{' '}
+                        % energía sobre meta: HC {guidePctVsTarget.c.toFixed(0)} · P {guidePctVsTarget.p.toFixed(0)} · G{' '}
                         {guidePctVsTarget.f.toFixed(0)}
                       </p>
                     ) : null}
@@ -1619,23 +1691,45 @@ export function NutritionPlanningPage() {
               </div>
               <div className="rounded-xl border border-surface-border overflow-hidden mt-4">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
-                  Vista cuadro (como segunda solapa Excel) · referencia rápida
+                  Vista cuadro (Excel) · objetivo y datos
                 </p>
-                <table className="w-full text-left text-sm">
+                <table className="w-full border-collapse text-left text-sm border border-surface-border/80">
                   <tbody>
                     {(
                       [
                         ['Objetivo', fersterGoalLabel(wb.objectives?.trim() ?? '') || wb.objectives?.trim() || '—'],
                         ['Peso (kg)', wb.person.weightKg?.trim() || '—'],
-                        ['Meta kcal', wb.proposedKcal?.trim() || '—'],
+                        ['Meta kcal (día)', wb.proposedKcal?.trim() || '—'],
+                        [
+                          'TMB (según sexo en ficha)',
+                          wb.person.sex === 'M' && Number.isFinite(calcBmrMale)
+                            ? `${fmt1(calcBmrMale)} kcal`
+                            : wb.person.sex === 'F' && Number.isFinite(calcBmrFemale)
+                              ? `${fmt1(calcBmrFemale)} kcal`
+                              : 'Elegí M/F y datos en 3 · TDEE',
+                        ],
+                        [
+                          'TDEE (según sexo en ficha)',
+                          wb.person.sex === 'M' && Number.isFinite(calcTdeeMale)
+                            ? `${fmt1(calcTdeeMale)} kcal`
+                            : wb.person.sex === 'F' && Number.isFinite(calcTdeeFemale)
+                              ? `${fmt1(calcTdeeFemale)} kcal`
+                              : '—',
+                        ],
+                        [
+                          'Gramos objetivo P · HC · G',
+                          weightKg > 0
+                            ? `${fmt1(weightKg * pPerKg)} · ${fmt1(weightKg * cPerKg)} · ${fmt1(weightKg * fPerKg)}`
+                            : '—',
+                        ],
                         ['Prot / HC / G · g/kg', `${wb.macroInputs.proteinGPerKg} / ${wb.macroInputs.carbGPerKg} / ${wb.macroInputs.fatGPerKg}`],
                       ] as const
                     ).map(([k, v]) => (
                       <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                        <th className="w-[34%] px-3 py-2 text-[10px] font-bold uppercase text-ink-muted bg-surface-muted/20 align-top">
+                        <th className="w-[34%] px-3 py-2 text-[10px] font-bold uppercase text-ink-muted bg-surface-muted/20 align-top border-r border-surface-border/60">
                           {k}
                         </th>
-                        <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap">{v}</td>
+                        <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap tabular-nums">{v}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1650,9 +1744,13 @@ export function NutritionPlanningPage() {
                   <span className="text-sm font-medium text-ink-primary block">3 · Calculadora TMB / TDEE</span>
                   <span className="text-[10px] text-ink-muted block tabular-nums">
                     Mifflin–St Jeor ·{' '}
-                    {Number.isFinite(calcTdeeMale) && Number.isFinite(calcTdeeFemale)
-                      ? `TDEE ejemplo H ${fmt1(calcTdeeMale)} · M ${fmt1(calcTdeeFemale)} kcal`
-                      : 'Completa datos y factor cuando la abras'}
+                    {wb.person.sex === 'M' && Number.isFinite(calcTdeeMale)
+                      ? `TDEE hombre ${fmt1(calcTdeeMale)} kcal`
+                      : wb.person.sex === 'F' && Number.isFinite(calcTdeeFemale)
+                        ? `TDEE mujer ${fmt1(calcTdeeFemale)} kcal`
+                        : Number.isFinite(calcTdeeMale) && Number.isFinite(calcTdeeFemale)
+                          ? `TDEE ejemplo H ${fmt1(calcTdeeMale)} · M ${fmt1(calcTdeeFemale)} kcal`
+                          : 'Completa datos y factor cuando la abras'}
                   </span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
@@ -1854,19 +1952,27 @@ export function NutritionPlanningPage() {
             <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-ink-muted transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
             Información sobre objetivos
           </summary>
-          <div className="mt-4 ml-7 pl-2 border-l-2 border-surface-border grid gap-4 md:grid-cols-2 text-sm text-ink-secondary">
-            <div className="space-y-2">
-              <p className="font-medium text-ink-primary">{wb.objectivesGuide.superavitCal}</p>
-              <p>{wb.objectivesGuide.deficitCal}</p>
-              <p>{wb.objectivesGuide.recomposicion}</p>
-              <p>{wb.objectivesGuide.longevidad}</p>
-            </div>
-            <div className="space-y-2">
-              <p>{wb.objectivesGuide.proteinasPorObjetivo}</p>
-              <p>{wb.objectivesGuide.grasasPorObjetivo}</p>
-              <p>{wb.objectivesGuide.carbosPorObjetivo}</p>
-              <p>{wb.objectivesGuide.pctDistribicion}</p>
-            </div>
+          <div className="mt-4 ml-7 pl-2 border-l-2 border-surface-border">
+            <ObjectivesGuideMatrixTable og={wb.objectivesGuide} />
+            <details className="mt-4 group">
+              <summary className="cursor-pointer text-xs font-semibold text-ink-muted list-none [&::-webkit-details-marker]:hidden">
+                Texto ampliado (plantilla)
+              </summary>
+              <div className="mt-2 grid gap-3 md:grid-cols-2 text-sm text-ink-secondary">
+                <div className="space-y-2">
+                  <p className="font-medium text-ink-primary">{wb.objectivesGuide.superavitCal}</p>
+                  <p>{wb.objectivesGuide.deficitCal}</p>
+                  <p>{wb.objectivesGuide.recomposicion}</p>
+                  <p>{wb.objectivesGuide.longevidad}</p>
+                </div>
+                <div className="space-y-2">
+                  <p>{wb.objectivesGuide.proteinasPorObjetivo}</p>
+                  <p>{wb.objectivesGuide.grasasPorObjetivo}</p>
+                  <p>{wb.objectivesGuide.carbosPorObjetivo}</p>
+                  <p>{wb.objectivesGuide.pctDistribicion}</p>
+                </div>
+              </div>
+            </details>
           </div>
         </details>
 
@@ -2484,8 +2590,7 @@ export function NutritionPlanningPage() {
         </p>
 
         <p className="text-sm text-ink-muted leading-relaxed">
-          Tablas por tipo de comida como en HH: cargá <strong>cantidad en gramos</strong> donde querés.&nbsp;
-          HC / prot / grasa / kcal por 100 g son editables si tu marca cambia.&nbsp;
+          Tablas por tipo de comida como en HH: la <strong>cantidad en gramos</strong> es la porción real (ej. 25 g de pan, 40 g de dulce de leche). Los macros se escalan desde la referencia de la Guía (habitualmente por 100 g o 100 ml; también podés editar HC / P / G / kcal de referencia si tu marca cambia).&nbsp;
           Tip: tocá «Mi lista» (<BookOpen className="mx-px inline-block h-3.5 w-3.5 align-text-bottom text-zinc-500 dark:text-zinc-500" aria-hidden />) junto al alimento para traer algo que hayas guardado en{' '}
           <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
             Guía de alimentos
@@ -2548,18 +2653,27 @@ export function NutritionPlanningPage() {
                     </th>
                     <th
                       className="px-2 py-2 font-semibold w-[64px]"
-                      title="Carbohidratos de referencia por 100 g o 100 ml según Guía."
+                      title="Carbohidratos por la referencia en gramos definida en Guía (cada fila puede ser distinta)."
                     >
-                      HC /100
+                      HC ref.
                     </th>
-                    <th className="px-2 py-2 font-semibold w-[64px]" title="Proteínas de referencia por 100 g o 100 ml.">
-                      P /100
+                    <th
+                      className="px-2 py-2 font-semibold w-[64px]"
+                      title="Proteínas por la referencia en gramos definida en Guía."
+                    >
+                      P ref.
                     </th>
-                    <th className="px-2 py-2 font-semibold w-[64px]" title="Grasas de referencia por 100 g o 100 ml.">
-                      G /100
+                    <th
+                      className="px-2 py-2 font-semibold w-[64px]"
+                      title="Grasas por la referencia en gramos definida en Guía."
+                    >
+                      G ref.
                     </th>
-                    <th className="px-2 py-2 font-semibold w-[72px]" title="Energía de referencia por 100 g o 100 ml.">
-                      kcal /100
+                    <th
+                      className="px-2 py-2 font-semibold w-[72px]"
+                      title="Energía por la referencia en gramos definida en Guía."
+                    >
+                      kcal ref.
                     </th>
                     <th className="px-2 py-2 font-semibold w-[72px]">HC</th>
                     <th className="px-2 py-2 font-semibold w-[72px]">P</th>
@@ -2573,14 +2687,15 @@ export function NutritionPlanningPage() {
                 <tbody>
                   {libraryFoods.map((lib) => {
                     const qDraft = parseLocaleNumberOrZero(wb.libraryQtyDraft?.[lib.id] ?? '')
+                    const snap = wb.libraryFoodRefsById?.[lib.id]
+                    const basis = snap?.b != null ? coerceMacroRefBasisG(snap.b) : libraryMacroRefBasisG(lib)
                     const libRefs = {
-                      carbs: lib.carbs_g_per_100g ?? 0,
-                      protein: lib.protein_g_per_100g ?? 0,
-                      fat: lib.fat_g_per_100g ?? 0,
-                      kcal: lib.energy_kcal_per_100g ?? 0,
+                      carbs: snap?.c ?? lib.carbs_g_per_100g ?? 0,
+                      protein: snap?.p ?? lib.protein_g_per_100g ?? 0,
+                      fat: snap?.f ?? lib.fat_g_per_100g ?? 0,
+                      kcal: snap?.k ?? lib.energy_kcal_per_100g ?? 0,
                     }
-                    const outLib =
-                      qDraft > 0 ? scaledFromRefs(qDraft, libRefs) : ZERO_TOTALS
+                    const outLib = qDraft > 0 ? scaledFromRefs(qDraft, libRefs, basis) : ZERO_TOTALS
                     const refSuffix = libSavedMacroRefSuffix(lib)
                     const qtyAria =
                       lib.macro_qty_presentation === 'volume'
@@ -2647,8 +2762,8 @@ export function NutritionPlanningPage() {
         </section>
 
         <div className="rounded-lg border border-dashed border-surface-border bg-surface-muted/15 px-3 py-2 text-xs text-ink-secondary">
-          <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por 100 g o 100 ml según cómo
-          guardaste cada ítem en Guía; el seguimiento contra objetivos está arriba.
+          <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por la referencia en gramos (o
+          100 ml en bebidas) que definiste en Guía; el seguimiento contra objetivos está arriba.
         </div>
 
         <div className="space-y-5">
@@ -2663,7 +2778,8 @@ export function NutritionPlanningPage() {
                 fat: parseLocaleNumberOrZero(r.refFat),
                 kcal: parseLocaleNumberOrZero(r.refKcal),
               }
-              secTotals = sumTotals(secTotals, scaledFromRefs(q, refVals))
+              const rowBasis = coerceMacroRefBasisG(parseLocaleNumberOrZero(r.refBasisG ?? ''))
+              secTotals = sumTotals(secTotals, scaledFromRefs(q, refVals, rowBasis))
             }
             return (
               <section
@@ -2713,7 +2829,8 @@ export function NutritionPlanningPage() {
                           fat: parseLocaleNumberOrZero(r.refFat),
                           kcal: parseLocaleNumberOrZero(r.refKcal),
                         }
-                        const out = q > 0 ? scaledFromRefs(q, refVals) : ZERO_TOTALS
+                        const rowBasis = coerceMacroRefBasisG(parseLocaleNumberOrZero(r.refBasisG ?? ''))
+                        const out = q > 0 ? scaledFromRefs(q, refVals, rowBasis) : ZERO_TOTALS
                         return (
                           <tr key={r.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
                             <td className="px-2 py-1.5 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[240px]">

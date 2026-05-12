@@ -47,6 +47,21 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
           <span>Efectivo</span>
         </label>
       </div>
+      <label className="mt-3 block">
+        <span className={intakeFormFieldLabelClass()}>
+          Dato de pago <span className="text-zinc-500 dark:text-zinc-400">(opcional)</span>
+        </span>
+        <p className="mb-1.5 text-[11px] text-ink-muted">
+          Mercado Pago: alias o comprobante. Efectivo: acuerdo o sucursal si querés dejar constancia.
+        </p>
+        <textarea
+          rows={2}
+          maxLength={500}
+          className="mt-1 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted/60"
+          placeholder="Ej. alias MP · nº de operación · observaciones"
+          {...register('payment_notes')}
+        />
+      </label>
       {error ? <p className="mt-1 text-xs text-status-expired">{error}</p> : null}
     </div>
   )

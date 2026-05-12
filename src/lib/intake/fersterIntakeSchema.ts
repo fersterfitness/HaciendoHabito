@@ -31,6 +31,7 @@ export const fersterIntakeSchema = z
     payment_preference: z.enum(['cash', 'mercadopago'], {
       required_error: 'Elegí una forma de pago',
     }),
+    payment_notes: z.string().max(500).optional().or(z.literal('')),
     accept_privacy: z.boolean().refine((v) => v === true, { message: 'Tenés que aceptar para continuar' }),
     website: z.literal(''),
   })
@@ -85,5 +86,6 @@ export function fersterDefaults(): Partial<FersterIntakeFormValues> & { website:
     sleep_hours: '6_7',
     supplements: 'no',
     payment_preference: 'mercadopago',
+    payment_notes: '',
   }
 }

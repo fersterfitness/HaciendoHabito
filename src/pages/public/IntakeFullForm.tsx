@@ -71,6 +71,7 @@ const fullIntakeSchema = z
     payment_preference: z.enum(['cash', 'mercadopago'], {
       required_error: 'Elegí una forma de pago',
     }),
+    payment_notes: z.string().max(500).optional().or(z.literal('')),
     // Privacy
     accept_privacy: z.boolean().refine((v) => v === true, { message: 'Tenés que aceptar para continuar' }),
     website: z.literal(''),
@@ -97,7 +98,7 @@ const STEP_FIELDS: (keyof FullIntakeFormValues)[][] = [
   ['pathology', 'pathology_detail', 'discomfort_exercises', 'four_meals', 'sleep_hours', 'supplements'],
   [],
   [],
-  ['payment_preference', 'accept_privacy'],
+  ['payment_preference', 'payment_notes', 'accept_privacy'],
 ]
 
 const STEP_TITLES = ['Datos', 'Entreno', 'Salud', 'Nutrición', 'Fotos', 'Pago']
@@ -173,6 +174,7 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
       digestive_intolerances: '', meals_per_day: '', first_meal_time: '', last_meal_time: '',
       common_preparations: '',
       payment_preference: 'mercadopago',
+      payment_notes: '',
     },
   })
 

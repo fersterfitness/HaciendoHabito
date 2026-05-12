@@ -5,6 +5,7 @@ import {
   normalizeMealDistribution,
   type PlanningWorkbookStateV1,
 } from '@/lib/nutrition/planningWorkbookTypes'
+import type { NutritionFoodLibrary } from '@/types/database'
 
 export function parseLocaleNumber(raw: string): number {
   const t = raw.trim().replace(/\s+/g, '').replace(',', '.')
@@ -25,11 +26,27 @@ export interface MacroTotals {
   kcal: number
 }
 
+export const DEFAULT_MACRO_REF_BASIS_G = 100
+
+export function coerceMacroRefBasisG(n: number | undefined | null): number {
+  if (n == null || !Number.isFinite(n) || n <= 0) return DEFAULT_MACRO_REF_BASIS_G
+  return Math.min(10000, n)
+}
+
+/** Base de referencia en la Guía (g por fila; bebidas en ml siguen usando 100 ml en la práctica). */
+export function libraryMacroRefBasisG(lib: Pick<NutritionFoodLibrary, 'macro_qty_presentation' | 'macro_ref_basis_g'>): number {
+  const mq = lib.macro_qty_presentation ?? 'grams'
+  if (mq === 'volume') return DEFAULT_MACRO_REF_BASIS_G
+  return coerceMacroRefBasisG(lib.macro_ref_basis_g)
+}
+
 export function scaledFromRefs(
   qtyG: number,
   ref: { carbs: number; protein: number; fat: number; kcal: number },
+  refBasisG: number = DEFAULT_MACRO_REF_BASIS_G,
 ): MacroTotals {
-  const m = qtyG / 100
+  const basis = coerceMacroRefBasisG(refBasisG)
+  const m = qtyG / basis
   return {
     carbsG: ref.carbs * m,
     proteinG: ref.protein * m,
@@ -56,14 +73,19 @@ export function grandTotalsFromWorkbook(wb: PlanningWorkbookStateV1): MacroTotal
     for (const r of sec.rows) {
       const q = parseLocaleNumberOrZero(r.qtyG)
       if (q <= 0) continue
+      const rowBasis = coerceMacroRefBasisG(parseLocaleNumberOrZero(r.refBasisG ?? ''))
       acc = sumTotals(
         acc,
-        scaledFromRefs(q, {
-          carbs: parseLocaleNumberOrZero(r.refCarbs),
-          protein: parseLocaleNumberOrZero(r.refProt),
-          fat: parseLocaleNumberOrZero(r.refFat),
-          kcal: parseLocaleNumberOrZero(r.refKcal),
-        }),
+        scaledFromRefs(
+          q,
+          {
+            carbs: parseLocaleNumberOrZero(r.refCarbs),
+            protein: parseLocaleNumberOrZero(r.refProt),
+            fat: parseLocaleNumberOrZero(r.refFat),
+            kcal: parseLocaleNumberOrZero(r.refKcal),
+          },
+          rowBasis,
+        ),
       )
     }
   }
@@ -76,12 +98,16 @@ export function grandTotalsFromWorkbook(wb: PlanningWorkbookStateV1): MacroTotal
     if (!ref) continue
     acc = sumTotals(
       acc,
-      scaledFromRefs(q, {
-        carbs: ref.c,
-        protein: ref.p,
-        fat: ref.f,
-        kcal: ref.k,
-      }),
+      scaledFromRefs(
+        q,
+        {
+          carbs: ref.c,
+          protein: ref.p,
+          fat: ref.f,
+          kcal: ref.k,
+        },
+        coerceMacroRefBasisG(ref.b),
+      ),
     )
   }
   return acc
@@ -102,26 +128,35 @@ export function mealDistributionPicksTotals(wb: PlanningWorkbookStateV1): MacroT
         const sec = wb.sections.find((s) => s.key === p.secKey)
         const row = sec?.rows.find((r) => r.id === p.rowId)
         if (!row) continue
+        const rowBasis = coerceMacroRefBasisG(parseLocaleNumberOrZero(row.refBasisG ?? ''))
         acc = sumTotals(
           acc,
-          scaledFromRefs(q, {
-            carbs: parseLocaleNumberOrZero(row.refCarbs),
-            protein: parseLocaleNumberOrZero(row.refProt),
-            fat: parseLocaleNumberOrZero(row.refFat),
-            kcal: parseLocaleNumberOrZero(row.refKcal),
-          }),
+          scaledFromRefs(
+            q,
+            {
+              carbs: parseLocaleNumberOrZero(row.refCarbs),
+              protein: parseLocaleNumberOrZero(row.refProt),
+              fat: parseLocaleNumberOrZero(row.refFat),
+              kcal: parseLocaleNumberOrZero(row.refKcal),
+            },
+            rowBasis,
+          ),
         )
       } else {
         const ref = wb.libraryFoodRefsById?.[p.libraryFoodId]
         if (!ref) continue
         acc = sumTotals(
           acc,
-          scaledFromRefs(q, {
-            carbs: ref.c,
-            protein: ref.p,
-            fat: ref.f,
-            kcal: ref.k,
-          }),
+          scaledFromRefs(
+            q,
+            {
+              carbs: ref.c,
+              protein: ref.p,
+              fat: ref.f,
+              kcal: ref.k,
+            },
+            coerceMacroRefBasisG(ref.b),
+          ),
         )
       }
     }

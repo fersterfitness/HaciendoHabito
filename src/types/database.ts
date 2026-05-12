@@ -238,6 +238,12 @@ export interface Database {
         Update: Partial<Omit<AppointmentReminder, 'id' | 'created_at'>>
         Relationships: []
       }
+      personal_calendar_items: {
+        Row: PersonalCalendarItem
+        Insert: Omit<PersonalCalendarItem, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<PersonalCalendarItem, 'id' | 'created_at'>>
+        Relationships: []
+      }
       income: {
         Row: Income
         Insert: Omit<Income, 'id' | 'created_at' | 'updated_at'>
@@ -321,6 +327,8 @@ export type NutritionIntakeStored = {
   uploads: Record<string, string>
   /** Preferencia declarada en /form (efectivo vs Mercado Pago). */
   payment_preference?: 'cash' | 'mercadopago'
+  /** Alias, comprobante u observación de pago (opcional). */
+  payment_notes?: string | null
 }
 
 /** Cuestionario web Ferster (/form); `uploads` mapea clave → ruta en bucket `student-intake`. */
@@ -344,6 +352,8 @@ export type FersterIntakeStored = {
   uploads?: Record<string, string>
   /** Preferencia declarada en /form (efectivo vs Mercado Pago). */
   payment_preference?: 'cash' | 'mercadopago'
+  /** Alias, comprobante u observación de pago (opcional). */
+  payment_notes?: string | null
 }
 
 export interface Student {
@@ -521,6 +531,10 @@ export interface WebIntakeCatalogSettings {
   intake_slots_open?: boolean
   intake_slots_remaining?: number | null
   intake_slots_public_message?: string | null
+  /** Etiquetas del selector «Modalidad» en /form (opcional; vacío = default en cliente). */
+  modality_label_solo?: string | null
+  modality_label_with_cris?: string | null
+  modality_label_full?: string | null
   updated_at: string
 }
 
@@ -719,6 +733,8 @@ export interface NutritionFoodLibrary {
   carbs_g_per_100g: number | null
   fiber_g_per_100g: number | null
   energy_kcal_per_100g: number | null
+  /** Gramos de referencia para P/G/HC/kcal (ej. 25 pan, 50 dulce de leche). Por defecto 100. */
+  macro_ref_basis_g: number
   portion_basis: NutritionFoodPortionBasis
   macro_qty_presentation: NutritionFoodMacroQtyPresentation
   source_label: string | null
@@ -772,6 +788,18 @@ export interface AppointmentReminder {
   status: 'pending' | 'sent' | 'failed'
   error_message: string | null
   created_at: string
+}
+
+/** Eventos de agenda solo del profesional (no asociados a `students`). */
+export interface PersonalCalendarItem {
+  id: string
+  owner_id: string
+  title: string
+  starts_at: string
+  ends_at: string
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Income {

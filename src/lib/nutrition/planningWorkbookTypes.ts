@@ -16,7 +16,9 @@ export interface PlanningFoodRowState {
   unitsLabel?: string
   /** Cantidad en gramos para el cómputo */
   qtyG: string
-  /** Referencia manual por 100 g (usuario/plantilla) */
+  /** Gramos de la porción de referencia de HC/P/G/kcal (por defecto 100). */
+  refBasisG?: string
+  /** Referencia nutricional (P/G/HC/kcal) según `refBasisG` gramos; por defecto 100 g. */
   refCarbs: string
   refProt: string
   refFat: string
@@ -246,8 +248,8 @@ export interface PlanningWorkbookStateV1 {
   }
   /** Gramos por ítem de Mi lista en la tabla «Alimentos personalizados» (id biblioteca → texto cantidad). */
   libraryQtyDraft?: Record<string, string>
-  /** Macros por 100 g guardados por id de biblioteca (para totales/PDF sin volver a cargar la Guía). */
-  libraryFoodRefsById?: Record<string, { c: number; p: number; f: number; k: number }>
+  /** Macros guardados por id de biblioteca; `b` = gramos de referencia de esos valores (p. ej. 25). */
+  libraryFoodRefsById?: Record<string, { c: number; p: number; f: number; k: number; b?: number }>
   /** Momentos del día y sugerencias de alimentos (visible en PDF / alumno). */
   mealDistribution?: MealDistributionState
   /**

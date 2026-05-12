@@ -34,7 +34,13 @@ import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import type { Appointment, AppointmentReminder, Student, AppointmentStatus } from '@/types/database'
+import type {
+  Appointment,
+  AppointmentReminder,
+  PersonalCalendarItem,
+  Student,
+  AppointmentStatus,
+} from '@/types/database'
 import toast from 'react-hot-toast'
 import {
   addDays, addMonths, addWeeks, eachDayOfInterval,
@@ -185,6 +191,57 @@ function formatIcsUtc(d: Date): string {
   return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
 }
 
+function locationLooksLikeVideoCall(location: string | null | undefined): boolean {
+  const t = (location ?? '').toLowerCase()
+  if (!t.trim()) return false
+  if (t.includes('http://') || t.includes('https://')) return true
+  if (
+    t.includes('zoom.us') ||
+    t.includes('meet.google') ||
+    t.includes('teams.microsoft') ||
+    t.includes('whereby.com')
+  ) {
+    return true
+  }
+  return false
+}
+
+function personalEndMs(p: Pick<PersonalCalendarItem, 'starts_at' | 'ends_at'>): number {
+  return new Date(p.ends_at).getTime()
+}
+
+function personalInProgress(p: PersonalCalendarItem, now = Date.now()): boolean {
+  const s = new Date(p.starts_at).getTime()
+  const e = personalEndMs(p)
+  return now >= s && now < e
+}
+
+function buildPersonalIcsFile(rows: PersonalCalendarItem[], filenameHint: string): { blob: Blob; filename: string } {
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'PRODID:-//Haciendo Habito//Agenda personal//ES',
+  ]
+  for (const p of rows) {
+    const s = new Date(p.starts_at)
+    const e = new Date(p.ends_at)
+    lines.push('BEGIN:VEVENT', `UID:${p.id}@hh-personal`)
+    lines.push(`DTSTAMP:${formatIcsUtc(new Date())}`)
+    lines.push(`DTSTART:${formatIcsUtc(s)}`)
+    lines.push(`DTEND:${formatIcsUtc(e)}`)
+    lines.push(`SUMMARY:${escapeIcsText(p.title || 'Personal')}`)
+    if (p.notes?.trim()) lines.push(`DESCRIPTION:${escapeIcsText(p.notes.trim())}`)
+    lines.push('END:VEVENT')
+  }
+  lines.push('END:VCALENDAR')
+  const safe = filenameHint.replace(/[^\w-]+/g, '_').slice(0, 40)
+  return {
+    blob: new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' }),
+    filename: `agenda_personal_${safe || 'export'}.ics`,
+  }
+}
+
 function buildTurnosIcsFile(rows: AppointmentRow[], filenameHint: string): { blob: Blob; filename: string } {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
@@ -244,6 +301,18 @@ export function AppointmentsPage() {
   // Week view appointment popover
   const [weekPopoverOpen, setWeekPopoverOpen] = useState(false)
   const [weekPopoverApptId, setWeekPopoverApptId] = useState<string | null>(null)
+  const [calendarScope, setCalendarScope] = useState<'students' | 'personal'>('students')
+  const [studentVideoOnly, setStudentVideoOnly] = useState(false)
+  const [personalItems, setPersonalItems] = useState<PersonalCalendarItem[]>([])
+  const [personalForm, setPersonalForm] = useState({
+    title: '',
+    starts_at: '',
+    duration_minutes: 60 as number,
+    notes: '',
+  })
+  const [personalSaving, setPersonalSaving] = useState(false)
+  const [personalWeekPopoverOpen, setPersonalWeekPopoverOpen] = useState(false)
+  const [personalWeekPopoverId, setPersonalWeekPopoverId] = useState<string | null>(null)
 
   const navigate = useAppNavigate()
   const reduceMotion = useReducedMotion()
@@ -275,20 +344,27 @@ export function AppointmentsPage() {
 
   useEffect(() => {
     if (!user) return
-    ;(async () => {
+    void (async () => {
       setLoading(true)
-      const [{ data: stData, error: stErr }, { data: apData, error: apErr }] = await Promise.all([
-        supabase.from('students').select('*').eq('owner_id', user.id).order('full_name'),
-        supabase
-          .from('appointments')
-          .select('*, student:students(full_name, phone)')
-          .eq('owner_id', user.id)
-          .order('starts_at', { ascending: true }),
-      ])
+      const [{ data: stData, error: stErr }, { data: apData, error: apErr }, { data: pcData, error: pcErr }] =
+        await Promise.all([
+          supabase.from('students').select('*').eq('owner_id', user.id).order('full_name'),
+          supabase
+            .from('appointments')
+            .select('*, student:students(full_name, phone)')
+            .eq('owner_id', user.id)
+            .order('starts_at', { ascending: true }),
+          supabase
+            .from('personal_calendar_items')
+            .select('*')
+            .eq('owner_id', user.id)
+            .order('starts_at', { ascending: true }),
+        ])
       if (stErr || apErr) {
         toast.error(stErr?.message ?? apErr?.message ?? 'No se pudieron cargar turnos')
         setStudents([])
         setAppointments([])
+        setPersonalItems([])
       } else {
         setStudents((stData as Student[]) ?? [])
         const base = ((apData as AppointmentRow[]) ?? []).slice().sort((a, b) => a.starts_at.localeCompare(b.starts_at))
@@ -313,6 +389,12 @@ export function AppointmentsPage() {
             reminders: reminderByAppt.get(a.id) ?? [],
           })),
         )
+        if (pcErr) {
+          console.warn('[appointments] personal_calendar_items', pcErr.message)
+          setPersonalItems([])
+        } else {
+          setPersonalItems((pcData as PersonalCalendarItem[]) ?? [])
+        }
       }
       setLoading(false)
     })()
@@ -374,12 +456,36 @@ export function AppointmentsPage() {
     }
   }, [listQuery, upcomingStatusFilter])
 
-  const filteredUpcoming = useMemo(() => upcoming.filter(matchesListFilters), [upcoming, matchesListFilters])
+  const filteredStudentUpcoming = useMemo(() => {
+    let base = upcoming.filter(matchesListFilters)
+    if (studentVideoOnly) base = base.filter((a) => locationLooksLikeVideoCall(a.location))
+    return base
+  }, [upcoming, matchesListFilters, studentVideoOnly])
 
-  const filteredWeekAppointments = useMemo(
-    () => weekAppointments.filter(matchesListFilters),
-    [weekAppointments, matchesListFilters],
-  )
+  const filteredPersonalAgenda = useMemo(() => {
+    const q = listQuery.trim().toLowerCase()
+    return personalItems
+      .filter((p) => {
+        if (!q) return true
+        return p.title.toLowerCase().includes(q) || (p.notes ?? '').toLowerCase().includes(q)
+      })
+      .slice()
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+  }, [personalItems, listQuery])
+
+  const filteredWeekAppointments = useMemo(() => {
+    let base = weekAppointments.filter(matchesListFilters)
+    if (studentVideoOnly) base = base.filter((a) => locationLooksLikeVideoCall(a.location))
+    return base
+  }, [weekAppointments, matchesListFilters, studentVideoOnly])
+
+  const filteredWeekPersonal = useMemo(() => {
+    const q = listQuery.trim().toLowerCase()
+    return personalItems.filter((p) => {
+      if (!q) return true
+      return p.title.toLowerCase().includes(q) || (p.notes ?? '').toLowerCase().includes(q)
+    })
+  }, [personalItems, listQuery])
 
   const filteredHistory = useMemo(() => {
     const q = listQuery.trim().toLowerCase()
@@ -395,6 +501,25 @@ export function AppointmentsPage() {
     if (!weekDays.length) return
     const rangeStart = startOfDay(weekDays[0])
     const rangeEnd = endOfDay(weekDays[6])
+    if (calendarScope === 'personal') {
+      const inWeek = personalItems.filter((p) => {
+        const t = parseISO(p.starts_at)
+        return isWithinInterval(t, { start: rangeStart, end: rangeEnd })
+      })
+      if (!inWeek.length) {
+        toast.error('No hay eventos personales esta semana para exportar')
+        return
+      }
+      const { blob, filename } = buildPersonalIcsFile(inWeek, format(weekAnchor, 'yyyy-MM-dd'))
+      const url = URL.createObjectURL(blob)
+      const el = document.createElement('a')
+      el.href = url
+      el.download = filename
+      el.click()
+      URL.revokeObjectURL(url)
+      toast.success('Archivo .ics descargado')
+      return
+    }
     const inWeek = appointments.filter((a) => {
       if (a.status === 'cancelled') return false
       const t = parseISO(a.starts_at)
@@ -638,6 +763,56 @@ export function AppointmentsPage() {
     }
   }
 
+  async function createPersonalEvent() {
+    if (!user) return
+    if (!personalForm.title.trim() || !personalForm.starts_at) {
+      toast.error('Completá título y fecha/hora')
+      return
+    }
+    setPersonalSaving(true)
+    try {
+      const startMs = new Date(personalForm.starts_at).getTime()
+      const mins = APPOINTMENT_DURATION_OPTIONS_MINUTES.includes(personalForm.duration_minutes)
+        ? personalForm.duration_minutes
+        : 60
+      const endMs = startMs + mins * 60 * 1000
+      const { data, error } = await supabase
+        .from('personal_calendar_items')
+        .insert({
+          owner_id: user.id,
+          title: personalForm.title.trim(),
+          starts_at: new Date(startMs).toISOString(),
+          ends_at: new Date(endMs).toISOString(),
+          notes: personalForm.notes.trim() || null,
+        })
+        .select('*')
+        .single()
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+      const row = data as PersonalCalendarItem
+      setPersonalItems((prev) => [...prev, row].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
+      setPersonalForm({ title: '', starts_at: '', duration_minutes: 60, notes: '' })
+      toast.success('Evento personal guardado')
+    } finally {
+      setPersonalSaving(false)
+    }
+  }
+
+  async function deletePersonalEvent(id: string) {
+    if (!user) return
+    const { error } = await supabase.from('personal_calendar_items').delete().eq('id', id).eq('owner_id', user.id)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setPersonalItems((prev) => prev.filter((p) => p.id !== id))
+    setPersonalWeekPopoverOpen(false)
+    setPersonalWeekPopoverId(null)
+    toast.success('Evento eliminado')
+  }
+
   async function updateStatus(
     id: string,
     status: AppointmentStatus,
@@ -743,14 +918,54 @@ export function AppointmentsPage() {
             className="rounded-none border-0 border-b border-surface-border bg-surface-elevated/35 dark:bg-surface-elevated/15"
             title="Calendario"
             description={
-              viewMode === 'agenda'
-                ? 'Próximos turnos confirmados y programados'
-                : viewMode === 'month'
-                  ? format(monthAnchor, 'MMMM yyyy', { locale: es })
-                  : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
+              calendarScope === 'personal'
+                ? viewMode === 'agenda'
+                  ? 'Eventos propios (no visibles para alumnos)'
+                  : viewMode === 'month'
+                    ? format(monthAnchor, 'MMMM yyyy', { locale: es })
+                    : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
+                : viewMode === 'agenda'
+                  ? 'Próximos turnos confirmados y programados'
+                  : viewMode === 'month'
+                    ? format(monthAnchor, 'MMMM yyyy', { locale: es })
+                    : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
             }
           >
             <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalendarScope('students')
+                    setPersonalWeekPopoverOpen(false)
+                    setPersonalWeekPopoverId(null)
+                  }}
+                  className={cn(
+                    'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
+                    calendarScope === 'students'
+                      ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
+                      : 'text-ink-muted hover:text-ink-secondary',
+                  )}
+                >
+                  <UserRound className="h-3.5 w-3.5" aria-hidden /> Alumnos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalendarScope('personal')
+                    setWeekPopoverOpen(false)
+                    setWeekPopoverApptId(null)
+                  }}
+                  className={cn(
+                    'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
+                    calendarScope === 'personal'
+                      ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
+                      : 'text-ink-muted hover:text-ink-secondary',
+                  )}
+                >
+                  <CalendarClock className="h-3.5 w-3.5" aria-hidden /> Personal
+                </button>
+              </div>
               <div className="inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px">
                 <button
                   type="button"
@@ -818,7 +1033,6 @@ export function AppointmentsPage() {
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
-              <CalendarClock className="hidden h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500 sm:block" aria-hidden />
             </div>
           </PageToolbar>
 
@@ -838,30 +1052,52 @@ export function AppointmentsPage() {
                     id="appt-search"
                     value={listQuery}
                     onChange={(e) => setListQuery(e.target.value)}
-                    placeholder={`Nombre del ${personWord} o título…`}
+                    placeholder={
+                      calendarScope === 'personal'
+                        ? 'Título o nota del evento…'
+                        : `Nombre del ${personWord} o título…`
+                    }
                     className="h-9 border-surface-border bg-surface-input pl-9 text-sm"
-                    aria-label="Buscar turnos por nombre o título"
+                    aria-label="Buscar en la agenda"
                   />
                 </div>
               </div>
-              <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
-                <span
-                  id="appt-status-label"
-                  className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none"
-                >
-                  Estado
-                </span>
-                <select
-                  value={upcomingStatusFilter}
-                  onChange={(e) => setUpcomingStatusFilter(e.target.value as 'all' | 'scheduled' | 'confirmed')}
-                  aria-labelledby="appt-status-label"
-                  className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 dark:border-zinc-600 dark:bg-zinc-900/40"
-                >
-                  <option value="all">Programado o confirmado</option>
-                  <option value="scheduled">Solo programados</option>
-                  <option value="confirmed">Solo confirmados</option>
-                </select>
-              </div>
+              {calendarScope === 'students' ? (
+                <>
+                  <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
+                    <span
+                      id="appt-status-label"
+                      className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                    >
+                      Estado
+                    </span>
+                    <select
+                      value={upcomingStatusFilter}
+                      onChange={(e) => setUpcomingStatusFilter(e.target.value as 'all' | 'scheduled' | 'confirmed')}
+                      aria-labelledby="appt-status-label"
+                      className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 dark:border-zinc-600 dark:bg-zinc-900/40"
+                    >
+                      <option value="all">Programado o confirmado</option>
+                      <option value="scheduled">Solo programados</option>
+                      <option value="confirmed">Solo confirmados</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col justify-end gap-1 lg:shrink-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none">
+                      Videollamada
+                    </span>
+                    <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary dark:border-zinc-600 dark:bg-zinc-900/40">
+                      <input
+                        type="checkbox"
+                        checked={studentVideoOnly}
+                        onChange={(e) => setStudentVideoOnly(e.target.checked)}
+                        className="h-4 w-4 rounded border-surface-border accent-zinc-600 dark:accent-zinc-500"
+                      />
+                      Solo con enlace
+                    </label>
+                  </div>
+                </>
+              ) : null}
               {viewMode === 'week' && (
                 <div className="flex flex-col gap-1 lg:w-auto lg:shrink-0">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none">
@@ -883,7 +1119,10 @@ export function AppointmentsPage() {
             <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-[10px] leading-relaxed text-ink-muted dark:border-zinc-700/80">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500/85" aria-hidden />
               <span>
-                <span className="font-medium text-ink-secondary">Tip:</span> en vista mes, tocá un día para abrir esa semana.
+                <span className="font-medium text-ink-secondary">Tip:</span>{' '}
+                {calendarScope === 'personal'
+                  ? 'La agenda personal no crea turnos con alumnos ni sincroniza Google Calendar desde acá.'
+                  : 'En vista mes, tocá un día para abrir esa semana. «Solo con enlace» filtra videollamadas (URL o Zoom/Meet/Teams).'}
               </span>
             </p>
           </div>
@@ -901,14 +1140,24 @@ export function AppointmentsPage() {
               {/* Calendar grid */}
               <div className="grid grid-cols-7 gap-px bg-surface-border rounded-xl overflow-hidden">
                 {monthDays.map((day) => {
-                  const dayAppts = appointments
-                    .filter(
-                      (a) =>
-                        a.status !== 'cancelled' &&
-                        matchesListFilters(a) &&
-                        isSameDay(parseISO(a.starts_at), day),
-                    )
-                    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+                  const dayAppts =
+                    calendarScope === 'students'
+                      ? appointments
+                          .filter(
+                            (a) =>
+                              a.status !== 'cancelled' &&
+                              matchesListFilters(a) &&
+                              (!studentVideoOnly || locationLooksLikeVideoCall(a.location)) &&
+                              isSameDay(parseISO(a.starts_at), day),
+                          )
+                          .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+                      : []
+                  const dayPersonal =
+                    calendarScope === 'personal'
+                      ? filteredWeekPersonal
+                          .filter((p) => isSameDay(parseISO(p.starts_at), day))
+                          .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+                      : []
                   const isCurrentMonth = getMonth(day) === getMonth(monthAnchor)
                   const today = isToday(day)
                   return (
@@ -935,30 +1184,48 @@ export function AppointmentsPage() {
                           {format(day, 'd')}
                         </span>
                         <div className="space-y-0.5 pointer-events-none">
-                          {dayAppts.slice(0, 3).map((a) => (
-                            <UiTooltip
-                              key={a.id}
-                              content={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
-                            >
-                              <div
-                                className={cn(
-                                  'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
-                                  appointmentInProgress(a) &&
-                                    'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
-                                  a.status === 'confirmed'
-                                    ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
-                                    : a.status === 'scheduled'
-                                      ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
-                                      : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
-                                )}
-                              >
-                                {format(parseISO(a.starts_at), 'HH:mm')}{' '}
-                                {a.student?.full_name?.split(' ')[0] ?? a.title}
-                              </div>
-                            </UiTooltip>
-                          ))}
-                          {dayAppts.length > 3 && (
-                            <p className="text-[9px] text-ink-muted pl-1">+{dayAppts.length - 3} más</p>
+                          {calendarScope === 'students'
+                            ? dayAppts.slice(0, 3).map((a) => (
+                                <UiTooltip
+                                  key={a.id}
+                                  content={`${format(parseISO(a.starts_at), 'HH:mm')} — ${a.title} (${a.student?.full_name ?? '—'})`}
+                                >
+                                  <div
+                                    className={cn(
+                                      'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
+                                      appointmentInProgress(a) &&
+                                        'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
+                                      a.status === 'confirmed'
+                                        ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
+                                        : a.status === 'scheduled'
+                                          ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
+                                          : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
+                                    )}
+                                  >
+                                    {format(parseISO(a.starts_at), 'HH:mm')}{' '}
+                                    {a.student?.full_name?.split(' ')[0] ?? a.title}
+                                  </div>
+                                </UiTooltip>
+                              ))
+                            : dayPersonal.slice(0, 3).map((p) => (
+                                <UiTooltip
+                                  key={p.id}
+                                  content={`${format(parseISO(p.starts_at), 'HH:mm')} — ${p.title}`}
+                                >
+                                  <div
+                                    className={cn(
+                                      'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default border-violet-400/35 bg-violet-500/[0.12] text-violet-950 dark:text-violet-200/95',
+                                      personalInProgress(p) && 'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
+                                    )}
+                                  >
+                                    {format(parseISO(p.starts_at), 'HH:mm')} {p.title}
+                                  </div>
+                                </UiTooltip>
+                              ))}
+                          {(calendarScope === 'students' ? dayAppts.length : dayPersonal.length) > 3 && (
+                            <p className="text-[9px] text-ink-muted pl-1">
+                              +{(calendarScope === 'students' ? dayAppts.length : dayPersonal.length) - 3} más
+                            </p>
                           )}
                         </div>
                       </button>
@@ -970,8 +1237,100 @@ export function AppointmentsPage() {
           ) : viewMode === 'week' ? (
             <div className="grid md:grid-cols-7 gap-2">
               {weekDays.map((day) => {
-                const dayAppointments = filteredWeekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
                 const dayIsToday = isToday(day)
+                if (calendarScope === 'personal') {
+                  const dayPersonalItems = filteredWeekPersonal.filter((p) =>
+                    isSameDay(parseISO(p.starts_at), day),
+                  )
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={cn(
+                        'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
+                        dayIsToday
+                          ? 'border-zinc-300/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:border-zinc-600 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
+                          : 'border-surface-border bg-surface-elevated/50',
+                      )}
+                    >
+                      <p
+                        className={cn(
+                          'text-[11px] uppercase tracking-wide',
+                          dayIsToday ? 'font-semibold text-zinc-800 dark:text-zinc-300' : 'text-ink-secondary',
+                        )}
+                      >
+                        {format(day, 'EEE', { locale: es })}
+                        {dayIsToday ? (
+                          <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
+                            · Hoy
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className={cn('text-sm font-semibold', dayIsToday ? 'text-zinc-950 dark:text-zinc-50' : 'text-ink-primary')}>
+                        {format(day, 'd')}
+                      </p>
+                      <div className="mt-2 space-y-1.5">
+                        {dayPersonalItems.length === 0 ? (
+                          <p className="text-[11px] text-ink-secondary">Sin eventos</p>
+                        ) : (
+                          dayPersonalItems.map((p) => (
+                            <Popover
+                              key={p.id}
+                              open={personalWeekPopoverOpen && personalWeekPopoverId === p.id}
+                              onOpenChange={(next) => {
+                                setPersonalWeekPopoverOpen(next)
+                                setPersonalWeekPopoverId(next ? p.id : null)
+                              }}
+                              className="w-52 rounded-2xl p-3 space-y-2"
+                              trigger={({ ref, onClick, ...a11y }) => (
+                                <button
+                                  ref={ref}
+                                  type="button"
+                                  onClick={onClick}
+                                  className={cn(
+                                    'w-full text-left rounded-lg border px-2 py-1 transition-all border-l-[3px] motion-safe:duration-200 border-violet-500/30 border-l-violet-500 bg-violet-500/[0.08] hover:bg-violet-500/[0.13]',
+                                    personalInProgress(p) &&
+                                      'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
+                                  )}
+                                  {...a11y}
+                                >
+                                  <p className="text-xs font-medium text-ink-primary truncate">{p.title}</p>
+                                  <p className="text-[11px] text-ink-secondary">
+                                    {format(parseISO(p.starts_at), 'HH:mm')} — {format(parseISO(p.ends_at), 'HH:mm')}
+                                  </p>
+                                  {personalInProgress(p) ? (
+                                    <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
+                                      En curso
+                                    </p>
+                                  ) : null}
+                                </button>
+                              )}
+                            >
+                              <p className="text-xs font-semibold text-ink-primary truncate">{p.title}</p>
+                              <p className="text-[11px] text-ink-muted">
+                                {format(parseISO(p.starts_at), 'HH:mm')} — {format(parseISO(p.ends_at), 'HH:mm')}
+                              </p>
+                              {p.notes?.trim() ? (
+                                <p className="text-[10px] leading-snug text-ink-secondary rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
+                                  {p.notes.trim()}
+                                </p>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void deletePersonalEvent(p.id)
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-status-expired hover:bg-status-expired/10 transition-colors"
+                              >
+                                ✕ Eliminar
+                              </button>
+                            </Popover>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+                const dayAppointments = filteredWeekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
                 return (
                   <div
                     key={day.toISOString()}
@@ -1112,14 +1471,50 @@ export function AppointmentsPage() {
               animate="visible"
               variants={listMotion.parent}
             >
-              {filteredUpcoming.length === 0 ? (
+              {calendarScope === 'personal' ? (
+                filteredPersonalAgenda.length === 0 ? (
+                  <p className="text-sm text-ink-secondary">
+                    {listQuery.trim() ? 'Ningún evento coincide con la búsqueda.' : 'No hay eventos personales cargados.'}
+                  </p>
+                ) : (
+                  filteredPersonalAgenda.map((p) => (
+                    <motion.div
+                      key={p.id}
+                      variants={listMotion.item}
+                      className={cn(
+                        'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px] border-l-violet-500/75',
+                        personalInProgress(p) && 'ring-1 ring-amber-400/40 shadow-sm shadow-amber-500/5',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-ink-primary">{p.title}</p>
+                          <p className="text-xs text-ink-secondary">
+                            {new Date(p.starts_at).toLocaleString('es-AR')} — {new Date(p.ends_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {p.notes?.trim() ? (
+                            <p className="mt-1 text-xs text-ink-muted">{p.notes.trim()}</p>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void deletePersonalEvent(p.id)}
+                          className="shrink-0 text-[11px] px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired hover:bg-status-expired/10"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))
+                )
+              ) : filteredStudentUpcoming.length === 0 ? (
                 <p className="text-sm text-ink-secondary">
-                  {listQuery.trim() || upcomingStatusFilter !== 'all'
-                    ? 'Ningún turno coincide con la búsqueda o el filtro de estado.'
+                  {listQuery.trim() || upcomingStatusFilter !== 'all' || studentVideoOnly
+                    ? 'Ningún turno coincide con la búsqueda o los filtros.'
                     : 'No hay turnos agendados.'}
                 </p>
               ) : (
-                filteredUpcoming.map((a) => (
+                filteredStudentUpcoming.map((a) => (
                   <motion.div
                     key={a.id}
                     variants={listMotion.item}
@@ -1234,12 +1629,14 @@ export function AppointmentsPage() {
                     )}
                   </motion.div>
                 ))
-              )}
+              )
+              }
             </motion.div>
           )}
           </div>
         </Card>
 
+        {calendarScope === 'students' && (
         <details
           open
           className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-zinc-400/70 bg-surface-card dark:border-l-zinc-500/50"
@@ -1357,7 +1754,80 @@ export function AppointmentsPage() {
             </Button>
           </div>
         </details>
+        )}
 
+        {calendarScope === 'personal' && (
+          <details
+            open
+            className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-violet-500/60 bg-surface-card dark:border-l-violet-500/45"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-gradient-to-r from-violet-500/[0.08] to-surface-elevated/25 px-4 py-3 transition-colors hover:from-violet-500/[0.11] hover:to-surface-elevated/35 dark:from-violet-500/[0.12] dark:hover:from-violet-500/[0.16] [&::-webkit-details-marker]:hidden">
+              <div>
+                <p className="text-sm font-semibold text-ink-primary">Nuevo evento personal</p>
+                <p className="text-[11px] text-ink-muted mt-0.5">No se asocia a alumnos ni sincroniza con Google Calendar</p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <div className="p-4 sm:p-5 space-y-4">
+              <div className="grid md:grid-cols-2 gap-3">
+                <label className="text-xs font-medium text-ink-muted md:col-span-2">
+                  Título
+                  <input
+                    value={personalForm.title}
+                    onChange={(e) => setPersonalForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Bloqueo / reunión / recordatorio"
+                    className={FIELD_ROW}
+                  />
+                </label>
+                <label className="text-xs font-medium text-ink-muted">
+                  Inicio
+                  <input
+                    type="datetime-local"
+                    value={personalForm.starts_at}
+                    onChange={(e) => setPersonalForm((prev) => ({ ...prev, starts_at: e.target.value }))}
+                    className={FIELD_ROW}
+                  />
+                </label>
+                <label className="text-xs font-medium text-ink-muted">
+                  Duración
+                  <select
+                    value={personalForm.duration_minutes}
+                    onChange={(e) =>
+                      setPersonalForm((prev) => ({ ...prev, duration_minutes: Number(e.target.value) }))
+                    }
+                    className={FIELD_ROW}
+                  >
+                    {APPOINTMENT_DURATION_OPTIONS_MINUTES.map((m) => (
+                      <option key={m} value={m}>
+                        {m} min
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-ink-muted md:col-span-2">
+                  Nota (opcional)
+                  <textarea
+                    value={personalForm.notes}
+                    onChange={(e) => setPersonalForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    rows={2}
+                    className={cn(FIELD_ROW, 'resize-y min-h-[4rem]')}
+                  />
+                </label>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="border-violet-200/90 bg-violet-100/80 font-semibold text-violet-950 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-950/70"
+                onClick={() => void createPersonalEvent()}
+                loading={personalSaving}
+              >
+                Guardar evento
+              </Button>
+            </div>
+          </details>
+        )}
+
+        {calendarScope === 'students' && (
         <Card>
           <CardTitle className="mb-2 font-medium text-base">Historial reciente</CardTitle>
           {history.length === 0 ? (
@@ -1418,6 +1888,8 @@ export function AppointmentsPage() {
             </div>
           )}
         </Card>
+        )}
+
       </div>
 
     </div>

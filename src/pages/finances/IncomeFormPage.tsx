@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -38,14 +38,27 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+const PAYMENT_METHOD_QUERY_OK = new Set<FormValues['payment_method']>([
+  'efectivo_debito',
+  'efectivo_ars',
+  'cuenta_dni',
+  'mercadopago',
+  'debito',
+  'tarjeta_credito',
+  'transferencia',
+  'otro',
+])
+
 export function IncomeFormPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const appliedQueryRef = useRef(false)
   const isEditing = !!id
   const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [students, setStudents] = useState<Student[]>([])
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting, isDirty } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting, isDirty } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       income_date: format(new Date(), 'yyyy-MM-dd'),
@@ -54,6 +67,27 @@ export function IncomeFormPage() {
       scope: 'business',
     },
   })
+
+  useEffect(() => {
+    if (isEditing || appliedQueryRef.current) return
+    const scope = searchParams.get('scope')
+    if (scope === 'personal' || scope === 'business') setValue('scope', scope)
+    const method = searchParams.get('method')
+    if (method && PAYMENT_METHOD_QUERY_OK.has(method as FormValues['payment_method'])) {
+      setValue('payment_method', method as FormValues['payment_method'])
+    }
+    const desc = searchParams.get('desc')
+    if (desc) {
+      try {
+        setValue('description', decodeURIComponent(desc))
+      } catch {
+        setValue('description', desc)
+      }
+    }
+    const sid = searchParams.get('student_id')
+    if (sid) setValue('student_id', sid)
+    appliedQueryRef.current = true
+  }, [isEditing, searchParams, setValue])
 
   useEffect(() => {
     if (!user) return

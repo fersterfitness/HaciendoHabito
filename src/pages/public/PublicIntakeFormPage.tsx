@@ -28,12 +28,24 @@ const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
 const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
   'Tomás Ferster + Cristian Crossetto — Plan integral de entrenamiento y nutrición'
 
-/** Define cómo agrupan los planes en `web_plans.catalog_segment`. */
-const INTAKE_MODALITY_OPTIONS: { segment: WebPlanCatalogSegment; label: string }[] = [
-  { segment: 'solo', label: 'Solo entrenamiento' },
-  { segment: 'with_cris', label: 'Solo nutrición' },
-  { segment: 'full', label: 'Entreno + nutrición' },
-]
+/** Defaults si no hay fila en `web_intake_catalog_settings`. */
+const DEFAULT_INTAKE_MODALITY_LABELS = {
+  solo: 'FERSTER FITNESS',
+  withCris: 'Solo Nutrición',
+  full: 'ENTRENO+NUTRICIÓN',
+} as const
+
+function buildIntakeModalityOptions(labels: {
+  solo: string | null
+  withCris: string | null
+  full: string | null
+}): { segment: WebPlanCatalogSegment; label: string }[] {
+  return [
+    { segment: 'solo', label: labels.solo?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.solo },
+    { segment: 'with_cris', label: labels.withCris?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.withCris },
+    { segment: 'full', label: labels.full?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.full },
+  ]
+}
 
 /** Sumá filas cuando haya más entrenadores disponibles en la misma línea. */
 const INTAKE_TRAINER_OPTIONS: { id: string; label: string }[] = [{ id: 'tomas-ferster', label: 'Tomás Ferster' }]
@@ -689,6 +701,7 @@ function LeftBrandPanel({
   soloSegmentImageUrl,
   withCrisSegmentImageUrl,
   crisSoloSegmentImageUrl,
+  modalityOptions,
 }: {
   theme: 'light' | 'dark'
   plansAll: PlanDetail[]
@@ -705,6 +718,7 @@ function LeftBrandPanel({
   soloSegmentImageUrl: string | null
   withCrisSegmentImageUrl: string | null
   crisSoloSegmentImageUrl: string | null
+  modalityOptions: { segment: WebPlanCatalogSegment; label: string }[]
 }) {
   const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
 
@@ -712,7 +726,7 @@ function LeftBrandPanel({
   const [nutritionChoice, setNutritionChoice] = useState(INTAKE_NUTRITION_OPTIONS[0]?.id ?? '')
 
   const modalitySegment: WebPlanCatalogSegment =
-    catalogSegment !== null && INTAKE_MODALITY_OPTIONS.some((o) => o.segment === catalogSegment)
+    catalogSegment !== null && modalityOptions.some((o) => o.segment === catalogSegment)
       ? catalogSegment
       : 'solo'
 
@@ -788,7 +802,7 @@ function LeftBrandPanel({
                       onSelectCatalogSegment(raw as WebPlanCatalogSegment)
                     }
                   >
-                    {INTAKE_MODALITY_OPTIONS.map((o) => (
+                    {modalityOptions.map((o) => (
                       <option key={o.segment} value={o.segment}>
                         {o.label}
                       </option>
@@ -876,7 +890,10 @@ function LeftBrandPanel({
 }
 
 export function PublicIntakeFormPage() {
-  const { theme } = useTheme()
+  const { theme, setTheme } = useTheme()
+  useEffect(() => {
+    setTheme('dark')
+  }, [setTheme])
   const [done,      setDone]      = useState(false)
   const [plans, setPlans] = useState<PlanDetail[]>(DEFAULT_PLANS)
   const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
@@ -896,6 +913,12 @@ export function PublicIntakeFormPage() {
     withCris: string | null
     crisSolo: string | null
   }>({ solo: null, withCris: null, crisSolo: null })
+  const [modalityLabels, setModalityLabels] = useState<{
+    solo: string | null
+    withCris: string | null
+    full: string | null
+  }>({ solo: null, withCris: null, full: null })
+  const modalityOptions = useMemo(() => buildIntakeModalityOptions(modalityLabels), [modalityLabels])
   const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
     plans,
     catalogSegment,
@@ -957,7 +980,7 @@ export function PublicIntakeFormPage() {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
         .select(
-          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_cris_segment_image_url, cris_solo_segment_image_url',
+          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_cris_segment_image_url, cris_solo_segment_image_url, modality_label_solo, modality_label_with_cris, modality_label_full',
         )
         .eq('id', 1)
         .maybeSingle()
@@ -975,6 +998,14 @@ export function PublicIntakeFormPage() {
           solo: str('solo_segment_image_url'),
           withCris: str('with_cris_segment_image_url'),
           crisSolo: str('cris_solo_segment_image_url'),
+        })
+        setModalityLabels({
+          solo: typeof d.modality_label_solo === 'string' && d.modality_label_solo.trim() ? d.modality_label_solo.trim() : null,
+          withCris:
+            typeof d.modality_label_with_cris === 'string' && d.modality_label_with_cris.trim()
+              ? d.modality_label_with_cris.trim()
+              : null,
+          full: typeof d.modality_label_full === 'string' && d.modality_label_full.trim() ? d.modality_label_full.trim() : null,
         })
       }
     })()
@@ -1103,6 +1134,7 @@ export function PublicIntakeFormPage() {
             soloSegmentImageUrl={catalogSegmentImages.solo}
             withCrisSegmentImageUrl={catalogSegmentImages.withCris}
             crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
+            modalityOptions={modalityOptions}
           />
           <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-14 text-center">
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-200/90 dark:bg-white/[0.08]">
@@ -1139,6 +1171,7 @@ export function PublicIntakeFormPage() {
           soloSegmentImageUrl={catalogSegmentImages.solo}
           withCrisSegmentImageUrl={catalogSegmentImages.withCris}
           crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
+          modalityOptions={modalityOptions}
         />
 
         {/* Panel derecho — selector de tipo o formulario */}

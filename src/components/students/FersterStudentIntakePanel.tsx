@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   ClipboardList,
   User,
@@ -27,6 +28,7 @@ import {
 } from '@/lib/fersterIntakeLabels'
 import type { Student, FersterIntakeStored } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 
 function uploadKeyLabel(key: string): string {
   if (key === 'medical') return 'Estudios médicos'
@@ -74,6 +76,9 @@ function Section({
 
 export function FersterStudentIntakePanel({ student }: { student: Student }) {
   const intake = student.intake_ferster as FersterIntakeStored | null | undefined
+  const profile = useAuthStore((s) => s.profile)
+  const canUseFinances =
+    profile?.role === 'admin' || profile?.role === 'trainer' || profile?.role === 'nutritionist'
   const hasExtra =
     student.document_id ||
     student.address ||
@@ -202,6 +207,24 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
                     : null
               }
             />
+            {i?.payment_notes?.trim() ? (
+              <Field label="Dato de pago (/form)" value={i.payment_notes.trim()} className="sm:col-span-2" />
+            ) : null}
+            {canUseFinances && (i?.payment_preference || i?.payment_notes?.trim()) ? (
+              <div className="sm:col-span-2 pt-1">
+                <Link
+                  to={`/finances/income/new?scope=business&student_id=${encodeURIComponent(student.id)}&method=${
+                    i?.payment_preference === 'mercadopago' ? 'mercadopago' : 'transferencia'
+                  }&desc=${encodeURIComponent(
+                    `Cobro · ${student.full_name} (web)${i?.payment_notes?.trim() ? ` · ${i.payment_notes.trim()}` : ''}`,
+                  )}`}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand-secondary underline-offset-2 hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Registrar ingreso en Finanzas
+                </Link>
+              </div>
+            ) : null}
           </div>
         </Section>
 

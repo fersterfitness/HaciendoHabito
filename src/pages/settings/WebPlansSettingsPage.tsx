@@ -47,6 +47,7 @@ const LIMITS = {
   segmentImgUrl: 600,
   testimonialUrl: 900,
   slotsMsg: 280,
+  modalityLabel: 80,
 } as const
 
 const FALLBACK_PLANS: EditableWebPlan[] = [
@@ -184,6 +185,9 @@ export function WebPlansSettingsPage() {
   const [intakeSlotsRemaining, setIntakeSlotsRemaining] = useState('')
   const [intakeSlotsMessage, setIntakeSlotsMessage] = useState('')
   const [testimonialUrlsText, setTestimonialUrlsText] = useState('')
+  const [modalityLabelSolo, setModalityLabelSolo] = useState('')
+  const [modalityLabelWithCris, setModalityLabelWithCris] = useState('')
+  const [modalityLabelFull, setModalityLabelFull] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
   const soloFileRef = useRef<HTMLInputElement>(null)
   const crisFileRef = useRef<HTMLInputElement>(null)
@@ -208,6 +212,9 @@ export function WebPlansSettingsPage() {
         setIntakeSlotsRemaining(String(row.intake_slots_remaining))
       } else setIntakeSlotsRemaining('')
       setIntakeSlotsMessage(row.intake_slots_public_message ?? '')
+      setModalityLabelSolo(row.modality_label_solo ?? '')
+      setModalityLabelWithCris(row.modality_label_with_cris ?? '')
+      setModalityLabelFull(row.modality_label_full ?? '')
     })()
   }, [canManage])
 
@@ -260,6 +267,36 @@ export function WebPlansSettingsPage() {
         return
       }
       toast.success('Testimonios guardados')
+    } finally {
+      setAssetsSaving(false)
+    }
+  }
+
+  async function handleSaveModalityLabels() {
+    const a = modalityLabelSolo.trim()
+    const b = modalityLabelWithCris.trim()
+    const c = modalityLabelFull.trim()
+    if ([a, b, c].some((t) => t.length > LIMITS.modalityLabel)) {
+      toast.error(`Cada etiqueta admite hasta ${LIMITS.modalityLabel} caracteres.`)
+      return
+    }
+    setAssetsSaving(true)
+    try {
+      const { error } = await supabase.from('web_intake_catalog_settings').upsert({
+        id: 1,
+        modality_label_solo: a || null,
+        modality_label_with_cris: b || null,
+        modality_label_full: c || null,
+      })
+      if (error) {
+        toast.error(
+          error.message.includes('modality_label')
+            ? 'Ejecutá la migración SQL (modality_label_* en web_intake_catalog_settings).'
+            : error.message,
+        )
+        return
+      }
+      toast.success('Etiquetas de modalidad guardadas')
     } finally {
       setAssetsSaving(false)
     }
@@ -546,8 +583,9 @@ export function WebPlansSettingsPage() {
           <p className="text-sm leading-relaxed text-ink-secondary">
             <span className="font-semibold text-ink-primary">Qué editás acá y qué pasa en /form</span>
             <br />
-            Arriba: fotos del selector, cupos y testimonios (configuración general). Abajo: un bloque por cada plan — debe
-            coincidir con la <strong className="text-ink-primary">modalidad</strong> (solo entreno / solo nutrición / full),
+            Arriba: fotos del selector, <strong className="text-ink-primary">etiquetas de modalidad</strong>, cupos y testimonios
+            (configuración general). Abajo: un bloque por cada plan — debe coincidir con la{' '}
+            <strong className="text-ink-primary">modalidad</strong> (solo entreno / solo nutrición / full),
             los <strong className="text-ink-primary">precios</strong> mensual y anual del toggle, y el texto de «Incluye» en
             la card del formulario.
           </p>
@@ -636,6 +674,36 @@ export function WebPlansSettingsPage() {
           />
           <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
             Guardar fotos
+          </Button>
+        </SectionCard>
+
+        <SectionCard
+          title="1b · Etiquetas «Modalidad» (paso 1 del /form)"
+          subtitle="Textos del desplegable que el visitante ve antes de elegir plan. Vacío = valores por defecto (FERSTER FITNESS / Solo Nutrición / ENTRENO+NUTRICIÓN)."
+        >
+          <Input
+            label="Línea solo entrenamiento (segmento solo)"
+            placeholder="Ej. FERSTER FITNESS"
+            maxLength={LIMITS.modalityLabel}
+            value={modalityLabelSolo}
+            onChange={(e) => setModalityLabelSolo(e.target.value)}
+          />
+          <Input
+            label="Solo nutrición (segmento with_cris)"
+            placeholder="Ej. Solo Nutrición"
+            maxLength={LIMITS.modalityLabel}
+            value={modalityLabelWithCris}
+            onChange={(e) => setModalityLabelWithCris(e.target.value)}
+          />
+          <Input
+            label="Plan full (segmento full)"
+            placeholder="Ej. ENTRENO+NUTRICIÓN"
+            maxLength={LIMITS.modalityLabel}
+            value={modalityLabelFull}
+            onChange={(e) => setModalityLabelFull(e.target.value)}
+          />
+          <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
+            Guardar etiquetas
           </Button>
         </SectionCard>
 
@@ -763,12 +831,12 @@ export function WebPlansSettingsPage() {
                       }
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
-                      <option value="solo">Solo entrenamiento</option>
-                      <option value="with_cris">Solo nutrición</option>
-                      <option value="full">Entreno + nutrición</option>
+                      <option value="solo">FERSTER FITNESS (solo)</option>
+                      <option value="with_cris">Solo Nutrición (with_cris)</option>
+                      <option value="full">ENTRENO+NUTRICIÓN (full)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      El plan aparece cuando el visitante elige esa modalidad. El orden en pantalla lo define el orden de esta lista.
+                      El plan aparece cuando el visitante elige esa modalidad en el formulario web. El orden en pantalla lo define el orden de esta lista.
                     </p>
                   </div>
                 </FieldGroup>

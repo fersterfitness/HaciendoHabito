@@ -39,7 +39,7 @@ const PORTION_OPTS: { v: NutritionFoodPortionBasis; label: string }[] = [
 ]
 
 const MACRO_QTY_OPTS: { v: NutritionFoodMacroQtyPresentation; label: string }[] = [
-  { v: 'grams', label: 'Gramos (100 g)' },
+  { v: 'grams', label: 'Gramos (referencia variable)' },
   { v: 'units', label: 'Unidad (uds.)' },
   { v: 'volume', label: 'Mililitros (100 ml)' },
 ]
@@ -62,15 +62,15 @@ function sourceBadge(row: NutritionFoodLibrary): string {
   return 'A mano'
 }
 
-function macroQtyMiListaSuffix(m: NutritionFoodMacroQtyPresentation | null | undefined): string {
-  switch (m) {
-    case 'volume':
-      return '(por 100 ml)'
-    case 'units':
-      return '(ref. 100 g · uds. en plan)'
-    default:
-      return '(por 100 g)'
-  }
+function macroQtyMiListaSuffix(row: NutritionFoodLibrary): string {
+  const m = row.macro_qty_presentation ?? 'grams'
+  const g =
+    row.macro_ref_basis_g != null && Number.isFinite(row.macro_ref_basis_g) && row.macro_ref_basis_g > 0
+      ? row.macro_ref_basis_g
+      : 100
+  if (m === 'volume') return '(por 100 ml)'
+  if (m === 'units') return `(por ${g} g · uds. en plan)`
+  return `(por ${g} g)`
 }
 
 export function NutritionFoodsPage() {
@@ -95,7 +95,7 @@ export function NutritionFoodsPage() {
   const [externalFdcId, setExternalFdcId] = useState<string>('')
   const [sourceLabel, setSourceLabel] = useState('')
   const [portionBasis, setPortionBasis] = useState<NutritionFoodPortionBasis>('no_especificado')
-  const [macroQtyPresentation, setMacroQtyPresentation] = useState<NutritionFoodMacroQtyPresentation>('grams')
+  const [macroRefBasisG, setMacroRefBasisG] = useState('100')
   const [protein, setProtein] = useState('')
   const [fat, setFat] = useState('')
   const [carbs, setCarbs] = useState('')
@@ -116,6 +116,7 @@ export function NutritionFoodsPage() {
     setSourceLabel('')
     setPortionBasis('no_especificado')
     setMacroQtyPresentation('grams')
+    setMacroRefBasisG('100')
     setProtein('')
     setFat('')
     setCarbs('')
@@ -138,6 +139,7 @@ export function NutritionFoodsPage() {
     setSourceLabel(CATALOGO_LABEL)
     setPortionBasis(item.portion_basis)
     setMacroQtyPresentation('grams')
+    setMacroRefBasisG('100')
     setProtein(String(item.protein_g_per_100g))
     setFat(String(item.fat_g_per_100g))
     setCarbs(String(item.carbs_g_per_100g))
@@ -208,6 +210,11 @@ export function NutritionFoodsPage() {
     setSourceLabel(row.source_label ?? '')
     setPortionBasis(row.portion_basis)
     setMacroQtyPresentation(row.macro_qty_presentation ?? 'grams')
+    setMacroRefBasisG(
+      row.macro_ref_basis_g != null && Number.isFinite(row.macro_ref_basis_g) && row.macro_ref_basis_g > 0
+        ? String(row.macro_ref_basis_g)
+        : '100',
+    )
     setProtein(row.protein_g_per_100g != null ? String(row.protein_g_per_100g) : '')
     setFat(row.fat_g_per_100g != null ? String(row.fat_g_per_100g) : '')
     setCarbs(row.carbs_g_per_100g != null ? String(row.carbs_g_per_100g) : '')
@@ -320,6 +327,9 @@ export function NutritionFoodsPage() {
       }
     }
 
+    const basisRaw = parseDecimal(macroRefBasisG) ?? 100
+    const macro_ref_basis_g = Math.min(10000, Math.max(1, basisRaw))
+
     const row = {
       owner_id: user.id,
       display_name: displayName.trim(),
@@ -331,6 +341,7 @@ export function NutritionFoodsPage() {
       carbs_g_per_100g: parseDecimal(carbs),
       fiber_g_per_100g: parseDecimal(fiber),
       energy_kcal_per_100g: parseDecimal(kcal),
+      macro_ref_basis_g,
       portion_basis: portionBasis,
       macro_qty_presentation: macroQtyPresentation,
       source_label: sourceLabel.trim() === '' ? null : sourceLabel.trim(),
@@ -415,8 +426,8 @@ export function NutritionFoodsPage() {
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-28 lg:px-6 lg:py-8">
         <p className="mb-6 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
           Elegí alimentos en <strong className="font-semibold text-zinc-800 dark:text-zinc-200">español</strong> con números
-          ya cargados (por 100 g), o escribí el tuyo a mano y guardalos con «Guardar en mi lista». Orientación para alumnos, no
-          reemplaza a un nutricionista.
+          ya cargados (referencia habitual 100 g), o escribí el tuyo a mano con la base en gramos que uses en tu tabla (25, 50…)
+          y guardalos con «Guardar en mi lista». Orientación para alumnos, no reemplaza a un nutricionista.
         </p>
 
         <div className="grid gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
@@ -457,7 +468,7 @@ export function NutritionFoodsPage() {
                           <p className="text-xs text-ink-muted mt-0.5">
                             Prot {r.protein_g_per_100g ?? '—'} g · Grasas {r.fat_g_per_100g ?? '—'} g · Carbos{' '}
                             {r.carbs_g_per_100g ?? '—'} g · Fibra {r.fiber_g_per_100g ?? '—'} g · {r.energy_kcal_per_100g ?? '—'}{' '}
-                            kcal <span className="text-ink-secondary/90">{macroQtyMiListaSuffix(r.macro_qty_presentation)}</span>
+                            kcal <span className="text-ink-secondary/90">{macroQtyMiListaSuffix(r)}</span>
                           </p>
                           <p className="text-[11px] text-ink-muted mt-1">
                             {r.portion_basis === 'cocido'
@@ -691,12 +702,14 @@ export function NutritionFoodsPage() {
                       </>
                     ) : macroQtyPresentation === 'units' ? (
                       <>
-                        Valores nutricionales por <strong>100 gramos</strong>; al armar el plan se usará modo{' '}
+                        Valores nutricionales por <strong>100 gramos</strong> de referencia; al armar el plan se usará modo{' '}
                         <strong>unidades</strong> (completás uds. y gramos equivalentes en la tabla).
                       </>
                     ) : (
                       <>
-                        Valores por <strong>100 gramos</strong> (como en planillas).
+                        Valores por <strong>{macroRefBasisG.trim() ? macroRefBasisG.trim().replace(',', '.') : '100'} gramos</strong>{' '}
+                        de referencia (podés cambiar el número: ej. 25 pan, 50 dulce de leche). Los campos P/G/HC/kcal son para
+                        esa cantidad, no obligatoriamente 100.
                       </>
                     )}
                   </p>
@@ -724,6 +737,30 @@ export function NutritionFoodsPage() {
                     </select>
                   </div>
                 </div>
+                {macroQtyPresentation === 'grams' ? (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4 border-t border-zinc-200/60 pt-2 dark:border-zinc-700/50">
+                    <div className="w-full max-w-[10rem]">
+                      <label
+                        htmlFor="nutrition-macro-ref-basis-g"
+                        className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400"
+                      >
+                        Gramos de referencia
+                      </label>
+                      <Input
+                        id="nutrition-macro-ref-basis-g"
+                        value={macroRefBasisG}
+                        onChange={(e) => setMacroRefBasisG(e.target.value)}
+                        inputMode="decimal"
+                        placeholder="100"
+                        className={INPUT_GRAY_FOCUS_CLASS}
+                      />
+                    </div>
+                    <p className="text-[10px] leading-relaxed text-zinc-500 dark:text-zinc-500 flex-1 pb-0.5">
+                      Ese número define la base del cálculo cuando cargás gramos en el plan (ej. si acá ponés 25 y Proteínas 2,5,
+                      son 2,5 g de proteína por cada 25 g de producto).
+                    </p>
+                  </div>
+                ) : null}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Proteínas (g)</label>

@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useSearchParams, Link } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
@@ -285,6 +285,20 @@ export function FinancesPage() {
   const animEsteMes = useCountUp(Math.round(thisMesTotal), { duration: 2200, enabled: !loading })
   const animMesAnterior = useCountUp(Math.round(prevMesTotal), { duration: 2200, enabled: !loading })
 
+  /** Caja práctica (feedback entrenador): efectivo neto del mes + gastos Cuenta DNI → sugerencia «a transferir». Solo ámbito personal. */
+  const personalCashTransferHint = useMemo(() => {
+    const cashMethods = ['efectivo_ars', 'efectivo_debito'] as const
+    const inc = incomes.filter((i) => (i.scope ?? 'business') === 'personal' && i.status === 'cobrado' && i.income_date.startsWith(thisMonthKey))
+    const exp = expenses.filter((e) => (e.scope ?? 'business') === 'personal' && e.expense_date.startsWith(thisMonthKey))
+    const efectivoIn = inc.filter((i) => cashMethods.includes(i.payment_method as (typeof cashMethods)[number])).reduce((s, i) => s + i.amount, 0)
+    const efectivoOut = exp.filter((e) => cashMethods.includes(e.payment_method as (typeof cashMethods)[number])).reduce((s, e) => s + e.amount, 0)
+    const efectivoNet = efectivoIn - efectivoOut
+    const gastosDni = exp.filter((e) => e.payment_method === 'cuenta_dni').reduce((s, e) => s + e.amount, 0)
+    const ingresosDni = inc.filter((i) => i.payment_method === 'cuenta_dni').reduce((s, i) => s + i.amount, 0)
+    const totalATransferir = efectivoNet + gastosDni
+    return { efectivoIn, efectivoOut, efectivoNet, gastosDni, ingresosDni, totalATransferir }
+  }, [incomes, expenses, thisMonthKey])
+
   const deudores = students
     .map((s) => {
       const raw = localStorage.getItem(`cuota_mensual_${s.id}`)
@@ -379,6 +393,49 @@ export function FinancesPage() {
             : ''}
           {' '}En ingresos, el desglose por método usa solo montos marcados como cobrados (plata efectiva).
         </p>
+
+        {scopeFilter === 'personal' && !loading && (
+          <div className="rounded-xl border border-surface-border/80 bg-surface-muted/25 px-4 py-3 dark:bg-zinc-950/40">
+            <p className="text-[11px] font-semibold text-ink-primary">Caja personal · {MES_LABELS_FULL[now.getMonth()]} {now.getFullYear()}</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-muted">
+              <strong className="text-ink-secondary">Efectivo neto</strong> (ingresos en efectivo − gastos en efectivo) +{' '}
+              <strong className="text-ink-secondary">gastos pagados con Cuenta DNI</strong> = referencia de{' '}
+              <strong className="text-ink-primary">total a transferir</strong> a tu cuenta. Los ingresos que entran por Cuenta DNI
+              (ej. sueldo) se muestran aparte: no suman a «a transferir», pero sí al balance general del mes.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <MetricTile label="Ingresos efectivo (mes)" value={formatCurrency(Math.round(personalCashTransferHint.efectivoIn))} />
+              <MetricTile label="Gastos efectivo (mes)" value={formatCurrency(Math.round(personalCashTransferHint.efectivoOut))} />
+              <MetricTile label="Efectivo disponible (neto)" value={formatCurrency(Math.round(personalCashTransferHint.efectivoNet))} />
+              <MetricTile label="Gastos Cuenta DNI" value={formatCurrency(Math.round(personalCashTransferHint.gastosDni))} />
+              <MetricTile
+                label="Ingresos Cuenta DNI"
+                value={formatCurrency(Math.round(personalCashTransferHint.ingresosDni))}
+                containerClassName="lg:col-span-1"
+              />
+            </div>
+            <p className="mt-2 rounded-md bg-surface-card/80 px-2 py-1.5 text-center text-[11px] tabular-nums text-ink-secondary dark:bg-zinc-900/50">
+              {formatCurrency(Math.round(personalCashTransferHint.efectivoNet))} + {formatCurrency(Math.round(personalCashTransferHint.gastosDni))} ={' '}
+              <span className="font-semibold text-ink-primary">{formatCurrency(Math.round(personalCashTransferHint.totalATransferir))}</span>
+              <span className="text-ink-muted"> · total referencia a transferir</span>
+            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px]">
+              <Link
+                to="/finances/income/new?scope=personal&method=cuenta_dni&desc=Sueldo%20%2F%20acreditaci%C3%B3n%20DNI"
+                className="font-medium text-brand-secondary underline-offset-2 hover:underline"
+              >
+                + Ingreso Cuenta DNI (ej. sueldo)
+              </Link>
+              <span className="text-ink-muted">·</span>
+              <Link
+                to="/finances/income/new?scope=personal&method=efectivo_ars"
+                className="font-medium text-brand-secondary underline-offset-2 hover:underline"
+              >
+                + Ingreso efectivo
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Comparación mensual */}
         <div className="grid grid-cols-2 gap-2.5 lg:gap-3">
