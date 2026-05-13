@@ -53,48 +53,6 @@ const LIMITS = {
 
 const FALLBACK_PLANS: EditableWebPlan[] = [
   {
-    slug: 'plan-entrenamiento',
-    title: 'Primer Plan Entrenamiento',
-    price_label: '$60.000',
-    price_yearly_label: '$600.000',
-    short_description: 'Entrenamiento personalizado con seguimiento mensual.',
-    intro_text:
-      'Plan avanzado de entrenamiento orientado al rendimiento físico, con enfoque en fuerza, resistencia y recuperación. Seguimiento continuo y ajustes según objetivos.',
-    includes_items: [
-      'Videollamada de bienvenida gratuita.',
-      'Videollamada mensual para ajustes/progreso.',
-      'Actualización mensual de tu rutina.',
-    ],
-    gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
-    sort_order: 1,
-    is_active: true,
-    show_in_public_intake: true,
-    catalog_segment: 'solo',
-    display_badge: null,
-    credential_line_override: null,
-  },
-  {
-    slug: 'plan-nutricion',
-    title: 'Segundo Plan Nutrición',
-    price_label: '$80.000',
-    price_yearly_label: '$800.000',
-    short_description: 'Plan nutricional + seguimiento para sostener hábitos.',
-    intro_text:
-      'Plan premium de acompañamiento integral en nutrición para establecer y mantener hábitos saludables de forma sostenida, con planificación adaptada a tu contexto.',
-    includes_items: [
-      'Videollamada de bienvenida gratuita.',
-      'Videollamada mensual para seguimiento de progreso.',
-      'Planificación nutricional adaptada a tus objetivos.',
-    ],
-    gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
-    sort_order: 2,
-    is_active: true,
-    show_in_public_intake: true,
-    catalog_segment: 'with_cris',
-    display_badge: null,
-    credential_line_override: null,
-  },
-  {
     slug: 'plan-full',
     title: 'Plan Full',
     price_label: '$100.000',
@@ -108,7 +66,7 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
       'Rutina + planificación nutricional personalizada.',
     ],
     gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
-    sort_order: 3,
+    sort_order: 1,
     is_active: true,
     show_in_public_intake: true,
     catalog_segment: 'full',
@@ -151,6 +109,10 @@ function FieldGroup({ title, children }: { title: string; children: ReactNode })
       <div className="space-y-4">{children}</div>
     </div>
   )
+}
+
+function SubsectionTitle({ children }: { children: ReactNode }) {
+  return <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">{children}</p>
 }
 
 function newPlanDraft(sortOrder: number): EditableWebPlan {
@@ -586,179 +548,232 @@ export function WebPlansSettingsPage() {
         actions={<Button size="sm" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/settings')}>Configuración</Button>}
       />
 
-      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 lg:px-6">
-        <div className="rounded-xl border border-surface-border bg-surface-elevated/40 px-4 py-3">
-          <p className="text-sm leading-relaxed text-ink-secondary">
-            <span className="font-semibold text-ink-primary">Qué editás acá y qué pasa en /form</span>
-            <br />
-            Arriba: fotos del selector, <strong className="text-ink-primary">etiquetas de modalidad</strong> (Ferster / Nutrición / Full), cupos y
-            testimonios. Abajo: <strong className="text-ink-primary">ofertas</strong> por modalidad — cada fila es una card en el /form con lo que
-            incluye, regalos y textos. El visitante elige <strong className="text-ink-primary">Mensual, x3, x6 o Anual</strong> arriba de las cards:{' '}
-            <strong className="text-ink-primary">sólo cambia el precio</strong>, no el contenido de la oferta.
+      <div className="mx-auto max-w-4xl space-y-8 px-4 py-6 lg:px-6">
+        <div className="space-y-4 rounded-xl border border-surface-border bg-surface-elevated/40 px-4 py-4 sm:px-5">
+          <div>
+            <p className="text-sm font-semibold text-ink-primary">Cómo se arma el formulario público (/form)</p>
+            <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-ink-secondary marker:text-ink-muted">
+              <li>
+                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> fotos del equipo, nombres del desplegable «Modalidad»,
+                cupos y videos de testimonio.
+              </li>
+              <li>
+                <span className="font-medium text-ink-primary">Ofertas Ferster y Nutrición:</span> tres cards por modalidad, definidas en la app (no
+                en las filas de ofertas de abajo).
+              </li>
+              <li>
+                <span className="font-medium text-ink-primary">Plan full (entreno + nutrición):</span> las cards salen de las ofertas de esta página,
+                segmento Plan full, activas y con «Mostrar en /form».
+              </li>
+              <li>
+                El visitante puede elegir <span className="font-medium text-ink-primary">Mensual, x3, x6 o Anual</span> arriba de las cards: solo
+                cambian los importes mostrados, no el texto de cada oferta.
+              </li>
+            </ul>
+          </div>
+          <div className="rounded-lg border border-surface-border bg-surface-card/50 px-3 py-2.5 text-xs leading-relaxed text-ink-secondary">
+            <span className="font-semibold text-ink-primary">Tip:</span> si editás una fila con segmento Ferster o Nutrición, el /form no la muestra;
+            sirve como referencia o para un uso futuro. Para cambiar Ferster/Nutrición hoy hay que tocar el código (
+            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[10px]">publicIntakeCatalogOffers.ts</code>
+            ).
+          </div>
+          <p className="text-xs text-ink-muted">
+            <a href="#web-plans-ofertas" className="font-medium text-ink-primary underline decoration-ink-primary/30 underline-offset-2 hover:decoration-ink-primary">
+              Ir a ofertas en base de datos
+            </a>
+            {' · '}
+            Orden abajo: primero lo visual del selector, después cupos y videos, al final las ofertas guardadas.
           </p>
         </div>
 
         <SectionCard
-          title="1 · Fotos del selector"
-          subtitle="Avatares al elegir entrenador o nutricionista. Subí JPG/PNG/WebP (bucket web-intake-catalog) o pegá URL HTTPS."
+          title="Selector del /form: fotos y modalidad"
+          subtitle="Lo que el visitante ve al elegir entrenador, nutricionista y la primera lista desplegable."
         >
-          <input
-            ref={soloFileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => void uploadSegmentHero('solo', e.target.files?.length ? e.target.files[0] : undefined)}
-          />
-          <input
-            ref={crisFileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => void uploadSegmentHero('with_cris', e.target.files?.length ? e.target.files[0] : undefined)}
-          />
-          <input
-            ref={fullFileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => void uploadSegmentHero('full', e.target.files?.length ? e.target.files[0] : undefined)}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              loading={soloUploadBusy}
-              icon={<Upload className="h-4 w-4" />}
-              disabled={!catalogUserId}
-              onClick={() => soloFileRef.current?.click()}
-            >
-              Subir · Entrenador
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              loading={crisUploadBusy}
-              icon={<Upload className="h-4 w-4" />}
-              disabled={!catalogUserId}
-              onClick={() => crisFileRef.current?.click()}
-            >
-              Subir · Nutricionista
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              loading={fullUploadBusy}
-              icon={<Upload className="h-4 w-4" />}
-              disabled={!catalogUserId}
-              onClick={() => fullFileRef.current?.click()}
-            >
-              Subir · Full
-            </Button>
+          <div className="space-y-5">
+            <div className="space-y-4">
+              <SubsectionTitle>Fotos del equipo</SubsectionTitle>
+              <p className="text-xs text-ink-muted">Bucket web-intake-catalog. Subí JPG/PNG/WebP o pegá URL HTTPS.</p>
+              <input
+                ref={soloFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void uploadSegmentHero('solo', e.target.files?.length ? e.target.files[0] : undefined)}
+              />
+              <input
+                ref={crisFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void uploadSegmentHero('with_cris', e.target.files?.length ? e.target.files[0] : undefined)}
+              />
+              <input
+                ref={fullFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void uploadSegmentHero('full', e.target.files?.length ? e.target.files[0] : undefined)}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={soloUploadBusy}
+                  icon={<Upload className="h-4 w-4" />}
+                  disabled={!catalogUserId}
+                  onClick={() => soloFileRef.current?.click()}
+                >
+                  Subir · Entrenador
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={crisUploadBusy}
+                  icon={<Upload className="h-4 w-4" />}
+                  disabled={!catalogUserId}
+                  onClick={() => crisFileRef.current?.click()}
+                >
+                  Subir · Nutricionista
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={fullUploadBusy}
+                  icon={<Upload className="h-4 w-4" />}
+                  disabled={!catalogUserId}
+                  onClick={() => fullFileRef.current?.click()}
+                >
+                  Subir · Full
+                </Button>
+              </div>
+              <Input
+                label="URL · Entrenador"
+                placeholder="https://..."
+                value={soloSegmentImg}
+                maxLength={LIMITS.segmentImgUrl}
+                onChange={(e) => setSoloSegmentImg(e.target.value)}
+              />
+              <Input
+                label="URL · Nutricionista"
+                placeholder="https://..."
+                value={withCrisSegmentImg}
+                maxLength={LIMITS.segmentImgUrl}
+                onChange={(e) => setWithCrisSegmentImg(e.target.value)}
+              />
+              <Input
+                label="URL · Full (ambos)"
+                placeholder="https://..."
+                value={fullSegmentImg}
+                maxLength={LIMITS.segmentImgUrl}
+                onChange={(e) => setFullSegmentImg(e.target.value)}
+              />
+              <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
+                Guardar fotos
+              </Button>
+            </div>
+
+            <div className="h-px w-full bg-surface-border" aria-hidden />
+
+            <div className="space-y-4">
+              <SubsectionTitle>Nombres del desplegable «Modalidad»</SubsectionTitle>
+              <p className="text-xs text-ink-muted">
+                Si dejás un campo vacío, el /form usa el texto por defecto: FERSTER FITNESS / NUTRICIÓN / PLAN FULL (ENTRENO + NUTRICIÓN).
+              </p>
+              <Input
+                label="Opción 1 — Solo entrenamiento (segmento solo)"
+                placeholder="Ej. FERSTER FITNESS"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelSolo}
+                onChange={(e) => setModalityLabelSolo(e.target.value)}
+              />
+              <Input
+                label="Opción 2 — Nutrición (segmento with_cris)"
+                placeholder="Ej. NUTRICIÓN"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelWithCris}
+                onChange={(e) => setModalityLabelWithCris(e.target.value)}
+              />
+              <Input
+                label="Opción 3 — Plan integral (segmento full)"
+                placeholder="Ej. PLAN FULL (ENTRENO + NUTRICIÓN)"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelFull}
+                onChange={(e) => setModalityLabelFull(e.target.value)}
+              />
+              <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
+                Guardar etiquetas
+              </Button>
+            </div>
           </div>
-          <Input
-            label="URL · Entrenador"
-            placeholder="https://..."
-            value={soloSegmentImg}
-            maxLength={LIMITS.segmentImgUrl}
-            onChange={(e) => setSoloSegmentImg(e.target.value)}
-          />
-          <Input
-            label="URL · Nutricionista"
-            placeholder="https://..."
-            value={withCrisSegmentImg}
-            maxLength={LIMITS.segmentImgUrl}
-            onChange={(e) => setWithCrisSegmentImg(e.target.value)}
-          />
-          <Input
-            label="URL · Full (ambos)"
-            placeholder="https://..."
-            value={fullSegmentImg}
-            maxLength={LIMITS.segmentImgUrl}
-            onChange={(e) => setFullSegmentImg(e.target.value)}
-          />
-          <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
-            Guardar fotos
-          </Button>
         </SectionCard>
 
         <SectionCard
-          title="1b · Etiquetas «Modalidad» (paso 1 del /form)"
-          subtitle="Textos del desplegable que el visitante ve antes de elegir plan. Vacío = valores por defecto (FERSTER FITNESS / Solo Nutrición / ENTRENO+NUTRICIÓN)."
+          title="Cupos y testimonios"
+          subtitle="Barra de cupos arriba del /form y grilla de videos debajo del selector."
         >
-          <Input
-            label="Línea solo entrenamiento (segmento solo)"
-            placeholder="Ej. FERSTER FITNESS"
-            maxLength={LIMITS.modalityLabel}
-            value={modalityLabelSolo}
-            onChange={(e) => setModalityLabelSolo(e.target.value)}
-          />
-          <Input
-            label="Solo nutrición (segmento with_cris)"
-            placeholder="Ej. Solo Nutrición"
-            maxLength={LIMITS.modalityLabel}
-            value={modalityLabelWithCris}
-            onChange={(e) => setModalityLabelWithCris(e.target.value)}
-          />
-          <Input
-            label="Plan full (segmento full)"
-            placeholder="Ej. ENTRENO+NUTRICIÓN"
-            maxLength={LIMITS.modalityLabel}
-            value={modalityLabelFull}
-            onChange={(e) => setModalityLabelFull(e.target.value)}
-          />
-          <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
-            Guardar etiquetas
-          </Button>
+          <div className="space-y-5">
+            <div className="space-y-4">
+              <SubsectionTitle>Cupos</SubsectionTitle>
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
+                <input
+                  type="checkbox"
+                  className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
+                  checked={intakeSlotsOpen}
+                  onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
+                />
+                Aceptamos consultas nuevas
+              </label>
+              <Input
+                label="Cupos restantes (opcional)"
+                placeholder="Vacío = no mostrar número"
+                value={intakeSlotsRemaining}
+                onChange={(e) => setIntakeSlotsRemaining(e.target.value.replace(/\D/g, ''))}
+              />
+              <Textarea
+                label="Mensaje (una línea ideal)"
+                placeholder='Ej. "Hay lugar para nuevas consultas."'
+                rows={2}
+                maxLength={LIMITS.slotsMsg}
+                value={intakeSlotsMessage}
+                hint={`${intakeSlotsMessage.length}/${LIMITS.slotsMsg}`}
+                onChange={(e) => setIntakeSlotsMessage(e.target.value)}
+              />
+              <Button type="button" size="sm" variant="secondary" onClick={() => void handleSaveIntakeSlots()} loading={assetsSaving}>
+                Guardar cupos
+              </Button>
+            </div>
+
+            <div className="h-px w-full bg-surface-border" aria-hidden />
+
+            <div className="space-y-4">
+              <SubsectionTitle>Testimonios en video</SubsectionTitle>
+              <p className="text-xs text-ink-muted">Una URL por línea.</p>
+              <Textarea
+                label="URLs"
+                rows={5}
+                placeholder={'https://...\nhttps://...'}
+                value={testimonialUrlsText}
+                onChange={(e) => setTestimonialUrlsText(e.target.value)}
+              />
+              <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
+                Guardar testimonios
+              </Button>
+            </div>
+          </div>
         </SectionCard>
 
-        <SectionCard
-          title="2 · Cupos"
-          subtitle="Misma barra compacta de «Cupos disponibles» que arriba del formulario. Número opcional."
-        >
-          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
-            <input
-              type="checkbox"
-              className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
-              checked={intakeSlotsOpen}
-              onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
-            />
-            Aceptamos consultas nuevas
-          </label>
-          <Input
-            label="Cupos restantes (opcional)"
-            placeholder="Vacío = no mostrar número"
-            value={intakeSlotsRemaining}
-            onChange={(e) => setIntakeSlotsRemaining(e.target.value.replace(/\D/g, ''))}
-          />
-          <Textarea
-            label="Mensaje (una línea ideal)"
-            placeholder='Ej. "Hay lugar para nuevas consultas."'
-            rows={2}
-            maxLength={LIMITS.slotsMsg}
-            value={intakeSlotsMessage}
-            hint={`${intakeSlotsMessage.length}/${LIMITS.slotsMsg}`}
-            onChange={(e) => setIntakeSlotsMessage(e.target.value)}
-          />
-          <Button type="button" size="sm" variant="secondary" onClick={() => void handleSaveIntakeSlots()} loading={assetsSaving}>
-            Guardar cupos
-          </Button>
-        </SectionCard>
-
-        <SectionCard title="3 · Testimonios en video" subtitle="Una URL por línea. Grilla en /form.">
-          <Textarea
-            label="URLs"
-            rows={5}
-            placeholder={'https://...\nhttps://...'}
-            value={testimonialUrlsText}
-            onChange={(e) => setTestimonialUrlsText(e.target.value)}
-          />
-          <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
-            Guardar testimonios
-          </Button>
-        </SectionCard>
+        <div id="web-plans-ofertas" className="scroll-mt-24 space-y-3">
+          <h2 className="text-base font-semibold tracking-tight text-ink-primary">Ofertas en base de datos</h2>
+          <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
+            Cada bloque es una fila de <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Para el /form
+            importan las que tengan segmento <strong className="text-ink-primary">Plan full</strong>, estén activas y tengan «Mostrar en /form».
+            Al final pulsá <strong className="text-ink-primary">Guardar ofertas</strong> para persistir todos los cambios.
+          </p>
+        </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/35 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <details className="min-w-0 text-sm">
@@ -783,10 +798,26 @@ export function WebPlansSettingsPage() {
             <Card key={plan.slug} className="overflow-hidden p-0 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-elevated/45 px-4 py-3 sm:px-5">
                 <div className="min-w-0">
-                  <h2 className="text-base font-semibold text-ink-primary">
-                    Oferta {idx + 1}
-                    <span className="ml-1.5 font-normal text-ink-secondary">· {plan.title}</span>
-                  </h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-semibold text-ink-primary">
+                      Oferta {idx + 1}
+                      <span className="ml-1.5 font-normal text-ink-secondary">· {plan.title}</span>
+                    </h2>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                        plan.catalog_segment === 'full'
+                          ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+                          : 'border-surface-border bg-surface-elevated/80 text-ink-muted',
+                      )}
+                    >
+                      {plan.catalog_segment === 'solo'
+                        ? 'Ferster'
+                        : plan.catalog_segment === 'with_cris'
+                          ? 'Nutrición'
+                          : 'Plan full'}
+                    </span>
+                  </div>
                   <p className="mt-0.5 font-mono text-xs text-ink-muted">{plan.slug}</p>
                 </div>
                 {draftSlugs.includes(plan.slug) ? (
@@ -839,11 +870,10 @@ export function WebPlansSettingsPage() {
                     Mostrar esta oferta en el /form
                   </label>
                   <p className="text-[11px] leading-snug text-ink-muted -mt-2 pl-7">
-                    Desmarcá si no querés que aparezca como card (ej. oferta pausada). En el /form, Mensual / x3 / x6 / Anual sólo cambian los
-                    importes; lo que ofrece cada card lo definís en esta oferta (incluye, regalos, textos).
+                    Si desmarcás «Mostrar en /form», esa oferta no aparece como card. Mensual / x3 / x6 / Anual solo cambian precios en pantalla.
                   </p>
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-ink-secondary">Modalidad (igual que el desplegable del /form)</label>
+                    <label className="mb-1.5 block text-xs font-medium text-ink-secondary">Segmento (modalidad de la oferta)</label>
                     <select
                       value={plan.catalog_segment}
                       onChange={(e) =>
@@ -852,11 +882,12 @@ export function WebPlansSettingsPage() {
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
                       <option value="solo">FERSTER FITNESS (solo)</option>
-                      <option value="with_cris">Solo Nutrición (with_cris)</option>
-                      <option value="full">ENTRENO+NUTRICIÓN (full)</option>
+                      <option value="with_cris">NUTRICIÓN (with_cris)</option>
+                      <option value="full">PLAN FULL (full)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      Debe coincidir con la opción del /form (Ferster / Nutrición / Full): sólo se muestran las ofertas de esa modalidad. El orden define el orden de las cards.
+                      El /form usa filas <strong className="text-ink-secondary">Plan full</strong> para la tercera modalidad. Ferster y Nutrición están
+                      fijas en la app; este selector queda por si más adelante enlazamos esas filas o para archivo interno.
                     </p>
                   </div>
                 </FieldGroup>

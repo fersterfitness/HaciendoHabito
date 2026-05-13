@@ -17,6 +17,10 @@ import {
   numericFromPriceLabel,
   intakePlansToPricingPlans,
 } from '@/lib/publicIntakePlanPricing'
+import {
+  mergePublicIntakePlansFromDb,
+  type PublicIntakePlanDetail,
+} from '@/lib/publicIntakeCatalogOffers'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 
 /** Texto completo (detalle del plan / tooltip). En el selector sólo usamos líneas cortas. */
@@ -30,8 +34,8 @@ const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
 /** Defaults si no hay fila en `web_intake_catalog_settings`. */
 const DEFAULT_INTAKE_MODALITY_LABELS = {
   solo: 'FERSTER FITNESS',
-  withCris: 'Solo Nutrición',
-  full: 'ENTRENO+NUTRICIÓN',
+  withCris: 'NUTRICIÓN',
+  full: 'PLAN FULL (ENTRENO + NUTRICIÓN)',
 } as const
 
 function buildIntakeModalityOptions(labels: {
@@ -415,20 +419,7 @@ function TestimonialsSection({ urls }: { urls: string[] }) {
   )
 }
 
-type PlanDetail = {
-  id: string
-  catalogSegment: WebPlanCatalogSegment
-  displayBadge: string | null
-  credentialLineOverride: string | null
-  name: string
-  price: string
-  priceYearly: string | null
-  badge: string
-  shortDescription: string
-  intro: string
-  info: string[]
-  gifts: string[]
-}
+type PlanDetail = PublicIntakePlanDetail
 
 function planCardBadge(plan: Pick<PlanDetail, 'id' | 'displayBadge'>): string {
   const b = plan.displayBadge?.trim()
@@ -438,82 +429,6 @@ function planCardBadge(plan: Pick<PlanDetail, 'id' | 'displayBadge'>): string {
   if (plan.id === 'plan-full') return 'Full'
   return 'Plan'
 }
-
-const COMMON_GIFTS = [
-  'Calendario gratis para anotar tus hábitos.',
-  'Análisis estadístico de hábitos y progreso.',
-  'En mujeres: análisis del ciclo menstrual y su rendimiento.',
-  'Materiales y guías digitales.',
-]
-
-const DEFAULT_PLANS: PlanDetail[] = [
-  {
-    id: 'plan-entrenamiento',
-    catalogSegment: 'solo',
-    displayBadge: null,
-    credentialLineOverride: null,
-    name: 'Primer Plan Entrenamiento',
-    price: '$60.000',
-    priceYearly: '$600.000',
-    badge: 'Entrenamiento',
-    shortDescription: 'Entrenamiento personalizado con seguimiento mensual.',
-    intro:
-      'Plan avanzado de entrenamiento orientado al rendimiento físico, con enfoque en fuerza, resistencia y recuperación. Seguimiento continuo y ajustes según objetivos.',
-    info: [
-      'Videollamada de bienvenida gratuita.',
-      'Videollamada mensual para ajustes/progreso.',
-      'Actualización mensual de tu rutina.',
-      'Rutina 100% personalizada.',
-      'Correcciones por WhatsApp/video y seguimiento continuo.',
-      'Encuentro presencial para ajustes técnicos (cuando se pueda pactar).',
-    ],
-    gifts: COMMON_GIFTS,
-  },
-  {
-    id: 'plan-nutricion',
-    catalogSegment: 'with_cris',
-    displayBadge: null,
-    credentialLineOverride: null,
-    name: 'Segundo Plan Nutrición',
-    price: '$80.000',
-    priceYearly: '$800.000',
-    badge: 'Nutrición',
-    shortDescription: 'Plan nutricional + seguimiento para sostener hábitos.',
-    intro:
-      'Plan premium de acompañamiento integral en nutrición para establecer y mantener hábitos saludables de forma sostenida, con planificación adaptada a tu contexto.',
-    info: [
-      'Videollamada de bienvenida gratuita.',
-      'Videollamada mensual para seguimiento de progreso.',
-      'Planificación nutricional adaptada a tus objetivos.',
-      'Ajustes mensuales según evolución.',
-      'Soporte y seguimiento continuo por WhatsApp.',
-      'Coordinación con tu equipo de profesionales si aplica.',
-    ],
-    gifts: COMMON_GIFTS,
-  },
-  {
-    id: 'plan-full',
-    catalogSegment: 'full',
-    displayBadge: null,
-    credentialLineOverride: null,
-    name: 'Plan Full',
-    price: '$100.000',
-    priceYearly: '$1.000.000',
-    badge: 'Full',
-    shortDescription: 'Combina entrenamiento + nutrición en un plan integral.',
-    intro:
-      'Plan integral que abarca entrenamiento y nutrición en conjunto, orientado a maximizar resultados con acompañamiento completo, estrategia personalizada y seguimiento continuo.',
-    info: [
-      'Videollamada de bienvenida + evaluación inicial completa.',
-      'Videollamada mensual de progreso y ajustes.',
-      'Rutina 100% personalizada + planificación nutricional.',
-      'Ajustes mensuales de entrenamiento y alimentación.',
-      'Correcciones técnicas por video/WhatsApp.',
-      'Soporte continuo y encuentros presenciales cuando se puedan pactar.',
-    ],
-    gifts: COMMON_GIFTS,
-  },
-]
 
 function displayPriceForPlan(plan: PlanDetail, billing: PlanBilling): string {
   switch (billing) {
@@ -803,7 +718,7 @@ function LeftBrandPanel({
                     theme={theme}
                     id="intake-modality"
                     label="Modalidad"
-                    hint="Sólo se listan ofertas de esta modalidad; el entrenador/nutricionista de arriba no cambia la lista."
+                    hint="FERSTER FITNESS = solo plan entrenamiento. NUTRICIÓN = acompañamiento nutricional. PLAN FULL = entreno + nutrición. Sólo se listan ofertas de la modalidad elegida; los selectores de arriba no cambian esa lista."
                     value={modalitySegment}
                     onChange={(raw) =>
                       onSelectCatalogSegment(raw as WebPlanCatalogSegment)
@@ -902,7 +817,7 @@ export function PublicIntakeFormPage() {
     setTheme('dark')
   }, [setTheme])
   const [done,      setDone]      = useState(false)
-  const [plans, setPlans] = useState<PlanDetail[]>(DEFAULT_PLANS)
+  const [plans, setPlans] = useState<PlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
   const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
@@ -1079,7 +994,7 @@ export function PublicIntakeFormPage() {
         if (da !== db) return da - db
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
       })
-      if (mapped.length > 0) setPlans(mapped)
+      if (mounted) setPlans(mergePublicIntakePlansFromDb(mapped))
     })()
     return () => {
       mounted = false

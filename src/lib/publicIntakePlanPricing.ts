@@ -50,6 +50,8 @@ export interface IntakeNormalizedPricingPlan {
   badge?: string | null
   featuresLabel?: string
   features: { text: string; hasInfo?: boolean }[]
+  giftsLabel?: string
+  gifts?: { text: string }[]
 }
 
 export function intakePlansToPricingPlans(
@@ -61,6 +63,7 @@ export function intakePlansToPricingPlans(
     priceYearly?: string | null
     badge: string
     info: string[]
+    gifts?: string[]
   }>,
 ): IntakeNormalizedPricingPlan[] {
   return plans.map((p) => ({
@@ -74,5 +77,7 @@ export function intakePlansToPricingPlans(
     badge: p.badge,
     featuresLabel: 'Incluye',
     features: p.info.map((text) => ({ text })),
+    giftsLabel: p.gifts?.length ? 'De regalo' : undefined,
+    gifts: p.gifts?.length ? p.gifts.map((text) => ({ text })) : undefined,
   }))
 }

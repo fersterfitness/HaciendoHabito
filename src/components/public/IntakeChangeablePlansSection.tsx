@@ -104,7 +104,7 @@ export function IntakeChangeablePlansSection({
 
   const unselectedRow = lightChrome
     ? [
-        'rounded-[14px] border border-neutral-200/90 bg-gradient-to-b from-white to-neutral-50/75',
+        'border border-neutral-200/90 bg-gradient-to-b from-white to-neutral-50/75',
         'shadow-[0_2px_12px_rgba(15,23,42,0.05)] ring-1 ring-neutral-900/[0.03]',
         'hover:border-neutral-300/95 hover:shadow-[0_6px_22px_rgba(15,23,42,0.09)]',
       ].join(' ')
@@ -267,15 +267,16 @@ export function IntakeChangeablePlansSection({
               }}
               transition={{ type: 'spring', bounce: 0.35, duration: 0.55 }}
               className={cn(
-                'relative cursor-pointer overflow-hidden rounded-[14px] outline-none transition-colors duration-200',
+                'relative cursor-pointer overflow-hidden outline-none transition-colors duration-200',
                 'focus-visible:ring-2 focus-visible:ring-offset-0',
+                !flushEmbed && (lightChrome || darkChrome) && 'rounded-[14px]',
+                !flushEmbed && !lightChrome && !darkChrome && 'rounded-[18px]',
+                flushEmbed && 'rounded-xl',
                 darkChrome
                   ? 'focus-visible:ring-white/18'
                   : lightChrome
                     ? 'focus-visible:ring-neutral-400/35'
                     : 'focus-visible:ring-neutral-400/40 dark:focus-visible:ring-neutral-500/40',
-                darkChrome ? '' : !lightChrome ? 'rounded-[18px]' : '',
-                lightChrome ? 'rounded-[14px]' : '',
                 isSelected ? selectedRing : unselectedRow,
               )}
             >
@@ -402,6 +403,37 @@ export function IntakeChangeablePlansSection({
                             </div>
                           ))}
                         </div>
+                        {plan.gifts && plan.gifts.length > 0 ? (
+                          <>
+                            <p
+                              className={cn(
+                                'mb-2 mt-4 text-[9px] font-bold uppercase tracking-[0.14em]',
+                                darkChrome ? 'text-white/40' : 'text-neutral-400',
+                              )}
+                            >
+                              {plan.giftsLabel ?? 'De regalo'}
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                              {plan.gifts.map((g, gidx) => (
+                                <div key={`g-${gidx}`} className="flex items-start gap-2">
+                                  <Check
+                                    size={14}
+                                    strokeWidth={2.8}
+                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-amber-400/90' : 'text-amber-600')}
+                                  />
+                                  <span
+                                    className={cn(
+                                      'text-[11px] leading-tight sm:text-[12px]',
+                                      darkChrome ? 'text-white/78' : 'text-neutral-600',
+                                    )}
+                                  >
+                                    {g.text}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : null}
                       </div>
                     </motion.div>
                   ) : null}
