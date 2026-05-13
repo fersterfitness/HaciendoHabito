@@ -142,6 +142,7 @@ export function WebPlansSettingsPage() {
   const canManage = role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
   const [plans, setPlans] = useState<EditableWebPlan[]>(FALLBACK_PLANS)
   /** Slugs creados en esta sesión y aún no guardados en la base (se pueden borrar). */
   const [draftSlugs, setDraftSlugs] = useState<string[]>([])
@@ -445,6 +446,29 @@ export function WebPlansSettingsPage() {
     if (!draftSlugs.includes(slug)) return
     setPlans((prev) => prev.filter((p) => p.slug !== slug))
     setDraftSlugs((ds) => ds.filter((s) => s !== slug))
+  }
+
+  async function handleDeletePlan(slug: string) {
+    if (draftSlugs.includes(slug)) {
+      removeDraft(slug)
+      return
+    }
+    const ok = window.confirm(
+      `¿Borrar la oferta «${slug}» de la base? No se puede deshacer. Si un alumno tenía este plan asignado, quedará sin plan (la referencia se limpia).`,
+    )
+    if (!ok) return
+    setDeletingSlug(slug)
+    try {
+      const { error } = await supabase.from('web_plans').delete().eq('slug', slug)
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+      setPlans((prev) => prev.filter((p) => p.slug !== slug))
+      toast.success('Oferta eliminada')
+    } finally {
+      setDeletingSlug(null)
+    }
   }
 
   function validate() {
@@ -820,18 +844,33 @@ export function WebPlansSettingsPage() {
                   </div>
                   <p className="mt-0.5 font-mono text-xs text-ink-muted">{plan.slug}</p>
                 </div>
-                {draftSlugs.includes(plan.slug) ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 border-status-expired/40 text-status-expired"
-                    icon={<Trash2 className="h-4 w-4" />}
-                    onClick={() => removeDraft(plan.slug)}
-                  >
-                    Quitar borrador
-                  </Button>
-                ) : null}
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {draftSlugs.includes(plan.slug) ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 border-status-expired/40 text-status-expired"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      onClick={() => removeDraft(plan.slug)}
+                    >
+                      Quitar borrador
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 border-status-expired/40 text-status-expired"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      loading={deletingSlug === plan.slug}
+                      disabled={deletingSlug !== null && deletingSlug !== plan.slug}
+                      onClick={() => void handleDeletePlan(plan.slug)}
+                    >
+                      Eliminar de la base
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-5 p-4 sm:p-5">
