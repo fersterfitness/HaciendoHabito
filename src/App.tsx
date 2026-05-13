@@ -50,6 +50,9 @@ const NutritionAppointmentsPage = lazy(() =>
 const NutritionTemplatesPage = lazy(() => import('@/pages/nutrition/NutritionTemplatesPage').then((m) => ({ default: m.NutritionTemplatesPage })))
 const NutritionFoodsPage = lazy(() => import('@/pages/nutrition/NutritionFoodsPage').then((m) => ({ default: m.NutritionFoodsPage })))
 const NutritionPlanningPage = lazy(() => import('@/pages/nutrition/NutritionPlanningPage').then((m) => ({ default: m.NutritionPlanningPage })))
+const NutritionSeasonalMenusPage = lazy(() =>
+  import('@/pages/nutrition/NutritionSeasonalMenusPage').then((m) => ({ default: m.NutritionSeasonalMenusPage })),
+)
 const StudentMealPlansPage = lazy(() => import('@/pages/student/StudentMealPlansPage').then((m) => ({ default: m.StudentMealPlansPage })))
 const StudentMealPlanDetailPage = lazy(() =>
   import('@/pages/student/StudentMealPlanDetailPage').then((m) => ({ default: m.StudentMealPlanDetailPage })),
@@ -166,6 +169,10 @@ function renderLoggedInRoutes({
       <Route path="nutrition/evolution" element={canSeeNutrition ? withPageSuspense(<NutritionEvolutionPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="nutrition/appointments" element={<Navigate to="/appointments" replace />} />
       <Route path="nutrition/plans" element={canSeeNutrition ? withPageSuspense(<NutritionTemplatesPage />) : <Navigate to="/dashboard" replace />} />
+      <Route
+        path="nutrition/menus"
+        element={canSeeNutrition ? withPageSuspense(<NutritionSeasonalMenusPage />) : <Navigate to="/dashboard" replace />}
+      />
       <Route
         path="nutrition/foods"
         element={canSeeNutritionFoodsGuide ? withPageSuspense(<NutritionFoodsPage />) : <Navigate to="/dashboard" replace />}

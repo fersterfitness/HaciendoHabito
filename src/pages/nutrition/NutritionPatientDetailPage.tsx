@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { FileText, Upload, Sparkles, Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
+import { pdf } from '@react-pdf/renderer'
+import { Download, FileText, Upload, Sparkles, Trash2 } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -12,12 +13,27 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { NutritionAnamnesisSection } from '@/components/nutrition/NutritionAnamnesisSection'
 import { NutritionWeeklyPlanSection } from '@/components/nutrition/NutritionWeeklyPlanSection'
+import { NutritionAnthropometryProgramForm } from '@/components/nutrition/NutritionAnthropometryProgramForm'
+import { NutritionAnthropometryPresentationPanel } from '@/components/nutrition/NutritionAnthropometryPresentationPanel'
+import { NutritionMeasurementCharts } from '@/components/nutrition/NutritionMeasurementCharts'
+import { NutritionClinicalNotesSection } from '@/components/nutrition/NutritionClinicalNotesSection'
+import { NutritionSymptomCheckinsSection } from '@/components/nutrition/NutritionSymptomCheckinsSection'
+import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/NutritionRequirementsCalculatorCard'
+import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
+import { NutritionFolderSectionNav } from '@/components/nutrition/NutritionFolderSectionNav'
+import { NutritionEvolutionReportPdfDocument } from '@/lib/pdf/NutritionEvolutionReportPdfDocument'
+import {
+  buildEvolutionPdfRows,
+  buildPatientFacingInterpretation,
+} from '@/lib/nutrition/nutritionEvolutionInterpretation'
 import { slugify } from '@/lib/utils'
 import type {
   Student,
   NutritionPatientDocument,
   NutritionDocumentCategory,
   NutritionMeasurement,
+  NutritionPatientFollowup,
+  Json,
 } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -39,6 +55,12 @@ const CATEGORIES: DocCategoryConfig[] = [
     title: 'Anamnesis alimentaria',
     buildName: (name, date, originalFileName) =>
       `Anamnesis de ${name} ${originalFileName} ${format(date, 'MM-yyyy')}`,
+  },
+  {
+    key: 'laboratorio',
+    title: 'Laboratorios y estudios',
+    buildName: (name, date, originalFileName) =>
+      `Estudio · ${name} · ${originalFileName} ${format(date, 'MM-yyyy')}`,
   },
 ]
 
@@ -73,6 +95,7 @@ export function NutritionPatientDetailPage() {
   const [documents, setDocuments] = useState<NutritionPatientDocument[]>([])
   const [measurements, setMeasurements] = useState<NutritionMeasurement[]>([])
   const [planText, setPlanText] = useState('')
+  const [followup, setFollowup] = useState<NutritionPatientFollowup | null>(null)
   const [measurementForm, setMeasurementForm] = useState({
     measured_at: new Date().toISOString().slice(0, 10),
     weight_kg: '',
@@ -83,7 +106,24 @@ export function NutritionPatientDetailPage() {
     skinfolds_notes: '',
     notes: '',
   })
+  const [pdfExporting, setPdfExporting] = useState(false)
   const planDebounceRef = useRef<number | null>(null)
+
+  const refreshMeasurements = useCallback(async () => {
+    if (!user || !id) return
+    const { data, error } = await supabase
+      .from('nutrition_measurements')
+      .select('*')
+      .eq('owner_id', user.id)
+      .eq('student_id', id)
+      .order('measured_at', { ascending: false })
+      .limit(40)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setMeasurements((data as NutritionMeasurement[]) ?? [])
+  }, [id, user])
 
   useEffect(() => {
     if (!user || !id) return
@@ -94,6 +134,7 @@ export function NutritionPatientDetailPage() {
         { data: docsData, error: docsError },
         { data: noteData, error: noteError },
         { data: measurementsData, error: measurementsError },
+        { data: followData, error: followError },
       ] = await Promise.all([
         supabase.from('students').select('*').eq('id', id).eq('owner_id', user.id).single(),
         supabase
@@ -114,11 +155,24 @@ export function NutritionPatientDetailPage() {
           .eq('owner_id', user.id)
           .eq('student_id', id)
           .order('measured_at', { ascending: false })
-          .limit(20),
+          .limit(40),
+        supabase
+          .from('nutrition_patient_followups')
+          .select('*')
+          .eq('owner_id', user.id)
+          .eq('student_id', id)
+          .maybeSingle(),
       ])
 
-      if (studentError || docsError || noteError || measurementsError) {
-        toast.error(studentError?.message ?? docsError?.message ?? noteError?.message ?? measurementsError?.message ?? 'No se pudo cargar la carpeta')
+      if (studentError || docsError || noteError || measurementsError || followError) {
+        toast.error(
+          studentError?.message ??
+            docsError?.message ??
+            noteError?.message ??
+            measurementsError?.message ??
+            followError?.message ??
+            'No se pudo cargar la carpeta',
+        )
         setLoading(false)
         return
       }
@@ -127,6 +181,7 @@ export function NutritionPatientDetailPage() {
       setDocuments((docsData as NutritionPatientDocument[]) ?? [])
       setMeasurements((measurementsData as NutritionMeasurement[]) ?? [])
       setPlanText(noteData?.content ?? '')
+      setFollowup((followData as NutritionPatientFollowup) ?? null)
       setLoading(false)
     })()
   }, [id, user])
@@ -259,13 +314,13 @@ export function NutritionPatientDetailPage() {
       perimeters_notes: measurementForm.perimeters_notes.trim() || null,
       skinfolds_notes: measurementForm.skinfolds_notes.trim() || null,
       notes: measurementForm.notes.trim() || null,
+      measurement_number: null,
+      height_cm: null,
+      sitting_height_cm: null,
+      detail: {} as Json,
     }
 
-    const { data, error } = await supabase
-      .from('nutrition_measurements')
-      .insert(payload)
-      .select('*')
-      .single()
+    const { error } = await supabase.from('nutrition_measurements').insert(payload)
 
     setSavingMeasurement(false)
     if (error) {
@@ -273,7 +328,7 @@ export function NutritionPatientDetailPage() {
       return
     }
 
-    setMeasurements((prev) => [data as NutritionMeasurement, ...prev])
+    await refreshMeasurements()
     setMeasurementForm((prev) => ({
       ...prev,
       weight_kg: '',
@@ -287,12 +342,56 @@ export function NutritionPatientDetailPage() {
     toast.success('Medición guardada')
   }
 
+  async function handleExportEvolutionPdf() {
+    if (!student) return
+    const sorted = [...measurements].sort(
+      (a, b) => new Date(a.measured_at).getTime() - new Date(b.measured_at).getTime(),
+    )
+    if (sorted.length < 2) {
+      toast.error('Necesitás al menos dos mediciones guardadas para comparar y armar el PDF.')
+      return
+    }
+    const prev = sorted[sorted.length - 2]!
+    const curr = sorted[sorted.length - 1]!
+    const fromLabel = format(parseISO(prev.measured_at), 'dd/MM/yyyy')
+    const toLabel = format(parseISO(curr.measured_at), 'dd/MM/yyyy')
+    setPdfExporting(true)
+    try {
+      const rows = buildEvolutionPdfRows(prev, curr)
+      const interpretation = buildPatientFacingInterpretation(student.full_name, prev, curr, fromLabel, toLabel)
+      const blob = await pdf(
+        <NutritionEvolutionReportPdfDocument
+          patientName={student.full_name}
+          fromLabel={fromLabel}
+          toLabel={toLabel}
+          rows={rows}
+          interpretation={interpretation}
+        />,
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `evolucion-${slugify(student.full_name).slice(0, 40) || 'paciente'}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('PDF generado')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo generar el PDF')
+    } finally {
+      setPdfExporting(false)
+    }
+  }
+
   const antropometrias = useMemo(
     () => documents.filter((d) => d.category === 'antropometria'),
     [documents]
   )
   const anamnesis = useMemo(
     () => documents.filter((d) => d.category === 'anamnesis'),
+    [documents]
+  )
+  const laboratorios = useMemo(
+    () => documents.filter((d) => d.category === 'laboratorio'),
     [documents]
   )
 
@@ -318,18 +417,111 @@ export function NutritionPatientDetailPage() {
 
   return (
     <div>
-      <Header title={`Carpeta · ${student.full_name}`} showBack actions={
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<Sparkles className="h-4 w-4" />}
-          onClick={() => navigate('/nutrition-pdfs')}
-        >
-          Diagnóstico comparativo
-        </Button>
-      } />
+      <Header
+        title={`Carpeta · ${student.full_name}`}
+        showBack
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Download className="h-4 w-4" />}
+              loading={pdfExporting}
+              disabled={measurements.length < 2}
+              title={
+                measurements.length < 2
+                  ? 'Necesitás al menos dos mediciones guardadas para comparar evolución en el PDF'
+                  : 'Descargar PDF de evolución entre los dos últimos controles'
+              }
+              onClick={() => void handleExportEvolutionPdf()}
+            >
+              PDF evolución
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Sparkles className="h-4 w-4" />}
+              onClick={() => navigate('/nutrition-pdfs')}
+            >
+              Comparar 2 PDFs
+            </Button>
+          </div>
+        }
+      />
 
-      <div className="px-4 lg:px-6 py-6 space-y-6">
+      {followup?.next_consultation_date ? (
+        <div className="mx-4 lg:mx-6 mt-4 rounded-xl border border-surface-border bg-surface-elevated/50 px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="text-ink-secondary">
+            Próxima consulta:{' '}
+            <span className="font-semibold text-ink-primary capitalize">
+              {format(parseISO(followup.next_consultation_date), "EEEE d 'de' MMMM yyyy", { locale: es })}
+            </span>
+          </span>
+          <Button type="button" size="sm" variant="outline" onClick={() => navigate('/appointments')}>
+            Gestionar turnos
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="px-4 lg:px-6 pt-4 pb-2 space-y-3">
+        <p className="text-sm text-ink-secondary leading-relaxed max-w-3xl">
+          La carpeta sigue el orden de una consulta: medición → tabla de presentación → cálculos → archivos PDF → historia
+          clínica → anamnesis → registro rápido → plan. Usá los{' '}
+          <strong className="font-medium text-ink-primary">accesos rápidos</strong> (se mantienen visibles al bajar) para
+          saltar de sección.
+        </p>
+        <div className="sticky top-14 sm:top-16 z-20 -mx-4 px-4 lg:-mx-6 lg:px-6 py-2.5 bg-surface-base/95 backdrop-blur-md border-y border-surface-border/60">
+          <NutritionFolderSectionNav />
+        </div>
+      </div>
+
+      <div className="px-4 lg:px-6 pb-8 space-y-6">
+        <section id="nutrition-seccion-control" className="scroll-mt-32 space-y-6">
+        <div className="grid xl:grid-cols-2 gap-6">
+          <Card>
+            <CardTitle className="mb-1">Programa de antropometría (plantilla Excel)</CardTitle>
+            <p className="text-sm text-ink-muted mb-4">
+              Cargá las 5 mediciones por variable; la app calcula la <strong className="font-medium text-ink-secondary">mediana</strong> y el{' '}
+              <strong className="font-medium text-ink-secondary">% error técnico (TE)</strong> para el valor ajustado. Al guardar, queda un
+              control en el historial del paciente (sirve para gráficos y presentación).
+            </p>
+            {user ? (
+              <NutritionAnthropometryProgramForm
+                ownerId={user.id}
+                studentId={student.id}
+                onSaved={() => refreshMeasurements()}
+              />
+            ) : null}
+          </Card>
+
+          <Card>
+            <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
+            <p className="text-sm text-ink-muted mb-4">
+              Peso, cintura (desde medianas del programa) y % grasa desde la <strong className="font-medium text-ink-secondary">medición rápida</strong> o
+              resúmenes del control. El botón <strong className="font-medium text-ink-secondary">PDF evolución</strong> del encabezado usa los dos últimos
+              registros del historial.
+            </p>
+            <NutritionMeasurementCharts measurements={measurements} />
+          </Card>
+        </div>
+        </section>
+
+        <section id="nutrition-seccion-presentacion" className="scroll-mt-32">
+        <Card>
+          <NutritionAnthropometryPresentationPanel patientName={student.full_name} measurements={measurements} />
+        </Card>
+        </section>
+
+        <section id="nutrition-seccion-requerimientos" className="scroll-mt-32 space-y-6">
+        <div className="grid md:grid-cols-2 gap-6">
+          <NutritionRequirementsCalculatorCard student={student} />
+          <Card>
+            <NutritionExchangeReferenceCard />
+          </Card>
+        </div>
+        </section>
+
+        <section id="nutrition-seccion-pdfs" className="scroll-mt-32 space-y-6">
         <Card>
           <div className="flex items-center justify-between mb-4">
             <CardTitle>{CATEGORIES[0].title}</CardTitle>
@@ -380,6 +572,71 @@ export function NutritionPatientDetailPage() {
           </div>
         </Card>
 
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle>Laboratorios y estudios (PDF)</CardTitle>
+            <label className="inline-flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-brand-primary/50 transition-colors">
+              <Upload className="h-3.5 w-3.5" />
+              Subir PDF(s)
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => uploadPdf('laboratorio', e.target.files)}
+              />
+            </label>
+          </div>
+          <div className="space-y-2">
+            {laboratorios.map((doc) => (
+              <div
+                key={doc.id}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-surface-elevated hover:bg-surface-border/50 transition-colors"
+              >
+                <button type="button" onClick={() => openDocument(doc.file_path)} className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-brand-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-primary truncate">{doc.title}</p>
+                      <p className="text-xs text-ink-muted capitalize">{monthLabel(doc.document_date)}</p>
+                    </div>
+                  </div>
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => deleteDocument(doc)}
+                    disabled={deletingDocId === doc.id}
+                    className="p-1.5 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors disabled:opacity-40"
+                    title="Eliminar PDF"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {laboratorios.length === 0 && (
+              <p className="text-sm text-ink-muted py-2">Subí estudios de laboratorio u otros informes en PDF.</p>
+            )}
+          </div>
+        </Card>
+        </section>
+
+        <section id="nutrition-seccion-historia" className="scroll-mt-32 space-y-6">
+        <Card>
+          <CardTitle className="mb-1">Historial clínico nutricional</CardTitle>
+          <p className="text-sm text-ink-muted mb-4">Notas fechadas por consulta (independiente del plan semanal).</p>
+          {user ? <NutritionClinicalNotesSection ownerId={user.id} studentId={student.id} /> : null}
+        </Card>
+
+        <Card>
+          <CardTitle className="mb-1">Síntomas digestivos y adherencia</CardTitle>
+          <p className="text-sm text-ink-muted mb-4">Registro breve entre consultas.</p>
+          {user ? <NutritionSymptomCheckinsSection ownerId={user.id} studentId={student.id} /> : null}
+        </Card>
+        </section>
+
+        <section id="nutrition-seccion-anamnesis" className="scroll-mt-32">
         <Card>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
@@ -436,7 +693,9 @@ export function NutritionPatientDetailPage() {
             </div>
           </div>
         </Card>
+        </section>
 
+        <section id="nutrition-seccion-mediciones" className="scroll-mt-32">
         <Card>
           <div className="flex items-center justify-between mb-3">
             <CardTitle>Mediciones manuales</CardTitle>
@@ -530,11 +789,17 @@ export function NutritionPatientDetailPage() {
           </div>
 
           <div className="mt-4 space-y-2">
-            {measurements.slice(0, 8).map((m) => (
+            {measurements.slice(0, 12).map((m) => (
               <div key={m.id} className="rounded-xl border border-surface-border px-3 py-2 bg-surface-elevated">
-                <p className="text-xs font-semibold text-ink-primary">{format(new Date(m.measured_at), 'dd/MM/yyyy')}</p>
+                <p className="text-xs font-semibold text-ink-primary">
+                  {format(new Date(m.measured_at), 'dd/MM/yyyy')}
+                  {m.measurement_number != null ? ` · Medición n° ${m.measurement_number}` : ''}
+                </p>
                 <p className="text-xs text-ink-secondary mt-1">
-                  Peso: {m.weight_kg ?? '—'} kg · IMC: {m.bmi ?? '—'} · % Grasa: {m.body_fat_pct ?? '—'} · Masa muscular: {m.muscle_mass_kg ?? '—'} kg
+                  Peso: {m.weight_kg ?? '—'} kg
+                  {m.height_cm != null ? ` · Talla: ${m.height_cm} cm` : ''}
+                  {m.sitting_height_cm != null ? ` · Talla sentado: ${m.sitting_height_cm} cm` : ''} · IMC: {m.bmi ?? '—'} · % Grasa:{' '}
+                  {m.body_fat_pct ?? '—'} · Masa muscular: {m.muscle_mass_kg ?? '—'} kg
                 </p>
                 {m.perimeters_notes && <p className="text-xs text-ink-muted mt-1">Perímetros: {m.perimeters_notes}</p>}
                 {m.skinfolds_notes && <p className="text-xs text-ink-muted mt-1">Pliegues: {m.skinfolds_notes}</p>}
@@ -546,7 +811,9 @@ export function NutritionPatientDetailPage() {
             )}
           </div>
         </Card>
+        </section>
 
+        <section id="nutrition-seccion-plan" className="scroll-mt-32">
         <Card>
           <div className="mb-4">
             <CardTitle className="mb-1">Plan de alimentación</CardTitle>
@@ -573,6 +840,7 @@ export function NutritionPatientDetailPage() {
             />
           </div>
         </Card>
+        </section>
       </div>
     </div>
   )

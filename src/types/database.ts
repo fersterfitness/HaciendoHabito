@@ -19,7 +19,7 @@ export type PaymentMethod =
 export type FinanceScope = 'business' | 'personal'
 export type PlanType = 'entrenamiento' | 'nutricion' | 'combo'
 export type NutritionAttendanceStatus = 'P' | 'A' | 'ST'
-export type NutritionDocumentCategory = 'antropometria' | 'anamnesis'
+export type NutritionDocumentCategory = 'antropometria' | 'anamnesis' | 'laboratorio'
 export type NutritionFoodPortionBasis = 'crudo' | 'cocido' | 'no_especificado'
 
 /** Referencia al guardar en Guía: cómo se usa al armar el plan (cantidad en g, uds. o ml para el alumno). */
@@ -164,6 +164,18 @@ export interface Database {
         Row: NutritionMeasurement
         Insert: Omit<NutritionMeasurement, 'id' | 'created_at'>
         Update: Partial<Omit<NutritionMeasurement, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_clinical_notes: {
+        Row: NutritionClinicalNote
+        Insert: Omit<NutritionClinicalNote, 'id' | 'created_at'>
+        Update: Partial<Omit<NutritionClinicalNote, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      nutrition_symptom_checkins: {
+        Row: NutritionSymptomCheckin
+        Insert: Omit<NutritionSymptomCheckin, 'id' | 'created_at'>
+        Update: Partial<Omit<NutritionSymptomCheckin, 'id' | 'created_at'>>
         Relationships: []
       }
       nutrition_anamnesis: {
@@ -632,6 +644,33 @@ export interface NutritionMeasurement {
   muscle_mass_kg: number | null
   perimeters_notes: string | null
   skinfolds_notes: string | null
+  notes: string | null
+  /** N° de medición (programa de antropometría). */
+  measurement_number: number | null
+  height_cm: number | null
+  sitting_height_cm: number | null
+  /** Series, medianas y metadatos del programa (JSON). */
+  detail: Json
+  created_at: string
+}
+
+export interface NutritionClinicalNote {
+  id: string
+  owner_id: string
+  student_id: string
+  occurred_at: string
+  title: string
+  body: string
+  created_at: string
+}
+
+export interface NutritionSymptomCheckin {
+  id: string
+  owner_id: string
+  student_id: string
+  logged_at: string
+  digestive_discomfort_0_10: number | null
+  adherence_1_5: number | null
   notes: string | null
   created_at: string
 }
