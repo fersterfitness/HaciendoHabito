@@ -14,8 +14,11 @@ import {
   bundlePrice3Months,
   bundlePrice6Months,
   effectiveYearlyLabel,
+  formatArsRounded,
   numericFromPriceLabel,
   intakePlansToPricingPlans,
+  inferWebPlanBundleCommitment,
+  planVisibleForIntakeBilling,
 } from '@/lib/publicIntakePlanPricing'
 import {
   mergePublicIntakePlansFromDb,
@@ -431,13 +434,41 @@ function planCardBadge(plan: Pick<PlanDetail, 'id' | 'displayBadge'>): string {
 }
 
 function displayPriceForPlan(plan: PlanDetail, billing: PlanBilling): string {
+  const commit = inferWebPlanBundleCommitment(plan.id, plan.name)
+  const totalN = numericFromPriceLabel(plan.price)
+  if (commit === 3 && totalN > 0) {
+    const impliedMonthly = formatArsRounded(Math.round(totalN / 3))
+    switch (billing) {
+      case 'monthly':
+        return impliedMonthly
+      case 'months3':
+        return plan.price
+      case 'months6':
+        return bundlePrice6Months(impliedMonthly)
+      case 'annual':
+        return effectiveYearlyLabel(impliedMonthly, plan.priceYearly)
+    }
+  }
+  if (commit === 6 && totalN > 0) {
+    const impliedMonthly = formatArsRounded(Math.round(totalN / 6))
+    switch (billing) {
+      case 'monthly':
+        return impliedMonthly
+      case 'months3':
+        return bundlePrice3Months(impliedMonthly)
+      case 'months6':
+        return plan.price
+      case 'annual':
+        return effectiveYearlyLabel(impliedMonthly, plan.priceYearly)
+    }
+  }
   switch (billing) {
     case 'monthly':
       return plan.price
     case 'months3':
-      return bundlePrice3Months(plan.price)
+      return plan.price3mLabel?.trim() || bundlePrice3Months(plan.price)
     case 'months6':
-      return bundlePrice6Months(plan.price)
+      return plan.price6mLabel?.trim() || bundlePrice6Months(plan.price)
     case 'annual':
       return effectiveYearlyLabel(plan.price, plan.priceYearly)
   }
@@ -786,6 +817,8 @@ function LeftBrandPanel({
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-white/52">
                   {catalogSegment === null
                     ? 'Elegí una opción del paso 1.'
+                    : catalogSegment === 'with_cris'
+                      ? 'Por ahora no hay ofertas en esta modalidad. Cuando estén listas, el equipo las publica desde Planes web en el panel.'
                     : catalogSegment === 'full' && !hasPlansForSegment('full')
                       ? 'Plan integral entrenamiento + nutrición. Si no ves planes, cargalos desde el panel.'
                       : 'Próximamente sumaremos opciones para esta línea.'}
@@ -841,10 +874,13 @@ export function PublicIntakeFormPage() {
     full: string | null
   }>({ solo: null, withCris: null, full: null })
   const modalityOptions = useMemo(() => buildIntakeModalityOptions(modalityLabels), [modalityLabels])
-  const plansVisible = useMemo(() => plans.filter((p) => catalogSegment !== null && p.catalogSegment === catalogSegment), [
-    plans,
-    catalogSegment,
-  ])
+  const plansVisible = useMemo(() => {
+    return plans.filter((p) => {
+      if (catalogSegment === null || p.catalogSegment !== catalogSegment) return false
+      const bundle = inferWebPlanBundleCommitment(p.id, p.name)
+      return planVisibleForIntakeBilling(bundle, planBilling)
+    })
+  }, [plans, catalogSegment, planBilling])
 
   useEffect(() => {
     if (plansVisible.length === 0) return
@@ -942,7 +978,7 @@ export function PublicIntakeFormPage() {
       const { data, error } = await supabase
         .from('web_plans')
         .select(
-          'slug, title, price_label, price_yearly_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
+          'slug, title, price_label, price_yearly_label, price_3m_label, price_6m_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
         )
         .eq('is_active', true)
         .eq('show_in_public_intake', true)
@@ -954,6 +990,8 @@ export function PublicIntakeFormPage() {
         | 'title'
         | 'price_label'
         | 'price_yearly_label'
+        | 'price_3m_label'
+        | 'price_6m_label'
         | 'short_description'
         | 'intro_text'
         | 'includes_items'
@@ -981,6 +1019,8 @@ export function PublicIntakeFormPage() {
           name: row.title,
           price: row.price_label,
           priceYearly: row.price_yearly_label ?? null,
+          price3mLabel: row.price_3m_label ?? null,
+          price6mLabel: row.price_6m_label ?? null,
           badge: planCardBadge({ id, displayBadge }),
           shortDescription: row.short_description,
           intro: row.intro_text,

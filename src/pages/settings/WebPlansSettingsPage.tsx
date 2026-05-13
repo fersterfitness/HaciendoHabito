@@ -24,6 +24,8 @@ type EditableWebPlan = Pick<
   | 'title'
   | 'price_label'
   | 'price_yearly_label'
+  | 'price_3m_label'
+  | 'price_6m_label'
   | 'short_description'
   | 'intro_text'
   | 'includes_items'
@@ -57,6 +59,8 @@ const FALLBACK_PLANS: EditableWebPlan[] = [
     title: 'Plan Full',
     price_label: '$100.000',
     price_yearly_label: '$1.000.000',
+    price_3m_label: null,
+    price_6m_label: null,
     short_description: 'Combina entrenamiento + nutrición en un plan integral.',
     intro_text:
       'Plan integral que abarca entrenamiento y nutrición en conjunto, orientado a maximizar resultados con acompañamiento completo, estrategia personalizada y seguimiento continuo.',
@@ -122,6 +126,8 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
     title: 'Nueva oferta',
     price_label: '$—',
     price_yearly_label: null,
+    price_3m_label: null,
+    price_6m_label: null,
     short_description: 'Editá la descripción corta que verán en la tarjeta (8–140 caracteres).',
     intro_text:
       'Detalle que se muestra al tocar «más info». Podés extenderlo hasta 3500 caracteres con el nombre original del servicio y lo que incluye.',
@@ -373,6 +379,8 @@ export function WebPlansSettingsPage() {
         title: row.title,
         price_label: row.price_label,
         price_yearly_label: row.price_yearly_label ?? null,
+        price_3m_label: row.price_3m_label ?? null,
+        price_6m_label: row.price_6m_label ?? null,
         short_description: row.short_description,
         intro_text: row.intro_text,
         includes_items: row.includes_items ?? [],
@@ -484,6 +492,10 @@ export function WebPlansSettingsPage() {
       if (pyl && pyl.length > LIMITS.priceYearly) {
         return 'Revisá el precio anual opcional de las ofertas.'
       }
+      const p3 = plan.price_3m_label?.trim()
+      if (p3 && p3.length > LIMITS.price) return 'Revisá el precio opcional x3 (mismo límite que el mensual).'
+      const p6 = plan.price_6m_label?.trim()
+      if (p6 && p6.length > LIMITS.price) return 'Revisá el precio opcional x6 (mismo límite que el mensual).'
       if (!plan.short_description.trim() || plan.short_description.length > LIMITS.short) return 'La descripción corta supera el límite.'
       if (!plan.intro_text.trim() || plan.intro_text.length > LIMITS.intro) return 'El detalle principal supera el límite.'
       const b = plan.display_badge?.trim()
@@ -512,6 +524,8 @@ export function WebPlansSettingsPage() {
       title: plan.title.trim(),
       price_label: plan.price_label.trim(),
       price_yearly_label: plan.price_yearly_label?.trim() ? plan.price_yearly_label.trim().slice(0, LIMITS.priceYearly) : null,
+      price_3m_label: plan.price_3m_label?.trim() ? plan.price_3m_label.trim().slice(0, LIMITS.price) : null,
+      price_6m_label: plan.price_6m_label?.trim() ? plan.price_6m_label.trim().slice(0, LIMITS.price) : null,
       short_description: plan.short_description.trim(),
       intro_text: plan.intro_text.trim(),
       includes_items: plan.includes_items,
@@ -539,6 +553,8 @@ export function WebPlansSettingsPage() {
       title: row.title,
       price_label: row.price_label,
       price_yearly_label: row.price_yearly_label ?? null,
+      price_3m_label: row.price_3m_label ?? null,
+      price_6m_label: row.price_6m_label ?? null,
       short_description: row.short_description,
       intro_text: row.intro_text,
       includes_items: row.includes_items ?? [],
@@ -582,12 +598,17 @@ export function WebPlansSettingsPage() {
                 cupos y videos de testimonio.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Ofertas Ferster y Nutrición:</span> tres cards por modalidad, definidas en la app (no
-                en las filas de ofertas de abajo).
+                <span className="font-medium text-ink-primary">FERSTER FITNESS:</span> tres cards fijas en la app (no salen de las filas de abajo).
+              </li>
+              <li>
+                <span className="font-medium text-ink-primary">Nutrición (modalidad 2):</span> por ahora no se listan ofertas en el /form; cuando haya
+                catálogo, se publicará desde aquí o desde código según definamos.
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Plan full (entreno + nutrición):</span> las cards salen de las ofertas de esta página,
-                segmento Plan full, activas y con «Mostrar en /form».
+                segmento Plan full, activas y con «Mostrar en /form», más tres ofertas fijas en código. Las ofertas con slug{' '}
+                <code className="font-mono text-[10px]">promo-3m-*</code> o <code className="font-mono text-[10px]">promo-6m-*</code> (o título «… — 3
+                meses» / «… — 6 meses») en el /form solo se listan al elegir x3 o x6 meses en el toggle, no en Mensual ni Anual.
               </li>
               <li>
                 El visitante puede elegir <span className="font-medium text-ink-primary">Mensual, x3, x6 o Anual</span> arriba de las cards: solo
@@ -596,10 +617,10 @@ export function WebPlansSettingsPage() {
             </ul>
           </div>
           <div className="rounded-lg border border-surface-border bg-surface-card/50 px-3 py-2.5 text-xs leading-relaxed text-ink-secondary">
-            <span className="font-semibold text-ink-primary">Tip:</span> si editás una fila con segmento Ferster o Nutrición, el /form no la muestra;
-            sirve como referencia o para un uso futuro. Para cambiar Ferster/Nutrición hoy hay que tocar el código (
-            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[10px]">publicIntakeCatalogOffers.ts</code>
-            ).
+            <span className="font-semibold text-ink-primary">Tip:</span> las filas con segmento Nutrición no aparecen hoy en el /form; podés usarlas
+            como borrador. Ferster y el trío «Plan full» fijo siguen en{' '}
+            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[10px]">publicIntakeCatalogOffers.ts</code>. Para x3/x6 en una
+            sola fila, usá «Precios por plazo (opcional)» en cada oferta.
           </div>
           <p className="text-xs text-ink-muted">
             <a href="#web-plans-ofertas" className="font-medium text-ink-primary underline decoration-ink-primary/30 underline-offset-2 hover:decoration-ink-primary">
@@ -925,8 +946,8 @@ export function WebPlansSettingsPage() {
                       <option value="full">PLAN FULL (full)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      El /form usa filas <strong className="text-ink-secondary">Plan full</strong> para la tercera modalidad. Ferster y Nutrición están
-                      fijas en la app; este selector queda por si más adelante enlazamos esas filas o para archivo interno.
+                      El /form lista ofertas del segmento <strong className="text-ink-secondary">Plan full</strong> desde la base y tres fijas en
+                      código. Ferster sale solo del código. Nutrición (with_cris) no muestra cards por ahora.
                     </p>
                   </div>
                 </FieldGroup>
@@ -971,11 +992,38 @@ export function WebPlansSettingsPage() {
                     value={plan.price_yearly_label ?? ''}
                     placeholder="Vacío → se muestra 10× el mensual"
                     maxLength={LIMITS.priceYearly}
-                    hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly} · En /form, x3 y x6 meses se calculan desde el mensual con descuento referencial (no se editan acá).`}
+                    hint={`${(plan.price_yearly_label ?? '').length}/${LIMITS.priceYearly} · En /form, si no cargás x3/x6 abajo, se calculan desde el mensual con descuento referencial.`}
                     onChange={(e) =>
                       updatePlan(plan.slug, { price_yearly_label: e.target.value.trim() ? e.target.value : null })
                     }
                   />
+                  <div className="rounded-lg border border-surface-border/80 bg-surface-elevated/30 px-3 py-3 space-y-3">
+                    <SubsectionTitle>Precios por plazo (opcional)</SubsectionTitle>
+                    <p className="text-[11px] leading-snug text-ink-muted">
+                      Una sola fila de oferta puede mostrar precios distintos al cambiar Mensual / x3 / x6 en el /form. Si dejás vacío, x3 y x6 se
+                      calculan desde el precio mensual (salvo filas promo dedicadas).
+                    </p>
+                    <Input
+                      label="Precio x3 meses (opcional)"
+                      value={plan.price_3m_label ?? ''}
+                      placeholder="Ej. $150.000"
+                      maxLength={LIMITS.price}
+                      hint={`${(plan.price_3m_label ?? '').length}/${LIMITS.price}`}
+                      onChange={(e) =>
+                        updatePlan(plan.slug, { price_3m_label: e.target.value.trim() ? e.target.value : null })
+                      }
+                    />
+                    <Input
+                      label="Precio x6 meses (opcional)"
+                      value={plan.price_6m_label ?? ''}
+                      placeholder="Ej. $280.000"
+                      maxLength={LIMITS.price}
+                      hint={`${(plan.price_6m_label ?? '').length}/${LIMITS.price}`}
+                      onChange={(e) =>
+                        updatePlan(plan.slug, { price_6m_label: e.target.value.trim() ? e.target.value : null })
+                      }
+                    />
+                  </div>
                 </FieldGroup>
 
                 <FieldGroup title="Textos largos (card, detalle, listas)">

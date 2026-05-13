@@ -9,6 +9,9 @@ export type PublicIntakePlanDetail = {
   name: string
   price: string
   priceYearly: string | null
+  /** Opcional: override para toggle x3 (solo filas desde panel si se persisten en código futuro). */
+  price3mLabel?: string | null
+  price6mLabel?: string | null
   badge: string
   shortDescription: string
   intro: string
@@ -23,31 +26,17 @@ const GIFTS_STANDARD: string[] = [
   'Materiales y guías digitales.',
 ]
 
-/** Plan integral cuando no hay filas `full` en `web_plans`. */
-export const DEFAULT_FULL_PLAN: PublicIntakePlanDetail = {
-  id: 'plan-full',
-  catalogSegment: 'full',
-  displayBadge: null,
-  credentialLineOverride: null,
-  name: 'Plan Full',
-  price: '$100.000',
-  priceYearly: '$1.000.000',
-  badge: 'Full',
-  shortDescription: 'Combina entrenamiento + nutrición en un plan integral.',
-  intro:
-    'Plan integral que abarca entrenamiento y nutrición en conjunto, orientado a maximizar resultados con acompañamiento completo, estrategia personalizada y seguimiento continuo.',
-  info: [
-    'Videollamada de bienvenida + evaluación inicial completa.',
-    'Videollamada mensual de progreso y ajustes.',
-    'Rutina 100% personalizada + planificación nutricional.',
-    'Ajustes mensuales de entrenamiento y alimentación.',
-    'Correcciones técnicas por video o WhatsApp.',
-    'Soporte continuo y encuentros presenciales cuando se puedan pactar.',
-  ],
-  gifts: GIFTS_STANDARD,
-}
+/** Slugs de las tres ofertas fijas «Plan full» (entreno + nutrición). No se duplican desde `web_plans`. */
+export const INTAKE_FULL_INTEGRAL_SLUGS = new Set([
+  'cris-habitos-deportista',
+  'cris-habitos-platino',
+  'cris-habitos-premium',
+])
 
-/** FERSTER FITNESS (`solo`): tres ofertas fijas (contenido entrenador). */
+/** Slugs de ofertas full en DB que ya cubre el catálogo fijo (evitar tarjeta genérica duplicada). */
+const LEGACY_FULL_SLUGS_HIDE_FROM_DB = new Set(['plan-full'])
+
+/** FERSTER FITNESS (`solo`): tres ofertas fijas. */
 export const INTAKE_FERSTER_OFFERS: PublicIntakePlanDetail[] = [
   {
     id: 'ferster-habitos-alto-rendimiento',
@@ -122,11 +111,14 @@ export const INTAKE_FERSTER_OFFERS: PublicIntakePlanDetail[] = [
   },
 ]
 
-/** NUTRICIÓN (`with_cris`): tres ofertas fijas (Cris + Tomi). */
-export const INTAKE_CRIS_OFFERS: PublicIntakePlanDetail[] = [
+/**
+ * Plan full (ENTRENO + NUTRICIÓN): tres ofertas fijas (antes bajo modalidad nutrición; ahora solo esta modalidad las lista).
+ * Se mantienen los mismos `id`/slug para no romper envíos previos del formulario.
+ */
+export const INTAKE_FULL_INTEGRAL_OFFERS: PublicIntakePlanDetail[] = [
   {
     id: 'cris-habitos-deportista',
-    catalogSegment: 'with_cris',
+    catalogSegment: 'full',
     displayBadge: null,
     credentialLineOverride: null,
     name: 'Hábitos deportista',
@@ -152,7 +144,7 @@ export const INTAKE_CRIS_OFFERS: PublicIntakePlanDetail[] = [
   },
   {
     id: 'cris-habitos-platino',
-    catalogSegment: 'with_cris',
+    catalogSegment: 'full',
     displayBadge: null,
     credentialLineOverride: null,
     name: 'Hábitos platino',
@@ -178,7 +170,7 @@ export const INTAKE_CRIS_OFFERS: PublicIntakePlanDetail[] = [
   },
   {
     id: 'cris-habitos-premium',
-    catalogSegment: 'with_cris',
+    catalogSegment: 'full',
     displayBadge: null,
     credentialLineOverride: null,
     name: 'Hábitos premium',
@@ -204,12 +196,15 @@ export const INTAKE_CRIS_OFFERS: PublicIntakePlanDetail[] = [
   },
 ]
 
+const HIDE_DB_FULL_SLUGS = new Set([...INTAKE_FULL_INTEGRAL_SLUGS, ...LEGACY_FULL_SLUGS_HIDE_FROM_DB])
+
 /**
- * Catálogo del formulario público: ofertas Ferster y Rutinas con Cris son fijas;
- * las ofertas `full` siguen viniendo de `web_plans` si existen.
+ * Catálogo del formulario público:
+ * - Ferster: 3 ofertas fijas (`solo`).
+ * - Nutrición (`with_cris`): sin ofertas en pantalla (el equipo las publica después vía panel).
+ * - Plan full: 3 ofertas fijas + filas extra `full` en `web_plans` (promos, etc.), sin duplicar las fijas ni `plan-full` genérico.
  */
 export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]): PublicIntakePlanDetail[] {
-  const fullPlans = dbPlans.filter((p) => p.catalogSegment === 'full')
-  const full = fullPlans.length > 0 ? fullPlans : [DEFAULT_FULL_PLAN]
-  return [...INTAKE_FERSTER_OFFERS, ...INTAKE_CRIS_OFFERS, ...full]
+  const extraFull = dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id))
+  return [...INTAKE_FERSTER_OFFERS, ...INTAKE_FULL_INTEGRAL_OFFERS, ...extraFull]
 }

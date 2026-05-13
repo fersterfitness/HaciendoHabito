@@ -503,6 +503,10 @@ export interface WebPlan {
   price_label: string
   /** Precio modalidad anual en /form; opcional. */
   price_yearly_label?: string | null
+  /** Opcional: etiqueta para x3 en /form; vacío → se calcula desde `price_label`. */
+  price_3m_label?: string | null
+  /** Opcional: etiqueta para x6 en /form; vacío → se calcula desde `price_label`. */
+  price_6m_label?: string | null
   short_description: string
   intro_text: string
   includes_items: string[]
