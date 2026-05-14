@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import {
   buildAppointmentConfirmationWaUrl,
+  buildAppointmentConfirmedPrepWaUrl,
   buildAppointmentFeedbackWaUrl,
 } from '@/lib/whatsapp'
 import { parseGoogleCalendarSyncFailure } from '@/lib/googleCalendarSyncErrors'
@@ -583,6 +584,20 @@ export function AppointmentsPage() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  function openAppointmentConfirmedPrepWa(a: AppointmentRow) {
+    const phoneRaw = appointmentPhoneRaw(a, studentById)
+    const url = buildAppointmentConfirmedPrepWaUrl({ phoneRaw })
+    if (!phoneRaw?.trim()) {
+      toast.error('Sin teléfono del alumno: cargalo en la ficha para usar WhatsApp.')
+      return
+    }
+    if (!url) {
+      toast.error(`Teléfono inválido. Usá el formato ${STUDENT_PHONE_FORMAT_HINT}`)
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   async function createAppointment() {
     if (!user) return
     if (!form.student_id || !form.starts_at || !form.title.trim()) {
@@ -637,6 +652,43 @@ export function AppointmentsPage() {
         setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
         setRecurring(false); setRecurWeeks(4)
         toast.success(`${recurWeeks} turnos recurrentes agendados`)
+
+        const first = recAppts[0]
+        if (first) {
+          const studentName = first.student?.full_name ?? '—'
+          const phoneRaw = first.student?.phone ?? students.find((s) => s.id === first.student_id)?.phone
+          const confirmUrl = buildAppointmentConfirmationWaUrl({
+            phoneRaw,
+            studentName,
+            title: first.title,
+            startsAtIso: first.starts_at,
+            location: first.location,
+          })
+          if (!phoneRaw?.trim()) {
+            toast.custom(
+              (t) => (
+                <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 text-sm text-ink-secondary">
+                  Para pedir confirmación por WhatsApp (primera fecha de la serie), agregá el teléfono del alumno en su ficha.
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Entendido
+                  </button>
+                </div>
+              ),
+              { duration: 8000 },
+            )
+          } else if (!confirmUrl) {
+            toast.error(`Teléfono del alumno: actualizalo en la ficha con formato tipo ${STUDENT_PHONE_FORMAT_HINT}`)
+          } else {
+            whatsappToast(
+              'Pedí confirmación por WhatsApp para la primera fecha (el resto de la serie está en la agenda)',
+              confirmUrl,
+            )
+          }
+        }
         return
       }
 
@@ -896,6 +948,32 @@ export function AppointmentsPage() {
         toast.error(`Sesión guardada — el teléfono del alumno no sirve para WhatsApp (usá ${STUDENT_PHONE_FORMAT_HINT} en la ficha).`)
       } else {
         whatsappToast('Pedí cómo fue hoy por WhatsApp (desde Agenda o Historial podés repetir)', feedbackUrl)
+      }
+    }
+
+    if (status === 'confirmed' && prev && prev.status !== 'confirmed') {
+      const phoneRaw = prev.student?.phone ?? students.find((s) => s.id === prev.student_id)?.phone
+      const prepUrl = buildAppointmentConfirmedPrepWaUrl({ phoneRaw })
+      if (!phoneRaw?.trim()) {
+        toast.custom(
+          (t) => (
+            <div className="max-w-sm rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 text-sm text-ink-secondary">
+              Turno confirmado. Para enviar el mensaje de preparación por WhatsApp, cargá el teléfono en la ficha del alumno.
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                onClick={() => toast.dismiss(t.id)}
+              >
+                Entendido
+              </button>
+            </div>
+          ),
+          { duration: 8000 },
+        )
+      } else if (!prepUrl) {
+        toast.error(`Turno confirmado — el teléfono no sirve para WhatsApp (usá ${STUDENT_PHONE_FORMAT_HINT} en la ficha).`)
+      } else {
+        whatsappToast('Enviá el mensaje de preparación para la videollamada por WhatsApp (podés repetir desde la agenda)', prepUrl)
       }
     }
   }
@@ -1442,10 +1520,21 @@ export function AppointmentsPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => { openAppointmentConfirmationWa(a); setWeekPopoverOpen(false); setWeekPopoverApptId(null) }}
+                                  onClick={() => {
+                                    if (a.status === 'confirmed') openAppointmentConfirmedPrepWa(a)
+                                    else openAppointmentConfirmationWa(a)
+                                    setWeekPopoverOpen(false)
+                                    setWeekPopoverApptId(null)
+                                  }}
                                   className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900/90 dark:text-emerald-400/90 hover:bg-emerald-500/12 transition-colors inline-flex items-center gap-1.5"
+                                  title={
+                                    a.status === 'confirmed'
+                                      ? 'Abre WhatsApp con el mensaje de preparación para la videollamada (mismo que al confirmar el turno).'
+                                      : 'Abre WhatsApp para pedir que el alumno confirme que va a asistir.'
+                                  }
                                 >
-                                  <MessageCircle className="h-3 w-3" /> WhatsApp confirmación
+                                  <MessageCircle className="h-3 w-3" />
+                                  {a.status === 'confirmed' ? 'WhatsApp prep videollamada' : 'WhatsApp pedir confirmación'}
                                 </button>
                                 <button
                                   type="button"
@@ -1618,12 +1707,18 @@ export function AppointmentsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => openAppointmentConfirmationWa(a)}
-                          title="Abre WhatsApp con mensaje para confirmar el turno (misma plantilla que al crear)."
+                          onClick={() =>
+                            a.status === 'confirmed' ? openAppointmentConfirmedPrepWa(a) : openAppointmentConfirmationWa(a)
+                          }
+                          title={
+                            a.status === 'confirmed'
+                              ? 'Abre WhatsApp con el mensaje de preparación para la videollamada (mismo que al confirmar).'
+                              : 'Abre WhatsApp para pedir que confirme asistencia (misma plantilla que al crear el turno).'
+                          }
                           className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/38 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 inline-flex items-center gap-1"
                         >
                           <MessageCircle className="h-3 w-3" />
-                          Confirmación WA
+                          {a.status === 'confirmed' ? 'Prep videollamada WA' : 'Pedir confirmación WA'}
                         </button>
                       </div>
                     )}

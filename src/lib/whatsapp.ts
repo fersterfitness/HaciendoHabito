@@ -13,7 +13,6 @@ export function normalizePhoneForWhatsApp(raw: string | null | undefined): strin
 }
 
 export function buildWhatsAppUrl(phoneDigits: string, message: string): string {
-  // Sin emojis: en wa.me algunos clientes las muestran como () — solo texto ASCII + tildes.
   const text = normalizeMessageForWaLink(message)
   return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(text)}`
 }
@@ -89,4 +88,39 @@ export function buildAppointmentFeedbackWaUrl(params: {
     sessionAt: new Date(params.startsAtIso),
   })
   return buildWhatsAppUrl(digits, msg)
+}
+
+/** Mensaje sugerido al marcar el turno como confirmado (preparación para la videollamada). */
+export function confirmedVideocallPrepMessage(): string {
+  return [
+    'Perfecto!🫡‼️',
+    '',
+    'Ahora que ya tenemos nuestra videollamada pactada. Necesito que vayas pensando algunas cosas para ese día!📲',
+    '',
+    '‼️Temas a conversar:',
+    '',
+    '1-¿Como es un dia habitual tuyo? O generalemnte en la semana.',
+    '',
+    '2-¿Que comidas estas acostumbrado a realizar?¿En que horarios?',
+    '',
+    '3-¿En que horario entrenas?',
+    '',
+    '4-¿En que lugar vas a entrenar?',
+    '',
+    '5-¿Que es lo que mas te cuesta como habito?',
+    '',
+    '6-En caso de tener ciclo menstrual. ¿Que dias normalmente menstruas?¿Que tipo de periodo tenes?¿Notas molestias/Dolor/incomodidad en algun momento?',
+    '',
+    '‼️*Temas secundarios: (Para hablar en videollamada)*‼️',
+    '',
+    '-Tema grabacion de videos en gym ',
+    '',
+    '-Habit trackker y como funciona',
+  ].join('\n')
+}
+
+export function buildAppointmentConfirmedPrepWaUrl(params: { phoneRaw: string | null | undefined }): string | null {
+  const digits = normalizePhoneForWhatsApp(params.phoneRaw)
+  if (!digits) return null
+  return buildWhatsAppUrl(digits, confirmedVideocallPrepMessage())
 }
