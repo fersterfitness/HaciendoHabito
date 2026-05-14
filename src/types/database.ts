@@ -506,7 +506,7 @@ export interface RoutineBlueprint {
   updated_at: string
 }
 
-export type WebPlanCatalogSegment = 'solo' | 'with_cris' | 'full'
+export type WebPlanCatalogSegment = 'solo' | 'with_nutritionist' | 'full'
 
 export interface WebPlan {
   id: string
@@ -523,7 +523,7 @@ export interface WebPlan {
   intro_text: string
   includes_items: string[]
   gifts_items: string[]
-  /** Formulario público: línea solo vs planes conjuntos (Cristian Vázquez). */
+  /** Formulario público: solo nutrición vs full vs solo entrenador. */
   catalog_segment: WebPlanCatalogSegment
   /** Texto libre tipo credencial en la card de detalle del plan; vacío = usar la del segmento. */
   credential_line_override?: string | null
@@ -541,7 +541,7 @@ export interface WebPlan {
 export interface WebIntakeCatalogSettings {
   id: number
   solo_segment_image_url: string | null
-  with_cris_segment_image_url: string | null
+  with_nutritionist_segment_image_url: string | null
   full_segment_image_url: string | null
   /** Tras migración 20260516120000. */
   cris_solo_segment_image_url?: string | null
@@ -551,7 +551,7 @@ export interface WebIntakeCatalogSettings {
   intake_slots_public_message?: string | null
   /** Etiquetas del selector «Modalidad» en /form (opcional; vacío = default en cliente). */
   modality_label_solo?: string | null
-  modality_label_with_cris?: string | null
+  modality_label_with_nutritionist?: string | null
   modality_label_full?: string | null
   updated_at: string
 }

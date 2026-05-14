@@ -37,18 +37,21 @@ const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
 /** Defaults si no hay fila en `web_intake_catalog_settings`. */
 const DEFAULT_INTAKE_MODALITY_LABELS = {
   solo: 'FERSTER FITNESS',
-  withCris: 'NUTRICIÓN',
+  withNutritionist: 'NUTRICIÓN',
   full: 'PLAN FULL (ENTRENO + NUTRICIÓN)',
 } as const
 
 function buildIntakeModalityOptions(labels: {
   solo: string | null
-  withCris: string | null
+  withNutritionist: string | null
   full: string | null
 }): { segment: WebPlanCatalogSegment; label: string }[] {
   return [
     { segment: 'solo', label: labels.solo?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.solo },
-    { segment: 'with_cris', label: labels.withCris?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.withCris },
+    {
+      segment: 'with_nutritionist',
+      label: labels.withNutritionist?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.withNutritionist,
+    },
     { segment: 'full', label: labels.full?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.full },
   ]
 }
@@ -520,7 +523,7 @@ function PlanDetailView({
           <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90 whitespace-pre-wrap">
             {plan.credentialLineOverride.trim()}
           </p>
-        ) : plan.catalogSegment === 'with_cris' ? (
+        ) : plan.catalogSegment === 'with_nutritionist' ? (
           <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90">
             {PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
           </p>
@@ -652,7 +655,7 @@ function LeftBrandPanel({
   planBilling,
   onPlanBillingChange,
   soloSegmentImageUrl,
-  withCrisSegmentImageUrl,
+  withNutritionistSegmentImageUrl,
   crisSoloSegmentImageUrl,
   modalityOptions,
 }: {
@@ -669,7 +672,7 @@ function LeftBrandPanel({
   onPlanBillingChange: (v: PlanBilling) => void
   /** Fotos del panel Ajustes → Planes web (`web_intake_catalog_settings`). */
   soloSegmentImageUrl: string | null
-  withCrisSegmentImageUrl: string | null
+  withNutritionistSegmentImageUrl: string | null
   crisSoloSegmentImageUrl: string | null
   modalityOptions: { segment: WebPlanCatalogSegment; label: string }[]
 }) {
@@ -684,7 +687,7 @@ function LeftBrandPanel({
       : 'solo'
 
   const includeTraining = modalitySegment === 'solo' || modalitySegment === 'full'
-  const includeNutrition = modalitySegment === 'with_cris' || modalitySegment === 'full'
+  const includeNutrition = modalitySegment === 'with_nutritionist' || modalitySegment === 'full'
 
   const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
@@ -696,9 +699,9 @@ function LeftBrandPanel({
   )
 
   const nutritionAvatarUrl: string | null =
-    modalitySegment === 'with_cris'
-      ? crisSoloSegmentImageUrl ?? withCrisSegmentImageUrl
-      : withCrisSegmentImageUrl
+    modalitySegment === 'with_nutritionist'
+      ? crisSoloSegmentImageUrl ?? withNutritionistSegmentImageUrl
+      : withNutritionistSegmentImageUrl
 
   const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
@@ -817,8 +820,8 @@ function LeftBrandPanel({
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-white/52">
                   {catalogSegment === null
                     ? 'Elegí una opción del paso 1.'
-                    : catalogSegment === 'with_cris'
-                      ? 'Por ahora no hay ofertas en esta modalidad. Cuando estén listas, el equipo las publica desde Planes web en el panel.'
+                    : catalogSegment === 'with_nutritionist'
+                      ? 'Todavía no hay ofertas publicadas en esta modalidad. Cargalas desde Planes web (segmento Nutrición) en el panel.'
                     : catalogSegment === 'full' && !hasPlansForSegment('full')
                       ? 'Plan integral entrenamiento + nutrición. Si no ves planes, cargalos desde el panel.'
                       : 'Próximamente sumaremos opciones para esta línea.'}
@@ -865,14 +868,14 @@ export function PublicIntakeFormPage() {
   const [testimonialVideos, setTestimonialVideos] = useState<string[]>([])
   const [catalogSegmentImages, setCatalogSegmentImages] = useState<{
     solo: string | null
-    withCris: string | null
+    withNutritionist: string | null
     crisSolo: string | null
-  }>({ solo: null, withCris: null, crisSolo: null })
+  }>({ solo: null, withNutritionist: null, crisSolo: null })
   const [modalityLabels, setModalityLabels] = useState<{
     solo: string | null
-    withCris: string | null
+    withNutritionist: string | null
     full: string | null
-  }>({ solo: null, withCris: null, full: null })
+  }>({ solo: null, withNutritionist: null, full: null })
   const modalityOptions = useMemo(() => buildIntakeModalityOptions(modalityLabels), [modalityLabels])
   const plansVisible = useMemo(() => {
     return plans.filter((p) => {
@@ -889,7 +892,7 @@ export function PublicIntakeFormPage() {
   }, [plansVisible, selectedPlanId])
 
   const intakeKind = useMemo<'entrenamiento' | 'nutricion' | 'full'>(() => {
-    if (catalogSegment === 'with_cris') return 'nutricion'
+    if (catalogSegment === 'with_nutritionist') return 'nutricion'
     if (catalogSegment === 'full') return 'full'
     return 'entrenamiento'
   }, [catalogSegment])
@@ -903,7 +906,7 @@ export function PublicIntakeFormPage() {
     setCatalogSegment((curr) => {
       if (curr && segments.has(curr)) return curr
       if (segments.has('solo')) return 'solo'
-      if (segments.has('with_cris')) return 'with_cris'
+      if (segments.has('with_nutritionist')) return 'with_nutritionist'
       if (segments.has('full')) return 'full'
       return 'solo'
     })
@@ -938,7 +941,7 @@ export function PublicIntakeFormPage() {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
         .select(
-          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_cris_segment_image_url, cris_solo_segment_image_url, modality_label_solo, modality_label_with_cris, modality_label_full',
+          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_nutritionist_segment_image_url, cris_solo_segment_image_url, modality_label_solo, modality_label_with_nutritionist, modality_label_full',
         )
         .eq('id', 1)
         .maybeSingle()
@@ -954,14 +957,14 @@ export function PublicIntakeFormPage() {
         const str = (k: string) => (typeof d[k] === 'string' && (d[k] as string).trim() ? (d[k] as string).trim() : null)
         setCatalogSegmentImages({
           solo: str('solo_segment_image_url'),
-          withCris: str('with_cris_segment_image_url'),
+          withNutritionist: str('with_nutritionist_segment_image_url'),
           crisSolo: str('cris_solo_segment_image_url'),
         })
         setModalityLabels({
           solo: typeof d.modality_label_solo === 'string' && d.modality_label_solo.trim() ? d.modality_label_solo.trim() : null,
-          withCris:
-            typeof d.modality_label_with_cris === 'string' && d.modality_label_with_cris.trim()
-              ? d.modality_label_with_cris.trim()
+          withNutritionist:
+            typeof d.modality_label_with_nutritionist === 'string' && d.modality_label_with_nutritionist.trim()
+              ? d.modality_label_with_nutritionist.trim()
               : null,
           full: typeof d.modality_label_full === 'string' && d.modality_label_full.trim() ? d.modality_label_full.trim() : null,
         })
@@ -1006,7 +1009,7 @@ export function PublicIntakeFormPage() {
         const id = row.slug
         const rawSeg = String(row.catalog_segment ?? 'solo')
         const segment: WebPlanCatalogSegment =
-          rawSeg === 'with_cris' ? 'with_cris'
+          rawSeg === 'with_nutritionist' || rawSeg === 'with_cris' ? 'with_nutritionist'
           : rawSeg === 'full' ? 'full'
           : 'solo'
         const displayBadge = row.display_badge ?? null
@@ -1095,7 +1098,7 @@ export function PublicIntakeFormPage() {
             onPlanBillingChange={setPlanBilling}
             onConfirmPlan={() => {}}
             soloSegmentImageUrl={catalogSegmentImages.solo}
-            withCrisSegmentImageUrl={catalogSegmentImages.withCris}
+            withNutritionistSegmentImageUrl={catalogSegmentImages.withNutritionist}
             crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
             modalityOptions={modalityOptions}
           />
@@ -1132,7 +1135,7 @@ export function PublicIntakeFormPage() {
             if (selectedPlanId) handleSelectPlan(selectedPlanId)
           }}
           soloSegmentImageUrl={catalogSegmentImages.solo}
-          withCrisSegmentImageUrl={catalogSegmentImages.withCris}
+          withNutritionistSegmentImageUrl={catalogSegmentImages.withNutritionist}
           crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
           modalityOptions={modalityOptions}
         />

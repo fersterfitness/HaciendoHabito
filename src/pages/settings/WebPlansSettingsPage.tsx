@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { ArrowLeft, Plus, Save, Trash2, Upload } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronUp, GripVertical, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -16,6 +16,7 @@ import {
   webIntakeImageExt,
 } from '@/lib/webIntakeCatalogAssets'
 import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 
 type EditableWebPlan = Pick<
@@ -92,6 +93,33 @@ function parseItems(text: string) {
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+/** Borde y leve tinte para distinguir segmentos al editar muchas ofertas. */
+function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
+  switch (seg) {
+    case 'solo':
+      return 'border-l-[5px] border-l-amber-500 ring-1 ring-amber-500/12 dark:ring-amber-400/10'
+    case 'with_nutritionist':
+      return 'border-l-[5px] border-l-sky-500 ring-1 ring-sky-500/12 dark:ring-sky-400/10'
+    case 'full':
+      return 'border-l-[5px] border-l-emerald-500 ring-1 ring-emerald-500/12 dark:ring-emerald-400/10'
+    default:
+      return ''
+  }
+}
+
+function segmentOfferHeaderTintClass(seg: WebPlanCatalogSegment): string {
+  switch (seg) {
+    case 'solo':
+      return 'bg-amber-500/[0.07] dark:bg-amber-500/10'
+    case 'with_nutritionist':
+      return 'bg-sky-500/[0.07] dark:bg-sky-500/10'
+    case 'full':
+      return 'bg-emerald-500/[0.07] dark:bg-emerald-500/10'
+    default:
+      return 'bg-surface-elevated/45'
+  }
+}
+
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
     <Card className="overflow-hidden p-0 shadow-sm">
@@ -149,25 +177,29 @@ export function WebPlansSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
+  const [draggingPlanSlug, setDraggingPlanSlug] = useState<string | null>(null)
+  const [dragOverPlanSlug, setDragOverPlanSlug] = useState<string | null>(null)
+  /** Ofertas con formulario expandido; por defecto todas contraídas para reordenar más rápido. */
+  const [expandedOfferSlugs, setExpandedOfferSlugs] = useState<Set<string>>(() => new Set())
   const [plans, setPlans] = useState<EditableWebPlan[]>(FALLBACK_PLANS)
   /** Slugs creados en esta sesión y aún no guardados en la base (se pueden borrar). */
   const [draftSlugs, setDraftSlugs] = useState<string[]>([])
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
-  const [withCrisSegmentImg, setWithCrisSegmentImg] = useState('')
+  const [withNutritionistSegmentImg, setWithNutritionistSegmentImg] = useState('')
   const [fullSegmentImg, setFullSegmentImg] = useState('')
   const [intakeSlotsOpen, setIntakeSlotsOpen] = useState(true)
   const [intakeSlotsRemaining, setIntakeSlotsRemaining] = useState('')
   const [intakeSlotsMessage, setIntakeSlotsMessage] = useState('')
   const [testimonialUrlsText, setTestimonialUrlsText] = useState('')
   const [modalityLabelSolo, setModalityLabelSolo] = useState('')
-  const [modalityLabelWithCris, setModalityLabelWithCris] = useState('')
+  const [modalityLabelWithNutritionist, setModalityLabelWithNutritionist] = useState('')
   const [modalityLabelFull, setModalityLabelFull] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
   const soloFileRef = useRef<HTMLInputElement>(null)
-  const crisFileRef = useRef<HTMLInputElement>(null)
+  const nutritionSegmentFileRef = useRef<HTMLInputElement>(null)
   const fullFileRef = useRef<HTMLInputElement>(null)
   const [soloUploadBusy, setSoloUploadBusy] = useState(false)
-  const [crisUploadBusy, setCrisUploadBusy] = useState(false)
+  const [nutritionSegmentUploadBusy, setNutritionSegmentUploadBusy] = useState(false)
   const [fullUploadBusy, setFullUploadBusy] = useState(false)
   const catalogUserId = useAuthStore((s) => s.user?.id)
 
@@ -178,7 +210,7 @@ export function WebPlansSettingsPage() {
       if (!data) return
       const row = data as WebIntakeCatalogSettings
       setSoloSegmentImg(row.solo_segment_image_url ?? '')
-      setWithCrisSegmentImg(row.with_cris_segment_image_url ?? '')
+      setWithNutritionistSegmentImg(row.with_nutritionist_segment_image_url ?? '')
       setFullSegmentImg(row.full_segment_image_url ?? '')
       setTestimonialUrlsText(((row.testimonial_videos ?? []) as string[]).join('\n'))
       if (typeof row.intake_slots_open === 'boolean') setIntakeSlotsOpen(row.intake_slots_open)
@@ -187,7 +219,7 @@ export function WebPlansSettingsPage() {
       } else setIntakeSlotsRemaining('')
       setIntakeSlotsMessage(row.intake_slots_public_message ?? '')
       setModalityLabelSolo(row.modality_label_solo ?? '')
-      setModalityLabelWithCris(row.modality_label_with_cris ?? '')
+      setModalityLabelWithNutritionist(row.modality_label_with_nutritionist ?? '')
       setModalityLabelFull(row.modality_label_full ?? '')
     })()
   }, [canManage])
@@ -195,7 +227,7 @@ export function WebPlansSettingsPage() {
   async function handleSaveSegmentImages() {
     if (
       soloSegmentImg.length > LIMITS.segmentImgUrl ||
-      withCrisSegmentImg.length > LIMITS.segmentImgUrl ||
+      withNutritionistSegmentImg.length > LIMITS.segmentImgUrl ||
       fullSegmentImg.length > LIMITS.segmentImgUrl
     ) {
       toast.error(`Las URL no pueden superar ${LIMITS.segmentImgUrl} caracteres.`)
@@ -206,7 +238,7 @@ export function WebPlansSettingsPage() {
       const { error } = await supabase.from('web_intake_catalog_settings').upsert({
         id: 1,
         solo_segment_image_url: soloSegmentImg.trim() ? soloSegmentImg.trim() : null,
-        with_cris_segment_image_url: withCrisSegmentImg.trim() ? withCrisSegmentImg.trim() : null,
+        with_nutritionist_segment_image_url: withNutritionistSegmentImg.trim() ? withNutritionistSegmentImg.trim() : null,
         full_segment_image_url: fullSegmentImg.trim() ? fullSegmentImg.trim() : null,
       })
       if (error) {
@@ -248,7 +280,7 @@ export function WebPlansSettingsPage() {
 
   async function handleSaveModalityLabels() {
     const a = modalityLabelSolo.trim()
-    const b = modalityLabelWithCris.trim()
+    const b = modalityLabelWithNutritionist.trim()
     const c = modalityLabelFull.trim()
     if ([a, b, c].some((t) => t.length > LIMITS.modalityLabel)) {
       toast.error(`Cada etiqueta admite hasta ${LIMITS.modalityLabel} caracteres.`)
@@ -259,7 +291,7 @@ export function WebPlansSettingsPage() {
       const { error } = await supabase.from('web_intake_catalog_settings').upsert({
         id: 1,
         modality_label_solo: a || null,
-        modality_label_with_cris: b || null,
+        modality_label_with_nutritionist: b || null,
         modality_label_full: c || null,
       })
       if (error) {
@@ -312,7 +344,7 @@ export function WebPlansSettingsPage() {
     }
   }
 
-  async function uploadSegmentHero(field: 'solo' | 'with_cris' | 'full', file: File | null | undefined) {
+  async function uploadSegmentHero(field: 'solo' | 'with_nutritionist' | 'full', file: File | null | undefined) {
     if (!file || !catalogUserId) return
     if (file.size > WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES) {
       toast.error('La imagen debe pesar menos de 5 MB')
@@ -325,15 +357,15 @@ export function WebPlansSettingsPage() {
     }
     const slug =
       field === 'solo' ? 'solo-line'
-      : field === 'with_cris' ? 'with-cris-line'
+      : field === 'with_nutritionist' ? 'with-nutritionist-line'
       : 'full-line'
     const setBusy =
       field === 'solo' ? setSoloUploadBusy
-      : field === 'with_cris' ? setCrisUploadBusy
+      : field === 'with_nutritionist' ? setNutritionSegmentUploadBusy
       : setFullUploadBusy
     const setUrl =
       field === 'solo' ? setSoloSegmentImg
-      : field === 'with_cris' ? setWithCrisSegmentImg
+      : field === 'with_nutritionist' ? setWithNutritionistSegmentImg
       : setFullSegmentImg
     const path = `${catalogUserId}/segment-${slug}.${ext}`
     setBusy(true)
@@ -357,7 +389,7 @@ export function WebPlansSettingsPage() {
     } finally {
       setBusy(false)
       if (field === 'solo' && soloFileRef.current) soloFileRef.current.value = ''
-      else if (field === 'with_cris' && crisFileRef.current) crisFileRef.current.value = ''
+      else if (field === 'with_nutritionist' && nutritionSegmentFileRef.current) nutritionSegmentFileRef.current.value = ''
       else if (field === 'full' && fullFileRef.current) fullFileRef.current.value = ''
     }
   }
@@ -402,7 +434,51 @@ export function WebPlansSettingsPage() {
     }
   }, [canManage])
 
-  const sortedPlans = useMemo(() => [...plans].sort((a, b) => a.sort_order - b.sort_order), [plans])
+  function toggleOfferExpanded(slug: string) {
+    setExpandedOfferSlugs((prev) => {
+      const next = new Set(prev)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
+      return next
+    })
+  }
+
+  const sortedPlans = useMemo(
+    () => [...plans].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug)),
+    [plans],
+  )
+
+  /** Orden de la lista = orden en /form (sort_order). Subir/bajar reordena y renumera; guardá ofertas para persistir. */
+  function moveSortedPlan(slug: string, delta: -1 | 1) {
+    setPlans((prev) => {
+      const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
+      const i = sorted.findIndex((p) => p.slug === slug)
+      const j = i + delta
+      if (i < 0 || j < 0 || j >= sorted.length) return prev
+      const next = [...sorted]
+      const t = next[i]!
+      next[i] = next[j]!
+      next[j] = t
+      const orderBySlug = new Map(next.map((p, idx) => [p.slug, idx + 1]))
+      return prev.map((p) => (orderBySlug.has(p.slug) ? { ...p, sort_order: orderBySlug.get(p.slug)! } : p))
+    })
+  }
+
+  function reorderPlanDrop(draggedSlug: string, targetSlug: string, insertBefore: boolean) {
+    if (draggedSlug === targetSlug) return
+    setPlans((prev) => {
+      const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
+      const dragged = sorted.find((p) => p.slug === draggedSlug)
+      if (!dragged) return prev
+      const rest = sorted.filter((p) => p.slug !== draggedSlug)
+      let insertIdx = rest.findIndex((p) => p.slug === targetSlug)
+      if (insertIdx < 0) return prev
+      if (!insertBefore) insertIdx += 1
+      rest.splice(insertIdx, 0, dragged)
+      const orderBySlug = new Map(rest.map((p, i) => [p.slug, i + 1]))
+      return prev.map((p) => (orderBySlug.has(p.slug) ? { ...p, sort_order: orderBySlug.get(p.slug)! } : p))
+    })
+  }
 
   function updatePlan(slug: string, patch: Partial<EditableWebPlan>) {
     setPlans((prev) => prev.map((p) => (p.slug === slug ? { ...p, ...patch } : p)))
@@ -448,12 +524,19 @@ export function WebPlansSettingsPage() {
     const row = newPlanDraft(nextOrder)
     setPlans((prev) => [...prev, row])
     setDraftSlugs((ds) => [...ds, row.slug])
+    setExpandedOfferSlugs((prev) => new Set(prev).add(row.slug))
   }
 
   function removeDraft(slug: string) {
     if (!draftSlugs.includes(slug)) return
     setPlans((prev) => prev.filter((p) => p.slug !== slug))
     setDraftSlugs((ds) => ds.filter((s) => s !== slug))
+    setExpandedOfferSlugs((prev) => {
+      if (!prev.has(slug)) return prev
+      const next = new Set(prev)
+      next.delete(slug)
+      return next
+    })
   }
 
   async function handleDeletePlan(slug: string) {
@@ -474,6 +557,12 @@ export function WebPlansSettingsPage() {
       }
       setPlans((prev) => prev.filter((p) => p.slug !== slug))
       toast.success('Oferta eliminada')
+      setExpandedOfferSlugs((prev) => {
+        if (!prev.has(slug)) return prev
+        const next = new Set(prev)
+        next.delete(slug)
+        return next
+      })
     } finally {
       setDeletingSlug(null)
     }
@@ -601,8 +690,9 @@ export function WebPlansSettingsPage() {
                 <span className="font-medium text-ink-primary">FERSTER FITNESS:</span> tres cards fijas en la app (no salen de las filas de abajo).
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Nutrición (modalidad 2):</span> por ahora no se listan ofertas en el /form; cuando haya
-                catálogo, se publicará desde aquí o desde código según definamos.
+                <span className="font-medium text-ink-primary">Nutrición (modalidad 2):</span> las cards salen de las ofertas de esta página con
+                segmento Nutrición (<code className="font-mono text-[10px]">with_nutritionist</code>), activas y con «Mostrar en /form» (igual criterio que Plan
+                full). Ferster sigue saliendo solo del código.
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Plan full (entreno + nutrición):</span> las cards salen de las ofertas de esta página,
@@ -617,8 +707,8 @@ export function WebPlansSettingsPage() {
             </ul>
           </div>
           <div className="rounded-lg border border-surface-border bg-surface-card/50 px-3 py-2.5 text-xs leading-relaxed text-ink-secondary">
-            <span className="font-semibold text-ink-primary">Tip:</span> las filas con segmento Nutrición no aparecen hoy en el /form; podés usarlas
-            como borrador. Ferster y el trío «Plan full» fijo siguen en{' '}
+            <span className="font-semibold text-ink-primary">Tip:</span> las ofertas con segmento Nutrición sí se listan en el /form cuando están activas
+            y con «Mostrar en /form». Ferster y el trío «Plan full» fijo siguen en{' '}
             <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[10px]">publicIntakeCatalogOffers.ts</code>. Para x3/x6 en una
             sola fila, usá «Precios por plazo (opcional)» en cada oferta.
           </div>
@@ -647,11 +737,11 @@ export function WebPlansSettingsPage() {
                 onChange={(e) => void uploadSegmentHero('solo', e.target.files?.length ? e.target.files[0] : undefined)}
               />
               <input
-                ref={crisFileRef}
+                ref={nutritionSegmentFileRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
-                onChange={(e) => void uploadSegmentHero('with_cris', e.target.files?.length ? e.target.files[0] : undefined)}
+                onChange={(e) => void uploadSegmentHero('with_nutritionist', e.target.files?.length ? e.target.files[0] : undefined)}
               />
               <input
                 ref={fullFileRef}
@@ -676,10 +766,10 @@ export function WebPlansSettingsPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  loading={crisUploadBusy}
+                  loading={nutritionSegmentUploadBusy}
                   icon={<Upload className="h-4 w-4" />}
                   disabled={!catalogUserId}
-                  onClick={() => crisFileRef.current?.click()}
+                  onClick={() => nutritionSegmentFileRef.current?.click()}
                 >
                   Subir · Nutricionista
                 </Button>
@@ -705,9 +795,9 @@ export function WebPlansSettingsPage() {
               <Input
                 label="URL · Nutricionista"
                 placeholder="https://..."
-                value={withCrisSegmentImg}
+                value={withNutritionistSegmentImg}
                 maxLength={LIMITS.segmentImgUrl}
-                onChange={(e) => setWithCrisSegmentImg(e.target.value)}
+                onChange={(e) => setWithNutritionistSegmentImg(e.target.value)}
               />
               <Input
                 label="URL · Full (ambos)"
@@ -736,11 +826,11 @@ export function WebPlansSettingsPage() {
                 onChange={(e) => setModalityLabelSolo(e.target.value)}
               />
               <Input
-                label="Opción 2 — Nutrición (segmento with_cris)"
+                label="Opción 2 — Nutrición (segmento with_nutritionist)"
                 placeholder="Ej. NUTRICIÓN"
                 maxLength={LIMITS.modalityLabel}
-                value={modalityLabelWithCris}
-                onChange={(e) => setModalityLabelWithCris(e.target.value)}
+                value={modalityLabelWithNutritionist}
+                onChange={(e) => setModalityLabelWithNutritionist(e.target.value)}
               />
               <Input
                 label="Opción 3 — Plan integral (segmento full)"
@@ -815,9 +905,29 @@ export function WebPlansSettingsPage() {
           <h2 className="text-base font-semibold tracking-tight text-ink-primary">Ofertas en base de datos</h2>
           <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
             Cada bloque es una fila de <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Para el /form
-            importan las que tengan segmento <strong className="text-ink-primary">Plan full</strong>, estén activas y tengan «Mostrar en /form».
-            Al final pulsá <strong className="text-ink-primary">Guardar ofertas</strong> para persistir todos los cambios.
+            importan las que tengan segmento <strong className="text-ink-primary">Plan full</strong> o{' '}
+            <strong className="text-ink-primary">Nutrición (with_nutritionist)</strong>, estén activas y tengan «Mostrar en /form». Al final pulsá{' '}
+            <strong className="text-ink-primary">Guardar ofertas</strong> para persistir todos los cambios.
           </p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-secondary">
+            <span className="font-medium text-ink-primary">Leyenda de color:</span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-950 dark:text-amber-100">
+              <span className="h-2 w-2 rounded-sm bg-amber-500" aria-hidden />
+              Entrenamiento (solo)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-950 dark:text-sky-100">
+              <span className="h-2 w-2 rounded-sm bg-sky-500" aria-hidden />
+              Nutrición
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-950 dark:text-emerald-100">
+              <span className="h-2 w-2 rounded-sm bg-emerald-500" aria-hidden />
+              Plan full
+            </span>
+            <span className="text-ink-muted basis-full sm:basis-auto">
+              · Por defecto las cards van <strong className="text-ink-secondary">contraídas</strong> para reordenar rápido. Tocá «Detalle» para
+              editar. Arrastrá el asa <span className="font-medium text-ink-secondary">⋮⋮</span> o usá Subir/Bajar; después Guardar ofertas.
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-dashed border-surface-border bg-surface-elevated/35 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -831,41 +941,169 @@ export function WebPlansSettingsPage() {
               nuevos el slug solo se edita hasta el primer «Guardar ofertas».
             </p>
           </details>
-          <Button type="button" size="sm" variant="outline" icon={<Plus className="h-4 w-4" />} onClick={addPlan} className="shrink-0">
-            Agregar oferta
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-xs"
+              disabled={sortedPlans.length === 0}
+              onClick={() => setExpandedOfferSlugs(new Set(sortedPlans.map((p) => p.slug)))}
+            >
+              Abrir todas
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="text-xs" onClick={() => setExpandedOfferSlugs(new Set())}>
+              Cerrar todas
+            </Button>
+            <Button type="button" size="sm" variant="outline" icon={<Plus className="h-4 w-4" />} onClick={addPlan}>
+              Agregar oferta
+            </Button>
+          </div>
         </div>
 
         {loading ? (
           <Card className="p-6 text-sm text-ink-secondary">Cargando ofertas…</Card>
         ) : (
-          sortedPlans.map((plan, idx) => (
-            <Card key={plan.slug} className="overflow-hidden p-0 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-elevated/45 px-4 py-3 sm:px-5">
-                <div className="min-w-0">
+          sortedPlans.map((plan, idx) => {
+            const isExpanded = expandedOfferSlugs.has(plan.slug)
+            return (
+            <div
+              key={plan.slug}
+              className={cn(
+                'rounded-2xl transition-[opacity,box-shadow]',
+                draggingPlanSlug === plan.slug && 'opacity-55',
+                dragOverPlanSlug === plan.slug &&
+                  draggingPlanSlug &&
+                  draggingPlanSlug !== plan.slug &&
+                  'shadow-[inset_0_0_0_2px_rgba(99,102,241,0.55)] dark:shadow-[inset_0_0_0_2px_rgba(129,140,248,0.45)]',
+              )}
+              onDragOver={(e) => {
+                if (!draggingPlanSlug || draggingPlanSlug === plan.slug) return
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+                setDragOverPlanSlug(plan.slug)
+              }}
+              onDragLeave={(e) => {
+                if (!draggingPlanSlug) return
+                const el = e.currentTarget
+                const rel = e.relatedTarget as Node | null
+                if (rel && el.contains(rel)) return
+                setDragOverPlanSlug((cur) => (cur === plan.slug ? null : cur))
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                const from = draggingPlanSlug ?? e.dataTransfer.getData('text/plain')
+                if (!from || from === plan.slug) {
+                  setDraggingPlanSlug(null)
+                  setDragOverPlanSlug(null)
+                  return
+                }
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                const insertBefore = e.clientY < rect.top + rect.height / 2
+                reorderPlanDrop(from, plan.slug, insertBefore)
+                setDraggingPlanSlug(null)
+                setDragOverPlanSlug(null)
+              }}
+              role="group"
+              aria-label={`Oferta ${plan.title}`}
+            >
+            <Card
+              className={cn('overflow-hidden p-0 shadow-sm', segmentOfferCardClass(plan.catalog_segment))}
+            >
+              <div
+                className={cn(
+                  'flex flex-wrap items-start gap-2 sm:gap-3 justify-between px-4 sm:px-5',
+                  isExpanded ? 'border-b border-surface-border py-3' : 'py-2.5',
+                  segmentOfferHeaderTintClass(plan.catalog_segment),
+                )}
+              >
+                <div
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggingPlanSlug(plan.slug)
+                    e.dataTransfer.setData('text/plain', plan.slug)
+                    e.dataTransfer.effectAllowed = 'move'
+                  }}
+                  onDragEnd={() => {
+                    setDraggingPlanSlug(null)
+                    setDragOverPlanSlug(null)
+                  }}
+                  className={cn(
+                    'mt-0.5 shrink-0 cursor-grab touch-none rounded-lg border border-surface-border/70 bg-surface-base/50 p-1.5 text-ink-muted hover:bg-surface-elevated hover:text-ink-secondary active:cursor-grabbing',
+                    appFocusRingClassName,
+                  )}
+                  title="Arrastrá y soltá sobre otra oferta (mitad superior = antes, mitad inferior = después)"
+                  aria-label="Arrastrar para reordenar ofertas"
+                >
+                  <GripVertical className="h-4 w-4" aria-hidden />
+                </div>
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-base font-semibold text-ink-primary">
+                    <h2 className={cn('font-semibold text-ink-primary', isExpanded ? 'text-base' : 'text-sm leading-snug')}>
                       Oferta {idx + 1}
                       <span className="ml-1.5 font-normal text-ink-secondary">· {plan.title}</span>
                     </h2>
+                    <span
+                      className="shrink-0 rounded-md border border-surface-border/80 bg-surface-base/70 px-2 py-0.5 font-mono text-[10px] font-medium text-ink-muted"
+                      title="Orden en lista y en /form (sort_order)"
+                    >
+                      Orden {plan.sort_order}
+                    </span>
                     <span
                       className={cn(
                         'shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
                         plan.catalog_segment === 'full'
                           ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
-                          : 'border-surface-border bg-surface-elevated/80 text-ink-muted',
+                          : plan.catalog_segment === 'with_nutritionist'
+                            ? 'border-sky-500/35 bg-sky-500/10 text-sky-900 dark:text-sky-200'
+                            : 'border-surface-border bg-surface-elevated/80 text-ink-muted',
                       )}
                     >
                       {plan.catalog_segment === 'solo'
                         ? 'Ferster'
-                        : plan.catalog_segment === 'with_cris'
+                        : plan.catalog_segment === 'with_nutritionist'
                           ? 'Nutrición'
                           : 'Plan full'}
                     </span>
                   </div>
-                  <p className="mt-0.5 font-mono text-xs text-ink-muted">{plan.slug}</p>
+                  <p className={cn('mt-0.5 font-mono text-ink-muted', isExpanded ? 'text-xs' : 'text-[11px] leading-tight')}>{plan.slug}</p>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 text-xs h-8 px-2.5"
+                    icon={isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    iconPosition="left"
+                    onClick={() => toggleOfferExpanded(plan.slug)}
+                  >
+                    {isExpanded ? 'Ocultar' : 'Detalle'}
+                  </Button>
+                  <div className="flex items-center gap-0.5 rounded-lg border border-surface-border/80 bg-surface-base/50 p-0.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 p-0"
+                      title="Subir en la lista"
+                      aria-label="Subir oferta en la lista"
+                      disabled={idx === 0}
+                      icon={<ArrowUp className="h-4 w-4" />}
+                      onClick={() => moveSortedPlan(plan.slug, -1)}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 p-0"
+                      title="Bajar en la lista"
+                      aria-label="Bajar oferta en la lista"
+                      disabled={idx >= sortedPlans.length - 1}
+                      icon={<ArrowDown className="h-4 w-4" />}
+                      onClick={() => moveSortedPlan(plan.slug, 1)}
+                    />
+                  </div>
                   {draftSlugs.includes(plan.slug) ? (
                     <Button
                       type="button"
@@ -894,6 +1132,7 @@ export function WebPlansSettingsPage() {
                 </div>
               </div>
 
+              {isExpanded ? (
               <div className="space-y-5 p-4 sm:p-5">
                 <FieldGroup title="Identificación y modalidad">
                   <div className="flex flex-wrap items-start gap-3">
@@ -942,12 +1181,13 @@ export function WebPlansSettingsPage() {
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
                       <option value="solo">FERSTER FITNESS (solo)</option>
-                      <option value="with_cris">NUTRICIÓN (with_cris)</option>
+                      <option value="with_nutritionist">NUTRICIÓN (with_nutritionist)</option>
                       <option value="full">PLAN FULL (full)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      El /form lista ofertas del segmento <strong className="text-ink-secondary">Plan full</strong> desde la base y tres fijas en
-                      código. Ferster sale solo del código. Nutrición (with_cris) no muestra cards por ahora.
+                      En <strong className="text-ink-secondary">Plan full</strong> el /form combina tres ofertas fijas en código más las filas de este
+                      segmento en la base. En <strong className="text-ink-secondary">Nutrición</strong> las cards son solo las filas de la base con este
+                      segmento (activas y «Mostrar en /form»). Ferster (<strong className="text-ink-secondary">solo</strong>) sigue solo en código.
                     </p>
                   </div>
                 </FieldGroup>
@@ -1055,8 +1295,11 @@ export function WebPlansSettingsPage() {
                   />
                 </FieldGroup>
               </div>
+              ) : null}
             </Card>
-          ))
+            </div>
+            )
+          })
         )}
 
         <div className="border-t border-surface-border pt-2">

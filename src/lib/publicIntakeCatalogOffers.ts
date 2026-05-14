@@ -201,10 +201,11 @@ const HIDE_DB_FULL_SLUGS = new Set([...INTAKE_FULL_INTEGRAL_SLUGS, ...LEGACY_FUL
 /**
  * Catálogo del formulario público:
  * - Ferster: 3 ofertas fijas (`solo`).
- * - Nutrición (`with_cris`): sin ofertas en pantalla (el equipo las publica después vía panel).
+ * - Nutrición (`with_nutritionist`): filas en `web_plans` con ese segmento (activas y «Mostrar en /form» ya filtradas en la query).
  * - Plan full: 3 ofertas fijas + filas extra `full` en `web_plans` (promos, etc.), sin duplicar las fijas ni `plan-full` genérico.
  */
 export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]): PublicIntakePlanDetail[] {
   const extraFull = dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id))
-  return [...INTAKE_FERSTER_OFFERS, ...INTAKE_FULL_INTEGRAL_OFFERS, ...extraFull]
+  const extraWithNutritionist = dbPlans.filter((p) => p.catalogSegment === 'with_nutritionist')
+  return [...INTAKE_FERSTER_OFFERS, ...INTAKE_FULL_INTEGRAL_OFFERS, ...extraFull, ...extraWithNutritionist]
 }
