@@ -251,6 +251,7 @@ export function StudentDetailView({
 
   const showNutritionTab = profile?.role === 'trainer' || profile?.role === 'admin'
   const showHabitsTab = canSeeTraining(profile?.role)
+  const showRoutineTab = canSeeTraining(profile?.role)
 
   useEffect(() => {
     if (!showNutritionTab && sheetTab === 'nutricion') setSheetTab('ficha')
@@ -259,6 +260,10 @@ export function StudentDetailView({
   useEffect(() => {
     if (!showHabitsTab && sheetTab === 'habitos') setSheetTab('ficha')
   }, [showHabitsTab, sheetTab])
+
+  useEffect(() => {
+    if (!showRoutineTab && sheetTab === 'rutina') setSheetTab('ficha')
+  }, [showRoutineTab, sheetTab])
 
   useEffect(() => {
     if (student?.gender !== 'F' && seguimientoTab === 'ciclo') setSeguimientoTab('peso')
@@ -380,7 +385,9 @@ export function StudentDetailView({
   /** Etiquetas de solapas principales (solo entrenadores/admins ven Nutrición con planes tipo Excel). */
   const sheetTabDefs: { key: SheetTab; label: string; icon: ReactNode }[] = [
     { key: 'ficha', label: 'Información', icon: <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
-    { key: 'rutina', label: 'Rutina', icon: <Dumbbell className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
+    ...(showRoutineTab
+      ? [{ key: 'rutina' as const, label: 'Rutina', icon: <Dumbbell className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
+      : []),
     ...(showNutritionTab
       ? [{ key: 'nutricion' as const, label: 'Nutrición', icon: <UtensilsCrossed className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
       : []),

@@ -70,7 +70,22 @@ export const NAV_NUTRITION: NavItem[] = [
   { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
 ]
 
-const NAV_NUTRITIONIST_PATIENTS: NavItem = { label: 'Pacientes', href: '/students', icon: Users }
+/** Utilidades de nutrición visibles al nutricionista (sin duplicar Pacientes). */
+const NAV_NUTRITION_UTILITIES: NavItem[] = [
+  { label: 'Menús estacionales', href: '/nutrition/menus', icon: Salad },
+  { label: 'Evolución', href: '/nutrition/evolution', icon: LineChart },
+  { label: 'Planes', href: '/nutrition/plans', icon: Library },
+  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
+  { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
+]
+
+const NAV_NUTRITIONIST_PATIENTS: NavItem = {
+  label: 'Pacientes',
+  href: '/nutrition',
+  icon: Users,
+  exactMatch: true,
+}
 
 export function canSeeTraining(role: AppRole | undefined): boolean {
   return role === 'admin' || role === 'trainer'
@@ -119,9 +134,12 @@ export function getSidebarBlocks(role: AppRole | undefined): SidebarBlock[] {
 
   if (role === 'nutritionist') {
     blocks.push({ kind: 'items', items: [NAV_NUTRITIONIST_PATIENTS] })
+    blocks.push({ kind: 'section', title: 'Nutrición', items: NAV_NUTRITION_UTILITIES })
     blocks.push({ kind: 'section', title: 'Finanzas', items: NAV_FINANCE })
+    return blocks
   }
 
+  // Admin: ve todo (incluido el bloque histórico de Nutrición con su /nutrition propio)
   if (showNutrition) {
     blocks.push({ kind: 'section', title: 'Nutrición', items: NAV_NUTRITION })
   }
@@ -151,8 +169,8 @@ export function getMobileNavItems(role: AppRole | undefined): NavItem[] {
       NAV_HOME,
       NAV_APPOINTMENTS,
       NAV_NUTRITIONIST_PATIENTS,
-      NAV_NUTRITION[0],
-      NAV_NUTRITION[3],
+      NAV_NUTRITION_UTILITIES[0], // Menús estacionales
+      NAV_NUTRITION_UTILITIES[3], // Armar plan de alimentación
       ...NAV_FINANCE,
     ]
   }

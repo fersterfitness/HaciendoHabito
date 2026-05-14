@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FolderOpen,
   LineChart,
+  Plus,
   Search,
   Users,
 } from 'lucide-react'
@@ -20,6 +21,8 @@ import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Button } from '@/components/ui/Button'
+import { NewStudentModal } from '@/components/students/NewStudentModal'
+import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { cn } from '@/lib/utils'
 import type { Student, NutritionPatientFollowup, NutritionAttendanceStatus } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -42,15 +45,6 @@ const ATTENDANCE_PILLS: Record<NutritionAttendanceStatus, string> = {
   ST: 'bg-surface-elevated text-ink-secondary border-surface-border/60',
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
 function nextConsultLabel(value: string | null): { label: string; sub: string; tone: 'soon' | 'past' | 'far' | 'none' } {
   if (!value) return { label: '—', sub: 'Sin turno', tone: 'none' }
   const date = parseISO(value)
@@ -71,6 +65,7 @@ export function NutritionPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [rows, setRows] = useState<FollowupRow[]>([])
+  const [newPatientOpen, setNewPatientOpen] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -213,6 +208,15 @@ export function NutritionPage() {
               >
                 Evolución
               </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="gradientPrimary"
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => setNewPatientOpen(true)}
+              >
+                Nuevo paciente
+              </Button>
             </div>
           </div>
         </PageToolbar>
@@ -226,7 +230,12 @@ export function NutritionPage() {
             <EmptyState
               icon={<FolderOpen className="h-8 w-8" />}
               title="No hay pacientes cargados"
-              description="Creá un alumno desde el módulo Alumnos para comenzar a organizar su carpeta nutricional."
+              description="Creá tu primer paciente para empezar a gestionar su carpeta nutricional."
+              action={{
+                label: 'Nuevo paciente',
+                onClick: () => setNewPatientOpen(true),
+                icon: <Plus className="h-4 w-4" />,
+              }}
             />
           ) : (
             <EmptyState
@@ -271,9 +280,18 @@ export function NutritionPage() {
                     >
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
-                            {initials(row.full_name) || '?'}
-                          </span>
+                          <StudentAvatar
+                            studentId={row.id}
+                            fullName={row.full_name}
+                            avatarPath={row.avatar_path}
+                            size="md2"
+                            stopRowNavigation
+                            onPathChange={(nextPath) =>
+                              setRows((prev) =>
+                                prev.map((r) => (r.id === row.id ? { ...r, avatar_path: nextPath } : r)),
+                              )
+                            }
+                          />
                           <span className="font-semibold text-ink-primary hover:text-brand-primary truncate">
                             {row.full_name}
                           </span>
@@ -355,6 +373,13 @@ export function NutritionPage() {
           </div>
         )}
       </div>
+
+      <NewStudentModal
+        open={newPatientOpen}
+        title="Nuevo paciente"
+        onClose={() => setNewPatientOpen(false)}
+        onCreated={(id) => navigate(`/nutrition/${id}`)}
+      />
     </div>
   )
 }

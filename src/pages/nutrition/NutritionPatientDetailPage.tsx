@@ -12,6 +12,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  UserRound,
   Utensils,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -33,6 +34,7 @@ import { NutritionSymptomCheckinsSection } from '@/components/nutrition/Nutritio
 import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/NutritionRequirementsCalculatorCard'
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
+import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
 import { NutritionEvolutionReportPdfDocument } from '@/lib/pdf/NutritionEvolutionReportPdfDocument'
 import {
   buildEvolutionPdfRows,
@@ -93,7 +95,7 @@ const FILE_FILTERS: { id: 'all' | NutritionDocumentCategory; label: string }[] =
   { id: 'laboratorio', label: 'Laboratorios' },
 ]
 
-const VALID_TABS = ['resumen', 'antropometria', 'plan', 'historia', 'archivos'] as const
+const VALID_TABS = ['resumen', 'datos', 'antropometria', 'plan', 'historia', 'archivos'] as const
 type TabId = (typeof VALID_TABS)[number]
 
 function isValidTab(value: string | null): value is TabId {
@@ -462,6 +464,7 @@ export function NutritionPatientDetailPage() {
   const tabs: TabItem[] = useMemo(
     () => [
       { id: 'resumen', label: 'Resumen', icon: <LayoutDashboard /> },
+      { id: 'datos', label: 'Datos personales', icon: <UserRound /> },
       { id: 'antropometria', label: 'Antropometría', icon: <Activity />, count: measurements.length || undefined },
       { id: 'plan', label: 'Plan', icon: <Utensils /> },
       { id: 'historia', label: 'Historia', icon: <ClipboardList /> },
@@ -559,6 +562,17 @@ export function NutritionPatientDetailPage() {
             onGoToTab={handleTabChange}
             onManageAppointments={() => navigate('/appointments')}
           />
+        </TabPanel>
+
+        {/* ───────────── DATOS PERSONALES ───────────── */}
+        <TabPanel id="datos" active={activeTab}>
+          {user ? (
+            <NutritionPatientPersonalDataSection
+              student={student}
+              ownerId={user.id}
+              onUpdated={(next) => setStudent(next)}
+            />
+          ) : null}
         </TabPanel>
 
         {/* ───────────── ANTROPOMETRÍA ───────────── */}
