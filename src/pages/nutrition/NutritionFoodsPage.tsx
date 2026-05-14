@@ -428,22 +428,37 @@ export function NutritionFoodsPage() {
       <Header title="Guía de alimentos" />
 
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-28 lg:px-6 lg:py-8">
-        <p className="mb-6 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-          Elegí alimentos en <strong className="font-semibold text-zinc-800 dark:text-zinc-200">español</strong> con números
-          ya cargados (referencia habitual 100 g), o escribí el tuyo a mano con la base en gramos que uses en tu tabla (25, 50…)
-          y guardalos con «Guardar en mi lista». Orientación para alumnos, no reemplaza a un nutricionista.
-        </p>
+        <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3.5">
+          <div className="flex items-start gap-3">
+            <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+              <Wheat className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-ink-primary mb-0.5">Guía de alimentos</p>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Elegí del catálogo en español (con macros precargadas por 100 g), buscá en la base USDA FDC, o cargá los tuyos a mano.
+                Todo se guarda en <strong className="text-ink-primary">«Mi lista»</strong> agrupado por categoría.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
           <div className="space-y-6 lg:col-span-7 xl:col-span-7">
-        <section className="rounded-md border border-zinc-200/75 bg-surface-card p-4 sm:p-5 dark:border-zinc-700/65">
-          <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            <Wheat className="h-[1.125rem] w-[1.125rem] shrink-0 text-zinc-500 dark:text-zinc-400" aria-hidden />
-            Mi lista
-          </h2>
-          <p className="mb-4 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Acá están los que guardás vos desde esta página (solo tu cuenta), agrupados por categoría. Podés crear el nombre del
-          grupo al guardar cada alimento (como rutinas por categoría).
+        <section className="rounded-2xl border border-surface-border/80 bg-surface-card p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
+              <Wheat className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden />
+              Mi lista
+            </h2>
+            {!loading && rows.length > 0 ? (
+              <span className="text-[11px] font-medium text-ink-muted">
+                {rows.length} {rows.length === 1 ? 'alimento' : 'alimentos'}
+              </span>
+            ) : null}
+          </div>
+          <p className="mb-4 text-xs text-ink-muted leading-relaxed">
+            Tu biblioteca personal, agrupada por categoría.
           </p>
           {loading ? (
             <div className="flex justify-center py-10">
@@ -510,18 +525,17 @@ export function NutritionFoodsPage() {
 
         <section
           className={cn(
-            'space-y-3 rounded-md border border-zinc-200/75 bg-surface-card p-4 sm:p-5 dark:border-zinc-700/65',
+            'space-y-3 rounded-2xl border border-surface-border/80 bg-surface-card p-4 sm:p-5',
             showCatalogDropdown && 'relative z-[100]',
           )}
         >
-          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            <BookOpen className="h-[1.125rem] w-[1.125rem] shrink-0 text-zinc-500 dark:text-zinc-400" aria-hidden />
-            Lista en español (lo más simple)
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
+            <BookOpen className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden />
+            Catálogo en español
           </h2>
-          <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Empezá a escribir en el buscador para ver coincidencias. Esta lista prioriza pesos <strong>cocidos</strong> en
-            carnes y guarniciones típicas; avena, lácteos, pan y cereales en seco o listos según uso. Para alimentos nuevos,
-            usá abajo <strong>Buscar USDA FDC</strong> (base pública con identificador) y revisá la porción antes de guardar.
+          <p className="text-xs leading-relaxed text-ink-muted">
+            Buscá alimento por nombre. Pesos en <strong className="text-ink-secondary">cocido</strong> para carnes y guarniciones;
+            cereales/lácteos según uso. Para alimentos nuevos, probá <strong className="text-ink-secondary">Buscar USDA FDC</strong> abajo.
           </p>
           <div ref={catalogPopoverRef} className="relative space-y-2">
             <Input

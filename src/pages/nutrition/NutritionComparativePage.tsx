@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { pdf } from '@react-pdf/renderer'
-import { Download, Sparkles, Upload } from 'lucide-react'
+import { ArrowRight, Download, FileText, Sparkles, Upload, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import {
-  trainerCtaFocusInputChromeClassName,
-  trainerCtaSolidBgClassName,
-} from '@/lib/primaryGradientCtaClasses'
 import { cn, slugify } from '@/lib/utils'
 import type { Student, NutritionPatientDocument, NutritionMeasurement } from '@/types/database'
 import { NutritionComparativePdfDocument } from '@/lib/pdf/NutritionComparativePdfDocument'
@@ -365,43 +361,72 @@ export function NutritionComparativePage() {
     <div>
       <Header title="Diagnóstico comparativo" showBack />
       <div className="px-4 lg:px-6 py-6 space-y-5 max-w-3xl">
+        {/* Paso 1: paciente + modo */}
         <Card>
-          <CardTitle className="mb-3">Seleccionar controles antropométricos</CardTitle>
-          <div className="mb-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMode('pdf')}
-              className={cn(
-                'rounded-lg border px-3 py-1.5 text-xs transition-colors',
-                mode === 'pdf'
-                  ? cn(trainerCtaSolidBgClassName, 'border-[#ff4800] text-white dark:border-[#f04a00]')
-                  : 'border-surface-border text-ink-secondary',
-              )}
-            >
-              PDF vs PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('manual')}
-              className={cn(
-                'rounded-lg border px-3 py-1.5 text-xs transition-colors',
-                mode === 'manual'
-                  ? cn(trainerCtaSolidBgClassName, 'border-[#ff4800] text-white dark:border-[#f04a00]')
-                  : 'border-surface-border text-ink-secondary',
-              )}
-            >
-              Manual vs Manual
-            </button>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+                1
+              </span>
+              <CardTitle>Elegí el paciente y el modo</CardTitle>
+            </div>
           </div>
-          <div className="mb-3">
-            <button
-              type="button"
-              onClick={handleOpenUploadPicker}
-              className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-dashed border-surface-border hover:border-[#ff5508]/55 transition-colors text-ink-secondary hover:text-ink-primary"
+
+          <label className="block text-xs text-ink-secondary mb-4">
+            <span className="inline-flex items-center gap-1.5 mb-1.5">
+              <Users className="h-3 w-3" /> Paciente
+            </span>
+            <select
+              value={studentId}
+              onChange={(e) => {
+                setStudentId(e.target.value)
+                setFromDocId('')
+                setToDocId('')
+              }}
+              className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-brand-primary"
             >
-              <Upload className="h-3.5 w-3.5" />
-              {uploading ? 'Subiendo...' : 'Cargar antropometría (PDF)'}
-            </button>
+              <option value="">Seleccionar paciente...</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
+            Tipo de comparación
+          </p>
+          <div className="flex gap-1.5">
+            <ModePill active={mode === 'pdf'} onClick={() => setMode('pdf')} icon={<FileText className="h-3.5 w-3.5" />}>
+              Comparar PDFs
+            </ModePill>
+            <ModePill active={mode === 'manual'} onClick={() => setMode('manual')} icon={<Sparkles className="h-3.5 w-3.5" />}>
+              Comparar mediciones
+            </ModePill>
+          </div>
+        </Card>
+
+        {/* Paso 2: seleccionar controles */}
+        <Card>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+                2
+              </span>
+              <CardTitle>Seleccioná los dos controles a comparar</CardTitle>
+            </div>
+            {mode === 'pdf' ? (
+              <button
+                type="button"
+                onClick={handleOpenUploadPicker}
+                disabled={!studentId || uploading}
+                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-dashed border-surface-border hover:border-brand-primary/55 transition-colors text-ink-secondary hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {uploading ? 'Subiendo...' : 'Subir nuevo PDF'}
+              </button>
+            ) : null}
             <input
               ref={uploadInputRef}
               type="file"
@@ -415,51 +440,28 @@ export function NutritionComparativePage() {
               }}
             />
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-sm text-ink-secondary">
-              Paciente
-              <select
-                value={studentId}
-                onChange={(e) => {
-                  setStudentId(e.target.value)
-                  setFromDocId('')
-                  setToDocId('')
-                }}
-                className={cn(
-                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
-                  trainerCtaFocusInputChromeClassName,
-                )}
-              >
-                <option value="">Seleccionar...</option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>{s.full_name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm text-ink-secondary">
-              {mode === 'pdf' ? 'PDF base (inicio)' : 'Medición base (inicio)'}
+
+          <div className="grid sm:grid-cols-[1fr_auto_1fr] gap-3 items-end">
+            <label className="text-xs text-ink-secondary">
+              <span className="block mb-1.5">{mode === 'pdf' ? 'PDF base (anterior)' : 'Medición base (anterior)'}</span>
               {mode === 'pdf' ? (
                 <select
                   value={fromDocId}
                   onChange={(e) => setFromDocId(e.target.value)}
-                  className={cn(
-                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
-                  trainerCtaFocusInputChromeClassName,
-                )}
+                  className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-brand-primary"
                 >
                   <option value="">Seleccionar...</option>
                   {patientDocs.map((d) => (
-                    <option key={d.id} value={d.id}>{d.title}</option>
+                    <option key={d.id} value={d.id}>
+                      {d.title}
+                    </option>
                   ))}
                 </select>
               ) : (
                 <select
                   value={fromMeasurementId}
                   onChange={(e) => setFromMeasurementId(e.target.value)}
-                  className={cn(
-                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
-                  trainerCtaFocusInputChromeClassName,
-                )}
+                  className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-brand-primary"
                 >
                   <option value="">Seleccionar...</option>
                   {patientMeasurements.map((m) => (
@@ -470,30 +472,33 @@ export function NutritionComparativePage() {
                 </select>
               )}
             </label>
-            <label className="text-sm text-ink-secondary md:col-span-2">
-              {mode === 'pdf' ? 'PDF comparativo (actual)' : 'Medición comparativa (actual)'}
+
+            <div className="hidden sm:flex items-center justify-center pb-2.5">
+              <span className="text-ink-muted">
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </div>
+
+            <label className="text-xs text-ink-secondary">
+              <span className="block mb-1.5">{mode === 'pdf' ? 'PDF comparativo (actual)' : 'Medición actual'}</span>
               {mode === 'pdf' ? (
                 <select
                   value={toDocId}
                   onChange={(e) => setToDocId(e.target.value)}
-                  className={cn(
-                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
-                  trainerCtaFocusInputChromeClassName,
-                )}
+                  className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-brand-primary"
                 >
                   <option value="">Seleccionar...</option>
                   {patientDocs.map((d) => (
-                    <option key={d.id} value={d.id}>{d.title}</option>
+                    <option key={d.id} value={d.id}>
+                      {d.title}
+                    </option>
                   ))}
                 </select>
               ) : (
                 <select
                   value={toMeasurementId}
                   onChange={(e) => setToMeasurementId(e.target.value)}
-                  className={cn(
-                  'mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-ink-primary outline-none',
-                  trainerCtaFocusInputChromeClassName,
-                )}
+                  className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-brand-primary"
                 >
                   <option value="">Seleccionar...</option>
                   {patientMeasurements.map((m) => (
@@ -507,38 +512,56 @@ export function NutritionComparativePage() {
           </div>
         </Card>
 
+        {/* Paso 3: análisis + devolución */}
         <Card>
-          <CardTitle className="mb-3">Devolución profesional (editable)</CardTitle>
-          <div className="mb-3">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+                3
+              </span>
+              <CardTitle>Generar análisis y devolución</CardTitle>
+            </div>
             <Button
+              size="sm"
               variant="secondary"
               icon={<Sparkles className="h-4 w-4" />}
               loading={analyzing}
               onClick={runAutomaticAnalysis}
             >
-              Analizar PDFs automáticamente
+              Analizar
             </Button>
           </div>
-          {diffRows.length > 0 && (
-            <div className="rounded-xl border border-surface-border bg-surface-elevated p-3 mb-3 space-y-1.5">
-              {diffRows.map((row) => (
-                <p key={row.label} className="text-xs text-ink-secondary">
-                  <span className="font-semibold text-ink-primary">{row.label}:</span> {row.from} {'->'} {row.to} (cambio {row.delta})
-                </p>
-              ))}
+
+          {diffRows.length > 0 ? (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">
+                Cambios detectados
+              </p>
+              <div className="space-y-1">
+                {diffRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between text-xs gap-2">
+                    <span className="font-medium text-ink-primary truncate">{row.label}</span>
+                    <span className="text-ink-secondary tabular-nums shrink-0">
+                      {row.from} → {row.to}{' '}
+                      <span className="font-semibold text-ink-primary">({row.delta})</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-          <textarea
-            value={interpretation}
-            onChange={(e) => setInterpretation(e.target.value)}
-            rows={8}
-            className={cn(
-              'w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-ink-primary focus:outline-none',
-              trainerCtaFocusInputChromeClassName,
-            )}
-          />
-          <p className="text-xs text-ink-muted mt-2">
-            Si un PDF viene escaneado sin texto embebido, será necesario incorporar OCR en el siguiente paso.
+          ) : null}
+
+          <label className="text-xs text-ink-secondary">
+            <span className="block mb-1.5">Devolución (editable antes de exportar)</span>
+            <textarea
+              value={interpretation}
+              onChange={(e) => setInterpretation(e.target.value)}
+              rows={8}
+              className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-brand-primary"
+            />
+          </label>
+          <p className="text-[11px] text-ink-muted mt-2">
+            Si un PDF viene escaneado sin texto embebido, hace falta OCR para extraer datos.
           </p>
         </Card>
 
@@ -549,14 +572,37 @@ export function NutritionComparativePage() {
           loading={generating}
           onClick={generatePdf}
         >
-          Generar diagnóstico comparativo en PDF
+          Descargar diagnóstico comparativo (PDF)
         </Button>
-
-        <div className="text-xs text-ink-muted flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5" />
-          Redacción clara, profesional y editable antes de compartir.
-        </div>
       </div>
     </div>
+  )
+}
+
+function ModePill({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  icon?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        active
+          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+          : 'border border-surface-border/70 text-ink-secondary hover:bg-surface-elevated/60 hover:text-ink-primary',
+      )}
+    >
+      {icon}
+      {children}
+    </button>
   )
 }
