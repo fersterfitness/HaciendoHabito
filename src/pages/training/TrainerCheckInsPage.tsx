@@ -124,10 +124,27 @@ export function TrainerCheckInsPage() {
     if (!activeFormId) {
       setInvites([])
       setResponses([])
+      setSelectedStudentIds(new Set())
       return
     }
+    setSelectedStudentIds(new Set())
     void loadInvitesAndResponses(activeFormId)
   }, [activeFormId, loadInvitesAndResponses])
+
+  /** Quitar de la selección alumnos que ya tienen link (p. ej. tras generar o recargar invitaciones). */
+  useEffect(() => {
+    if (!invites.length) return
+    const withInvite = new Set(invites.map((i) => i.student_id))
+    setSelectedStudentIds((prev) => {
+      let changed = false
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (withInvite.has(id)) changed = true
+        else next.add(id)
+      }
+      return changed ? next : prev
+    })
+  }, [invites])
 
   function openForm(f: CheckInForm | null) {
     if (!f) {
@@ -136,8 +153,10 @@ export function TrainerCheckInsPage() {
       setIntro('')
       setQuestions(defaultQuestions())
       setIsActive(true)
+      setSelectedStudentIds(new Set())
       return
     }
+    setSelectedStudentIds(new Set())
     setActiveFormId(f.id)
     setTitle(f.title)
     setIntro(f.intro ?? '')
@@ -210,6 +229,7 @@ export function TrainerCheckInsPage() {
   }
 
   function toggleStudent(id: string) {
+    if (invites.some((i) => i.student_id === id)) return
     setSelectedStudentIds((prev) => {
       const n = new Set(prev)
       if (n.has(id)) n.delete(id)
@@ -225,21 +245,46 @@ export function TrainerCheckInsPage() {
       toast.error('Seleccioná alumnos')
       return
     }
-    const existing = new Set(invites.map((i) => i.student_id))
-    const toCreate = ids.filter((id) => !existing.has(id))
-    if (!toCreate.length) {
-      toast.error('Esos alumnos ya tienen link para este formulario')
+    setInviteBusy(true)
+    const { data: existingRows, error: qErr } = await supabase
+      .from('check_in_invites')
+      .select('student_id')
+      .eq('form_id', activeFormId)
+      .in('student_id', ids)
+    if (qErr) {
+      setInviteBusy(false)
+      toast.error(qErr.message)
       return
     }
-    setInviteBusy(true)
+    const existing = new Set((existingRows ?? []).map((r: { student_id: string }) => r.student_id))
+    const toCreate = ids.filter((id) => !existing.has(id))
+    const skipped = ids.length - toCreate.length
+    if (!toCreate.length) {
+      setInviteBusy(false)
+      toast.error('Esos alumnos ya tienen link para este formulario')
+      setSelectedStudentIds(new Set())
+      void loadInvitesAndResponses(activeFormId)
+      return
+    }
     const rows = toCreate.map((student_id) => ({ form_id: activeFormId, student_id }))
     const { error } = await supabase.from('check_in_invites').insert(rows)
     setInviteBusy(false)
     if (error) {
+      if (error.message.includes('duplicate key') || error.code === '23505') {
+        toast.error('Algunos alumnos ya tenían link. Actualizamos la lista.')
+        void loadInvitesAndResponses(activeFormId)
+        return
+      }
       toast.error(error.message)
       return
     }
-    toast.success('Links generados')
+    if (skipped > 0) {
+      toast.success(
+        `Links generados para ${toCreate.length} alumno${toCreate.length === 1 ? '' : 's'}. ${skipped} ya tenía${skipped === 1 ? '' : 'n'} link.`,
+      )
+    } else {
+      toast.success(`Links generados para ${toCreate.length} alumno${toCreate.length === 1 ? '' : 's'}`)
+    }
     setSelectedStudentIds(new Set())
     void loadInvitesAndResponses(activeFormId)
   }
