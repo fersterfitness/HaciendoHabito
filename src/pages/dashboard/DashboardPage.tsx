@@ -16,6 +16,8 @@ import {
   ChevronRight,
   Wallet,
   AlertTriangle,
+  ClipboardCheck,
+  CalendarClock,
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -34,7 +36,8 @@ import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { FINANCE_SCOPES } from '@/lib/constants'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
-import type { Routine, Notification } from '@/types/database'
+import { scheduleMatchesToday } from '@/lib/checkInSchedule'
+import type { Routine, Notification, CheckInSendSchedule } from '@/types/database'
 
 interface RecentIncomeRow {
   id: string
@@ -44,6 +47,8 @@ interface RecentIncomeRow {
   payment_method: string
   income_date: string
 }
+
+type DueCheckInScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
 
 const LEVEL_META = [
   { key: 'inicial', label: 'Inicial' },
@@ -507,6 +512,9 @@ export function DashboardPage() {
   const [goalDist, setGoalDist] = useState<{ key: string; label: string; count: number; pct: number }[]>([])
   const [habitAvg, setHabitAvg] = useState(0)
   const [habitTop5, setHabitTop5] = useState<{ id: string; name: string; pct: number }[]>([])
+  /** Respuestas de check-in (últimos 30 días); prioridad en Inicio para no olvidar devolución. */
+  const [checkInRecentCount, setCheckInRecentCount] = useState(0)
+  const [dueCheckInSchedules, setDueCheckInSchedules] = useState<DueCheckInScheduleRow[]>([])
 
   const animatedIncome = useCountUp(stats.currentMonthIncome, {
     duration: 2600,
@@ -952,6 +960,28 @@ export function DashboardPage() {
       setHabitAvg(avgHabit)
       setHabitTop5([...perStudentHabit].sort((a, b) => b.pct - a.pct).slice(0, 5))
 
+      if (canSeeTraining) {
+        const sinceCi = new Date()
+        sinceCi.setDate(sinceCi.getDate() - 30)
+        const ciRes = await supabase
+          .from('check_in_responses')
+          .select('id', { count: 'exact', head: true })
+          .gte('submitted_at', sinceCi.toISOString())
+        setCheckInRecentCount(ciRes.count ?? 0)
+        const schRes = await supabase
+          .from('check_in_send_schedules')
+          .select(
+            'id, owner_id, form_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, form:check_in_forms(title)',
+          )
+          .eq('owner_id', user!.id)
+          .eq('is_enabled', true)
+        const srows = (schRes.data ?? []) as DueCheckInScheduleRow[]
+        setDueCheckInSchedules(srows.filter((s) => scheduleMatchesToday(s)))
+      } else {
+        setCheckInRecentCount(0)
+        setDueCheckInSchedules([])
+      }
+
       setDataUpdatedAt(new Date())
 
     } finally {
@@ -994,6 +1024,61 @@ export function DashboardPage() {
       )}
 
       <div className="px-4 lg:px-6 py-6 space-y-6">
+
+        {canSeeTraining && checkInRecentCount > 0 ? (
+          <div className="rounded-2xl border border-brand-primary/40 bg-brand-primary/[0.12] px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <ClipboardCheck className="h-5 w-5 text-brand-primary shrink-0 mt-0.5" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink-primary">Respuestas de check-in</p>
+                <p className="text-xs text-ink-secondary mt-0.5">
+                  {checkInRecentCount === 1
+                    ? 'Hay 1 respuesta en los últimos 30 días.'
+                    : `Hay ${checkInRecentCount} respuestas en los últimos 30 días.`}{' '}
+                  Revisalas en Devoluciones para dar seguimiento.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="shrink-0"
+              onClick={() => navigate('/feedback?tab=checkins')}
+            >
+              Ver check-ins
+            </Button>
+          </div>
+        ) : null}
+
+        {canSeeTraining && dueCheckInSchedules.length > 0 ? (
+          <div className="rounded-2xl border border-sky-500/35 bg-sky-500/[0.08] px-4 py-3.5 space-y-3">
+            <div className="flex items-start gap-3">
+              <CalendarClock className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" aria-hidden />
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-semibold text-ink-primary">Recordatorio: envío de check-ins (WhatsApp)</p>
+                <p className="text-xs text-ink-secondary">
+                  Hoy según tu programación tocaba mandar estos formularios. Abrí Check-ins, generá o copiá los links y usá <strong className="text-ink-primary">Grupo WA</strong> para un solo mensaje al grupo.
+                </p>
+                <ul className="text-xs text-ink-primary space-y-1.5 pt-1">
+                  {dueCheckInSchedules.map((s) => (
+                    <li key={s.id} className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium truncate">«{s.form?.title ?? 'Check-in'}»</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7"
+                        onClick={() => navigate(`/check-ins?formId=${encodeURIComponent(s.form_id)}`)}
+                      >
+                        Abrir formulario
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
         {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (

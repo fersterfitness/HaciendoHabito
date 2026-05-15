@@ -93,6 +93,22 @@ function parseItems(text: string) {
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+/**
+ * Ofertas que en la práctica son la misma oferta base con duración (3/6 meses).
+ * En /form suelen verse como precios dentro de una card; acá las ocultamos por defecto para alinear la gestión con el catálogo.
+ */
+function isDurationVariantWebOffer(plan: EditableWebPlan): boolean {
+  const title = plan.title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  if (/\b(3|6|12)\s*mes(es)?\b/.test(title)) return true
+  if (/\b(3|6)\s*m\b/.test(title)) return true
+  const slug = plan.slug.toLowerCase()
+  if (/(?:^|-)(3m|6m|12m|3-meses|6-meses|12-meses)(?:-|$)/.test(slug)) return true
+  return false
+}
+
 /** Borde y leve tinte para distinguir segmentos al editar muchas ofertas. */
 function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
   switch (seg) {
@@ -202,6 +218,8 @@ export function WebPlansSettingsPage() {
   const [nutritionSegmentUploadBusy, setNutritionSegmentUploadBusy] = useState(false)
   const [fullUploadBusy, setFullUploadBusy] = useState(false)
   const catalogUserId = useAuthStore((s) => s.user?.id)
+  /** Si es false (defecto), no listamos filas que parecen solo variantes 3/6 meses (iguales al catálogo web resumido). */
+  const [showDurationVariantRows, setShowDurationVariantRows] = useState(false)
 
   useEffect(() => {
     if (!canManage) return
@@ -448,19 +466,33 @@ export function WebPlansSettingsPage() {
     [plans],
   )
 
+  const settingsPlansList = useMemo(() => {
+    if (showDurationVariantRows) return sortedPlans
+    return sortedPlans.filter((p) => !isDurationVariantWebOffer(p))
+  }, [sortedPlans, showDurationVariantRows])
+
+  const hiddenVariantCount = useMemo(
+    () => sortedPlans.filter((p) => isDurationVariantWebOffer(p)).length,
+    [sortedPlans],
+  )
+
   /** Orden de la lista = orden en /form (sort_order). Subir/bajar reordena y renumera; guardá ofertas para persistir. */
   function moveSortedPlan(slug: string, delta: -1 | 1) {
     setPlans((prev) => {
       const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
-      const i = sorted.findIndex((p) => p.slug === slug)
+      const visible = showDurationVariantRows ? sorted : sorted.filter((p) => !isDurationVariantWebOffer(p))
+      const i = visible.findIndex((p) => p.slug === slug)
       const j = i + delta
-      if (i < 0 || j < 0 || j >= sorted.length) return prev
-      const next = [...sorted]
-      const t = next[i]!
-      next[i] = next[j]!
-      next[j] = t
-      const orderBySlug = new Map(next.map((p, idx) => [p.slug, idx + 1]))
-      return prev.map((p) => (orderBySlug.has(p.slug) ? { ...p, sort_order: orderBySlug.get(p.slug)! } : p))
+      if (i < 0 || j < 0 || j >= visible.length) return prev
+      const a = visible[i]!
+      const b = visible[j]!
+      const oa = a.sort_order
+      const ob = b.sort_order
+      return prev.map((p) => {
+        if (p.slug === a.slug) return { ...p, sort_order: ob }
+        if (p.slug === b.slug) return { ...p, sort_order: oa }
+        return p
+      })
     })
   }
 
@@ -908,6 +940,13 @@ export function WebPlansSettingsPage() {
             importan las que tengan segmento <strong className="text-ink-primary">Plan full</strong> o{' '}
             <strong className="text-ink-primary">Nutrición (with_nutritionist)</strong>, estén activas y tengan «Mostrar en /form». Al final pulsá{' '}
             <strong className="text-ink-primary">Guardar ofertas</strong> para persistir todos los cambios.
+            {hiddenVariantCount > 0 ? (
+              <>
+                {' '}
+                Por defecto <strong className="text-ink-primary">no listamos</strong> ofertas que parecen solo variantes de duración (p. ej. título con «3
+                meses» o «6 meses»), para que esta pantalla coincida con el catálogo resumido de la web; las filas siguen en la base y se guardan con el resto.
+              </>
+            ) : null}
           </p>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-secondary">
             <span className="font-medium text-ink-primary">Leyenda de color:</span>
@@ -926,7 +965,28 @@ export function WebPlansSettingsPage() {
             <span className="text-ink-muted basis-full sm:basis-auto">
               · Por defecto las cards van <strong className="text-ink-secondary">contraídas</strong> para reordenar rápido. Tocá «Detalle» para
               editar. Arrastrá el asa <span className="font-medium text-ink-secondary">⋮⋮</span> o usá Subir/Bajar; después Guardar ofertas.
+              {hiddenVariantCount > 0 ? (
+                <>
+                  {' '}
+                  Con las variantes de duración ocultas, el arrastre está desactivado; activá «Mostrar variantes de duración» abajo para reordenar todo.
+                </>
+              ) : null}
             </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {hiddenVariantCount > 0 ? (
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border bg-surface-base/50 px-3 py-2 text-xs text-ink-secondary hover:bg-surface-elevated/60">
+                <input
+                  type="checkbox"
+                  className="rounded border-surface-border text-brand-primary focus:ring-brand-primary"
+                  checked={showDurationVariantRows}
+                  onChange={(e) => setShowDurationVariantRows(e.target.checked)}
+                />
+                <span>
+                  Mostrar variantes de duración en esta lista ({hiddenVariantCount} fila{hiddenVariantCount === 1 ? '' : 's'})
+                </span>
+              </label>
+            ) : null}
           </div>
         </div>
 
@@ -947,8 +1007,8 @@ export function WebPlansSettingsPage() {
               size="sm"
               variant="ghost"
               className="text-xs"
-              disabled={sortedPlans.length === 0}
-              onClick={() => setExpandedOfferSlugs(new Set(sortedPlans.map((p) => p.slug)))}
+              disabled={settingsPlansList.length === 0}
+              onClick={() => setExpandedOfferSlugs(new Set(settingsPlansList.map((p) => p.slug)))}
             >
               Abrir todas
             </Button>
@@ -964,7 +1024,7 @@ export function WebPlansSettingsPage() {
         {loading ? (
           <Card className="p-6 text-sm text-ink-secondary">Cargando ofertas…</Card>
         ) : (
-          sortedPlans.map((plan, idx) => {
+          settingsPlansList.map((plan, idx) => {
             const isExpanded = expandedOfferSlugs.has(plan.slug)
             return (
             <div
@@ -1018,8 +1078,12 @@ export function WebPlansSettingsPage() {
                 )}
               >
                 <div
-                  draggable
+                  draggable={showDurationVariantRows}
                   onDragStart={(e) => {
+                    if (!showDurationVariantRows) {
+                      e.preventDefault()
+                      return
+                    }
                     setDraggingPlanSlug(plan.slug)
                     e.dataTransfer.setData('text/plain', plan.slug)
                     e.dataTransfer.effectAllowed = 'move'
@@ -1029,10 +1093,17 @@ export function WebPlansSettingsPage() {
                     setDragOverPlanSlug(null)
                   }}
                   className={cn(
-                    'mt-0.5 shrink-0 cursor-grab touch-none rounded-lg border border-surface-border/70 bg-surface-base/50 p-1.5 text-ink-muted hover:bg-surface-elevated hover:text-ink-secondary active:cursor-grabbing',
+                    'mt-0.5 shrink-0 rounded-lg border border-surface-border/70 bg-surface-base/50 p-1.5 text-ink-muted',
+                    showDurationVariantRows
+                      ? 'cursor-grab touch-none hover:bg-surface-elevated hover:text-ink-secondary active:cursor-grabbing'
+                      : 'cursor-not-allowed opacity-50',
                     appFocusRingClassName,
                   )}
-                  title="Arrastrá y soltá sobre otra oferta (mitad superior = antes, mitad inferior = después)"
+                  title={
+                    showDurationVariantRows
+                      ? 'Arrastrá y soltá sobre otra oferta (mitad superior = antes, mitad inferior = después)'
+                      : 'Activá «Mostrar variantes de duración» para arrastrar todas las filas y reordenar con precisión.'
+                  }
                   aria-label="Arrastrar para reordenar ofertas"
                 >
                   <GripVertical className="h-4 w-4" aria-hidden />
@@ -1099,7 +1170,7 @@ export function WebPlansSettingsPage() {
                       className="h-8 w-8 shrink-0 p-0"
                       title="Bajar en la lista"
                       aria-label="Bajar oferta en la lista"
-                      disabled={idx >= sortedPlans.length - 1}
+                      disabled={idx >= settingsPlansList.length - 1}
                       icon={<ArrowDown className="h-4 w-4" />}
                       onClick={() => moveSortedPlan(plan.slug, 1)}
                     />

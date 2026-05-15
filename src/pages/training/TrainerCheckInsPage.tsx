@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ClipboardCheck, Copy, Plus, Trash2, Download } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { CalendarClock, ClipboardCheck, Copy, Plus, Trash2, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -7,10 +8,17 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
-import { buildWhatsAppUrl, checkInInviteMessage, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
+import {
+  buildWhatsAppGroupPickUrl,
+  buildWhatsAppUrl,
+  checkInGroupMessage,
+  checkInInviteMessage,
+  normalizePhoneForWhatsApp,
+} from '@/lib/whatsapp'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { cn } from '@/lib/utils'
-import type { CheckInForm, Json, Student } from '@/types/database'
+import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES } from '@/lib/checkInSchedule'
+import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
 type QuestionDef = { id: string; label: string; type: 'text' | 'scale' }
@@ -54,7 +62,11 @@ type ResponseRow = {
   submitted_at: string
   responses: Json
   testimonial_consent: boolean
+  responder_email: string | null
+  email_verified: boolean
 }
+
+type ScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
 
 /** Botones de acción en la tabla de invitaciones (misma altura y padding). */
 const inviteTableActionBtnClass =
@@ -62,6 +74,8 @@ const inviteTableActionBtnClass =
 
 export function TrainerCheckInsPage() {
   const { user } = useAuthStore()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const formIdFromUrl = searchParams.get('formId')
   const [forms, setForms] = useState<CheckInForm[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,19 +89,31 @@ export function TrainerCheckInsPage() {
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [responses, setResponses] = useState<ResponseRow[]>([])
   const [inviteBusy, setInviteBusy] = useState(false)
+  const [schedules, setSchedules] = useState<ScheduleRow[]>([])
+  const [scheduleBusy, setScheduleBusy] = useState(false)
+  const [newScheduleDow, setNewScheduleDow] = useState(5)
+  const [newScheduleTz, setNewScheduleTz] = useState('America/Argentina/Buenos_Aires')
+  const [newSchedulePreferGroup, setNewSchedulePreferGroup] = useState(true)
 
   const loadForms = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [fRes, sRes] = await Promise.all([
+    const [fRes, sRes, schRes] = await Promise.all([
       supabase.from('check_in_forms').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('students').select('*').eq('owner_id', user.id).eq('status', 'activo').order('full_name'),
+      supabase
+        .from('check_in_send_schedules')
+        .select('*, form:check_in_forms(title)')
+        .eq('owner_id', user.id)
+        .order('day_of_week', { ascending: true }),
     ])
     setLoading(false)
     if (fRes.error) toast.error(fRes.error.message)
     else setForms((fRes.data as CheckInForm[]) ?? [])
     if (sRes.error) toast.error(sRes.error.message)
     else setStudents((sRes.data as Student[]) ?? [])
+    if (schRes.error) toast.error(schRes.error.message)
+    else setSchedules((schRes.data as unknown as ScheduleRow[]) ?? [])
   }, [user])
 
   useEffect(() => {
@@ -114,7 +140,7 @@ export function TrainerCheckInsPage() {
     }
     const { data: respData, error: respErr } = await supabase
       .from('check_in_responses')
-      .select('id, invite_id, submitted_at, responses, testimonial_consent')
+      .select('id, invite_id, submitted_at, responses, testimonial_consent, responder_email, email_verified')
       .in('invite_id', inviteIds)
     if (respErr) toast.error(respErr.message)
     else setResponses((respData as ResponseRow[]) ?? [])
@@ -162,6 +188,66 @@ export function TrainerCheckInsPage() {
     setIntro(f.intro ?? '')
     setQuestions(parseQuestions(f.questions).length ? parseQuestions(f.questions) : defaultQuestions())
     setIsActive(f.is_active)
+  }
+
+  useEffect(() => {
+    if (!formIdFromUrl || loading || forms.length === 0) return
+    const f = forms.find((x) => x.id === formIdFromUrl)
+    if (f) {
+      openForm(f)
+      setSearchParams({}, { replace: true })
+    }
+  }, [formIdFromUrl, forms, loading, setSearchParams])
+
+  async function addCheckInSchedule() {
+    if (!user || !activeFormId) {
+      toast.error('Seleccioná un formulario en la lista de la izquierda')
+      return
+    }
+    setScheduleBusy(true)
+    const { error } = await supabase.from('check_in_send_schedules').insert({
+      owner_id: user.id,
+      form_id: activeFormId,
+      day_of_week: newScheduleDow,
+      timezone: newScheduleTz.trim() || 'America/Argentina/Buenos_Aires',
+      prefer_group_whatsapp: newSchedulePreferGroup,
+      is_enabled: true,
+    })
+    setScheduleBusy(false)
+    if (error) {
+      if (error.code === '23505' || error.message.includes('duplicate')) {
+        toast.error('Ya tenés un recordatorio para ese formulario ese día.')
+      } else toast.error(error.message)
+      return
+    }
+    toast.success('Recordatorio guardado')
+    void loadForms()
+  }
+
+  async function deleteCheckInSchedule(id: string) {
+    if (!user) return
+    if (!window.confirm('¿Quitar este recordatorio?')) return
+    setScheduleBusy(true)
+    const { error } = await supabase.from('check_in_send_schedules').delete().eq('id', id).eq('owner_id', user.id)
+    setScheduleBusy(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    void loadForms()
+  }
+
+  async function toggleCheckInSchedule(row: ScheduleRow, enabled: boolean) {
+    if (!user) return
+    const { error } = await supabase
+      .from('check_in_send_schedules')
+      .update({ is_enabled: enabled })
+      .eq('id', row.id)
+      .eq('owner_id', user.id)
+    if (error) toast.error(error.message)
+    else {
+      setSchedules((prev) => prev.map((s) => (s.id === row.id ? { ...s, is_enabled: enabled } : s)))
+    }
   }
 
   async function saveForm() {
@@ -322,6 +408,24 @@ export function TrainerCheckInsPage() {
     window.open(buildWhatsAppUrl(digits, msg), '_blank', 'noopener,noreferrer')
   }
 
+  function openCheckInWhatsAppGroup() {
+    if (!savedForm || invites.length === 0) {
+      toast.error('Generá al menos un link antes de compartir en grupo')
+      return
+    }
+    const entries = invites.map((inv) => ({
+      studentName: inv.student?.full_name ?? 'Alumno',
+      url: publicUrl(inv.token),
+    }))
+    const msg = checkInGroupMessage({
+      formTitle: savedForm.title,
+      intro: savedForm.intro,
+      entries,
+    })
+    window.open(buildWhatsAppGroupPickUrl(msg), '_blank', 'noopener,noreferrer')
+    toast.success('Elegí el grupo (o chat) en WhatsApp y enviá el mensaje')
+  }
+
   const responseByInvite = useMemo(() => {
     const m = new Map<string, ResponseRow>()
     for (const r of responses) m.set(r.invite_id, r)
@@ -336,6 +440,8 @@ export function TrainerCheckInsPage() {
       'Alumno',
       'Fecha respuesta',
       'Consentimiento testimonio',
+      'Email declarado',
+      'Email verif. ficha',
       ...qs.map((q) => q.label.replace(/\s+/g, ' ').trim() || q.id),
     ]
     rows.push(header)
@@ -350,6 +456,8 @@ export function TrainerCheckInsPage() {
         inv.student?.full_name ?? '',
         new Date(resp.submitted_at).toISOString(),
         resp.testimonial_consent ? 'sí' : 'no',
+        resp.responder_email ?? '',
+        resp.email_verified ? 'sí' : 'no',
         ...qs.map((q) => String(obj[q.id] ?? '')),
       ]
       rows.push(line)
@@ -528,11 +636,28 @@ export function TrainerCheckInsPage() {
                 <div className="border-t border-surface-border pt-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Invitaciones y respuestas</h3>
-                    {invites.some((i) => responseByInvite.has(i.id)) ? (
-                      <Button type="button" size="sm" variant="outline" className="text-xs h-7" icon={<Download className="h-3.5 w-3.5" />} onClick={exportResponsesCsv}>
-                        Exportar CSV
-                      </Button>
-                    ) : null}
+                    <div className="flex flex-wrap gap-1.5">
+                      {invites.length > 0 ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className={cn(
+                            inviteTableActionBtnClass,
+                            'border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12',
+                          )}
+                          icon={<WhatsAppIcon className="h-3 w-3" />}
+                          onClick={openCheckInWhatsAppGroup}
+                        >
+                          Grupo WA
+                        </Button>
+                      ) : null}
+                      {invites.some((i) => responseByInvite.has(i.id)) ? (
+                        <Button type="button" size="sm" variant="outline" className="text-xs h-7" icon={<Download className="h-3.5 w-3.5" />} onClick={exportResponsesCsv}>
+                          Exportar CSV
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                   {invites.length === 0 ? (
                     <p className="text-sm text-ink-muted">Todavía no hay links generados.</p>
@@ -625,6 +750,8 @@ export function TrainerCheckInsPage() {
                           <p className="font-medium text-ink-primary">{inv.student?.full_name ?? '—'}</p>
                           <p className="text-[10px] text-ink-muted">
                             Testimonio OK: {resp.testimonial_consent ? 'sí' : 'no'}
+                            {' · '}
+                            Correo: {resp.responder_email ?? '—'} ({resp.email_verified ? 'verificado' : 'no verif.'})
                           </p>
                           <ul className="text-xs space-y-1 mt-2">
                             {questions.map((q) => (
@@ -643,6 +770,117 @@ export function TrainerCheckInsPage() {
             ) : null}
           </Card>
         </div>
+
+        <Card className="p-4 sm:p-5 space-y-4 max-w-5xl">
+          <h2 className="text-sm font-semibold text-ink-primary inline-flex items-center gap-2">
+            <CalendarClock className="h-4 w-4" aria-hidden />
+            Recordatorios de envío (WhatsApp)
+          </h2>
+          <p className="text-xs text-ink-secondary max-w-prose">
+            Definí un día fijo por formulario (en tu zona horaria). Ese día verás un recordatorio en <strong className="text-ink-primary">Inicio</strong>.
+            WhatsApp no se envía solo: desde acá usá <strong className="text-ink-primary">Grupo WA</strong> para mandar todos los links juntos.
+          </p>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+            <div className="space-y-1 min-w-[8rem]">
+              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-dow">
+                Día
+              </label>
+              <select
+                id="sched-dow"
+                className="w-full rounded-lg border border-surface-border bg-surface-input px-2 py-2 text-sm"
+                value={newScheduleDow}
+                onChange={(e) => setNewScheduleDow(Number(e.target.value))}
+              >
+                {([0, 1, 2, 3, 4, 5, 6] as const).map((d) => (
+                  <option key={d} value={d}>
+                    {WEEKDAY_LABELS_ES[d]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1 flex-1 min-w-[10rem]">
+              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-tz">
+                Zona horaria
+              </label>
+              <select
+                id="sched-tz"
+                className="w-full rounded-lg border border-surface-border bg-surface-input px-2 py-2 text-sm"
+                value={newScheduleTz}
+                onChange={(e) => setNewScheduleTz(e.target.value)}
+              >
+                {COMMON_TIMEZONES.map((z) => (
+                  <option key={z.value} value={z.value}>
+                    {z.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-ink-secondary cursor-pointer pb-2">
+              <input
+                type="checkbox"
+                checked={newSchedulePreferGroup}
+                onChange={(e) => setNewSchedulePreferGroup(e.target.checked)}
+                className="rounded border-surface-border"
+              />
+              Preferir envío al grupo
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              loading={scheduleBusy}
+              disabled={scheduleBusy || !activeFormId || forms.length === 0}
+              onClick={() => void addCheckInSchedule()}
+            >
+              Agregar para «{savedForm?.title ?? '…'}»
+            </Button>
+          </div>
+          {!activeFormId ? (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              Elegí un formulario en la columna izquierda para asociar el recordatorio.
+            </p>
+          ) : null}
+          {schedules.length === 0 ? (
+            <p className="text-sm text-ink-muted">Todavía no hay recordatorios.</p>
+          ) : (
+            <ul className="space-y-2">
+              {schedules.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink-primary truncate">{s.form?.title ?? 'Formulario'}</p>
+                    <p className="text-[11px] text-ink-muted">
+                      Cada {WEEKDAY_LABELS_ES[s.day_of_week] ?? '—'} · {s.timezone}
+                      {s.prefer_group_whatsapp ? ' · sugerido: grupo WA' : ''}
+                      {!s.is_enabled ? ' · pausado' : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 shrink-0">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7"
+                      onClick={() => void toggleCheckInSchedule(s, !s.is_enabled)}
+                    >
+                      {s.is_enabled ? 'Pausar' : 'Activar'}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7 text-status-expired"
+                      onClick={() => void deleteCheckInSchedule(s.id)}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
     </div>
   )

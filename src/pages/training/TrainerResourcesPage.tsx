@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft } from 'lucide-react'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -8,7 +9,12 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
-import { buildResourceShareMessage, buildWhatsAppUrl, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
+import {
+  buildResourceShareMessage,
+  buildWhatsAppGroupPickUrl,
+  buildWhatsAppUrl,
+  normalizePhoneForWhatsApp,
+} from '@/lib/whatsapp'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import type { Student, TrainerMessageTemplate, TrainerResource } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -328,6 +334,16 @@ export function TrainerResourcesPage() {
     }
   }
 
+  function openGroupWhatsApp() {
+    if (!selectedResource) {
+      toast.error('Seleccioná un recurso de la lista')
+      return
+    }
+    const msg = fullOutboundMessage(selectedResource)
+    window.open(buildWhatsAppGroupPickUrl(msg), '_blank', 'noopener,noreferrer')
+    toast.success('Elegí el grupo (o chat) en WhatsApp y enviá el mensaje')
+  }
+
   function openAllWhatsApp() {
     if (!selectedResource) {
       toast.error('Seleccioná un recurso de la lista')
@@ -598,6 +614,16 @@ export function TrainerResourcesPage() {
                     onClick={() => void copyMessageTemplate()}
                   >
                     Copiar mensaje
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12"
+                    icon={<WhatsAppIcon className="h-4 w-4" />}
+                    onClick={() => openGroupWhatsApp()}
+                  >
+                    Compartir en grupo
                   </Button>
                   <Button
                     type="button"

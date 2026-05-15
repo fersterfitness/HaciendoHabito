@@ -17,6 +17,12 @@ export function buildWhatsAppUrl(phoneDigits: string, message: string): string {
   return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(text)}`
 }
 
+/** Abre WhatsApp para elegir chat o grupo y pegar el mensaje (sin número fijo). */
+export function buildWhatsAppGroupPickUrl(message: string): string {
+  const text = normalizeMessageForWaLink(message)
+  return `https://wa.me/?text=${encodeURIComponent(text)}`
+}
+
 /** Evita BMP raro en algunos previews; preserva español típido. */
 function normalizeMessageForWaLink(text: string): string {
   return text.replace(/\r\n/g, '\n').trimEnd()
@@ -123,6 +129,28 @@ export function buildAppointmentConfirmedPrepWaUrl(params: { phoneRaw: string | 
   const digits = normalizePhoneForWhatsApp(params.phoneRaw)
   if (!digits) return null
   return buildWhatsAppUrl(digits, confirmedVideocallPrepMessage())
+}
+
+/** Mensaje con un link por alumno (para compartir en grupo de WhatsApp). */
+export function checkInGroupMessage(params: {
+  formTitle: string
+  intro?: string | null
+  entries: { studentName: string; url: string }[]
+}): string {
+  const lines = [
+    'Hola,',
+    '',
+    `Check-in: ${params.formTitle.trim()}`,
+  ]
+  if (params.intro?.trim()) {
+    lines.push('', params.intro.trim())
+  }
+  lines.push('', 'Cada uno con su link personal:')
+  for (const e of params.entries) {
+    lines.push(`• ${e.studentName.trim()}: ${e.url.trim()}`)
+  }
+  lines.push('', 'Gracias.')
+  return lines.join('\n')
 }
 
 /** Mensaje al enviar link de check-in por WhatsApp. */

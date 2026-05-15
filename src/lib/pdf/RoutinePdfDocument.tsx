@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import {
   Document,
   Page,
@@ -147,6 +148,31 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
   },
   notesText: { fontSize: 8, color: '#78350F', lineHeight: 1.6 },
+
+  // ── Índice ──
+  tocTitle: {
+    fontSize: 14,
+    fontFamily: 'Helvetica-Bold',
+    color: C.dark,
+    marginBottom: 6,
+  },
+  tocHint: {
+    fontSize: 7.5,
+    color: C.muted,
+    marginBottom: 14,
+    lineHeight: 1.45,
+  },
+  tocRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 5,
+    paddingVertical: 2,
+  },
+  tocLink: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.accent },
+  tocLinkMuted: { fontSize: 8, color: C.body },
+  tocDots: { flex: 1, borderBottomWidth: 0.5, borderBottomColor: C.border, marginHorizontal: 6, marginBottom: 2, minWidth: 12 },
+  tocRef: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.muted, minWidth: 22, textAlign: 'right' },
+  tocSubRow: { paddingLeft: 14 },
 
   // ── Bloque (semana): franja alternada con la app ──
   blockStripeA: {
@@ -481,13 +507,16 @@ function DaySection({
   day,
   index,
   rmByExerciseId,
+  anchorId,
 }: {
   day: DayFull
   index: number
   rmByExerciseId?: Record<string, number>
+  /** Destino interno para el índice (PDF readers con enlaces). */
+  anchorId?: string
 }) {
-  return (
-    <View style={s.daySection} wrap={false}>
+  const inner = (
+    <>
       <View style={s.dayHeader}>
         <View style={s.dayBadge}>
           <Text style={s.dayBadgeText}>DÍA {index + 1}</Text>
@@ -501,6 +530,18 @@ function DaySection({
         </View>
       )}
       <ExerciseTable exercises={day.exercises} rmByExerciseId={rmByExerciseId} />
+    </>
+  )
+  if (anchorId) {
+    return (
+      <View id={anchorId} style={s.daySection} wrap={false}>
+        {inner}
+      </View>
+    )
+  }
+  return (
+    <View style={s.daySection} wrap={false}>
+      {inner}
     </View>
   )
 }
@@ -510,6 +551,8 @@ function DaySection({
 export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseId }: RoutinePdfData) {
   const student = routine.student
   const logoUrl = `${window.location.origin}/logo_mark_original_black_square.png`
+
+  const tocHasContent = blocks.some((b) => (b.days?.length ?? 0) > 0)
 
   return (
     <Document
@@ -569,19 +612,65 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
           </View>
         )}
 
-        {/* Bloques */}
+        {tocHasContent ? (
+          <>
+            <View break />
+            <Text style={s.tocTitle}>Índice</Text>
+            <Text style={s.tocHint}>
+              En el teléfono o en Adobe Acrobat podés tocar cada ítem para ir directo a la semana o al día. La referencia (1, 1.1, 1.2…) coincide con
+              Semana y Día.
+            </Text>
+            {blocks.map((block, wi) => (
+              <Fragment key={`toc-${block.id}`}>
+                <View style={s.tocRow} wrap={false}>
+                  <Text style={{ maxWidth: '72%' }} wrap={false}>
+                    <Link src={`#week-${wi}`} style={s.tocLink}>
+                      SEMANA {wi + 1} · {block.name}
+                    </Link>
+                  </Text>
+                  <View style={s.tocDots} />
+                  <Text style={s.tocRef}>{wi + 1}</Text>
+                </View>
+                {block.days.map((day, di) => (
+                  <View key={`tocd-${day.id}`} style={[s.tocRow, s.tocSubRow]} wrap={false}>
+                    <Text style={{ maxWidth: '68%' }} wrap={false}>
+                      <Link src={`#week-${wi}-day-${di}`} style={s.tocLinkMuted}>
+                        Día {di + 1} · {day.day_name}
+                      </Link>
+                    </Text>
+                    <View style={s.tocDots} />
+                    <Text style={s.tocRef}>
+                      {wi + 1}.{di + 1}
+                    </Text>
+                  </View>
+                ))}
+              </Fragment>
+            ))}
+          </>
+        ) : null}
+
+        {/* Bloques (salto de página antes de cada semana desde la 2.ª) */}
         {blocks.map((block, wi) => (
           <View key={block.id} style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
-            <View style={s.blockHeader} wrap={false}>
+            {wi > 0 ? <View break /> : null}
+            <View id={`week-${wi}`} style={s.blockHeader} wrap={false}>
               <View style={s.blockAccent} />
               <Text style={s.blockName}>{block.name}</Text>
               {block.notes && (
                 <Text style={s.blockNotes}>{block.notes}</Text>
               )}
             </View>
-            {block.days.map((day, di) => (
-              <DaySection key={day.id} day={day} index={di} rmByExerciseId={rmByExerciseId} />
-            ))}
+            <View style={s.blockWrapper}>
+              {block.days.map((day, di) => (
+                <DaySection
+                  key={day.id}
+                  day={day}
+                  index={di}
+                  rmByExerciseId={rmByExerciseId}
+                  anchorId={`week-${wi}-day-${di}`}
+                />
+              ))}
+            </View>
           </View>
         ))}
 

@@ -30,7 +30,17 @@ type FormPayload = {
   intro?: string
   questions?: Json
   student_name?: string
+  must_confirm_email?: boolean
   error?: string
+}
+
+const EMAIL_MAX = 320
+const SIMPLE_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function isValidEmail(raw: string): boolean {
+  const s = raw.trim().toLowerCase()
+  if (!s || s.length > EMAIL_MAX) return false
+  return SIMPLE_EMAIL_RE.test(s)
 }
 
 function PageFrame({ children, innerClassName }: { children: ReactNode; innerClassName?: string }) {
@@ -96,6 +106,7 @@ export function PublicCheckInPage() {
   const [payload, setPayload] = useState<FormPayload | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [consent, setConsent] = useState(false)
+  const [responderEmail, setResponderEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -110,6 +121,9 @@ export function PublicCheckInPage() {
     }
     return n
   }, [questions, answers])
+
+  const emailOk = isValidEmail(responderEmail)
+  const canSubmit = questions.length > 0 && answeredCount >= questions.length && emailOk
 
   useEffect(() => {
     let cancelled = false
@@ -171,6 +185,7 @@ export function PublicCheckInPage() {
       p_token: token,
       p_answers: jsonAnswers as unknown as Json,
       p_testimonial_consent: consent,
+      p_responder_email: responderEmail.trim(),
     })
     setSubmitting(false)
     if (error) {
@@ -182,7 +197,11 @@ export function PublicCheckInPage() {
       if (res?.error === 'already_submitted') toast.error('Ya enviaste este formulario.')
       else if (res?.error === 'rate_limited') toast.error('Demasiados intentos. Probá de nuevo en un rato.')
       else if (res?.error === 'answer_too_long') toast.error('Alguna respuesta es demasiado larga.')
-      else toast.error('No se pudo enviar.')
+      else if (res?.error === 'email_required') toast.error('Ingresá tu correo.')
+      else if (res?.error === 'email_invalid') toast.error('Correo no válido.')
+      else if (res?.error === 'email_mismatch') {
+        toast.error('El correo no coincide con el que tenemos en tu ficha. Usá el mismo que en la app.')
+      } else toast.error('No se pudo enviar.')
       return
     }
     setDone(true)
@@ -292,6 +311,31 @@ export function PublicCheckInPage() {
             </div>
           ))}
 
+          <div className="space-y-2 pt-1 border-t border-surface-border/60">
+            <label htmlFor="checkin-email" className="block text-sm font-medium text-ink-primary leading-snug">
+              Correo electrónico
+            </label>
+            <input
+              id="checkin-email"
+              type="email"
+              autoComplete="email"
+              maxLength={EMAIL_MAX}
+              value={responderEmail}
+              onChange={(e) => setResponderEmail(e.target.value)}
+              placeholder="tu@correo.com"
+              className={cn(
+                'w-full rounded-xl border border-surface-border bg-surface-input/80',
+                'px-3.5 py-3 text-sm text-ink-primary placeholder:text-ink-muted',
+                'transition-colors focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/15',
+              )}
+            />
+            <p className="text-[11px] text-ink-muted leading-relaxed">
+              {payload.must_confirm_email
+                ? 'Tiene que ser el mismo correo que usás en la app Haciendo Hábito (así tu entrenador valida la respuesta).'
+                : 'Tu entrenador lo usa para identificarte si compartís el link. Si después cargan tu mail en la ficha, podrán marcar coincidencias.'}
+            </p>
+          </div>
+
           <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
@@ -310,7 +354,7 @@ export function PublicCheckInPage() {
               className="w-full h-11 rounded-xl text-sm font-semibold"
               variant="gradientPrimary"
               loading={submitting}
-              disabled={submitting || answeredCount < questions.length}
+              disabled={submitting || !canSubmit}
             >
               Enviar respuestas
             </Button>
@@ -318,6 +362,8 @@ export function PublicCheckInPage() {
               <p className="text-center text-[11px] text-ink-muted">
                 Completá las {questions.length} preguntas para enviar
               </p>
+            ) : !emailOk ? (
+              <p className="text-center text-[11px] text-ink-muted">Ingresá un correo válido para enviar</p>
             ) : null}
           </div>
         </form>

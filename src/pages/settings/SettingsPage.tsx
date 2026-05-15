@@ -130,7 +130,8 @@ export function SettingsPage() {
                   En tu proyecto Supabase, aplicá las migraciones del repo: al menos{' '}
                   <code className="text-[10px] bg-surface-base px-1 rounded">20260529120000_trainer_resources_and_check_ins.sql</code> y{' '}
                   <code className="text-[10px] bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529160000_trainer_sends_rpc_check_in_hardening.sql</code>. Sin
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529160000_trainer_sends_rpc_check_in_hardening.sql</code> y{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529180000_check_in_email_and_send_schedules.sql</code>. Sin
                   eso, fallan tablas o RPC de check-in.
                 </li>
                 <li>

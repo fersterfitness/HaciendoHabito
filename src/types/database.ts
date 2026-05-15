@@ -282,8 +282,17 @@ export interface Database {
       }
       check_in_responses: {
         Row: CheckInResponse
-        Insert: Omit<CheckInResponse, 'id' | 'submitted_at'>
+        Insert: Omit<CheckInResponse, 'id' | 'submitted_at' | 'responder_email' | 'email_verified'> & {
+          responder_email?: string | null
+          email_verified?: boolean
+        }
         Update: Partial<Omit<CheckInResponse, 'id' | 'submitted_at'>>
+        Relationships: []
+      }
+      check_in_send_schedules: {
+        Row: CheckInSendSchedule
+        Insert: Omit<CheckInSendSchedule, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CheckInSendSchedule, 'id' | 'created_at'>>
         Relationships: []
       }
       trainer_message_templates: {
@@ -318,7 +327,7 @@ export interface Database {
         Returns: Json
       }
       submit_check_in_response: {
-        Args: { p_token: string; p_answers: Json; p_testimonial_consent: boolean }
+        Args: { p_token: string; p_answers: Json; p_testimonial_consent: boolean; p_responder_email: string }
         Returns: Json
       }
       register_trainer_resource_sends: {
@@ -1070,4 +1079,19 @@ export interface CheckInResponse {
   responses: Json
   testimonial_consent: boolean
   submitted_at: string
+  responder_email: string | null
+  email_verified: boolean
+}
+
+export interface CheckInSendSchedule {
+  id: string
+  owner_id: string
+  form_id: string
+  is_enabled: boolean
+  /** 0 domingo … 6 sábado (como Date.getDay() en la fecha local de `timezone`). */
+  day_of_week: number
+  timezone: string
+  prefer_group_whatsapp: boolean
+  created_at: string
+  updated_at: string
 }
