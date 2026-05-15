@@ -75,6 +75,15 @@ export function prefetchRouteChunkByHref(href: string): void {
     return
   }
 
+  if (path === '/resources') {
+    runOnce('trainer-resources', () => void import('@/pages/training/TrainerResourcesPage'))
+    return
+  }
+  if (path === '/check-ins') {
+    runOnce('trainer-check-ins', () => void import('@/pages/training/TrainerCheckInsPage'))
+    return
+  }
+
   if (path.startsWith('/routines')) {
     runOnce('routines', () => {
       void import('@/pages/routines/RoutinesPage')

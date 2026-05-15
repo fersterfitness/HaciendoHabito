@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LayoutTemplate } from 'lucide-react'
+import { LayoutTemplate, Share2, ClipboardCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -106,6 +106,51 @@ export function SettingsPage() {
             </div>
           </FormSection>
         </Card>
+
+        {(profile?.role === 'trainer' || profile?.role === 'admin') && (
+        <Card>
+          <FormSection title="Comunicación con alumnos">
+            <p className="text-sm text-ink-secondary mb-3">
+              Recursos para compartir por WhatsApp y formularios de check-in con link público (sin que el alumno entre a la app).
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button asChild variant="secondary" icon={<Share2 className="h-4 w-4" />}>
+                <Link to="/resources">Recursos y WhatsApp</Link>
+              </Button>
+              <Button asChild variant="secondary" icon={<ClipboardCheck className="h-4 w-4" />}>
+                <Link to="/check-ins">Check-ins</Link>
+              </Button>
+            </div>
+            <details className="mt-4 rounded-xl border border-surface-border bg-surface-elevated/30 px-3 py-2">
+              <summary className="text-xs font-medium text-ink-secondary cursor-pointer select-none">
+                Cómo probar esto (y qué tenés que tener en Supabase)
+              </summary>
+              <ol className="mt-2 text-[11px] text-ink-muted list-decimal pl-4 space-y-1.5 leading-relaxed max-w-prose">
+                <li>
+                  En tu proyecto Supabase, aplicá las migraciones del repo: al menos{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529120000_trainer_resources_and_check_ins.sql</code> y{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code>. Sin eso, fallan
+                  tablas o RPC de check-in.
+                </li>
+                <li>
+                  <strong className="text-ink-secondary">Recursos (/resources):</strong> creá un recurso con URL, marcá alumnos activos con
+                  teléfono válido, probá «Copiar mensaje» y «WhatsApp». Con «Registrar al abrir WhatsApp» activado, el historial debe sumar una fila
+                  por alumno; si repetís el mismo alumno y recurso dentro de 60 minutos, no duplica (manual muestra aviso informativo).
+                </li>
+                <li>
+                  <strong className="text-ink-secondary">Plantillas:</strong> guardá una plantilla, elegila en el desplegable y verificá que el
+                  texto vaya arriba del mensaje al copiar o abrir WhatsApp.
+                </li>
+                <li>
+                  <strong className="text-ink-secondary">Check-ins (/check-ins):</strong> creá un formulario, guardá, generá links para alumnos,
+                  abrí el link en otra ventana o navegador (ruta <code className="text-[10px] bg-surface-base px-1 rounded">/form/check-in/…</code>
+                  ), enviá respuestas y confirmá que aparecen en la app y en export CSV si hay datos.
+                </li>
+              </ol>
+            </details>
+          </FormSection>
+        </Card>
+        )}
 
         <Card>
           <FormSection title="Planes Web">

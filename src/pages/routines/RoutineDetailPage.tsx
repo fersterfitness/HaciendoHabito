@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
-  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library,
+  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -1560,6 +1560,14 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
   const [rpeText, setRpeText]     = useState(initialMeta.meta.rpeText ?? (exercise.rpe !== null ? String(exercise.rpe) : ''))
   const [percent1rm, setPercent1rm] = useState(initialMeta.meta.percent1rm ?? '')
   const [notes, setNotes]         = useState(initialMeta.userNotes)
+  const [videoUrl, setVideoUrl]   = useState(() => (exercise.video_url ?? '').trim())
+
+  useEffect(() => {
+    setVideoUrl((exercise.video_url ?? '').trim())
+  }, [exercise.id, exercise.video_url])
+
+  const libraryVideo = (exercise.exercise?.video_url ?? '').trim()
+  const effectiveVideo = videoUrl || libraryVideo
 
   // Debounced save — fires 600ms after last keystroke
   const save = useDebounce(onUpdate, 600)
@@ -1763,6 +1771,45 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
           save({ technical_notes: technicalNotes || null })
         }}
       />
+      <div>
+        <label className="block text-[10px] text-ink-muted mb-0.5">Video demostración (URL)</label>
+        <input
+          className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+          placeholder={libraryVideo ? `Vacío → se usa el de la biblioteca` : 'https://youtube.com/...'}
+          value={videoUrl}
+          onChange={(e) => {
+            const v = e.target.value
+            setVideoUrl(v)
+            save({ video_url: v.trim() ? v.trim() : null })
+          }}
+        />
+        {libraryVideo ? (
+          <p className="mt-1 text-[10px] text-ink-muted leading-snug">
+            Biblioteca:{' '}
+            <a
+              href={libraryVideo}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 text-brand-primary hover:underline"
+            >
+              {libraryVideo.slice(0, 48)}
+              {libraryVideo.length > 48 ? '…' : ''}
+              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+            </a>
+          </p>
+        ) : null}
+        {effectiveVideo ? (
+          <a
+            href={effectiveVideo.startsWith('http') ? effectiveVideo : `https://${effectiveVideo}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-brand-primary hover:underline"
+          >
+            Abrir video en navegador
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        ) : null}
+      </div>
     </div>
   )
 }

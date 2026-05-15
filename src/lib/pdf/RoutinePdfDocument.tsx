@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
   Image,
+  Link,
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
 import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
@@ -370,6 +371,11 @@ const sc = StyleSheet.create({
   circuitRowAlt: { backgroundColor: '#FFFBF5' },
 })
 
+function exerciseDemoVideoUrl(ex: ExerciseFull): string | null {
+  const u = (ex.video_url || ex.exercise?.video_url || '').trim()
+  return u.length > 0 ? u : null
+}
+
 function ExerciseTable({
   exercises,
   rmByExerciseId,
@@ -398,6 +404,7 @@ function ExerciseTable({
           const idx = rowIndex++
           const rmKg = rmByExerciseId?.[group.exercise.exercise_id]
           const pdfRow = pdfExerciseDisplay(group.exercise, rmKg)
+          const videoUrl = exerciseDemoVideoUrl(group.exercise)
           return (
             <View key={group.exercise.id} style={[s.tableRow, idx % 2 === 1 ? s.tableRowAlt : {}]} wrap={false}>
               <Text style={s.tdName}>{group.exercise.exercise?.name ?? '—'}</Text>
@@ -407,7 +414,16 @@ function ExerciseTable({
               <Text style={s.tdSmall}>{pdfRow.restDisplay}</Text>
               <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
               <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
-              <Text style={s.tdNotes}>{pdfRow.notesClean}</Text>
+              <View style={s.tdNotes}>
+                <Text>{pdfRow.notesClean}</Text>
+                {videoUrl ? (
+                  <Text style={{ marginTop: 3 }}>
+                    <Link src={videoUrl} style={{ color: C.accent, fontSize: 7 }}>
+                      Ver video / técnica
+                    </Link>
+                  </Text>
+                ) : null}
+              </View>
             </View>
           )
         }
@@ -431,6 +447,7 @@ function ExerciseTable({
             {group.exercises.map((ex, i) => {
               const rmKg = rmByExerciseId?.[ex.exercise_id]
               const pdfRow = pdfExerciseDisplay(ex, rmKg)
+              const videoUrl = exerciseDemoVideoUrl(ex)
               return (
                 <View key={ex.id} style={[sc.circuitRow, i % 2 === 1 ? sc.circuitRowAlt : {}]}>
                   <Text style={s.tdName}>{ex.exercise?.name ?? '—'}</Text>
@@ -440,7 +457,16 @@ function ExerciseTable({
                   <Text style={s.tdSmall}>{pdfRow.restDisplay}</Text>
                   <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
                   <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
-                  <Text style={s.tdNotes}>{pdfRow.notesClean}</Text>
+                  <View style={s.tdNotes}>
+                    <Text>{pdfRow.notesClean}</Text>
+                    {videoUrl ? (
+                      <Text style={{ marginTop: 3 }}>
+                        <Link src={videoUrl} style={{ color: C.accent, fontSize: 7 }}>
+                          Ver video / técnica
+                        </Link>
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
               )
             })}

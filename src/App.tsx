@@ -58,6 +58,13 @@ const StudentMealPlanDetailPage = lazy(() =>
   import('@/pages/student/StudentMealPlanDetailPage').then((m) => ({ default: m.StudentMealPlanDetailPage })),
 )
 const PublicIntakeFormPage = lazy(() => import('@/pages/public/PublicIntakeFormPage').then((m) => ({ default: m.PublicIntakeFormPage })))
+const PublicCheckInPage = lazy(() => import('@/pages/public/PublicCheckInPage').then((m) => ({ default: m.PublicCheckInPage })))
+const TrainerResourcesPage = lazy(() =>
+  import('@/pages/training/TrainerResourcesPage').then((m) => ({ default: m.TrainerResourcesPage })),
+)
+const TrainerCheckInsPage = lazy(() =>
+  import('@/pages/training/TrainerCheckInsPage').then((m) => ({ default: m.TrainerCheckInsPage })),
+)
 
 function withPageSuspense(node: ReactNode) {
   return <Suspense fallback={<PageRouteFallback />}>{node}</Suspense>
@@ -161,6 +168,9 @@ function renderLoggedInRoutes({
       <Route path="feedback/new" element={canSeeTraining ? withPageSuspense(<FeedbackFormPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="feedback/:id" element={canSeeTraining ? withPageSuspense(<FeedbackDetailPage />) : <Navigate to="/dashboard" replace />} />
 
+      <Route path="resources" element={canSeeTraining ? withPageSuspense(<TrainerResourcesPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="check-ins" element={canSeeTraining ? withPageSuspense(<TrainerCheckInsPage />) : <Navigate to="/dashboard" replace />} />
+
       <Route path="exercises" element={canSeeTraining ? withPageSuspense(<ExercisesPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="exercises/new" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="exercises/:id/edit" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
@@ -242,6 +252,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
+      <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
       <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
 
       <Route element={<AuthGuard />}>

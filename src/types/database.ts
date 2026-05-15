@@ -268,6 +268,42 @@ export interface Database {
         Update: Partial<Omit<Expense, 'id' | 'created_at'>>
         Relationships: []
       }
+      check_in_forms: {
+        Row: CheckInForm
+        Insert: Omit<CheckInForm, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CheckInForm, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      check_in_invites: {
+        Row: CheckInInvite
+        Insert: Omit<CheckInInvite, 'id' | 'created_at'>
+        Update: Partial<Omit<CheckInInvite, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      check_in_responses: {
+        Row: CheckInResponse
+        Insert: Omit<CheckInResponse, 'id' | 'submitted_at'>
+        Update: Partial<Omit<CheckInResponse, 'id' | 'submitted_at'>>
+        Relationships: []
+      }
+      trainer_message_templates: {
+        Row: TrainerMessageTemplate
+        Insert: Omit<TrainerMessageTemplate, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TrainerMessageTemplate, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      trainer_resources: {
+        Row: TrainerResource
+        Insert: Omit<TrainerResource, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TrainerResource, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      trainer_resource_sends: {
+        Row: TrainerResourceSend
+        Insert: Omit<TrainerResourceSend, 'id' | 'sent_at'>
+        Update: Partial<Omit<TrainerResourceSend, 'id'>>
+        Relationships: []
+      }
       notifications: {
         Row: Notification
         Insert: Omit<Notification, 'id' | 'created_at'>
@@ -276,7 +312,16 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      get_check_in_form_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      submit_check_in_response: {
+        Args: { p_token: string; p_answers: Json; p_testimonial_consent: boolean }
+        Returns: Json
+      }
+    }
   }
 }
 
@@ -965,4 +1010,60 @@ export interface Notification {
   is_read: boolean
   read_at: string | null
   created_at: string
+}
+
+export interface TrainerMessageTemplate {
+  id: string
+  owner_id: string
+  title: string
+  body: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainerResource {
+  id: string
+  owner_id: string
+  title: string
+  url: string
+  description: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainerResourceSend {
+  id: string
+  owner_id: string
+  resource_id: string
+  student_id: string
+  sent_at: string
+}
+
+export interface CheckInForm {
+  id: string
+  owner_id: string
+  title: string
+  intro: string | null
+  questions: Json
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CheckInInvite {
+  id: string
+  form_id: string
+  student_id: string
+  token: string
+  created_at: string
+}
+
+export interface CheckInResponse {
+  id: string
+  invite_id: string
+  responses: Json
+  testimonial_consent: boolean
+  submitted_at: string
 }

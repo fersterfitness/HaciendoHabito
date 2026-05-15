@@ -14,6 +14,8 @@ import {
   Apple,
   ClipboardList,
   UtensilsCrossed,
+  Share2,
+  ClipboardCheck,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -50,6 +52,8 @@ export const NAV_TRAINING_CORE: NavItem[] = [
   { label: 'Rutinas', href: '/routines', icon: Dumbbell },
   { label: 'Planes alimentación', href: '/meal-plans', icon: UtensilsCrossed },
   { label: 'Devoluciones', href: '/feedback', icon: MessageSquare },
+  { label: 'Recursos (WA)', href: '/resources', icon: Share2 },
+  { label: 'Check-ins', href: '/check-ins', icon: ClipboardCheck },
   { label: 'Ejercicios', href: '/exercises', icon: BookOpen },
 ]
 

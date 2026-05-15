@@ -124,3 +124,10 @@ export function buildAppointmentConfirmedPrepWaUrl(params: { phoneRaw: string | 
   if (!digits) return null
   return buildWhatsAppUrl(digits, confirmedVideocallPrepMessage())
 }
+
+/** Mensaje sugerido al compartir un recurso (video, artículo) por WhatsApp. */
+export function buildResourceShareMessage(title: string, url: string, note?: string | null): string {
+  const lines = [`Te comparto: ${title.trim()}`, '', url.trim()]
+  if (note?.trim()) lines.push('', note.trim())
+  return lines.join('\n')
+}
