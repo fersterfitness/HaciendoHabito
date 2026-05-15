@@ -66,6 +66,7 @@ export function TrainerCheckInsPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(() => new Set())
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [responses, setResponses] = useState<ResponseRow[]>([])
+  const [inviteBusy, setInviteBusy] = useState(false)
 
   const loadForms = useCallback(async () => {
     if (!user) return
@@ -174,9 +175,10 @@ export function TrainerCheckInsPage() {
     }
   }
 
-  async function deleteForm(id: string) {
+  async function deleteForm(id: string, formTitle: string) {
     if (!user) return
-    if (!window.confirm('¿Eliminar este formulario y sus invitaciones?')) return
+    const label = formTitle.trim() ? `«${formTitle.trim()}»` : 'este formulario'
+    if (!window.confirm(`¿Eliminar ${label} y todas sus invitaciones y respuestas?`)) return
     const { error } = await supabase.from('check_in_forms').delete().eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
@@ -221,8 +223,10 @@ export function TrainerCheckInsPage() {
       toast.error('Esos alumnos ya tienen link para este formulario')
       return
     }
+    setInviteBusy(true)
     const rows = toCreate.map((student_id) => ({ form_id: activeFormId, student_id }))
     const { error } = await supabase.from('check_in_invites').insert(rows)
+    setInviteBusy(false)
     if (error) {
       toast.error(error.message)
       return
@@ -298,7 +302,8 @@ export function TrainerCheckInsPage() {
       <div className="px-4 lg:px-6 py-8 space-y-6 max-w-5xl">
         <p className="text-sm text-ink-secondary max-w-prose">
           Armá un formulario corto; generá un link personal por alumno. El alumno responde sin entrar a la app. Las respuestas aparecen abajo (y podés
-          usar el consentimiento para testimonios).
+          usar el consentimiento para testimonios). Tratá cada link como un acceso privado: quien lo tenga puede enviar respuestas a nombre de ese
+          alumno.
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -338,8 +343,9 @@ export function TrainerCheckInsPage() {
                     <button
                       type="button"
                       className="p-2 text-ink-muted hover:text-status-expired"
-                      title="Eliminar"
-                      onClick={() => void deleteForm(f.id)}
+                      title="Eliminar formulario"
+                      aria-label={`Eliminar formulario ${f.title}`}
+                      onClick={() => void deleteForm(f.id, f.title)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -407,6 +413,10 @@ export function TrainerCheckInsPage() {
                 <div className="border-t border-surface-border pt-4 space-y-3">
                   <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Links por alumno</h3>
                   <p className="text-[11px] text-ink-muted">Marcá alumnos que todavía no tienen fila en la tabla de abajo y generá el link.</p>
+                  <p className="text-[11px] text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
+                    No compartas los links en grupos públicos: son como una clave. Si un formulario queda pausado, el link deja de aceptar respuestas
+                    nuevas.
+                  </p>
                   <div className="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-surface-border p-2">
                     {students.map((s) => {
                       const has = invites.some((i) => i.student_id === s.id)
@@ -430,7 +440,14 @@ export function TrainerCheckInsPage() {
                       )
                     })}
                   </div>
-                  <Button type="button" size="sm" variant="secondary" onClick={() => void createInvites()}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    loading={inviteBusy}
+                    disabled={inviteBusy || selectedStudentIds.size === 0}
+                    onClick={() => void createInvites()}
+                  >
                     Generar links
                   </Button>
                 </div>
@@ -473,13 +490,20 @@ export function TrainerCheckInsPage() {
                                 </td>
                                 <td className="py-2 pr-2">
                                   <div className="flex flex-wrap gap-1">
-                                    <Button type="button" size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => void copyLink(inv.token)}>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-[10px]"
+                                      aria-label={`Copiar link de check-in para ${inv.student?.full_name ?? 'alumno'}`}
+                                      onClick={() => void copyLink(inv.token)}
+                                    >
                                       <Copy className="h-3 w-3" />
                                     </Button>
                                     <a
                                       href={publicUrl(inv.token)}
                                       target="_blank"
-                                      rel="noreferrer"
+                                      rel="noopener noreferrer"
                                       className="inline-flex items-center text-brand-primary hover:underline text-[10px]"
                                     >
                                       Abrir

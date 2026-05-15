@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import { CheckCircle2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Textarea } from '@/components/ui/Input'
+import { cn } from '@/lib/utils'
 import type { Json } from '@/types/database'
 import toast from 'react-hot-toast'
+
+const MAX_TEXT_ANSWER_CHARS = 4000
+const SCALE_VALUES = [1, 2, 3, 4, 5] as const
 
 type QuestionDef = { id: string; label: string; type: 'text' | 'scale' }
 
@@ -31,6 +33,63 @@ type FormPayload = {
   error?: string
 }
 
+function PageFrame({ children, innerClassName }: { children: ReactNode; innerClassName?: string }) {
+  return (
+    <div className="min-h-[100dvh] bg-surface-base flex flex-col">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-32 left-1/2 h-72 w-[min(100%,28rem)] -translate-x-1/2 rounded-full bg-brand-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-48 w-48 rounded-full bg-brand-secondary/8 blur-3xl" />
+      </div>
+      <div
+        className={cn(
+          'relative flex flex-1 flex-col items-center justify-center px-4 py-10 sm:py-14',
+          innerClassName,
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ScalePicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: number
+  onChange: (n: number) => void
+  label: string
+}) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-sm font-medium text-ink-primary leading-snug">{label}</legend>
+      <div className="flex gap-2" role="group" aria-label={label}>
+        {SCALE_VALUES.map((num) => {
+          const selected = value === num
+          return (
+            <button
+              key={num}
+              type="button"
+              onClick={() => onChange(num)}
+              aria-pressed={selected}
+              className={cn(
+                'flex-1 h-11 rounded-xl text-sm font-semibold transition-all duration-150',
+                'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40',
+                selected
+                  ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
+                  : 'border-surface-border bg-surface-card/80 text-ink-secondary hover:border-brand-primary/30 hover:text-ink-primary',
+              )}
+            >
+              {num}
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
+  )
+}
+
 export function PublicCheckInPage() {
   const { token } = useParams<{ token: string }>()
   const [loading, setLoading] = useState(true)
@@ -41,6 +100,16 @@ export function PublicCheckInPage() {
   const [done, setDone] = useState(false)
 
   const questions = useMemo(() => (payload?.ok && payload.questions ? parseQuestions(payload.questions) : []), [payload])
+
+  const answeredCount = useMemo(() => {
+    let n = 0
+    for (const q of questions) {
+      if (q.type === 'scale') {
+        if (answers[q.id]) n += 1
+      } else if ((answers[q.id] ?? '').trim()) n += 1
+    }
+    return n
+  }, [questions, answers])
 
   useEffect(() => {
     let cancelled = false
@@ -58,6 +127,10 @@ export function PublicCheckInPage() {
         return
       }
       const row = data as FormPayload
+      if (!row.ok && row.error === 'rate_limited') {
+        setPayload({ ok: false, error: 'rate_limited' })
+        return
+      }
       setPayload(row)
       if (row.ok && row.questions) {
         const init: Record<string, string> = {}
@@ -76,9 +149,16 @@ export function PublicCheckInPage() {
   async function submit() {
     if (!token || !payload?.ok) return
     for (const q of questions) {
-      if (q.type === 'text' && !answers[q.id]?.trim()) {
-        toast.error(`Respondé: ${q.label}`)
-        return
+      if (q.type === 'text') {
+        const v = (answers[q.id] ?? '').trim()
+        if (!v) {
+          toast.error(`Respondé: ${q.label}`)
+          return
+        }
+        if (v.length > MAX_TEXT_ANSWER_CHARS) {
+          toast.error(`«${q.label}»: máximo ${MAX_TEXT_ANSWER_CHARS} caracteres.`)
+          return
+        }
       }
     }
     setSubmitting(true)
@@ -100,97 +180,152 @@ export function PublicCheckInPage() {
     const res = data as { ok?: boolean; error?: string }
     if (!res?.ok) {
       if (res?.error === 'already_submitted') toast.error('Ya enviaste este formulario.')
+      else if (res?.error === 'rate_limited') toast.error('Demasiados intentos. Probá de nuevo en un rato.')
+      else if (res?.error === 'answer_too_long') toast.error('Alguna respuesta es demasiado larga.')
       else toast.error('No se pudo enviar.')
       return
     }
     setDone(true)
-    toast.success('Gracias, ya quedó registrado.')
+  }
+
+  function onFormSubmit(e: FormEvent) {
+    e.preventDefault()
+    void submit()
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-base px-4">
-        <p className="text-sm text-ink-secondary">Cargando…</p>
-      </div>
+      <PageFrame>
+        <Loader2 className="h-8 w-8 animate-spin text-brand-primary" aria-label="Cargando" />
+      </PageFrame>
     )
   }
 
   if (!payload?.ok) {
+    const rateLimited = payload?.error === 'rate_limited'
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-base px-4">
-        <Card className="max-w-md p-6 text-center">
-          <p className="text-sm text-ink-secondary">Este enlace no es válido o el formulario ya no está activo.</p>
-        </Card>
-      </div>
+      <PageFrame>
+        <div className="w-full max-w-md text-center space-y-3">
+          <p className="text-lg font-semibold text-ink-primary">
+            {rateLimited ? 'Demasiados intentos' : 'Enlace no disponible'}
+          </p>
+          <p className="text-sm text-ink-secondary leading-relaxed">
+            {rateLimited
+              ? 'Esperá un minuto y volvé a abrir el link que te compartieron.'
+              : 'Este enlace no es válido o el formulario ya no está activo.'}
+          </p>
+        </div>
+      </PageFrame>
     )
   }
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-base px-4">
-        <Card className="max-w-md p-8 text-center space-y-3">
-          <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
-          <p className="text-lg font-semibold text-ink-primary">Listo</p>
-          <p className="text-sm text-ink-secondary">Gracias por tu respuesta.</p>
-        </Card>
-      </div>
+      <PageFrame>
+        <div className="w-full max-w-md text-center space-y-5">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 ring-1 ring-emerald-500/25">
+            <Check className="h-7 w-7 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xl font-semibold tracking-tight text-ink-primary">Listo</p>
+            <p className="text-sm text-ink-secondary">Gracias, tu respuesta ya quedó registrada.</p>
+          </div>
+        </div>
+      </PageFrame>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-surface-base py-10 px-4">
-      <div className="max-w-lg mx-auto space-y-6">
-        <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-ink-primary">{payload.title}</h1>
-          {payload.student_name ? (
-            <p className="text-sm text-ink-muted">Hola {payload.student_name}</p>
-          ) : null}
-        </div>
-        {payload.intro ? <p className="text-sm text-ink-secondary text-center whitespace-pre-wrap">{payload.intro}</p> : null}
+  const firstName = payload.student_name?.trim().split(/\s+/)[0]
 
-        <Card className="p-5 sm:p-6 space-y-5">
-          {questions.map((q) => (
-            <div key={q.id}>
+  return (
+    <PageFrame innerClassName="justify-start sm:justify-center">
+      <div className="w-full max-w-lg space-y-8">
+        <header className="text-center space-y-2 pt-2">
+          {firstName ? (
+            <p className="text-xs font-medium uppercase tracking-widest text-brand-primary">Hola, {firstName}</p>
+          ) : null}
+          <h1 className="text-2xl sm:text-[1.65rem] font-semibold tracking-tight text-ink-primary text-balance">
+            {payload.title}
+          </h1>
+          {payload.intro ? (
+            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap max-w-prose mx-auto">
+              {payload.intro}
+            </p>
+          ) : null}
+        </header>
+
+        <form
+          className="rounded-2xl border border-surface-border/80 bg-surface-card/90 backdrop-blur-sm shadow-sm dark:shadow-none p-5 sm:p-7 space-y-7"
+          onSubmit={onFormSubmit}
+        >
+          {questions.map((q, idx) => (
+            <div key={q.id} className={cn('space-y-2', idx > 0 && 'pt-7 border-t border-surface-border/60')}>
               {q.type === 'scale' ? (
-                <>
-                  <label className="block text-sm font-medium text-ink-primary mb-2">{q.label}</label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    step={1}
-                    className="w-full accent-brand-primary"
-                    value={answers[q.id] ?? '3'}
-                    onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                  />
-                  <p className="text-xs text-ink-muted mt-1">Valor: {answers[q.id] ?? '3'}</p>
-                </>
-              ) : (
-                <Textarea
+                <ScalePicker
                   label={q.label}
-                  rows={3}
-                  value={answers[q.id] ?? ''}
-                  onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                  value={Number(answers[q.id] ?? 3)}
+                  onChange={(n) => setAnswers((a) => ({ ...a, [q.id]: String(n) }))}
                 />
+              ) : (
+                <div className="space-y-2">
+                  <label htmlFor={`q-${q.id}`} className="block text-sm font-medium text-ink-primary leading-snug">
+                    {q.label}
+                  </label>
+                  <textarea
+                    id={`q-${q.id}`}
+                    rows={3}
+                    maxLength={MAX_TEXT_ANSWER_CHARS}
+                    value={answers[q.id] ?? ''}
+                    onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                    placeholder="Escribí tu respuesta…"
+                    className={cn(
+                      'w-full resize-y rounded-xl border border-surface-border bg-surface-input/80',
+                      'px-3.5 py-3 text-sm text-ink-primary placeholder:text-ink-muted',
+                      'transition-colors focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/15',
+                    )}
+                  />
+                  <p className="text-[10px] text-ink-muted text-right tabular-nums">
+                    {(answers[q.id] ?? '').length}/{MAX_TEXT_ANSWER_CHARS}
+                  </p>
+                </div>
               )}
             </div>
           ))}
 
-          <label className="flex items-start gap-2 text-sm text-ink-secondary cursor-pointer">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
-              className="mt-1 rounded border-surface-border"
+              className="mt-0.5 h-4 w-4 rounded border-surface-border text-brand-primary focus:ring-brand-primary/30"
             />
-            <span>Autorizo usar mis comentarios como testimonio (solo si el equipo lo aprueba).</span>
+            <span className="text-xs text-ink-muted leading-relaxed group-hover:text-ink-secondary transition-colors">
+              Autorizo usar mis comentarios como testimonio, solo si el equipo lo aprueba.
+            </span>
           </label>
 
-          <Button type="button" className="w-full" variant="gradientPrimary" loading={submitting} onClick={() => void submit()}>
-            Enviar
-          </Button>
-        </Card>
+          <div className="space-y-2 pt-1">
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-xl text-sm font-semibold"
+              variant="gradientPrimary"
+              loading={submitting}
+              disabled={submitting || answeredCount < questions.length}
+            >
+              Enviar respuestas
+            </Button>
+            {questions.length > 0 && answeredCount < questions.length ? (
+              <p className="text-center text-[11px] text-ink-muted">
+                Completá las {questions.length} preguntas para enviar
+              </p>
+            ) : null}
+          </div>
+        </form>
+
+        <p className="text-center text-[10px] text-ink-muted/80 pb-4">
+          Tus respuestas son privadas y solo las ve tu entrenador.
+        </p>
       </div>
-    </div>
+    </PageFrame>
   )
 }

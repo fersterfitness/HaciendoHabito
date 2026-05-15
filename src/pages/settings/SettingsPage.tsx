@@ -129,8 +129,9 @@ export function SettingsPage() {
                 <li>
                   En tu proyecto Supabase, aplicá las migraciones del repo: al menos{' '}
                   <code className="text-[10px] bg-surface-base px-1 rounded">20260529120000_trainer_resources_and_check_ins.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code>. Sin eso, fallan
-                  tablas o RPC de check-in.
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code> y{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529160000_trainer_sends_rpc_check_in_hardening.sql</code>. Sin
+                  eso, fallan tablas o RPC de check-in.
                 </li>
                 <li>
                   <strong className="text-ink-secondary">Recursos (/resources):</strong> creá un recurso con URL, marcá alumnos activos con
@@ -144,7 +145,8 @@ export function SettingsPage() {
                 <li>
                   <strong className="text-ink-secondary">Check-ins (/check-ins):</strong> creá un formulario, guardá, generá links para alumnos,
                   abrí el link en otra ventana o navegador (ruta <code className="text-[10px] bg-surface-base px-1 rounded">/form/check-in/…</code>
-                  ), enviá respuestas y confirmá que aparecen en la app y en export CSV si hay datos.
+                  ), enviá respuestas y confirmá que aparecen en la app y en export CSV si hay datos. No compartas esos links en público: equivalen a
+                  acceso a nombre del alumno.
                 </li>
               </ol>
             </details>

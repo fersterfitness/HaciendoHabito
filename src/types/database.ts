@@ -321,6 +321,10 @@ export interface Database {
         Args: { p_token: string; p_answers: Json; p_testimonial_consent: boolean }
         Returns: Json
       }
+      register_trainer_resource_sends: {
+        Args: { p_resource_id: string; p_student_ids: string[] }
+        Returns: Json
+      }
     }
   }
 }

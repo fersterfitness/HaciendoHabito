@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -20,6 +21,15 @@ function isMissingRelationError(err: { message?: string } | null | undefined): b
     m.includes('schema cache') ||
     m.includes('could not find the table')
   )
+}
+
+function looksLikeHttpUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw.trim())
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 type SendLogRow = {
@@ -68,6 +78,8 @@ export function TrainerResourcesPage() {
   const [tplSaving, setTplSaving] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [autoLogOnWaOpen, setAutoLogOnWaOpen] = useState(true)
+  const [logSendPending, setLogSendPending] = useState(false)
+  const [sendLogHiddenDuplicateCount, setSendLogHiddenDuplicateCount] = useState(0)
 
   const loadSendLog = useCallback(async () => {
     if (!user) return
@@ -82,10 +94,13 @@ export function TrainerResourcesPage() {
     if (error) {
       toast.error(error.message)
       setSendLog([])
+      setSendLogHiddenDuplicateCount(0)
       return
     }
     const raw = (data ?? []) as unknown as SendLogRow[]
-    setSendLog(dedupeSendLogRows(raw))
+    const deduped = dedupeSendLogRows(raw)
+    setSendLog(deduped)
+    setSendLogHiddenDuplicateCount(Math.max(0, raw.length - deduped.length))
   }, [user])
 
   const load = useCallback(async () => {
@@ -115,6 +130,15 @@ export function TrainerResourcesPage() {
     [resources, selectedResourceId],
   )
 
+  const waSelectionSummary = useMemo(() => {
+    let withPhone = 0
+    for (const id of selectedStudentIds) {
+      const st = students.find((s) => s.id === id)
+      if (st && normalizePhoneForWhatsApp(st.phone)) withPhone += 1
+    }
+    return { marked: selectedStudentIds.size, withPhone }
+  }, [selectedStudentIds, students])
+
   function toggleStudent(id: string) {
     setSelectedStudentIds((prev) => {
       const next = new Set(prev)
@@ -138,6 +162,10 @@ export function TrainerResourcesPage() {
     const url = newUrl.trim()
     if (!title || !url) {
       toast.error('Completá título y URL')
+      return
+    }
+    if (!looksLikeHttpUrl(url)) {
+      toast.error('La URL tiene que empezar con https:// o http:// (copiá el link completo del navegador).')
       return
     }
     setSaving(true)
@@ -168,7 +196,9 @@ export function TrainerResourcesPage() {
 
   async function deleteResource(id: string) {
     if (!user) return
-    if (!window.confirm('¿Eliminar este recurso?')) return
+    const r = resources.find((x) => x.id === id)
+    const label = r?.title ? `«${r.title}»` : 'este recurso'
+    if (!window.confirm(`¿Eliminar ${label}? También se borra el historial de envíos de ese recurso.`)) return
     const { error } = await supabase.from('trainer_resources').delete().eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
@@ -191,41 +221,44 @@ export function TrainerResourcesPage() {
     return prefix ? `${prefix}\n\n${core}` : core
   }
 
-  async function logSends(resourceId: string, studentIds: string[], opts?: { silent?: boolean }) {
-    if (!user || studentIds.length === 0) return
-    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    const { data: recent, error: qErr } = await supabase
-      .from('trainer_resource_sends')
-      .select('student_id')
-      .eq('owner_id', user.id)
-      .eq('resource_id', resourceId)
-      .in('student_id', studentIds)
-      .gte('sent_at', since)
-    if (qErr) {
-      if (!opts?.silent) toast.error(qErr.message)
-      return
-    }
-    const already = new Set((recent ?? []).map((r: { student_id: string }) => r.student_id))
-    const toInsert = studentIds.filter((id) => !already.has(id))
-    if (toInsert.length === 0) {
-      if (!opts?.silent) {
-        toast('Sin nuevos registros: ya figuraba en la última hora para esos alumnos y este recurso.', { icon: 'ℹ️' })
+  async function logSends(
+    resourceId: string,
+    studentIds: string[],
+    opts?: { silent?: boolean },
+  ): Promise<{ inserted: number }> {
+    if (!user || studentIds.length === 0) return { inserted: 0 }
+    setLogSendPending(true)
+    try {
+      const { data, error } = await supabase.rpc('register_trainer_resource_sends', {
+        p_resource_id: resourceId,
+        p_student_ids: studentIds,
+      })
+      if (error) {
+        if (!opts?.silent) toast.error(error.message)
+        return { inserted: 0 }
+      }
+      const res = data as { ok?: boolean; inserted?: number; skipped?: number; error?: string }
+      if (!res?.ok) {
+        if (!opts?.silent) {
+          if (res?.error === 'resource_not_found') toast.error('Recurso no encontrado.')
+          else if (res?.error === 'invalid_student') toast.error('Alumno no válido para este envío.')
+          else toast.error('No se pudo registrar el historial.')
+        }
+        return { inserted: 0 }
+      }
+      const inserted = res.inserted ?? 0
+      if (inserted === 0) {
+        if (!opts?.silent) {
+          toast('Sin nuevos registros: ya figuraba en la última hora para esos alumnos y este recurso.', { icon: 'ℹ️' })
+        }
+      } else if (!opts?.silent) {
+        toast.success('Envíos registrados en historial')
       }
       void loadSendLog()
-      return
+      return { inserted }
+    } finally {
+      setLogSendPending(false)
     }
-    const rows = toInsert.map((student_id) => ({
-      owner_id: user.id,
-      resource_id: resourceId,
-      student_id,
-    }))
-    const { error } = await supabase.from('trainer_resource_sends').insert(rows)
-    if (error) {
-      if (!opts?.silent) toast.error(error.message)
-      return
-    }
-    if (!opts?.silent) toast.success('Envíos registrados en historial')
-    void loadSendLog()
   }
 
   async function addTemplate() {
@@ -256,7 +289,9 @@ export function TrainerResourcesPage() {
 
   async function deleteTemplate(id: string) {
     if (!user) return
-    if (!window.confirm('¿Eliminar esta plantilla?')) return
+    const t = templates.find((x) => x.id === id)
+    const label = t?.title ? `«${t.title}»` : 'esta plantilla'
+    if (!window.confirm(`¿Eliminar la plantilla ${label}?`)) return
     const { error } = await supabase.from('trainer_message_templates').delete().eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
@@ -320,10 +355,18 @@ export function TrainerResourcesPage() {
       opened += 1
       toLog.push(sid)
     }
-    if (autoLogOnWaOpen && toLog.length) void logSends(selectedResource.id, toLog, { silent: true })
+    if (autoLogOnWaOpen && toLog.length) {
+      void logSends(selectedResource.id, toLog, { silent: true }).then(({ inserted }) => {
+        if (inserted === 0) {
+          toast('Historial: no hubo registros nuevos (mismo recurso y alumno ya estaban en la última hora).', { icon: 'ℹ️' })
+        }
+      })
+    }
     toast.success(
       opened
-        ? `Se abrirán ${opened} pestañas de WhatsApp (con pausa entre cada una).${autoLogOnWaOpen ? ' Historial actualizado.' : ''}`
+        ? `Se abrirán ${opened} pestañas de WhatsApp (con pausa entre cada una).${
+            autoLogOnWaOpen ? ' El historial suma filas solo si son envíos nuevos (ventana 60 min).' : ''
+          }`
         : 'Ningún alumno marcado tiene teléfono válido para WhatsApp.',
     )
   }
@@ -334,7 +377,8 @@ export function TrainerResourcesPage() {
       <div className="px-4 lg:px-6 py-8 space-y-6 max-w-5xl">
         <p className="text-sm text-ink-secondary max-w-prose">
           Guardá links (videos, PDFs, artículos). Elegí alumnos y abrí WhatsApp con el mismo mensaje para cada uno. Podés usar plantillas de texto fijo
-          arriba del mensaje y dejar que el historial se registre solo al abrir WhatsApp.
+          arriba del mensaje y dejar que el historial se registre solo al abrir WhatsApp. El historial solo lo ves vos con la sesión iniciada; igual revisá
+          que la nota extra no lleve datos sensibles si el alumno reenvía el chat.
         </p>
 
         <Card className="p-4 sm:p-5 space-y-4">
@@ -373,6 +417,7 @@ export function TrainerResourcesPage() {
                     type="button"
                     className="shrink-0 p-1 text-ink-muted hover:text-status-expired"
                     title="Eliminar plantilla"
+                    aria-label={`Eliminar plantilla ${t.title}`}
                     onClick={() => void deleteTemplate(t.id)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -395,6 +440,7 @@ export function TrainerResourcesPage() {
               onChange={(e) => setNewUrl(e.target.value)}
               placeholder="https://..."
               className="font-mono text-xs"
+              hint="Tiene que ser una URL completa (https://…). Pegá el link desde la barra del navegador."
             />
           </div>
           <Textarea
@@ -439,7 +485,7 @@ export function TrainerResourcesPage() {
                       <a
                         href={r.url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="shrink-0 p-1 text-ink-muted hover:text-brand-primary"
                         title="Abrir link"
                       >
@@ -448,7 +494,8 @@ export function TrainerResourcesPage() {
                       <button
                         type="button"
                         className="shrink-0 p-1 text-ink-muted hover:text-status-expired"
-                        title="Eliminar"
+                        title="Eliminar recurso"
+                        aria-label={`Eliminar recurso ${r.title}`}
                         onClick={() => void deleteResource(r.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -511,6 +558,18 @@ export function TrainerResourcesPage() {
                     Limpiar
                   </Button>
                 </div>
+                {students.length === 0 ? (
+                  <p className="text-xs text-ink-muted rounded-lg border border-dashed border-surface-border px-3 py-2">
+                    No tenés alumnos activos.{' '}
+                    <Link to="/students" className="text-brand-primary hover:underline font-medium">
+                      Cargalos en Alumnos
+                    </Link>{' '}
+                    con teléfono para poder abrir WhatsApp desde acá.
+                  </p>
+                ) : null}
+                <p className="text-[11px] text-ink-muted">
+                  Marcados: {waSelectionSummary.marked} · Con número válido para WhatsApp: {waSelectionSummary.withPhone}
+                </p>
                 <div className="max-h-52 overflow-y-auto space-y-1 rounded-lg border border-surface-border p-2">
                   {students.map((s) => (
                     <label
@@ -553,8 +612,9 @@ export function TrainerResourcesPage() {
                     type="button"
                     variant="secondary"
                     size="sm"
+                    loading={logSendPending}
                     onClick={() => void logSends(selectedResource.id, [...selectedStudentIds])}
-                    disabled={selectedStudentIds.size === 0}
+                    disabled={selectedStudentIds.size === 0 || logSendPending}
                   >
                     Registrar envío en historial
                   </Button>
@@ -597,6 +657,12 @@ export function TrainerResourcesPage() {
             Incluye envíos al abrir WhatsApp (si está activada esa opción) y los manuales. Mismo alumno y recurso dentro de 60 minutos no duplica
             filas ni nuevos registros.
           </p>
+          {sendLogHiddenDuplicateCount > 0 ? (
+            <p className="text-[10px] text-ink-muted rounded-lg bg-surface-elevated/40 border border-surface-border px-2 py-1.5">
+              Se ocultaron {sendLogHiddenDuplicateCount} fila{sendLogHiddenDuplicateCount === 1 ? '' : 's'} duplicada
+              {sendLogHiddenDuplicateCount === 1 ? '' : 's'} en la vista (mismo alumno, mismo recurso, menos de 60 minutos entre registros).
+            </p>
+          ) : null}
           {logLoading ? (
             <p className="text-sm text-ink-muted">Cargando historial…</p>
           ) : sendLog.length === 0 ? (
@@ -624,7 +690,7 @@ export function TrainerResourcesPage() {
                           <a
                             href={row.trainer_resources.url}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="block text-[10px] text-brand-primary truncate max-w-[220px] hover:underline font-mono"
                           >
                             {row.trainer_resources.url}
