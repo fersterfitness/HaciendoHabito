@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -29,8 +29,11 @@ import { cn, formatDate, daysUntil } from '@/lib/utils'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
-import { RoutinePdfsPanel } from '@/pages/routines/RoutinePdfsPanel'
 import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
+
+const RoutinePdfsPanelLazy = lazy(() =>
+  import('@/pages/routines/RoutinePdfsPanel').then((m) => ({ default: m.RoutinePdfsPanel })),
+)
 import type { Routine, RoutineStatus, Student } from '@/types/database'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -656,7 +659,15 @@ export function RoutinesPage() {
         {tabPlantillas ? (
           <RoutineBlueprintsPanel />
         ) : tabPdfs ? (
-          <RoutinePdfsPanel />
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-16">
+                <Spinner size="lg" />
+              </div>
+            }
+          >
+            <RoutinePdfsPanelLazy />
+          </Suspense>
         ) : (
           <div className="mx-auto max-w-[1600px] space-y-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">

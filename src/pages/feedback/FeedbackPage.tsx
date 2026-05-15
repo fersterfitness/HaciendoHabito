@@ -60,7 +60,7 @@ const TABS: { value: FilterTab; label: string }[] = [
 
 export function FeedbackPage() {
   const navigate = useAppNavigate()
-  const [, setSearchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuthStore()
   const mainSection: MainSection = searchParams.get('tab') === 'checkins' ? 'checkins' : 'consultas'
 

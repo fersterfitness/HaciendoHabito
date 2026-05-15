@@ -219,7 +219,7 @@ export function RoutineDetailPage() {
       const { data: existing } = await supabase
         .from('routine_pdfs').select('id')
         .eq('routine_id', id).in('status', ['pendiente', 'error', 'generado'])
-        .order('created_at', { ascending: false }).limit(1).single()
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
       let pdfId = existing?.id
       if (!pdfId) {

@@ -1,12 +1,9 @@
-import { Fragment } from 'react'
 import {
   Document,
   Page,
   Text,
   View,
   StyleSheet,
-  Image,
-  Link,
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
 import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
@@ -68,11 +65,22 @@ const s = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: C.border,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoImg: { width: 38, height: 38, borderRadius: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  /** Monograma embebido: evita fetch HTTP a /logo… (en muchos entornos el archivo no existe y react-pdf falla). */
+  logoImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: C.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  logoMonogram: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: C.white },
   gymName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.dark },
   gymSub: { fontSize: 7, color: C.muted, marginTop: 2, letterSpacing: 1.2, textTransform: 'uppercase' },
-  headerRight: { alignItems: 'flex-end', gap: 3 },
+  headerRight: { alignItems: 'flex-end' },
+  headerDateSpacing: { marginBottom: 3 },
   headerDate: { fontSize: 7.5, color: C.muted },
   headerRoutineName: {
     fontSize: 9,
@@ -149,34 +157,161 @@ const s = StyleSheet.create({
   },
   notesText: { fontSize: 8, color: '#78350F', lineHeight: 1.6 },
 
-  // ── Índice ──
-  tocTitle: {
-    fontSize: 14,
+  // ── Índice (diseño tipo “card”; sin Link para evitar cuelgues del motor) ──
+  tocCard: {
+    marginTop: 4,
+    marginBottom: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.bgCard,
+  },
+  tocCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    backgroundColor: C.bg,
+  },
+  tocCardAccent: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: C.brand,
+    marginRight: 10,
+    minHeight: 36,
+  },
+  tocCardKicker: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.brand,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  tocHeadline: {
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: C.dark,
-    marginBottom: 6,
+  },
+  tocHintBox: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: C.brandLight,
+    borderBottomWidth: 1,
+    borderBottomColor: C.brandMid,
   },
   tocHint: {
     fontSize: 7.5,
-    color: C.muted,
-    marginBottom: 14,
-    lineHeight: 1.45,
+    color: C.heading,
+    lineHeight: 1.5,
   },
-  tocRow: {
+  tocBody: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
+  },
+  tocWeekGroup: {
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
+  },
+  tocWeekRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 5,
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: C.dark,
+  },
+  tocWeekBadge: {
+    backgroundColor: C.brand,
+    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    marginRight: 8,
+  },
+  tocWeekBadgeText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.white,
+  },
+  tocWeekTitle: {
+    flex: 1,
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: C.white,
+    marginRight: 8,
+  },
+  tocDots: {
+    flexGrow: 1,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
+    marginHorizontal: 4,
+    marginBottom: 3,
+    minWidth: 16,
+  },
+  tocDotsOnDark: {
+    flexGrow: 1,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#64748B',
+    marginHorizontal: 8,
+    marginBottom: 4,
+    minWidth: 12,
+  },
+  tocDayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingLeft: 14,
+    borderTopWidth: 0.5,
+    borderTopColor: C.border,
+    backgroundColor: C.white,
+  },
+  tocDayRowAlt: {
+    backgroundColor: C.rowAlt,
+  },
+  tocDayChevron: {
+    fontSize: 9,
+    color: C.brand,
+    marginRight: 6,
+    width: 10,
+  },
+  tocDayText: {
+    flex: 1,
+    fontSize: 8,
+    color: C.body,
+  },
+  tocRefPill: {
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.bg,
+    borderRadius: 4,
+    paddingHorizontal: 7,
     paddingVertical: 2,
   },
-  tocLink: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.accent },
-  tocLinkMuted: { fontSize: 8, color: C.body },
-  tocDots: { flex: 1, borderBottomWidth: 0.5, borderBottomColor: C.border, marginHorizontal: 6, marginBottom: 2, minWidth: 12 },
-  tocRef: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.muted, minWidth: 22, textAlign: 'right' },
-  tocSubRow: { paddingLeft: 14 },
+  tocRefPillText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.heading,
+  },
+  tocRefPillBrand: {
+    borderColor: C.brandMid,
+    backgroundColor: C.brandLight,
+  },
+  tocRefPillBrandText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#C2410C',
+  },
 
   // ── Bloque (semana): franja alternada con la app ──
   blockStripeA: {
-    marginTop: 14,
+    marginTop: 0,
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 4,
@@ -186,7 +321,7 @@ const s = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   blockStripeB: {
-    marginTop: 14,
+    marginTop: 0,
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 4,
@@ -220,7 +355,6 @@ const s = StyleSheet.create({
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     paddingVertical: 6,
     paddingHorizontal: 2,
     marginBottom: 6,
@@ -232,6 +366,7 @@ const s = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 7,
     paddingVertical: 2.5,
+    marginRight: 8,
   },
   dayBadgeText: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.5 },
   dayName: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.dark },
@@ -272,24 +407,6 @@ const s = StyleSheet.create({
   tdSmall: { flex: 0.72, fontSize: 7.5, color: C.body, textAlign: 'center' },
   tdNotes: { flex: 2.15, fontSize: 7.5, color: C.muted, lineHeight: 1.4 },
 
-  // ── Footer ──
-  footer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 36,
-    right: 36,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 0.5,
-    borderTopColor: C.border,
-    paddingTop: 8,
-  },
-  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerBrand: { fontSize: 6.5, color: C.muted },
-  footerDot: { fontSize: 6.5, color: C.mutedLight },
-  footerApp: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.brand },
-  pageNumber: { fontSize: 7, color: C.muted },
 })
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -350,7 +467,6 @@ const sc = StyleSheet.create({
     borderColor: C.brand,
     borderRadius: 6,
     marginBottom: 4,
-    overflow: 'hidden',
   },
   circuitHeader: {
     flexDirection: 'row',
@@ -358,13 +474,14 @@ const sc = StyleSheet.create({
     backgroundColor: '#FFF3E0',
     paddingHorizontal: 8,
     paddingVertical: 6,
-    gap: 5,
   },
   circuitDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: C.brand,
+    marginRight: 5,
+    marginTop: 2,
   },
   circuitLabel: {
     fontSize: 6.5,
@@ -397,9 +514,26 @@ const sc = StyleSheet.create({
   circuitRowAlt: { backgroundColor: '#FFFBF5' },
 })
 
+/** Evita líneas enormes en celdas (peor caso para el motor de texto del PDF). */
+function clampPdfLine(raw: string, maxChars: number): string {
+  const t = raw.replace(/\s+/g, ' ').trim()
+  if (t.length <= maxChars) return t
+  return `${t.slice(0, Math.max(0, maxChars - 1))}…`
+}
+
+/** Solo http(s): mostramos URL como texto (sin Link: menos trabajo para el layout). */
 function exerciseDemoVideoUrl(ex: ExerciseFull): string | null {
-  const u = (ex.video_url || ex.exercise?.video_url || '').trim()
-  return u.length > 0 ? u : null
+  const raw = (ex.video_url || ex.exercise?.video_url || '').trim()
+  if (!raw) return null
+  let u = raw
+  if (u.startsWith('//')) u = `https:${u}`
+  try {
+    const parsed = new URL(u)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString()
+  } catch {
+    /* texto libre, no es URL */
+  }
+  return null
 }
 
 function ExerciseTable({
@@ -432,8 +566,8 @@ function ExerciseTable({
           const pdfRow = pdfExerciseDisplay(group.exercise, rmKg)
           const videoUrl = exerciseDemoVideoUrl(group.exercise)
           return (
-            <View key={group.exercise.id} style={[s.tableRow, idx % 2 === 1 ? s.tableRowAlt : {}]} wrap={false}>
-              <Text style={s.tdName}>{group.exercise.exercise?.name ?? '—'}</Text>
+            <View key={group.exercise.id} style={[s.tableRow, idx % 2 === 1 ? s.tableRowAlt : {}]}>
+              <Text style={s.tdName}>{clampPdfLine(group.exercise.exercise?.name ?? '—', 85)}</Text>
               <Text style={s.tdSmall}>{group.exercise.sets ?? '—'}</Text>
               <Text style={s.tdSmall}>{formatReps(group.exercise)}</Text>
               <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
@@ -441,12 +575,10 @@ function ExerciseTable({
               <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
               <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
               <View style={s.tdNotes}>
-                <Text>{pdfRow.notesClean}</Text>
+                <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                 {videoUrl ? (
-                  <Text style={{ marginTop: 3 }}>
-                    <Link src={videoUrl} style={{ color: C.accent, fontSize: 7 }}>
-                      Ver video / técnica
-                    </Link>
+                  <Text style={{ marginTop: 3, fontSize: 6.5, color: C.accent }}>
+                    {clampPdfLine(videoUrl, 90)}
                   </Text>
                 ) : null}
               </View>
@@ -476,7 +608,7 @@ function ExerciseTable({
               const videoUrl = exerciseDemoVideoUrl(ex)
               return (
                 <View key={ex.id} style={[sc.circuitRow, i % 2 === 1 ? sc.circuitRowAlt : {}]}>
-                  <Text style={s.tdName}>{ex.exercise?.name ?? '—'}</Text>
+                  <Text style={s.tdName}>{clampPdfLine(ex.exercise?.name ?? '—', 85)}</Text>
                   <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
                   <Text style={s.tdSmall}>{formatReps(ex)}</Text>
                   <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
@@ -484,12 +616,10 @@ function ExerciseTable({
                   <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
                   <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
                   <View style={s.tdNotes}>
-                    <Text>{pdfRow.notesClean}</Text>
+                    <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                     {videoUrl ? (
-                      <Text style={{ marginTop: 3 }}>
-                        <Link src={videoUrl} style={{ color: C.accent, fontSize: 7 }}>
-                          Ver video / técnica
-                        </Link>
+                      <Text style={{ marginTop: 3, fontSize: 6.5, color: C.accent }}>
+                        {clampPdfLine(videoUrl, 90)}
                       </Text>
                     ) : null}
                   </View>
@@ -507,41 +637,26 @@ function DaySection({
   day,
   index,
   rmByExerciseId,
-  anchorId,
 }: {
   day: DayFull
   index: number
   rmByExerciseId?: Record<string, number>
-  /** Destino interno para el índice (PDF readers con enlaces). */
-  anchorId?: string
 }) {
-  const inner = (
-    <>
+  return (
+    <View style={s.daySection}>
       <View style={s.dayHeader}>
         <View style={s.dayBadge}>
           <Text style={s.dayBadgeText}>DÍA {index + 1}</Text>
         </View>
-        <Text style={s.dayName}>{day.day_name}</Text>
-        {day.muscle_focus && <Text style={s.dayFocus}> · {day.muscle_focus}</Text>}
+        <Text style={s.dayName}>{clampPdfLine(day.day_name, 120)}</Text>
+        {day.muscle_focus ? <Text style={s.dayFocus}> · {clampPdfLine(day.muscle_focus, 80)}</Text> : null}
       </View>
-      {day.warmup_notes && (
+      {day.warmup_notes ? (
         <View style={s.warmupBox}>
-          <Text style={s.warmupText}>Entrada en calor: {day.warmup_notes}</Text>
+          <Text style={s.warmupText}>Entrada en calor: {clampPdfLine(day.warmup_notes, 800)}</Text>
         </View>
-      )}
+      ) : null}
       <ExerciseTable exercises={day.exercises} rmByExerciseId={rmByExerciseId} />
-    </>
-  )
-  if (anchorId) {
-    return (
-      <View id={anchorId} style={s.daySection} wrap={false}>
-        {inner}
-      </View>
-    )
-  }
-  return (
-    <View style={s.daySection} wrap={false}>
-      {inner}
     </View>
   )
 }
@@ -550,7 +665,6 @@ function DaySection({
 
 export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseId }: RoutinePdfData) {
   const student = routine.student
-  const logoUrl = `${window.location.origin}/logo_mark_original_black_square.png`
 
   const tocHasContent = blocks.some((b) => (b.days?.length ?? 0) > 0)
 
@@ -559,24 +673,27 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
       title={`Rutina — ${student?.full_name ?? 'Alumno'}`}
       author="Haciéndolo Hábito"
     >
+      {/* Portada + índice: una sola Page; sin header/footer fijos ni enlaces internos (evita cuelgues del layout). */}
       <Page size="A4" style={s.page}>
-        {/* Header */}
-        <View style={s.header} fixed>
+        <View style={s.header}>
           <View style={s.headerLeft}>
             <View style={s.headerBrandBar} />
-            <Image src={logoUrl} style={s.logoImg} />
+            <View style={s.logoImg}>
+              <Text style={s.logoMonogram}>HH</Text>
+            </View>
             <View style={{ marginLeft: 2 }}>
               <Text style={s.gymName}>Haciéndolo Hábito</Text>
               <Text style={s.gymSub}>Ferster Fitness</Text>
             </View>
           </View>
           <View style={s.headerRight}>
-            <Text style={s.headerDate}>Generado el {generatedAt.toLocaleDateString('es-AR')}</Text>
-            <Text style={s.headerRoutineName}>{routine.name}</Text>
+            <Text style={[s.headerDate, s.headerDateSpacing]}>
+              Generado el {generatedAt.toLocaleDateString('es-AR')}
+            </Text>
+            <Text style={s.headerRoutineName}>{clampPdfLine(routine.name, 120)}</Text>
           </View>
         </View>
 
-        {/* Info del alumno */}
         <View style={s.infoCard}>
           <View style={s.infoCol}>
             <Text style={s.infoLabel}>Alumno</Text>
@@ -598,95 +715,85 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
           </View>
         </View>
 
-        {/* Objetivo */}
         <View style={s.objectiveBox}>
           <Text style={s.objectiveLabel}>Objetivo del Coach</Text>
-          <Text style={s.objectiveText}>{routine.objective}</Text>
+          <Text style={s.objectiveText}>{clampPdfLine(routine.objective, 4000)}</Text>
         </View>
 
-        {/* Notas generales */}
-        {routine.notes && (
+        {routine.notes ? (
           <View style={s.notesBox}>
             <Text style={s.notesLabel}>Aclaraciones importantes</Text>
-            <Text style={s.notesText}>{routine.notes}</Text>
+            <Text style={s.notesText}>{clampPdfLine(routine.notes, 4000)}</Text>
           </View>
-        )}
-
-        {tocHasContent ? (
-          <>
-            <View break />
-            <Text style={s.tocTitle}>Índice</Text>
-            <Text style={s.tocHint}>
-              En el teléfono o en Adobe Acrobat podés tocar cada ítem para ir directo a la semana o al día. La referencia (1, 1.1, 1.2…) coincide con
-              Semana y Día.
-            </Text>
-            {blocks.map((block, wi) => (
-              <Fragment key={`toc-${block.id}`}>
-                <View style={s.tocRow} wrap={false}>
-                  <Text style={{ maxWidth: '72%' }} wrap={false}>
-                    <Link src={`#week-${wi}`} style={s.tocLink}>
-                      SEMANA {wi + 1} · {block.name}
-                    </Link>
-                  </Text>
-                  <View style={s.tocDots} />
-                  <Text style={s.tocRef}>{wi + 1}</Text>
-                </View>
-                {block.days.map((day, di) => (
-                  <View key={`tocd-${day.id}`} style={[s.tocRow, s.tocSubRow]} wrap={false}>
-                    <Text style={{ maxWidth: '68%' }} wrap={false}>
-                      <Link src={`#week-${wi}-day-${di}`} style={s.tocLinkMuted}>
-                        Día {di + 1} · {day.day_name}
-                      </Link>
-                    </Text>
-                    <View style={s.tocDots} />
-                    <Text style={s.tocRef}>
-                      {wi + 1}.{di + 1}
-                    </Text>
-                  </View>
-                ))}
-              </Fragment>
-            ))}
-          </>
         ) : null}
 
-        {/* Bloques (salto de página antes de cada semana desde la 2.ª) */}
-        {blocks.map((block, wi) => (
-          <View key={block.id} style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
-            {wi > 0 ? <View break /> : null}
-            <View id={`week-${wi}`} style={s.blockHeader} wrap={false}>
-              <View style={s.blockAccent} />
-              <Text style={s.blockName}>{block.name}</Text>
-              {block.notes && (
-                <Text style={s.blockNotes}>{block.notes}</Text>
-              )}
+        {tocHasContent ? (
+          <View style={s.tocCard}>
+            <View style={s.tocCardTitleRow}>
+              <View style={s.tocCardAccent} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.tocCardKicker}>Contenido</Text>
+                <Text style={s.tocHeadline}>Índice de semanas y días</Text>
+              </View>
             </View>
-            <View style={s.blockWrapper}>
-              {block.days.map((day, di) => (
-                <DaySection
-                  key={day.id}
-                  day={day}
-                  index={di}
-                  rmByExerciseId={rmByExerciseId}
-                  anchorId={`week-${wi}-day-${di}`}
-                />
+            <View style={s.tocHintBox}>
+              <Text style={s.tocHint}>
+                Cada semana ocupa al menos una página nueva en este PDF. El código «1.2» indica semana 1, día 2, alineado con las etiquetas del cuerpo del plan.
+              </Text>
+            </View>
+            <View style={s.tocBody}>
+              {blocks.map((block, wi) => (
+                <View key={`toc-${block.id}`} style={s.tocWeekGroup}>
+                  <View style={s.tocWeekRow}>
+                    <View style={s.tocWeekBadge}>
+                      <Text style={s.tocWeekBadgeText}>S{wi + 1}</Text>
+                    </View>
+                    <Text style={s.tocWeekTitle}>{clampPdfLine(block.name, 100)}</Text>
+                    <View style={s.tocDotsOnDark} />
+                    <View style={s.tocRefPillBrand}>
+                      <Text style={s.tocRefPillBrandText}>{wi + 1}</Text>
+                    </View>
+                  </View>
+                  {block.days.map((day, di) => (
+                    <View
+                      key={`tocd-${day.id}`}
+                      style={[s.tocDayRow, di % 2 === 1 ? s.tocDayRowAlt : {}]}
+                    >
+                      <Text style={s.tocDayChevron}>›</Text>
+                      <Text style={s.tocDayText}>
+                        Día {di + 1} · {clampPdfLine(day.day_name, 90)}
+                      </Text>
+                      <View style={s.tocDots} />
+                      <View style={s.tocRefPill}>
+                        <Text style={s.tocRefPillText}>
+                          {wi + 1}.{di + 1}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               ))}
             </View>
           </View>
-        ))}
-
-        {/* Footer */}
-        <View style={s.footer} fixed>
-          <View style={s.footerLeft}>
-            <Text style={s.footerApp}>Haciéndolo Hábito</Text>
-            <Text style={s.footerDot}>·</Text>
-            <Text style={s.footerBrand}>Ferster Fitness</Text>
-          </View>
-          <Text
-            style={s.pageNumber}
-            render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
-          />
-        </View>
+        ) : null}
       </Page>
+
+      {blocks.map((block, wi) => (
+        <Page key={block.id} size="A4" style={s.page}>
+          <View style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
+            <View style={s.blockHeader}>
+              <View style={s.blockAccent} />
+              <Text style={s.blockName}>{clampPdfLine(block.name, 100)}</Text>
+              {block.notes ? <Text style={s.blockNotes}>{clampPdfLine(block.notes, 500)}</Text> : null}
+            </View>
+            <View style={s.blockWrapper}>
+              {block.days.map((day, di) => (
+                <DaySection key={day.id} day={day} index={di} rmByExerciseId={rmByExerciseId} />
+              ))}
+            </View>
+          </View>
+        </Page>
+      ))}
     </Document>
   )
 }

@@ -4,6 +4,25 @@ import { supabase } from '@/lib/supabase'
 import { RoutinePdfDocument } from './RoutinePdfDocument'
 import type { BlockFull, RoutineFull } from './RoutinePdfDocument'
 
+/** Evita que el botón quede cargando para siempre si el layout del PDF se trabó. */
+const PDF_TO_BLOB_TIMEOUT_MS = 180_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, onTimeout: () => Error): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = window.setTimeout(() => reject(onTimeout()), ms)
+    promise.then(
+      (v) => {
+        window.clearTimeout(t)
+        resolve(v)
+      },
+      (e) => {
+        window.clearTimeout(t)
+        reject(e)
+      },
+    )
+  })
+}
+
 export async function generateRoutinePdf(routineId: string, pdfId: string): Promise<void> {
   // 1. Marcar como en proceso
   await supabase
@@ -20,6 +39,9 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
       .single()
 
     if (routineError || !routine) throw new Error(routineError?.message ?? 'Rutina no encontrada')
+
+    const ownerId = (routine as { owner_id?: string }).owner_id
+    if (!ownerId) throw new Error('Rutina sin owner_id')
 
     // 3. Cargar bloques → días → ejercicios
     const { data: blocks, error: blocksError } = await supabase
@@ -62,6 +84,13 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
       })),
     }))
 
+    // Deja que el navegador pinte el estado "en proceso" antes del layout (muy pesado en el hilo principal).
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve())
+      })
+    })
+
     // 4. Generar el blob del PDF
     const doc = createElement(RoutinePdfDocument, {
       routine: routine as unknown as RoutineFull,
@@ -70,11 +99,19 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
       rmByExerciseId: Object.keys(rmByExerciseId).length ? rmByExerciseId : undefined,
     })
 
-    const blob = await pdf(doc as ReactElement).toBlob()
+    const blob = await withTimeout(
+      pdf(doc as ReactElement).toBlob(),
+      PDF_TO_BLOB_TIMEOUT_MS,
+      () =>
+        new Error(
+          'La generación del PDF superó 3 minutos (a veces pasa con rutinas enormes en el navegador). Probá cerrar otras pestañas y generar de nuevo; si sigue igual, avisá a soporte.',
+        ),
+    )
     const sizeKb = Math.round(blob.size / 1024)
 
     // 5. Subir a Supabase Storage
-    const fileName = `${routineId}/${pdfId}.pdf`
+    // Política típica: primer segmento del path = auth.uid() (ver ARCHITECTURE.md → routine-pdfs).
+    const fileName = `${ownerId}/${routineId}/${pdfId}.pdf`
     const { error: uploadError } = await supabase.storage
       .from('routine-pdfs')
       .upload(fileName, blob, {
@@ -101,6 +138,7 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
 
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error desconocido'
+    console.error('[PDF] generateRoutinePdf failed:', err)
 
     // Guardar error en el registro
     await supabase
