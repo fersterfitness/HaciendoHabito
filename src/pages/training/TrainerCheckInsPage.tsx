@@ -3,9 +3,13 @@ import { ClipboardCheck, Copy, Plus, Trash2, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
+import { buildWhatsAppUrl, checkInInviteMessage, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
+import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import { cn } from '@/lib/utils'
 import type { CheckInForm, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -51,6 +55,10 @@ type ResponseRow = {
   responses: Json
   testimonial_consent: boolean
 }
+
+/** Botones de acción en la tabla de invitaciones (misma altura y padding). */
+const inviteTableActionBtnClass =
+  'h-7 min-h-7 min-w-[3.25rem] px-2.5 text-[10px] font-medium gap-1 shrink-0'
 
 export function TrainerCheckInsPage() {
   const { user } = useAuthStore()
@@ -247,6 +255,26 @@ export function TrainerCheckInsPage() {
     } catch {
       toast.error('No se pudo copiar')
     }
+  }
+
+  function openCheckInWhatsApp(inv: InviteRow) {
+    const st = students.find((s) => s.id === inv.student_id)
+    if (!st) {
+      toast.error('Alumno no encontrado')
+      return
+    }
+    const digits = normalizePhoneForWhatsApp(st.phone)
+    if (!digits) {
+      toast.error(`Sin teléfono válido para ${st.full_name} (${STUDENT_PHONE_FORMAT_HINT} en la ficha)`)
+      return
+    }
+    const formTitle = savedForm?.title ?? 'check-in'
+    const msg = checkInInviteMessage({
+      studentName: st.full_name,
+      formTitle,
+      url: publicUrl(inv.token),
+    })
+    window.open(buildWhatsAppUrl(digits, msg), '_blank', 'noopener,noreferrer')
   }
 
   const responseByInvite = useMemo(() => {
@@ -489,25 +517,46 @@ export function TrainerCheckInsPage() {
                                   )}
                                 </td>
                                 <td className="py-2 pr-2">
-                                  <div className="flex flex-wrap gap-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
                                     <Button
                                       type="button"
                                       size="sm"
                                       variant="outline"
-                                      className="h-7 text-[10px]"
+                                      className={cn(inviteTableActionBtnClass, 'min-w-7 px-0')}
                                       aria-label={`Copiar link de check-in para ${inv.student?.full_name ?? 'alumno'}`}
                                       onClick={() => void copyLink(inv.token)}
                                     >
                                       <Copy className="h-3 w-3" />
                                     </Button>
-                                    <a
-                                      href={publicUrl(inv.token)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center text-brand-primary hover:underline text-[10px]"
+                                    <Button
+                                      asChild
+                                      size="sm"
+                                      variant="outline"
+                                      className={inviteTableActionBtnClass}
                                     >
-                                      Abrir
-                                    </a>
+                                      <a
+                                        href={publicUrl(inv.token)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        Abrir
+                                      </a>
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      title="Enviar link por WhatsApp"
+                                      aria-label={`Enviar link por WhatsApp a ${inv.student?.full_name ?? 'alumno'}`}
+                                      className={cn(
+                                        inviteTableActionBtnClass,
+                                        'border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12 hover:border-emerald-600/55 hover:text-emerald-900 dark:hover:text-emerald-300',
+                                      )}
+                                      onClick={() => openCheckInWhatsApp(inv)}
+                                    >
+                                      <WhatsAppIcon className="h-3 w-3" />
+                                      WA
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>

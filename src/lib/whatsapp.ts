@@ -125,6 +125,24 @@ export function buildAppointmentConfirmedPrepWaUrl(params: { phoneRaw: string | 
   return buildWhatsAppUrl(digits, confirmedVideocallPrepMessage())
 }
 
+/** Mensaje al enviar link de check-in por WhatsApp. */
+export function checkInInviteMessage(params: {
+  studentName: string
+  formTitle: string
+  url: string
+}): string {
+  const first = params.studentName.trim().split(/\s+/)[0] || params.studentName.trim()
+  return [
+    `Hola ${first},`,
+    '',
+    `Te comparto el link para completar el formulario «${params.formTitle.trim()}»:`,
+    '',
+    params.url.trim(),
+    '',
+    'Cuando puedas, completalo. Gracias!',
+  ].join('\n')
+}
+
 /** Mensaje sugerido al compartir un recurso (video, artículo) por WhatsApp. */
 export function buildResourceShareMessage(title: string, url: string, note?: string | null): string {
   const lines = [`Te comparto: ${title.trim()}`, '', url.trim()]
