@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn, formatDate } from '@/lib/utils'
+import { inboxHighlightCardClassName } from '@/lib/inboxRowClasses'
 import type { Json, RoutineQuestion, Student, Routine, QuestionStatus } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -190,14 +191,26 @@ export function FeedbackPage() {
             aria-selected={mainSection === 'consultas'}
             onClick={() => setMainSection('consultas')}
             className={cn(
-              'flex flex-1 min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
+              'flex flex-1 min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
               mainSection === 'consultas'
-                ? 'bg-brand-primary text-white shadow-sm'
-                : 'text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
+                ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary shadow-sm'
+                : 'border-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
             )}
           >
             <MessageSquare className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
             Consultas
+            {openCount > 0 ? (
+              <span
+                className={cn(
+                  'rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums',
+                  mainSection === 'consultas'
+                    ? 'bg-brand-secondary/15 text-brand-secondary'
+                    : 'bg-surface-border text-ink-muted',
+                )}
+              >
+                {openCount}
+              </span>
+            ) : null}
           </button>
           <button
             type="button"
@@ -205,10 +218,10 @@ export function FeedbackPage() {
             aria-selected={mainSection === 'checkins'}
             onClick={() => setMainSection('checkins')}
             className={cn(
-              'flex flex-1 min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
+              'flex flex-1 min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
               mainSection === 'checkins'
-                ? 'bg-brand-primary text-white shadow-sm'
-                : 'text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
+                ? 'border-surface-border bg-surface-card text-ink-primary shadow-sm ring-1 ring-inset ring-brand-tertiary/20'
+                : 'border-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
             )}
           >
             <ClipboardCheck className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
@@ -216,8 +229,10 @@ export function FeedbackPage() {
             {checkInRows.length > 0 ? (
               <span
                 className={cn(
-                  'rounded-full px-1.5 py-px text-[10px] font-bold',
-                  mainSection === 'checkins' ? 'bg-white/20 text-white' : 'bg-surface-border text-ink-muted',
+                  'rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums',
+                  mainSection === 'checkins'
+                    ? 'bg-brand-tertiary/12 text-brand-tertiary'
+                    : 'bg-surface-border text-ink-muted',
                 )}
               >
                 {checkInRows.length}
@@ -228,7 +243,7 @@ export function FeedbackPage() {
       </div>
 
       {mainSection === 'checkins' ? (
-        <div className="px-4 lg:px-6 py-6 space-y-4">
+        <div className="page-shell-x page-shell-y space-y-4">
           <PageToolbar>
             <div className="w-full min-w-0 lg:max-w-md">
               <Input
@@ -267,7 +282,7 @@ export function FeedbackPage() {
       ) : null}
 
       {mainSection === 'consultas' ? (
-      <div className="px-4 lg:px-6 py-6 space-y-4">
+      <div className="page-shell-x page-shell-y space-y-4">
         <PageToolbar>
           <div className="w-full min-w-0 lg:max-w-md">
             <Input
@@ -278,26 +293,36 @@ export function FeedbackPage() {
             />
           </div>
           <div className="flex gap-1 overflow-x-auto scrollbar-hide w-full lg:w-auto lg:flex-1 min-w-0 pb-1">
-            {TABS.map(({ value, label }) => {
+            {TABS.map(({ value, label }, tabIndex) => {
               const count = value === 'todas' ? questions.length : counts[value] ?? 0
+              const isActive = tab === value
+              const useSecondaryAccent = tabIndex % 2 === 0
               return (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setTab(value)}
                   className={cn(
-                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors',
-                    tab === value
-                      ? 'bg-brand-primary text-white'
-                      : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+                    'shrink-0 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors',
+                    isActive
+                      ? useSecondaryAccent
+                        ? 'border-brand-secondary/30 bg-brand-secondary/10 text-ink-primary'
+                        : 'border-surface-border bg-surface-card text-ink-primary shadow-sm ring-1 ring-inset ring-brand-tertiary/18'
+                      : 'border-transparent bg-surface-elevated text-ink-secondary hover:border-surface-border hover:text-ink-primary',
                   )}
                 >
                   {label}
                   {count > 0 && (
-                    <span className={cn(
-                      'rounded-full px-1.5 py-px text-[10px] font-bold',
-                      tab === value ? 'bg-white/20 text-white' : 'bg-surface-border text-ink-muted',
-                    )}>
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums',
+                        isActive
+                          ? useSecondaryAccent
+                            ? 'bg-brand-secondary/15 text-brand-secondary'
+                            : 'bg-brand-tertiary/10 text-brand-tertiary'
+                          : 'bg-surface-border text-ink-muted',
+                      )}
+                    >
                       {count}
                     </span>
                   )}
@@ -344,6 +369,10 @@ export function FeedbackPage() {
 }
 
 function CheckInResponseCard({ row }: { row: CheckInResponseFull }) {
+  const daysSince = Math.floor(
+    (Date.now() - new Date(row.submitted_at).getTime()) / (1000 * 60 * 60 * 24),
+  )
+  const isRecent = daysSince <= 3
   const defs = parseFormQuestions(row.invite?.check_in_forms?.questions ?? [])
   const respObj =
     row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
@@ -355,7 +384,7 @@ function CheckInResponseCard({ row }: { row: CheckInResponseFull }) {
     return { label: d.label, text, type: d.type }
   })
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className={cn('flex flex-col gap-3', inboxHighlightCardClassName(isRecent))}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-bold text-ink-primary truncate">{row.invite?.student?.full_name ?? '—'}</p>
@@ -392,8 +421,13 @@ function CheckInResponseCard({ row }: { row: CheckInResponseFull }) {
 }
 
 function QuestionCard({ question, onClick }: { question: QuestionFull; onClick: () => void }) {
+  const needsAttention = question.status === 'recibida' || question.status === 'en_revision'
   return (
-    <Card hover onClick={onClick} className="flex flex-col gap-2">
+    <Card
+      hover
+      onClick={onClick}
+      className={cn('flex flex-col gap-2', inboxHighlightCardClassName(needsAttention))}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-bold text-ink-primary truncate">{question.student?.full_name ?? '—'}</p>
@@ -406,7 +440,7 @@ function QuestionCard({ question, onClick }: { question: QuestionFull; onClick: 
         {question.routine && <span className="truncate">· {question.routine.name}</span>}
       </div>
       {question.media_url && (
-        <span className="text-xs text-brand-primary">📎 Con adjunto</span>
+        <span className="text-xs text-brand-secondary">📎 Con adjunto</span>
       )}
     </Card>
   )

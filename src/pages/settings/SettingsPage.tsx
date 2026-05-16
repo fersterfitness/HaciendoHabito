@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LayoutTemplate, Share2, ClipboardCheck } from 'lucide-react'
+import { LayoutTemplate, Share2, ClipboardCheck, Rows3 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Header } from '@/components/layout/Header'
 import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { cn } from '@/lib/utils'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { FormSection } from '@/components/ui/FormSection'
@@ -29,7 +30,7 @@ type FormValues = z.infer<typeof schema>
 
 export function SettingsPage() {
   const { profile, setProfile } = useAuthStore()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, density, setDensity } = useTheme()
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -77,7 +78,7 @@ export function SettingsPage() {
   return (
     <div>
       <Header title="Configuración" />
-      <div className="px-4 lg:px-6 py-6 max-w-lg space-y-6">
+      <div className="page-shell-x page-shell-y max-w-lg space-y-6">
 
         {/* Apariencia */}
         <Card>
@@ -90,8 +91,12 @@ export function SettingsPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={toggleTheme}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-border/60 transition-colors text-sm font-medium text-ink-secondary"
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-border/60 transition-colors text-sm font-medium text-ink-secondary',
+                  appFocusRingClassName,
+                )}
               >
                 {theme === 'dark' ? (
                   <>
@@ -102,6 +107,27 @@ export function SettingsPage() {
                     <ThemeToggleMoonIcon /> Oscuro
                   </>
                 )}
+              </button>
+            </div>
+            <div className="flex items-center justify-between py-1 pt-4 border-t border-surface-border/60">
+              <div>
+                <p className="text-sm font-medium text-ink-primary">Densidad de la interfaz</p>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  {density === 'compact'
+                    ? 'Más filas visibles en tablas y listados'
+                    : 'Espaciado cómodo (recomendado)'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-border/60 transition-colors text-sm font-medium text-ink-secondary',
+                  appFocusRingClassName,
+                )}
+              >
+                <Rows3 className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                {density === 'compact' ? 'Cómoda' : 'Compacta'}
               </button>
             </div>
           </FormSection>

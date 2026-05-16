@@ -753,12 +753,22 @@ export function RoutineDetailPage() {
               <span className="hidden sm:inline">Plantilla</span>
             </button>
             <button
+              type="button"
               onClick={handleGeneratePdf}
               disabled={generatingPdf}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary text-xs font-medium transition-colors disabled:opacity-50"
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50',
+                generatingPdf
+                  ? 'bg-brand-primary/12 text-brand-primary'
+                  : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+              )}
               title="Generar PDF"
             >
-              <FileText className="h-3.5 w-3.5" />
+              {generatingPdf ? (
+                <Spinner className="h-3.5 w-3.5" />
+              ) : (
+                <FileText className="h-3.5 w-3.5" />
+              )}
               <span className="hidden sm:inline">{generatingPdf ? 'Generando...' : 'PDF'}</span>
             </button>
             <button
@@ -772,10 +782,11 @@ export function RoutineDetailPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 py-4 space-y-4">
+      <div className="page-shell-x page-shell-y space-y-4">
 
-        {/* Info barra compacta */}
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3">
+        {/* Info barra compacta (sticky al scrollear) */}
+        <div className="sticky top-14 sm:top-16 z-20 -mx-[var(--density-page-x)] px-[var(--density-page-x)] lg:-mx-[var(--density-page-x-lg)] lg:px-[var(--density-page-x-lg)] pt-1 pb-3 bg-surface-base/92 backdrop-blur-md border-b border-surface-border/50">
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs text-ink-muted mb-0.5">{routine.name}</p>
@@ -829,19 +840,20 @@ export function RoutineDetailPage() {
             onChange={(e) => handleStatusChange(e.target.value)}
           />
         </div>
+        </div>
 
         {/* Objetivo */}
         {(routine.objective || routine.notes) && (
-          <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3">
+          <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3 shadow-card">
             {routine.objective && (
-              <div>
-                <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">Objetivo del Coach</p>
+              <div className="border-l-[3px] border-l-brand-primary pl-3">
+                <p className="text-[10px] font-semibold text-brand-primary uppercase tracking-wider mb-1.5">Objetivo del Coach</p>
                 <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.objective}</p>
               </div>
             )}
             {routine.notes && (
-              <div className="pt-3 border-t border-surface-border">
-                <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">Aclaraciones</p>
+              <div className="pt-3 border-t border-surface-border border-l-[3px] border-l-amber-500 pl-3 mt-3">
+                <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1.5">Aclaraciones</p>
                 <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.notes}</p>
               </div>
             )}
@@ -1011,6 +1023,9 @@ function BlockCard({
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors"
         onClick={onToggle}
       >
+        <span className="shrink-0 rounded-md bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white tabular-nums">
+          S{(stripeIndex ?? 0) + 1}
+        </span>
         <GripVertical className="h-4 w-4 text-ink-muted shrink-0" />
 
         {editingName ? (

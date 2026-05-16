@@ -197,4 +197,22 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /** Padding de página según densidad (Settings → Vista compacta). */
+  .page-shell-x {
+    padding-left: var(--density-page-x);
+    padding-right: var(--density-page-x);
+  }
+
+  @media (min-width: 1024px) {
+    .page-shell-x {
+      padding-left: var(--density-page-x-lg);
+      padding-right: var(--density-page-x-lg);
+    }
+  }
+
+  .page-shell-y {
+    padding-top: var(--density-page-y);
+    padding-bottom: var(--density-page-y);
+  }
 }

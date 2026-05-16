@@ -46,7 +46,7 @@ type RoutineWithStudent = Routine & {
 const ROUTINE_COLORS = [
   { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },
   { bar: 'bg-brand-tertiary', avatar: 'bg-brand-tertiary/15 text-brand-tertiary' },
-  { bar: 'bg-[#ff4800]', avatar: 'bg-[#ff5508]/15 text-[#ff5508] dark:bg-[#ff5508]/18 dark:text-[#ffa065]' },
+  { bar: 'bg-brand-primary', avatar: 'bg-brand-primary/15 text-brand-primary' },
 ]
 
 function strColorIdx(str: string): number {
@@ -71,34 +71,6 @@ const ROUTINE_STATUS_OPTIONS: { value: RoutineStatus; label: string }[] = [
 
 function phraseRoutineStatus(status: RoutineStatus): string {
   return ROUTINE_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
-}
-
-/** Píldora de estado (Activa → verde, etc.) — alineado con ficha alumno */
-function routineStatusBadgeClass(status: RoutineStatus): string {
-  const base = 'inline-flex rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide'
-  switch (status) {
-    case 'activa':
-      return cn(
-        base,
-        'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/[0.14] dark:text-emerald-400',
-      )
-    case 'por_vencer':
-      return cn(
-        base,
-        'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
-      )
-    case 'vencida':
-      return cn(
-        base,
-        'border-rose-400/45 bg-rose-500/12 text-rose-800 dark:border-rose-400/35 dark:bg-rose-500/10 dark:text-rose-400',
-      )
-    case 'pausada':
-      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400')
-    case 'cancelada':
-      return cn(base, 'border-zinc-300/80 bg-zinc-500/8 text-zinc-600 dark:border-zinc-700 dark:text-zinc-500')
-    default:
-      return cn(base, 'border-zinc-200/80 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400')
-  }
 }
 
 function RoutineDaysChip({ endDate }: { endDate: string }) {
@@ -910,7 +882,7 @@ export function RoutinesPage() {
                             <Badge status={r.level} />
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
-                            <span className={routineStatusBadgeClass(r.status)}>{phraseRoutineStatus(r.status)}</span>
+                            <Badge status={r.status} />
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <RoutineDaysChip endDate={r.end_date} />

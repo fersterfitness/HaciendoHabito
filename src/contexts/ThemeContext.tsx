@@ -2,17 +2,24 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { useAuthStore } from '@/stores/authStore'
 
 type Theme = 'dark' | 'light'
+export type UiDensity = 'comfortable' | 'compact'
 
 interface ThemeContextValue {
   theme: Theme
+  density: UiDensity
   toggleTheme: () => void
   setTheme: (t: Theme) => void
+  setDensity: (d: UiDensity) => void
+  toggleDensity: () => void
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: 'dark',
+  density: 'comfortable',
   toggleTheme: () => {},
   setTheme: () => {},
+  setDensity: () => {},
+  toggleDensity: () => {},
 })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -22,10 +29,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (stored === 'dark' || stored === 'light') return stored
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
+  const [density, setDensityState] = useState<UiDensity>(() => {
+    const stored = localStorage.getItem('hh-density') as UiDensity | null
+    return stored === 'compact' ? 'compact' : 'comfortable'
+  })
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-density', 'comfortable')
-  }, [])
+    document.documentElement.setAttribute('data-density', density)
+    localStorage.setItem('hh-density', density)
+  }, [density])
 
   useEffect(() => {
     const root = document.documentElement
@@ -45,8 +57,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
   }
 
+  function setDensity(d: UiDensity) {
+    setDensityState(d)
+  }
+
+  function toggleDensity() {
+    setDensityState((prev) => (prev === 'comfortable' ? 'compact' : 'comfortable'))
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, density, toggleTheme, setTheme, setDensity, toggleDensity }}>
       {children}
     </ThemeContext.Provider>
   )

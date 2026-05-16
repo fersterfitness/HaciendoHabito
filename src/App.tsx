@@ -266,7 +266,7 @@ function AppRoutes() {
 
 /** Verde éxito (toasts success). */
 const TOAST_SUCCESS_ICON = '#16a34a'
-/** Naranja marca (toasts loading / spinner). */
+/** Marca (toasts loading / spinner); alineado a --brand-primary. */
 const TOAST_LOADING_ICON = '#ff4800'
 
 function ThemedToaster() {
@@ -302,7 +302,7 @@ function ThemedToaster() {
         loading: {
           iconTheme: { primary: TOAST_LOADING_ICON, secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
           style: {
-            borderColor: isDark ? 'rgba(255, 72, 0, 0.38)' : 'rgba(255, 72, 0, 0.28)',
+            borderColor: isDark ? 'rgb(var(--brand-primary) / 0.38)' : 'rgb(var(--brand-primary) / 0.28)',
           },
         },
       }}

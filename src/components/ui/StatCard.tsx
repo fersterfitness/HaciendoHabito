@@ -65,7 +65,7 @@ export function StatCard({
           : undefined
       }
       className={cn(
-        'rounded-xl border border-surface-border/80 bg-surface-card p-4',
+        'rounded-2xl border border-surface-border/80 bg-surface-card p-4 shadow-card',
         'flex flex-col gap-3 min-h-[128px]',
         onClick &&
           'cursor-pointer hover:border-surface-border hover:bg-surface-elevated/40 transition-colors duration-200',
@@ -74,7 +74,9 @@ export function StatCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-ink-muted shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-ink-muted [&_svg]:h-4 [&_svg]:w-4">
+            {icon}
+          </span>
           <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider truncate">
             {title}
           </p>

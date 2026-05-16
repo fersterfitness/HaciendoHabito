@@ -28,6 +28,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PageSectionTitle } from '@/components/ui/PageSectionTitle'
 import { Button } from '@/components/ui/Button'
 import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { cn, daysUntil, formatCurrency, formatDate } from '@/lib/utils'
@@ -1023,7 +1024,7 @@ export function DashboardPage() {
         </p>
       )}
 
-      <div className="px-4 lg:px-6 py-6 space-y-6">
+      <div className="page-shell-x page-shell-y space-y-6">
 
         {canSeeTraining && checkInRecentCount > 0 ? (
           <div className="rounded-2xl border border-brand-primary/40 bg-brand-primary/[0.12] px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1132,6 +1133,7 @@ export function DashboardPage() {
           </div>
         )}
 
+        <PageSectionTitle title="Resumen del mes" className="mb-1" />
         {/* ── KPIs ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard
