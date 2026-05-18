@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn, slugify } from '@/lib/utils'
 import type { Student, NutritionPatientDocument, NutritionMeasurement } from '@/types/database'
+import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionComparativePdfDocument } from '@/lib/pdf/NutritionComparativePdfDocument'
 import {
   buildComparativeNarrative,
@@ -332,6 +333,7 @@ export function NutritionComparativePage() {
           toLabel={toLabel}
           differences={diffRows}
           interpretation={interpretation}
+          brandLogoSrc={defaultBrandLogoSrc()}
         />
       ).toBlob()
       const url = URL.createObjectURL(blob)

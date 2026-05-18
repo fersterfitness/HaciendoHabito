@@ -10,6 +10,7 @@ import {
   mergedMediansForPresentation,
   pickLatestTwoMeasurements,
 } from '@/lib/nutrition/anthropometryPresentation'
+import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionAnthropometryPresentationPdfDocument } from '@/lib/pdf/NutritionAnthropometryPresentationPdfDocument'
 import { slugify } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -75,6 +76,7 @@ export function NutritionAnthropometryPresentationPanel({
           measurementNumber={current.measurement_number}
           rows={rows}
           technicalErrorPct={te}
+          brandLogoSrc={defaultBrandLogoSrc()}
         />,
       ).toBlob()
       const url = URL.createObjectURL(blob)

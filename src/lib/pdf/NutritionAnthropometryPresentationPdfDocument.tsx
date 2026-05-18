@@ -1,4 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { PdfBrandRibbon } from '@/lib/pdf/PdfBrandRibbon'
+import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
 import type { ReactNode } from 'react'
 import type { PresentationRow } from '@/lib/nutrition/anthropometryPresentation'
 import { format, parseISO } from 'date-fns'
@@ -9,7 +11,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontFamily: 'Helvetica-Bold', marginBottom: 4 },
   subtitle: { fontSize: 8.5, color: '#4B5563', marginBottom: 12, lineHeight: 1.4 },
   meta: { fontSize: 9, marginBottom: 10 },
-  section: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginTop: 10, marginBottom: 4, color: '#1e3a5f' },
+  section: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginTop: 10, marginBottom: 4, color: PDF_BRAND.dark },
   row: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB', paddingVertical: 3 },
   h: { fontFamily: 'Helvetica-Bold', fontSize: 7.5, color: '#6B7280', textTransform: 'uppercase' },
   c1: { width: '34%' },
@@ -26,12 +28,14 @@ export function NutritionAnthropometryPresentationPdfDocument({
   measurementNumber,
   rows,
   technicalErrorPct,
+  brandLogoSrc,
 }: {
   patientName: string
   measuredAt: string
   measurementNumber: number | null
   rows: PresentationRow[]
   technicalErrorPct: number
+  brandLogoSrc?: string | null
 }) {
   const dateLabel = (() => {
     try {
@@ -66,10 +70,12 @@ export function NutritionAnthropometryPresentationPdfDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Informe de composición corporal</Text>
-        <Text style={styles.subtitle}>
-          Estructura tipo «Presentación» del programa de antropometría · Valores desde medianas de series · Haciéndolo Hábito
-        </Text>
+        <PdfBrandRibbon
+          brandLogoSrc={brandLogoSrc}
+          kicker="Haciéndolo Hábito · Nutrición"
+          title="Informe de composición corporal"
+          subtitle="Programa de antropometría · Valores desde medianas de series"
+        />
         <Text style={styles.brand}>
           Cristian Nicolás Vázquez Crossetto · Nutrición deportiva · cel: 1155082465 · cris.crossetto@gmail.com
         </Text>

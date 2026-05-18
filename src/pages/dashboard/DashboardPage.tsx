@@ -17,7 +17,6 @@ import {
   Wallet,
   AlertTriangle,
   ClipboardCheck,
-  CalendarClock,
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -38,6 +37,7 @@ import { FINANCE_SCOPES } from '@/lib/constants'
 import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { scheduleMatchesToday } from '@/lib/checkInSchedule'
+import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
 import type { Routine, Notification, CheckInSendSchedule } from '@/types/database'
 
 interface RecentIncomeRow {
@@ -1026,114 +1026,8 @@ export function DashboardPage() {
 
       <div className="page-shell-x page-shell-y space-y-6">
 
-        {canSeeTraining && checkInRecentCount > 0 ? (
-          <div className="rounded-2xl border border-brand-primary/40 bg-brand-primary/[0.12] px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
-              <ClipboardCheck className="h-5 w-5 text-brand-primary shrink-0 mt-0.5" aria-hidden />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink-primary">Respuestas de check-in</p>
-                <p className="text-xs text-ink-secondary mt-0.5">
-                  {checkInRecentCount === 1
-                    ? 'Hay 1 respuesta en los últimos 30 días.'
-                    : `Hay ${checkInRecentCount} respuestas en los últimos 30 días.`}{' '}
-                  Revisalas en Devoluciones para dar seguimiento.
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              className="shrink-0"
-              onClick={() => navigate('/feedback?tab=checkins')}
-            >
-              Ver check-ins
-            </Button>
-          </div>
-        ) : null}
-
-        {canSeeTraining && dueCheckInSchedules.length > 0 ? (
-          <div className="rounded-2xl border border-sky-500/35 bg-sky-500/[0.08] px-4 py-3.5 space-y-3">
-            <div className="flex items-start gap-3">
-              <CalendarClock className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" aria-hidden />
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-semibold text-ink-primary">Recordatorio: envío de check-ins (WhatsApp)</p>
-                <p className="text-xs text-ink-secondary">
-                  Hoy según tu programación tocaba mandar estos formularios. Abrí Check-ins, generá o copiá los links y usá <strong className="text-ink-primary">Grupo WA</strong> para un solo mensaje al grupo.
-                </p>
-                <ul className="text-xs text-ink-primary space-y-1.5 pt-1">
-                  {dueCheckInSchedules.map((s) => (
-                    <li key={s.id} className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium truncate">«{s.form?.title ?? 'Check-in'}»</span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="text-xs h-7"
-                        onClick={() => navigate(`/check-ins?formId=${encodeURIComponent(s.form_id)}`)}
-                      >
-                        Abrir formulario
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
-        {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (
-          <div className="rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">{todayLabel}</p>
-            <div className="flex flex-wrap gap-2">
-              {todayApps.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => navigate('/appointments')}
-                  className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15 transition-colors"
-                >
-                  <Calendar className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
-                  <span>{new Date(a.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} · {a.student_name}</span>
-                </button>
-              ))}
-              {birthdays.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => navigate(`/students/${b.id}`)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-status-expiring/25 bg-status-expiring/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expiring/15 transition-colors"
-                >
-                  <Cake className="h-3.5 w-3.5 text-status-expiring shrink-0" />
-                  <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
-                </button>
-              ))}
-              {mergedExpiring.filter(r => r.days <= 3).map((row) => (
-                <button
-                  key={`exp-${row.id}`}
-                  type="button"
-                  onClick={() => navigate(row.href)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-status-expired/25 bg-status-expired/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expired/15 transition-colors"
-                >
-                  <AlertTriangle className="h-3.5 w-3.5 text-status-expired shrink-0" />
-                  <span>{row.title} · {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Vence hoy' : `${row.days}d`}</span>
-                </button>
-              ))}
-              {pendingIncomeTotal > 0 && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/finances')}
-                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-amber-500/15 transition-colors"
-                >
-                  <Wallet className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>{formatCurrency(pendingIncomeTotal)} pendiente de cobro</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         <PageSectionTitle title="Resumen del mes" className="mb-1" />
+
         {/* ── KPIs ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard
@@ -1247,6 +1141,80 @@ export function DashboardPage() {
           )}
         </div>
 
+
+
+        {canSeeTraining && checkInRecentCount > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/15 px-3 py-2 text-[11px]">
+            <ClipboardCheck className="h-3.5 w-3.5 shrink-0 text-brand-primary" aria-hidden />
+            <span className="text-ink-secondary">
+              {checkInRecentCount === 1 ? '1 respuesta' : `${checkInRecentCount} respuestas`} de check-in (30 días)
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate('/feedback?tab=checkins')}
+              className="ml-auto font-medium text-brand-primary hover:underline"
+            >
+              Ver devoluciones
+            </button>
+          </div>
+        ) : null}
+
+        {canSeeTraining ? (
+          <DashboardTrainerOpsPanel dueCheckInSchedules={dueCheckInSchedules} />
+        ) : null}
+
+
+        {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
+        {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (
+          <div className="rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">{todayLabel}</p>
+            <div className="flex flex-wrap gap-2">
+              {todayApps.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => navigate('/appointments')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15 transition-colors"
+                >
+                  <Calendar className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
+                  <span>{new Date(a.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} · {a.student_name}</span>
+                </button>
+              ))}
+              {birthdays.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => navigate(`/students/${b.id}`)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-status-expiring/25 bg-status-expiring/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expiring/15 transition-colors"
+                >
+                  <Cake className="h-3.5 w-3.5 text-status-expiring shrink-0" />
+                  <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
+                </button>
+              ))}
+              {mergedExpiring.filter(r => r.days <= 3).map((row) => (
+                <button
+                  key={`exp-${row.id}`}
+                  type="button"
+                  onClick={() => navigate(row.href)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-status-expired/25 bg-status-expired/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expired/15 transition-colors"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-status-expired shrink-0" />
+                  <span>{row.title} · {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Vence hoy' : `${row.days}d`}</span>
+                </button>
+              ))}
+              {pendingIncomeTotal > 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/finances')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-amber-500/15 transition-colors"
+                >
+                  <Wallet className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>{formatCurrency(pendingIncomeTotal)} pendiente de cobro</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Por ámbito · 6 meses (un neto por línea; sin punteados) ─────────── */}
         {canSeeFinances && (

@@ -4,6 +4,8 @@ import {
   Text,
   View,
   StyleSheet,
+  Image,
+  Link,
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
 import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
@@ -21,6 +23,25 @@ export interface RoutinePdfData {
   generatedAt: Date
   /** Último 1RM por ejercicio (kg) para convertir %1RM → kg en el PDF */
   rmByExerciseId?: Record<string, number>
+  /** Logo Ferster (data URI o URL absoluta). */
+  brandLogoSrc?: string | null
+}
+
+/** Portada = pág. 1; índice = pág. 2; primera semana empieza en pág. 3. */
+const PDF_COVER_PAGE_COUNT = 1
+const PDF_INDEX_PAGE_COUNT = 1
+const PDF_FIRST_CONTENT_PAGE = PDF_COVER_PAGE_COUNT + PDF_INDEX_PAGE_COUNT + 1
+
+function weekStartPage(weekIndex: number): number {
+  return PDF_FIRST_CONTENT_PAGE + weekIndex
+}
+
+function weekAnchorId(weekIndex: number): string {
+  return `week-${weekIndex}`
+}
+
+function dayAnchorId(weekIndex: number, dayIndex: number): string {
+  return `w-${weekIndex}-d-${dayIndex}`
 }
 
 // ─── Paleta ───────────────────────────────────────────────────────────────────
@@ -68,6 +89,13 @@ const s = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   /** Monograma embebido: evita fetch HTTP a /logo… (en muchos entornos el archivo no existe y react-pdf falla). */
   logoImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    marginRight: 8,
+    objectFit: 'contain',
+  },
+  logoFallback: {
     width: 38,
     height: 38,
     borderRadius: 8,
@@ -156,6 +184,207 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
   },
   notesText: { fontSize: 8, color: '#78350F', lineHeight: 1.6 },
+
+  // ── Portada (hero) ──
+  coverPage: {
+    paddingTop: 0,
+    paddingBottom: 28,
+    paddingHorizontal: 0,
+    backgroundColor: '#FAFBFC',
+  },
+  coverTopBand: {
+    height: 6,
+    backgroundColor: C.brand,
+    marginBottom: 0,
+  },
+  coverInner: {
+    paddingHorizontal: 40,
+    paddingTop: 28,
+    flexGrow: 1,
+  },
+  coverHero: {
+    alignItems: 'center',
+    marginBottom: 22,
+    paddingTop: 8,
+  },
+  logoHeroRing: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  logoHero: {
+    width: 72,
+    height: 72,
+    objectFit: 'contain',
+  },
+  logoHeroFallback: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: C.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverKicker: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.brand,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  coverPlanTitle: {
+    fontSize: 22,
+    fontFamily: 'Helvetica-Bold',
+    color: C.dark,
+    textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  coverStudent: {
+    fontSize: 11,
+    color: C.body,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  coverPillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  coverPill: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  coverPillBrand: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: C.brandLight,
+    borderWidth: 1,
+    borderColor: C.brandMid,
+  },
+  coverPillText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.heading,
+  },
+  coverPillTextBrand: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#C2410C',
+  },
+  coverWeekStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 5,
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  coverWeekStripLabel: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: 6.5,
+    color: C.muted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  coverWeekChip: {
+    minWidth: 32,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: C.dark,
+    alignItems: 'center',
+  },
+  coverWeekChipText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.white,
+  },
+  coverObjectiveCard: {
+    marginBottom: 14,
+    padding: 16,
+    borderRadius: 10,
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderLeftWidth: 4,
+    borderLeftColor: C.brand,
+  },
+  coverGuideRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  coverGuideStep: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: 'center',
+  },
+  coverGuideNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: C.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
+  },
+  coverGuideNumText: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: C.white,
+  },
+  coverGuideTitle: {
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    color: C.heading,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  coverGuideSub: {
+    fontSize: 6.5,
+    color: C.muted,
+    textAlign: 'center',
+    lineHeight: 1.35,
+  },
+  coverFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  coverFooterBrand: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.heading,
+  },
+  coverFooterMeta: {
+    fontSize: 7,
+    color: C.muted,
+    textAlign: 'right',
+  },
 
   // ── Índice (diseño tipo “card”; sin Link para evitar cuelgues del motor) ──
   tocCard: {
@@ -307,6 +536,35 @@ const s = StyleSheet.create({
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#C2410C',
+  },
+  tocQuickNav: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+  },
+  tocQuickChip: {
+    borderWidth: 1,
+    borderColor: C.brandMid,
+    backgroundColor: C.brandLight,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  tocQuickChipText: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#C2410C',
+  },
+  tocPageNum: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.heading,
+  },
+  tocLink: {
+    textDecoration: 'none',
+    color: C.heading,
   },
 
   // ── Bloque (semana): franja alternada con la app ──
@@ -637,14 +895,16 @@ function DaySection({
   day,
   index,
   rmByExerciseId,
+  anchorId,
 }: {
   day: DayFull
   index: number
   rmByExerciseId?: Record<string, number>
+  anchorId?: string
 }) {
   return (
     <View style={s.daySection}>
-      <View style={s.dayHeader}>
+      <View id={anchorId} style={s.dayHeader}>
         <View style={s.dayBadge}>
           <Text style={s.dayBadgeText}>DÍA {index + 1}</Text>
         </View>
@@ -661,73 +921,220 @@ function DaySection({
   )
 }
 
-// ─── Documento principal ──────────────────────────────────────────────────────
+function CoverLogo({ brandLogoSrc }: { brandLogoSrc?: string | null }) {
+  return (
+    <View style={s.logoHeroRing}>
+      {brandLogoSrc ? (
+        <Image src={brandLogoSrc} style={s.logoHero} />
+      ) : (
+        <View style={s.logoHeroFallback}>
+          <Text style={s.logoMonogram}>HH</Text>
+        </View>
+      )}
+    </View>
+  )
+}
 
-export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseId }: RoutinePdfData) {
+function RoutineCoverPage({
+  routine,
+  blocks,
+  generatedAt,
+  brandLogoSrc,
+  tocHasContent,
+}: {
+  routine: RoutineFull
+  blocks: BlockFull[]
+  generatedAt: Date
+  brandLogoSrc?: string | null
+  tocHasContent: boolean
+}) {
   const student = routine.student
-
-  const tocHasContent = blocks.some((b) => (b.days?.length ?? 0) > 0)
+  const weekCount = blocks.length
+  const dayCount = blocks.reduce((n, b) => n + (b.days?.length ?? 0), 0)
 
   return (
-    <Document
-      title={`Rutina — ${student?.full_name ?? 'Alumno'}`}
-      author="Haciéndolo Hábito"
-    >
-      {/* Portada + índice: una sola Page; sin header/footer fijos ni enlaces internos (evita cuelgues del layout). */}
-      <Page size="A4" style={s.page}>
-        <View style={s.header}>
-          <View style={s.headerLeft}>
-            <View style={s.headerBrandBar} />
-            <View style={s.logoImg}>
-              <Text style={s.logoMonogram}>HH</Text>
+    <>
+      <View style={s.coverTopBand} />
+      <View style={s.coverInner}>
+        <View style={s.coverHero}>
+          <CoverLogo brandLogoSrc={brandLogoSrc} />
+          <Text style={s.coverKicker}>Haciéndolo Hábito · Ferster Fitness</Text>
+          <Text style={s.coverPlanTitle}>{clampPdfLine(routine.name, 80)}</Text>
+          <Text style={s.coverStudent}>{student?.full_name ?? '—'}</Text>
+          <View style={s.coverPillRow}>
+            <View style={s.coverPillBrand}>
+              <Text style={s.coverPillTextBrand}>{LEVEL_LABEL[routine.level] ?? routine.level}</Text>
             </View>
-            <View style={{ marginLeft: 2 }}>
-              <Text style={s.gymName}>Haciéndolo Hábito</Text>
-              <Text style={s.gymSub}>Ferster Fitness</Text>
+            <View style={s.coverPill}>
+              <Text style={s.coverPillText}>
+                {formatDate(routine.start_date)} – {formatDate(routine.end_date)}
+              </Text>
             </View>
-          </View>
-          <View style={s.headerRight}>
-            <Text style={[s.headerDate, s.headerDateSpacing]}>
-              Generado el {generatedAt.toLocaleDateString('es-AR')}
-            </Text>
-            <Text style={s.headerRoutineName}>{clampPdfLine(routine.name, 120)}</Text>
+            <View style={s.coverPill}>
+              <Text style={s.coverPillText}>{routine.duration_days} días</Text>
+            </View>
           </View>
         </View>
 
-        <View style={s.infoCard}>
-          <View style={s.infoCol}>
-            <Text style={s.infoLabel}>Alumno</Text>
-            <Text style={s.infoValue}>{student?.full_name ?? '—'}</Text>
-          </View>
-          <View style={s.infoCol}>
-            <Text style={s.infoLabel}>Nivel</Text>
-            <Text style={s.infoValue}>{LEVEL_LABEL[routine.level] ?? routine.level}</Text>
-          </View>
-          <View style={s.infoCol}>
-            <Text style={s.infoLabel}>Período</Text>
-            <Text style={s.infoPeriod}>
-              {formatDate(routine.start_date)} – {formatDate(routine.end_date)}
+        {weekCount > 0 ? (
+          <View style={s.coverWeekStrip}>
+            <Text style={s.coverWeekStripLabel}>
+              {weekCount} {weekCount === 1 ? 'semana' : 'semanas'}
+              {dayCount > 0 ? ` · ${dayCount} días de entrenamiento` : ''}
             </Text>
+            {blocks.map((_, wi) => (
+              <View key={`cw-${wi}`} style={s.coverWeekChip}>
+                <Text style={s.coverWeekChipText}>S{wi + 1}</Text>
+              </View>
+            ))}
           </View>
-          <View style={s.infoCol}>
-            <Text style={s.infoLabel}>Duración</Text>
-            <Text style={s.infoValue}>{routine.duration_days} días</Text>
-          </View>
-        </View>
+        ) : null}
 
-        <View style={s.objectiveBox}>
-          <Text style={s.objectiveLabel}>Objetivo del Coach</Text>
+        <View style={s.coverObjectiveCard}>
+          <Text style={s.objectiveLabel}>Objetivo del coach</Text>
           <Text style={s.objectiveText}>{clampPdfLine(routine.objective, 4000)}</Text>
         </View>
 
         {routine.notes ? (
-          <View style={s.notesBox}>
+          <View style={[s.notesBox, { marginBottom: 14 }]}>
             <Text style={s.notesLabel}>Aclaraciones importantes</Text>
             <Text style={s.notesText}>{clampPdfLine(routine.notes, 4000)}</Text>
           </View>
         ) : null}
 
         {tocHasContent ? (
+          <View style={s.coverGuideRow}>
+            <View style={s.coverGuideStep}>
+              <View style={s.coverGuideNum}>
+                <Text style={s.coverGuideNumText}>1</Text>
+              </View>
+              <Text style={s.coverGuideTitle}>Índice</Text>
+              <Text style={s.coverGuideSub}>Página 2 · mapa de semanas y días</Text>
+            </View>
+            <View style={s.coverGuideStep}>
+              <View style={s.coverGuideNum}>
+                <Text style={s.coverGuideNumText}>2</Text>
+              </View>
+              <Text style={s.coverGuideTitle}>Entrená</Text>
+              <Text style={s.coverGuideSub}>Desde pág. {PDF_FIRST_CONTENT_PAGE} · una semana por bloque</Text>
+            </View>
+            <View style={s.coverGuideStep}>
+              <View style={s.coverGuideNum}>
+                <Text style={s.coverGuideNumText}>3</Text>
+              </View>
+              <Text style={s.coverGuideTitle}>Seguimiento</Text>
+              <Text style={s.coverGuideSub}>Marcá series, pesos y sensaciones en cada día</Text>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={s.coverFooter}>
+          <Text style={s.coverFooterBrand}>Ferster Fitness</Text>
+          <Text style={s.coverFooterMeta}>
+            Generado el {generatedAt.toLocaleDateString('es-AR')}
+            {'\n'}
+            Plan personal · uso exclusivo del alumno
+          </Text>
+        </View>
+      </View>
+    </>
+  )
+}
+
+function PdfBrandHeader({
+  generatedAt,
+  routineName,
+  brandLogoSrc,
+  compact,
+}: {
+  generatedAt: Date
+  routineName: string
+  brandLogoSrc?: string | null
+  compact?: boolean
+}) {
+  if (compact) {
+    return (
+      <View style={[s.header, { marginBottom: 14, paddingBottom: 12 }]}>
+        <View style={s.headerLeft}>
+          {brandLogoSrc ? (
+            <Image src={brandLogoSrc} style={[s.logoImg, { borderRadius: 14, width: 32, height: 32 }]} />
+          ) : (
+            <View style={[s.logoFallback, { borderRadius: 14, width: 32, height: 32 }]}>
+              <Text style={s.logoMonogram}>HH</Text>
+            </View>
+          )}
+          <View style={{ marginLeft: 8 }}>
+            <Text style={[s.gymName, { fontSize: 10 }]}>Haciéndolo Hábito</Text>
+            <Text style={s.headerRoutineName}>{clampPdfLine(routineName, 80)}</Text>
+          </View>
+        </View>
+        <Text style={s.headerDate}>{generatedAt.toLocaleDateString('es-AR')}</Text>
+      </View>
+    )
+  }
+
+  return (
+    <View style={s.header}>
+      <View style={s.headerLeft}>
+        <View style={s.headerBrandBar} />
+        {brandLogoSrc ? (
+          <Image src={brandLogoSrc} style={[s.logoImg, { borderRadius: 12 }]} />
+        ) : (
+          <View style={[s.logoFallback, { borderRadius: 12 }]}>
+            <Text style={s.logoMonogram}>HH</Text>
+          </View>
+        )}
+        <View style={{ marginLeft: 2 }}>
+          <Text style={s.gymName}>Haciéndolo Hábito</Text>
+          <Text style={s.gymSub}>Ferster Fitness</Text>
+        </View>
+      </View>
+      <View style={s.headerRight}>
+        <Text style={[s.headerDate, s.headerDateSpacing]}>
+          Generado el {generatedAt.toLocaleDateString('es-AR')}
+        </Text>
+        <Text style={s.headerRoutineName}>{clampPdfLine(routineName, 120)}</Text>
+      </View>
+    </View>
+  )
+}
+
+// ─── Documento principal ──────────────────────────────────────────────────────
+
+export function RoutinePdfDocument({
+  routine,
+  blocks,
+  generatedAt,
+  rmByExerciseId,
+  brandLogoSrc,
+}: RoutinePdfData) {
+  const tocHasContent = blocks.some((b) => (b.days?.length ?? 0) > 0)
+
+  return (
+    <Document
+      title={`Rutina — ${routine.student?.full_name ?? 'Alumno'}`}
+      author="Haciéndolo Hábito"
+    >
+      {/* Pág. 1 — portada hero (sin datos duplicados). */}
+      <Page size="A4" style={s.coverPage}>
+        <RoutineCoverPage
+          routine={routine}
+          blocks={blocks}
+          generatedAt={generatedAt}
+          brandLogoSrc={brandLogoSrc}
+          tocHasContent={tocHasContent}
+        />
+      </Page>
+
+      {/* Pág. 2 — índice con números de página y enlaces internos. */}
+      {tocHasContent ? (
+        <Page size="A4" style={s.page}>
+          <PdfBrandHeader
+            generatedAt={generatedAt}
+            routineName={routine.name}
+            brandLogoSrc={brandLogoSrc}
+            compact
+          />
           <View style={s.tocCard}>
             <View style={s.tocCardTitleRow}>
               <View style={s.tocCardAccent} />
@@ -738,8 +1145,19 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
             </View>
             <View style={s.tocHintBox}>
               <Text style={s.tocHint}>
-                Cada semana ocupa al menos una página nueva en este PDF. El código «1.2» indica semana 1, día 2, alineado con las etiquetas del cuerpo del plan.
+                Los números son páginas reales de este PDF. Tocá una fila o un acceso rápido (S1, S2…) en el visor para ir a esa semana o día.
               </Text>
+            </View>
+            <View style={s.tocQuickNav}>
+              {blocks.map((block, wi) => (
+                <Link key={`q-${block.id}`} src={`#${weekAnchorId(wi)}`} style={s.tocLink}>
+                  <View style={s.tocQuickChip}>
+                    <Text style={s.tocQuickChipText}>
+                      S{wi + 1} · pág. {weekStartPage(wi)}
+                    </Text>
+                  </View>
+                </Link>
+              ))}
             </View>
             <View style={s.tocBody}>
               {blocks.map((block, wi) => (
@@ -748,11 +1166,17 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
                     <View style={s.tocWeekBadge}>
                       <Text style={s.tocWeekBadgeText}>S{wi + 1}</Text>
                     </View>
-                    <Text style={s.tocWeekTitle}>{clampPdfLine(block.name, 100)}</Text>
-                    <View style={s.tocDotsOnDark} />
-                    <View style={s.tocRefPillBrand}>
-                      <Text style={s.tocRefPillBrandText}>{wi + 1}</Text>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Link src={`#${weekAnchorId(wi)}`} style={s.tocLink}>
+                        <Text style={s.tocWeekTitle}>{clampPdfLine(block.name, 100)}</Text>
+                      </Link>
                     </View>
+                    <View style={s.tocDotsOnDark} />
+                    <Link src={`#${weekAnchorId(wi)}`} style={s.tocLink}>
+                      <View style={s.tocRefPillBrand}>
+                        <Text style={s.tocRefPillBrandText}>pág. {weekStartPage(wi)}</Text>
+                      </View>
+                    </Link>
                   </View>
                   {block.days.map((day, di) => (
                     <View
@@ -760,27 +1184,29 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
                       style={[s.tocDayRow, di % 2 === 1 ? s.tocDayRowAlt : {}]}
                     >
                       <Text style={s.tocDayChevron}>›</Text>
-                      <Text style={s.tocDayText}>
-                        Día {di + 1} · {clampPdfLine(day.day_name, 90)}
-                      </Text>
-                      <View style={s.tocDots} />
-                      <View style={s.tocRefPill}>
-                        <Text style={s.tocRefPillText}>
-                          {wi + 1}.{di + 1}
+                      <Link src={`#${dayAnchorId(wi, di)}`} style={[s.tocDayText, s.tocLink]}>
+                        <Text>
+                          Día {di + 1} · {clampPdfLine(day.day_name, 90)}
                         </Text>
-                      </View>
+                      </Link>
+                      <View style={s.tocDots} />
+                      <Link src={`#${dayAnchorId(wi, di)}`} style={s.tocLink}>
+                        <View style={s.tocRefPill}>
+                          <Text style={s.tocPageNum}>pág. {weekStartPage(wi)}</Text>
+                        </View>
+                      </Link>
                     </View>
                   ))}
                 </View>
               ))}
             </View>
           </View>
-        ) : null}
-      </Page>
+        </Page>
+      ) : null}
 
       {blocks.map((block, wi) => (
         <Page key={block.id} size="A4" style={s.page}>
-          <View style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
+          <View id={weekAnchorId(wi)} style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
             <View style={s.blockHeader}>
               <View style={s.blockAccent} />
               <Text style={s.blockName}>{clampPdfLine(block.name, 100)}</Text>
@@ -788,7 +1214,13 @@ export function RoutinePdfDocument({ routine, blocks, generatedAt, rmByExerciseI
             </View>
             <View style={s.blockWrapper}>
               {block.days.map((day, di) => (
-                <DaySection key={day.id} day={day} index={di} rmByExerciseId={rmByExerciseId} />
+                <DaySection
+                  key={day.id}
+                  day={day}
+                  index={di}
+                  rmByExerciseId={rmByExerciseId}
+                  anchorId={dayAnchorId(wi, di)}
+                />
               ))}
             </View>
           </View>

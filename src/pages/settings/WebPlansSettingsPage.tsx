@@ -18,6 +18,12 @@ import {
 import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
+import {
+  CANONICAL_WEB_PLAN_SLUGS,
+  isCanonicalWebPlanSlug,
+  mergeWebPlansForManagement,
+  type CanonicalEditableWebPlan,
+} from '@/lib/webPlansCanonicalCatalog'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -37,7 +43,8 @@ type EditableWebPlan = Pick<
   | 'catalog_segment'
   | 'display_badge'
   | 'credential_line_override'
->
+> &
+  Pick<CanonicalEditableWebPlan, 'isCatalogCanonical'>
 
 const LIMITS = {
   title: 120,
@@ -53,32 +60,6 @@ const LIMITS = {
   slotsMsg: 280,
   modalityLabel: 80,
 } as const
-
-const FALLBACK_PLANS: EditableWebPlan[] = [
-  {
-    slug: 'plan-full',
-    title: 'Plan Full',
-    price_label: '$100.000',
-    price_yearly_label: '$1.000.000',
-    price_3m_label: null,
-    price_6m_label: null,
-    short_description: 'Combina entrenamiento + nutrición en un plan integral.',
-    intro_text:
-      'Plan integral que abarca entrenamiento y nutrición en conjunto, orientado a maximizar resultados con acompañamiento completo, estrategia personalizada y seguimiento continuo.',
-    includes_items: [
-      'Videollamada de bienvenida + evaluación inicial completa.',
-      'Videollamada mensual de progreso y ajustes.',
-      'Rutina + planificación nutricional personalizada.',
-    ],
-    gifts_items: ['Calendario gratis para anotar tus hábitos.', 'Materiales y guías digitales.'],
-    sort_order: 1,
-    is_active: true,
-    show_in_public_intake: true,
-    catalog_segment: 'full',
-    display_badge: null,
-    credential_line_override: null,
-  },
-]
 
 function toMultiline(items: string[]) {
   return items.join('\n')
@@ -183,6 +164,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
     catalog_segment: 'solo',
     display_badge: null,
     credential_line_override: null,
+    isCatalogCanonical: false,
   }
 }
 
@@ -197,7 +179,7 @@ export function WebPlansSettingsPage() {
   const [dragOverPlanSlug, setDragOverPlanSlug] = useState<string | null>(null)
   /** Ofertas con formulario expandido; por defecto todas contraídas para reordenar más rápido. */
   const [expandedOfferSlugs, setExpandedOfferSlugs] = useState<Set<string>>(() => new Set())
-  const [plans, setPlans] = useState<EditableWebPlan[]>(FALLBACK_PLANS)
+  const [plans, setPlans] = useState<EditableWebPlan[]>(() => mergeWebPlansForManagement([]))
   /** Slugs creados en esta sesión y aún no guardados en la base (se pueden borrar). */
   const [draftSlugs, setDraftSlugs] = useState<string[]>([])
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
@@ -442,10 +424,11 @@ export function WebPlansSettingsPage() {
         display_badge: row.display_badge ?? null,
         credential_line_override: row.credential_line_override ?? null,
       }))
-      if (rows.length > 0) {
-        setPlans(rows)
-        setDraftSlugs([])
-      }
+      const merged = mergeWebPlansForManagement(
+        rows.map((r) => ({ ...r, isCatalogCanonical: isCanonicalWebPlanSlug(r.slug) })),
+      )
+      setPlans(merged)
+      setDraftSlugs([])
     })()
     return () => {
       mounted = false
@@ -576,6 +559,10 @@ export function WebPlansSettingsPage() {
       removeDraft(slug)
       return
     }
+    if (isCanonicalWebPlanSlug(slug)) {
+      toast.error('Esta oferta forma parte del catálogo base de /form (7 planes). Podés editarla, no borrarla.')
+      return
+    }
     const ok = window.confirm(
       `¿Borrar la oferta «${slug}» de la base? No se puede deshacer. Si un alumno tenía este plan asignado, quedará sin plan (la referencia se limpia).`,
     )
@@ -686,8 +673,9 @@ export function WebPlansSettingsPage() {
       catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
       display_badge: row.display_badge ?? null,
       credential_line_override: row.credential_line_override ?? null,
+      isCatalogCanonical: isCanonicalWebPlanSlug(row.slug),
     }))
-    if (rows.length > 0) setPlans(rows)
+    setPlans(mergeWebPlansForManagement(rows))
   }
 
   if (!canManage) {
@@ -934,12 +922,15 @@ export function WebPlansSettingsPage() {
         </SectionCard>
 
         <div id="web-plans-ofertas" className="scroll-mt-24 space-y-3">
-          <h2 className="text-base font-semibold tracking-tight text-ink-primary">Ofertas en base de datos</h2>
+          <h2 className="text-base font-semibold tracking-tight text-ink-primary">
+            Catálogo de ofertas ({CANONICAL_WEB_PLAN_SLUGS.length} planes base + extras)
+          </h2>
           <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
-            Cada bloque es una fila de <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Para el /form
-            importan las que tengan segmento <strong className="text-ink-primary">Plan full</strong> o{' '}
-            <strong className="text-ink-primary">Nutrición (with_nutritionist)</strong>, estén activas y tengan «Mostrar en /form». Al final pulsá{' '}
-            <strong className="text-ink-primary">Guardar ofertas</strong> para persistir todos los cambios.
+            Las <strong className="text-ink-primary">7 ofertas del /form</strong> (3 Ferster, Nutrición individual, 3 Plan full) aparecen siempre acá con sus
+            textos alineados a la web, aunque aún no estén en la base. Editá y pulsá{' '}
+            <strong className="text-ink-primary">Guardar ofertas</strong> para persistir en{' '}
+            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Las filas marcadas «Catálogo /form» no se pueden
+            borrar.
             {hiddenVariantCount > 0 ? (
               <>
                 {' '}
@@ -1120,6 +1111,11 @@ export function WebPlansSettingsPage() {
                     >
                       Orden {plan.sort_order}
                     </span>
+                    {plan.isCatalogCanonical ? (
+                      <span className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary">
+                        Catálogo /form
+                      </span>
+                    ) : null}
                     <span
                       className={cn(
                         'shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',

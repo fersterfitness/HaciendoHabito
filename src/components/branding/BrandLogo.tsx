@@ -1,6 +1,5 @@
+import { BRAND_LOGO_PATH } from '@/lib/brandLogo'
 import { cn } from '@/lib/utils'
-
-const logoUrl = '/logo-brand.png'
 
 type BrandLogoSize = 'sm' | 'md' | 'lg'
 
@@ -42,7 +41,7 @@ export function BrandLogo({ size = 'md', className, decorative }: BrandLogoProps
       {...(decorative ? { 'aria-hidden': true } : {})}
     >
       <img
-        src={logoUrl}
+        src={BRAND_LOGO_PATH}
         alt={alt}
         width={512}
         height={512}

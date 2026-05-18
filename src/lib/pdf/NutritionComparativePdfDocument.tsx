@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { PdfBrandRibbon } from '@/lib/pdf/PdfBrandRibbon'
 
 const styles = StyleSheet.create({
   page: {
@@ -45,6 +46,7 @@ interface NutritionComparativePdfDocumentProps {
   toLabel: string
   differences: Array<{ label: string; from: string; to: string; delta: string }>
   interpretation: string
+  brandLogoSrc?: string | null
 }
 
 export function NutritionComparativePdfDocument({
@@ -53,12 +55,17 @@ export function NutritionComparativePdfDocument({
   toLabel,
   differences,
   interpretation,
+  brandLogoSrc,
 }: NutritionComparativePdfDocumentProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Diagnóstico comparativo antropométrico</Text>
-        <Text style={styles.subtitle}>Generado automáticamente en Haciéndolo Hábito</Text>
+        <PdfBrandRibbon
+          brandLogoSrc={brandLogoSrc}
+          kicker="Haciéndolo Hábito · Nutrición"
+          title="Diagnóstico comparativo antropométrico"
+          subtitle="Generado en Haciéndolo Hábito"
+        />
 
         <View style={styles.section}>
           <Text style={styles.label}>Paciente</Text>

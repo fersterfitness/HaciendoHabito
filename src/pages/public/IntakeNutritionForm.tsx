@@ -12,6 +12,7 @@ import {
   intakeFormInputClass,
   intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
+import { PublicFormBrandBar } from '@/components/branding/PublicFormBrandBar'
 import {
   nutritionIntakeSchema,
   nutritionDefaults,
@@ -170,8 +171,10 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
 
   return (
     <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
-      <h1 className="text-xl font-bold text-ink-primary tracking-tight mb-0.5">Cuestionario nutricional</h1>
-      <p className="text-xs text-ink-secondary mb-2">Alimentación personalizada · Haciéndolo hábito</p>
+      <PublicFormBrandBar
+        title="Cuestionario nutricional"
+        subtitle="Alimentación personalizada · Haciéndolo hábito"
+      />
 
       {/* Plan badge / no-plan nudge */}
       {selectedPlanLabel ? (

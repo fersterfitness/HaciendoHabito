@@ -17,6 +17,7 @@ import {
   intakeFormInputClass,
   intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
+import { PublicFormBrandBar } from '@/components/branding/PublicFormBrandBar'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -289,15 +290,10 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
 
   return (
     <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
-      <h1 className="text-xl font-bold text-ink-primary tracking-tight mb-0.5">
-        Registro Plan Full
-      </h1>
-      <p className="text-xs text-ink-secondary mb-2">
-        Entrenamiento + nutrición · Haciéndolo hábito
-      </p>
-      <p className="text-[11px] text-ink-muted mb-2.5">
-        Tomás Ferster · Cristian Crossetto
-      </p>
+      <PublicFormBrandBar
+        title="Registro Plan Full"
+        subtitle="Entrenamiento + nutrición · Tomás Ferster y Cristian Crossetto"
+      />
 
       {/* Plan badge */}
       {selectedPlanLabel ? (

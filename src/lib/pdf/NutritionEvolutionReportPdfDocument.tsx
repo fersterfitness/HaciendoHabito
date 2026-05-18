@@ -1,5 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { EvolutionPdfRow } from '@/lib/nutrition/nutritionEvolutionInterpretation'
+import { PdfBrandRibbon } from '@/lib/pdf/PdfBrandRibbon'
+import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
 
 const colors = {
   ink: '#0F172A',
@@ -8,8 +10,8 @@ const colors = {
   border: '#E2E8F0',
   surface: '#F8FAFC',
   surfaceCard: '#FFFFFF',
-  brand: '#10B981',
-  brandSoft: '#ECFDF5',
+  brand: PDF_BRAND.primary,
+  brandSoft: PDF_BRAND.primaryLight,
   good: '#16A34A',
   goodSoft: '#DCFCE7',
   bad: '#DC2626',
@@ -25,28 +27,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     color: colors.ink,
     backgroundColor: colors.surface,
-  },
-  header: {
-    marginBottom: 18,
-    paddingBottom: 14,
-    borderBottom: `2pt solid ${colors.brand}`,
-  },
-  brand: {
-    fontSize: 9,
-    color: colors.brand,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1.4,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.ink,
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 9,
-    color: colors.inkSecondary,
   },
   metaCard: {
     flexDirection: 'row',
@@ -150,23 +130,24 @@ export function NutritionEvolutionReportPdfDocument({
   toLabel,
   rows,
   interpretation,
+  brandLogoSrc,
 }: {
   patientName: string
   fromLabel: string
   toLabel: string
   rows: EvolutionPdfRow[]
   interpretation: string
+  brandLogoSrc?: string | null
 }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.brand}>HACIÉNDOLO HÁBITO · NUTRICIÓN</Text>
-          <Text style={styles.title}>Informe de evolución antropométrica</Text>
-          <Text style={styles.subtitle}>
-            Apoyo para la devolución del paciente · No constituye diagnóstico médico
-          </Text>
-        </View>
+        <PdfBrandRibbon
+          brandLogoSrc={brandLogoSrc}
+          kicker="Haciéndolo Hábito · Nutrición"
+          title="Informe de evolución antropométrica"
+          subtitle="Apoyo para la devolución del paciente · No constituye diagnóstico médico"
+        />
 
         <View style={styles.metaCard}>
           <View style={styles.metaCol}>

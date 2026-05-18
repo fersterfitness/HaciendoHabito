@@ -4,6 +4,7 @@ import { ArrowRight, Check, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { useTheme } from '@/contexts/ThemeContext'
+import { BrandLogo } from '@/components/branding/BrandLogo'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
@@ -728,10 +729,10 @@ function LeftBrandPanel({
                 }}
                 aria-hidden
               />
-              <img
-                src="/logo-brand.png"
-                alt="Haciéndolo hábito"
-                className="relative z-[1] h-8 w-auto max-w-[120px] object-contain object-left opacity-95 sm:h-9 sm:max-w-[132px]"
+              <BrandLogo
+                size="sm"
+                decorative
+                className="relative z-[1] h-8 w-8 sm:h-9 sm:w-9 opacity-95"
               />
               <p className="relative z-[1] min-w-0 truncate text-[15px] font-bold leading-snug tracking-tight text-white/95 sm:text-base">
                 Haciéndolo hábito

@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import { createElement, type ReactElement } from 'react'
 import { supabase } from '@/lib/supabase'
+import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { RoutinePdfDocument } from './RoutinePdfDocument'
 import type { BlockFull, RoutineFull } from './RoutinePdfDocument'
 
@@ -97,6 +98,7 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
       blocks: sortedBlocks as unknown as BlockFull[],
       generatedAt: new Date(),
       rmByExerciseId: Object.keys(rmByExerciseId).length ? rmByExerciseId : undefined,
+      brandLogoSrc: defaultBrandLogoSrc(),
     })
 
     const blob = await withTimeout(

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { useParams } from 'react-router-dom'
 import { Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { BrandLogo } from '@/components/branding/BrandLogo'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import type { Json } from '@/types/database'
@@ -259,9 +260,13 @@ export function PublicCheckInPage() {
   return (
     <PageFrame innerClassName="justify-start sm:justify-center">
       <div className="w-full max-w-lg space-y-8">
-        <header className="text-center space-y-2 pt-2">
+        <header className="text-center space-y-3 pt-2">
+          <BrandLogo size="sm" decorative className="mx-auto" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-primary">
+            Ferster Fitness · Haciéndolo hábito
+          </p>
           {firstName ? (
-            <p className="text-xs font-medium uppercase tracking-widest text-brand-primary">Hola, {firstName}</p>
+            <p className="text-xs font-medium uppercase tracking-widest text-ink-muted">Hola, {firstName}</p>
           ) : null}
           <h1 className="text-2xl sm:text-[1.65rem] font-semibold tracking-tight text-ink-primary text-balance">
             {payload.title}

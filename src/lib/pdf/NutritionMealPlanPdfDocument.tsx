@@ -1,6 +1,8 @@
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import { columnLabels } from '@/lib/nutrition/weeklyPlanGrid'
+import { PdfBrandRibbon } from '@/lib/pdf/PdfBrandRibbon'
+import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
 
 type ProfessionalContact = {
   phone?: string
@@ -18,41 +20,13 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#F8FAFC',
   },
-  ribbon: {
-    backgroundColor: '#065F46',
-    borderRadius: 8,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ribbonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    backgroundColor: '#111827',
-  },
-  logoImage: {
-    width: 38,
-    height: 38,
-  },
   ribbonRight: {
     alignItems: 'flex-end',
     maxWidth: 360,
   },
   professionalName: {
     fontSize: 10,
-    color: '#ECFDF5',
+    color: PDF_BRAND.white,
     fontFamily: 'Helvetica-Bold',
     marginBottom: 3,
   },
@@ -76,16 +50,7 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 8.4,
-    color: '#D1FAE5',
-  },
-  title: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#ECFDF5',
-  },
-  subtitle: {
-    fontSize: 8.5,
-    color: '#A7F3D0',
+    color: '#CBD5E1',
   },
   headerGrid: {
     marginBottom: 9,
@@ -118,18 +83,18 @@ const styles = StyleSheet.create({
   mealBlock: {
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#B7E4D7',
+    borderColor: PDF_BRAND.primaryMid,
     borderRadius: 7,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
   mealTitle: {
-    backgroundColor: '#E8F5EE',
+    backgroundColor: PDF_BRAND.primaryLight,
     paddingVertical: 5,
     paddingHorizontal: 6,
     fontSize: 8.7,
     fontFamily: 'Helvetica-Bold',
-    color: '#047857',
+    color: '#C2410C',
   },
   colHeaderRow: {
     flexDirection: 'row',
@@ -211,45 +176,43 @@ export function NutritionMealPlanPdfDocument({
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
-        <View style={styles.ribbon}>
-          <View style={styles.ribbonLeft}>
-            <View style={styles.logoBadge}>
-              {appLogoUrl ? <Image src={appLogoUrl} style={styles.logoImage} /> : <Text style={{ fontSize: 12, color: '#ECFDF5' }}>HH</Text>}
+        <PdfBrandRibbon
+          variant="dark"
+          brandLogoSrc={appLogoUrl}
+          kicker="Haciéndolo Hábito · Nutrición"
+          title="Plan de alimentación"
+          subtitle="Distribución semanal personalizada"
+          rightSlot={
+            <View style={styles.ribbonRight}>
+              <Text style={styles.professionalName}>Prof: {professionalName?.trim() || 'Nutricionista'}</Text>
+              {professionalContact?.phone ? (
+                <View style={styles.contactRow}>
+                  <View style={[styles.contactBadge, { backgroundColor: PDF_BRAND.primary }]}>
+                    <Text style={styles.contactBadgeText}>W</Text>
+                  </View>
+                  <Text style={styles.contactText}>{professionalContact.phone}</Text>
+                </View>
+              ) : null}
+              {professionalContact?.email ? (
+                <View style={styles.contactRow}>
+                  <View style={[styles.contactBadge, { backgroundColor: '#EF4444' }]}>
+                    <Text style={styles.contactBadgeText}>M</Text>
+                  </View>
+                  <Text style={styles.contactText}>{professionalContact.email}</Text>
+                </View>
+              ) : null}
+              {professionalContact?.instagram ? (
+                <View style={styles.contactRow}>
+                  <View style={[styles.contactBadge, { backgroundColor: '#A855F7' }]}>
+                    <Text style={styles.contactBadgeText}>I</Text>
+                  </View>
+                  <Text style={styles.contactText}>{professionalContact.instagram}</Text>
+                </View>
+              ) : null}
+              <Text style={{ fontSize: 7.8, color: '#CBD5E1', marginTop: 2 }}>Versión para paciente</Text>
             </View>
-            <View>
-              <Text style={styles.title}>Plan de alimentación</Text>
-              <Text style={styles.subtitle}>Haciéndolo hábito · nutrición clínica</Text>
-            </View>
-          </View>
-          <View style={styles.ribbonRight}>
-            <Text style={styles.professionalName}>Prof: {professionalName?.trim() || 'Nutricionista'}</Text>
-            {professionalContact?.phone ? (
-              <View style={styles.contactRow}>
-                <View style={[styles.contactBadge, { backgroundColor: '#22C55E' }]}>
-                  <Text style={styles.contactBadgeText}>W</Text>
-                </View>
-                <Text style={styles.contactText}>{professionalContact.phone}</Text>
-              </View>
-            ) : null}
-            {professionalContact?.email ? (
-              <View style={styles.contactRow}>
-                <View style={[styles.contactBadge, { backgroundColor: '#EF4444' }]}>
-                  <Text style={styles.contactBadgeText}>M</Text>
-                </View>
-                <Text style={styles.contactText}>{professionalContact.email}</Text>
-              </View>
-            ) : null}
-            {professionalContact?.instagram ? (
-              <View style={styles.contactRow}>
-                <View style={[styles.contactBadge, { backgroundColor: '#A855F7' }]}>
-                  <Text style={styles.contactBadgeText}>I</Text>
-                </View>
-                <Text style={styles.contactText}>{professionalContact.instagram}</Text>
-              </View>
-            ) : null}
-            <Text style={{ fontSize: 7.8, color: '#A7F3D0', marginTop: 2 }}>Versión para paciente</Text>
-          </View>
-        </View>
+          }
+        />
 
         <View style={styles.headerGrid}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>

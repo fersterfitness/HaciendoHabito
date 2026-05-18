@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
 import { differenceInYears } from 'date-fns'
 import { FileDown, Sparkles } from 'lucide-react'
+import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import { createEmptyWeeklyGrid, normalizeWeeklyGrid, reshapeGrid } from '@/lib/nutrition/weeklyPlanGrid'
@@ -243,7 +244,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             email: 'cris.crossetto@gmail.com',
             instagram: '@c.vazqueznutricion',
           }}
-          appLogoUrl={`${window.location.origin}/logo-brand.png`}
+          appLogoUrl={defaultBrandLogoSrc()}
         />
       )
       const blob = await pdf(doc).toBlob()

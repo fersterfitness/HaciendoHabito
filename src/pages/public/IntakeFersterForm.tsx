@@ -11,6 +11,7 @@ import {
   intakeFormInputClass,
   intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
+import { PublicFormBrandBar } from '@/components/branding/PublicFormBrandBar'
 import {
   fersterIntakeSchema,
   fersterDefaults,
@@ -304,8 +305,10 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
 
   return (
     <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
-      <h1 className="text-xl font-bold text-ink-primary tracking-tight mb-0.5">Formulario de registro</h1>
-      <p className="text-xs text-ink-secondary mb-2">Plan personalizado · Haciéndolo hábito</p>
+      <PublicFormBrandBar
+        title="Formulario de registro"
+        subtitle="Plan personalizado · Haciéndolo hábito"
+      />
 
       {/* Plan badge / no-plan nudge */}
       {selectedPlanLabel ? (

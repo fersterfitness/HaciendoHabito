@@ -1,16 +1,11 @@
 import { createElement } from 'react'
 import { pdf } from '@react-pdf/renderer'
+import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { PlanningWorkbookPdfDocument } from '@/lib/pdf/PlanningWorkbookPdfDocument'
 import type { PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
 
 function sanitizeFilename(base: string): string {
   return base.replace(/[^\w\s\-_.áéíóúÁÉÍÓÚñÑ]/g, '').trim().slice(0, 80) || 'plan-alimentacion'
-}
-
-/** Logo oscuro legible sobre papel blanco (misma convención que PDF de rutinas). */
-function defaultBrandLogoSrc(): string | undefined {
-  if (typeof window === 'undefined') return undefined
-  return `${window.location.origin}/logo_mark_original_black_square.png`
 }
 
 export async function downloadPlanningWorkbookPdf(

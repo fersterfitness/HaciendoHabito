@@ -35,6 +35,7 @@ import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/Nutr
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
+import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionEvolutionReportPdfDocument } from '@/lib/pdf/NutritionEvolutionReportPdfDocument'
 import {
   buildEvolutionPdfRows,
@@ -426,6 +427,7 @@ export function NutritionPatientDetailPage() {
           toLabel={toLabel}
           rows={rows}
           interpretation={interpretation}
+          brandLogoSrc={defaultBrandLogoSrc()}
         />,
       ).toBlob()
       const url = URL.createObjectURL(blob)
