@@ -198,14 +198,40 @@ export const INTAKE_FULL_INTEGRAL_OFFERS: PublicIntakePlanDetail[] = [
 
 const HIDE_DB_FULL_SLUGS = new Set([...INTAKE_FULL_INTEGRAL_SLUGS, ...LEGACY_FULL_SLUGS_HIDE_FROM_DB])
 
+const INTAKE_FERSTER_SLUGS = new Set(INTAKE_FERSTER_OFFERS.map((o) => o.id))
+
+function overlayIntakeOfferFromDb(
+  base: PublicIntakePlanDetail,
+  db?: PublicIntakePlanDetail,
+): PublicIntakePlanDetail {
+  if (!db) return base
+  return {
+    ...base,
+    ...db,
+    id: base.id,
+    catalogSegment: base.catalogSegment,
+  }
+}
+
+function mergeCanonicalIntakeOffers(
+  offers: PublicIntakePlanDetail[],
+  dbById: Map<string, PublicIntakePlanDetail>,
+): PublicIntakePlanDetail[] {
+  return offers.map((base) => overlayIntakeOfferFromDb(base, dbById.get(base.id)))
+}
+
 /**
  * Catálogo del formulario público:
- * - Ferster: 3 ofertas fijas (`solo`).
+ * - Ferster: 3 ofertas fijas (`solo`) + extras `solo` en `web_plans` (p. ej. ACTION SPORT GYM).
  * - Nutrición (`with_nutritionist`): filas en `web_plans` con ese segmento (activas y «Mostrar en /form» ya filtradas en la query).
  * - Plan full: 3 ofertas fijas + filas extra `full` en `web_plans` (promos, etc.), sin duplicar las fijas ni `plan-full` genérico.
  */
 export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]): PublicIntakePlanDetail[] {
+  const dbById = new Map(dbPlans.map((p) => [p.id, p]))
+  const ferster = mergeCanonicalIntakeOffers(INTAKE_FERSTER_OFFERS, dbById)
+  const extraSolo = dbPlans.filter((p) => p.catalogSegment === 'solo' && !INTAKE_FERSTER_SLUGS.has(p.id))
+  const fullIntegral = mergeCanonicalIntakeOffers(INTAKE_FULL_INTEGRAL_OFFERS, dbById)
   const extraFull = dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id))
   const extraWithNutritionist = dbPlans.filter((p) => p.catalogSegment === 'with_nutritionist')
-  return [...INTAKE_FERSTER_OFFERS, ...INTAKE_FULL_INTEGRAL_OFFERS, ...extraFull, ...extraWithNutritionist]
+  return [...ferster, ...extraSolo, ...fullIntegral, ...extraFull, ...extraWithNutritionist]
 }

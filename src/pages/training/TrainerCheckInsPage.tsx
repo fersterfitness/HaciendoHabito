@@ -379,6 +379,11 @@ export function TrainerCheckInsPage() {
     return `${window.location.origin}/form/check-in/${token}`
   }
 
+  function sharedPublicUrl(publicToken: string | undefined) {
+    if (!publicToken) return ''
+    return `${window.location.origin}/form/check-in/compartido/${publicToken}`
+  }
+
   async function copyLink(token: string) {
     try {
       await navigator.clipboard.writeText(publicUrl(token))
@@ -404,26 +409,42 @@ export function TrainerCheckInsPage() {
       studentName: st.full_name,
       formTitle,
       url: publicUrl(inv.token),
+      intro: savedForm?.intro,
     })
     window.open(buildWhatsAppUrl(digits, msg), '_blank', 'noopener,noreferrer')
   }
 
   function openCheckInWhatsAppGroup() {
-    if (!savedForm || invites.length === 0) {
-      toast.error('Generá al menos un link antes de compartir en grupo')
+    if (!savedForm) {
+      toast.error('Guardá el formulario primero')
       return
     }
-    const entries = invites.map((inv) => ({
-      studentName: inv.student?.full_name ?? 'Alumno',
-      url: publicUrl(inv.token),
-    }))
+    if (!savedForm.public_token) {
+      toast.error('Falta el link general: aplicá la migración de check-in en Supabase y recargá.')
+      return
+    }
+    const sharedUrl = sharedPublicUrl(savedForm.public_token)
     const msg = checkInGroupMessage({
       formTitle: savedForm.title,
       intro: savedForm.intro,
-      entries,
+      sharedUrl,
+      entries: [],
     })
     window.open(buildWhatsAppGroupPickUrl(msg), '_blank', 'noopener,noreferrer')
     toast.success('Elegí el grupo (o chat) en WhatsApp y enviá el mensaje')
+  }
+
+  async function copySharedLink() {
+    if (!savedForm?.public_token) {
+      toast.error('Guardá el formulario para obtener el link general')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(sharedPublicUrl(savedForm.public_token))
+      toast.success('Link general copiado')
+    } catch {
+      toast.error('No se pudo copiar')
+    }
   }
 
   const responseByInvite = useMemo(() => {
@@ -482,9 +503,8 @@ export function TrainerCheckInsPage() {
       <Header title="Check-ins" />
       <div className="px-4 lg:px-6 py-8 space-y-6 max-w-5xl">
         <p className="text-sm text-ink-secondary max-w-prose">
-          Armá un formulario corto; generá un link personal por alumno. El alumno responde sin entrar a la app. Las respuestas aparecen abajo (y podés
-          usar el consentimiento para testimonios). Tratá cada link como un acceso privado: quien lo tenga puede enviar respuestas a nombre de ese
-          alumno.
+          Armá un formulario corto y compartí un <span className="font-medium text-ink-primary">link general</span> en el grupo (cada alumno completa con
+          su correo). Si preferís, también podés generar links personales por alumno. Las respuestas aparecen abajo en «Devoluciones».
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -589,10 +609,44 @@ export function TrainerCheckInsPage() {
               {activeFormId ? 'Guardar cambios' : 'Crear formulario'}
             </Button>
 
-            {activeFormId ? (
+            {activeFormId && savedForm ? (
               <>
+                <div className="border-t border-surface-border pt-4 space-y-3 rounded-lg border border-brand-primary/20 bg-brand-primary/5 p-3">
+                  <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Link general (recomendado)</h3>
+                  <p className="text-[11px] text-ink-muted leading-relaxed">
+                    Un solo link para todos. Cada persona ingresa su correo (el mismo de la ficha) y la respuesta queda vinculada automáticamente. El
+                    texto del intro (con emojis) se incluye al compartir por WhatsApp.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button type="button" size="sm" variant="secondary" className="text-xs h-7" onClick={() => void copySharedLink()}>
+                      Copiar link general
+                    </Button>
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7"
+                    >
+                      <a href={sharedPublicUrl(savedForm.public_token)} target="_blank" rel="noopener noreferrer">
+                        Abrir
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 border-emerald-600/45 text-emerald-800 dark:text-emerald-400"
+                      icon={<WhatsAppIcon className="h-3 w-3" />}
+                      onClick={openCheckInWhatsAppGroup}
+                    >
+                      Grupo WA
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-ink-muted font-mono break-all">{sharedPublicUrl(savedForm.public_token)}</p>
+                </div>
+
                 <div className="border-t border-surface-border pt-4 space-y-3">
-                  <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Links por alumno</h3>
+                  <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Links por alumno (opcional)</h3>
                   <p className="text-[11px] text-ink-muted">Marcá alumnos que todavía no tienen fila en la tabla de abajo y generá el link.</p>
                   <p className="text-[11px] text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
                     No compartas los links en grupos públicos: son como una clave. Si un formulario queda pausado, el link deja de aceptar respuestas
@@ -637,21 +691,6 @@ export function TrainerCheckInsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Invitaciones y respuestas</h3>
                     <div className="flex flex-wrap gap-1.5">
-                      {invites.length > 0 ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={cn(
-                            inviteTableActionBtnClass,
-                            'border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12',
-                          )}
-                          icon={<WhatsAppIcon className="h-3 w-3" />}
-                          onClick={openCheckInWhatsAppGroup}
-                        >
-                          Grupo WA
-                        </Button>
-                      ) : null}
                       {invites.some((i) => responseByInvite.has(i.id)) ? (
                         <Button type="button" size="sm" variant="outline" className="text-xs h-7" icon={<Download className="h-3.5 w-3.5" />} onClick={exportResponsesCsv}>
                           Exportar CSV

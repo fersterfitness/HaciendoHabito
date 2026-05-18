@@ -135,13 +135,17 @@ export function buildAppointmentConfirmedPrepWaUrl(params: { phoneRaw: string | 
 export function checkInGroupMessage(params: {
   formTitle: string
   intro?: string | null
+  sharedUrl?: string | null
   entries: { studentName: string; url: string }[]
 }): string {
-  const lines = [
-    'Hola,',
-    '',
-    `Check-in: ${params.formTitle.trim()}`,
-  ]
+  if (params.sharedUrl?.trim()) {
+    return checkInSharedLinkMessage({
+      formTitle: params.formTitle,
+      url: params.sharedUrl.trim(),
+      intro: params.intro,
+    })
+  }
+  const lines = ['Hola,', '', `Check-in: ${params.formTitle.trim()}`]
   if (params.intro?.trim()) {
     lines.push('', params.intro.trim())
   }
@@ -158,17 +162,41 @@ export function checkInInviteMessage(params: {
   studentName: string
   formTitle: string
   url: string
+  intro?: string | null
 }): string {
   const first = params.studentName.trim().split(/\s+/)[0] || params.studentName.trim()
-  return [
+  const lines = [
     `Hola ${first},`,
     '',
     `Te comparto el link para completar el formulario «${params.formTitle.trim()}»:`,
+  ]
+  if (params.intro?.trim()) {
+    lines.push('', params.intro.trim())
+  }
+  lines.push('', params.url.trim(), '', 'Cuando puedas, completalo. Gracias!')
+  return lines.join('\n')
+}
+
+/** Un solo link para todo el grupo; cada uno completa con su correo. */
+export function checkInSharedLinkMessage(params: {
+  formTitle: string
+  url: string
+  intro?: string | null
+}): string {
+  const lines = [
+    'Hola,',
+    '',
+    `Check-in: ${params.formTitle.trim()}`,
+    '',
+    'Completá el formulario con este link (todos usan el mismo):',
     '',
     params.url.trim(),
-    '',
-    'Cuando puedas, completalo. Gracias!',
-  ].join('\n')
+  ]
+  if (params.intro?.trim()) {
+    lines.splice(4, 0, '', params.intro.trim())
+  }
+  lines.push('', 'Al enviar, ingresá el mismo correo que diste al inscribirte.', '', 'Gracias.')
+  return lines.join('\n')
 }
 
 /** Mensaje sugerido al compartir un recurso (video, artículo) por WhatsApp. */

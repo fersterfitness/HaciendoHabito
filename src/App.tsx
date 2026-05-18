@@ -252,6 +252,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
+      <Route path="/form/check-in/compartido/:token" element={withPageSuspense(<PublicCheckInPage shared />)} />
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
       <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
 

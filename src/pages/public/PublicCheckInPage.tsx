@@ -27,12 +27,22 @@ function parseQuestions(raw: unknown): QuestionDef[] {
 
 type FormPayload = {
   ok: boolean
+  mode?: 'invite' | 'shared'
   title?: string
   intro?: string
   questions?: Json
   student_name?: string
   must_confirm_email?: boolean
   error?: string
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function normalizeToken(raw: string | undefined): string | null {
+  const t = raw?.trim()
+  if (!t || !UUID_RE.test(t)) return null
+  return t.toLowerCase()
 }
 
 const EMAIL_MAX = 320
@@ -101,8 +111,9 @@ function ScalePicker({
   )
 }
 
-export function PublicCheckInPage() {
-  const { token } = useParams<{ token: string }>()
+export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
+  const { token: tokenParam } = useParams<{ token: string }>()
+  const token = normalizeToken(tokenParam)
   const [loading, setLoading] = useState(true)
   const [payload, setPayload] = useState<FormPayload | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -134,7 +145,9 @@ export function PublicCheckInPage() {
         setLoading(false)
         return
       }
-      const { data, error } = await supabase.rpc('get_check_in_form_by_token', { p_token: token })
+      const { data, error } = shared
+        ? await supabase.rpc('get_check_in_form_by_public_token', { p_public_token: token })
+        : await supabase.rpc('get_check_in_form_by_token', { p_token: token })
       if (cancelled) return
       setLoading(false)
       if (error) {
@@ -159,7 +172,7 @@ export function PublicCheckInPage() {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, shared])
 
   async function submit() {
     if (!token || !payload?.ok) return
@@ -182,12 +195,19 @@ export function PublicCheckInPage() {
       if (q.type === 'scale') jsonAnswers[q.id] = Number(answers[q.id] ?? 3)
       else jsonAnswers[q.id] = (answers[q.id] ?? '').trim()
     }
-    const { data, error } = await supabase.rpc('submit_check_in_response', {
-      p_token: token,
-      p_answers: jsonAnswers as unknown as Json,
-      p_testimonial_consent: consent,
-      p_responder_email: responderEmail.trim(),
-    })
+    const { data, error } = shared
+      ? await supabase.rpc('submit_check_in_shared_response', {
+          p_public_token: token,
+          p_answers: jsonAnswers as unknown as Json,
+          p_testimonial_consent: consent,
+          p_responder_email: responderEmail.trim(),
+        })
+      : await supabase.rpc('submit_check_in_response', {
+          p_token: token,
+          p_answers: jsonAnswers as unknown as Json,
+          p_testimonial_consent: consent,
+          p_responder_email: responderEmail.trim(),
+        })
     setSubmitting(false)
     if (error) {
       toast.error(error.message)
@@ -202,6 +222,10 @@ export function PublicCheckInPage() {
       else if (res?.error === 'email_invalid') toast.error('Correo no válido.')
       else if (res?.error === 'email_mismatch') {
         toast.error('El correo no coincide con el que tenemos en tu ficha. Usá el mismo que en la app.')
+      } else if (res?.error === 'student_not_found') {
+        toast.error('No encontramos ese correo en la base del entrenador. Usá el mismo email con el que te inscribiste.')
+      } else if (res?.error === 'email_ambiguous') {
+        toast.error('Hay más de un alumno con ese correo. Contactá a tu entrenador.')
       } else toast.error('No se pudo enviar.')
       return
     }
@@ -223,6 +247,7 @@ export function PublicCheckInPage() {
 
   if (!payload?.ok) {
     const rateLimited = payload?.error === 'rate_limited'
+    const missingToken = payload?.error === 'missing_token'
     return (
       <PageFrame>
         <div className="w-full max-w-md text-center space-y-3">
@@ -232,7 +257,9 @@ export function PublicCheckInPage() {
           <p className="text-sm text-ink-secondary leading-relaxed">
             {rateLimited
               ? 'Esperá un minuto y volvé a abrir el link que te compartieron.'
-              : 'Este enlace no es válido o el formulario ya no está activo.'}
+              : missingToken
+                ? 'El link está incompleto o mal copiado. Pedile a tu entrenador que te lo reenvíe.'
+                : 'Este enlace no es válido, el formulario está pausado o falta activar el check-in en el servidor.'}
           </p>
         </div>
       </PageFrame>
@@ -335,9 +362,9 @@ export function PublicCheckInPage() {
               )}
             />
             <p className="text-[11px] text-ink-muted leading-relaxed">
-              {payload.must_confirm_email
-                ? 'Tiene que ser el mismo correo que usás en la app Haciendo Hábito (así tu entrenador valida la respuesta).'
-                : 'Tu entrenador lo usa para identificarte si compartís el link. Si después cargan tu mail en la ficha, podrán marcar coincidencias.'}
+              {shared || payload.must_confirm_email
+                ? 'Usá el mismo correo con el que te inscribiste o el que figura en tu ficha del entrenador.'
+                : 'Tu entrenador lo usa para identificarte. Si tenés mail en la ficha, debe coincidir.'}
             </p>
           </div>
 

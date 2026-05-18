@@ -707,12 +707,13 @@ export function WebPlansSettingsPage() {
                 cupos y videos de testimonio.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">FERSTER FITNESS:</span> tres cards fijas en la app (no salen de las filas de abajo).
+                <span className="font-medium text-ink-primary">FERSTER FITNESS:</span> tres cards fijas en la app, más cualquier oferta extra con segmento{' '}
+                <code className="font-mono text-[10px]">solo</code> que agregues abajo (activa y «Mostrar en /form»).
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Nutrición (modalidad 2):</span> las cards salen de las ofertas de esta página con
                 segmento Nutrición (<code className="font-mono text-[10px]">with_nutritionist</code>), activas y con «Mostrar en /form» (igual criterio que Plan
-                full). Ferster sigue saliendo solo del código.
+                full). Ferster: tres fijas en código + extras «solo» de la base.
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Plan full (entreno + nutrición):</span> las cards salen de las ofertas de esta página,
@@ -1254,7 +1255,8 @@ export function WebPlansSettingsPage() {
                     <p className="mt-1.5 text-[11px] text-ink-muted">
                       En <strong className="text-ink-secondary">Plan full</strong> el /form combina tres ofertas fijas en código más las filas de este
                       segmento en la base. En <strong className="text-ink-secondary">Nutrición</strong> las cards son solo las filas de la base con este
-                      segmento (activas y «Mostrar en /form»). Ferster (<strong className="text-ink-secondary">solo</strong>) sigue solo en código.
+                      segmento (activas y «Mostrar en /form»). Ferster (<strong className="text-ink-secondary">solo</strong>): tres ofertas base en código
+                      más cualquier extra «solo» que agregues acá (p. ej. ACTION SPORT GYM).
                     </p>
                   </div>
                 </FieldGroup>

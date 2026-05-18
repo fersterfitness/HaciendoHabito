@@ -326,8 +326,21 @@ export interface Database {
         Args: { p_token: string }
         Returns: Json
       }
+      get_check_in_form_by_public_token: {
+        Args: { p_public_token: string }
+        Returns: Json
+      }
       submit_check_in_response: {
         Args: { p_token: string; p_answers: Json; p_testimonial_consent: boolean; p_responder_email: string }
+        Returns: Json
+      }
+      submit_check_in_shared_response: {
+        Args: {
+          p_public_token: string
+          p_answers: Json
+          p_testimonial_consent: boolean
+          p_responder_email: string
+        }
         Returns: Json
       }
       register_trainer_resource_sends: {
@@ -1061,6 +1074,8 @@ export interface CheckInForm {
   intro: string | null
   questions: Json
   is_active: boolean
+  /** Link único para todo el grupo (/form/check-in/compartido/…). */
+  public_token?: string
   created_at: string
   updated_at: string
 }
