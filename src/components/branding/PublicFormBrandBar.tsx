@@ -7,10 +7,16 @@ type PublicFormBrandBarProps = {
   className?: string
   /** En hero oscuro del /form */
   onDark?: boolean
+  /**
+   * Modo compacto (mobile): oculta la cabecera completamente —
+   * el padre ya muestra nombre del plan en su propia nav bar.
+   */
+  compact?: boolean
 }
 
 /** Cabecera de marca en formularios públicos (intake, check-in). */
-export function PublicFormBrandBar({ title, subtitle, className, onDark }: PublicFormBrandBarProps) {
+export function PublicFormBrandBar({ title, subtitle, className, onDark, compact }: PublicFormBrandBarProps) {
+  if (compact) return null
   return (
     <div className={cn('flex items-center gap-3 mb-4', onDark && 'mb-0', className)}>
       <BrandLogo size="sm" decorative className={onDark ? 'drop-shadow-md' : undefined} />

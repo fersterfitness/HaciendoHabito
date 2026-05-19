@@ -62,9 +62,10 @@ type Props = {
   selectedPlanSlug?: string | null
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
+  compact?: boolean
 }
 
-export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null }: Props) {
+export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null, compact = false }: Props) {
   const [step, setStep] = useState(0)
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
@@ -179,6 +180,7 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
       <PublicFormBrandBar
         title="Cuestionario nutricional"
         subtitle="Alimentación personalizada · Haciéndolo hábito"
+        compact={compact}
       />
 
       {/* Plan badge / no-plan nudge */}

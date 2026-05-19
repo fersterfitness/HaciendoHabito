@@ -126,9 +126,11 @@ type Props = {
   selectedPlanSlug?: string | null
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
+  /** Mobile: oculta cabecera de marca y barra de plan (ya visibles en el nav del padre). */
+  compact?: boolean
 }
 
-export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null }: Props) {
+export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null, compact = false }: Props) {
   const [step, setStep] = useState(0)
   const [progressFiles, setProgressFiles] = useState<File[]>([])
   const [progressPreviews, setProgressPreviews] = useState<string[]>([])
@@ -313,6 +315,7 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
       <PublicFormBrandBar
         title="Formulario de registro"
         subtitle="Plan personalizado · Haciéndolo hábito"
+        compact={compact}
       />
 
       {/* Plan badge / no-plan nudge */}

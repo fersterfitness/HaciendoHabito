@@ -138,11 +138,12 @@ type Props = {
   selectedPlanSlug?: string | null
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
+  compact?: boolean
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null }: Props) {
+export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null, compact = false }: Props) {
   const [step, setStep] = useState(0)
   const [progressFiles, setProgressFiles] = useState<File[]>([])
   const [progressPreviews, setProgressPreviews] = useState<string[]>([])
@@ -298,6 +299,7 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
       <PublicFormBrandBar
         title="Registro Plan Full"
         subtitle="Entrenamiento + nutrición · Tomás Ferster y Cristian Crossetto"
+        compact={compact}
       />
 
       {/* Plan badge */}

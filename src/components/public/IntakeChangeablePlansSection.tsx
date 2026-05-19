@@ -45,8 +45,8 @@ export interface IntakeChangeablePlansSectionProps {
 function normalizeBadgeClass(variant: 'green' | 'amber', dark: boolean) {
   if (variant === 'amber') {
     return dark
-      ? 'border border-white/12 bg-black/25 text-white/75'
-      : 'border border-amber-200/90 bg-amber-50 text-amber-900'
+      ? 'border border-white/12 bg-white/[0.06] text-white/65'
+      : 'border border-neutral-200 bg-neutral-100 text-neutral-700'
   }
   return dark ? 'bg-emerald-500/15 text-emerald-300' : 'border border-emerald-200 bg-emerald-50 text-emerald-800'
 }
@@ -116,10 +116,12 @@ export function IntakeChangeablePlansSection({
 
   const toggleActive =
     darkChrome
-      ? 'bg-white text-neutral-900 shadow-[0_2px_10px_rgba(0,0,0,0.22)] ring-1 ring-black/[0.05]'
-      : 'bg-white text-neutral-900 shadow-[0_2px_8px_rgba(15,23,42,0.08)] ring-1 ring-neutral-900/[0.04]'
+      ? 'bg-white !text-neutral-900 shadow-[0_2px_10px_rgba(0,0,0,0.22)] ring-1 ring-black/[0.05]'
+      : 'bg-white !text-neutral-900 shadow-[0_2px_8px_rgba(15,23,42,0.08)] ring-1 ring-neutral-900/[0.04]'
   const toggleInactive =
-    darkChrome ? 'text-white/45 hover:text-white/72' : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400'
+    darkChrome
+      ? '!text-white/80 hover:!text-white hover:bg-white/10'
+      : 'text-neutral-600 hover:text-neutral-800 dark:text-neutral-400'
 
   return (
     <div
@@ -151,7 +153,7 @@ export function IntakeChangeablePlansSection({
         <h2
           className={cn(
             'font-semibold tracking-tight',
-            flushEmbed ? (lightChrome ? 'text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500' : 'text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42') : heroTone ? 'text-xs uppercase tracking-[0.16em] text-white/55' : darkChrome && !heroTone ? 'text-xs uppercase tracking-[0.14em] text-white/50' : lightChrome ? 'text-[15px] text-neutral-800' : 'text-[17px] font-medium text-neutral-800 dark:text-neutral-100',
+            flushEmbed ? (lightChrome ? 'text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-500' : 'text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45') : heroTone ? 'text-xs uppercase tracking-[0.16em] text-white/55' : darkChrome && !heroTone ? 'text-xs uppercase tracking-[0.14em] text-white/50' : lightChrome ? 'text-[15px] text-neutral-800' : 'text-[17px] font-medium text-neutral-800 dark:text-neutral-100',
           )}
         >
           {title}
@@ -159,8 +161,8 @@ export function IntakeChangeablePlansSection({
         <div
           className={cn(
             flushEmbed
-              ? 'flex w-full min-w-0 flex-nowrap overflow-x-auto rounded-xl p-1 [-webkit-overflow-scrolling:touch] scrollbar-hide'
-              : 'inline-flex max-w-full flex-nowrap self-start overflow-x-auto rounded-xl p-1 [-webkit-overflow-scrolling:touch] scrollbar-hide sm:self-auto',
+              ? 'flex w-full min-w-0 flex-nowrap overflow-x-auto rounded-lg p-0.5 [-webkit-overflow-scrolling:touch] scrollbar-hide'
+              : 'inline-flex max-w-full flex-nowrap self-start overflow-x-auto rounded-lg p-0.5 [-webkit-overflow-scrolling:touch] scrollbar-hide sm:self-auto',
             lightChrome
               ? 'border border-neutral-300/55 bg-neutral-200/90 shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)]'
               : darkChrome
@@ -175,8 +177,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('monthly')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
-                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
               billing === 'monthly' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'monthly'}
@@ -188,8 +190,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('months3')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
-                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
               billing === 'months3' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'months3'}
@@ -201,8 +203,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('months6')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
-                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
               billing === 'months6' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'months6'}
@@ -214,8 +216,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('annual')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[8px] font-bold uppercase tracking-[0.04em] transition-all duration-200 sm:px-2 sm:text-[9px] sm:tracking-[0.06em]'
-                : 'shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
               billing === 'annual' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'annual'}
@@ -271,7 +273,7 @@ export function IntakeChangeablePlansSection({
                 'focus-visible:ring-2 focus-visible:ring-offset-0',
                 !flushEmbed && (lightChrome || darkChrome) && 'rounded-[14px]',
                 !flushEmbed && !lightChrome && !darkChrome && 'rounded-[18px]',
-                flushEmbed && 'rounded-xl',
+                flushEmbed && 'rounded-lg',
                 darkChrome
                   ? 'focus-visible:ring-white/18'
                   : lightChrome
@@ -288,7 +290,9 @@ export function IntakeChangeablePlansSection({
                         className={cn(
                           'flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4',
                           isSelected
-                            ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
+                            ? darkChrome
+                              ? 'border-white/50 bg-white/20 text-white'
+                              : 'border-neutral-800 bg-neutral-900 text-white shadow-sm'
                             : lightChrome
                               ? 'border-neutral-300 bg-white'
                               : darkChrome
@@ -307,14 +311,14 @@ export function IntakeChangeablePlansSection({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span
                           className={cn(
-                            'text-[12px] font-semibold leading-tight sm:text-[13px]',
-                            darkChrome ? 'text-white' : 'text-neutral-900',
+                            'text-[13px] font-medium leading-snug',
+                            darkChrome ? 'text-white/95' : 'text-neutral-900',
                           )}
                         >
                           {plan.name}
                         </span>
                         {plan.badge?.trim() ? (
-                          <span className={cn('rounded-full px-2 py-[3px] text-[8px] font-bold uppercase tracking-wider', badgeCls)}>
+                          <span className={cn('rounded-md px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]', badgeCls)}>
                             {plan.badge.trim()}
                           </span>
                         ) : null}
@@ -325,7 +329,7 @@ export function IntakeChangeablePlansSection({
                   <div className="flex shrink-0 flex-col items-end">
                     <div
                       className={cn(
-                        'text-[13px] font-bold leading-none tabular-nums sm:text-[14px]',
+                        'text-[13px] font-semibold leading-none tabular-nums',
                         darkChrome ? 'text-white' : 'text-neutral-900',
                       )}
                     >
@@ -333,7 +337,7 @@ export function IntakeChangeablePlansSection({
                     </div>
                     <span
                       className={cn(
-                        'mt-1 text-[8px] font-bold uppercase leading-tight tracking-[0.12em]',
+                        'mt-1 text-[9px] font-semibold uppercase leading-tight tracking-[0.1em]',
                         darkChrome ? 'text-white/35' : 'text-neutral-400',
                       )}
                     >
@@ -368,8 +372,8 @@ export function IntakeChangeablePlansSection({
                         {plan.features.length > 0 ? (
                           <p
                             className={cn(
-                              'mb-2 text-[9px] font-bold uppercase tracking-[0.14em]',
-                              darkChrome ? 'text-white/40' : 'text-neutral-400',
+                              'mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]',
+                              darkChrome ? 'text-white/45' : 'text-neutral-400',
                             )}
                           >
                             {plan.featuresLabel ?? 'Incluye'}
@@ -381,12 +385,12 @@ export function IntakeChangeablePlansSection({
                               <Check
                                 size={14}
                                 strokeWidth={2.8}
-                                className={cn('mt-0.5 shrink-0', darkChrome ? 'text-emerald-400/95' : 'text-emerald-600')}
+                                className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/45' : 'text-emerald-600')}
                               />
                               <span
                                 className={cn(
-                                  'text-[11px] leading-tight sm:text-[12px]',
-                                  darkChrome ? 'text-white/80' : 'text-neutral-600',
+                                  'text-[13px] font-medium leading-snug',
+                                  darkChrome ? 'text-white/78' : 'text-neutral-600',
                                 )}
                               >
                                 {feature.text}
@@ -419,11 +423,11 @@ export function IntakeChangeablePlansSection({
                                   <Check
                                     size={14}
                                     strokeWidth={2.8}
-                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-amber-400/90' : 'text-amber-600')}
+                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/45' : 'text-amber-600')}
                                   />
                                   <span
                                     className={cn(
-                                      'text-[11px] leading-tight sm:text-[12px]',
+                                      'text-[13px] font-medium leading-snug',
                                       darkChrome ? 'text-white/78' : 'text-neutral-600',
                                     )}
                                   >
@@ -473,7 +477,7 @@ export function IntakeChangeablePlansSection({
           disabled={!selectedPlanId}
           onClick={() => selectedPlanId && onContinue?.()}
           className={cn(
-            'w-full shrink-0 rounded-xl px-5 py-2.5 text-[12px] font-semibold outline-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-7 sm:text-[13px]',
+            'w-full shrink-0 rounded-lg px-5 py-2.5 text-[13px] font-medium outline-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-7',
             flushEmbed && 'py-2 sm:py-2',
             darkChrome
               ? 'border border-white/14 bg-white/[0.07] text-white hover:bg-white/[0.11] focus-visible:ring-1 focus-visible:ring-white/25 focus-visible:ring-offset-0'

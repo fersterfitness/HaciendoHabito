@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
+import { recoverStaleRoutinePdfs } from '@/lib/pdf/routinePdfRecovery'
 import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { formatDate, daysUntil, cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -216,9 +217,11 @@ export function RoutineDetailPage() {
     setGeneratingPdf(true)
     const toastId = toast.loading('Generando PDF...')
     try {
+      await recoverStaleRoutinePdfs(user.id)
       const { data: existing } = await supabase
         .from('routine_pdfs').select('id')
-        .eq('routine_id', id).in('status', ['pendiente', 'error', 'generado'])
+        .eq('routine_id', id)
+        .in('status', ['pendiente', 'error', 'generado', 'en_proceso'])
         .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
       let pdfId = existing?.id

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -41,6 +41,32 @@ const DEFAULT_INTAKE_MODALITY_LABELS = {
   withNutritionist: 'NUTRICIÓN',
   full: 'PLAN FULL (ENTRENO + NUTRICIÓN)',
 } as const
+
+/** Clase para el label en mayúsculas (Modalidad / Entrenador / …). */
+const intakeHeroFieldLabelClass = (theme: 'light' | 'dark') =>
+  cn(
+    'mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em]',
+    theme === 'dark' ? 'text-white/45' : 'text-ink-muted',
+  )
+
+/** Título corto en la fila de botones; el detalle completo va debajo al elegir. */
+const MODALITY_CARD_COPY: Record<
+  WebPlanCatalogSegment,
+  { short: string; detail: string }
+> = {
+  solo: {
+    short: 'Entreno',
+    detail: 'Plan de entrenamiento con acompañamiento de Ferster Fitness.',
+  },
+  with_nutritionist: {
+    short: 'Nutrición',
+    detail: 'Seguimiento nutricional con profesional matriculado.',
+  },
+  full: {
+    short: 'Full',
+    detail: 'Entrenamiento y nutrición juntos en un plan integral.',
+  },
+}
 
 function buildIntakeModalityOptions(labels: {
   solo: string | null
@@ -118,217 +144,172 @@ function IntakeProAvatar({
 
 type IntakeAvatarOption = { id: string; label: string; avatarUrl?: string | null }
 
-/**
- * Selector con foto al lado del nombre (el `<select>` nativo no permite imágenes en opciones).
- */
-function IntakeAvatarSelect({
-  id,
-  label,
-  hint,
-  value,
-  disabled = false,
-  onChange,
-  theme,
-  options,
-  emptyLabel = 'No aplica',
-}: {
+type IntakeHorizontalChoiceOption = {
   id: string
-  label: string
-  hint?: string
-  value: string
-  disabled?: boolean
-  onChange: (v: string) => void
-  theme: 'light' | 'dark'
-  options: IntakeAvatarOption[]
-  /** Texto cuando está deshabilitado o sin opciones. */
-  emptyLabel?: string
-}) {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const listId = `${id}-listbox`
-
-  const selected = options.find((o) => o.id === value)
-
-  useEffect(() => {
-    if (!open) return
-    const onDocDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onDocDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDocDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  const triggerClass = cn(
-    'relative flex w-full items-center gap-2 rounded-lg border px-2.5 py-[0.42rem] pr-9 text-left text-[13px] leading-tight transition-colors',
-    'focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-38',
-    theme === 'dark'
-      ? 'border-white/[0.08] bg-[#141414] text-white shadow-none focus:border-white/30 focus:ring-white/20 disabled:border-white/[0.05] disabled:bg-[#141414]'
-      : 'border-neutral-200/95 bg-white/95 text-neutral-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_1px_2px_rgba(15,23,42,0.05)] focus:border-neutral-300 focus:ring-neutral-400/30 disabled:bg-neutral-100/85 disabled:text-neutral-500',
-    disabled && 'cursor-not-allowed',
-    !disabled &&
-      options.length > 0 &&
-      (theme === 'dark' ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-pointer hover:bg-neutral-50/95'),
-  )
-
-  const showTriggerContent = !disabled && options.length > 0 && selected
-
-  const labelClass =
-    theme === 'dark'
-      ? 'text-white/42'
-      : 'text-neutral-600'
-
-  return (
-    <div ref={rootRef} className="min-w-0">
-      <label htmlFor={id} className={cn('mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em]', labelClass)}>
-        {label}
-      </label>
-      <div className="relative">
-        <button
-          id={id}
-          type="button"
-          disabled={disabled || options.length === 0}
-          title={hint}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-controls={open ? listId : undefined}
-          onClick={() => {
-            if (disabled || options.length === 0) return
-            setOpen((o) => !o)
-          }}
-          className={triggerClass}
-        >
-          {showTriggerContent ? (
-            <>
-              <IntakeProAvatar theme={theme} label={selected!.label} url={selected.avatarUrl} />
-              <span className="min-w-0 flex-1 truncate">{selected!.label}</span>
-            </>
-          ) : (
-            <span
-              className={cn(
-                'min-w-0 flex-1 truncate',
-                theme === 'dark' ? 'text-white/55' : 'text-neutral-500',
-              )}
-            >
-              {disabled || options.length === 0 ? emptyLabel : '—'}
-            </span>
-          )}
-        </button>
-        <span
-          className={cn(
-            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px]',
-            theme === 'dark' ? 'text-neutral-400' : 'text-neutral-500',
-          )}
-          aria-hidden
-        >
-          ▾
-        </span>
-
-        {open && options.length > 0 ? (
-          <ul
-            id={listId}
-            role="listbox"
-            className={cn(
-              'absolute left-0 right-0 top-[calc(100%+4px)] z-[80] max-h-60 overflow-auto rounded-lg border py-1',
-              theme === 'dark'
-                ? 'border-white/[0.14] bg-[#0f0f0f] shadow-xl'
-                : 'border-neutral-200/95 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.06)]',
-            )}
-          >
-            {options.map((o) => (
-              <li key={o.id} role="option" aria-selected={value === o.id}>
-                <button
-                  type="button"
-                  className={cn(
-                    'flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-[13px] transition-colors',
-                    theme === 'dark'
-                      ? cn('text-white', value === o.id ? 'bg-white/12' : 'hover:bg-white/10')
-                      : cn(
-                          'text-neutral-900',
-                          value === o.id ? 'bg-neutral-100' : 'hover:bg-neutral-50',
-                        ),
-                  )}
-                  onClick={() => {
-                    onChange(o.id)
-                    setOpen(false)
-                  }}
-                >
-                  <IntakeProAvatar theme={theme} label={o.label} url={o.avatarUrl} />
-                  <span className="min-w-0 flex-1">{o.label}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    </div>
-  )
+  title: string
+  /** Línea principal de detalle (modalidad). Para profesionales se reemplaza por `subtitle`. */
+  detail: string
+  /** Subtítulo corto para la tarjeta compacta de profesional (credenciales). */
+  subtitle?: string
+  avatarUrl?: string | null
+  avatarLabel?: string
 }
 
-function IntakeMinimalSelect({
-  id,
-  label,
-  hint,
+/**
+ * Opciones en fila (sin desplegable): al tocar una, se muestra el detalle debajo.
+ */
+function IntakeHorizontalChoiceRow({
+  groupId,
+  groupLabel,
   value,
-  disabled = false,
   onChange,
-  children,
-  theme,
+  options,
+  disabled = false,
+  emptyLabel = 'No aplica',
+  theme = 'dark',
 }: {
-  id: string
-  label: string
-  hint?: string
+  groupId: string
+  groupLabel: string
   value: string
+  onChange: (id: string) => void
+  options: IntakeHorizontalChoiceOption[]
   disabled?: boolean
-  onChange: (v: string) => void
-  children: ReactNode
-  theme: 'light' | 'dark'
+  emptyLabel?: string
+  theme?: 'light' | 'dark'
 }) {
+  const selected = options.find((o) => o.id === value)
+  const interactive = !disabled && options.length > 0
+  const labelId = `${groupId}-label`
+  const detailId = `${groupId}-detail`
+  const isDark = theme === 'dark'
+  /** Caso compacto: un solo profesional con avatar → tile horizontal. */
+  const compactSingleAvatar =
+    interactive && options.length === 1 && Boolean(options[0]?.avatarLabel)
+
+  const segmentedButtonClass = (isSelected: boolean) =>
+    cn(
+      'flex min-h-[2.6rem] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-lg border px-2 py-2 transition-colors',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
+      'text-center text-[12px] font-semibold leading-tight',
+      isDark
+        ? cn(
+            'focus-visible:ring-white/30',
+            isSelected
+              ? '!text-white border-white/45 bg-white/12'
+              : '!text-white/75 border-white/12 bg-white/[0.03] hover:!text-white hover:border-white/25',
+          )
+        : cn(
+            'focus-visible:ring-brand-primary/40',
+            isSelected
+              ? 'text-ink-primary border-ink-primary/30 bg-surface-elevated shadow-sm'
+              : 'text-ink-secondary border-surface-border bg-surface-card hover:text-ink-primary hover:border-ink-primary/20',
+          ),
+    )
+
+  const emptyClasses = isDark
+    ? 'border-white/12 !text-white/40'
+    : 'border-surface-border text-ink-muted'
+
+  const compactBtnClasses = (isSelected: boolean) =>
+    isDark
+      ? isSelected
+        ? 'border-white/35 bg-white/[0.06]'
+        : 'border-white/12 bg-white/[0.025] hover:border-white/22 hover:bg-white/[0.05]'
+      : isSelected
+        ? 'border-ink-primary/30 bg-surface-elevated shadow-sm'
+        : 'border-surface-border bg-surface-card hover:border-ink-primary/20 hover:bg-surface-elevated'
+
+  const compactNameClass = isDark ? '!text-white' : 'text-ink-primary'
+  const compactSubtitleClass = isDark ? '!text-white/55' : 'text-ink-muted'
+  const detailClass = isDark ? '!text-white/50' : 'text-ink-muted'
+
   return (
     <div className="min-w-0">
-      <label
-        htmlFor={id}
-        className={cn(
-          'mb-0.5 block text-[8px] font-semibold uppercase tracking-[0.13em]',
-          theme === 'dark' ? 'text-white/42' : 'text-neutral-600',
-        )}
-      >
-        {label}
-      </label>
-      <div className="relative">
-        <select
-          id={id}
-          disabled={disabled}
-          value={value}
-          title={hint}
-          onChange={(e) => onChange(e.target.value)}
+      <p id={labelId} className={intakeHeroFieldLabelClass(theme)}>
+        {groupLabel}
+      </p>
+
+      {!interactive ? (
+        <div
           className={cn(
-            'w-full appearance-none rounded-lg border px-3 py-[0.42rem] pr-9 text-[13px] leading-tight transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-38',
-            theme === 'dark'
-              ? 'border-white/[0.08] bg-[#141414] text-white shadow-none focus:border-white/30 focus:ring-white/20 disabled:border-white/[0.05] disabled:bg-[#141414]'
-              : 'border-neutral-200/95 bg-white/95 text-neutral-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_1px_2px_rgba(15,23,42,0.05)] focus:border-neutral-300 focus:ring-neutral-400/30 disabled:cursor-not-allowed disabled:bg-neutral-100/85 disabled:text-neutral-500',
-            disabled && 'cursor-not-allowed',
+            'mt-1.5 rounded-lg border border-dashed px-3 py-2 text-[12px] italic',
+            emptyClasses,
           )}
+          aria-disabled
         >
-          {children}
-        </select>
-        <span
-          className={cn(
-            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px]',
-            theme === 'dark' ? 'text-neutral-400' : 'text-neutral-500',
-          )}
-          aria-hidden
-        >
-          ▾
-        </span>
-      </div>
+          {emptyLabel}
+        </div>
+      ) : compactSingleAvatar ? (
+        (() => {
+          const opt = options[0]!
+          const isSelected = value === opt.id
+          return (
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => onChange(opt.id)}
+              className={cn(
+                'mt-1.5 flex w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
+                isDark ? 'focus-visible:ring-white/30' : 'focus-visible:ring-brand-primary/40',
+                compactBtnClasses(isSelected),
+              )}
+            >
+              <IntakeProAvatar
+                theme={theme}
+                label={opt.avatarLabel!}
+                url={opt.avatarUrl}
+                sizeClass="h-10 w-10"
+              />
+              <div className="min-w-0 flex-1">
+                <p className={cn('truncate text-[13px] font-semibold leading-tight', compactNameClass)}>
+                  {opt.avatarLabel}
+                </p>
+                {opt.subtitle ? (
+                  <p className={cn('mt-0.5 text-[11px] leading-snug line-clamp-2', compactSubtitleClass)}>
+                    {opt.subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </button>
+          )
+        })()
+      ) : (
+        <>
+          <div
+            role="radiogroup"
+            aria-labelledby={labelId}
+            className={cn('mt-1.5 flex gap-1.5', options.length > 3 && 'flex-wrap')}
+          >
+            {options.map((opt) => {
+              const isSelected = value === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  aria-describedby={isSelected ? detailId : undefined}
+                  onClick={() => onChange(opt.id)}
+                  className={segmentedButtonClass(isSelected)}
+                >
+                  {opt.title}
+                </button>
+              )
+            })}
+          </div>
+          {selected?.detail ? (
+            <p
+              id={detailId}
+              className={cn('mt-1.5 text-[11px] leading-snug', detailClass)}
+              aria-live="polite"
+            >
+              {selected.detail}
+            </p>
+          ) : null}
+        </>
+      )}
     </div>
   )
 }
@@ -339,7 +320,7 @@ type PublicIntakeSlots = {
   slotsMessage: string | null
 }
 
-function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
+function IntakeSlotsBanner({ spots, compact }: { spots: PublicIntakeSlots; compact?: boolean }) {
   const { slotsOpen, slotsRemaining, slotsMessage } = spots
   const trimmed = slotsMessage?.trim() || ''
 
@@ -348,8 +329,8 @@ function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
   let tone = 'border-white/[0.26] bg-white/[0.11]'
 
   if (!slotsOpen) {
-    title = 'Cupos cerrados por ahora'
-    body = trimmed || 'En este momento no estamos tomando nuevas inscripciones. Podés igual dejar tus datos y te contactamos cuando haya lugar.'
+    title = 'Cupos cerrados'
+    body = trimmed || 'No estamos tomando nuevas inscripciones. Podés dejar tus datos y te contactamos.'
     tone = 'border-white/[0.28] bg-black/40'
   } else if (typeof slotsRemaining === 'number') {
     if (slotsRemaining <= 0 && !trimmed) {
@@ -366,6 +347,20 @@ function IntakeSlotsBanner({ spots }: { spots: PublicIntakeSlots }) {
     } else if (trimmed) {
       body = trimmed
     }
+  }
+
+  // Mobile: pill compacta de una línea
+  if (compact) {
+    return (
+      <div
+        className={`mb-3 flex items-center gap-1.5 overflow-hidden rounded-xl border px-2.5 py-1.5 ${tone}`}
+        title={`${title} — ${body}`}
+      >
+        <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-white/80">{title}</span>
+        <span className="shrink-0 text-white/30 text-[9px]" aria-hidden>·</span>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-white/70">{body}</span>
+      </div>
+    )
   }
 
   return (
@@ -495,13 +490,18 @@ function PlanDetailView({
   plan,
   planBilling,
   onBack,
+  panelId,
 }: {
   plan: PlanDetail
   planBilling: PlanBilling
   onBack: () => void
+  panelId?: string
 }) {
   return (
-    <div className="h-full min-h-0 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain scrollbar-hide px-1 pb-20 lg:pb-1">
+    <div
+      id={panelId}
+      className="h-full min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain scrollbar-hide px-1 pb-28 lg:pb-1"
+    >
       <div className="rounded-2xl border border-white/12 bg-zinc-950/85 p-5 sm:p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -569,13 +569,17 @@ function PlanDetailView({
         </button>
       </div>
 
-      <div className="lg:hidden fixed inset-x-4 bottom-4 z-20">
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-zinc-950 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
-          onClick={onBack}
-          className="w-full rounded-xl border border-white/16 bg-zinc-950/90 px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] hover:bg-white/[0.05]"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onBack()
+          }}
+          className="w-full rounded-xl border border-white/20 bg-white px-4 py-3.5 text-sm font-bold text-zinc-900 shadow-lg touch-manipulation active:scale-[0.99] transition-transform"
         >
-          Continuar con este plan
+          Elegir este plan y continuar →
         </button>
       </div>
     </div>
@@ -583,26 +587,23 @@ function PlanDetailView({
 }
 
 function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
-  const photo =
-    'url(https://images.unsplash.com/photo-1509316785289-025f5cd90c3d?w=1400&q=88)'
   if (theme === 'light') {
     return (
       <>
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: photo }} />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/35 via-slate-800/10 to-slate-950/88" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/45 via-transparent to-slate-800/20" />
-        </div>
+        <div className="absolute inset-0 z-0 bg-surface-base" />
         <div
-          className="absolute inset-0 z-[1] pointer-events-none opacity-35 mix-blend-overlay"
+          className="absolute inset-0 z-[1] pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 120% 80% at 50% -10%, rgba(255,255,255,0.12), transparent 55%)',
+              'radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255,107,53,0.10), transparent 60%)',
           }}
+          aria-hidden
         />
       </>
     )
   }
+  const photo =
+    'url(https://images.unsplash.com/photo-1509316785289-025f5cd90c3d?w=1400&q=88)'
   return (
     <>
       <div className="absolute inset-0 z-0">
@@ -620,32 +621,67 @@ function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
   )
 }
 
-function PublicAuthTopBar() {
+/** Acciones flotantes — mismo patrón que /login (Panel + tema). */
+function PublicIntakeTopActions({
+  backLabel,
+  onBack,
+  tone = 'light',
+}: {
+  backLabel?: string
+  onBack?: () => void
+  /** `dark` = botones translúcidos para fondo oscuro (paso planes en mobile). */
+  tone?: 'light' | 'dark'
+}) {
   const { theme, toggleTheme } = useTheme()
+  const darkTone = tone === 'dark'
+
+  const buttonBase =
+    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm backdrop-blur-sm transition-colors'
+  const iconButtonBase =
+    'inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur-sm transition-all'
+
+  const surfaceClasses = darkTone
+    ? 'border-white/15 bg-white/[0.06] text-white/85 hover:border-white/30 hover:text-white hover:bg-white/[0.1]'
+    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-brand-primary/40 hover:text-ink-primary'
+
+  const iconSurfaceClasses = darkTone
+    ? 'border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/[0.1] hover:text-white'
+    : 'border-surface-border bg-surface-card text-ink-muted hover:bg-surface-elevated hover:text-ink-primary'
+
   return (
-    <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
-      <Link
-        to="/login"
-        className="inline-flex items-center gap-1.5 rounded-xl border border-surface-border bg-surface-card px-3 py-2 text-xs font-medium text-ink-secondary transition-colors hover:border-zinc-400/50 hover:text-ink-primary dark:hover:border-zinc-500/50 shadow-sm"
-      >
-        Ir al panel
-        <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      </Link>
-      <button
-        type="button"
-        onClick={toggleTheme}
-        className="p-2 rounded-xl text-ink-muted hover:text-ink-primary hover:bg-surface-card border border-surface-border transition-all"
-        title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-      >
-        {theme === 'dark' ? <ThemeToggleSunIcon /> : <ThemeToggleMoonIcon />}
-      </button>
-    </div>
+    <>
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className={cn('absolute top-4 left-4 z-30', buttonBase, surfaceClasses, 'gap-1 px-2.5')}
+        >
+          <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {backLabel ?? 'Planes'}
+        </button>
+      ) : null}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        <Link to="/login" className={cn(buttonBase, surfaceClasses)}>
+          Panel
+          <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        </Link>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className={cn(iconButtonBase, iconSurfaceClasses)}
+          title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+          aria-label={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+        >
+          {theme === 'dark' ? <ThemeToggleSunIcon /> : <ThemeToggleMoonIcon />}
+        </button>
+      </div>
+    </>
   )
 }
 
 /** Panel izquierdo: marca + selector de profesional + planes */
 function LeftBrandPanel({
-  theme,
+  theme: appTheme,
   plansAll,
   plansVisible,
   catalogSegment,
@@ -661,6 +697,7 @@ function LeftBrandPanel({
   modalityOptions,
   catalogError,
   catalogLoading,
+  buttonText = 'Ver detalle',
 }: {
   theme: 'light' | 'dark'
   catalogError?: string | null
@@ -680,8 +717,12 @@ function LeftBrandPanel({
   withNutritionistSegmentImageUrl: string | null
   crisSoloSegmentImageUrl: string | null
   modalityOptions: { segment: WebPlanCatalogSegment; label: string }[]
+  /** Texto del botón de acción principal en el selector de planes. */
+  buttonText?: string
 }) {
   const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
+  const panelTheme = appTheme
+  const isDarkPanel = panelTheme === 'dark'
 
   const [trainerChoice, setTrainerChoice] = useState(INTAKE_TRAINER_OPTIONS[0]?.id ?? '')
   const [nutritionChoice, setNutritionChoice] = useState(INTAKE_NUTRITION_OPTIONS[0]?.id ?? '')
@@ -717,35 +758,90 @@ function LeftBrandPanel({
     [nutritionAvatarUrl],
   )
 
+  const modalityChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
+    () =>
+      modalityOptions.map((o) => {
+        const copy = MODALITY_CARD_COPY[o.segment]
+        return {
+          id: o.segment,
+          title: copy.short,
+          detail: copy.detail,
+        }
+      }),
+    [modalityOptions],
+  )
+
+  const trainerChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
+    () =>
+      trainerAvatarOptions.map((o) => ({
+        id: o.id,
+        title: o.label.split(/\s+/)[0] ?? o.label,
+        detail: '',
+        subtitle: PUBLIC_PLAN_SOLO_CREDENTIAL_LINE,
+        avatarUrl: o.avatarUrl,
+        avatarLabel: o.label,
+      })),
+    [trainerAvatarOptions],
+  )
+
+  const nutritionChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
+    () =>
+      nutritionAvatarOptions.map((o) => ({
+        id: o.id,
+        title: o.label.split(/\s+/)[0] ?? o.label,
+        detail: '',
+        subtitle: PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE,
+        avatarUrl: o.avatarUrl,
+        avatarLabel: o.label,
+      })),
+    [nutritionAvatarOptions],
+  )
+
   return (
     <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 min-w-0">
-      <HeroBgLayers theme={theme} />
+      <HeroBgLayers theme={panelTheme} />
 
-      <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+      <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 pt-16 pb-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0">
           <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] min-w-0 shrink-0 space-y-4">
               {catalogError ? (
-                <p className="text-[11px] text-amber-200/90 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2.5 py-2">
+                <p
+                  className={cn(
+                    'text-[11px] rounded-lg border px-2.5 py-2',
+                    isDarkPanel
+                      ? 'text-amber-200/90 border-amber-400/30 bg-amber-500/15'
+                      : 'text-amber-900 border-amber-300 bg-amber-50',
+                  )}
+                >
                   {catalogError}
                 </p>
               ) : catalogLoading ? (
-                <p className="text-[11px] text-white/50">Actualizando precios…</p>
+                <p className={cn('text-[11px]', isDarkPanel ? 'text-white/50' : 'text-ink-muted')}>
+                  Actualizando precios…
+                </p>
               ) : null}
             {/* Marca: una sola lectura */}
             <div className="relative flex items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
-              <div
-                className="pointer-events-none absolute left-1/2 top-6 h-24 w-[min(100%,20rem)] -translate-x-1/2 rounded-full opacity-28 blur-3xl sm:left-[18%] sm:translate-x-0"
-                style={{
-                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.1), transparent 72%)',
-                }}
-                aria-hidden
-              />
+              {isDarkPanel ? (
+                <div
+                  className="pointer-events-none absolute left-1/2 top-6 h-24 w-[min(100%,20rem)] -translate-x-1/2 rounded-full opacity-28 blur-3xl sm:left-[18%] sm:translate-x-0"
+                  style={{
+                    background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.1), transparent 72%)',
+                  }}
+                  aria-hidden
+                />
+              ) : null}
               <BrandLogo
                 size="sm"
                 decorative
                 className="relative z-[1] h-8 w-8 sm:h-9 sm:w-9 opacity-95"
               />
-              <p className="relative z-[1] min-w-0 truncate text-[15px] font-bold leading-snug tracking-tight text-white/95 sm:text-base">
+              <p
+                className={cn(
+                  'relative z-[1] min-w-0 truncate text-[15px] font-bold leading-snug tracking-tight sm:text-base',
+                  isDarkPanel ? 'text-white/95' : 'text-ink-primary',
+                )}
+              >
                 Haciéndolo hábito
               </p>
             </div>
@@ -753,53 +849,43 @@ function LeftBrandPanel({
             {/* Superficie única: opciones + planes sin doble marco */}
             <div
               className={cn(
-                'relative z-[1] rounded-2xl border p-4 backdrop-blur-md sm:p-[1.1rem]',
-                theme === 'light'
-                  ? 'border-white/45 bg-white/28 shadow-[0_10px_40px_rgba(15,23,42,0.11),inset_0_1px_0_rgba(255,255,255,0.72)]'
-                  : 'border-white/[0.07] bg-black/38 shadow-none',
+                'intake-hero-surface relative z-[1] rounded-xl border p-3.5 backdrop-blur-md sm:p-4',
+                isDarkPanel
+                  ? 'border-white/[0.08] bg-white/[0.025] text-white'
+                  : 'border-surface-border bg-surface-card text-ink-primary shadow-sm',
               )}
             >
-              <div className="grid grid-cols-1 gap-2">
-                  <IntakeMinimalSelect
-                    theme={theme}
-                    id="intake-modality"
-                    label="Modalidad"
-                    hint="FERSTER FITNESS = solo plan entrenamiento. NUTRICIÓN = acompañamiento nutricional. PLAN FULL = entreno + nutrición. Sólo se listan ofertas de la modalidad elegida; los selectores de arriba no cambian esa lista."
-                    value={modalitySegment}
-                    onChange={(raw) =>
-                      onSelectCatalogSegment(raw as WebPlanCatalogSegment)
-                    }
-                  >
-                    {modalityOptions.map((o) => (
-                      <option key={o.segment} value={o.segment}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </IntakeMinimalSelect>
+              <div className="space-y-3.5">
+                <IntakeHorizontalChoiceRow
+                  groupId="intake-modality"
+                  groupLabel="Modalidad"
+                  theme={panelTheme}
+                  value={modalitySegment}
+                  onChange={(seg) => onSelectCatalogSegment(seg as WebPlanCatalogSegment)}
+                  options={modalityChoiceOptions}
+                />
 
-                  <IntakeAvatarSelect
-                    theme={theme}
-                    id="intake-trainer"
-                    label="Entrenador"
-                    hint={`${PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}`}
-                    value={includeTraining ? trainerChoice : ''}
-                    disabled={!includeTraining}
-                    emptyLabel="No aplica"
-                    onChange={(v) => setTrainerChoice(v)}
-                    options={includeTraining ? trainerAvatarOptions : []}
-                  />
+                <IntakeHorizontalChoiceRow
+                  groupId="intake-trainer"
+                  groupLabel="Entrenador"
+                  theme={panelTheme}
+                  value={includeTraining ? trainerChoice : ''}
+                  disabled={!includeTraining}
+                  emptyLabel="No aplica"
+                  onChange={setTrainerChoice}
+                  options={trainerChoiceOptions}
+                />
 
-                  <IntakeAvatarSelect
-                    theme={theme}
-                    id="intake-nutrition"
-                    label="Nutricionista"
-                    hint={`${PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}`}
-                    value={includeNutrition ? nutritionChoice : ''}
-                    disabled={!includeNutrition}
-                    emptyLabel="No aplica"
-                    onChange={(v) => setNutritionChoice(v)}
-                    options={includeNutrition ? nutritionAvatarOptions : []}
-                  />
+                <IntakeHorizontalChoiceRow
+                  groupId="intake-nutrition"
+                  groupLabel="Nutricionista"
+                  theme={panelTheme}
+                  value={includeNutrition ? nutritionChoice : ''}
+                  disabled={!includeNutrition}
+                  emptyLabel="No aplica"
+                  onChange={setNutritionChoice}
+                  options={nutritionChoiceOptions}
+                />
               </div>
 
               {plansVisible.length > 0 ? (
@@ -807,14 +893,14 @@ function LeftBrandPanel({
                   <div
                     className={cn(
                       'my-4 border-t pt-1',
-                      theme === 'light' ? 'border-neutral-200/45' : 'border-white/[0.055]',
+                      isDarkPanel ? 'border-white/[0.06]' : 'border-surface-border',
                     )}
                     aria-hidden
                   />
                   <IntakeChangeablePlansSection
                     title="Ofertas"
                     footerText="Podés cancelar cuando quieras."
-                    buttonText="Ver detalle"
+                    buttonText={buttonText}
                     plans={intakePlansToPricingPlans(plansVisible)}
                     selectedPlanId={selectedPlanId}
                     onSelectPlan={onSelectPlan}
@@ -825,11 +911,16 @@ function LeftBrandPanel({
                     tone="card"
                     embedded
                     flush
-                    uiTheme={theme}
+                    uiTheme={panelTheme}
                   />
                 </>
               ) : (
-                <p className="mt-3 text-center text-[11px] leading-relaxed text-white/52">
+                <p
+                  className={cn(
+                    'mt-3 text-center text-[11px] leading-relaxed',
+                    isDarkPanel ? 'text-white/52' : 'text-ink-muted',
+                  )}
+                >
                   {catalogSegment === null
                     ? 'Elegí una opción del paso 1.'
                     : catalogSegment === 'with_nutritionist'
@@ -841,7 +932,12 @@ function LeftBrandPanel({
               )}
 
               {catalogSegment === 'full' && plansVisible.length === 0 && (
-                <p className="mt-2 text-center text-[10px] text-white/40">
+                <p
+                  className={cn(
+                    'mt-2 text-center text-[10px]',
+                    isDarkPanel ? 'text-white/40' : 'text-ink-muted',
+                  )}
+                >
                   Podés avanzar con el formulario; un asesor te cuenta los detalles del plan Full.
                 </p>
               )}
@@ -859,16 +955,9 @@ function LeftBrandPanel({
   )
 }
 
+
 export function PublicIntakeFormPage() {
-  const { theme, setTheme } = useTheme()
-  useEffect(() => {
-    const prev = theme
-    setTheme('dark')
-    return () => {
-      setTheme(prev)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar/desmontar /form
-  }, [setTheme])
+  const { theme } = useTheme()
   const [done,      setDone]      = useState(false)
   const [plans, setPlans] = useState<PlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
   const [catalogLoading, setCatalogLoading] = useState(true)
@@ -877,7 +966,11 @@ export function PublicIntakeFormPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
   const [isPlanFlipped, setIsPlanFlipped] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  )
+  /** Móvil: una pantalla a la vez (planes → detalle → formulario). */
+  const [mobileStep, setMobileStep] = useState<'plans' | 'detail' | 'form'>('plans')
   const flipTimerRef = useRef<number | null>(null)
   const [publicSpots, setPublicSpots] = useState<PublicIntakeSlots>({
     slotsOpen: true,
@@ -948,11 +1041,23 @@ export function PublicIntakeFormPage() {
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 1023px)')
-    const apply = () => setIsMobile(media.matches)
+    const apply = () => {
+      const mobile = media.matches
+      setIsMobile(mobile)
+      if (!mobile) setMobileStep('plans')
+    }
     apply()
     media.addEventListener('change', apply)
     return () => media.removeEventListener('change', apply)
   }, [])
+
+  useEffect(() => {
+    if (!isMobile) return
+    document.body.style.overflow = mobileStep === 'detail' ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isMobile, mobileStep])
 
   useEffect(() => {
     let mounted = true
@@ -1088,7 +1193,26 @@ export function PublicIntakeFormPage() {
     setSelectedPlanId(planId)
   }
 
+  function scrollIntakeToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function openMobilePlanDetail(planId?: string) {
+    if (planId) setSelectedPlanId(planId)
+    setMobileStep('detail')
+    scrollIntakeToTop()
+  }
+
   function handleSelectPlan(planId: string) {
+    if (isMobile) {
+      if (selectedPlanId === planId && mobileStep === 'detail') {
+        handleBackToForm()
+        return
+      }
+      openMobilePlanDetail(planId)
+      return
+    }
+
     if (selectedPlanId === planId && isPlanFlipped) {
       handleBackToForm()
       return
@@ -1106,15 +1230,59 @@ export function PublicIntakeFormPage() {
   function handleBackToForm() {
     clearFlipTimer()
     setIsPlanFlipped(false)
+    if (isMobile) {
+      setMobileStep('form')
+      scrollIntakeToTop()
+      return
+    }
     flipTimerRef.current = window.setTimeout(() => {
       flipTimerRef.current = null
     }, 320)
   }
 
+  function renderIntakeForm() {
+    const compact = isMobile
+    return (
+      <>
+        {/* Banner de cupos: en mobile solo si hay algo importante que mostrar */}
+        {(!compact || !publicSpots.slotsOpen || publicSpots.slotsRemaining !== null) ? (
+          <IntakeSlotsBanner spots={publicSpots} compact={compact} />
+        ) : null}
+        {/* Testimonios solo en desktop (en mobile suman demasiado ruido visual) */}
+        {!compact ? <TestimonialsSection urls={testimonialVideos} /> : null}
+        {intakeKind === 'nutricion' ? (
+          <IntakeNutritionForm
+            selectedPlanSlug={selectedPlanId}
+            selectedPlanLabel={selectedPlan?.name ?? null}
+            selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+            onSuccess={() => setDone(true)}
+            compact={compact}
+          />
+        ) : intakeKind === 'full' ? (
+          <IntakeFullForm
+            selectedPlanSlug={selectedPlanId}
+            selectedPlanLabel={selectedPlan?.name ?? null}
+            selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+            onSuccess={() => setDone(true)}
+            compact={compact}
+          />
+        ) : (
+          <IntakeFersterForm
+            selectedPlanSlug={selectedPlanId}
+            selectedPlanLabel={selectedPlan?.name ?? null}
+            selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+            onSuccess={() => setDone(true)}
+            compact={compact}
+          />
+        )}
+      </>
+    )
+  }
+
   if (done) {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 pt-16 sm:pt-4 py-10 relative">
-        <PublicAuthTopBar />
+        <PublicIntakeTopActions />
         <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
           <LeftBrandPanel
             theme={theme}
@@ -1149,65 +1317,116 @@ export function PublicIntakeFormPage() {
     )
   }
 
+  const leftPanelProps = {
+    theme,
+    plansAll: plans,
+    plansVisible,
+    catalogSegment,
+    onSelectCatalogSegment: setCatalogSegment,
+    selectedPlanId,
+    onSelectPlan: handlePickPlan,
+    planBilling,
+    onPlanBillingChange: setPlanBilling,
+    onConfirmPlan: () => {
+      if (!selectedPlanId) return
+      if (isMobile) {
+        // Ir directo al formulario; el detalle se puede ver desde ahí con un enlace
+        setMobileStep('form')
+        scrollIntakeToTop()
+      } else {
+        handleSelectPlan(selectedPlanId)
+      }
+    },
+    buttonText: isMobile ? 'Continuar →' : 'Ver detalle',
+    soloSegmentImageUrl: catalogSegmentImages.solo,
+    withNutritionistSegmentImageUrl: catalogSegmentImages.withNutritionist,
+    crisSoloSegmentImageUrl: catalogSegmentImages.crisSolo,
+    modalityOptions,
+    catalogError,
+    catalogLoading,
+  } as const
+
+  const mobileBack =
+    isMobile && mobileStep === 'form'
+      ? { label: 'Planes', onBack: () => { setMobileStep('plans'); scrollIntakeToTop() } }
+      : isMobile && mobileStep === 'detail'
+        ? { label: 'Formulario', onBack: () => { setMobileStep('form'); scrollIntakeToTop() } }
+        : null
+
+  const intakeTopTone: 'light' | 'dark' =
+    isMobile && mobileStep === 'plans' && theme === 'dark' ? 'dark' : 'light'
+
   return (
     <div className="min-h-screen bg-surface-base flex items-start justify-center sm:items-center p-0 sm:p-4 sm:pt-4 sm:py-8 md:py-12 relative">
-      <PublicAuthTopBar />
-      <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
-        <LeftBrandPanel
-          theme={theme}
-          plansAll={plans}
-          plansVisible={plansVisible}
-          catalogSegment={catalogSegment}
-          onSelectCatalogSegment={setCatalogSegment}
-          selectedPlanId={selectedPlanId}
-          onSelectPlan={handlePickPlan}
-          planBilling={planBilling}
-          onPlanBillingChange={setPlanBilling}
-          onConfirmPlan={() => {
-            if (selectedPlanId) handleSelectPlan(selectedPlanId)
-          }}
-          soloSegmentImageUrl={catalogSegmentImages.solo}
-          withNutritionistSegmentImageUrl={catalogSegmentImages.withNutritionist}
-          crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
-          modalityOptions={modalityOptions}
-          catalogError={catalogError}
-          catalogLoading={catalogLoading}
-        />
+      <PublicIntakeTopActions
+        backLabel={mobileBack?.label}
+        onBack={mobileBack?.onBack}
+        tone={intakeTopTone}
+      />
+      {isMobile ? (
+        <div
+          className={cn(
+            'relative w-full min-h-screen flex flex-col bg-surface-base',
+            mobileStep === 'plans' ? 'pt-0' : 'pt-14',
+          )}
+        >
+          {mobileStep === 'plans' ? <LeftBrandPanel {...leftPanelProps} /> : null}
 
-        {/* Panel derecho — selector de tipo o formulario */}
-        <div className="flex-1 flex flex-col px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:overflow-y-auto lg:max-h-[min(100vh-2rem,1200px)]">
-          {isMobile ? (
-            selectedPlan ? (
-              <PlanDetailView plan={selectedPlan} planBilling={planBilling} onBack={handleBackToForm} />
-            ) : (
-              <div>
-                <IntakeSlotsBanner spots={publicSpots} />
-                <TestimonialsSection urls={testimonialVideos} />
-                {intakeKind === 'nutricion' ? (
-                  <IntakeNutritionForm
-                    selectedPlanSlug={selectedPlanId}
-                    selectedPlanLabel={selectedPlan?.name ?? null}
-                    selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                    onSuccess={() => setDone(true)}
-                  />
-                ) : intakeKind === 'full' ? (
-                  <IntakeFullForm
-                    selectedPlanSlug={selectedPlanId}
-                    selectedPlanLabel={selectedPlan?.name ?? null}
-                    selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                    onSuccess={() => setDone(true)}
-                  />
-                ) : (
-                  <IntakeFersterForm
-                    selectedPlanSlug={selectedPlanId}
-                    selectedPlanLabel={selectedPlan?.name ?? null}
-                    selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                    onSuccess={() => setDone(true)}
-                  />
-                )}
+          {mobileStep === 'detail' && selectedPlan ? (
+            <div className="fixed inset-0 z-40 flex flex-col bg-surface-base pt-14">
+              <div className="flex-1 min-h-0">
+                <PlanDetailView
+                  panelId="intake-plan-detail-mobile"
+                  plan={selectedPlan}
+                  planBilling={planBilling}
+                  onBack={handleBackToForm}
+                />
               </div>
-            )
-          ) : (
+            </div>
+          ) : null}
+
+          {mobileStep === 'form' ? (
+            <div id="intake-form-panel" className="flex-1 flex flex-col min-h-screen bg-surface-base pt-14">
+              <div className="px-4 pt-2 pb-16 flex-1">
+                {/* Pill del plan elegido — compacto y sin ruido */}
+                {selectedPlan ? (
+                  <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-surface-border bg-surface-card px-3.5 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-ink-primary leading-tight">
+                        {selectedPlan.name}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-ink-muted tabular-nums">
+                        {displayPriceForPlan(selectedPlan, planBilling)} <span className="text-ink-muted/60">·</span> {planBillingCaption(planBilling)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setMobileStep('detail'); scrollIntakeToTop() }}
+                        className="text-[11px] font-medium text-ink-muted hover:text-ink-secondary"
+                      >
+                        Detalle
+                      </button>
+                      <span className="text-ink-muted/40 text-[10px]" aria-hidden>|</span>
+                      <button
+                        type="button"
+                        onClick={() => { setMobileStep('plans'); scrollIntakeToTop() }}
+                        className="text-[11px] font-medium text-ink-muted hover:text-ink-secondary"
+                      >
+                        Cambiar
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {renderIntakeForm()}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
+          <LeftBrandPanel {...leftPanelProps} />
+          <div className="flex-1 flex flex-col px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:overflow-y-auto lg:max-h-[min(100vh-2rem,1200px)]">
             <div className="flex-1" style={{ perspective: '1600px' }}>
               <div
                 className="relative transition-transform duration-700"
@@ -1216,35 +1435,11 @@ export function PublicIntakeFormPage() {
                   transform: isPlanFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                 }}
               >
-              <div style={{ backfaceVisibility: 'hidden' }} className="scrollbar-hide">
-                  <IntakeSlotsBanner spots={publicSpots} />
-                  <TestimonialsSection urls={testimonialVideos} />
-                  {intakeKind === 'nutricion' ? (
-                    <IntakeNutritionForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      onSuccess={() => setDone(true)}
-                    />
-                  ) : intakeKind === 'full' ? (
-                    <IntakeFullForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      onSuccess={() => setDone(true)}
-                    />
-                  ) : (
-                    <IntakeFersterForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      onSuccess={() => setDone(true)}
-                    />
-                  )}
+                <div style={{ backfaceVisibility: 'hidden' }} className="scrollbar-hide">
+                  {renderIntakeForm()}
                 </div>
-
-              <div
-                className="absolute inset-0 scrollbar-hide"
+                <div
+                  className="absolute inset-0 scrollbar-hide"
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
                   {selectedPlan ? (
@@ -1253,9 +1448,10 @@ export function PublicIntakeFormPage() {
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
+

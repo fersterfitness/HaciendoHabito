@@ -153,6 +153,8 @@
       color: rgb(var(--ink-primary));
     }
   }
+
+  /* /form hero: cada control define su propio color con `!text-*` según el tema. */
 }
 
 @layer utilities {

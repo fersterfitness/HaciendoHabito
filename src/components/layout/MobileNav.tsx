@@ -94,7 +94,7 @@ export function MobileNav() {
   return (
     <>
       {/* Bottom bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border print:hidden">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border pb-[env(safe-area-inset-bottom)] print:hidden">
         <div className="flex items-center justify-around h-16 px-1">
           {primaryItems.map((item) => {
             const Icon = item.icon
@@ -224,7 +224,7 @@ export function MobileNav() {
                   onClose={() => setDrawerOpen(false)}
                 />
                 <DrawerNavItem
-                  to="/profile"
+                  to="/settings"
                   label="Mi perfil"
                   icon={UserCircle}
                   onClose={() => setDrawerOpen(false)}
