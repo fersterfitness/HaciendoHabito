@@ -158,6 +158,36 @@
 }
 
 @layer utilities {
+  /** Loader de app: logo con pulso suave. */
+  @keyframes brand-loader-pulse {
+    0%,
+    100% {
+      opacity: 0.72;
+      transform: scale(0.94);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes brand-loader-glow {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.92);
+    }
+    50% {
+      opacity: 0.65;
+      transform: scale(1.08);
+    }
+  }
+  .animate-brand-loader-pulse {
+    animation: brand-loader-pulse 1.35s ease-in-out infinite;
+  }
+  .animate-brand-loader-glow {
+    animation: brand-loader-glow 1.35s ease-in-out infinite;
+  }
+
   /** Lista de alumnos: cada fila “cae” desde arriba (lento + escalonado desde TS). */
   @keyframes hh-row-drop-in {
     from {

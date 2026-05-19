@@ -87,18 +87,18 @@ export function IntakeChangeablePlansSection({
   const selectedRing = useMemo(() => {
     if (lightChrome) {
       return [
-        'border border-neutral-200/90 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/45',
-        'shadow-[0_5px_22px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,0.95)]',
-        'ring-1 ring-neutral-900/[0.045]',
+        'border border-neutral-300/95 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/45',
+        'shadow-[0_5px_22px_rgba(15,23,42,0.1),inset_0_1px_0_rgba(255,255,255,0.95)]',
+        'ring-1 ring-neutral-900/[0.08]',
       ].join(' ')
     }
     if (badgeVariant === 'amber') {
       return darkChrome
-        ? 'border border-white/[0.11] bg-white/[0.045] border-l-[2px] border-l-white/32 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
+        ? 'border border-white/[0.14] bg-white/[0.055] border-l-[2px] border-l-white/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-white/20'
         : 'ring-[1px] ring-neutral-300 bg-white shadow-sm dark:ring-neutral-600 dark:bg-transparent'
     }
     return darkChrome
-      ? 'border border-white/[0.12] bg-white/[0.055] border-l-[2px] border-l-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
+      ? 'border border-white/[0.14] bg-white/[0.06] border-l-[2px] border-l-white/35 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-white/18'
       : 'ring-[1px] ring-neutral-300 shadow-sm dark:shadow-none dark:ring-neutral-600'
   }, [badgeVariant, darkChrome, lightChrome])
 
@@ -291,7 +291,7 @@ export function IntakeChangeablePlansSection({
                           'flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4',
                           isSelected
                             ? darkChrome
-                              ? 'border-white/50 bg-white/20 text-white'
+                              ? 'border-white/55 bg-white/22 text-white'
                               : 'border-neutral-800 bg-neutral-900 text-white shadow-sm'
                             : lightChrome
                               ? 'border-neutral-300 bg-white'

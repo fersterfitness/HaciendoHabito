@@ -224,14 +224,14 @@ function IntakeHorizontalChoiceRow({
         ? cn(
             'focus-visible:ring-white/30',
             isSelected
-              ? '!text-white border-white/45 bg-white/12'
-              : '!text-white/75 border-white/12 bg-white/[0.03] hover:!text-white hover:border-white/25',
+              ? '!text-white border-white/55 bg-white/14 font-semibold ring-1 ring-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]'
+              : '!text-white/60 border-white/10 bg-white/[0.02] font-medium hover:!text-white/80 hover:border-white/22',
           )
         : cn(
-            'focus-visible:ring-brand-primary/40',
+            'focus-visible:ring-neutral-400/40',
             isSelected
-              ? 'text-ink-primary border-ink-primary/30 bg-surface-elevated shadow-sm'
-              : 'text-ink-secondary border-surface-border bg-surface-card hover:text-ink-primary hover:border-ink-primary/20',
+              ? 'border-neutral-900/25 bg-white font-semibold text-ink-primary shadow-[0_2px_10px_rgba(15,23,42,0.08)] ring-1 ring-neutral-900/[0.07]'
+              : 'border-surface-border bg-surface-card font-medium text-ink-muted hover:border-neutral-300/90 hover:text-ink-secondary',
           ),
     )
 
@@ -242,11 +242,11 @@ function IntakeHorizontalChoiceRow({
   const compactBtnClasses = (isSelected: boolean) =>
     isDark
       ? isSelected
-        ? 'border-white/35 bg-white/[0.06]'
+        ? 'border-white/40 bg-white/[0.08] ring-1 ring-white/25'
         : 'border-white/12 bg-white/[0.025] hover:border-white/22 hover:bg-white/[0.05]'
       : isSelected
-        ? 'border-ink-primary/30 bg-surface-elevated shadow-sm'
-        : 'border-surface-border bg-surface-card hover:border-ink-primary/20 hover:bg-surface-elevated'
+        ? 'border-neutral-900/20 bg-white ring-1 ring-neutral-900/[0.06] shadow-sm'
+        : 'border-surface-border bg-surface-card hover:border-neutral-300/80 hover:bg-surface-elevated'
 
   const compactNameClass = isDark ? '!text-white' : 'text-ink-primary'
   const compactSubtitleClass = isDark ? '!text-white/55' : 'text-ink-muted'

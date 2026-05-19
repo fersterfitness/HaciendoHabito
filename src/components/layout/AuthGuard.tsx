@@ -28,7 +28,7 @@ export function AuthGuard() {
   if (loading && !timedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-base">
-        <Spinner size="lg" />
+        <Spinner size="lg" variant="brand" />
       </div>
     )
   }
