@@ -64,6 +64,7 @@ export function ExercisesPage() {
   const [exercises, setExercises] = useState<ExerciseWithGroup[]>([])
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [muscleFilter, setMuscleFilter] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ExerciseWithGroup | null>(null)
@@ -87,8 +88,13 @@ export function ExercisesPage() {
         .from('exercise_library')
         .select('*, muscle_group:muscle_groups(*)')
         .order('name')
-      if (error) toast.error(error.message)
-      else setExercises((data as unknown as ExerciseWithGroup[]) ?? [])
+      if (error) {
+        setLoadError(error.message)
+        toast.error(error.message)
+      } else {
+        setLoadError(null)
+        setExercises((data as unknown as ExerciseWithGroup[]) ?? [])
+      }
     } finally {
       setLoading(false)
     }
@@ -297,6 +303,12 @@ export function ExercisesPage() {
           <div className="flex justify-center py-10">
             <Spinner size="lg" />
           </div>
+        ) : loadError ? (
+          <EmptyState
+            title="No se pudieron cargar los ejercicios"
+            description={loadError}
+            action={{ label: 'Reintentar', onClick: () => { setLoading(true); void fetchExercises() } }}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={<Dumbbell className="h-8 w-8" />}

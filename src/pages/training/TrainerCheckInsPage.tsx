@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import {
@@ -420,7 +421,7 @@ export function TrainerCheckInsPage() {
       return
     }
     if (!savedForm.public_token) {
-      toast.error('Falta el link general: aplicá la migración de check-in en Supabase y recargá.')
+      toast.error('El link general todavía no está disponible. Guardá el formulario y recargá la página.')
       return
     }
     const sharedUrl = sharedPublicUrl(savedForm.public_token)
@@ -524,7 +525,11 @@ export function TrainerCheckInsPage() {
             {loading ? (
               <p className="text-sm text-ink-muted">Cargando…</p>
             ) : forms.length === 0 ? (
-              <p className="text-sm text-ink-muted">Todavía no hay formularios.</p>
+              <EmptyState
+                title="Sin formularios"
+                description="Creá el primero para enviar check-ins por link general o personal."
+                action={{ label: 'Nuevo formulario', onClick: () => openForm(null), icon: <Plus className="h-4 w-4" /> }}
+              />
             ) : (
               <ul className="space-y-1">
                 {forms.map((f) => (

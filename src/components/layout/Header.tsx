@@ -1,6 +1,6 @@
-import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Bell, ChevronLeft } from 'lucide-react'
+import { Bell, ChevronLeft, Search } from 'lucide-react'
+import { openGlobalSearch } from '@/lib/globalSearch'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -65,7 +65,9 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
     >
       {showBack && (
         <button
+          type="button"
           onClick={() => navigate(-1)}
+          aria-label="Volver"
           className={cn(
             'p-2 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors',
             appFocusRingClassName,
@@ -81,6 +83,20 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         {actions}
 
         <button
+          type="button"
+          onClick={() => openGlobalSearch()}
+          className={cn(
+            'hidden sm:inline-flex p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
+            appFocusRingClassName,
+          )}
+          aria-label="Buscar (Ctrl+K)"
+          title="Buscar (Ctrl+K)"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+
+        <button
+          type="button"
           onClick={toggleTheme}
           className={cn(
             'p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
@@ -92,7 +108,9 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         </button>
 
         <button
+          type="button"
           onClick={() => navigate('/notifications')}
+          aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'}
           className={cn(
             'relative p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
             appFocusRingClassName,
@@ -113,12 +131,13 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
 
         <button
           type="button"
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate('/settings')}
           className={cn(
             'ml-1 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50',
             appFocusRingClassName,
           )}
-          title="Perfil"
+          aria-label="Ajustes y perfil"
+          title="Ajustes"
         >
           {profile ? (
             <AvatarOrInitials fullName={profile.full_name} avatarUrl={profile.avatar_url} size="md" rounded="xl" />

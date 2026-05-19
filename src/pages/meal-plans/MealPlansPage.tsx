@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn, formatDate } from '@/lib/utils'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
-import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
+import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
 import { parsePlanningData } from '@/lib/nutrition/planningWorkbookTypes'
@@ -587,20 +587,11 @@ export function MealPlansPage() {
                           title={p.student?.full_name ?? undefined}
                         >
                           <div className="flex items-center gap-2">
-                            {(() => {
-                              const photoUrl = studentAvatarPublicUrl(p.student?.avatar_path ?? null)
-                              return photoUrl ? (
-                                <img
-                                  src={photoUrl}
-                                  alt={p.student?.full_name ?? ''}
-                                  className="h-6 w-6 shrink-0 rounded-md border border-surface-border object-cover"
-                                />
-                              ) : (
-                                <div className={cn('flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold shrink-0', colors.avatar)}>
-                                  {(p.student?.full_name ?? '?').charAt(0).toUpperCase()}
-                                </div>
-                              )
-                            })()}
+                            <StudentAvatarThumb
+                              storagePath={p.student?.avatar_path}
+                              name={p.student?.full_name ?? '?'}
+                              fallbackClassName={cn('text-[10px] font-bold', colors.avatar)}
+                            />
                             <span className="truncate">{p.student?.full_name ?? '—'}</span>
                           </div>
                         </td>

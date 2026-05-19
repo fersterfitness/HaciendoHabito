@@ -34,7 +34,7 @@ import { cn, daysUntil, formatCurrency, formatDate } from '@/lib/utils'
 import { financeUi } from '@/lib/uiGlossary'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { FINANCE_SCOPES } from '@/lib/constants'
-import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
+import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { scheduleMatchesToday } from '@/lib/checkInSchedule'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
@@ -1462,20 +1462,7 @@ export function DashboardPage() {
                   className="group flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left transition-colors hover:bg-surface-elevated/50 sm:px-3.5"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    {(() => {
-                      const photoUrl = studentAvatarPublicUrl(s.avatar_path)
-                      return photoUrl ? (
-                        <img
-                          src={photoUrl}
-                          alt={s.full_name}
-                          className="h-6 w-6 shrink-0 rounded-md border border-surface-border object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-surface-border/80 bg-surface-elevated/60">
-                          <span className="text-[10px] font-semibold text-ink-muted">{s.full_name.charAt(0).toUpperCase()}</span>
-                        </div>
-                      )
-                    })()}
+                    <StudentAvatarThumb storagePath={s.avatar_path} name={s.full_name} />
                     <p className="truncate text-[13px] font-medium text-ink-primary group-hover:text-brand-secondary transition-colors">{s.full_name}</p>
                   </div>
                   <ChevronRight className="h-3 w-3 shrink-0 text-ink-muted opacity-45 transition-opacity group-hover:opacity-100" />

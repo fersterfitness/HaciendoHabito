@@ -10,6 +10,7 @@ import { Tooltip as UiTooltip } from '@/components/ui/Tooltip'
 import { Popover } from '@/components/ui/Popover'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
+  Calendar,
   CalendarClock,
   CalendarDays,
   ChevronDown,
@@ -64,6 +65,36 @@ async function parseFunctionErrorMessage(error: unknown) {
   } catch {
     return fallback
   }
+}
+
+async function syncAppointmentGoogleCalendar(appointmentId: string): Promise<string | null> {
+  const { data, error } = await supabase.functions.invoke('create-google-calendar-event', {
+    body: { appointmentId },
+  })
+  if (error) {
+    const functionMessage = await parseFunctionErrorMessage(error)
+    const { title, body, kind } = parseGoogleCalendarSyncFailure(functionMessage)
+    toast.custom(
+      (toastId) => (
+        <div className="max-w-md rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 flex flex-col gap-2">
+          <p className="text-sm font-semibold text-ink-primary leading-snug">{title}</p>
+          <p className="text-xs text-ink-secondary leading-relaxed">{body}</p>
+          <button
+            type="button"
+            className="self-end px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-400"
+            onClick={() => toast.dismiss(toastId.id)}
+          >
+            Entendido
+          </button>
+        </div>
+      ),
+      { duration: kind === 'oauth_revoked' ? 28000 : 16000 },
+    )
+    return null
+  }
+  if (data?.googleEventId) return data.googleEventId as string
+  toast.error('No se recibió ID de Google Calendar')
+  return null
 }
 
 type AppointmentRow = Appointment & {
@@ -282,6 +313,7 @@ export function AppointmentsPage() {
   const { user, profile } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [syncingGoogleId, setSyncingGoogleId] = useState<string | null>(null)
   const [appointments, setAppointments] = useState<AppointmentRow[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('week')
@@ -739,34 +771,10 @@ export function AppointmentsPage() {
         },
       ]
       const { data: remInserted } = await supabase.from('appointment_reminders').insert(reminderRows).select('*')
-      const { data: calendarData, error: calendarError } = await supabase.functions.invoke('create-google-calendar-event', {
-        body: { appointmentId: appointment.id },
-      })
-
-      if (calendarError) {
-        const functionMessage = await parseFunctionErrorMessage(calendarError)
-        const { title, body, kind } = parseGoogleCalendarSyncFailure(functionMessage)
-        toast.custom(
-          (t) => (
-            <div className="max-w-md rounded-2xl border border-surface-border bg-surface-card shadow-lg px-4 py-3 flex flex-col gap-2">
-              <p className="text-sm font-semibold text-ink-primary leading-snug">{title}</p>
-              <p className="text-xs text-ink-secondary leading-relaxed">{body}</p>
-              <button
-                type="button"
-                className="self-end px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-400"
-                onClick={() => toast.dismiss(t.id)}
-              >
-                Entendido
-              </button>
-            </div>
-          ),
-          { duration: kind === 'oauth_revoked' ? 28000 : 16000 },
-        )
-      } else if (calendarData?.googleEventId) {
-        appointment.google_event_id = calendarData.googleEventId as string
+      const googleEventId = await syncAppointmentGoogleCalendar(appointment.id)
+      if (googleEventId) {
+        appointment.google_event_id = googleEventId
         toast.success('Turno agendado y sincronizado con Google Calendar')
-      } else {
-        toast.error('Turno guardado, pero no se recibió ID de Google Calendar')
       }
 
       const appointmentWithReminders: AppointmentRow = {
@@ -807,7 +815,7 @@ export function AppointmentsPage() {
         whatsappToast('Pedí confirmación por WhatsApp (podés repetir desde la lista de Agenda)', confirmUrl)
       }
 
-      if (!calendarData?.googleEventId && !calendarError) {
+      if (!googleEventId) {
         toast.success('Turno agendado')
       }
     } finally {
@@ -863,6 +871,22 @@ export function AppointmentsPage() {
     setPersonalWeekPopoverOpen(false)
     setPersonalWeekPopoverId(null)
     toast.success('Evento eliminado')
+  }
+
+  async function retryGoogleCalendarSync(appointmentId: string) {
+    if (syncingGoogleId) return
+    setSyncingGoogleId(appointmentId)
+    try {
+      const googleEventId = await syncAppointmentGoogleCalendar(appointmentId)
+      if (googleEventId) {
+        setAppointments((prev) =>
+          prev.map((a) => (a.id === appointmentId ? { ...a, google_event_id: googleEventId } : a)),
+        )
+        toast.success('Turno sincronizado con Google Calendar')
+      }
+    } finally {
+      setSyncingGoogleId(null)
+    }
   }
 
   async function updateStatus(
@@ -1705,6 +1729,18 @@ export function AppointmentsPage() {
                         >
                           Cancelar
                         </button>
+                        {!a.google_event_id && (a.status === 'scheduled' || a.status === 'confirmed') ? (
+                          <button
+                            type="button"
+                            disabled={syncingGoogleId === a.id}
+                            onClick={() => void retryGoogleCalendarSync(a.id)}
+                            title="Crear o vincular el evento en Google Calendar"
+                            className="text-[11px] px-2.5 py-1 rounded-lg border border-sky-500/35 text-sky-900 dark:text-sky-300/95 hover:bg-sky-500/12 inline-flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <Calendar className="h-3 w-3" />
+                            {syncingGoogleId === a.id ? 'Sincronizando…' : 'Google Calendar'}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() =>

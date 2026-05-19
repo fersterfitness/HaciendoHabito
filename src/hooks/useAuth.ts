@@ -1,6 +1,12 @@
 import { useEffect } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import {
+  isPasswordRecoveryLanding,
+  isPasswordRecoveryPending,
+  setPasswordRecoveryPending,
+} from '@/lib/authRecovery'
+import { clearStoredAuthSession, isLoginRoute } from '@/lib/authSession'
 import { useAuthStore } from '@/stores/authStore'
 
 // ─── Session version ──────────────────────────────────────────────────────────
@@ -108,12 +114,30 @@ export function useAuthInit() {
         return
       }
 
+      // En /login no restaurar ni refrescar sesión (evita pelear con signInWithPassword en dev).
+      if (isLoginRoute()) {
+        if (isPasswordRecoveryPending()) {
+          setPasswordRecoveryPending(false)
+        }
+        clearTimeout(timer)
+        finish(false)
+        return
+      }
+
       // ── Fast path: valid non-expired session in localStorage (no lock, no network) ──
+      // No restaurar sesión vieja si el usuario abrió un link de recovery (evita “entrar” al panel sin cambiar clave).
       const localSession = readLocalSession()
-      if (localSession) {
+      if (localSession && !isPasswordRecoveryLanding() && !isPasswordRecoveryPending()) {
+        const { data: { user: verified }, error: verifyErr } = await supabase.auth.getUser()
         if (!mounted) return
+        if (verifyErr || !verified?.id || verified.id !== localSession.user.id) {
+          clearStoredAuthSession()
+          clearTimeout(timer)
+          finish(false)
+          return
+        }
         setSession(localSession)
-        setUser(localSession.user)
+        setUser(verified)
         clearTimeout(timer)
         finish(true)
 
@@ -122,7 +146,7 @@ export function useAuthInit() {
           const { data, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', localSession.user.id)
+            .eq('id', verified.id)
             .single()
           if (mounted) {
             if (!profileError && data) setProfile(data)
@@ -147,6 +171,7 @@ export function useAuthInit() {
       if (!mounted) return
 
       if (!session) {
+        clearStoredAuthSession()
         clearTimeout(timer)
         finish(false)
         return
@@ -183,8 +208,13 @@ export function useAuthInit() {
       if (event === 'INITIAL_SESSION') return
 
       if (event === 'SIGNED_OUT' || !session?.user) {
+        setPasswordRecoveryPending(false)
         reset()
         return
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryPending(true)
       }
 
       setSession(session)

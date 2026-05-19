@@ -10,11 +10,16 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string
   leftIcon?: ReactNode
   rightIcon?: ReactNode
+  /** Permite botones en rightIcon (ej. mostrar/ocultar contraseña). */
+  rightIconInteractive?: boolean
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, leftIcon, rightIcon, className, id, ...props }, ref) => {
+  ({ label, error, hint, leftIcon, rightIcon, rightIconInteractive, className, id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+    const hintId = hint && !error ? `${inputId}-hint` : undefined
+    const errorId = error ? `${inputId}-error` : undefined
+    const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined
 
     return (
       <div className="flex flex-col gap-1.5">
@@ -35,6 +40,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
             className={cn(
               'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
               'text-ink-primary placeholder:text-ink-muted text-sm',
@@ -52,13 +59,26 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted">
+            <span
+              className={cn(
+                'absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted',
+                rightIconInteractive && 'pointer-events-auto',
+              )}
+            >
               {rightIcon}
             </span>
           )}
         </div>
-        {error && <p className="text-xs text-status-expired">{error}</p>}
-        {hint && !error && <p className="text-xs text-ink-muted">{hint}</p>}
+        {error && (
+          <p id={errorId} className="text-xs text-status-expired" role="alert">
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={hintId} className="text-xs text-ink-muted">
+            {hint}
+          </p>
+        )}
       </div>
     )
   }

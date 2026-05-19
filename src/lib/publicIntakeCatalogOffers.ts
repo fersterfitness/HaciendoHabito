@@ -36,6 +36,36 @@ export const INTAKE_FULL_INTEGRAL_SLUGS = new Set([
 /** Slugs de ofertas full en DB que ya cubre el catálogo fijo (evitar tarjeta genérica duplicada). */
 const LEGACY_FULL_SLUGS_HIDE_FROM_DB = new Set(['plan-full'])
 
+/** Nutrición individual — fallback en /form si la query a `web_plans` falla o está vacía. */
+export const INTAKE_NUTRITION_OFFER: PublicIntakePlanDetail = {
+  id: 'plan-nutricion',
+  catalogSegment: 'with_nutritionist',
+  displayBadge: null,
+  credentialLineOverride: null,
+  name: 'Nutrición individual',
+  price: '$80.000',
+  priceYearly: '$800.000',
+  badge: 'Nutrición',
+  shortDescription:
+    'Plan nutricional personalizado con seguimiento mensual, antropometría y soporte continuo.',
+  intro:
+    'Acompañamiento nutricional integral para establecer y mantener hábitos saludables de forma sostenida, con planificación adaptada a tu contexto, objetivos y estilo de vida.',
+  info: [
+    'Videollamada de bienvenida gratuita.',
+    'Videollamada mensual para seguimiento de progreso.',
+    'Planificación nutricional adaptada a tus objetivos.',
+    'Antropometría y ajustes mensuales según evolución.',
+    'Soporte y seguimiento continuo por WhatsApp.',
+    'Coordinación con tu equipo de profesionales si aplica.',
+  ],
+  gifts: [
+    'Calendario gratis para anotar tus hábitos.',
+    'Análisis estadístico de hábitos y progreso.',
+    'En mujeres: análisis del ciclo menstrual y su rendimiento.',
+    'Materiales y guías digitales.',
+  ],
+}
+
 /** FERSTER FITNESS (`solo`): tres ofertas fijas. */
 export const INTAKE_FERSTER_OFFERS: PublicIntakePlanDetail[] = [
   {
@@ -233,5 +263,9 @@ export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]):
   const fullIntegral = mergeCanonicalIntakeOffers(INTAKE_FULL_INTEGRAL_OFFERS, dbById)
   const extraFull = dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id))
   const extraWithNutritionist = dbPlans.filter((p) => p.catalogSegment === 'with_nutritionist')
-  return [...ferster, ...extraSolo, ...fullIntegral, ...extraFull, ...extraWithNutritionist]
+  const nutrition =
+    extraWithNutritionist.length > 0
+      ? extraWithNutritionist
+      : [overlayIntakeOfferFromDb(INTAKE_NUTRITION_OFFER, dbById)]
+  return [...ferster, ...extraSolo, ...fullIntegral, ...extraFull, ...nutrition]
 }

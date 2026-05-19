@@ -2,8 +2,11 @@ import type { WebPlanCatalogSegment } from '@/types/database'
 import {
   INTAKE_FERSTER_OFFERS,
   INTAKE_FULL_INTEGRAL_OFFERS,
+  INTAKE_NUTRITION_OFFER,
   type PublicIntakePlanDetail,
 } from '@/lib/publicIntakeCatalogOffers'
+
+export { INTAKE_NUTRITION_OFFER }
 
 export type CanonicalEditableWebPlan = {
   slug: string
@@ -24,36 +27,6 @@ export type CanonicalEditableWebPlan = {
   credential_line_override: string | null
   /** Oferta base del catálogo público (/form); no es variante 3m/6m. */
   isCatalogCanonical: boolean
-}
-
-/** Nutrición individual — misma oferta que en /form (slug `plan-nutricion`). */
-export const INTAKE_NUTRITION_OFFER: PublicIntakePlanDetail = {
-  id: 'plan-nutricion',
-  catalogSegment: 'with_nutritionist',
-  displayBadge: null,
-  credentialLineOverride: null,
-  name: 'Nutrición individual',
-  price: '$80.000',
-  priceYearly: '$800.000',
-  badge: 'Nutrición',
-  shortDescription:
-    'Plan nutricional personalizado con seguimiento mensual, antropometría y soporte continuo.',
-  intro:
-    'Acompañamiento nutricional integral para establecer y mantener hábitos saludables de forma sostenida, con planificación adaptada a tu contexto, objetivos y estilo de vida.',
-  info: [
-    'Videollamada de bienvenida gratuita.',
-    'Videollamada mensual para seguimiento de progreso.',
-    'Planificación nutricional adaptada a tus objetivos.',
-    'Antropometría y ajustes mensuales según evolución.',
-    'Soporte y seguimiento continuo por WhatsApp.',
-    'Coordinación con tu equipo de profesionales si aplica.',
-  ],
-  gifts: [
-    'Calendario gratis para anotar tus hábitos.',
-    'Análisis estadístico de hábitos y progreso.',
-    'En mujeres: análisis del ciclo menstrual y su rendimiento.',
-    'Materiales y guías digitales.',
-  ],
 }
 
 /** Orden fijo en gestión y en /form (7 planes base). */

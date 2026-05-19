@@ -165,6 +165,11 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
     }
     if (!res.ok || body.error) { toast.error(body.error || 'Error al enviar'); return }
     if (!body.ok) { toast.error('No se pudo completar el registro'); return }
+
+    if (Array.isArray(body.warnings) && body.warnings.length > 0) {
+      toast(body.warnings.join(' '), { icon: 'ℹ️', duration: 9000 })
+    }
+
     toast.success('¡Listo!')
     onSuccess()
   }

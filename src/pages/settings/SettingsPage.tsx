@@ -157,7 +157,10 @@ export function SettingsPage() {
                   <code className="text-[10px] bg-surface-base px-1 rounded">20260529120000_trainer_resources_and_check_ins.sql</code> y{' '}
                   <code className="text-[10px] bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code> y{' '}
                   <code className="text-[10px] bg-surface-base px-1 rounded">20260529160000_trainer_sends_rpc_check_in_hardening.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529180000_check_in_email_and_send_schedules.sql</code>. Sin
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529180000_check_in_email_and_send_schedules.sql</code>,{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260530140000_check_in_fix_rate_limit_and_shared_link.sql</code> y{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260530150000_security_hardening_rls.sql</code> y{' '}
+                  <code className="text-[10px] bg-surface-base px-1 rounded">20260530160000_intake_rate_limit_postgres.sql</code>. Sin
                   eso, fallan tablas o RPC de check-in.
                 </li>
                 <li>

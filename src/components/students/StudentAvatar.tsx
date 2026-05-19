@@ -7,7 +7,7 @@ import { cn, getInitials } from '@/lib/utils'
 import {
   STUDENT_AVATAR_BUCKET,
   STUDENT_AVATAR_MAX_BYTES,
-  studentAvatarPublicUrl,
+  useStudentStorageUrl,
 } from '@/lib/studentAvatar'
 import toast from 'react-hot-toast'
 
@@ -50,7 +50,7 @@ export function StudentAvatar({
   const [busy, setBusy] = useState(false)
   const [brokenImg, setBrokenImg] = useState(false)
 
-  const url = studentAvatarPublicUrl(avatarPath)
+  const url = useStudentStorageUrl(avatarPath)
   const showPhoto = Boolean(url && !brokenImg)
 
   const imgSizes =

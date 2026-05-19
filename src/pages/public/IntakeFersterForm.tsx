@@ -297,6 +297,11 @@ export function IntakeFersterForm({ onSuccess, selectedPlanSlug = null, selected
       return
     }
 
+
+    if (Array.isArray(body.warnings) && body.warnings.length > 0) {
+      toast(body.warnings.join(' '), { icon: 'ℹ️', duration: 9000 })
+    }
+
     toast.success('¡Listo!')
     onSuccess()
   }

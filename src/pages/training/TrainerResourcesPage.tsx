@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft } from 'lucide-react'
+import { MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft, Link2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Spinner } from '@/components/ui/Spinner'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -86,6 +88,7 @@ export function TrainerResourcesPage() {
   const [autoLogOnWaOpen, setAutoLogOnWaOpen] = useState(true)
   const [logSendPending, setLogSendPending] = useState(false)
   const [sendLogHiddenDuplicateCount, setSendLogHiddenDuplicateCount] = useState(0)
+  const newResourceRef = useRef<HTMLDivElement>(null)
 
   const loadSendLog = useCallback(async () => {
     if (!user) return
@@ -446,6 +449,7 @@ export function TrainerResourcesPage() {
           )}
         </Card>
 
+        <div ref={newResourceRef} id="trainer-new-resource" className="scroll-mt-24">
         <Card className="p-4 sm:p-5 space-y-4">
           <h2 className="text-sm font-semibold text-ink-primary">Nuevo recurso</h2>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -470,14 +474,27 @@ export function TrainerResourcesPage() {
             Guardar recurso
           </Button>
         </Card>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card className="p-4 sm:p-5 space-y-2">
             <h2 className="text-sm font-semibold text-ink-primary mb-2">Biblioteca</h2>
             {loading ? (
-              <p className="text-sm text-ink-muted">Cargando…</p>
+              <div className="flex justify-center py-10">
+                <Spinner accent="trainerCta" />
+              </div>
             ) : resources.length === 0 ? (
-              <p className="text-sm text-ink-muted">Todavía no hay recursos.</p>
+              <EmptyState
+                className="py-10"
+                icon={<Link2 className="h-8 w-8" />}
+                title="Sin recursos todavía"
+                description="Guardá links de videos, PDFs o artículos para compartirlos por WhatsApp con tus alumnos."
+                action={{
+                  label: 'Crear el primero',
+                  onClick: () => newResourceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                  icon: <Plus className="h-4 w-4" />,
+                }}
+              />
             ) : (
               <ul className="space-y-1">
                 {resources.map((r) => (
@@ -692,7 +709,11 @@ export function TrainerResourcesPage() {
           {logLoading ? (
             <p className="text-sm text-ink-muted">Cargando historial…</p>
           ) : sendLog.length === 0 ? (
-            <p className="text-sm text-ink-muted">Todavía no hay registros.</p>
+            <EmptyState
+              icon={<History className="h-8 w-8" />}
+              title="Sin envíos registrados"
+              description="Al enviar un recurso por WhatsApp (automático o manual) aparecerá acá."
+            />
           ) : (
             <div className="overflow-x-auto rounded-lg border border-surface-border">
               <table className="w-full text-xs">

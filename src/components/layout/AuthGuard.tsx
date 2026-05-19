@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { isPasswordRecoveryPending } from '@/lib/authRecovery'
 import { Spinner } from '@/components/ui/Spinner'
 
 // Hard cap: si la verificación de auth tarda más que esto, redirige a login
@@ -33,6 +34,10 @@ export function AuthGuard() {
   }
 
   if (!user || timedOut) return <Navigate to="/login" replace />
+
+  if (isPasswordRecoveryPending()) {
+    return <Navigate to="/reset-password" replace />
+  }
 
   return <Outlet />
 }

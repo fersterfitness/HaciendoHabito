@@ -27,7 +27,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Popover } from '@/components/ui/Popover'
 import { cn, formatDate, daysUntil } from '@/lib/utils'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
-import { studentAvatarPublicUrl } from '@/lib/studentAvatar'
+import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
 import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
 
@@ -858,20 +858,11 @@ export function RoutinesPage() {
                             title={r.student?.full_name ?? undefined}
                           >
                             <div className="flex items-center gap-2">
-                              {(() => {
-                                const photoUrl = studentAvatarPublicUrl((r.student as RoutineWithStudent['student'])?.avatar_path ?? null)
-                                return photoUrl ? (
-                                  <img
-                                    src={photoUrl}
-                                    alt={r.student?.full_name ?? ''}
-                                    className="h-6 w-6 shrink-0 rounded-md border border-surface-border object-cover"
-                                  />
-                                ) : (
-                                  <div className={cn('flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold shrink-0', colors.avatar)}>
-                                    {(r.student?.full_name ?? '?').charAt(0).toUpperCase()}
-                                  </div>
-                                )
-                              })()}
+                              <StudentAvatarThumb
+                                storagePath={(r.student as RoutineWithStudent['student'])?.avatar_path}
+                                name={r.student?.full_name ?? '?'}
+                                fallbackClassName={cn('text-[10px] font-bold', colors.avatar)}
+                              />
                               <span className="truncate">{r.student?.full_name ?? '—'}</span>
                             </div>
                           </td>

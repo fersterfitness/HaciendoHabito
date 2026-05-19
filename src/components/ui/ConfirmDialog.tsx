@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useId, useRef } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { Button } from './Button'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -28,21 +28,36 @@ export function ConfirmDialog({
   variant = 'danger',
   loading = false,
 }: ConfirmDialogProps) {
+  const titleId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    const prev = document.activeElement as HTMLElement | null
+    panelRef.current?.focus()
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      prev?.focus()
+    }
   }, [open, onClose])
 
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm animate-fade-in rounded-2xl border border-surface-border bg-surface-card p-6 shadow-lg">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="relative w-full max-w-sm animate-fade-in rounded-2xl border border-surface-border bg-surface-card p-6 shadow-lg outline-none"
+      >
         <button
           onClick={onClose}
           type="button"
@@ -67,7 +82,9 @@ export function ConfirmDialog({
           </div>
 
           <div>
-            <h3 className="text-base font-semibold text-ink-primary">{title}</h3>
+            <h3 id={titleId} className="text-base font-semibold text-ink-primary">
+              {title}
+            </h3>
             {description && (
               <p className="text-sm text-ink-secondary mt-1">{description}</p>
             )}

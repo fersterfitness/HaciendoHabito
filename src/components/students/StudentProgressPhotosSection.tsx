@@ -7,8 +7,27 @@ import type { StudentProgressPhoto } from '@/types/database'
 import {
   STUDENT_AVATAR_BUCKET,
   STUDENT_AVATAR_MAX_BYTES,
-  studentBucketPublicUrl,
+  studentBucketSignedUrl,
+  useStudentStorageUrl,
 } from '@/lib/studentAvatar'
+
+function ProgressPhotoImage({
+  path,
+  alt,
+  className,
+  onClick,
+}: {
+  path: string
+  alt: string
+  className?: string
+  onClick?: () => void
+}) {
+  const url = useStudentStorageUrl(path)
+  if (!url) {
+    return <div className={cn(className, 'bg-surface-elevated animate-pulse')} aria-hidden />
+  }
+  return <img src={url} alt={alt} className={className} onClick={onClick} />
+}
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
@@ -317,24 +336,29 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
       ) : (
         <div className="space-y-6">
           {byMonth.map(([ym, rows]) => {
-            const monthUrls = rows.map((ph) => studentBucketPublicUrl(ph.storage_path)).filter(Boolean) as string[]
+            const monthUrls: string[] = []
             return (
               <div key={ym}>
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{formatYmLabel(ym)}</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                   {rows.map((ph, photoIdx) => {
-                    const url = studentBucketPublicUrl(ph.storage_path)
                     return (
                       <figure
                         key={ph.id}
                         className="relative group aspect-[3/4] overflow-hidden rounded-xl border border-zinc-200/55 bg-zinc-100/20 dark:border-zinc-800/65 dark:bg-zinc-950/40 cursor-pointer"
                       >
-                        {url ? (
-                          <img
-                            src={url}
+                        {ph.storage_path ? (
+                          <ProgressPhotoImage
+                            path={ph.storage_path}
                             alt={`Progreso ${ym}`}
                             className="w-full h-full object-cover"
-                            onClick={() => { setLightboxUrls(monthUrls); setLightboxIndex(photoIdx) }}
+                            onClick={() => {
+                              void (async () => {
+                                const urls = await Promise.all(rows.map((r) => studentBucketSignedUrl(r.storage_path)))
+                                setLightboxUrls(urls.filter(Boolean) as string[])
+                                setLightboxIndex(photoIdx)
+                              })()
+                            }}
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full text-xs text-ink-muted">Sin vista previa</div>

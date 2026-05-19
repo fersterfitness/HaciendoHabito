@@ -659,8 +659,12 @@ function LeftBrandPanel({
   withNutritionistSegmentImageUrl,
   crisSoloSegmentImageUrl,
   modalityOptions,
+  catalogError,
+  catalogLoading,
 }: {
   theme: 'light' | 'dark'
+  catalogError?: string | null
+  catalogLoading?: boolean
   plansAll: PlanDetail[]
   plansVisible: PlanDetail[]
   catalogSegment: WebPlanCatalogSegment | null
@@ -720,6 +724,13 @@ function LeftBrandPanel({
       <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0">
           <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] min-w-0 shrink-0 space-y-4">
+              {catalogError ? (
+                <p className="text-[11px] text-amber-200/90 rounded-lg border border-amber-400/30 bg-amber-500/15 px-2.5 py-2">
+                  {catalogError}
+                </p>
+              ) : catalogLoading ? (
+                <p className="text-[11px] text-white/50">Actualizando precios…</p>
+              ) : null}
             {/* Marca: una sola lectura */}
             <div className="relative flex items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
               <div
@@ -851,10 +862,17 @@ function LeftBrandPanel({
 export function PublicIntakeFormPage() {
   const { theme, setTheme } = useTheme()
   useEffect(() => {
+    const prev = theme
     setTheme('dark')
+    return () => {
+      setTheme(prev)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar/desmontar /form
   }, [setTheme])
   const [done,      setDone]      = useState(false)
   const [plans, setPlans] = useState<PlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
   const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment | null>('solo')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
@@ -979,6 +997,8 @@ export function PublicIntakeFormPage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
+      setCatalogLoading(true)
+      setCatalogError(null)
       const { data, error } = await supabase
         .from('web_plans')
         .select(
@@ -987,7 +1007,13 @@ export function PublicIntakeFormPage() {
         .eq('is_active', true)
         .eq('show_in_public_intake', true)
         .order('sort_order')
-      if (error || !mounted) return
+      if (!mounted) return
+      setCatalogLoading(false)
+      if (error) {
+        setCatalogError('No pudimos actualizar los precios desde el servidor. Se muestran valores por defecto.')
+        setPlans(mergePublicIntakePlansFromDb([]))
+        return
+      }
       type Row = Pick<
         WebPlan,
         | 'slug'
@@ -1038,7 +1064,10 @@ export function PublicIntakeFormPage() {
         if (da !== db) return da - db
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
       })
-      if (mounted) setPlans(mergePublicIntakePlansFromDb(mapped))
+      if (mounted) {
+        setPlans(mergePublicIntakePlansFromDb(mapped))
+        setCatalogError(null)
+      }
     })()
     return () => {
       mounted = false
@@ -1102,6 +1131,8 @@ export function PublicIntakeFormPage() {
             withNutritionistSegmentImageUrl={catalogSegmentImages.withNutritionist}
             crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
             modalityOptions={modalityOptions}
+            catalogError={catalogError}
+            catalogLoading={catalogLoading}
           />
           <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-14 text-center">
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-200/90 dark:bg-white/[0.08]">
@@ -1139,6 +1170,8 @@ export function PublicIntakeFormPage() {
           withNutritionistSegmentImageUrl={catalogSegmentImages.withNutritionist}
           crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
           modalityOptions={modalityOptions}
+          catalogError={catalogError}
+          catalogLoading={catalogLoading}
         />
 
         {/* Panel derecho — selector de tipo o formulario */}

@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthGuard } from '@/components/layout/AuthGuard'
 import { PageRouteFallback } from '@/components/layout/PageRouteFallback'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/students/StudentsPage'
 import type { AppRole } from '@/types/database'
@@ -32,7 +33,7 @@ const ExpenseFormPage = lazy(() => import('@/pages/finances/ExpenseFormPage').th
 const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const WebPlansSettingsPage = lazy(() => import('@/pages/settings/WebPlansSettingsPage').then((m) => ({ default: m.WebPlansSettingsPage })))
-const PlaceholderPage = lazy(() => import('@/pages/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })))
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 const FeedbackPage = lazy(() => import('@/pages/feedback/FeedbackPage').then((m) => ({ default: m.FeedbackPage })))
 const FeedbackFormPage = lazy(() => import('@/pages/feedback/FeedbackFormPage').then((m) => ({ default: m.FeedbackFormPage })))
 const FeedbackDetailPage = lazy(() => import('@/pages/feedback/FeedbackDetailPage').then((m) => ({ default: m.FeedbackDetailPage })))
@@ -217,26 +218,31 @@ function renderLoggedInRoutes({
           )
         }
       />
-      <Route path="profile" element={withPageSuspense(<PlaceholderPage title="Perfil" />)} />
+      <Route path="profile" element={<Navigate to="/settings" replace />} />
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={withPageSuspense(<NotFoundPage />)} />
     </>
   )
 }
 
 function AppRoutes() {
   useAuthInit()
-  const role = useAuthStore((state) => state.profile?.role)
-  const canSeeTraining = role === 'admin' || role === 'trainer' || !role
-  const canSeeNutrition = role === 'admin' || role === 'nutritionist'
-  const canSeeFinances = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
+  const { user, profile, loading } = useAuthStore()
+  const role = profile?.role
+  const profilePending = Boolean(user && !profile && !loading)
+  const canSeeTraining = profilePending ? false : role === 'admin' || role === 'trainer'
+  const canSeeNutrition = profilePending ? false : role === 'admin' || role === 'nutritionist'
+  const canSeeFinances =
+    profilePending ? false : role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const canSeeNutritionFoodsGuide =
-    role === 'admin' || role === 'trainer' || role === 'nutritionist'
-  const canSeeAppointments = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
+    profilePending ? false : role === 'admin' || role === 'trainer' || role === 'nutritionist'
+  const canSeeAppointments =
+    profilePending ? false : role === 'admin' || role === 'trainer' || role === 'nutritionist'
 
   const canSeeTrainerAssignedMealPlansPage =
+    !profilePending &&
     role !== 'student' &&
-    (role == null || role === 'admin' || role === 'trainer' || role === 'nutritionist')
+    (role === 'admin' || role === 'trainer' || role === 'nutritionist')
 
   const loggedInProps = {
     role,
@@ -251,6 +257,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route path="/form/check-in/compartido/:token" element={withPageSuspense(<PublicCheckInPage shared />)} />
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
@@ -260,7 +267,7 @@ function AppRoutes() {
         <Route element={<AppLayout />}>{renderLoggedInRoutes(loggedInProps)}</Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={withPageSuspense(<NotFoundPage />)} />
     </Routes>
   )
 }

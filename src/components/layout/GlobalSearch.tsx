@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
-import {} from 'react-router-dom'
+import { useEffect, useState, useRef, useCallback, useId } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Search, Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
+import { GLOBAL_SEARCH_OPEN_EVENT } from '@/lib/globalSearch'
 
 type Result = {
   id: string
@@ -17,41 +17,56 @@ type Result = {
 
 export function GlobalSearch() {
   const navigate = useAppNavigate()
-  const { user }   = useAuthStore()
-  const [open,     setOpen]     = useState(false)
-  const [query,    setQuery]    = useState('')
-  const [results,  setResults]  = useState<Result[]>([])
-  const [active,   setActive]   = useState(0)
-  const [loading,  setLoading]  = useState(false)
-  const inputRef   = useRef<HTMLInputElement>(null)
-  const debounce   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { user } = useAuthStore()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Result[]>([])
+  const [active, setActive] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const titleId = useId()
+  const listboxId = useId()
 
-  // Open with Cmd+K / Ctrl+K
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setOpen((o) => !o)
       }
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape' && open) {
+        e.preventDefault()
+        setOpen(false)
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
+  useEffect(() => {
+    function onOpen() {
+      setOpen(true)
+    }
+    window.addEventListener(GLOBAL_SEARCH_OPEN_EVENT, onOpen)
+    return () => window.removeEventListener(GLOBAL_SEARCH_OPEN_EVENT, onOpen)
   }, [])
 
-  // Focus input when open
   useEffect(() => {
     if (open) {
       setQuery('')
       setResults([])
       setActive(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      const t = window.setTimeout(() => inputRef.current?.focus(), 50)
+      return () => window.clearTimeout(t)
     }
   }, [open])
 
-  // Debounced search
   const search = useCallback(async (q: string) => {
-    if (!user || !q.trim()) { setResults([]); return }
+    if (!user || !q.trim()) {
+      setResults([])
+      return
+    }
     setLoading(true)
     const [{ data: students }, { data: routines }, { data: mealPlans }] = await Promise.all([
       supabase
@@ -75,18 +90,18 @@ export function GlobalSearch() {
     ])
     const res: Result[] = [
       ...(students ?? []).map((s) => ({
-        id:    s.id,
+        id: s.id,
         label: s.full_name,
-        sub:   `${s.level} · ${s.status}`,
-        kind:  'student' as const,
-        href:  `/students/${s.id}`,
+        sub: `${s.level} · ${s.status}`,
+        kind: 'student' as const,
+        href: `/students/${s.id}`,
       })),
       ...(routines ?? []).map((r) => ({
-        id:    r.id,
+        id: r.id,
         label: r.name,
-        sub:   `Rutina · ${r.status}`,
-        kind:  'routine' as const,
-        href:  `/routines/${r.id}`,
+        sub: `Rutina · ${r.status}`,
+        kind: 'routine' as const,
+        href: `/routines/${r.id}`,
       })),
       ...(mealPlans ?? []).map((p) => ({
         id: p.id as string,
@@ -104,7 +119,9 @@ export function GlobalSearch() {
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current)
     debounce.current = setTimeout(() => void search(query), 220)
-    return () => { if (debounce.current) clearTimeout(debounce.current) }
+    return () => {
+      if (debounce.current) clearTimeout(debounce.current)
+    }
   }, [query, search])
 
   function go(href: string) {
@@ -113,29 +130,54 @@ export function GlobalSearch() {
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, results.length - 1)) }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)) }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActive((a) => Math.min(a + 1, Math.max(results.length - 1, 0)))
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActive((a) => Math.max(a - 1, 0))
+    }
     if (e.key === 'Enter' && results[active]) go(results[active].href)
   }
 
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] px-4 print:hidden">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+    <div
+      className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] px-4 print:hidden"
+      role="presentation"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+        aria-label="Cerrar búsqueda"
+        onClick={() => setOpen(false)}
+      />
 
-      {/* Panel */}
-      <div className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-2xl shadow-lg dark:shadow-xl overflow-hidden">
-        {/* Input */}
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-2xl shadow-lg dark:shadow-xl overflow-hidden"
+      >
+        <p id={titleId} className="sr-only">
+          Búsqueda global
+        </p>
+
         <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-border">
-          <Search className="h-4 w-4 text-ink-muted shrink-0" />
+          <Search className="h-4 w-4 text-ink-muted shrink-0" aria-hidden />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Buscar alumnos, rutinas, planes..."
+            aria-label="Buscar alumnos, rutinas y planes"
+            aria-controls={listboxId}
+            aria-activedescendant={results[active] ? `search-result-${active}` : undefined}
+            autoComplete="off"
             className={cn(
               'flex-1 min-h-10 rounded-lg bg-transparent text-sm text-ink-primary placeholder:text-ink-muted',
               appFocusRingClassName,
@@ -159,12 +201,11 @@ export function GlobalSearch() {
           </kbd>
         </div>
 
-        {/* Results */}
-        <div className="max-h-[50vh] overflow-y-auto">
+        <div id={listboxId} role="listbox" className="max-h-[50vh] overflow-y-auto">
           {loading ? (
-            <div className="px-4 py-6 text-center text-xs text-ink-muted animate-pulse">Buscando...</div>
+            <div className="px-4 py-6 text-center text-xs text-ink-muted animate-pulse">Buscando…</div>
           ) : results.length === 0 && query.trim() ? (
-            <div className="px-4 py-6 text-center text-xs text-ink-muted">Sin resultados para "{query}"</div>
+            <div className="px-4 py-6 text-center text-xs text-ink-muted">Sin resultados para «{query}»</div>
           ) : results.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-ink-muted">
               Escribí para buscar alumnos, rutinas y planes
@@ -184,9 +225,12 @@ export function GlobalSearch() {
                       {group.map((r) => {
                         const i = results.indexOf(r)
                         return (
-                          <li key={`${r.kind}-${r.id}`}>
+                          <li key={`${r.kind}-${r.id}`} role="presentation">
                             <button
+                              id={`search-result-${i}`}
                               type="button"
+                              role="option"
+                              aria-selected={active === i}
                               onClick={() => go(r.href)}
                               onMouseEnter={() => setActive(i)}
                               className={cn(
@@ -202,6 +246,7 @@ export function GlobalSearch() {
                                   r.kind === 'routine' && 'bg-emerald-500/10 text-emerald-400',
                                   r.kind === 'mealplan' && 'bg-brand-tertiary/10 text-brand-tertiary',
                                 )}
+                                aria-hidden
                               >
                                 {r.kind === 'student' ? (
                                   <Users className="h-4 w-4" />
@@ -227,7 +272,6 @@ export function GlobalSearch() {
           )}
         </div>
 
-        {/* Footer hint */}
         <div className="flex items-center gap-3 px-4 py-2 border-t border-surface-border bg-surface-elevated/50">
           <span className="text-[10px] text-ink-muted">↑↓ navegar</span>
           <span className="text-[10px] text-ink-muted">↵ abrir</span>

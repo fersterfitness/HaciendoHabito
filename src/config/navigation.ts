@@ -189,5 +189,7 @@ export function getMobileNavItems(role: AppRole | undefined): NavItem[] {
     NAV_TRAINER_NUTRITION_GUIDE[1],
     ...NAV_FINANCE,
     NAV_TRAINING_CORE[3], // Devoluciones
+    NAV_TRAINING_CORE[4],
+    NAV_TRAINING_CORE[5],
   ]
 }

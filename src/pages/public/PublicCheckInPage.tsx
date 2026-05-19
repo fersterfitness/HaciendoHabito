@@ -87,7 +87,7 @@ function ScalePicker({
       <legend className="text-sm font-medium text-ink-primary leading-snug">{label}</legend>
       <div className="flex gap-2" role="group" aria-label={label}>
         {SCALE_VALUES.map((num) => {
-          const selected = value === num
+          const selected = value > 0 && value === num
           return (
             <button
               key={num}
@@ -120,6 +120,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
   const [consent, setConsent] = useState(false)
   const [responderEmail, setResponderEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
   const questions = useMemo(() => (payload?.ok && payload.questions ? parseQuestions(payload.questions) : []), [payload])
@@ -128,7 +129,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
     let n = 0
     for (const q of questions) {
       if (q.type === 'scale') {
-        if (answers[q.id]) n += 1
+        if (answers[q.id] && answers[q.id] !== '') n += 1
       } else if ((answers[q.id] ?? '').trim()) n += 1
     }
     return n
@@ -163,7 +164,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
       if (row.ok && row.questions) {
         const init: Record<string, string> = {}
         for (const q of parseQuestions(row.questions)) {
-          init[q.id] = q.type === 'scale' ? '3' : ''
+          init[q.id] = ''
         }
         setAnswers(init)
       }
@@ -189,12 +190,21 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
         }
       }
     }
-    setSubmitting(true)
     const jsonAnswers: Record<string, string | number> = {}
     for (const q of questions) {
-      if (q.type === 'scale') jsonAnswers[q.id] = Number(answers[q.id] ?? 3)
-      else jsonAnswers[q.id] = (answers[q.id] ?? '').trim()
+      if (q.type === 'scale') {
+        const raw = answers[q.id]
+        if (!raw) {
+          setSubmitError('Elegí un valor en todas las escalas antes de enviar.')
+          return
+        }
+        jsonAnswers[q.id] = Number(raw)
+      } else {
+        jsonAnswers[q.id] = (answers[q.id] ?? '').trim()
+      }
     }
+    setSubmitError(null)
+    setSubmitting(true)
     const { data, error } = shared
       ? await supabase.rpc('submit_check_in_shared_response', {
           p_public_token: token,
@@ -222,11 +232,11 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
       else if (res?.error === 'email_invalid') toast.error('Correo no válido.')
       else if (res?.error === 'email_mismatch') {
         toast.error('El correo no coincide con el que tenemos en tu ficha. Usá el mismo que en la app.')
-      } else if (res?.error === 'student_not_found') {
-        toast.error('No encontramos ese correo en la base del entrenador. Usá el mismo email con el que te inscribiste.')
-      } else if (res?.error === 'email_ambiguous') {
-        toast.error('Hay más de un alumno con ese correo. Contactá a tu entrenador.')
-      } else toast.error('No se pudo enviar.')
+      }       else if (res?.error === 'student_not_found' || res?.error === 'email_not_recognized' || res?.error === 'email_ambiguous') {
+        setSubmitError('No pudimos validar ese correo. Usá el mismo email con el que te inscribiste o contactá a tu entrenador.')
+      } else {
+        setSubmitError('No se pudo enviar. Probá de nuevo en unos minutos.')
+      }
       return
     }
     setDone(true)
@@ -314,7 +324,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
               {q.type === 'scale' ? (
                 <ScalePicker
                   label={q.label}
-                  value={Number(answers[q.id] ?? 3)}
+                  value={answers[q.id] ? Number(answers[q.id]) : 0}
                   onChange={(n) => setAnswers((a) => ({ ...a, [q.id]: String(n) }))}
                 />
               ) : (
@@ -381,6 +391,11 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
           </label>
 
           <div className="space-y-2 pt-1">
+            {submitError ? (
+              <p className="text-sm text-status-expired text-center" role="alert">
+                {submitError}
+              </p>
+            ) : null}
             <Button
               type="submit"
               className="w-full h-11 rounded-xl text-sm font-semibold"
