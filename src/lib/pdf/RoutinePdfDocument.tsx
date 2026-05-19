@@ -27,15 +27,6 @@ export interface RoutinePdfData {
   brandLogoSrc?: string | null
 }
 
-/** Portada = pág. 1; índice = pág. 2; primera semana empieza en pág. 3. */
-const PDF_COVER_PAGE_COUNT = 1
-const PDF_INDEX_PAGE_COUNT = 1
-const PDF_FIRST_CONTENT_PAGE = PDF_COVER_PAGE_COUNT + PDF_INDEX_PAGE_COUNT + 1
-
-function weekStartPage(weekIndex: number): number {
-  return PDF_FIRST_CONTENT_PAGE + weekIndex
-}
-
 function weekAnchorId(weekIndex: number): string {
   return `week-${weekIndex}`
 }
@@ -44,23 +35,49 @@ function dayAnchorId(weekIndex: number, dayIndex: number): string {
   return `w-${weekIndex}-d-${dayIndex}`
 }
 
-// ─── Paleta ───────────────────────────────────────────────────────────────────
+function normalizeDayToken(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+/** "Día 1", "Dia 1", etc. — redundante con la pastilla DÍA N del encabezado. */
+function isGenericDayLabel(name: string, dayIndex: number): boolean {
+  const n = normalizeDayToken(name)
+  if (!n) return true
+  const num = dayIndex + 1
+  return n === `dia ${num}` || n === `day ${num}`
+}
+
+function tocDayLabel(day: RoutineDay, dayIndex: number): string {
+  const num = dayIndex + 1
+  const name = day.day_name?.trim() ?? ''
+  const focus = day.muscle_focus?.trim() ?? ''
+  if (!isGenericDayLabel(name, dayIndex)) {
+    return focus ? `Día ${num} · ${name} · ${focus}` : `Día ${num} · ${name}`
+  }
+  if (focus) return `Día ${num} · ${focus}`
+  return `Día ${num}`
+}
+
+// ─── Paleta (monocromática + acento naranja puntual) ───────────────────────────
+
+const R = 3
 
 const C = {
   brand: '#FF8C00',
-  brandLight: '#FFF8F0',
-  brandMid: '#FFE0B2',
-  dark: '#0F172A',
+  ink: '#0F172A',
   heading: '#1E293B',
-  body: '#334155',
+  body: '#475569',
   muted: '#94A3B8',
   mutedLight: '#CBD5E1',
   border: '#E2E8F0',
-  bg: '#F8FAFC',
-  bgCard: '#FFFFFF',
+  borderStrong: '#CBD5E1',
+  surface: '#F8FAFC',
   white: '#FFFFFF',
-  rowAlt: '#F8FAFC',
-  accent: '#0EA5E9',
+  rowAlt: '#FAFAFA',
 }
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
@@ -91,21 +108,21 @@ const s = StyleSheet.create({
   logoImg: {
     width: 38,
     height: 38,
-    borderRadius: 8,
+    borderRadius: R,
     marginRight: 8,
     objectFit: 'contain',
   },
   logoFallback: {
     width: 38,
     height: 38,
-    borderRadius: 8,
-    backgroundColor: C.brand,
+    borderRadius: R,
+    backgroundColor: C.ink,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
   logoMonogram: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: C.white },
-  gymName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.dark },
+  gymName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: C.ink },
   gymSub: { fontSize: 7, color: C.muted, marginTop: 2, letterSpacing: 1.2, textTransform: 'uppercase' },
   headerRight: { alignItems: 'flex-end' },
   headerDateSpacing: { marginBottom: 3 },
@@ -126,8 +143,8 @@ const s = StyleSheet.create({
 
   // ── Info alumno ──
   infoCard: {
-    backgroundColor: C.bg,
-    borderRadius: 10,
+    backgroundColor: C.surface,
+    borderRadius: R,
     padding: 16,
     marginBottom: 18,
     borderWidth: 1,
@@ -144,22 +161,24 @@ const s = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  infoValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.dark },
-  infoPeriod: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.dark },
+  infoValue: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.ink },
+  infoPeriod: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.ink },
 
   // ── Objetivo ──
   objectiveBox: {
     marginBottom: 18,
     padding: 14,
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: C.brand,
-    backgroundColor: C.brandLight,
-    borderRadius: 6,
+    backgroundColor: C.surface,
+    borderRadius: R,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   objectiveLabel: {
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.brand,
+    color: C.muted,
     marginBottom: 5,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
@@ -168,32 +187,34 @@ const s = StyleSheet.create({
 
   // ── Notas ──
   notesBox: {
-    backgroundColor: '#FFFBEB',
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
-    borderRadius: 6,
+    backgroundColor: C.surface,
+    borderLeftWidth: 2,
+    borderLeftColor: C.borderStrong,
+    borderRadius: R,
+    borderWidth: 1,
+    borderColor: C.border,
     padding: 12,
     marginBottom: 18,
   },
   notesLabel: {
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#B45309',
+    color: C.muted,
     marginBottom: 4,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  notesText: { fontSize: 8, color: '#78350F', lineHeight: 1.6 },
+  notesText: { fontSize: 8, color: C.body, lineHeight: 1.6 },
 
   // ── Portada (hero) ──
   coverPage: {
     paddingTop: 0,
     paddingBottom: 28,
     paddingHorizontal: 0,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: C.white,
   },
   coverTopBand: {
-    height: 6,
+    height: 3,
     backgroundColor: C.brand,
     marginBottom: 0,
   },
@@ -222,15 +243,15 @@ const s = StyleSheet.create({
   logoHeroFallback: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    backgroundColor: C.brand,
+    borderRadius: R,
+    backgroundColor: C.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   coverKicker: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.brand,
+    color: C.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -238,7 +259,7 @@ const s = StyleSheet.create({
   coverPlanTitle: {
     fontSize: 22,
     fontFamily: 'Helvetica-Bold',
-    color: C.dark,
+    color: C.ink,
     textAlign: 'center',
     marginBottom: 6,
     letterSpacing: 0.3,
@@ -256,30 +277,21 @@ const s = StyleSheet.create({
     gap: 6,
   },
   coverPill: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderRadius: R,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
   },
-  coverPillBrand: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    backgroundColor: C.brandLight,
-    borderWidth: 1,
-    borderColor: C.brandMid,
+  coverPillAccent: {
+    borderLeftWidth: 2,
+    borderLeftColor: C.brand,
   },
   coverPillText: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: C.heading,
-  },
-  coverPillTextBrand: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    color: '#C2410C',
   },
   coverWeekStrip: {
     flexDirection: 'row',
@@ -289,8 +301,8 @@ const s = StyleSheet.create({
     marginBottom: 20,
     paddingVertical: 12,
     paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: C.white,
+    borderRadius: R,
+    backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.border,
   },
@@ -304,26 +316,28 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   coverWeekChip: {
-    minWidth: 32,
+    minWidth: 30,
     paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: C.dark,
+    paddingVertical: 4,
+    borderRadius: R,
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
     alignItems: 'center',
   },
   coverWeekChipText: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: C.white,
+    color: C.heading,
   },
   coverObjectiveCard: {
     marginBottom: 14,
     padding: 16,
-    borderRadius: 10,
+    borderRadius: R,
     backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
-    borderLeftWidth: 4,
+    borderLeftWidth: 2,
     borderLeftColor: C.brand,
   },
   coverGuideRow: {
@@ -334,25 +348,27 @@ const s = StyleSheet.create({
   coverGuideStep: {
     flex: 1,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: R,
     backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
     alignItems: 'center',
   },
   coverGuideNum: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: C.brand,
+    width: 18,
+    height: 18,
+    borderRadius: R,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 5,
   },
   coverGuideNumText: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: C.white,
+    color: C.heading,
   },
   coverGuideTitle: {
     fontSize: 7,
@@ -390,10 +406,10 @@ const s = StyleSheet.create({
   tocCard: {
     marginTop: 4,
     marginBottom: 6,
-    borderRadius: 10,
+    borderRadius: R,
     borderWidth: 1,
     borderColor: C.border,
-    backgroundColor: C.bgCard,
+    backgroundColor: C.white,
   },
   tocCardTitleRow: {
     flexDirection: 'row',
@@ -403,11 +419,11 @@ const s = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
-    backgroundColor: C.bg,
+    backgroundColor: C.surface,
   },
   tocCardAccent: {
-    width: 4,
-    borderRadius: 2,
+    width: 2,
+    borderRadius: 0,
     backgroundColor: C.brand,
     marginRight: 10,
     minHeight: 36,
@@ -415,7 +431,7 @@ const s = StyleSheet.create({
   tocCardKicker: {
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.brand,
+    color: C.muted,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -423,14 +439,14 @@ const s = StyleSheet.create({
   tocHeadline: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: C.dark,
+    color: C.ink,
   },
   tocHintBox: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: C.brandLight,
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: C.brandMid,
+    borderBottomColor: C.border,
   },
   tocHint: {
     fontSize: 7.5,
@@ -444,35 +460,39 @@ const s = StyleSheet.create({
   },
   tocWeekGroup: {
     marginBottom: 10,
-    borderRadius: 8,
+    borderRadius: R,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FAFAFA',
+    borderColor: C.border,
+    backgroundColor: C.white,
   },
   tocWeekRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: C.dark,
+    backgroundColor: C.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   tocWeekBadge: {
-    backgroundColor: C.brand,
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    backgroundColor: C.white,
+    borderRadius: R,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     marginRight: 8,
   },
   tocWeekBadgeText: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.white,
+    color: C.heading,
   },
   tocWeekTitle: {
     flex: 1,
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    color: C.white,
+    color: C.ink,
     marginRight: 8,
   },
   tocDots: {
@@ -506,7 +526,7 @@ const s = StyleSheet.create({
   },
   tocDayChevron: {
     fontSize: 9,
-    color: C.brand,
+    color: C.muted,
     marginRight: 6,
     width: 10,
   },
@@ -518,7 +538,7 @@ const s = StyleSheet.create({
   tocRefPill: {
     borderWidth: 1,
     borderColor: C.border,
-    backgroundColor: C.bg,
+    backgroundColor: C.surface,
     borderRadius: 4,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -546,16 +566,16 @@ const s = StyleSheet.create({
   },
   tocQuickChip: {
     borderWidth: 1,
-    borderColor: C.brandMid,
-    backgroundColor: C.brandLight,
-    borderRadius: 6,
+    borderColor: C.borderStrong,
+    backgroundColor: C.white,
+    borderRadius: R,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   tocQuickChipText: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#C2410C',
+    color: C.heading,
   },
   tocPageNum: {
     fontSize: 8,
@@ -573,39 +593,40 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 4,
-    borderRadius: 10,
+    borderRadius: R,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
+    borderColor: C.border,
+    backgroundColor: C.white,
   },
   blockStripeB: {
     marginTop: 0,
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 4,
-    borderRadius: 10,
+    borderRadius: R,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
-    backgroundColor: '#ECFDF5',
+    borderColor: C.border,
+    backgroundColor: C.surface,
   },
   blockWrapper: { marginTop: 4 },
   blockHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.dark,
-    borderRadius: 8,
+    backgroundColor: C.surface,
+    borderRadius: R,
+    borderWidth: 1,
+    borderColor: C.border,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
     marginBottom: 10,
   },
   blockAccent: {
-    width: 4,
-    height: 18,
+    width: 2,
+    height: 16,
     backgroundColor: C.brand,
-    borderRadius: 2,
     marginRight: 10,
   },
-  blockName: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: C.white, flex: 1 },
+  blockName: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: C.ink, flex: 1 },
   blockNotes: { fontSize: 7.5, color: C.muted, textAlign: 'right' },
 
   // ── Día ──
@@ -620,31 +641,35 @@ const s = StyleSheet.create({
     borderBottomColor: C.border,
   },
   dayBadge: {
-    backgroundColor: C.brand,
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
+    borderWidth: 1,
+    borderColor: C.brand,
+    backgroundColor: C.white,
+    borderRadius: R,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     marginRight: 8,
   },
-  dayBadgeText: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.white, letterSpacing: 0.5 },
-  dayName: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.dark },
+  dayBadgeText: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.brand, letterSpacing: 0.5 },
+  dayName: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.ink },
   dayFocus: { fontSize: 8, color: C.muted },
   warmupBox: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 5,
+    backgroundColor: C.surface,
+    borderRadius: R,
+    borderWidth: 1,
+    borderColor: C.border,
     borderLeftWidth: 2,
-    borderLeftColor: '#22C55E',
+    borderLeftColor: C.borderStrong,
     padding: 8,
     marginBottom: 6,
   },
-  warmupText: { fontSize: 7.5, color: '#15803D', lineHeight: 1.5 },
+  warmupText: { fontSize: 7.5, color: C.body, lineHeight: 1.5 },
 
   // ── Tabla ejercicios ──
   table: { width: '100%' },
   tableHead: {
     flexDirection: 'row',
-    backgroundColor: C.heading,
-    borderRadius: 5,
+    backgroundColor: C.ink,
+    borderRadius: R,
     paddingHorizontal: 8,
     paddingVertical: 5,
     marginBottom: 1,
@@ -661,7 +686,7 @@ const s = StyleSheet.create({
   thName: { flex: 2.35, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6 },
   thSmall: { flex: 0.72, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6, textAlign: 'center' },
   thNotes: { flex: 2.15, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.mutedLight, letterSpacing: 0.6 },
-  tdName: { flex: 2.35, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
+  tdName: { flex: 2.35, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.ink },
   tdSmall: { flex: 0.72, fontSize: 7.5, color: C.body, textAlign: 'center' },
   tdNotes: { flex: 2.15, fontSize: 7.5, color: C.muted, lineHeight: 1.4 },
 
@@ -722,36 +747,35 @@ function groupExercises(exercises: ExerciseFull[]): RenderGroup[] {
 const sc = StyleSheet.create({
   circuitWrapper: {
     borderWidth: 1,
-    borderColor: C.brand,
-    borderRadius: 6,
+    borderColor: C.borderStrong,
+    borderLeftWidth: 2,
+    borderLeftColor: C.brand,
+    borderRadius: R,
     marginBottom: 4,
   },
   circuitHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFF3E0',
+    backgroundColor: C.surface,
     paddingHorizontal: 8,
     paddingVertical: 6,
-  },
-  circuitDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.brand,
-    marginRight: 5,
-    marginTop: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
   },
   circuitLabel: {
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.brand,
+    color: C.heading,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
+  },
+  circuitLabelAccent: {
+    color: C.brand,
   },
   circuitNoteTitle: {
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.brand,
+    color: C.muted,
     letterSpacing: 0.6,
     marginBottom: 3,
     textTransform: 'uppercase',
@@ -766,10 +790,10 @@ const sc = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderTopWidth: 0.5,
-    borderTopColor: '#FFE0B2',
+    borderTopColor: C.border,
     alignItems: 'center',
   },
-  circuitRowAlt: { backgroundColor: '#FFFBF5' },
+  circuitRowAlt: { backgroundColor: C.rowAlt },
 })
 
 /** Evita líneas enormes en celdas (peor caso para el motor de texto del PDF). */
@@ -835,7 +859,7 @@ function ExerciseTable({
               <View style={s.tdNotes}>
                 <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                 {videoUrl ? (
-                  <Text style={{ marginTop: 3, fontSize: 6.5, color: C.accent }}>
+                  <Text style={{ marginTop: 3, fontSize: 6.5, color: C.muted }}>
                     {clampPdfLine(videoUrl, 90)}
                   </Text>
                 ) : null}
@@ -849,9 +873,11 @@ function ExerciseTable({
         return (
           <View key={group.groupId} style={sc.circuitWrapper}>
             <View style={sc.circuitHeader}>
-              <View style={sc.circuitDot} />
               <View style={{ flex: 1 }}>
-                <Text style={sc.circuitLabel}>Circuito · {group.exercises.length} ejercicios</Text>
+                <Text style={sc.circuitLabel}>
+                  <Text style={sc.circuitLabelAccent}>Circuito</Text>
+                  {` · ${group.exercises.length} ejercicios`}
+                </Text>
                 {circuitNote ? (
                   <View style={{ marginTop: 5 }}>
                     <Text style={sc.circuitNoteTitle}>Aclaración del circuito</Text>
@@ -876,7 +902,7 @@ function ExerciseTable({
                   <View style={s.tdNotes}>
                     <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                     {videoUrl ? (
-                      <Text style={{ marginTop: 3, fontSize: 6.5, color: C.accent }}>
+                      <Text style={{ marginTop: 3, fontSize: 6.5, color: C.muted }}>
                         {clampPdfLine(videoUrl, 90)}
                       </Text>
                     ) : null}
@@ -902,14 +928,23 @@ function DaySection({
   rmByExerciseId?: Record<string, number>
   anchorId?: string
 }) {
+  const name = day.day_name?.trim() ?? ''
+  const focus = day.muscle_focus?.trim()
+  const showName = !isGenericDayLabel(name, index)
+
   return (
     <View style={s.daySection}>
       <View id={anchorId} style={s.dayHeader}>
         <View style={s.dayBadge}>
           <Text style={s.dayBadgeText}>DÍA {index + 1}</Text>
         </View>
-        <Text style={s.dayName}>{clampPdfLine(day.day_name, 120)}</Text>
-        {day.muscle_focus ? <Text style={s.dayFocus}> · {clampPdfLine(day.muscle_focus, 80)}</Text> : null}
+        {showName ? <Text style={s.dayName}>{clampPdfLine(name, 120)}</Text> : null}
+        {focus ? (
+          <Text style={s.dayFocus}>
+            {showName ? ' · ' : ''}
+            {clampPdfLine(focus, 80)}
+          </Text>
+        ) : null}
       </View>
       {day.warmup_notes ? (
         <View style={s.warmupBox}>
@@ -962,8 +997,8 @@ function RoutineCoverPage({
           <Text style={s.coverPlanTitle}>{clampPdfLine(routine.name, 80)}</Text>
           <Text style={s.coverStudent}>{student?.full_name ?? '—'}</Text>
           <View style={s.coverPillRow}>
-            <View style={s.coverPillBrand}>
-              <Text style={s.coverPillTextBrand}>{LEVEL_LABEL[routine.level] ?? routine.level}</Text>
+            <View style={[s.coverPill, s.coverPillAccent]}>
+              <Text style={s.coverPillText}>{LEVEL_LABEL[routine.level] ?? routine.level}</Text>
             </View>
             <View style={s.coverPill}>
               <Text style={s.coverPillText}>
@@ -1009,14 +1044,14 @@ function RoutineCoverPage({
                 <Text style={s.coverGuideNumText}>1</Text>
               </View>
               <Text style={s.coverGuideTitle}>Índice</Text>
-              <Text style={s.coverGuideSub}>Página 2 · mapa de semanas y días</Text>
+              <Text style={s.coverGuideSub}>Mapa de semanas y días</Text>
             </View>
             <View style={s.coverGuideStep}>
               <View style={s.coverGuideNum}>
                 <Text style={s.coverGuideNumText}>2</Text>
               </View>
               <Text style={s.coverGuideTitle}>Entrená</Text>
-              <Text style={s.coverGuideSub}>Desde pág. {PDF_FIRST_CONTENT_PAGE} · una semana por bloque</Text>
+              <Text style={s.coverGuideSub}>Una semana por bloque</Text>
             </View>
             <View style={s.coverGuideStep}>
               <View style={s.coverGuideNum}>
@@ -1057,9 +1092,9 @@ function PdfBrandHeader({
       <View style={[s.header, { marginBottom: 14, paddingBottom: 12 }]}>
         <View style={s.headerLeft}>
           {brandLogoSrc ? (
-            <Image src={brandLogoSrc} style={[s.logoImg, { borderRadius: 14, width: 32, height: 32 }]} />
+            <Image src={brandLogoSrc} style={[s.logoImg, { borderRadius: R, width: 32, height: 32 }]} />
           ) : (
-            <View style={[s.logoFallback, { borderRadius: 14, width: 32, height: 32 }]}>
+            <View style={[s.logoFallback, { borderRadius: R, width: 32, height: 32 }]}>
               <Text style={s.logoMonogram}>HH</Text>
             </View>
           )}
@@ -1078,9 +1113,9 @@ function PdfBrandHeader({
       <View style={s.headerLeft}>
         <View style={s.headerBrandBar} />
         {brandLogoSrc ? (
-          <Image src={brandLogoSrc} style={[s.logoImg, { borderRadius: 12 }]} />
+          <Image src={brandLogoSrc} style={[s.logoImg, { borderRadius: R }]} />
         ) : (
-          <View style={[s.logoFallback, { borderRadius: 12 }]}>
+          <View style={[s.logoFallback, { borderRadius: R }]}>
             <Text style={s.logoMonogram}>HH</Text>
           </View>
         )}
@@ -1126,7 +1161,7 @@ export function RoutinePdfDocument({
         />
       </Page>
 
-      {/* Pág. 2 — índice con números de página y enlaces internos. */}
+      {/* Índice con enlaces internos (sin números de página: el visor pagina distinto). */}
       {tocHasContent ? (
         <Page size="A4" style={s.page}>
           <PdfBrandHeader
@@ -1145,16 +1180,14 @@ export function RoutinePdfDocument({
             </View>
             <View style={s.tocHintBox}>
               <Text style={s.tocHint}>
-                Los números son páginas reales de este PDF. Tocá una fila o un acceso rápido (S1, S2…) en el visor para ir a esa semana o día.
+                Tocá una fila o un acceso rápido (S1, S2…) para ir a esa semana o día en la rutina.
               </Text>
             </View>
             <View style={s.tocQuickNav}>
               {blocks.map((block, wi) => (
                 <Link key={`q-${block.id}`} src={`#${weekAnchorId(wi)}`} style={s.tocLink}>
                   <View style={s.tocQuickChip}>
-                    <Text style={s.tocQuickChipText}>
-                      S{wi + 1} · pág. {weekStartPage(wi)}
-                    </Text>
+                    <Text style={s.tocQuickChipText}>S{wi + 1}</Text>
                   </View>
                 </Link>
               ))}
@@ -1171,12 +1204,6 @@ export function RoutinePdfDocument({
                         <Text style={s.tocWeekTitle}>{clampPdfLine(block.name, 100)}</Text>
                       </Link>
                     </View>
-                    <View style={s.tocDotsOnDark} />
-                    <Link src={`#${weekAnchorId(wi)}`} style={s.tocLink}>
-                      <View style={s.tocRefPillBrand}>
-                        <Text style={s.tocRefPillBrandText}>pág. {weekStartPage(wi)}</Text>
-                      </View>
-                    </Link>
                   </View>
                   {block.days.map((day, di) => (
                     <View
@@ -1185,15 +1212,7 @@ export function RoutinePdfDocument({
                     >
                       <Text style={s.tocDayChevron}>›</Text>
                       <Link src={`#${dayAnchorId(wi, di)}`} style={[s.tocDayText, s.tocLink]}>
-                        <Text>
-                          Día {di + 1} · {clampPdfLine(day.day_name, 90)}
-                        </Text>
-                      </Link>
-                      <View style={s.tocDots} />
-                      <Link src={`#${dayAnchorId(wi, di)}`} style={s.tocLink}>
-                        <View style={s.tocRefPill}>
-                          <Text style={s.tocPageNum}>pág. {weekStartPage(wi)}</Text>
-                        </View>
+                        <Text>{tocDayLabel(day, di)}</Text>
                       </Link>
                     </View>
                   ))}
