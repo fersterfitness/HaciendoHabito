@@ -26,6 +26,7 @@ import {
   type PublicIntakePlanDetail,
 } from '@/lib/publicIntakeCatalogOffers'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
+import { webIntakeCatalogDisplayUrl } from '@/lib/webIntakeCatalogAssets'
 
 /** Texto completo (detalle del plan / tooltip). En el selector sólo usamos líneas cortas. */
 const PUBLIC_PLAN_SOLO_CREDENTIAL_LINE =
@@ -96,35 +97,63 @@ function initialsFromProfessionalName(label: string): string {
   return `${parts[0]!.charAt(0)}${parts[1]!.charAt(0)}`.toUpperCase()
 }
 
+const INTAKE_AVATAR_PX: Record<string, number> = {
+  'h-8 w-8': 32,
+  'h-10 w-10': 40,
+  'h-12 w-12': 48,
+  'h-14 w-14': 56,
+  'h-16 w-16': 64,
+}
+
 /** Cuadrado con esquinas redondeadas (alineado a inputs / tarjetas), no óvalo ni cápsula. */
 function IntakeProAvatar({
   label,
   url,
-  sizeClass = 'h-8 w-8',
+  sizeClass = 'h-14 w-14',
   theme = 'dark',
+  priority = false,
 }: {
   label: string
   url?: string | null
   sizeClass?: string
   theme?: 'light' | 'dark'
+  /** true = eager + fetchpriority (fotos visibles al cargar el paso). */
+  priority?: boolean
 }) {
   const [failed, setFailed] = useState(false)
+  const [useOriginalSrc, setUseOriginalSrc] = useState(false)
+  const cssPx = INTAKE_AVATAR_PX[sizeClass] ?? 56
+  const optimizedSrc = webIntakeCatalogDisplayUrl(url, cssPx)
+  const rawSrc = url?.trim() || null
+  const imgSrc = useOriginalSrc ? rawSrc : optimizedSrc
+
   useEffect(() => {
     setFailed(false)
+    setUseOriginalSrc(false)
   }, [url])
-  const showImg = Boolean(url?.trim() && !failed)
+
+  const showImg = Boolean(imgSrc && !failed)
   return showImg ? (
     <img
-      src={url!.trim()}
+      src={imgSrc!}
       alt=""
+      width={cssPx}
+      height={cssPx}
       className={cn(
         sizeClass,
-        'shrink-0 rounded-lg object-cover object-top ring-1',
+        'shrink-0 rounded-xl object-cover object-[center_18%] ring-1',
         theme === 'light' ? 'ring-neutral-200/80' : 'ring-white/20',
       )}
-      loading="lazy"
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       decoding="async"
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (!useOriginalSrc && rawSrc && optimizedSrc !== rawSrc) {
+          setUseOriginalSrc(true)
+          return
+        }
+        setFailed(true)
+      }}
     />
   ) : (
     <span
@@ -260,7 +289,8 @@ function IntakeHorizontalChoiceRow({
                 theme={theme}
                 label={opt.avatarLabel!}
                 url={opt.avatarUrl}
-                sizeClass="h-10 w-10"
+                sizeClass="h-14 w-14"
+                priority
               />
               <div className="min-w-0 flex-1">
                 <p className={cn('truncate text-[13px] font-semibold leading-tight', compactNameClass)}>

@@ -19,3 +19,30 @@ export function webIntakeImageExt(file: File): string | null {
   }
   return null
 }
+
+const SUPABASE_PUBLIC_OBJECT_RE =
+  /^(https:\/\/[^/]+)\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/i
+
+/**
+ * URL optimizada para avatares en /form: resize en servidor (2× retina) sin servir el hero completo.
+ * Si la URL no es de Supabase Storage, se devuelve tal cual.
+ */
+export function webIntakeCatalogDisplayUrl(
+  url: string | null | undefined,
+  /** Tamaño CSS en px (ej. 56 para `h-14`). Se pide el doble al CDN. */
+  cssPx = 56,
+): string | null {
+  const raw = url?.trim()
+  if (!raw) return null
+  const match = raw.match(SUPABASE_PUBLIC_OBJECT_RE)
+  if (!match) return raw
+  const [, host, bucket, objectPath] = match
+  const px = Math.min(512, Math.max(64, Math.round(cssPx * 2)))
+  const q = new URLSearchParams({
+    width: String(px),
+    height: String(px),
+    resize: 'cover',
+    quality: '90',
+  })
+  return `${host}/storage/v1/render/image/public/${bucket}/${objectPath}?${q}`
+}
