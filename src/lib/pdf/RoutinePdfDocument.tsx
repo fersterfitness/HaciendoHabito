@@ -628,9 +628,24 @@ const s = StyleSheet.create({
   },
   blockName: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: C.ink, flex: 1 },
   blockNotes: { fontSize: 7.5, color: C.muted, textAlign: 'right' },
+  blockContextCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  blockContextText: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.muted,
+    letterSpacing: 0.3,
+  },
 
   // ── Día ──
-  daySection: { marginBottom: 12 },
+  daySection: { marginBottom: 0 },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1223,28 +1238,37 @@ export function RoutinePdfDocument({
         </Page>
       ) : null}
 
-      {blocks.map((block, wi) => (
-        <Page key={block.id} size="A4" style={s.page}>
-          <View id={weekAnchorId(wi)} style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
-            <View style={s.blockHeader}>
-              <View style={s.blockAccent} />
-              <Text style={s.blockName}>{clampPdfLine(block.name, 100)}</Text>
-              {block.notes ? <Text style={s.blockNotes}>{clampPdfLine(block.notes, 500)}</Text> : null}
-            </View>
-            <View style={s.blockWrapper}>
-              {block.days.map((day, di) => (
+      {blocks.flatMap((block, wi) =>
+        block.days.map((day, di) => (
+          <Page key={`${block.id}-${day.id}`} size="A4" style={s.page} wrap>
+            <View style={wi % 2 === 0 ? s.blockStripeA : s.blockStripeB}>
+              {di === 0 ? (
+                <View id={weekAnchorId(wi)} style={s.blockHeader}>
+                  <View style={s.blockAccent} />
+                  <Text style={s.blockName}>{clampPdfLine(block.name, 100)}</Text>
+                  {block.notes ? (
+                    <Text style={s.blockNotes}>{clampPdfLine(block.notes, 500)}</Text>
+                  ) : null}
+                </View>
+              ) : (
+                <View style={s.blockContextCompact}>
+                  <Text style={s.blockContextText}>
+                    Semana {wi + 1} · {clampPdfLine(block.name, 100)}
+                  </Text>
+                </View>
+              )}
+              <View style={s.blockWrapper}>
                 <DaySection
-                  key={day.id}
                   day={day}
                   index={di}
                   rmByExerciseId={rmByExerciseId}
                   anchorId={dayAnchorId(wi, di)}
                 />
-              ))}
+              </View>
             </View>
-          </View>
-        </Page>
-      ))}
+          </Page>
+        ))
+      )}
     </Document>
   )
 }

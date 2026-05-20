@@ -27,7 +27,16 @@ import {
   buildExerciseTechnicalNotes,
 } from '@/lib/routine/exerciseMeta'
 import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
-import { segmentSourceExercises, prescriptionPatchFrom } from '@/lib/routine/copyDayPrescriptions'
+import {
+  isMultiarticularExercise,
+  segmentSourceExercises,
+  prescriptionPatchFrom,
+} from '@/lib/routine/copyDayPrescriptions'
+import {
+  fetchStudentRmLookup,
+  resolveRmKgForExercise,
+  type StudentRmLookup,
+} from '@/lib/routine/studentRmLookup'
 import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -143,7 +152,15 @@ export function RoutineDetailPage() {
     replaceRoutineExerciseId?: string
   } | null>(null)
   const [copyMenuBlock, setCopyMenuBlock] = useState<string | null>(null)
-  const [rmByExerciseId, setRmByExerciseId] = useState<Map<string, number>>(new Map())
+  const emptyRmLookup = (): StudentRmLookup => ({
+    byExerciseId: new Map(),
+    byExerciseName: new Map(),
+  })
+  const [rmLookup, setRmLookup] = useState<StudentRmLookup>(emptyRmLookup)
+
+  const loadRmLookup = useCallback(async (studentId: string) => {
+    setRmLookup(await fetchStudentRmLookup(studentId))
+  }, [])
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
   const [blueprintName, setBlueprintName] = useState('')
   const [blueprintDesc, setBlueprintDesc] = useState('')
@@ -157,25 +174,18 @@ export function RoutineDetailPage() {
         supabase.from('routines').select('*, student:students(*)').eq('id', id).single(),
         supabase
           .from('routine_blocks')
-          .select('*, days:routine_days(*, exercises:routine_exercises(*, exercise:exercise_library(*)))')
+          .select(
+            '*, days:routine_days(*, exercises:routine_exercises(*, exercise:exercise_library(*, muscle_group:muscle_groups(id, name, slug))))',
+          )
           .eq('routine_id', id)
           .order('sort_order'),
       ])
       if (routineRes.data) setRoutine(routineRes.data as unknown as RoutineFull)
       const routineData = routineRes.data as unknown as RoutineFull | null
       if (routineData?.student_id) {
-        const { data: rmRecords } = await supabase
-          .from('student_rm_records')
-          .select('exercise_id, rm_kg, tested_at')
-          .eq('student_id', routineData.student_id)
-          .order('tested_at', { ascending: false })
-        const map = new Map<string, number>()
-        for (const row of (rmRecords ?? []) as Array<{ exercise_id: string; rm_kg: number }>) {
-          if (!map.has(row.exercise_id)) map.set(row.exercise_id, row.rm_kg)
-        }
-        setRmByExerciseId(map)
+        await loadRmLookup(routineData.student_id)
       } else {
-        setRmByExerciseId(new Map())
+        setRmLookup(emptyRmLookup())
       }
       if (blocksRes.data) {
         const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
@@ -191,9 +201,16 @@ export function RoutineDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, loadRmLookup])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    if (!routine?.student_id) return
+    const onFocus = () => void loadRmLookup(routine.student_id)
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [routine?.student_id, loadRmLookup])
 
   // ── Status ────────────────────────────────────────────────────────────────
 
@@ -686,7 +703,9 @@ export function RoutineDetailPage() {
           for (let k = 0; k < n; k++) {
             const srcEx = sourceSorted[seg.indices[k]]
             const tgtEx = targetSorted[tp + k]
-            const patch = prescriptionPatchFrom(srcEx, tgtEx)
+            const patch = prescriptionPatchFrom(srcEx, tgtEx, {
+              copyRepsScheme: isMultiarticularExercise(srcEx.exercise),
+            })
             if (seg.kind === 'circuit' && newGroupId != null) {
               patch.is_superset = true
               patch.superset_group = newGroupId
@@ -942,7 +961,7 @@ export function RoutineDetailPage() {
             onCopyTo={(targetId) => copyBlock(block.id, targetId)}
             onCopyDayPrescription={(sourceDayId, targetDayIds, includeDayMeta) =>
               copyDayPrescriptionToTargets(block.id, sourceDayId, targetDayIds, includeDayMeta)}
-            rmByExerciseId={rmByExerciseId}
+            rmLookup={rmLookup}
           />
         ))}
 
@@ -1042,7 +1061,7 @@ function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0,
   onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
   onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
-  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmByExerciseId,
+  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   /** Color de fondo alternado por semana (0 = gris, 1 = naranja suave). */
@@ -1058,7 +1077,7 @@ function BlockCard({
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
   onCopyDayPrescription: (sourceDayId: string, targetDayIds: string[], includeDayMeta: boolean) => void | Promise<void>
-  rmByExerciseId: Map<string, number>
+  rmLookup: StudentRmLookup
 }) {
   const [showDelete, setShowDelete] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -1220,7 +1239,7 @@ function BlockCard({
               siblingDays={block.days.filter((d) => d.id !== day.id).map((d) => ({ id: d.id, day_name: d.day_name }))}
               onCopyPrescription={(targetIds, includeDayMeta) =>
                 onCopyDayPrescription(day.id, targetIds, includeDayMeta)}
-              rmByExerciseId={rmByExerciseId}
+              rmLookup={rmLookup}
             />
           ))}
           <button
@@ -1269,7 +1288,24 @@ function groupExercises(exercises: ExWithExercise[]): RenderGroup[] {
   return result
 }
 
-function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise, siblingDays, onCopyPrescription, rmByExerciseId = new Map<string, number>() }: {
+function DayCard({
+  day,
+  expanded,
+  onToggle,
+  onUpdateDay,
+  onDeleteDay,
+  onDuplicateDay,
+  onMoveDay,
+  onAddExercise,
+  onReplaceExercise,
+  onUpdateExercise,
+  onCircuitNoteChange,
+  onDeleteExercise,
+  onMoveExercise,
+  siblingDays,
+  onCopyPrescription,
+  rmLookup = { byExerciseId: new Map(), byExerciseName: new Map() },
+}: {
   day: DayWithEx; expanded: boolean
   onToggle: () => void
   onUpdateDay: (patch: Partial<RoutineDay>) => void
@@ -1284,7 +1320,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   onMoveExercise: (exId: string, direction: 'up' | 'down') => void
   siblingDays: { id: string; day_name: string }[]
   onCopyPrescription: (targetDayIds: string[], includeDayMeta: boolean) => void | Promise<void>
-  rmByExerciseId: Map<string, number>
+  rmLookup: StudentRmLookup
 }) {
   const [showDelete, setShowDelete]     = useState(false)
   const [dayName, setDayName]           = useState(day.day_name)
@@ -1294,7 +1330,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
   const [copyPrescriptionOpen, setCopyPrescriptionOpen] = useState(false)
   const [copyTargets, setCopyTargets]     = useState<Set<string>>(new Set())
-  const [copyIncludeDayMeta, setCopyIncludeDayMeta] = useState(true)
+  const [copyIncludeDayMeta, setCopyIncludeDayMeta] = useState(false)
 
   const saveDay = useDebounce(onUpdateDay, 600)
 
@@ -1377,6 +1413,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                 type="button"
                 onClick={() => {
                   setCopyTargets(new Set())
+                  setCopyIncludeDayMeta(false)
                   setCopyPrescriptionOpen(true)
                 }}
                 className="text-xs font-medium text-brand-primary hover:text-brand-primary/90 transition-colors"
@@ -1387,6 +1424,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                 type="button"
                 onClick={() => {
                   setCopyTargets(new Set(siblingDays.map((d) => d.id)))
+                  setCopyIncludeDayMeta(false)
                   setCopyPrescriptionOpen(true)
                 }}
                 className="text-[10px] text-ink-muted hover:text-ink-primary underline underline-offset-2"
@@ -1463,7 +1501,11 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                   onMoveUp={() => onMoveExercise(group.exercise.id, 'up')}
                   onMoveDown={() => onMoveExercise(group.exercise.id, 'down')}
                   onReplace={() => onReplaceExercise(group.exercise.id)}
-                  rmKg={rmByExerciseId.get(group.exercise.exercise_id)}
+                  rmKg={resolveRmKgForExercise(
+                    rmLookup,
+                    group.exercise.exercise_id,
+                    group.exercise.exercise?.name,
+                  )}
                 />
               )
             }
@@ -1505,7 +1547,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                       onMoveUp={() => onMoveExercise(ex.id, 'up')}
                       onMoveDown={() => onMoveExercise(ex.id, 'down')}
                       onReplace={() => onReplaceExercise(ex.id)}
-                      rmKg={rmByExerciseId.get(ex.exercise_id)}
+                      rmKg={resolveRmKgForExercise(rmLookup, ex.exercise_id, ex.exercise?.name)}
                     />
                   </div>
                 ))}
@@ -1544,7 +1586,10 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
               </button>
             </div>
             <p className="text-xs text-ink-secondary mb-3 leading-relaxed">
-              Se copian series, reps, peso, descanso, RPE/RIR, aclaraciones de circuito y agrupación. Las <strong className="text-ink-primary">notas</strong> de cada ejercicio en el destino no se pisan. Los movimientos del día destino no cambian; podés ajustarlos con <strong className="text-ink-primary">Cambiar ejercicio</strong> en cada fila.
+              Se copian series, peso, descanso, RPE/RIR, aclaraciones de circuito y agrupación. Las{' '}
+              <strong className="text-ink-primary">reps por serie</strong> solo en ejercicios del grupo{' '}
+              <strong className="text-ink-primary">Multiarticulares</strong> (ej. peso muerto); en el resto las dejás en el
+              destino para completar a mano. Las <strong className="text-ink-primary">notas</strong> no se pisan.
             </p>
             <label className="flex items-center gap-2 text-xs text-ink-secondary mb-3 cursor-pointer">
               <input
@@ -1734,7 +1779,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
         <div>
           <label className="block text-[10px] text-ink-muted mb-0.5">Descanso</label>
           <input
@@ -1761,6 +1806,24 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
               setWeight(v); save({ weight_kg: v })
             }}
           />
+        </div>
+        <div>
+          <label className="block text-[10px] text-ink-muted mb-0.5">1 RM (100%)</label>
+          <div
+            className={cn(
+              'w-full rounded-lg px-2 py-1.5 border text-xs text-center font-semibold tabular-nums',
+              rmKg != null
+                ? 'border-brand-primary/35 bg-brand-primary/10 text-brand-primary'
+                : 'border-surface-border bg-surface-elevated/50 text-ink-muted',
+            )}
+            title={
+              rmKg != null
+                ? '1RM del alumno (ficha → Fuerza / calculadora)'
+                : 'Registrá el 1RM en la ficha del alumno (test o Epley)'
+            }
+          >
+            {rmKg != null ? `${rmKg} kg` : '—'}
+          </div>
         </div>
         <div>
           <label className="block text-[10px] text-ink-muted mb-0.5">RIR</label>
@@ -1833,12 +1896,14 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
           }}
           className="h-8 px-2.5 rounded-lg border border-surface-border text-[11px] text-ink-secondary hover:text-ink-primary disabled:opacity-40"
         >
-          {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : rmKg ? 'Ingresá %' : 'Sin 1RM'}
+          {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : rmKg ? 'Ingresá %' : 'Sin 1RM en ficha'}
         </button>
       </div>
-      {rmKg && (
-        <p className="text-[10px] text-ink-muted -mt-1">1RM cargado: {rmKg} kg</p>
-      )}
+      {rmKg != null && hasPercent && suggestedWeight != null ? (
+        <p className="text-[10px] text-ink-muted -mt-1">
+          {percent1rm}% de {rmKg} kg → {suggestedWeight} kg
+        </p>
+      ) : null}
 
       <input
         className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
