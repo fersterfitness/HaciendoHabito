@@ -35,6 +35,7 @@ import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { supabase } from '@/lib/supabase'
+import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import type {
   Appointment,
@@ -381,7 +382,7 @@ export function AppointmentsPage() {
       setLoading(true)
       const [{ data: stData, error: stErr }, { data: apData, error: apErr }, { data: pcData, error: pcErr }] =
         await Promise.all([
-          supabase.from('students').select('*').eq('owner_id', user.id).order('full_name'),
+          fetchAccessibleStudents(),
           supabase
             .from('appointments')
             .select('*, student:students(full_name, phone)')
@@ -394,12 +395,12 @@ export function AppointmentsPage() {
             .order('starts_at', { ascending: true }),
         ])
       if (stErr || apErr) {
-        toast.error(stErr?.message ?? apErr?.message ?? 'No se pudieron cargar turnos')
+        toast.error(stErr ?? apErr?.message ?? 'No se pudieron cargar turnos')
         setStudents([])
         setAppointments([])
         setPersonalItems([])
       } else {
-        setStudents((stData as Student[]) ?? [])
+        setStudents(stData ?? [])
         const base = ((apData as AppointmentRow[]) ?? []).slice().sort((a, b) => a.starts_at.localeCompare(b.starts_at))
         const ids = base.map((a) => a.id)
         const reminderByAppt = new Map<string, AppointmentReminder[]>()

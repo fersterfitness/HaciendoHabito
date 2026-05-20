@@ -19,6 +19,11 @@ export function intakeFormFieldLabelClass() {
   return 'block text-xs font-medium text-ink-secondary mb-1'
 }
 
+/** Tipografía de etiqueta sin `block` ni margen — para filas con acción al costado (ej. «Ninguno»). */
+export function intakeFormFieldLabelInlineClass() {
+  return 'text-xs font-medium text-ink-secondary'
+}
+
 export function intakeFormInputClass(err?: string) {
   return cn(
     'w-full rounded-lg border px-3 py-2 text-sm transition-shadow',

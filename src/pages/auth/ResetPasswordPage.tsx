@@ -101,11 +101,11 @@ export function ResetPasswordPage() {
   async function onSubmit(data: ResetForm) {
     const { error } = await supabase.auth.updateUser({ password: data.password })
     if (error) {
-      toast.error(error.message)
+      toast.error(error.message, { position: 'bottom-center' })
       return
     }
     setPasswordRecoveryPending(false)
-    toast.success('Contraseña actualizada. Iniciá sesión.')
+    toast.success('Contraseña actualizada. Iniciá sesión.', { position: 'bottom-center' })
     await supabase.auth.signOut()
     navigate('/login', { replace: true })
   }

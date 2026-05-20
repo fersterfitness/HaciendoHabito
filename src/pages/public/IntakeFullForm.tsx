@@ -14,11 +14,13 @@ import {
   intakeAttachPlusBox,
   intakeFormCtaButtonClass,
   intakeFormFieldLabelClass,
+  intakeFormFieldLabelInlineClass,
   intakeFormInputClass,
   intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
 import { PublicFormBrandBar } from '@/components/branding/PublicFormBrandBar'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
+import { IntakeQuickTextFill } from '@/components/public/IntakeQuickTextFill'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
@@ -145,6 +147,8 @@ type Props = {
 
 export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null, compact = false }: Props) {
   const [step, setStep] = useState(0)
+  const [stepNavHint, setStepNavHint] = useState<string | null>(null)
+  const stepNavHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [progressFiles, setProgressFiles] = useState<File[]>([])
   const [progressPreviews, setProgressPreviews] = useState<string[]>([])
   const [profileFile, setProfileFile] = useState<File | null>(null)
@@ -200,6 +204,21 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
     }
   }, [progressPreviews, profilePreview])
 
+  useEffect(() => {
+    return () => {
+      if (stepNavHintTimerRef.current) clearTimeout(stepNavHintTimerRef.current)
+    }
+  }, [])
+
+  const flashStepNavHint = useCallback((message: string) => {
+    if (stepNavHintTimerRef.current) clearTimeout(stepNavHintTimerRef.current)
+    setStepNavHint(message)
+    stepNavHintTimerRef.current = setTimeout(() => {
+      setStepNavHint(null)
+      stepNavHintTimerRef.current = null
+    }, 4200)
+  }, [])
+
   const handleProgressFiles = useCallback((files: FileList | null) => {
     const list = Array.from(files ?? []).slice(0, 5)
     setProgressFiles(list)
@@ -221,6 +240,28 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
     }
     const ok = await trigger(fields, { shouldFocus: true })
     if (ok) setStep((s) => Math.min(s + 1, STEP_TITLES.length - 1))
+  }
+
+  /** Misma regla que «Siguiente»: no saltar pestañas hacia adelante sin validar pasos intermedios. */
+  async function trySetStep(target: number) {
+    if (target === step) return
+    if (target < 0 || target >= STEP_TITLES.length) return
+    if (target < step) {
+      setStep(target)
+      return
+    }
+    for (let s = step; s < target; s++) {
+      const fields = STEP_FIELDS[s]
+      if (fields.length === 0) continue
+      const ok = await trigger(fields, { shouldFocus: true })
+      if (!ok) {
+        flashStepNavHint(
+          'Completá los pasos anteriores para llegar ahí. El cursor marca el primer dato pendiente.',
+        )
+        return
+      }
+    }
+    setStep(target)
   }
 
   async function onSubmit(values: FullIntakeFormValues) {
@@ -327,7 +368,12 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
           <button
             key={t}
             type="button"
-            onClick={() => setStep(i)}
+            onClick={() => void trySetStep(i)}
+            title={
+              i > step
+                ? 'Solo podés ir a este paso si completaste los datos de los pasos anteriores.'
+                : undefined
+            }
             className={cn(
               'flex-1 rounded-md px-0.5 py-1.5 text-[9px] sm:text-[10px] font-semibold transition-colors text-center leading-none',
               step === i
@@ -357,6 +403,12 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
           {Math.round(((step + 1) / STEP_TITLES.length) * 100)}%
         </span>
       </div>
+
+      {stepNavHint ? (
+        <p className="-mt-1 mb-3 text-center text-[11px] leading-snug text-ink-muted" role="status" aria-live="polite">
+          {stepNavHint}
+        </p>
+      ) : null}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
 
@@ -534,7 +586,17 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
               </div>
             )}
             <div>
-              <FieldLabel required>¿Algún ejercicio que te incomode o no puedas hacer?</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>
+                  ¿Algún ejercicio que te incomode o no puedas hacer?
+                  <span className="text-status-expired ml-0.5">*</span>
+                </label>
+                <IntakeQuickTextFill
+                  onFill={(t) =>
+                    setValue('discomfort_exercises', t, { shouldValidate: true, shouldDirty: true })
+                  }
+                />
+              </div>
               <textarea rows={2} className={cn(inputClass(errors.discomfort_exercises?.message), 'resize-y min-h-[72px]')} placeholder="Ej.: Ninguno / evito impacto en rodilla…" {...register('discomfort_exercises')} />
               {errors.discomfort_exercises?.message && <p className="mt-1 text-xs text-status-expired">{errors.discomfort_exercises.message}</p>}
             </div>
@@ -582,19 +644,44 @@ export function IntakeFullForm({ onSuccess, selectedPlanSlug = null, selectedPla
               <textarea rows={3} className={cn(inputClass(), 'resize-y min-h-[88px]')} placeholder="¿Por qué buscás asesoramiento nutricional?" {...register('motivo_consulta')} />
             </div>
             <div>
-              <FieldLabel>Patologías presentes</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Patologías presentes</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) => setValue('pathologies', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={cn(inputClass(), 'resize-y min-h-[72px]')} placeholder="ej: hipotiroidismo, diabetes... o ninguna" {...register('pathologies')} />
             </div>
             <div>
-              <FieldLabel>Medicación que tomás</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Medicación que tomás</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) => setValue('medications', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={cn(inputClass(), 'resize-y min-h-[72px]')} placeholder="Nombre y dosis, o ninguna" {...register('medications')} />
             </div>
             <div>
-              <FieldLabel>Síntomas digestivos</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Síntomas digestivos</label>
+                <IntakeQuickTextFill
+                  onFill={(t) => setValue('symptoms', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={cn(inputClass(), 'resize-y min-h-[72px]')} placeholder="Hinchazón, acidez, etc. o ninguno" {...register('symptoms')} />
             </div>
             <div>
-              <FieldLabel>Intolerancias digestivas</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Intolerancias digestivas</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) =>
+                    setValue('digestive_intolerances', t, { shouldValidate: true, shouldDirty: true })
+                  }
+                />
+              </div>
               <input type="text" className={inputClass()} placeholder="ej: lactosa, gluten... o ninguna" {...register('digestive_intolerances')} />
             </div>
             <div className="grid grid-cols-2 gap-4">

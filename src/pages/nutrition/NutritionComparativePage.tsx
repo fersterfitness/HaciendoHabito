@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { pdf } from '@react-pdf/renderer'
 import { ArrowRight, Download, FileText, Sparkles, Upload, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -56,7 +57,7 @@ export function NutritionComparativePage() {
     ;(async () => {
       setLoading(true)
       const [{ data: stData, error: stErr }, { data: dData, error: dErr }, { data: mData, error: mErr }] = await Promise.all([
-        supabase.from('students').select('*').eq('owner_id', user.id).order('full_name'),
+        fetchAccessibleStudents(),
         supabase
           .from('nutrition_patient_documents')
           .select('*')
@@ -70,9 +71,9 @@ export function NutritionComparativePage() {
           .order('measured_at', { ascending: false }),
       ])
       if (stErr || dErr || mErr) {
-        toast.error(stErr?.message ?? dErr?.message ?? mErr?.message ?? 'No se pudieron cargar datos')
+        toast.error(stErr ?? dErr?.message ?? mErr?.message ?? 'No se pudieron cargar datos')
       } else {
-        setStudents((stData as Student[]) ?? [])
+        setStudents(stData ?? [])
         setDocs((dData as NutritionPatientDocument[]) ?? [])
         setMeasurements((mData as NutritionMeasurement[]) ?? [])
       }

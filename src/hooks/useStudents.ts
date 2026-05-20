@@ -3,6 +3,12 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
+import {
+  deleteOwnedStudent,
+  fetchAccessibleStudents,
+  filterAccessibleStudents,
+  updateAccessibleStudent,
+} from '@/lib/students/studentAccess'
 
 export function useStudents() {
   const { user } = useAuthStore()
@@ -16,19 +22,9 @@ export function useStudents() {
       setLoading(true)
       setError(null)
 
-      let query = supabase
-        .from('students')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('full_name', { ascending: true })
-
-      if (search) {
-        query = query.ilike('full_name', `%${search}%`)
-      }
-
-      const { data, error } = await query
-      if (error) { setError(error.message) }
-      else { setStudents(data ?? []) }
+      const { data, error } = await fetchAccessibleStudents()
+      if (error) { setError(error) }
+      else { setStudents(filterAccessibleStudents(data, { search })) }
       setLoading(false)
     },
     [user]
@@ -52,13 +48,7 @@ export function useStudents() {
   const updateStudent = useCallback(
     async (id: string, payload: Partial<Student>) => {
       if (!user) return null
-      const { data, error } = await supabase
-        .from('students')
-        .update(payload)
-        .eq('id', id)
-        .eq('owner_id', user.id)   // ← solo puede editar sus propios alumnos
-        .select()
-        .single()
+      const { data, error } = await updateAccessibleStudent(id, payload).select().single()
       if (error) { toast.error(error.message); return null }
       toast.success('Alumno actualizado')
       return data
@@ -68,11 +58,7 @@ export function useStudents() {
 
   const deleteStudent = useCallback(async (id: string) => {
     if (!user) return false
-    const { error } = await supabase
-      .from('students')
-      .delete()
-      .eq('id', id)
-      .eq('owner_id', user.id)   // ← solo puede eliminar sus propios alumnos
+    const { error } = await deleteOwnedStudent(id, user.id)
     if (error) { toast.error(error.message); return false }
     toast.success('Alumno eliminado')
     return true

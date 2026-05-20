@@ -18,6 +18,7 @@ import {
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
+import { fetchAccessibleStudentById } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -190,7 +191,7 @@ export function NutritionPatientDetailPage() {
         { data: measurementsData, error: measurementsError },
         { data: followData, error: followError },
       ] = await Promise.all([
-        supabase.from('students').select('*').eq('id', id).eq('owner_id', user.id).single(),
+        fetchAccessibleStudentById(id),
         supabase
           .from('nutrition_patient_documents')
           .select('*')
@@ -220,7 +221,7 @@ export function NutritionPatientDetailPage() {
 
       if (studentError || docsError || noteError || measurementsError || followError) {
         toast.error(
-          studentError?.message ??
+          studentError ??
             docsError?.message ??
             noteError?.message ??
             measurementsError?.message ??
@@ -486,7 +487,7 @@ export function NutritionPatientDetailPage() {
     )
   }
 
-  if (!student) {
+  if (!student?.id) {
     return (
       <div>
         <Header title="Carpeta nutricional" showBack />

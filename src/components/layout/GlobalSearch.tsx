@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback, useId } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Search, Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { fetchAccessibleStudents, filterAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -17,7 +18,7 @@ type Result = {
 
 export function GlobalSearch() {
   const navigate = useAppNavigate()
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
@@ -68,13 +69,10 @@ export function GlobalSearch() {
       return
     }
     setLoading(true)
-    const [{ data: students }, { data: routines }, { data: mealPlans }] = await Promise.all([
-      supabase
-        .from('students')
-        .select('id, full_name, level, status')
-        .eq('owner_id', user.id)
-        .ilike('full_name', `%${q}%`)
-        .limit(5),
+    const studentHref = profile?.role === 'nutritionist' ? '/nutrition' : '/students'
+    const { data: accessibleStudents } = await fetchAccessibleStudents()
+    const students = filterAccessibleStudents(accessibleStudents, { search: q }).slice(0, 5)
+    const [{ data: routines }, { data: mealPlans }] = await Promise.all([
       supabase
         .from('routines')
         .select('id, name, status, student_id')
@@ -94,7 +92,7 @@ export function GlobalSearch() {
         label: s.full_name,
         sub: `${s.level} · ${s.status}`,
         kind: 'student' as const,
-        href: `/students/${s.id}`,
+        href: `${studentHref}/${s.id}`,
       })),
       ...(routines ?? []).map((r) => ({
         id: r.id,
@@ -114,7 +112,7 @@ export function GlobalSearch() {
     setResults(res)
     setActive(0)
     setLoading(false)
-  }, [user])
+  }, [user, profile?.role])
 
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current)

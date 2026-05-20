@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check, CheckCircle2, ChevronLeft } from 'lucide-react'
+import { ArrowRight, Check, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -10,6 +10,7 @@ import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
 import { supabase } from '@/lib/supabase'
 import { IntakeChangeablePlansSection } from '@/components/public/IntakeChangeablePlansSection'
+import { IntakeSuccessScreen } from '@/components/public/IntakeSuccessScreen'
 import {
   type PlanBilling,
   bundlePrice3Months,
@@ -831,7 +832,7 @@ function LeftBrandPanel({
     <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 min-w-0">
       <HeroBgLayers theme={panelTheme} />
 
-      <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 pt-16 pb-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+      <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 pt-4 pb-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0">
           <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] min-w-0 shrink-0 space-y-4">
               {catalogError ? (
@@ -895,27 +896,31 @@ function LeftBrandPanel({
                   options={modalityChoiceOptions}
                 />
 
-                <IntakeHorizontalChoiceRow
-                  groupId="intake-trainer"
-                  groupLabel="Entrenador"
-                  theme={panelTheme}
-                  value={includeTraining ? trainerChoice : ''}
-                  disabled={!includeTraining}
-                  emptyLabel="No aplica"
-                  onChange={setTrainerChoice}
-                  options={trainerChoiceOptions}
-                />
+                {/* En mobile se ocultan: son valores fijos de un solo profesional
+                    que suman ruido visual sin aportar decisión al usuario. */}
+                <div className="hidden lg:block space-y-3.5">
+                  <IntakeHorizontalChoiceRow
+                    groupId="intake-trainer"
+                    groupLabel="Entrenador"
+                    theme={panelTheme}
+                    value={includeTraining ? trainerChoice : ''}
+                    disabled={!includeTraining}
+                    emptyLabel="No aplica"
+                    onChange={setTrainerChoice}
+                    options={trainerChoiceOptions}
+                  />
 
-                <IntakeHorizontalChoiceRow
-                  groupId="intake-nutrition"
-                  groupLabel="Nutricionista"
-                  theme={panelTheme}
-                  value={includeNutrition ? nutritionChoice : ''}
-                  disabled={!includeNutrition}
-                  emptyLabel="No aplica"
-                  onChange={setNutritionChoice}
-                  options={nutritionChoiceOptions}
-                />
+                  <IntakeHorizontalChoiceRow
+                    groupId="intake-nutrition"
+                    groupLabel="Nutricionista"
+                    theme={panelTheme}
+                    value={includeNutrition ? nutritionChoice : ''}
+                    disabled={!includeNutrition}
+                    emptyLabel="No aplica"
+                    onChange={setNutritionChoice}
+                    options={nutritionChoiceOptions}
+                  />
+                </div>
               </div>
 
               {plansVisible.length > 0 ? (
@@ -1332,16 +1337,7 @@ export function PublicIntakeFormPage() {
             catalogError={catalogError}
             catalogLoading={catalogLoading}
           />
-          <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-14 text-center">
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-200/90 dark:bg-white/[0.08]">
-              <CheckCircle2 className="h-9 w-9 text-zinc-600 dark:text-zinc-400" aria-hidden />
-            </div>
-            <h1 className="text-2xl font-bold text-ink-primary tracking-tight mb-2">Recibimos tus datos</h1>
-            <p className="text-ink-secondary text-sm max-w-sm leading-relaxed">
-              Gracias por tu interés. El equipo de Haciéndolo hábito se va a comunicar con vos a la brevedad.
-            </p>
-            <p className="text-ink-muted text-xs mt-8">Podés cerrar esta pestaña.</p>
-          </div>
+          <IntakeSuccessScreen planName={selectedPlan?.name ?? null} className="flex-1" />
         </div>
       </div>
     )

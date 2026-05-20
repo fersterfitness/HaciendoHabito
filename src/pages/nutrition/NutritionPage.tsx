@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Input } from '@/components/ui/Input'
@@ -72,11 +73,7 @@ export function NutritionPage() {
     ;(async () => {
       setLoading(true)
       const [{ data: students, error: studentsError }, { data: followups, error: followupsError }] = await Promise.all([
-        supabase
-          .from('students')
-          .select('*')
-          .eq('owner_id', user.id)
-          .order('full_name'),
+        fetchAccessibleStudents(),
         supabase
           .from('nutrition_patient_followups')
           .select('*')
@@ -90,7 +87,7 @@ export function NutritionPage() {
       }
 
       const followupsByStudent = new Map((followups ?? []).map((f) => [f.student_id, f]))
-      const merged = ((students as Student[]) ?? []).map((s) => ({
+      const merged = (students ?? []).map((s) => ({
         ...s,
         followup: followupsByStudent.get(s.id),
       }))

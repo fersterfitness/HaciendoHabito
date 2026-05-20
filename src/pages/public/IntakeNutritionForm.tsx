@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +9,7 @@ import {
   intakeAttachPlusBox,
   intakeFormCtaButtonClass,
   intakeFormFieldLabelClass,
+  intakeFormFieldLabelInlineClass,
   intakeFormInputClass,
   intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
@@ -21,6 +22,7 @@ import {
 } from '@/lib/intake/nutritionIntakeSchema'
 import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
+import { IntakeQuickTextFill } from '@/components/public/IntakeQuickTextFill'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
@@ -67,6 +69,8 @@ type Props = {
 
 export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null, compact = false }: Props) {
   const [step, setStep] = useState(0)
+  const [stepNavHint, setStepNavHint] = useState<string | null>(null)
+  const stepNavHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const [labFile, setLabFile] = useState<File | null>(null)
@@ -97,6 +101,21 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
     return () => { if (profilePreview) URL.revokeObjectURL(profilePreview) }
   }, [profilePreview])
 
+  useEffect(() => {
+    return () => {
+      if (stepNavHintTimerRef.current) clearTimeout(stepNavHintTimerRef.current)
+    }
+  }, [])
+
+  const flashStepNavHint = useCallback((message: string) => {
+    if (stepNavHintTimerRef.current) clearTimeout(stepNavHintTimerRef.current)
+    setStepNavHint(message)
+    stepNavHintTimerRef.current = setTimeout(() => {
+      setStepNavHint(null)
+      stepNavHintTimerRef.current = null
+    }, 4200)
+  }, [])
+
   async function goNext() {
     const fields = STEP_FIELDS[step]
     // Pasos sin lista explícita: avanzar sin `trigger(undefined)` — eso validaría TODO el schema y bloquearía al fallar campos de pasos posteriores.
@@ -106,6 +125,27 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
     }
     const ok = await trigger(fields, { shouldFocus: true })
     if (ok) setStep((s) => Math.min(s + 1, STEP_TITLES.length - 1))
+  }
+
+  async function trySetStep(target: number) {
+    if (target === step) return
+    if (target < 0 || target >= STEP_TITLES.length) return
+    if (target < step) {
+      setStep(target)
+      return
+    }
+    for (let s = step; s < target; s++) {
+      const fields = STEP_FIELDS[s]
+      if (fields.length === 0) continue
+      const ok = await trigger(fields, { shouldFocus: true })
+      if (!ok) {
+        flashStepNavHint(
+          'Completá los pasos anteriores para llegar ahí. El cursor marca el primer dato pendiente.',
+        )
+        return
+      }
+    }
+    setStep(target)
   }
 
   async function onSubmit(values: NutritionIntakeFormValues) {
@@ -208,7 +248,12 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
           <button
             key={t}
             type="button"
-            onClick={() => setStep(i)}
+            onClick={() => void trySetStep(i)}
+            title={
+              i > step
+                ? 'Solo podés ir a este paso si completaste los datos de los pasos anteriores.'
+                : undefined
+            }
             className={cn(
               'flex-1 rounded-md px-0.5 py-1.5 text-[8px] sm:text-[9px] font-semibold transition-colors text-center leading-none',
               step === i
@@ -239,6 +284,12 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
           {Math.round(((step + 1) / STEP_TITLES.length) * 100)}%
         </span>
       </div>
+
+      {stepNavHint ? (
+        <p className="-mt-1 mb-3 text-center text-[11px] leading-snug text-ink-muted" role="status" aria-live="polite">
+          {stepNavHint}
+        </p>
+      ) : null}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
 
@@ -350,23 +401,52 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
             </div>
 
             <div>
-              <FieldLabel>Patologías presentes</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Patologías presentes</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) => setValue('pathologies', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={taClass()} placeholder="ej: hipotiroidismo, diabetes... o ninguna" {...register('pathologies')} />
             </div>
             <div>
-              <FieldLabel>Medicación que tomás</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Medicación que tomás</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) => setValue('medications', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={taClass()} placeholder="Nombre y dosis, o ninguna" {...register('medications')} />
             </div>
             <div>
-              <FieldLabel>Suplementación</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Suplementación</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) => setValue('supplementation', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <input type="text" className={inputClass()} placeholder="ej: proteína en polvo, creatina... o ninguna" {...register('supplementation')} />
             </div>
             <div>
-              <FieldLabel>Síntomas presentes</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Síntomas presentes</label>
+                <IntakeQuickTextFill
+                  onFill={(t) => setValue('symptoms', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={taClass()} placeholder="Síntomas digestivos, hinchazón, acidez, etc." {...register('symptoms')} />
             </div>
             <div>
-              <FieldLabel>Antecedentes familiares</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Antecedentes familiares</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguno"
+                  onFill={(t) => setValue('family_history', t, { shouldValidate: true, shouldDirty: true })}
+                />
+              </div>
               <textarea rows={2} className={taClass()} placeholder="Diabetes, obesidad, hipotiroidismo, colesterol alto, etc." {...register('family_history')} />
             </div>
 
@@ -502,7 +582,15 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
             </div>
 
             <div>
-              <FieldLabel>Intolerancias digestivas</FieldLabel>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <label className={intakeFormFieldLabelInlineClass()}>Intolerancias digestivas</label>
+                <IntakeQuickTextFill
+                  fillValue="Ninguna"
+                  onFill={(t) =>
+                    setValue('digestive_intolerances', t, { shouldValidate: true, shouldDirty: true })
+                  }
+                />
+              </div>
               <input type="text" className={inputClass()} placeholder="ej: lactosa, gluten... o ninguna" {...register('digestive_intolerances')} />
             </div>
 
@@ -528,7 +616,19 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
               { field: 'record_collations' as const, label: 'Colaciones',  ph: 'ej: frutos secos, fruta... o ninguna' },
             ]).map(({ field, label, ph }) => (
               <div key={field}>
-                <FieldLabel>{label}</FieldLabel>
+                {field === 'record_collations' ? (
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <label className={intakeFormFieldLabelInlineClass()}>{label}</label>
+                    <IntakeQuickTextFill
+                      fillValue="Ninguna"
+                      onFill={(t) =>
+                        setValue('record_collations', t, { shouldValidate: true, shouldDirty: true })
+                      }
+                    />
+                  </div>
+                ) : (
+                  <FieldLabel>{label}</FieldLabel>
+                )}
                 <textarea rows={3} className={taClass()} placeholder={ph} {...register(field)} />
               </div>
             ))}

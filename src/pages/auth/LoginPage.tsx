@@ -88,6 +88,7 @@ export function LoginPage() {
         error.message === 'Invalid login credentials'
           ? 'Email o contraseña incorrectos'
           : error.message,
+        { position: 'bottom-center' },
       )
     }
   }
@@ -97,7 +98,7 @@ export function LoginPage() {
     const redirectTo = getAuthRedirectUrl()
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     if (error) {
-      toast.error(error.message)
+      toast.error(error.message, { position: 'bottom-center' })
       return
     }
     setForgotSent(true)

@@ -220,7 +220,7 @@ export function Sidebar() {
     await supabase.auth.signOut()
     reset()
     navigate('/login')
-    toast.success('Sesión cerrada')
+    toast.success('Sesión cerrada', { position: 'bottom-center' })
   }
 
   const profileTip = profile

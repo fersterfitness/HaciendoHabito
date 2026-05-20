@@ -23,6 +23,7 @@ import {
   Tooltip as RechartsTooltip, CartesianGrid,
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
+import { accessibleStudentsSelect } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
@@ -475,6 +476,9 @@ export function DashboardPage() {
   const canSeeTraining = role === 'admin' || role === 'trainer' || !role
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
   const canSeeFinances = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
+  const peopleHubPath = role === 'nutritionist' ? '/nutrition' : '/students'
+  const peopleDetailPath = (studentId: string) =>
+    role === 'nutritionist' ? `/nutrition/${studentId}` : `/students/${studentId}`
   const [stats, setStats] = useState<Stats>({
     activeStudents: 0,
     activeRoutines: 0,
@@ -542,12 +546,12 @@ export function DashboardPage() {
         sortDate: s.plan_end_date,
         title: s.full_name,
         subtitle: 'Plan del alumno',
-        href: `/students/${s.id}`,
+        href: peopleDetailPath(s.id),
         days: daysUntil(s.plan_end_date),
       })
     }
     return items.sort((a, b) => a.sortDate.localeCompare(b.sortDate))
-  }, [expiring, expiringPlans])
+  }, [expiring, expiringPlans, role])
 
   const showUnifiedExpiringCard = canSeeTraining || expiringPlans.length > 0
 
@@ -670,7 +674,7 @@ export function DashboardPage() {
       const momLen = momPromises.length
 
       const r = await Promise.all([
-        supabase.from('students').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('status', 'activo'),
+        accessibleStudentsSelect('id', { count: 'exact', head: true }).eq('status', 'activo'),
         canSeeTraining
           ? supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
           : Promise.resolve({ count: 0 } as { count: number | null }),
@@ -710,15 +714,13 @@ export function DashboardPage() {
               .eq('owner_id', user!.id)
               .gte('expense_date', sinceStr)
           : Promise.resolve({ data: [] } as { data: DashboardExpenseRow[] }),
-        supabase.from('students')
-          .select('id, full_name, plan_end_date, status')
-          .eq('owner_id', user!.id)
+        accessibleStudentsSelect('id, full_name, plan_end_date, status')
           .eq('status', 'activo')
           .not('plan_end_date', 'is', null)
           .lte('plan_end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0])
           .order('plan_end_date', { ascending: true })
           .limit(5),
-        supabase.from('students').select('id, full_name, birth_date, created_at, avatar_path, level').eq('owner_id', user!.id).eq('status', 'activo'),
+        accessibleStudentsSelect('id, full_name, birth_date, created_at, avatar_path, level').eq('status', 'activo'),
         supabase
           .from('appointments')
           .select('id, title, starts_at, student:students(full_name)')
@@ -742,7 +744,7 @@ export function DashboardPage() {
         canSeeTraining
           ? supabase.from('routines').select('student_id').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
           : Promise.resolve({ data: [] as { student_id: string }[] }),
-        supabase.from('students').select('intake_ferster').eq('owner_id', user!.id).eq('status', 'activo').not('intake_ferster', 'is', null),
+        accessibleStudentsSelect('intake_ferster').eq('status', 'activo').not('intake_ferster', 'is', null),
       ])
 
       const { count: activeStudents } = r[0]
@@ -1036,7 +1038,7 @@ export function DashboardPage() {
             countUp
             icon={<Users className="h-5 w-5" />}
             monthOverMonth={{ thisMonth: stats.momStudentsThis, prevMonth: stats.momStudentsPrev, scopeLabel: 'Altas' }}
-            onClick={() => navigate('/students')}
+            onClick={() => navigate(peopleHubPath)}
           />
           {canSeeTraining ? (
             <>
@@ -1184,7 +1186,7 @@ export function DashboardPage() {
                 <button
                   key={b.id}
                   type="button"
-                  onClick={() => navigate(`/students/${b.id}`)}
+                  onClick={() => navigate(peopleDetailPath(b.id))}
                   className="inline-flex items-center gap-2 rounded-xl border border-status-expiring/25 bg-status-expiring/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expiring/15 transition-colors"
                 >
                   <Cake className="h-3.5 w-3.5 text-status-expiring shrink-0" />
@@ -1306,7 +1308,7 @@ export function DashboardPage() {
                   <CardTitle className="font-medium">{role === 'nutritionist' ? 'Pacientes por nivel' : 'Alumnos por nivel'}</CardTitle>
                   <p className="text-xs text-ink-muted">Distribución de {stats.activeStudents} {role === 'nutritionist' ? 'pacientes activos' : 'alumnos activos'}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/students')}>{role === 'nutritionist' ? 'Ver pacientes' : 'Ver alumnos'}</Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate(peopleHubPath)}>{role === 'nutritionist' ? 'Ver pacientes' : 'Ver alumnos'}</Button>
               </CardHeader>
               <div className="space-y-4">
                 {levelDist.map((lvl, i) => {
@@ -1372,7 +1374,7 @@ export function DashboardPage() {
                 {habitTop5.map((s, i) => {
                   const accent = BRAND_ROW_ACCENT_PAIR[i % BRAND_ROW_ACCENT_PAIR.length]
                   return (
-                    <div key={s.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate(`/students/${s.id}`)}>
+                    <div key={s.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate(peopleDetailPath(s.id))}>
                       <span className="w-4 text-[11px] font-bold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="mb-1 flex items-center justify-between gap-2">
@@ -1449,7 +1451,7 @@ export function DashboardPage() {
                     : `${studentsWithoutRoutine.length} alumnos activos sin rutina vigente`}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-xs" onClick={() => navigate('/students')}>
+              <Button variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-xs" onClick={() => navigate(peopleHubPath)}>
                 Ver alumnos
               </Button>
             </div>
@@ -1458,7 +1460,7 @@ export function DashboardPage() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => navigate(`/students/${s.id}`)}
+                  onClick={() => navigate(peopleDetailPath(s.id))}
                   className="group flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left transition-colors hover:bg-surface-elevated/50 sm:px-3.5"
                 >
                   <div className="flex min-w-0 items-center gap-2">
@@ -1486,8 +1488,8 @@ export function DashboardPage() {
                     Rutinas
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => navigate('/students')}>
-                  Alumnos
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => navigate(peopleHubPath)}>
+                  {role === 'nutritionist' ? 'Pacientes' : 'Alumnos'}
                 </Button>
               </div>
             </CardHeader>

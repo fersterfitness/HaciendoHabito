@@ -88,7 +88,8 @@ export function MobileNav() {
     await supabase.auth.signOut()
     reset()
     navigate('/login')
-    toast.success('Sesión cerrada')
+    // Abajo para no tapar el acceso superior (p. ej. «Panel» / inscripción) en /login o /form.
+    toast.success('Sesión cerrada', { position: 'bottom-center' })
   }
 
   return (

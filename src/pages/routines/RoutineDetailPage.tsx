@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
-  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink,
+  Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -138,7 +138,10 @@ export function RoutineDetailPage() {
   const [generatingPdf, setGeneratingPdf] = useState(false)
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set())
   const [expandedDays, setExpandedDays]     = useState<Set<string>>(new Set())
-  const [showExercisePicker, setShowExercisePicker] = useState<{ dayId: string } | null>(null)
+  const [showExercisePicker, setShowExercisePicker] = useState<{
+    dayId: string
+    replaceRoutineExerciseId?: string
+  } | null>(null)
   const [copyMenuBlock, setCopyMenuBlock] = useState<string | null>(null)
   const [rmByExerciseId, setRmByExerciseId] = useState<Map<string, number>>(new Map())
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
@@ -504,6 +507,32 @@ export function RoutineDetailPage() {
   }
 
   // ── Exercises ─────────────────────────────────────────────────────────────
+
+  async function replaceRoutineExercise(dayId: string, routineExerciseId: string, exercise: Exercise) {
+    const { data, error } = await supabase
+      .from('routine_exercises')
+      // Mantener series/reps/etc.; al cambiar el movimiento del catálogo, el video custom del día anterior no aplica.
+      .update({ exercise_id: exercise.id, video_url: null })
+      .eq('id', routineExerciseId)
+      .select('*, exercise:exercise_library(*)')
+      .single()
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    const updated = data as unknown as ExWithExercise
+    setBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        days: b.days.map((d) =>
+          d.id === dayId
+            ? { ...d, exercises: d.exercises.map((e) => (e.id === routineExerciseId ? updated : e)) }
+            : d,
+        ),
+      })),
+    )
+    setShowExercisePicker(null)
+  }
 
   async function addExercise(dayId: string, exercise: Exercise) {
     const block = blocks.find((b) => b.days.some((d) => d.id === dayId))
@@ -902,6 +931,8 @@ export function RoutineDetailPage() {
             onDuplicateDay={(dayId) => duplicateDay(block.id, dayId)}
             onMoveDay={(dayId, direction) => moveDay(block.id, dayId, direction)}
             onAddExercise={(dayId) => setShowExercisePicker({ dayId })}
+            onReplaceExercise={(dayId, routineExerciseId) =>
+              setShowExercisePicker({ dayId, replaceRoutineExerciseId: routineExerciseId })}
             onUpdateExercise={updateExercise}
             onCircuitNoteChange={handleCircuitNoteChange}
             onDeleteExercise={deleteExercise}
@@ -922,7 +953,27 @@ export function RoutineDetailPage() {
 
       {showExercisePicker && (
         <ExercisePicker
-          onSelect={(ex) => addExercise(showExercisePicker.dayId, ex)}
+          title={
+            showExercisePicker.replaceRoutineExerciseId
+              ? 'Cambiar ejercicio'
+              : 'Seleccionar ejercicio'
+          }
+          subtitle={
+            showExercisePicker.replaceRoutineExerciseId
+              ? 'Se mantienen series, repeticiones, pesos y notas de esta fila.'
+              : undefined
+          }
+          onSelect={(ex) => {
+            if (showExercisePicker.replaceRoutineExerciseId) {
+              void replaceRoutineExercise(
+                showExercisePicker.dayId,
+                showExercisePicker.replaceRoutineExerciseId,
+                ex,
+              )
+            } else {
+              void addExercise(showExercisePicker.dayId, ex)
+            }
+          }}
           onClose={() => setShowExercisePicker(null)}
         />
       )}
@@ -990,7 +1041,7 @@ export function RoutineDetailPage() {
 function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0,
   onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
-  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
+  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmByExerciseId,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
@@ -1001,6 +1052,7 @@ function BlockCard({
   onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
   onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
   onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void;   onAddExercise: (dayId: string) => void
+  onReplaceExercise: (dayId: string, routineExerciseId: string) => void
   onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
   onCircuitNoteChange: (dayId: string, groupId: number, value: string) => void
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
@@ -1160,6 +1212,7 @@ function BlockCard({
               onDuplicateDay={() => onDuplicateDay(day.id)}
               onMoveDay={(direction) => onMoveDay(day.id, direction)}
               onAddExercise={() => onAddExercise(day.id)}
+              onReplaceExercise={(routineExerciseId) => onReplaceExercise(day.id, routineExerciseId)}
               onUpdateExercise={(exId, patch) => onUpdateExercise(day.id, exId, patch)}
               onCircuitNoteChange={(groupId, value) => onCircuitNoteChange(day.id, groupId, value)}
               onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
@@ -1216,7 +1269,7 @@ function groupExercises(exercises: ExWithExercise[]): RenderGroup[] {
   return result
 }
 
-function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise, siblingDays, onCopyPrescription, rmByExerciseId = new Map<string, number>() }: {
+function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise, siblingDays, onCopyPrescription, rmByExerciseId = new Map<string, number>() }: {
   day: DayWithEx; expanded: boolean
   onToggle: () => void
   onUpdateDay: (patch: Partial<RoutineDay>) => void
@@ -1224,6 +1277,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
   onDuplicateDay: () => void
   onMoveDay: (direction: 'up' | 'down') => void
   onAddExercise: () => void
+  onReplaceExercise: (routineExerciseId: string) => void
   onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
   onCircuitNoteChange: (groupId: number, value: string) => void
   onDeleteExercise: (exId: string) => void
@@ -1408,6 +1462,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                   onDelete={() => onDeleteExercise(group.exercise.id)}
                   onMoveUp={() => onMoveExercise(group.exercise.id, 'up')}
                   onMoveDown={() => onMoveExercise(group.exercise.id, 'down')}
+                  onReplace={() => onReplaceExercise(group.exercise.id)}
                   rmKg={rmByExerciseId.get(group.exercise.exercise_id)}
                 />
               )
@@ -1449,6 +1504,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                       onDelete={() => onDeleteExercise(ex.id)}
                       onMoveUp={() => onMoveExercise(ex.id, 'up')}
                       onMoveDown={() => onMoveExercise(ex.id, 'down')}
+                      onReplace={() => onReplaceExercise(ex.id)}
                       rmKg={rmByExerciseId.get(ex.exercise_id)}
                     />
                   </div>
@@ -1488,7 +1544,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
               </button>
             </div>
             <p className="text-xs text-ink-secondary mb-3 leading-relaxed">
-              Se copian series, reps, peso, descanso, RPE/RIR, notas y agrupación de circuitos. Los <strong className="text-ink-primary">ejercicios</strong> del día destino no cambian.
+              Se copian series, reps, peso, descanso, RPE/RIR, notas y agrupación de circuitos. Los movimientos del día destino no cambian automáticamente; después podés reemplazar cada uno con el botón <strong className="text-ink-primary">Cambiar ejercicio</strong> en cada fila.
             </p>
             <label className="flex items-center gap-2 text-xs text-ink-secondary mb-3 cursor-pointer">
               <input
@@ -1556,12 +1612,14 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
+function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
   onUpdate: (patch: Partial<RoutineExercise>) => void
   onDelete: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
+  /** Sustituye solo el movimiento del catálogo; mantiene series, reps, etc. */
+  onReplace?: () => void
   rmKg?: number
   canCombine?: boolean
   onCombineWithNext?: () => void
@@ -1582,7 +1640,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
 
   useEffect(() => {
     setVideoUrl((exercise.video_url ?? '').trim())
-  }, [exercise.id, exercise.video_url])
+  }, [exercise.id, exercise.exercise_id, exercise.video_url])
 
   const libraryVideo = (exercise.exercise?.video_url ?? '').trim()
   const effectiveVideo = videoUrl || libraryVideo
@@ -1628,6 +1686,16 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
             className="text-ink-muted hover:text-brand-primary transition-colors"
           >
             <Link2 className="h-3 w-3" />
+          </button>
+        )}
+        {onReplace && (
+          <button
+            type="button"
+            onClick={onReplace}
+            title="Cambiar ejercicio (se mantienen series, reps y prescripción)"
+            className="text-ink-muted hover:text-brand-primary transition-colors shrink-0"
+          >
+            <RefreshCw className="h-3 w-3" />
           </button>
         )}
         <button onClick={onMoveUp} title="Subir" className="text-ink-muted hover:text-ink-primary transition-colors">
@@ -1837,7 +1905,17 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, rmKg,
 
 type MuscleGroupOption = { id: string; name: string }
 
-function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => void; onClose: () => void }) {
+function ExercisePicker({
+  onSelect,
+  onClose,
+  title = 'Seleccionar ejercicio',
+  subtitle,
+}: {
+  onSelect: (ex: Exercise) => void
+  onClose: () => void
+  title?: string
+  subtitle?: string
+}) {
   const { user } = useAuthStore()
   const [exercises, setExercises]   = useState<ExerciseWithGroup[]>([])
   const [muscleCatalog, setMuscleCatalog] = useState<MuscleGroup[]>([])
@@ -1947,8 +2025,11 @@ function ExercisePicker({ onSelect, onClose }: { onSelect: (ex: Exercise) => voi
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[80vh] flex flex-col shadow-lg">
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
-          <h3 className="text-sm font-semibold text-ink-primary">Seleccionar ejercicio</h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+          <div>
+            <h3 className="text-sm font-semibold text-ink-primary">{title}</h3>
+            {subtitle ? <p className="text-[11px] text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
+          </div>
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary shrink-0"><X className="h-4 w-4" /></button>
         </div>
         <div className="px-4 py-3">
           <input

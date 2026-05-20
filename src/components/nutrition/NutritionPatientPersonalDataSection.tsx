@@ -5,6 +5,7 @@ import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { supabase } from '@/lib/supabase'
+import { updateAccessibleStudent } from '@/lib/students/studentAccess'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -95,13 +96,7 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
       notes: form.notes.trim() || null,
       plan_end_date: form.plan_end_date || null,
     }
-    const { data, error } = await supabase
-      .from('students')
-      .update(payload)
-      .eq('id', student.id)
-      .eq('owner_id', ownerId)
-      .select('*')
-      .single()
+    const { data, error } = await updateAccessibleStudent(student.id, payload).select('*').single()
     setSaving(false)
     if (error) {
       toast.error(error.message)
