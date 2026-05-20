@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageToolbar } from '@/components/ui/PageToolbar'
 import { Button } from '@/components/ui/Button'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
+import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { cn } from '@/lib/utils'
 import type { Student, NutritionPatientFollowup, NutritionAttendanceStatus } from '@/types/database'
@@ -67,6 +68,7 @@ export function NutritionPage() {
   const [search, setSearch] = useState('')
   const [rows, setRows] = useState<FollowupRow[]>([])
   const [newPatientOpen, setNewPatientOpen] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (!user) return
@@ -94,7 +96,7 @@ export function NutritionPage() {
       setRows(merged)
       setLoading(false)
     })()
-  }, [user])
+  }, [user, reloadToken])
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -217,6 +219,12 @@ export function NutritionPage() {
             </div>
           </div>
         </PageToolbar>
+
+        <StudentDeletionHistoryPanel
+          entityLabel="Pacientes"
+          entityLabelSingular="paciente"
+          onRestored={() => setReloadToken((t) => t + 1)}
+        />
 
         {loading ? (
           <div className="flex justify-center py-14">

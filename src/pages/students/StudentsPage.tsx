@@ -31,6 +31,7 @@ import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
+import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
 import { TableSkeleton } from '@/components/ui/Skeleton'
@@ -746,6 +747,13 @@ export function StudentsPage() {
             </Button>
           </div>
         </div>
+
+        <StudentDeletionHistoryPanel
+          entityLabel={entityLabel}
+          entityLabelSingular={entityLabelSingular}
+          entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
+          onRestored={() => void fetchStudents(search)}
+        />
 
         {loading ? (
           <div className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/70">

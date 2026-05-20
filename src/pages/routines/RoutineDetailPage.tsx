@@ -686,7 +686,7 @@ export function RoutineDetailPage() {
           for (let k = 0; k < n; k++) {
             const srcEx = sourceSorted[seg.indices[k]]
             const tgtEx = targetSorted[tp + k]
-            const patch = prescriptionPatchFrom(srcEx)
+            const patch = prescriptionPatchFrom(srcEx, tgtEx)
             if (seg.kind === 'circuit' && newGroupId != null) {
               patch.is_superset = true
               patch.superset_group = newGroupId
@@ -1381,7 +1381,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
                 }}
                 className="text-xs font-medium text-brand-primary hover:text-brand-primary/90 transition-colors"
               >
-                Copiar series/cargas/notas → otros días
+                Copiar series/cargas → otros días
               </button>
               <button
                 type="button"
@@ -1544,7 +1544,7 @@ function DayCard({ day, expanded, onToggle, onUpdateDay, onDeleteDay, onDuplicat
               </button>
             </div>
             <p className="text-xs text-ink-secondary mb-3 leading-relaxed">
-              Se copian series, reps, peso, descanso, RPE/RIR, notas y agrupación de circuitos. Los movimientos del día destino no cambian automáticamente; después podés reemplazar cada uno con el botón <strong className="text-ink-primary">Cambiar ejercicio</strong> en cada fila.
+              Se copian series, reps, peso, descanso, RPE/RIR, aclaraciones de circuito y agrupación. Las <strong className="text-ink-primary">notas</strong> de cada ejercicio en el destino no se pisan. Los movimientos del día destino no cambian; podés ajustarlos con <strong className="text-ink-primary">Cambiar ejercicio</strong> en cada fila.
             </p>
             <label className="flex items-center gap-2 text-xs text-ink-secondary mb-3 cursor-pointer">
               <input

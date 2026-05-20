@@ -1,3 +1,4 @@
+import { buildExerciseTechnicalNotes, parseExerciseMeta } from '@/lib/routine/exerciseMeta'
 import type { RoutineExercise } from '@/types/database'
 
 export type ExercisePrescriptionPatch = Pick<
@@ -17,8 +18,18 @@ export type ExercisePrescriptionPatch = Pick<
   | 'superset_group'
 >
 
-/** Copia solo prescipción (series, reps, cargas, META/notas, circuito relativo), sin exercise_id. */
-export function prescriptionPatchFrom(src: RoutineExercise): ExercisePrescriptionPatch {
+/**
+ * Copia prescipción (series, reps, cargas, descanso, META: circuito, %1RM, etc.) sin `exercise_id`.
+ * Las NOTAS libres del ejercicio no se copian: se conservan las del destino (`target`).
+ */
+export function prescriptionPatchFrom(
+  src: RoutineExercise,
+  target?: RoutineExercise,
+): ExercisePrescriptionPatch {
+  const { meta } = parseExerciseMeta(src.technical_notes)
+  const keepUserNotes = target ? parseExerciseMeta(target.technical_notes).userNotes : ''
+  const technical_notes = buildExerciseTechnicalNotes(keepUserNotes, meta) || null
+
   return {
     sets: src.sets,
     reps_min: src.reps_min,
@@ -30,7 +41,7 @@ export function prescriptionPatchFrom(src: RoutineExercise): ExercisePrescriptio
     rest_seconds: src.rest_seconds,
     tempo: src.tempo,
     video_url: src.video_url,
-    technical_notes: src.technical_notes,
+    technical_notes,
     is_superset: src.is_superset,
     superset_group: src.superset_group,
   }

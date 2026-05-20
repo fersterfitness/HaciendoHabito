@@ -467,6 +467,26 @@ export interface Student {
   updated_at: string
 }
 
+/** Fila del historial de alumnos/pacientes eliminados (RPC list_my_student_deletions). */
+export interface StudentDeletionLogEntry {
+  id: string
+  student_id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  status: string | null
+  deleted_at: string
+  deleted_by: string | null
+  deleted_by_name: string | null
+  primary_owner_id: string | null
+  primary_owner_name: string | null
+  can_restore?: boolean
+  avatar_path?: string | null
+  birth_date?: string | null
+  level?: string | null
+  plan_end_date?: string | null
+}
+
 export interface Plan {
   id: string
   owner_id: string

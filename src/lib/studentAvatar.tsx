@@ -36,6 +36,26 @@ export function studentAvatarPublicUrl(path: string | null | undefined): string 
   return null
 }
 
+/** Busca `{studentId}/avatar.*` en el bucket (la foto suele quedar tras eliminar el alumno). */
+export async function discoverStudentAvatarPath(studentId: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(STUDENT_AVATAR_BUCKET).list(studentId, { limit: 20 })
+  if (error || !data?.length) return null
+  const avatar = data.find((f) => f.name && /^avatar\.(jpe?g|png|webp)$/i.test(f.name))
+  return avatar?.name ? `${studentId}/${avatar.name}` : null
+}
+
+/** Si `avatar_path` está vacío pero el archivo existe en Storage, lo vincula de nuevo. */
+export async function linkStudentAvatarIfFileExists(
+  studentId: string,
+  currentPath: string | null | undefined,
+): Promise<string | null> {
+  if (currentPath?.trim()) return currentPath.trim()
+  const discovered = await discoverStudentAvatarPath(studentId)
+  if (!discovered) return null
+  const { error } = await supabase.from('students').update({ avatar_path: discovered }).eq('id', studentId)
+  return error ? null : discovered
+}
+
 type StudentPhotoImgProps = {
   storagePath: string | null | undefined
   alt: string
