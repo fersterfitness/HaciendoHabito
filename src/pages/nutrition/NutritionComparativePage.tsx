@@ -413,7 +413,12 @@ export function NutritionComparativePage() {
             aria-hidden
           />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-            <Kpi3dIcon id="anthropometry-pdf" size={56} className="shrink-0" />
+            <Kpi3dIcon
+              id="anthropometry-pdf"
+              size={28}
+              strokeWidth={1.5}
+              className="shrink-0 text-ink-secondary/70"
+            />
             <div className="min-w-0 flex-1 space-y-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-secondary">
                 PDFs nutrición

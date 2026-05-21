@@ -1,12 +1,18 @@
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Bell, ChevronLeft, Search } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { openGlobalSearch } from '@/lib/globalSearch'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { trainerCtaSolidBgClassName } from '@/lib/primaryGradientCtaClasses'
-import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
+import {
+  HeaderActionButton,
+  HeaderBellIcon,
+  HeaderMoonIcon,
+  HeaderSearchIcon,
+  HeaderSunIcon,
+} from '@/components/icons/headerAnimateIcons'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
@@ -80,52 +86,44 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
       <div className="flex items-center gap-1">
         {actions}
 
-        <button
-          type="button"
+        <HeaderActionButton
           onClick={() => openGlobalSearch()}
-          className={cn(
-            'hidden sm:inline-flex p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
-            appFocusRingClassName,
-          )}
+          className="hidden sm:inline-flex"
           aria-label="Buscar (Ctrl+K)"
           title="Buscar (Ctrl+K)"
-        >
-          <Search className="h-4 w-4" />
-        </button>
+          renderIcon={(hovered) => <HeaderSearchIcon animate={hovered} />}
+        />
 
-        <button
-          type="button"
+        <HeaderActionButton
           onClick={toggleTheme}
-          className={cn(
-            'p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
-            appFocusRingClassName,
-          )}
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-        >
-          {theme === 'dark' ? <ThemeToggleSunIcon /> : <ThemeToggleMoonIcon />}
-        </button>
+          renderIcon={(hovered) =>
+            theme === 'dark' ? (
+              <HeaderSunIcon animate={hovered} className="text-white" />
+            ) : (
+              <HeaderMoonIcon animate={hovered} className="text-ink-primary" />
+            )
+          }
+        />
 
-        <button
-          type="button"
+        <HeaderActionButton
           onClick={() => navigate('/notifications')}
           aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'}
-          className={cn(
-            'relative p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors',
-            appFocusRingClassName,
-          )}
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span
-              className={cn(
-                'absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white',
-                trainerCtaSolidBgClassName,
-              )}
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
+          className="relative"
+          renderIcon={(hovered) => <HeaderBellIcon animate={hovered} />}
+          badge={
+            unreadCount > 0 ? (
+              <span
+                className={cn(
+                  'absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white pointer-events-none',
+                  trainerCtaSolidBgClassName,
+                )}
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            ) : undefined
+          }
+        />
 
         <button
           type="button"

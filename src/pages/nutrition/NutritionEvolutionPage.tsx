@@ -131,7 +131,7 @@ export function NutritionEvolutionPage() {
                 )}
               >
                 <div className="flex items-start gap-3.5">
-                  <StatIcon kpi3dIcon={f.kpi3dIcon} tone="accent" variant="3d" className="h-12 w-12" />
+                  <StatIcon kpi3dIcon={f.kpi3dIcon} tone="accent" variant="flat" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold text-ink-primary">{f.label}</p>

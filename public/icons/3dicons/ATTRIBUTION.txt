@@ -1,4 +1,5 @@
 3D icons from https://3dicons.co by Vijay Verma (@realvjy)
+(Legacy PNGs — la app usa Animate UI https://animate-ui.com/ en KPIs desde 2026-05.)
 License: CC0 1.0 Universal — free for personal and commercial use.
 Metadata: github.com/realvjy/3dicons (content/3dicons-meta)
 

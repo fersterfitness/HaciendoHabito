@@ -1,10 +1,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { LucideIcon } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { BrandLogo } from '@/components/branding/BrandLogo'
-import { Settings, LogOut } from 'lucide-react'
+import { Settings, LogOut, type LucideIcon } from 'lucide-react'
+import { SidebarAnimateIcon, SidebarLogOutIcon } from '@/components/icons/sidebarAnimateIcons'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -148,12 +148,17 @@ function RailNavLink({
 }) {
   const { pathname } = useLocation()
   const isActive = isPathActive(pathname, to, exactMatch)
+  const [hovered, setHovered] = useState(false)
 
   return (
     <SidebarRailTooltip label={label}>
       <NavLink
         to={to}
-        onMouseEnter={() => prefetchRouteChunkByHref(to)}
+        onMouseEnter={() => {
+          setHovered(true)
+          prefetchRouteChunkByHref(to)
+        }}
+        onMouseLeave={() => setHovered(false)}
         onFocus={() => prefetchRouteChunkByHref(to)}
         className={cn(
           'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none',
@@ -170,7 +175,14 @@ function RailNavLink({
         aria-current={isActive ? 'page' : undefined}
         aria-label={label}
       >
-        <Icon className="size-[17px] shrink-0" strokeWidth={2} aria-hidden />
+        <span className="flex size-full items-center justify-center" aria-hidden>
+          <SidebarAnimateIcon
+            href={to}
+            fallback={Icon}
+            isActive={isActive}
+            parentHovered={hovered}
+          />
+        </span>
       </NavLink>
     </SidebarRailTooltip>
   )
@@ -179,19 +191,21 @@ function RailNavLink({
 function RailIconButton({
   label,
   onClick,
-  icon: Icon,
   danger,
 }: {
   label: string
   onClick: () => void
-  icon: LucideIcon
   danger?: boolean
 }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
     <SidebarRailTooltip label={label}>
       <button
         type="button"
         onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         aria-label={label}
         className={cn(
           'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
@@ -202,7 +216,7 @@ function RailIconButton({
             : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
         )}
       >
-        <Icon className="size-[17px] shrink-0" aria-hidden />
+        <SidebarLogOutIcon parentHovered={hovered} />
       </button>
     </SidebarRailTooltip>
   )
@@ -329,12 +343,7 @@ export function Sidebar() {
           </NavLink>
         </SidebarRailTooltip>
 
-        <RailIconButton
-          label="Cerrar sesión"
-          icon={LogOut}
-          danger
-          onClick={() => void handleLogout()}
-        />
+        <RailIconButton label="Cerrar sesión" danger onClick={() => void handleLogout()} />
       </div>
     </aside>
   )

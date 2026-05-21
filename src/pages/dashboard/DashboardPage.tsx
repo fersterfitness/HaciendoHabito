@@ -1022,7 +1022,8 @@ export function DashboardPage() {
         <PageSectionTitle title="Resumen del mes" className="mb-1" />
 
         {/* ── KPIs ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {/* pt extra: deja respirar a los avatars 3D que sobresalen por arriba de la card */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 items-stretch gap-3 gap-y-5 lg:gap-4 lg:gap-y-6 overflow-visible pt-10 lg:pt-14 [&>*]:h-full">
           <StatCard
             title={activePeopleLabel}
             value={stats.activeStudents}
@@ -1030,6 +1031,7 @@ export function DashboardPage() {
             surface="gradient"
             kpiFigmaIcon="patients"
             iconVariant="3d"
+            heroAvatarSrc="/avatars/gorilla.png?v=1"
             monthOverMonth={{ thisMonth: stats.momStudentsThis, prevMonth: stats.momStudentsPrev, scopeLabel: 'Altas' }}
             onClick={() => navigate(peopleHubPath)}
           />
@@ -1042,6 +1044,7 @@ export function DashboardPage() {
                 surface="gradient"
                 kpiFigmaIcon="routines"
                 iconVariant="3d"
+                heroAvatarSrc="/avatars/dashboard-students-routine.png?v=8"
                 monthOverMonth={{ thisMonth: stats.momRoutinesThis, prevMonth: stats.momRoutinesPrev, scopeLabel: 'Nuevas rutinas' }}
                 onClick={() => navigate('/routines')}
               />
@@ -1052,6 +1055,7 @@ export function DashboardPage() {
                 surface="gradient"
                 kpiFigmaIcon="meal-plans"
                 iconVariant="3d"
+                heroAvatarSrc="/avatars/dashboard-students-nutrition.png?v=6"
                 monthOverMonth={{ thisMonth: stats.momMealPlansThis, prevMonth: stats.momMealPlansPrev, scopeLabel: 'Planes nuevos' }}
                 onClick={() => navigate('/meal-plans')}
               />
@@ -1062,11 +1066,8 @@ export function DashboardPage() {
                 kpiFigmaIcon="income"
                 iconVariant="3d"
                 featured
-                subtitle={
-                  incomeDelta !== 0
-                    ? `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs mes anterior`
-                    : 'vs mes anterior'
-                }
+                heroAvatarSrc="/avatars/dashboard-students-money.png?v=5"
+                comparisonPercent={incomeDelta}
                 onClick={() => navigate('/finances')}
               />
             </>
@@ -1079,6 +1080,7 @@ export function DashboardPage() {
                 surface="gradient"
                 kpiFigmaIcon="nutrition-plans"
                 iconVariant="3d"
+                heroAvatarSrc="/avatars/dashboard-students-nutrition.png?v=6"
                 subtitle="Biblioteca reusable"
                 monthOverMonth={{
                   thisMonth: stats.momNutPlansThis,
@@ -1094,6 +1096,7 @@ export function DashboardPage() {
                 surface="gradient"
                 kpiFigmaIcon="anthropometry-pdf"
                 iconVariant="3d"
+                heroAvatarSrc="/avatars/dashboard-students-antro.png?v=1"
                 monthOverMonth={{ thisMonth: stats.momNutDocsThis, prevMonth: stats.momNutDocsPrev, scopeLabel: 'PDFs subidos' }}
                 onClick={() => navigate('/nutrition')}
               />
@@ -1104,11 +1107,8 @@ export function DashboardPage() {
                 kpiFigmaIcon="income"
                 iconVariant="3d"
                 featured
-                subtitle={
-                  incomeDelta !== 0
-                    ? `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs mes anterior`
-                    : 'vs mes anterior'
-                }
+                heroAvatarSrc="/avatars/dashboard-students-money.png?v=5"
+                comparisonPercent={incomeDelta}
                 onClick={() => navigate('/finances')}
               />
             </>

@@ -343,4 +343,10 @@
   .dark .stat-icon-3d svg {
     filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
   }
+
+  /** KPI Animate UI: trazo fino y sin sombra extra (las tarjetas ya dan el contenedor). */
+  .kpi-animated-icon svg {
+    stroke-width: 1.5;
+    filter: none;
+  }
 }

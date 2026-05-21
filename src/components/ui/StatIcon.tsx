@@ -12,7 +12,7 @@ const TONE_WRAP: Record<StatIconTone, string> = {
     'border-brand-secondary/25 bg-gradient-to-b from-brand-secondary/12 to-surface-card text-brand-secondary',
 }
 
-/** Contenedor KPI: PNG 3dicons, Lucide, o relieve CSS en variante `3d`. */
+/** Contenedor KPI: icono Animate UI, Lucide, o relieve CSS en variante `3d`. */
 export function StatIcon({
   kpi3dIcon,
   lucideIcon: Lucide,
@@ -21,7 +21,7 @@ export function StatIcon({
   className,
   iconClassName,
 }: {
-  /** Ilustración 3D de 3dicons.co (recomendado en Inicio). */
+  /** Icono KPI animado (Animate UI / Lucide). */
   kpi3dIcon?: Kpi3dIconId
   lucideIcon?: LucideIcon
   tone?: StatIconTone
@@ -32,10 +32,22 @@ export function StatIcon({
   if (kpi3dIcon) {
     return (
       <span
-        className={cn('inline-flex h-11 w-11 shrink-0 items-center justify-center', className)}
+        className={cn(
+          'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+          tone === 'accent'
+            ? 'border-brand-secondary/18 bg-brand-secondary/6 text-brand-secondary/65'
+            : 'border-surface-border/55 bg-surface-elevated/45 text-ink-secondary/65',
+          className,
+        )}
         aria-hidden
       >
-        <Kpi3dIcon id={kpi3dIcon} className={iconClassName} size={variant === '3d' ? 40 : 36} />
+        <Kpi3dIcon
+          id={kpi3dIcon}
+          className={cn('opacity-90', iconClassName)}
+          size={17}
+          strokeWidth={1.5}
+        />
       </span>
     )
   }

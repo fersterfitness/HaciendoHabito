@@ -50,9 +50,13 @@ interface StatCardProps {
   surface?: StatCardSurface
   iconVariant?: StatIconVariant
   monthOverMonth?: { thisMonth: number; prevMonth: number; scopeLabel?: string }
+  /** Variación % MoM (misma fila de footer que `monthOverMonth`, p. ej. ingresos). */
+  comparisonPercent?: number
   action?: StatCardAction
   onClick?: () => void
   className?: string
+  /** Avatar 3D sobresaliente (prueba visual; ej. personaje en tarjeta de alumnos). */
+  heroAvatarSrc?: string
 }
 
 function ComparisonFooter({
@@ -62,16 +66,19 @@ function ComparisonFooter({
   comparison: { delta: number; pct: number | null; scopeLabel?: string }
   monthOverMonth: { thisMonth: number; prevMonth: number; scopeLabel?: string }
 }) {
+  // Single line: "↗ +2 vs mes anterior". El scopeLabel se omite a propósito —
+  // el título de la card ya da contexto y mantener todo en una línea unifica
+  // la altura de todas las cards del grid.
   return (
     <div
       className={cn(
-        'flex flex-wrap items-baseline gap-x-1 gap-y-0.5 min-w-0 leading-snug',
+        'flex items-baseline gap-1.5 min-w-0 leading-snug',
         'text-[10px] sm:text-[11px] font-medium tabular-nums',
       )}
     >
       <span
         className={cn(
-          'inline-flex items-center gap-0.5 font-semibold',
+          'inline-flex items-center gap-0.5 font-semibold shrink-0',
           comparison.delta > 0 && 'text-status-generated',
           comparison.delta < 0 && 'text-status-expired',
           comparison.delta === 0 && 'text-ink-muted',
@@ -85,23 +92,49 @@ function ComparisonFooter({
         {comparison.delta === 0
           ? '0'
           : `${comparison.delta > 0 ? '+' : ''}${comparison.delta}`}
-        {comparison.pct !== null && (
-          <span className="opacity-90">
-            {' '}
-            ({comparison.pct >= 0 ? '+' : ''}
-            {comparison.pct}%)
-          </span>
-        )}
         {comparison.pct === null &&
           comparison.delta > 0 &&
           monthOverMonth.prevMonth === 0 && <span className="opacity-90"> (nuevo)</span>}
       </span>
-      <span className="text-ink-muted">
-        · {comparison.scopeLabel ? `${comparison.scopeLabel} ` : ''}vs mes anterior
-      </span>
+      <span className="text-ink-muted truncate">vs mes anterior</span>
     </div>
   )
 }
+
+function PercentComparisonFooter({ percent }: { percent: number }) {
+  return (
+    <div
+      className={cn(
+        'flex items-baseline gap-1.5 min-w-0 leading-snug',
+        'text-[10px] sm:text-[11px] font-medium tabular-nums',
+      )}
+    >
+      <span
+        className={cn(
+          'inline-flex items-center gap-0.5 font-semibold shrink-0',
+          percent > 0 && 'text-status-generated',
+          percent < 0 && 'text-status-expired',
+          percent === 0 && 'text-ink-muted',
+        )}
+      >
+        {percent > 0 ? (
+          <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden />
+        ) : percent < 0 ? (
+          <ArrowDownRight className="h-3 w-3 shrink-0" aria-hidden />
+        ) : null}
+        {percent === 0 ? '0%' : `${percent > 0 ? '+' : ''}${percent}%`}
+      </span>
+      <span className="text-ink-muted truncate">vs mes anterior</span>
+    </div>
+  )
+}
+
+/** Altura fija del bloque de título (2 líneas máx.) para alinear cards del grid. */
+const GRADIENT_TITLE_MIN_H = 'min-h-[2.5rem]'
+/** Altura fija del valor principal (evita saltos entre número corto y monto largo). */
+const GRADIENT_VALUE_MIN_H = 'min-h-[1.75rem]'
+/** Altura fija del footer de comparación. */
+const GRADIENT_FOOTER_MIN_H = 'min-h-[1.125rem]'
 
 function GradientIconPod({
   kpiId,
@@ -117,15 +150,20 @@ function GradientIconPod({
   compact: boolean
 }) {
   const podClass = cn(
-    'flex shrink-0 items-center justify-center rounded-2xl border',
-    'border-brand-secondary/25 bg-brand-secondary/12',
-    compact ? 'h-9 w-9' : 'h-10 w-10',
+    'flex shrink-0 items-center justify-center rounded-xl border',
+    'border-brand-secondary/18 bg-brand-secondary/6',
+    compact ? 'h-8 w-8' : 'h-8 w-8',
   )
 
   if (kpiId) {
     return (
       <div className={podClass}>
-        <Kpi3dIcon id={kpiId} size={compact ? 30 : 32} />
+        <Kpi3dIcon
+          id={kpiId}
+          size={compact ? 16 : 17}
+          strokeWidth={1.5}
+          className="text-brand-secondary/65 opacity-90"
+        />
       </div>
     )
   }
@@ -146,6 +184,47 @@ function GradientIconPod({
   return null
 }
 
+/**
+ * Avatar 3D estilo "pop-out": anclado al fondo y dimensionado para que la
+ * cabeza sobresalga POR ARRIBA del borde superior (efecto Omen / TOP AGENT).
+ * Requiere overflow-visible en los padres (ya garantizado por StatCardHeroFrame
+ * y por el grid contenedor).
+ */
+function StatCardHeroOverlay({ src }: { src: string }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      draggable={false}
+      className={cn(
+        'pointer-events-none absolute z-30 block h-auto w-auto bg-transparent',
+        // Render con el cuerpo del personaje (~72% canvas) sobresaliendo por arriba.
+        // Tamaño moderado: pop-out visible pero sin dominar la card.
+        'right-0 bottom-0 h-[10rem] max-w-[52%] sm:h-[11rem] sm:max-w-[46%]',
+        'object-contain object-bottom',
+        // Sombra realista para que se perciba delante (no dentro) de la card.
+        '[filter:drop-shadow(0_3px_6px_rgba(0,0,0,0.4))_drop-shadow(0_14px_24px_rgba(0,0,0,0.32))]',
+        'motion-safe:transition-transform motion-safe:duration-300',
+      )}
+    />
+  )
+}
+
+function StatCardHeroFrame({
+  heroAvatarSrc,
+  children,
+}: {
+  heroAvatarSrc: string
+  children: ReactNode
+}) {
+  return (
+    <div className="relative h-full overflow-visible">
+      {children}
+      <StatCardHeroOverlay src={heroAvatarSrc} />
+    </div>
+  )
+}
+
 /** Tarjeta KPI estilo Inicio: degradado brand-secondary. */
 function StatCardGradient({
   title,
@@ -161,6 +240,7 @@ function StatCardGradient({
   action,
   onClick,
   className,
+  heroAvatarSrc,
 }: {
   title: string
   displayValue: string | number
@@ -175,8 +255,10 @@ function StatCardGradient({
   action?: StatCardAction
   onClick?: () => void
   className?: string
+  heroAvatarSrc?: string
 }) {
   const kpiId = kpi3dIcon ?? kpiFigmaIcon
+  const showHero = Boolean(heroAvatarSrc?.trim())
 
   return (
     <div
@@ -194,8 +276,10 @@ function StatCardGradient({
           : undefined
       }
       className={cn(
-        'relative overflow-hidden rounded-2xl border flex flex-col',
+        'relative rounded-2xl border flex h-full flex-col',
+        showHero ? 'overflow-visible' : 'overflow-hidden',
         compact ? 'min-h-0 p-2.5' : 'min-h-0 p-3',
+        showHero && !compact && 'pr-[36%] sm:pr-[32%]',
         featured
           ? 'border-brand-secondary/35 bg-gradient-to-br from-brand-secondary/22 via-surface-card to-surface-card shadow-[0_8px_28px_rgba(169,121,255,0.08)]'
           : 'border-brand-secondary/25 bg-gradient-to-br from-brand-secondary/14 via-surface-card to-surface-card',
@@ -212,14 +296,16 @@ function StatCardGradient({
         aria-hidden
       />
 
-      <div className="relative flex items-center gap-2">
-        <GradientIconPod
-          kpiId={kpiId}
-          lucideIcon={lucideIcon}
-          icon={icon}
-          iconVariant={iconVariant}
-          compact={compact}
-        />
+      <div className={cn('relative z-10 flex items-center gap-2', showHero && 'max-w-full')}>
+        {!showHero ? (
+          <GradientIconPod
+            kpiId={kpiId}
+            lucideIcon={lucideIcon}
+            icon={icon}
+            iconVariant={iconVariant}
+            compact={compact}
+          />
+        ) : null}
         <p
           className={cn(
             'min-w-0 flex-1 font-semibold uppercase tracking-wider leading-snug',
@@ -248,12 +334,25 @@ function StatCardGradient({
         className={cn(
           'relative mt-1.5 font-semibold text-ink-primary tabular-nums leading-none tracking-tight',
           compact ? 'text-lg' : 'text-[22px] sm:text-2xl',
+          !compact && GRADIENT_VALUE_MIN_H,
+          !compact &&
+            typeof displayValue === 'string' &&
+            'whitespace-nowrap overflow-hidden text-ellipsis max-w-full',
         )}
       >
         {displayValue}
       </p>
 
-      {footerLine ? <div className="relative mt-1.5 pt-0.5">{footerLine}</div> : null}
+      <div
+        className={cn(
+          'relative mt-auto pt-1.5',
+          !compact && GRADIENT_FOOTER_MIN_H,
+          !footerLine && !compact && 'invisible',
+        )}
+        aria-hidden={!footerLine}
+      >
+        {footerLine ?? <span className="text-[10px] sm:text-[11px]">vs mes anterior</span>}
+      </div>
     </div>
   )
 }
@@ -273,9 +372,11 @@ export function StatCard({
   surface = 'default',
   iconVariant = 'flat',
   monthOverMonth,
+  comparisonPercent,
   action,
   onClick,
   className,
+  heroAvatarSrc,
 }: StatCardProps) {
   const numericTarget = typeof value === 'number' ? value : 0
   const animated = useCountUp(numericTarget, {
@@ -293,7 +394,9 @@ export function StatCard({
   }, [monthOverMonth])
 
   const footerLine =
-    comparison != null && monthOverMonth ? (
+    comparisonPercent !== undefined ? (
+      <PercentComparisonFooter percent={comparisonPercent} />
+    ) : comparison != null && monthOverMonth ? (
       <ComparisonFooter comparison={comparison} monthOverMonth={monthOverMonth} />
     ) : subtitle ? (
       <p className="text-[10px] sm:text-[11px] font-medium text-ink-muted leading-snug">{subtitle}</p>
@@ -302,7 +405,8 @@ export function StatCard({
   const useGradient = surface === 'gradient' || featured
 
   if (useGradient && !compact) {
-    return (
+    const heroSrc = heroAvatarSrc?.trim()
+    const gradientCard = (
       <StatCardGradient
         title={title}
         displayValue={displayValue}
@@ -317,8 +421,17 @@ export function StatCard({
         action={action}
         onClick={onClick}
         className={className}
+        heroAvatarSrc={heroSrc}
       />
     )
+    if (heroSrc) {
+      return (
+        <div className="relative z-[1] h-full overflow-visible hover:z-[2]">
+          <StatCardHeroFrame heroAvatarSrc={heroSrc}>{gradientCard}</StatCardHeroFrame>
+        </div>
+      )
+    }
+    return <div className="h-full">{gradientCard}</div>
   }
 
   return (
