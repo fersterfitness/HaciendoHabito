@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { intakePanelPlansCtaClass } from '@/lib/intake/intakePanelUi'
 import {
   type PlanBilling,
   type IntakeNormalizedPricingPlan,
@@ -86,42 +87,37 @@ export function IntakeChangeablePlansSection({
 
   const selectedRing = useMemo(() => {
     if (lightChrome) {
-      return [
-        'border border-neutral-300/95 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/45',
-        'shadow-[0_5px_22px_rgba(15,23,42,0.1),inset_0_1px_0_rgba(255,255,255,0.95)]',
-        'ring-1 ring-neutral-900/[0.08]',
-      ].join(' ')
+      return cn(
+        'border border-brand-secondary/35 bg-gradient-to-b from-white via-brand-secondary/[0.04] to-transparent',
+        'shadow-[0_4px_20px_rgba(169,121,255,0.12)] ring-1 ring-brand-secondary/20',
+        'border-l-[3px] border-l-brand-secondary',
+      )
     }
-    if (badgeVariant === 'amber') {
-      return darkChrome
-        ? 'border border-white/[0.14] bg-white/[0.055] border-l-[2px] border-l-white/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-white/20'
-        : 'ring-[1px] ring-neutral-300 bg-white shadow-sm dark:ring-neutral-600 dark:bg-transparent'
-    }
-    return darkChrome
-      ? 'border border-white/[0.14] bg-white/[0.06] border-l-[2px] border-l-white/35 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-white/18'
-      : 'ring-[1px] ring-neutral-300 shadow-sm dark:shadow-none dark:ring-neutral-600'
-  }, [badgeVariant, darkChrome, lightChrome])
+    return cn(
+      'border border-brand-secondary/35 bg-brand-secondary/10',
+      'border-l-[3px] border-l-brand-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
+      'ring-1 ring-brand-secondary/25',
+    )
+  }, [lightChrome])
 
   const unselectedRow = lightChrome
-    ? [
-        'border border-neutral-200/90 bg-gradient-to-b from-white to-neutral-50/75',
-        'shadow-[0_2px_12px_rgba(15,23,42,0.05)] ring-1 ring-neutral-900/[0.03]',
-        'hover:border-neutral-300/95 hover:shadow-[0_6px_22px_rgba(15,23,42,0.09)]',
-      ].join(' ')
-    : darkChrome
-      ? 'bg-black/25 ring-1 ring-white/10 shadow-none hover:bg-white/[0.07] hover:ring-white/15'
-      : 'shadow-sm ring-1 ring-neutral-200/80 dark:shadow-none dark:ring-neutral-800 hover:ring-neutral-300 dark:hover:ring-neutral-700'
+    ? cn(
+        'border border-surface-border/80 bg-surface-card/80',
+        'hover:border-brand-secondary/25 hover:shadow-[0_4px_16px_rgba(169,121,255,0.08)]',
+      )
+    : cn(
+        'border border-white/10 bg-black/20',
+        'hover:border-brand-secondary/25 hover:bg-brand-secondary/8',
+      )
 
   if (plans.length === 0) return null
 
-  const toggleActive =
-    darkChrome
-      ? 'bg-white !text-neutral-900 shadow-[0_2px_10px_rgba(0,0,0,0.22)] ring-1 ring-black/[0.05]'
-      : 'bg-white !text-neutral-900 shadow-[0_2px_8px_rgba(15,23,42,0.08)] ring-1 ring-neutral-900/[0.04]'
-  const toggleInactive =
-    darkChrome
-      ? '!text-white/80 hover:!text-white hover:bg-white/10'
-      : 'text-neutral-600 hover:text-neutral-800 dark:text-neutral-400'
+  const toggleActive = darkChrome
+    ? 'border border-brand-secondary/40 bg-brand-secondary/22 !text-white shadow-sm ring-1 ring-brand-secondary/30'
+    : 'border border-brand-secondary/35 bg-white !text-brand-secondary shadow-sm ring-1 ring-brand-secondary/20'
+  const toggleInactive = darkChrome
+    ? '!text-white/65 hover:!text-white hover:bg-brand-secondary/10'
+    : 'text-ink-muted hover:text-brand-secondary hover:bg-brand-secondary/5'
 
   return (
     <div
@@ -153,7 +149,17 @@ export function IntakeChangeablePlansSection({
         <h2
           className={cn(
             'font-semibold tracking-tight',
-            flushEmbed ? (lightChrome ? 'text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-500' : 'text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45') : heroTone ? 'text-xs uppercase tracking-[0.16em] text-white/55' : darkChrome && !heroTone ? 'text-xs uppercase tracking-[0.14em] text-white/50' : lightChrome ? 'text-[15px] text-neutral-800' : 'text-[17px] font-medium text-neutral-800 dark:text-neutral-100',
+            flushEmbed
+              ? lightChrome
+                ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary'
+                : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary/80'
+              : heroTone
+                ? 'text-xs uppercase tracking-[0.16em] text-brand-secondary/80'
+                : darkChrome && !heroTone
+                  ? 'text-xs uppercase tracking-[0.14em] text-brand-secondary/75'
+                  : lightChrome
+                    ? 'text-[15px] font-semibold text-ink-primary'
+                    : 'text-[17px] font-medium text-ink-primary',
           )}
         >
           {title}
@@ -274,11 +280,7 @@ export function IntakeChangeablePlansSection({
                 !flushEmbed && (lightChrome || darkChrome) && 'rounded-[14px]',
                 !flushEmbed && !lightChrome && !darkChrome && 'rounded-[18px]',
                 flushEmbed && 'rounded-lg',
-                darkChrome
-                  ? 'focus-visible:ring-white/18'
-                  : lightChrome
-                    ? 'focus-visible:ring-neutral-400/35'
-                    : 'focus-visible:ring-neutral-400/40 dark:focus-visible:ring-neutral-500/40',
+                'focus-visible:ring-brand-secondary/35',
                 isSelected ? selectedRing : unselectedRow,
               )}
             >
@@ -290,14 +292,10 @@ export function IntakeChangeablePlansSection({
                         className={cn(
                           'flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4',
                           isSelected
-                            ? darkChrome
-                              ? 'border-white/55 bg-white/22 text-white'
-                              : 'border-neutral-800 bg-neutral-900 text-white shadow-sm'
+                            ? 'border-brand-secondary bg-brand-secondary text-white shadow-sm'
                             : lightChrome
-                              ? 'border-neutral-300 bg-white'
-                              : darkChrome
-                                ? 'border-white/30 bg-transparent'
-                                : 'border-neutral-300 bg-white dark:border-neutral-600 dark:bg-transparent',
+                              ? 'border-surface-border bg-white'
+                              : 'border-white/25 bg-transparent',
                         )}
                         aria-hidden
                       >
@@ -423,7 +421,7 @@ export function IntakeChangeablePlansSection({
                                   <Check
                                     size={14}
                                     strokeWidth={2.8}
-                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/45' : 'text-amber-600')}
+                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-brand-tertiary/80' : 'text-brand-tertiary')}
                                   />
                                   <span
                                     className={cn(
@@ -477,13 +475,8 @@ export function IntakeChangeablePlansSection({
           disabled={!selectedPlanId}
           onClick={() => selectedPlanId && onContinue?.()}
           className={cn(
-            'w-full shrink-0 rounded-lg px-5 py-2.5 text-[13px] font-medium outline-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-7',
-            flushEmbed && 'py-2 sm:py-2',
-            darkChrome
-              ? 'border border-white/14 bg-white/[0.07] text-white hover:bg-white/[0.11] focus-visible:ring-1 focus-visible:ring-white/25 focus-visible:ring-offset-0'
-              : lightChrome || !embedded
-              ? 'border border-neutral-200/95 bg-gradient-to-b from-white to-neutral-50/90 text-neutral-900 shadow-[0_3px_14px_rgba(15,23,42,0.07)] hover:bg-neutral-50/95 focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-100'
-              : 'border border-neutral-600 bg-neutral-800 px-8 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950',
+            intakePanelPlansCtaClass,
+            'active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
           )}
         >
           {buttonText}

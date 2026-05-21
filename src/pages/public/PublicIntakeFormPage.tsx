@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,14 +28,22 @@ import {
 } from '@/lib/publicIntakeCatalogOffers'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import { webIntakeCatalogDisplayUrl } from '@/lib/webIntakeCatalogAssets'
-
-/** Texto completo (detalle del plan / tooltip). En el selector sólo usamos líneas cortas. */
-const PUBLIC_PLAN_SOLO_CREDENTIAL_LINE =
-  'Lic. en alto rendimiento (estudiante) · Prof. Educación física · Especialización deportiva'
-const PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE =
-  'Cristian Crossetto — Licenciado/a en Nutrición y especialización deportiva'
-const PUBLIC_PLAN_FULL_CREDENTIAL_LINE =
-  'Tomás Ferster + Cristian Crossetto — Plan integral de entrenamiento y nutrición'
+import {
+  intakePanelGroupLabelClass,
+  intakePanelSegmentIdleClass,
+  intakePanelSegmentSelectedClass,
+  intakePanelSurfaceClass,
+} from '@/lib/intake/intakePanelUi'
+import {
+  findIntakeProfessional,
+  fullPlanCredentialLine,
+  INTAKE_NUTRITION_SLUG_DEFAULT,
+  INTAKE_TRAINER_SLUG_DEFAULT,
+  mergeIntakeNutritionistsFromDb,
+  mergeIntakeTrainersFromDb,
+  type IntakeProfessional,
+  type PublicIntakeProfessionalRow,
+} from '@/lib/intake/intakeProfessionals'
 
 /** Defaults si no hay fila en `web_intake_catalog_settings`. */
 const DEFAULT_INTAKE_MODALITY_LABELS = {
@@ -43,13 +51,6 @@ const DEFAULT_INTAKE_MODALITY_LABELS = {
   withNutritionist: 'NUTRICIÓN',
   full: 'PLAN FULL (ENTRENO + NUTRICIÓN)',
 } as const
-
-/** Clase para el label en mayúsculas (Modalidad / Entrenador / …). */
-const intakeHeroFieldLabelClass = (theme: 'light' | 'dark') =>
-  cn(
-    'mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em]',
-    theme === 'dark' ? 'text-white/45' : 'text-ink-muted',
-  )
 
 /** Título corto en la fila de botones; el detalle completo va debajo al elegir. */
 const MODALITY_CARD_COPY: Record<
@@ -84,12 +85,6 @@ function buildIntakeModalityOptions(labels: {
     { segment: 'full', label: labels.full?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.full },
   ]
 }
-
-/** Sumá filas cuando haya más entrenadores disponibles en la misma línea. */
-const INTAKE_TRAINER_OPTIONS: { id: string; label: string }[] = [{ id: 'tomas-ferster', label: 'Tomás Ferster' }]
-
-/** Sumá filas cuando haya más nutricionistas. */
-const INTAKE_NUTRITION_OPTIONS: { id: string; label: string }[] = [{ id: 'cris-crossetto', label: 'Cristian Crossetto' }]
 
 function initialsFromProfessionalName(label: string): string {
   const parts = label.trim().split(/\s+/).filter(Boolean)
@@ -218,22 +213,10 @@ function IntakeHorizontalChoiceRow({
 
   const segmentedButtonClass = (isSelected: boolean) =>
     cn(
-      'flex min-h-[2.6rem] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-lg border px-2 py-2 transition-colors',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
+      'flex min-h-[2.75rem] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border px-2 py-2 transition-all',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/35 focus-visible:ring-offset-0',
       'text-center text-[12px] font-semibold leading-tight',
-      isDark
-        ? cn(
-            'focus-visible:ring-white/30',
-            isSelected
-              ? '!text-white border-white/55 bg-white/14 font-semibold ring-1 ring-white/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]'
-              : '!text-white/60 border-white/10 bg-white/[0.02] font-medium hover:!text-white/80 hover:border-white/22',
-          )
-        : cn(
-            'focus-visible:ring-neutral-400/40',
-            isSelected
-              ? 'border-neutral-900/25 bg-white font-semibold text-ink-primary shadow-[0_2px_10px_rgba(15,23,42,0.08)] ring-1 ring-neutral-900/[0.07]'
-              : 'border-surface-border bg-surface-card font-medium text-ink-muted hover:border-neutral-300/90 hover:text-ink-secondary',
-          ),
+      isSelected ? intakePanelSegmentSelectedClass(theme) : intakePanelSegmentIdleClass(theme),
     )
 
   const emptyClasses = isDark
@@ -243,11 +226,11 @@ function IntakeHorizontalChoiceRow({
   const compactBtnClasses = (isSelected: boolean) =>
     isDark
       ? isSelected
-        ? 'border-white/40 bg-white/[0.08] ring-1 ring-white/25'
-        : 'border-white/12 bg-white/[0.025] hover:border-white/22 hover:bg-white/[0.05]'
+        ? 'border-brand-secondary/45 bg-brand-secondary/12 ring-1 ring-brand-secondary/28'
+        : 'border-white/12 bg-white/[0.025] hover:border-brand-secondary/30 hover:bg-brand-secondary/8'
       : isSelected
-        ? 'border-neutral-900/20 bg-white ring-1 ring-neutral-900/[0.06] shadow-sm'
-        : 'border-surface-border bg-surface-card hover:border-neutral-300/80 hover:bg-surface-elevated'
+        ? 'border-brand-secondary/35 bg-brand-secondary/8 ring-1 ring-brand-secondary/20 shadow-sm'
+        : 'border-surface-border bg-surface-card hover:border-brand-secondary/25 hover:bg-surface-elevated'
 
   const compactNameClass = isDark ? '!text-white' : 'text-ink-primary'
   const compactSubtitleClass = isDark ? '!text-white/55' : 'text-ink-muted'
@@ -255,7 +238,7 @@ function IntakeHorizontalChoiceRow({
 
   return (
     <div className="min-w-0">
-      <p id={labelId} className={intakeHeroFieldLabelClass(theme)}>
+      <p id={labelId} className={intakePanelGroupLabelClass(theme)}>
         {groupLabel}
       </p>
 
@@ -282,7 +265,7 @@ function IntakeHorizontalChoiceRow({
               className={cn(
                 'mt-1.5 flex w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
-                isDark ? 'focus-visible:ring-white/30' : 'focus-visible:ring-brand-primary/40',
+                isDark ? 'focus-visible:ring-brand-secondary/40' : 'focus-visible:ring-brand-secondary/35',
                 compactBtnClasses(isSelected),
               )}
             >
@@ -522,16 +505,29 @@ function PlanDetailView({
   planBilling,
   onBack,
   panelId,
+  selectedTrainer,
+  selectedNutritionist,
 }: {
   plan: PlanDetail
   planBilling: PlanBilling
   onBack: () => void
   panelId?: string
+  selectedTrainer: IntakeProfessional | null
+  selectedNutritionist: IntakeProfessional | null
 }) {
+  const credentialFallback =
+    plan.catalogSegment === 'with_nutritionist'
+      ? selectedNutritionist?.credentialLine
+      : plan.catalogSegment === 'full'
+        ? fullPlanCredentialLine(selectedTrainer, selectedNutritionist)
+        : selectedTrainer?.credentialLine
   return (
     <div
       id={panelId}
-      className="h-full min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain scrollbar-hide px-1 pb-28 lg:pb-1"
+      className={cn(
+        'w-full min-w-0',
+        panelId ? 'h-full max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain scrollbar-hide pb-28' : 'pb-8 lg:pb-10',
+      )}
     >
       <div className="rounded-2xl border border-white/12 bg-zinc-950/85 p-5 sm:p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -555,16 +551,10 @@ function PlanDetailView({
           <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90 whitespace-pre-wrap">
             {plan.credentialLineOverride.trim()}
           </p>
-        ) : plan.catalogSegment === 'with_nutritionist' ? (
+        ) : credentialFallback?.trim() ? (
           <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90">
-            {PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE}
+            {credentialFallback.trim()}
           </p>
-        ) : plan.catalogSegment === 'full' ? (
-          <p className="mt-4 border-l-2 border-white/30 pl-3 text-sm font-medium leading-relaxed text-white/90">
-            {PUBLIC_PLAN_FULL_CREDENTIAL_LINE}
-          </p>
-        ) : plan.catalogSegment === 'solo' ? (
-          <p className="mt-4 text-sm leading-relaxed text-white/75">{PUBLIC_PLAN_SOLO_CREDENTIAL_LINE}</p>
         ) : null}
 
         <div className="mt-5 pt-4 border-t border-white/10">
@@ -626,7 +616,7 @@ function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
           className="absolute inset-0 z-[1] pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255,107,53,0.10), transparent 60%)',
+              'radial-gradient(ellipse 90% 60% at 50% -10%, rgba(169,121,255,0.1), transparent 55%), radial-gradient(ellipse 60% 40% at 100% 0%, rgba(200,120,255,0.06), transparent 45%)',
           }}
           aria-hidden
         />
@@ -673,7 +663,7 @@ function PublicIntakeTopActions({
 
   const surfaceClasses = darkTone
     ? 'border-white/15 bg-white/[0.06] text-white/85 hover:border-white/30 hover:text-white hover:bg-white/[0.1]'
-    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-brand-primary/40 hover:text-ink-primary'
+    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-brand-secondary/40 hover:text-brand-secondary'
 
   const iconSurfaceClasses = darkTone
     ? 'border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/[0.1] hover:text-white'
@@ -729,6 +719,13 @@ function LeftBrandPanel({
   catalogError,
   catalogLoading,
   buttonText = 'Ver detalle',
+  publicSpots,
+  trainers,
+  nutritionists,
+  trainerChoice,
+  onTrainerChoiceChange,
+  nutritionChoice,
+  onNutritionChoiceChange,
 }: {
   theme: 'light' | 'dark'
   catalogError?: string | null
@@ -750,13 +747,17 @@ function LeftBrandPanel({
   modalityOptions: { segment: WebPlanCatalogSegment; label: string }[]
   /** Texto del botón de acción principal en el selector de planes. */
   buttonText?: string
+  publicSpots?: PublicIntakeSlots
+  trainers: IntakeProfessional[]
+  nutritionists: IntakeProfessional[]
+  trainerChoice: string
+  onTrainerChoiceChange: (slug: string) => void
+  nutritionChoice: string
+  onNutritionChoiceChange: (slug: string) => void
 }) {
   const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
   const panelTheme = appTheme
   const isDarkPanel = panelTheme === 'dark'
-
-  const [trainerChoice, setTrainerChoice] = useState(INTAKE_TRAINER_OPTIONS[0]?.id ?? '')
-  const [nutritionChoice, setNutritionChoice] = useState(INTAKE_NUTRITION_OPTIONS[0]?.id ?? '')
 
   const modalitySegment: WebPlanCatalogSegment =
     catalogSegment !== null && modalityOptions.some((o) => o.segment === catalogSegment)
@@ -766,27 +767,31 @@ function LeftBrandPanel({
   const includeTraining = modalitySegment === 'solo' || modalitySegment === 'full'
   const includeNutrition = modalitySegment === 'with_nutritionist' || modalitySegment === 'full'
 
-  const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
-    () =>
-      INTAKE_TRAINER_OPTIONS.map((o) => ({
-        ...o,
-        avatarUrl: o.id === 'tomas-ferster' ? soloSegmentImageUrl : null,
-      })),
-    [soloSegmentImageUrl],
-  )
-
   const nutritionAvatarUrl: string | null =
     modalitySegment === 'with_nutritionist'
       ? crisSoloSegmentImageUrl ?? withNutritionistSegmentImageUrl
       : withNutritionistSegmentImageUrl
 
+  const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
+    () =>
+      trainers.map((o) => ({
+        id: o.slug,
+        label: o.fullName,
+        avatarUrl:
+          o.slug === INTAKE_TRAINER_SLUG_DEFAULT ? soloSegmentImageUrl : null,
+      })),
+    [soloSegmentImageUrl, trainers],
+  )
+
   const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
-      INTAKE_NUTRITION_OPTIONS.map((o) => ({
-        ...o,
-        avatarUrl: o.id === 'cris-crossetto' ? nutritionAvatarUrl : null,
+      nutritionists.map((o) => ({
+        id: o.slug,
+        label: o.fullName,
+        avatarUrl:
+          o.slug === INTAKE_NUTRITION_SLUG_DEFAULT ? nutritionAvatarUrl : null,
       })),
-    [nutritionAvatarUrl],
+    [nutritionAvatarUrl, nutritionists],
   )
 
   const modalityChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
@@ -804,36 +809,42 @@ function LeftBrandPanel({
 
   const trainerChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
     () =>
-      trainerAvatarOptions.map((o) => ({
-        id: o.id,
-        title: o.label.split(/\s+/)[0] ?? o.label,
-        detail: '',
-        subtitle: PUBLIC_PLAN_SOLO_CREDENTIAL_LINE,
-        avatarUrl: o.avatarUrl,
-        avatarLabel: o.label,
-      })),
-    [trainerAvatarOptions],
+      trainerAvatarOptions.map((o) => {
+        const pro = trainers.find((t) => t.slug === o.id)
+        return {
+          id: o.id,
+          title: o.label.split(/\s+/)[0] ?? o.label,
+          detail: '',
+          subtitle: pro?.credentialLine ?? '',
+          avatarUrl: o.avatarUrl,
+          avatarLabel: o.label,
+        }
+      }),
+    [trainerAvatarOptions, trainers],
   )
 
   const nutritionChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
     () =>
-      nutritionAvatarOptions.map((o) => ({
-        id: o.id,
-        title: o.label.split(/\s+/)[0] ?? o.label,
-        detail: '',
-        subtitle: PUBLIC_PLAN_CONJOINT_CREDENTIAL_LINE,
-        avatarUrl: o.avatarUrl,
-        avatarLabel: o.label,
-      })),
-    [nutritionAvatarOptions],
+      nutritionAvatarOptions.map((o) => {
+        const pro = nutritionists.find((n) => n.slug === o.id)
+        return {
+          id: o.id,
+          title: o.label.split(/\s+/)[0] ?? o.label,
+          detail: '',
+          subtitle: pro?.credentialLine ?? '',
+          avatarUrl: o.avatarUrl,
+          avatarLabel: o.label,
+        }
+      }),
+    [nutritionAvatarOptions, nutritionists],
   )
 
   return (
-    <div className="relative lg:w-[48%] min-h-0 lg:min-h-[min(100vh-2rem,860px)] flex-shrink-0 min-w-0">
+    <div className="relative min-w-0 flex-shrink-0 lg:w-[48%] lg:self-start">
       <HeroBgLayers theme={panelTheme} />
 
-      <div className="relative z-[2] flex h-full min-h-[inherit] flex-col px-4 pt-4 pb-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
-        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0">
+      <div className="relative z-[2] flex flex-col px-4 pt-4 pb-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0 max-lg:max-h-[calc(100dvh-4rem)] lg:overflow-visible">
           <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] min-w-0 shrink-0 space-y-4">
               {catalogError ? (
                 <p
@@ -851,41 +862,35 @@ function LeftBrandPanel({
                   Actualizando precios…
                 </p>
               ) : null}
-            {/* Marca: una sola lectura */}
-            <div className="relative flex items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
+            <div className="relative flex items-center justify-center gap-3 sm:justify-start">
               {isDarkPanel ? (
                 <div
-                  className="pointer-events-none absolute left-1/2 top-6 h-24 w-[min(100%,20rem)] -translate-x-1/2 rounded-full opacity-28 blur-3xl sm:left-[18%] sm:translate-x-0"
-                  style={{
-                    background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.1), transparent 72%)',
-                  }}
+                  className="pointer-events-none absolute left-1/2 top-4 h-28 w-[min(100%,18rem)] -translate-x-1/2 rounded-full bg-brand-secondary/20 opacity-40 blur-3xl sm:left-[12%] sm:translate-x-0"
                   aria-hidden
                 />
-              ) : null}
-              <BrandLogo
-                size="sm"
-                decorative
-                className="relative z-[1] h-8 w-8 sm:h-9 sm:w-9 opacity-95"
-              />
-              <p
-                className={cn(
-                  'relative z-[1] min-w-0 truncate text-[15px] font-bold leading-snug tracking-tight sm:text-base',
-                  isDarkPanel ? 'text-white/95' : 'text-ink-primary',
-                )}
-              >
-                Haciéndolo hábito
-              </p>
+              ) : (
+                <div
+                  className="pointer-events-none absolute -left-4 top-0 h-20 w-32 rounded-full bg-brand-secondary/15 blur-2xl"
+                  aria-hidden
+                />
+              )}
+              <BrandLogo size="sm" decorative className="relative z-[1] h-9 w-9 shrink-0" />
+              <div className="relative z-[1] min-w-0">
+                <p
+                  className={cn(
+                    'truncate text-base font-bold leading-tight tracking-tight',
+                    isDarkPanel ? 'text-white' : 'text-ink-primary',
+                  )}
+                >
+                  Haciéndolo hábito
+                </p>
+                <p className={cn('text-[11px]', isDarkPanel ? 'text-white/50' : 'text-ink-muted')}>
+                  Elegí modalidad y plan
+                </p>
+              </div>
             </div>
 
-            {/* Superficie única: opciones + planes sin doble marco */}
-            <div
-              className={cn(
-                'intake-hero-surface relative z-[1] rounded-xl border p-3.5 backdrop-blur-md sm:p-4',
-                isDarkPanel
-                  ? 'border-white/[0.08] bg-white/[0.025] text-white'
-                  : 'border-surface-border bg-surface-card text-ink-primary shadow-sm',
-              )}
-            >
+            <div className={intakePanelSurfaceClass(panelTheme)}>
               <div className="space-y-3.5">
                 <IntakeHorizontalChoiceRow
                   groupId="intake-modality"
@@ -906,7 +911,7 @@ function LeftBrandPanel({
                     value={includeTraining ? trainerChoice : ''}
                     disabled={!includeTraining}
                     emptyLabel="No aplica"
-                    onChange={setTrainerChoice}
+                    onChange={onTrainerChoiceChange}
                     options={trainerChoiceOptions}
                   />
 
@@ -917,7 +922,7 @@ function LeftBrandPanel({
                     value={includeNutrition ? nutritionChoice : ''}
                     disabled={!includeNutrition}
                     emptyLabel="No aplica"
-                    onChange={setNutritionChoice}
+                    onChange={onNutritionChoiceChange}
                     options={nutritionChoiceOptions}
                   />
                 </div>
@@ -926,11 +931,11 @@ function LeftBrandPanel({
               {plansVisible.length > 0 ? (
                 <>
                   <div
+                    id="intake-offers-section"
                     className={cn(
                       'my-4 border-t pt-1',
                       isDarkPanel ? 'border-white/[0.06]' : 'border-surface-border',
                     )}
-                    aria-hidden
                   />
                   <IntakeChangeablePlansSection
                     title="Ofertas"
@@ -948,6 +953,11 @@ function LeftBrandPanel({
                     flush
                     uiTheme={panelTheme}
                   />
+                  {publicSpots ? (
+                    <div className="mt-3 hidden lg:block">
+                      <IntakeSlotsBanner spots={publicSpots} compact />
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <p
@@ -1006,7 +1016,6 @@ export function PublicIntakeFormPage() {
   )
   /** Móvil: una pantalla a la vez (planes → detalle → formulario). */
   const [mobileStep, setMobileStep] = useState<'plans' | 'detail' | 'form'>('plans')
-  const flipTimerRef = useRef<number | null>(null)
   const [publicSpots, setPublicSpots] = useState<PublicIntakeSlots>({
     slotsOpen: true,
     slotsRemaining: null,
@@ -1023,7 +1032,21 @@ export function PublicIntakeFormPage() {
     withNutritionist: string | null
     full: string | null
   }>({ solo: null, withNutritionist: null, full: null })
+  const [trainers, setTrainers] = useState<IntakeProfessional[]>(() => mergeIntakeTrainersFromDb([]))
+  const [nutritionists, setNutritionists] = useState<IntakeProfessional[]>(() =>
+    mergeIntakeNutritionistsFromDb([]),
+  )
+  const [trainerChoice, setTrainerChoice] = useState(INTAKE_TRAINER_SLUG_DEFAULT)
+  const [nutritionChoice, setNutritionChoice] = useState(INTAKE_NUTRITION_SLUG_DEFAULT)
   const modalityOptions = useMemo(() => buildIntakeModalityOptions(modalityLabels), [modalityLabels])
+  const selectedTrainer = useMemo(
+    () => findIntakeProfessional(trainers, trainerChoice),
+    [trainers, trainerChoice],
+  )
+  const selectedNutritionist = useMemo(
+    () => findIntakeProfessional(nutritionists, nutritionChoice),
+    [nutritionists, nutritionChoice],
+  )
   const plansVisible = useMemo(() => {
     return plans.filter((p) => {
       if (catalogSegment === null || p.catalogSegment !== catalogSegment) return false
@@ -1069,12 +1092,6 @@ export function PublicIntakeFormPage() {
   }, [catalogSegment, plans, selectedPlanId])
 
   useEffect(() => {
-    return () => {
-      if (flipTimerRef.current != null) window.clearTimeout(flipTimerRef.current)
-    }
-  }, [])
-
-  useEffect(() => {
     const media = window.matchMedia('(max-width: 1023px)')
     const apply = () => {
       const mobile = media.matches
@@ -1095,8 +1112,27 @@ export function PublicIntakeFormPage() {
   }, [isMobile, mobileStep])
 
   useEffect(() => {
+    if (trainers.length > 0 && !trainers.some((t) => t.slug === trainerChoice)) {
+      setTrainerChoice(trainers[0]!.slug)
+    }
+  }, [trainers, trainerChoice])
+
+  useEffect(() => {
+    if (nutritionists.length > 0 && !nutritionists.some((n) => n.slug === nutritionChoice)) {
+      setNutritionChoice(nutritionists[0]!.slug)
+    }
+  }, [nutritionists, nutritionChoice])
+
+  useEffect(() => {
     let mounted = true
     ;(async () => {
+      const { data: proRows } = await supabase.rpc('list_public_intake_professionals')
+      if (mounted && proRows && Array.isArray(proRows)) {
+        const rows = proRows as PublicIntakeProfessionalRow[]
+        setTrainers(mergeIntakeTrainersFromDb(rows))
+        setNutritionists(mergeIntakeNutritionistsFromDb(rows))
+      }
+
       const { data } = await supabase
         .from('web_intake_catalog_settings')
         .select(
@@ -1214,16 +1250,8 @@ export function PublicIntakeFormPage() {
     }
   }, [])
 
-  function clearFlipTimer() {
-    if (flipTimerRef.current != null) {
-      window.clearTimeout(flipTimerRef.current)
-      flipTimerRef.current = null
-    }
-  }
-
   /** Elige plan en la lista estilo pricing (Watermelon): no voltea el panel; usa Continuar para eso. */
   function handlePickPlan(planId: string) {
-    clearFlipTimer()
     setIsPlanFlipped(false)
     setSelectedPlanId(planId)
   }
@@ -1253,63 +1281,76 @@ export function PublicIntakeFormPage() {
       return
     }
 
-    clearFlipTimer()
-    setIsPlanFlipped(false)
-    flipTimerRef.current = window.setTimeout(() => {
-      setSelectedPlanId(planId)
-      setIsPlanFlipped(true)
-      flipTimerRef.current = null
-    }, 300)
+    setSelectedPlanId(planId)
+    setIsPlanFlipped(true)
+    scrollIntakeToTop()
   }
 
   function handleBackToForm() {
-    clearFlipTimer()
     setIsPlanFlipped(false)
     if (isMobile) {
       setMobileStep('form')
       scrollIntakeToTop()
+    }
+  }
+
+  const onRequestChangePlan = useCallback(() => {
+    if (isMobile) {
+      setMobileStep('plans')
+      scrollIntakeToTop()
       return
     }
-    flipTimerRef.current = window.setTimeout(() => {
-      flipTimerRef.current = null
-    }, 320)
-  }
+    if (isPlanFlipped) handleBackToForm()
+    document.getElementById('intake-offers-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [isMobile, isPlanFlipped])
 
   function renderIntakeForm() {
     const compact = isMobile
+    const showMobileSlotsBanner =
+      compact &&
+      (!publicSpots.slotsOpen ||
+        publicSpots.slotsRemaining !== null ||
+        Boolean(publicSpots.slotsMessage?.trim()))
     return (
       <>
-        {/* Banner de cupos: en mobile solo si hay algo importante que mostrar */}
-        {(!compact || !publicSpots.slotsOpen || publicSpots.slotsRemaining !== null) ? (
-          <IntakeSlotsBanner spots={publicSpots} compact={compact} />
-        ) : null}
-        {/* Testimonios solo en desktop (en mobile suman demasiado ruido visual) */}
-        {!compact ? <TestimonialsSection urls={testimonialVideos} /> : null}
+        {showMobileSlotsBanner ? <IntakeSlotsBanner spots={publicSpots} compact /> : null}
         {intakeKind === 'nutricion' ? (
           <IntakeNutritionForm
             selectedPlanSlug={selectedPlanId}
             selectedPlanLabel={selectedPlan?.name ?? null}
             selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+            selectedNutritionist={selectedNutritionist}
             onSuccess={() => setDone(true)}
             compact={compact}
+            onRequestChangePlan={onRequestChangePlan}
           />
         ) : intakeKind === 'full' ? (
           <IntakeFullForm
             selectedPlanSlug={selectedPlanId}
             selectedPlanLabel={selectedPlan?.name ?? null}
             selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+            selectedTrainer={selectedTrainer}
+            selectedNutritionist={selectedNutritionist}
             onSuccess={() => setDone(true)}
             compact={compact}
+            onRequestChangePlan={onRequestChangePlan}
           />
         ) : (
           <IntakeFersterForm
             selectedPlanSlug={selectedPlanId}
             selectedPlanLabel={selectedPlan?.name ?? null}
             selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+            selectedTrainer={selectedTrainer}
             onSuccess={() => setDone(true)}
             compact={compact}
+            onRequestChangePlan={onRequestChangePlan}
           />
         )}
+        {!compact && testimonialVideos.length > 0 ? (
+          <div className="mt-10 border-t border-surface-border/60 pt-8">
+            <TestimonialsSection urls={testimonialVideos} />
+          </div>
+        ) : null}
       </>
     )
   }
@@ -1336,6 +1377,12 @@ export function PublicIntakeFormPage() {
             modalityOptions={modalityOptions}
             catalogError={catalogError}
             catalogLoading={catalogLoading}
+            trainers={trainers}
+            nutritionists={nutritionists}
+            trainerChoice={trainerChoice}
+            onTrainerChoiceChange={setTrainerChoice}
+            nutritionChoice={nutritionChoice}
+            onNutritionChoiceChange={setNutritionChoice}
           />
           <IntakeSuccessScreen planName={selectedPlan?.name ?? null} className="flex-1" />
         </div>
@@ -1370,6 +1417,13 @@ export function PublicIntakeFormPage() {
     modalityOptions,
     catalogError,
     catalogLoading,
+    publicSpots,
+    trainers,
+    nutritionists,
+    trainerChoice,
+    onTrainerChoiceChange: setTrainerChoice,
+    nutritionChoice,
+    onNutritionChoiceChange: setNutritionChoice,
   } as const
 
   const mobileBack =
@@ -1406,42 +1460,37 @@ export function PublicIntakeFormPage() {
                   plan={selectedPlan}
                   planBilling={planBilling}
                   onBack={handleBackToForm}
+                  selectedTrainer={selectedTrainer}
+                  selectedNutritionist={selectedNutritionist}
                 />
               </div>
             </div>
           ) : null}
 
           {mobileStep === 'form' ? (
-            <div id="intake-form-panel" className="flex-1 flex flex-col min-h-screen bg-surface-base pt-14">
-              <div className="px-4 pt-2 pb-16 flex-1">
-                {/* Pill del plan elegido — compacto y sin ruido */}
+            <div
+              id="intake-form-panel"
+              className="relative flex min-h-screen flex-1 flex-col bg-gradient-to-b from-brand-secondary/[0.08] via-surface-base to-surface-base pt-14"
+            >
+              <div className="relative z-[1] flex-1 px-4 pt-2 pb-[max(4rem,env(safe-area-inset-bottom))]">
                 {selectedPlan ? (
-                  <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-surface-border bg-surface-card px-3.5 py-2.5">
+                  <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-brand-secondary/25 bg-surface-card/90 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-semibold text-ink-primary leading-tight">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-brand-secondary">Tu plan</p>
+                      <p className="truncate text-sm font-semibold text-ink-primary leading-tight">
                         {selectedPlan.name}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-ink-muted tabular-nums">
-                        {displayPriceForPlan(selectedPlan, planBilling)} <span className="text-ink-muted/60">·</span> {planBillingCaption(planBilling)}
+                      <p className="mt-0.5 truncate text-[11px] text-ink-muted tabular-nums">
+                        {displayPriceForPlan(selectedPlan, planBilling)} · {planBillingCaption(planBilling)}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => { setMobileStep('detail'); scrollIntakeToTop() }}
-                        className="text-[11px] font-medium text-ink-muted hover:text-ink-secondary"
-                      >
-                        Detalle
-                      </button>
-                      <span className="text-ink-muted/40 text-[10px]" aria-hidden>|</span>
-                      <button
-                        type="button"
-                        onClick={() => { setMobileStep('plans'); scrollIntakeToTop() }}
-                        className="text-[11px] font-medium text-ink-muted hover:text-ink-secondary"
-                      >
-                        Cambiar
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={onRequestChangePlan}
+                      className="shrink-0 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2.5 py-1.5 text-[11px] font-semibold text-brand-secondary"
+                    >
+                      Cambiar
+                    </button>
                   </div>
                 ) : null}
                 {renderIntakeForm()}
@@ -1450,29 +1499,25 @@ export function PublicIntakeFormPage() {
           ) : null}
         </div>
       ) : (
-        <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
+        <div className="flex w-full max-w-[1040px] min-h-screen flex-col overflow-hidden rounded-none border-0 bg-surface-card shadow-none sm:min-h-0 sm:rounded-3xl sm:border sm:border-surface-border sm:shadow-card dark:sm:shadow-lg lg:min-h-0 lg:flex-row lg:items-start lg:overflow-visible">
           <LeftBrandPanel {...leftPanelProps} />
-          <div className="flex-1 flex flex-col px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 lg:pr-12 lg:overflow-y-auto lg:max-h-[min(100vh-2rem,1200px)]">
-            <div className="flex-1" style={{ perspective: '1600px' }}>
-              <div
-                className="relative transition-transform duration-700"
-                style={{
-                  transformStyle: 'preserve-3d',
-                  transform: isPlanFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                }}
-              >
-                <div style={{ backfaceVisibility: 'hidden' }} className="scrollbar-hide">
-                  {renderIntakeForm()}
-                </div>
-                <div
-                  className="absolute inset-0 scrollbar-hide"
-                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                >
-                  {selectedPlan ? (
-                    <PlanDetailView plan={selectedPlan} planBilling={planBilling} onBack={handleBackToForm} />
-                  ) : null}
-                </div>
-              </div>
+          <div className="relative flex min-w-0 flex-1 flex-col self-stretch px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-12 lg:pr-12">
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-secondary/[0.06] via-transparent to-brand-tertiary/[0.04]"
+              aria-hidden
+            />
+            <div className="relative z-[1] w-full min-w-0">
+              {isPlanFlipped && selectedPlan ? (
+                <PlanDetailView
+                  plan={selectedPlan}
+                  planBilling={planBilling}
+                  onBack={handleBackToForm}
+                  selectedTrainer={selectedTrainer}
+                  selectedNutritionist={selectedNutritionist}
+                />
+              ) : (
+                renderIntakeForm()
+              )}
             </div>
           </div>
         </div>

@@ -7,13 +7,15 @@ import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/
 import toast from 'react-hot-toast'
 import {
   intakeAttachPlusBox,
-  intakeFormCtaButtonClass,
   intakeFormFieldLabelClass,
   intakeFormFieldLabelInlineClass,
   intakeFormInputClass,
-  intakePublicSelectedPlanBarClass,
 } from '@/lib/intake/intakeFormUi'
-import { PublicFormBrandBar } from '@/components/branding/PublicFormBrandBar'
+import { IntakeFormStepNav } from '@/components/public/intake/IntakeFormStepNav'
+import { IntakeFormSection } from '@/components/public/intake/IntakeFormSection'
+import { IntakeFormPlanHint } from '@/components/public/intake/IntakeFormPlanHint'
+import { IntakeFormShell } from '@/components/public/intake/IntakeFormShell'
+import { IntakeFormStepActions } from '@/components/public/intake/IntakeFormStepActions'
 import {
   nutritionIntakeSchema,
   nutritionDefaults,
@@ -23,6 +25,7 @@ import {
 import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
 import { IntakeQuickTextFill } from '@/components/public/IntakeQuickTextFill'
+import type { IntakeProfessional } from '@/lib/intake/intakeProfessionals'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
@@ -64,12 +67,23 @@ type Props = {
   selectedPlanSlug?: string | null
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
+  selectedNutritionist?: IntakeProfessional | null
   compact?: boolean
+  onRequestChangePlan?: () => void
 }
 
-export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, selectedPlanLabel = null, selectedPlanPrice = null, compact = false }: Props) {
+export function IntakeNutritionForm({
+  onSuccess,
+  selectedPlanSlug = null,
+  selectedPlanLabel = null,
+  selectedPlanPrice = null,
+  selectedNutritionist = null,
+  compact = false,
+  onRequestChangePlan,
+}: Props) {
   const [step, setStep] = useState(0)
   const [stepNavHint, setStepNavHint] = useState<string | null>(null)
+  const [phoneFocused, setPhoneFocused] = useState(false)
   const stepNavHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
@@ -92,9 +106,7 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
   const hasActivity = watch('has_physical_activity')
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-    const parent = scrollRef.current?.closest('.overflow-y-auto')
-    if (parent) parent.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [step])
 
   useEffect(() => {
@@ -156,7 +168,14 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
     const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string
     if (!supabaseUrl || !anon) { toast.error('Falta configuración del sitio'); return }
 
-    const payload = { ...values, phone, form_type: 'nutrition', selected_plan_slug: selectedPlanSlug, website: '' }
+    const payload = {
+      ...values,
+      phone,
+      form_type: 'nutrition',
+      selected_plan_slug: selectedPlanSlug,
+      intake_nutritionist_slug: selectedNutritionist?.slug ?? '',
+      website: '',
+    }
     const endpoint = `${supabaseUrl}/functions/v1/public-intake-form`
     const fnHeaders: Record<string, string> = {
       apikey: anon,
@@ -216,172 +235,122 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
   }
 
   return (
-    <div ref={scrollRef} className="max-w-md mx-auto lg:mx-0">
-      <PublicFormBrandBar
-        title="Cuestionario nutricional"
-        subtitle="Alimentación personalizada · Haciéndolo hábito"
+    <div ref={scrollRef} className="w-full max-w-lg mx-auto lg:mx-0 lg:max-w-md">
+      <IntakeFormPlanHint
         compact={compact}
+        selectedPlanLabel={selectedPlanLabel}
+        selectedPlanPrice={selectedPlanPrice}
+        onRequestChangePlan={onRequestChangePlan}
       />
 
-      {/* Plan badge / no-plan nudge */}
-      {selectedPlanLabel ? (
-        <div className={intakePublicSelectedPlanBarClass}>
-          <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-600 dark:text-white/55">
-            Plan
-          </span>
-          <span className="min-w-0 flex-1 truncate text-[15px] font-bold leading-tight text-ink-primary">
-            {selectedPlanLabel}
-          </span>
-          {selectedPlanPrice ? (
-            <span className="shrink-0 text-[15px] font-bold tabular-nums text-ink-primary">{selectedPlanPrice}</span>
-          ) : null}
-        </div>
-      ) : (
-        <div className="mb-3 rounded-lg border-l-2 border-status-expiring bg-status-expiring/8 px-2.5 py-2">
-          <p className="text-[11px] leading-snug text-ink-secondary">Elegí un plan en el panel izquierdo.</p>
-        </div>
-      )}
+      <IntakeFormShell>
+        <IntakeFormStepNav
+          step={step}
+          stepTitles={STEP_TITLES}
+          stepNavHint={stepNavHint}
+          onGoToStep={(i) => void trySetStep(i)}
+        />
 
-      {/* Step tabs */}
-      <div className="mb-1.5 flex gap-0.5">
-        {STEP_TITLES.map((t, i) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => void trySetStep(i)}
-            title={
-              i > step
-                ? 'Solo podés ir a este paso si completaste los datos de los pasos anteriores.'
-                : undefined
-            }
-            className={cn(
-              'flex-1 rounded-md px-0.5 py-1.5 text-[8px] sm:text-[9px] font-semibold transition-colors text-center leading-none',
-              step === i
-                ? 'bg-zinc-600 text-white shadow-[inset_0_-2px_0_0_rgb(63_63_70)] dark:bg-zinc-500 dark:shadow-[inset_0_-2px_0_0_rgb(82_82_91)]'
-                : 'bg-surface-elevated text-ink-muted hover:text-ink-secondary',
-            )}
-          >
-            {i + 1}. {t}
-          </button>
-        ))}
-      </div>
-      {/* Progress bar */}
-      <div className="mb-4 flex items-center gap-2">
-        <div
-          className="h-0.5 min-h-[2px] flex-1 overflow-hidden rounded-full bg-surface-border/80 dark:bg-zinc-700/80"
-          role="progressbar"
-          aria-valuenow={Math.round(((step + 1) / STEP_TITLES.length) * 100)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Progreso del cuestionario"
-        >
-          <div
-            className="h-full rounded-full bg-brand-primary transition-[width] duration-500 ease-out"
-            style={{ width: `${((step + 1) / STEP_TITLES.length) * 100}%` }}
-          />
-        </div>
-        <span className="shrink-0 text-[8px] font-semibold tabular-nums leading-none text-brand-primary sm:text-[9px]">
-          {Math.round(((step + 1) / STEP_TITLES.length) * 100)}%
-        </span>
-      </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-      {stepNavHint ? (
-        <p className="-mt-1 mb-3 text-center text-[11px] leading-snug text-ink-muted" role="status" aria-live="polite">
-          {stepNavHint}
-        </p>
-      ) : null}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-
-        {/* ── Paso 0: Datos personales ─────────────────────────────────────── */}
         {step === 0 && (
-          <>
-            <div>
-              <FieldLabel>Motivo de consulta</FieldLabel>
-              <textarea rows={3} className={taClass()} placeholder="¿Por qué buscás asesoramiento nutricional?" {...register('motivo_consulta')} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-5">
+            <IntakeFormSection title="Consulta">
               <div>
-                <FieldLabel required>Nombre</FieldLabel>
-                <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
-                {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
+                <FieldLabel>Motivo de consulta</FieldLabel>
+                <textarea
+                  rows={3}
+                  className={taClass()}
+                  placeholder="¿Por qué buscás asesoramiento nutricional?"
+                  {...register('motivo_consulta')}
+                />
+              </div>
+            </IntakeFormSection>
+
+            <IntakeFormSection title="Tus datos">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <FieldLabel required>Nombre</FieldLabel>
+                  <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
+                  {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
+                </div>
+                <div>
+                  <FieldLabel required>Apellido</FieldLabel>
+                  <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
+                  {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
+                </div>
               </div>
               <div>
-                <FieldLabel required>Apellido</FieldLabel>
-                <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
-                {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
-              </div>
-            </div>
-
-            <div>
-              <FieldLabel required>Fecha de nacimiento</FieldLabel>
-              <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
-              {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
-            </div>
-
-            <div>
-              <FieldLabel required>Correo electrónico</FieldLabel>
-              <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
-              {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <FieldLabel required>Teléfono</FieldLabel>
-              <input
-                type="tel"
-                autoComplete="tel"
-                className={inputClass(errors.phone?.message)}
-                {...register('phone', {
-                  onBlur: (e) => {
-                    const digits = e.target.value.replace(/\D/g, '')
-                    if (!digits) return
-                    let rest = digits
-                    if (digits.startsWith('54')) rest = digits.slice(2)
-                    else if (digits.startsWith('0')) rest = digits.slice(1)
-                    const formatted = `+54 ${rest.slice(0, 2)} ${rest.slice(2)}`
-                    if (formatted !== e.target.value) setValue('phone', formatted, { shouldValidate: true })
-                  },
-                })}
-              />
-              {errors.phone?.message
-                ? <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
-                : <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel>Profesión / Ocupación</FieldLabel>
-                <input type="text" className={inputClass()} placeholder="ej: docente" {...register('profession')} />
+                <FieldLabel required>Fecha de nacimiento</FieldLabel>
+                <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
+                {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
               </div>
               <div>
-                <FieldLabel>Horario de trabajo</FieldLabel>
-                <input type="text" className={inputClass()} placeholder="ej: 8 a 17hs" {...register('work_hours')} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel>Estado civil</FieldLabel>
-                <input type="text" className={inputClass()} placeholder="ej: soltero/a" {...register('marital_status')} />
+                <FieldLabel required>Correo electrónico</FieldLabel>
+                <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
+                {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
               </div>
               <div>
-                <FieldLabel>Convivís con</FieldLabel>
-                <input type="text" className={inputClass()} placeholder="ej: pareja e hijos" {...register('family_composition')} />
+                <FieldLabel required>Teléfono</FieldLabel>
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  className={inputClass(errors.phone?.message)}
+                  {...register('phone', {
+                    onFocus: () => setPhoneFocused(true),
+                    onBlur: (e) => {
+                      setPhoneFocused(false)
+                      const digits = e.target.value.replace(/\D/g, '')
+                      if (!digits) return
+                      let rest = digits
+                      if (digits.startsWith('54')) rest = digits.slice(2)
+                      else if (digits.startsWith('0')) rest = digits.slice(1)
+                      const formatted = `+54 ${rest.slice(0, 2)} ${rest.slice(2)}`
+                      if (formatted !== e.target.value) setValue('phone', formatted, { shouldValidate: true })
+                    },
+                  })}
+                />
+                {errors.phone?.message ? (
+                  <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
+                ) : phoneFocused ? (
+                  <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>
+                ) : null}
               </div>
-            </div>
+            </IntakeFormSection>
 
-            <div>
-              <FieldLabel>Hobbies</FieldLabel>
-              <input type="text" className={inputClass()} placeholder="ej: lectura, caminatas..." {...register('hobbies')} />
-            </div>
-          </>
+            <IntakeFormSection title="Vida diaria">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <FieldLabel>Profesión / Ocupación</FieldLabel>
+                  <input type="text" className={inputClass()} placeholder="ej: docente" {...register('profession')} />
+                </div>
+                <div>
+                  <FieldLabel>Horario de trabajo</FieldLabel>
+                  <input type="text" className={inputClass()} placeholder="ej: 8 a 17hs" {...register('work_hours')} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <FieldLabel>Estado civil</FieldLabel>
+                  <input type="text" className={inputClass()} placeholder="ej: soltero/a" {...register('marital_status')} />
+                </div>
+                <div>
+                  <FieldLabel>Convivís con</FieldLabel>
+                  <input type="text" className={inputClass()} placeholder="ej: pareja e hijos" {...register('family_composition')} />
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Hobbies</FieldLabel>
+                <input type="text" className={inputClass()} placeholder="ej: lectura, caminatas..." {...register('hobbies')} />
+              </div>
+            </IntakeFormSection>
+          </div>
         )}
 
         {/* ── Paso 1: Salud y antropometría ────────────────────────────────── */}
         {step === 1 && (
           <>
-            <p className="text-xs text-ink-muted leading-relaxed bg-surface-elevated rounded-xl px-4 py-3">
+            <p className="rounded-xl border border-brand-secondary/20 bg-brand-secondary/8 px-4 py-3 text-xs leading-relaxed text-ink-secondary">
               Las medidas de cintura, cadera y brazo las tomará el profesional en la consulta. Solo completá peso y altura.
             </p>
 
@@ -793,33 +762,17 @@ export function IntakeNutritionForm({ onSuccess, selectedPlanSlug = null, select
           </>
         )}
 
-        {/* ── Navegación ───────────────────────────────────────────────────── */}
-        <div className="flex gap-2 pt-1">
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep((s) => s - 1)}
-              className="inline-flex items-center justify-center gap-1 rounded-lg border border-surface-border px-3 py-2 text-xs font-medium text-ink-secondary hover:bg-surface-elevated"
-            >
-              ← Atrás
-            </button>
-          ) : (
-            <span className="w-16" />
-          )}
-          <div className="flex-1" />
-          {step < STEP_TITLES.length - 1 ? (
-            <button type="button" onClick={() => void goNext()} className={intakeFormCtaButtonClass}>
-              Siguiente →
-            </button>
-          ) : (
-            <button type="submit" disabled={isSubmitting} className={cn(intakeFormCtaButtonClass, 'px-5')}>
-              {isSubmitting ? 'Enviando…' : 'Enviar'}
-            </button>
-          )}
-        </div>
+        <IntakeFormStepActions
+          step={step}
+          stepCount={STEP_TITLES.length}
+          onBack={() => setStep((s) => s - 1)}
+          onNext={() => void goNext()}
+          isSubmitting={isSubmitting}
+        />
 
-        <p className="pt-1.5 text-center text-[10px] text-ink-muted">Plan nutricional · Haciéndolo hábito</p>
-      </form>
+        <p className="pt-3 text-center text-[10px] text-ink-muted/80">Plan nutricional · Haciéndolo hábito</p>
+        </form>
+      </IntakeFormShell>
     </div>
   )
 }
