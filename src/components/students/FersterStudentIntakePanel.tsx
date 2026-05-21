@@ -80,10 +80,11 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
   const canUseFinances =
     profile?.role === 'admin' || profile?.role === 'trainer' || profile?.role === 'nutritionist'
   const hasExtra =
-    student.document_id ||
-    student.address ||
+    Boolean(student.document_id?.trim()) ||
+    Boolean(student.address?.trim()) ||
     student.weight_kg != null ||
     student.height_cm != null ||
+    student.gender != null ||
     (intake && Object.keys(intake).length > 0)
 
   const [fileUrls, setFileUrls] = useState<Record<string, string>>({})

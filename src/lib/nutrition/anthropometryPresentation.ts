@@ -217,12 +217,32 @@ export function buildPresentationRows(
   return out
 }
 
-export function pickLatestTwoMeasurements(sortedDesc: NutritionMeasurement[]): {
+export function sortMeasurementsDesc(measurements: NutritionMeasurement[]): NutritionMeasurement[] {
+  return [...measurements].sort(
+    (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
+  )
+}
+
+export function pickLatestTwoMeasurements(measurements: NutritionMeasurement[]): {
   current: NutritionMeasurement | null
   previous: NutritionMeasurement | null
 } {
-  const sorted = [...sortedDesc].sort(
-    (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
-  )
+  const sorted = sortMeasurementsDesc(measurements)
   return { current: sorted[0] ?? null, previous: sorted[1] ?? null }
+}
+
+/** Control seleccionado y el inmediatamente anterior (por fecha, más reciente primero). */
+export function pickMeasurementPair(
+  measurements: NutritionMeasurement[],
+  selectedId: string | null,
+): { current: NutritionMeasurement | null; previous: NutritionMeasurement | null; sorted: NutritionMeasurement[] } {
+  const sorted = sortMeasurementsDesc(measurements)
+  const idx =
+    selectedId != null ? sorted.findIndex((m) => m.id === selectedId) : 0
+  const i = idx >= 0 ? idx : 0
+  return {
+    sorted,
+    current: sorted[i] ?? null,
+    previous: sorted[i + 1] ?? null,
+  }
 }

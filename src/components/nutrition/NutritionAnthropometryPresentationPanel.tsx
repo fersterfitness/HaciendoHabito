@@ -8,7 +8,7 @@ import { CardTitle } from '@/components/ui/Card'
 import {
   buildPresentationRows,
   mergedMediansForPresentation,
-  pickLatestTwoMeasurements,
+  pickMeasurementPair,
 } from '@/lib/nutrition/anthropometryPresentation'
 import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionAnthropometryPresentationPdfDocument } from '@/lib/pdf/NutritionAnthropometryPresentationPdfDocument'
@@ -23,12 +23,17 @@ function hasAnyMedian(m: NutritionMeasurement): boolean {
 export function NutritionAnthropometryPresentationPanel({
   patientName,
   measurements,
+  selectedMeasurementId,
 }: {
   patientName: string
   measurements: NutritionMeasurement[]
+  selectedMeasurementId: string | null
 }) {
   const [exporting, setExporting] = useState(false)
-  const { current, previous } = useMemo(() => pickLatestTwoMeasurements(measurements), [measurements])
+  const { current, previous } = useMemo(
+    () => pickMeasurementPair(measurements, selectedMeasurementId),
+    [measurements, selectedMeasurementId],
+  )
   const rows = useMemo(
     () => (current && hasAnyMedian(current) ? buildPresentationRows(current, previous) : []),
     [current, previous],
@@ -111,7 +116,11 @@ export function NutritionAnthropometryPresentationPanel({
           <p className="text-xs text-ink-muted">
             Control del {format(parseISO(current.measured_at), 'dd/MM/yyyy')}
             {current.measurement_number != null ? ` · N° ${current.measurement_number}` : ''}
-            {previous ? ` · Comparado con ${format(parseISO(previous.measured_at), 'dd/MM/yyyy')}` : ' · Sin control anterior para diferencias'}
+            {previous
+              ? ` · Dif. vs ${format(parseISO(previous.measured_at), 'dd/MM/yyyy')}${
+                  previous.measurement_number != null ? ` (N° ${previous.measurement_number})` : ''
+                }`
+              : ' · Sin control anterior para diferencias'}
           </p>
         </div>
         <Button type="button" size="sm" variant="secondary" icon={<Download className="h-4 w-4" />} loading={exporting} onClick={() => void exportPdf()}>

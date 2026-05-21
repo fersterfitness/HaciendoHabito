@@ -85,7 +85,9 @@ export function NutritionResumenDashboard({
     })
   }, [ordered])
 
-  const heroHasData = heroData.filter((d) => d.peso != null).length >= 2
+  const heroPesoPoints = heroData.filter((d) => d.peso != null).length
+  const heroHasData = heroPesoPoints >= 1
+  const heroHasTrend = heroPesoPoints >= 2
 
   return (
     <div className="space-y-6">
@@ -153,7 +155,13 @@ export function NutritionResumenDashboard({
         </div>
 
         {heroHasData ? (
-          <div className="h-[220px] w-full">
+          <div className="space-y-2">
+            {!heroHasTrend ? (
+              <p className="text-xs text-ink-muted">
+                Primer control con peso. La curva de evolución aparece cuando cargues una segunda medición.
+              </p>
+            ) : null}
+            <div className="h-[220px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={heroData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
@@ -192,11 +200,13 @@ export function NutritionResumenDashboard({
                 />
               </AreaChart>
             </ResponsiveContainer>
+            </div>
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-surface-border/80 px-4 py-8 text-center">
             <p className="text-sm text-ink-muted">
-              Cargá al menos dos mediciones para ver la evolución del peso.
+              Guardá una medición con <strong className="font-medium text-ink-secondary">peso bruto</strong> en
+              antropometría para ver el gráfico acá.
             </p>
             <div className="mt-3">
               <Button type="button" size="sm" variant="outline" onClick={() => onGoToTab('antropometria')}>

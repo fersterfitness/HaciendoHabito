@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
-import type { Json } from '@/types/database'
+import type { Json, NutritionMeasurement, Student } from '@/types/database'
+import {
+  buildAnthropometryMetaDefaults,
+  buildBasicAnthroPrefill,
+} from '@/lib/nutrition/anthropometryMetaDefaults'
 import {
   ANTHRO_BASIC_KEYS,
   ANTHRO_DIAMETER_KEYS,
@@ -27,6 +31,20 @@ function emptyInputs(): Record<AnthropometryVariableKey, [string, string, string
     o[k] = [...z]
   }
   return o
+}
+
+function inputsWithBasicPrefill(
+  prefill: ReturnType<typeof buildBasicAnthroPrefill>,
+): Record<AnthropometryVariableKey, [string, string, string, string, string]> {
+  const base = emptyInputs()
+  const put = (key: AnthropometryVariableKey, v: number | null | undefined) => {
+    if (v == null || !Number.isFinite(v)) return
+    base[key] = [String(v), '', '', '', '']
+  }
+  put('peso_bruto_kg', prefill.peso_bruto_kg)
+  put('talla_corporal_cm', prefill.talla_corporal_cm)
+  put('talla_sentado_cm', prefill.talla_sentado_cm)
+  return base
 }
 
 function SectionTitle({ children }: { children: string }) {
@@ -65,24 +83,43 @@ function SeriesRow({
 
 export function NutritionAnthropometryProgramForm({
   ownerId,
-  studentId,
+  student,
+  measurements,
   onSaved,
 }: {
   ownerId: string
-  studentId: string
+  student: Student
+  measurements: NutritionMeasurement[]
   onSaved: () => void | Promise<void>
 }) {
-  const [inputs, setInputs] = useState(emptyInputs)
-  const [meta, setMeta] = useState<AnthropometryMeta>({
-    sport: '',
-    physical_activity: '',
-    depo_recrea: '',
-    measurement_number: undefined,
-    sex: null,
-    measurement_error_pct_default: 2,
-  })
+  const studentId = student.id
+
+  const measurementsSeed = useMemo(() => {
+    const sorted = [...measurements].sort(
+      (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
+    )
+    const last = sorted[0]
+    return `${measurements.length}:${last?.id ?? ''}:${last?.measured_at ?? ''}`
+  }, [measurements])
+
+  const defaults = useMemo(
+    () => ({
+      meta: buildAnthropometryMetaDefaults(student, measurements),
+      inputs: inputsWithBasicPrefill(buildBasicAnthroPrefill(student, measurements)),
+    }),
+    [student, measurements, measurementsSeed],
+  )
+
+  const [inputs, setInputs] = useState(defaults.inputs)
+  const [meta, setMeta] = useState<AnthropometryMeta>(defaults.meta)
   const [measuredAt, setMeasuredAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setMeta(defaults.meta)
+    setInputs(defaults.inputs)
+    setMeasuredAt(new Date().toISOString().slice(0, 10))
+  }, [defaults])
 
   function setCell(key: AnthropometryVariableKey, idx: number, v: string) {
     setInputs((prev) => {
@@ -147,7 +184,6 @@ export function NutritionAnthropometryProgramForm({
       return
     }
     toast.success('Medición del programa guardada')
-    setInputs(emptyInputs())
     await onSaved()
   }
 
@@ -155,6 +191,9 @@ export function NutritionAnthropometryProgramForm({
     <div className="space-y-5">
       <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-3 space-y-3">
         <SectionTitle>Datos generales (como en el Excel)</SectionTitle>
+        <p className="text-[10px] text-ink-muted leading-relaxed -mt-1">
+          Se completan desde la ficha del paciente, el registro web o la última medición. Podés editarlos si hace falta.
+        </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <label className="text-[11px] text-ink-secondary">
             Fecha de medición

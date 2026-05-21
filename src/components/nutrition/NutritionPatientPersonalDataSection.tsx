@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { supabase } from '@/lib/supabase'
 import { updateAccessibleStudent } from '@/lib/students/studentAccess'
+import { personalPatchFromIntakeSnapshot } from '@/lib/students/personalFromIntakeSnapshot'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -65,7 +66,10 @@ function ageFromBirth(birth: string): string | null {
 export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdated }: Props) {
   const [form, setForm] = useState<FormState>(() => fromStudent(student))
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const intakePersonalPatch = personalPatchFromIntakeSnapshot(student)
+  const canImportFromIntake = intakePersonalPatch != null
 
   useEffect(() => {
     setForm(fromStudent(student))
@@ -75,6 +79,23 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
   function patch<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
     setDirty(true)
+  }
+
+  async function importFromIntakeSnapshot() {
+    const patch = personalPatchFromIntakeSnapshot(student)
+    if (!patch) return
+    setImporting(true)
+    const { data, error } = await updateAccessibleStudent(student.id, patch).select('*').single()
+    setImporting(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    const next = data as Student
+    setForm(fromStudent(next))
+    setDirty(false)
+    onUpdated(next)
+    toast.success('Datos personales completados desde el registro web')
   }
 
   async function save() {
@@ -108,9 +129,33 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
   }
 
   const age = ageFromBirth(form.birth_date)
+  const hasWebIntake =
+    Boolean(student.intake_nutrition && Object.keys(student.intake_nutrition).length > 2) ||
+    Boolean(student.intake_ferster && Object.keys(student.intake_ferster).length > 2)
+  const missingPersonalFromForm =
+    hasWebIntake &&
+    !canImportFromIntake &&
+    (!form.document_id.trim() ||
+      !form.gender ||
+      !form.address.trim() ||
+      !form.weight_kg.trim() ||
+      !form.height_cm.trim())
 
   return (
     <div className="space-y-6">
+      {missingPersonalFromForm ? (
+        <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-xs text-ink-secondary leading-relaxed">
+          Parte de lo que completaste en el registro web está en las secciones de abajo (
+          <strong className="font-semibold text-ink-primary">Cuestionario nutricional del registro</strong>
+          {student.intake_ferster ? (
+            <>
+              {' '}
+              y <strong className="font-semibold text-ink-primary">Cuestionario de registro</strong>
+            </>
+          ) : null}
+          ). Podés copiar DNI, sexo, peso y altura a los campos editables de arriba cuando quieras.
+        </p>
+      ) : null}
       <Card>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
@@ -119,17 +164,31 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
             </span>
             <CardTitle>Datos personales</CardTitle>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant={dirty ? 'gradientPrimary' : 'secondary'}
-            icon={<Save className="h-4 w-4" />}
-            loading={saving}
-            disabled={!dirty}
-            onClick={save}
-          >
-            {dirty ? 'Guardar cambios' : 'Guardado'}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {canImportFromIntake ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                loading={importing}
+                disabled={importing || saving}
+                onClick={importFromIntakeSnapshot}
+              >
+                Completar desde registro
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant={dirty ? 'gradientPrimary' : 'secondary'}
+              icon={<Save className="h-4 w-4" />}
+              loading={saving}
+              disabled={!dirty || importing}
+              onClick={save}
+            >
+              {dirty ? 'Guardar cambios' : 'Guardado'}
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 pb-5 border-b border-surface-border/60">

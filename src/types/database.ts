@@ -366,7 +366,7 @@ export interface Profile {
 /** Cuestionario nutricional (/form → nutrición); `uploads` mapea clave → ruta en bucket `student-intake`. */
 export type NutritionIntakeStored = {
   version: number
-  form_type: 'nutrition'
+  form_type: 'nutrition' | 'full'
   motivo_consulta: string
   profession: string
   work_hours: string

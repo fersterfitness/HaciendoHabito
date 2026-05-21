@@ -29,6 +29,11 @@ import { NutritionAnamnesisSection } from '@/components/nutrition/NutritionAnamn
 import { NutritionWeeklyPlanSection } from '@/components/nutrition/NutritionWeeklyPlanSection'
 import { NutritionAnthropometryProgramForm } from '@/components/nutrition/NutritionAnthropometryProgramForm'
 import { NutritionAnthropometryPresentationPanel } from '@/components/nutrition/NutritionAnthropometryPresentationPanel'
+import {
+  NutritionMeasurementHistoryList,
+  NutritionMeasurementHistoryListTitle,
+} from '@/components/nutrition/NutritionMeasurementHistoryList'
+import { sortMeasurementsDesc } from '@/lib/nutrition/anthropometryPresentation'
 import { NutritionMeasurementCharts } from '@/components/nutrition/NutritionMeasurementCharts'
 import { NutritionClinicalNotesSection } from '@/components/nutrition/NutritionClinicalNotesSection'
 import { NutritionSymptomCheckinsSection } from '@/components/nutrition/NutritionSymptomCheckinsSection'
@@ -36,6 +41,8 @@ import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/Nutr
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
+import { NutritionWebIntakePanel } from '@/components/nutrition/NutritionWebIntakePanel'
+import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
 import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionEvolutionReportPdfDocument } from '@/lib/pdf/NutritionEvolutionReportPdfDocument'
 import {
@@ -137,6 +144,9 @@ export function NutritionPatientDetailPage() {
   const [student, setStudent] = useState<Student | null>(null)
   const [documents, setDocuments] = useState<NutritionPatientDocument[]>([])
   const [measurements, setMeasurements] = useState<NutritionMeasurement[]>([])
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null)
+  const measurementsSorted = useMemo(() => sortMeasurementsDesc(measurements), [measurements])
+  const measurementsCountRef = useRef(0)
   const [planText, setPlanText] = useState('')
   const [followup, setFollowup] = useState<NutritionPatientFollowup | null>(null)
   const [measurementForm, setMeasurementForm] = useState({
@@ -240,6 +250,20 @@ export function NutritionPatientDetailPage() {
       setLoading(false)
     })()
   }, [id, user])
+
+  useEffect(() => {
+    const latestId = measurementsSorted[0]?.id ?? null
+    const grew = measurementsSorted.length > measurementsCountRef.current
+    measurementsCountRef.current = measurementsSorted.length
+    if (grew) {
+      setSelectedMeasurementId(latestId)
+      return
+    }
+    setSelectedMeasurementId((prev) => {
+      if (prev && measurementsSorted.some((m) => m.id === prev)) return prev
+      return latestId
+    })
+  }, [measurementsSorted])
 
   async function uploadPdf(category: NutritionDocumentCategory, files: FileList | null) {
     if (!user || !id || !student || !files?.length) return
@@ -570,11 +594,15 @@ export function NutritionPatientDetailPage() {
         {/* ───────────── DATOS PERSONALES ───────────── */}
         <TabPanel id="datos" active={activeTab}>
           {user ? (
-            <NutritionPatientPersonalDataSection
-              student={student}
-              ownerId={user.id}
-              onUpdated={(next) => setStudent(next)}
-            />
+            <div className="space-y-6">
+              <NutritionPatientPersonalDataSection
+                student={student}
+                ownerId={user.id}
+                onUpdated={(next) => setStudent(next)}
+              />
+              <NutritionWebIntakePanel student={student} />
+              <FersterStudentIntakePanel student={student} />
+            </div>
           ) : null}
         </TabPanel>
 
@@ -590,7 +618,8 @@ export function NutritionPatientDetailPage() {
                 {user ? (
                   <NutritionAnthropometryProgramForm
                     ownerId={user.id}
-                    studentId={student.id}
+                    student={student}
+                    measurements={measurements}
                     onSaved={() => refreshMeasurements()}
                   />
                 ) : null}
@@ -599,16 +628,26 @@ export function NutritionPatientDetailPage() {
               <Card>
                 <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
                 <p className="text-sm text-ink-muted mb-4">
-                  Peso, cintura y % grasa a lo largo del tiempo.
+                  Peso, cintura y % grasa por fecha. Con una medición ves el valor; con dos o más, la evolución.
                 </p>
                 <NutritionMeasurementCharts measurements={measurements} />
               </Card>
             </div>
 
             <Card>
+              <NutritionMeasurementHistoryListTitle />
+              <NutritionMeasurementHistoryList
+                measurements={measurementsSorted}
+                selectedId={selectedMeasurementId}
+                onSelect={setSelectedMeasurementId}
+              />
+            </Card>
+
+            <Card>
               <NutritionAnthropometryPresentationPanel
                 patientName={student.full_name}
                 measurements={measurements}
+                selectedMeasurementId={selectedMeasurementId}
               />
             </Card>
 
