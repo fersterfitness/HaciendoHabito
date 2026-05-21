@@ -159,7 +159,7 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
       <Card>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+            <span className="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
               <UserRound className="h-4 w-4" />
             </span>
             <CardTitle>Datos personales</CardTitle>
@@ -180,7 +180,7 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
             <Button
               type="button"
               size="sm"
-              variant={dirty ? 'gradientPrimary' : 'secondary'}
+              variant={dirty ? 'gradientSecondary' : 'secondary'}
               icon={<Save className="h-4 w-4" />}
               loading={saving}
               disabled={!dirty || importing}

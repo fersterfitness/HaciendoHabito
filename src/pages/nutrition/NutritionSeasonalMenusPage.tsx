@@ -195,7 +195,7 @@ export function NutritionSeasonalMenusPage() {
                   {m.pathologies.map((p) => (
                     <span
                       key={p}
-                      className="inline-flex items-center text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/15"
+                      className="inline-flex items-center text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
                     >
                       {PATHOLOGY_LABELS[p]}
                     </span>
@@ -254,7 +254,7 @@ function FilterChip({
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+          ? 'bg-brand-primary/15 text-brand-primary dark:text-brand-primary border border-brand-primary/30'
           : 'border border-surface-border/70 text-ink-secondary hover:bg-surface-elevated/60 hover:text-ink-primary',
       )}
     >
@@ -288,7 +288,7 @@ function ToleranceBadge({ tolerance }: { tolerance: DigestiveTolerance }) {
   const map: Record<DigestiveTolerance, { label: string; color: string }> = {
     baja: { label: 'Tol. BAJA', color: 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/15' },
     media: { label: 'Tol. MEDIA', color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/15' },
-    alta: { label: 'Tol. ALTA', color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/15' },
+    alta: { label: 'Tol. ALTA', color: 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary border-brand-primary/15' },
   }
   const item = map[tolerance]
   return (
@@ -337,7 +337,7 @@ function MenuDetailModal({
             {template.pathologies.map((p) => (
               <span
                 key={p}
-                className="inline-flex items-center text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/15"
+                className="inline-flex items-center text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
               >
                 {PATHOLOGY_LABELS[p]}
               </span>

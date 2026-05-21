@@ -25,7 +25,7 @@ export function BrandAppLoader({ size = 'lg', className, fullScreen = false }: B
     >
       <span
         className={cn(
-          'absolute rounded-full bg-brand-primary/15 animate-brand-loader-glow',
+          'absolute rounded-full bg-brand-secondary/15 animate-brand-loader-glow',
           size === 'lg' ? 'h-20 w-20' : 'h-14 w-14',
         )}
         aria-hidden

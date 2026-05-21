@@ -203,7 +203,7 @@ export function NutritionTemplatesPage() {
         <Card>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+              <span className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
                 <BookOpen className="h-5 w-5" />
               </span>
               <div>
@@ -222,7 +222,7 @@ export function NutritionTemplatesPage() {
               />
               <Button
                 type="button"
-                variant="gradientPrimary"
+                variant="gradientSecondary"
                 icon={<Plus className="h-4 w-4" />}
                 onClick={() => createPlan()}
               >
@@ -274,10 +274,10 @@ export function NutritionTemplatesPage() {
               {filteredPlans.map((t) => (
                 <div
                   key={t.id}
-                  className="group flex flex-col rounded-2xl border border-surface-border/80 bg-surface-card p-4 hover:border-emerald-500/30 transition-colors"
+                  className="group flex flex-col rounded-2xl border border-surface-border/80 bg-surface-card p-4 hover:border-brand-primary/30 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/15">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15">
                       <FileText className="h-3 w-3" />
                       Plan
                     </span>

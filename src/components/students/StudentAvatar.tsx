@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
-import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn, getInitials } from '@/lib/utils'
 import {
   STUDENT_AVATAR_BUCKET,
@@ -169,9 +168,8 @@ export function StudentAvatar({
           showPhoto
             ? 'bg-surface-elevated p-0 ring-0'
             : cn(
-                trainerCtaAccentTextClassName,
-                trainerCtaTintBgClassName,
-                'hover:bg-[#ff5508]/14 dark:hover:bg-[#ff5508]/22',
+                'text-brand-secondary bg-brand-secondary/10',
+                'hover:bg-brand-secondary/16 dark:hover:bg-brand-secondary/20',
               ),
         )}
       >

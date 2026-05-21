@@ -370,11 +370,11 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-brand-primary/10 p-3 sm:p-4">
+      <div className="rounded-2xl border border-brand-primary/20 bg-gradient-to-r from-brand-primary/10 to-brand-primary/10 p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-ink-primary flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-600" />
+              <Sparkles className="h-4 w-4 text-brand-primary" />
               Exportación premium del plan
             </p>
             <p className="text-xs text-ink-secondary mt-1">

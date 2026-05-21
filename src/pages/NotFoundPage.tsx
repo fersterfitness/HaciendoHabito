@@ -12,7 +12,7 @@ export function NotFoundPage() {
           El enlace no existe o cambió de lugar. Volvé al inicio o usá el menú de la app.
         </p>
       </div>
-      <Button asChild variant="gradientPrimary">
+      <Button asChild variant="gradientSecondary">
         <Link to="/dashboard">Ir al inicio</Link>
       </Button>
     </div>

@@ -739,7 +739,7 @@ export function StudentFormContent({
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" className="flex-1" loading={isSubmitting}>
+        <Button type="submit" variant="gradientSecondary" className="flex-1" loading={isSubmitting}>
           {isEditing ? 'Guardar cambios' : `Crear ${entitySingular}`}
         </Button>
       </div>

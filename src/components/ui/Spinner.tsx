@@ -7,12 +7,12 @@ interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   fullScreen?: boolean
-  /** `role`: sigue `--brand-primary` del tema (nutricionista = verde). `trainerCta`: naranja fijo como CTAs del entrenador. */
+  /** Solo aplica a `variant="spin"`. */
   accent?: 'role' | 'trainerCta'
   /**
-   * `brand`: logo animado (cargas de app / pantalla).
-   * `spin`: ruedita (botones e inline).
-   * Por defecto: `lg` o `fullScreen` → brand; `sm`/`md` → spin.
+   * `brand`: logo animado (cargas de sección / pantalla).
+   * `spin`: ruedita chica (inline en botones).
+   * Por defecto: `sm` → spin; `md`/`lg`/`fullScreen` → brand (logo).
    */
   variant?: 'brand' | 'spin'
 }
@@ -26,7 +26,7 @@ export function Spinner({
   accent = 'role',
   variant,
 }: SpinnerProps) {
-  const useBrand = variant === 'brand' || (variant !== 'spin' && (size === 'lg' || fullScreen))
+  const useBrand = variant === 'brand' || (variant !== 'spin' && (size === 'lg' || size === 'md' || fullScreen))
 
   if (useBrand) {
     return (
@@ -42,7 +42,7 @@ export function Spinner({
     <Loader2
       className={cn(
         'animate-spin',
-        accent === 'trainerCta' ? trainerCtaAccentTextClassName : 'text-brand-primary',
+        accent === 'trainerCta' ? trainerCtaAccentTextClassName : 'text-brand-secondary',
         sizeMap[size],
         className,
       )}

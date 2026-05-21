@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
-import { primaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
+import { primaryGradientCtaClassName, secondaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?:
@@ -12,6 +12,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     | 'danger'
     | 'outline'
     | 'gradientPrimary'
+    | 'gradientSecondary'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   loading?: boolean
   icon?: ReactNode
@@ -53,7 +54,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const isGradientCta = variant === 'gradientPrimary'
+    const gradientClass =
+      variant === 'gradientPrimary'
+        ? primaryGradientCtaClassName
+        : variant === 'gradientSecondary'
+          ? secondaryGradientCtaClassName
+          : null
 
     return (
       <button
@@ -61,8 +67,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         className={cn(
           'inline-flex items-center justify-center',
-          isGradientCta
-            ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', primaryGradientCtaClassName)
+          gradientClass
+            ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', gradientClass)
             : cn(
                 'rounded-xl transition-colors duration-150',
                 appFocusRingClassName,

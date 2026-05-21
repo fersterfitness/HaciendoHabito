@@ -719,10 +719,10 @@ export function RoutinesPage() {
 
                 <Button
                   type="button"
-                  variant="gradientPrimary"
+                  variant="gradientSecondary"
                   title="Nueva rutina"
                   onClick={openNewRoutineModal}
-                  icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
+                  icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
                 >
                   Nueva rutina
                 </Button>

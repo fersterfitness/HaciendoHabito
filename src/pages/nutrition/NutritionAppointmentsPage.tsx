@@ -113,7 +113,7 @@ function whatsappToast(title: string, whatsappUrl: string, dismissLabel = 'Listo
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-primary text-white text-xs font-semibold hover:bg-brand-primary shadow-sm"
             onClick={() => toast.dismiss(t.id)}
           >
             <MessageCircle className="h-3.5 w-3.5 shrink-0" />
@@ -149,9 +149,9 @@ const STATUS_BADGE: Record<AppointmentStatus, string> = {
   scheduled:
     'border-zinc-300/65 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/50 dark:bg-zinc-500/[0.12] dark:text-zinc-200',
   confirmed:
-    'bg-emerald-500/[0.1] text-emerald-950 dark:text-emerald-400/95 border-emerald-500/30',
+    'bg-brand-primary/[0.1] text-ink-primary dark:text-brand-primary/95 border-brand-primary/30',
   completed:
-    'bg-emerald-500/[0.06] text-emerald-900 dark:text-emerald-400/85 border-emerald-500/22',
+    'bg-brand-primary/[0.06] text-ink-primary dark:text-brand-primary/85 border-brand-primary/22',
   cancelled:
     'bg-surface-elevated/50 text-ink-muted border-surface-border line-through decoration-ink-muted/60',
   no_show:
@@ -159,7 +159,7 @@ const STATUS_BADGE: Record<AppointmentStatus, string> = {
 }
 
 function agendaCardAccent(status: AppointmentStatus): string {
-  if (status === 'confirmed') return 'border-l-emerald-500'
+  if (status === 'confirmed') return 'border-l-brand-primary'
   return 'border-l-zinc-500/85 dark:border-l-zinc-500/55'
 }
 
@@ -1299,7 +1299,7 @@ export function AppointmentsPage() {
                                       appointmentInProgress(a) &&
                                         'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
                                       a.status === 'confirmed'
-                                        ? 'border-emerald-400/35 bg-emerald-500/[0.14] text-emerald-950 dark:text-emerald-300/95'
+                                        ? 'border-brand-primary/35 bg-brand-primary/[0.14] text-ink-primary dark:text-brand-primary/95'
                                         : a.status === 'scheduled'
                                           ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
                                           : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
@@ -1483,7 +1483,7 @@ export function AppointmentsPage() {
                                   appointmentInProgress(a) &&
                                     'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
                                   a.status === 'confirmed'
-                                    ? 'border border-emerald-500/25 border-l-emerald-500 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.13]'
+                                    ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
                                     : a.status === 'scheduled'
                                       ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
                                       : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
@@ -1532,7 +1532,7 @@ export function AppointmentsPage() {
                                 <button
                                   type="button"
                                   onClick={() => { void updateStatus(a.id, 'confirmed'); setWeekPopoverOpen(false); setWeekPopoverApptId(null) }}
-                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 transition-colors"
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 transition-colors"
                                 >
                                   ✓ Confirmar
                                 </button>
@@ -1551,7 +1551,7 @@ export function AppointmentsPage() {
                                     setWeekPopoverOpen(false)
                                     setWeekPopoverApptId(null)
                                   }}
-                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-emerald-900/90 dark:text-emerald-400/90 hover:bg-emerald-500/12 transition-colors inline-flex items-center gap-1.5"
+                                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-ink-primary/90 dark:text-brand-primary/90 hover:bg-brand-primary/12 transition-colors inline-flex items-center gap-1.5"
                                   title={
                                     a.status === 'confirmed'
                                       ? 'Abre WhatsApp con el mensaje de preparación para la videollamada (mismo que al confirmar el turno).'
@@ -1712,7 +1712,7 @@ export function AppointmentsPage() {
                         <button
                           type="button"
                           onClick={() => updateStatus(a.id, 'confirmed')}
-                          className="text-[11px] px-2 py-1 rounded-lg border border-emerald-500/35 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12"
+                          className="text-[11px] px-2 py-1 rounded-lg border border-brand-primary/35 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12"
                         >
                           Confirmar
                         </button>
@@ -1752,7 +1752,7 @@ export function AppointmentsPage() {
                               ? 'Abre WhatsApp con el mensaje de preparación para la videollamada (mismo que al confirmar).'
                               : 'Abre WhatsApp para pedir que confirme asistencia (misma plantilla que al crear el turno).'
                           }
-                          className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/38 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 inline-flex items-center gap-1"
+                          className="text-[11px] px-2.5 py-1 rounded-lg border border-brand-primary/38 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1"
                         >
                           <MessageCircle className="h-3 w-3" />
                           {a.status === 'confirmed' ? 'Prep videollamada WA' : 'Pedir confirmación WA'}
@@ -1976,7 +1976,7 @@ export function AppointmentsPage() {
                   transition={{ duration: 0.22, delay: Math.min(rowIndex, 14) * 0.04, ease: [0.16, 1, 0.3, 1] }}
                   className={cn(
                     'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px] motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-sm',
-                    a.status === 'completed' && 'border-l-emerald-500/85',
+                    a.status === 'completed' && 'border-l-brand-primary/85',
                     a.status === 'cancelled' && 'border-l-status-expired/70',
                     a.status === 'no_show' && 'border-l-amber-500/80',
                   )}
@@ -2009,7 +2009,7 @@ export function AppointmentsPage() {
                       type="button"
                       onClick={() => openAppointmentFeedbackWa(a)}
                       title="Pedir feedback por WhatsApp (misma plantilla que al completar)."
-                      className="mt-2 text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-900 dark:text-emerald-400/95 hover:bg-emerald-500/12 inline-flex items-center gap-1.5"
+                      className="mt-2 text-[11px] px-2.5 py-1.5 rounded-lg border border-brand-primary/40 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1.5"
                     >
                       <MessageCircle className="h-3 w-3" />
                       Feedback WA

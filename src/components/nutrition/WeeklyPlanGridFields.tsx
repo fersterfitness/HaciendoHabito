@@ -66,7 +66,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                   gridTemplateColumns: `minmax(120px, 150px) repeat(${cols}, minmax(110px, 1fr))`,
                 }}
               >
-                <div className="p-3 bg-emerald-500/5">
+                <div className="p-3 bg-brand-primary/5">
                   <label className="flex items-center gap-1 text-[10px] uppercase text-ink-muted mb-1">
                     <Clock className="w-3 h-3" />
                     Comida
@@ -97,7 +97,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
 
                 {meal.columns.map((cell, ci) => (
                   <div key={ci} className="flex flex-col min-h-[8rem] bg-surface-input/40">
-                    <div className="text-[9px] font-semibold uppercase tracking-wide text-center py-1.5 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 border-b border-surface-border/80">
+                    <div className="text-[9px] font-semibold uppercase tracking-wide text-center py-1.5 bg-brand-primary/10 text-ink-primary dark:text-brand-primary border-b border-surface-border/80">
                       {days[ci]}
                     </div>
                     <textarea

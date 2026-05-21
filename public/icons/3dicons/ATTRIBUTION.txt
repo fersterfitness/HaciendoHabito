@@ -1,0 +1,10 @@
+3D icons from https://3dicons.co by Vijay Verma (@realvjy)
+License: CC0 1.0 Universal — free for personal and commercial use.
+Metadata: github.com/realvjy/3dicons (content/3dicons-meta)
+
+kpi/patients.png       — custom (3dicons-style thumbs up), alumnos / pacientes activos
+kpi/routines.png       — gym-dynamic-color (rutinas vigentes)
+kpi/meal-plans.png     — takeaway-cup-dynamic-color (planes alimentación)
+kpi/nutrition-plans.png — calender-dynamic-color (planes nutrición)
+kpi/anthropometry-pdf.png — custom (3dicons-style folder), PDFs antropometría
+kpi/income.png         — wallet-dynamic-color

@@ -95,7 +95,7 @@ export function ConfirmDialog({
               {cancelLabel}
             </Button>
             <Button
-              variant={variant === 'danger' ? 'danger' : 'primary'}
+              variant={variant === 'danger' ? 'danger' : 'gradientSecondary'}
               className="flex-1"
               onClick={onConfirm}
               loading={loading}

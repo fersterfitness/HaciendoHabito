@@ -428,9 +428,9 @@ export function NutritionFoodsPage() {
       <Header title="Guía de alimentos" />
 
       <div className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-28 lg:px-6 lg:py-8">
-        <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3.5">
+        <div className="mb-6 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3.5">
           <div className="flex items-start gap-3">
-            <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+            <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
               <Wheat className="h-4 w-4" />
             </span>
             <div>
@@ -448,7 +448,7 @@ export function NutritionFoodsPage() {
         <section className="rounded-2xl border border-surface-border/80 bg-surface-card p-4 sm:p-5">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
-              <Wheat className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden />
+              <Wheat className="h-4 w-4 text-brand-primary dark:text-brand-primary shrink-0" aria-hidden />
               Mi lista
             </h2>
             {!loading && rows.length > 0 ? (
@@ -530,7 +530,7 @@ export function NutritionFoodsPage() {
           )}
         >
           <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
-            <BookOpen className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden />
+            <BookOpen className="h-4 w-4 text-brand-primary dark:text-brand-primary shrink-0" aria-hidden />
             Catálogo en español
           </h2>
           <p className="text-xs leading-relaxed text-ink-muted">
@@ -904,8 +904,9 @@ export function NutritionFoodsPage() {
             <Button
               type="submit"
               size="sm"
+              variant="gradientSecondary"
               disabled={saving}
-              className="w-full shadow-none bg-[#ff4800] hover:bg-[#e04100] hover:shadow-none focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))] sm:w-auto"
+              className="w-full sm:w-auto"
               icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             >
               {editingId ? 'Guardar cambios' : 'Guardar en mi lista'}

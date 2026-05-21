@@ -827,7 +827,7 @@ export function WebPlansSettingsPage() {
                 maxLength={LIMITS.segmentImgUrl}
                 onChange={(e) => setFullSegmentImg(e.target.value)}
               />
-              <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
+              <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
                 Guardar fotos
               </Button>
             </div>
@@ -860,7 +860,7 @@ export function WebPlansSettingsPage() {
                 value={modalityLabelFull}
                 onChange={(e) => setModalityLabelFull(e.target.value)}
               />
-              <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
+              <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
                 Guardar etiquetas
               </Button>
             </div>
@@ -915,7 +915,7 @@ export function WebPlansSettingsPage() {
                 value={testimonialUrlsText}
                 onChange={(e) => setTestimonialUrlsText(e.target.value)}
               />
-              <Button type="button" size="sm" variant="gradientPrimary" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
+              <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveTestimonials()} loading={assetsSaving}>
                 Guardar testimonios
               </Button>
             </div>
@@ -1374,7 +1374,7 @@ export function WebPlansSettingsPage() {
         <div className="border-t border-surface-border pt-2">
           <Button
             className="w-full sm:w-auto"
-            variant="gradientPrimary"
+            variant="gradientSecondary"
             icon={<Save className="h-4 w-4" />}
             onClick={handleSave}
             loading={saving}

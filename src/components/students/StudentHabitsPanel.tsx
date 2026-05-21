@@ -529,7 +529,7 @@ export function StudentHabitsPanel({
                   type="button"
                   onClick={seedDefaults}
                   disabled={seeding}
-                  className="text-xs font-medium text-[#ff4800] underline-offset-2 hover:underline disabled:opacity-50"
+                  className="text-xs font-medium text-brand-secondary underline-offset-2 hover:underline disabled:opacity-50"
                 >
                   {seeding ? 'Creando…' : 'Crear hábitos predeterminados'}
                 </button>
@@ -873,7 +873,7 @@ function HabitLibraryModal({
                   </span>
                   <HabitIcon name={h.emoji} className="shrink-0 text-ink-muted" />
                   <span className="min-w-0 flex-1 text-sm font-medium text-ink-primary">{h.name}</span>
-                  {tol && <Spinner className="h-4 w-4 shrink-0 text-[#ff4800]" />}
+                  {tol && <Spinner className="h-4 w-4 shrink-0 text-brand-secondary" />}
                 </button>
                 <button
                   type="button"
@@ -903,7 +903,7 @@ function HabitLibraryModal({
                   className={cn(
                     'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors',
                     newEmoji === iconName
-                      ? 'border-[#ff4800] bg-[#ff4800]/10 text-[#ff4800]'
+                      ? 'border-brand-secondary/40 bg-brand-secondary/10 text-brand-secondary'
                       : 'border-zinc-200 bg-zinc-50 text-ink-muted hover:border-zinc-300 hover:text-ink-primary dark:border-zinc-700 dark:bg-zinc-900/50',
                   )}
                 >

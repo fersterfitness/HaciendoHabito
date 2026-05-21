@@ -28,7 +28,7 @@ function calcAge(birthDate: string | null | undefined): number | null {
 }
 
 function statusPillClass(status: string | null) {
-  if (status === 'activo') return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+  if (status === 'activo') return 'border-status-generated/30 bg-status-generated/10 text-status-generated'
   if (status === 'inactivo' || status === 'baja') return 'border-surface-border/60 bg-surface-elevated text-ink-muted'
   if (status === 'pausado') return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
   return 'border-surface-border/60 bg-surface-elevated text-ink-secondary'

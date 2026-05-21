@@ -241,7 +241,7 @@ export function GlobalSearch() {
                                 className={cn(
                                   'flex h-8 w-8 items-center justify-center rounded-xl shrink-0',
                                   r.kind === 'student' && 'bg-brand-primary/10 text-brand-primary',
-                                  r.kind === 'routine' && 'bg-emerald-500/10 text-emerald-400',
+                                  r.kind === 'routine' && 'bg-brand-primary/10 text-brand-primary',
                                   r.kind === 'mealplan' && 'bg-brand-tertiary/10 text-brand-tertiary',
                                 )}
                                 aria-hidden

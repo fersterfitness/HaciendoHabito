@@ -57,9 +57,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
       className={cn(
         'sticky top-0 z-30 flex items-center h-14 sm:h-16 px-4 lg:px-6 gap-3',
         'border-b bg-surface-base/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/75',
-        profile?.role === 'nutritionist'
-          ? 'border-emerald-500/25 dark:border-emerald-400/20'
-          : 'border-surface-border/70',
+        'border-surface-border/70',
         className,
       )}
     >

@@ -208,8 +208,8 @@ export function ExercisesPage() {
             </Button>
             <Button
               type="button"
-              variant="gradientPrimary"
-              icon={<Plus className="h-[1.125rem] w-[1.125rem]" strokeWidth={2.25} />}
+              variant="gradientSecondary"
+              icon={<Plus className="h-4 w-4" strokeWidth={2.25} />}
               onClick={() => navigate('/exercises/new')}
             >
               Nuevo

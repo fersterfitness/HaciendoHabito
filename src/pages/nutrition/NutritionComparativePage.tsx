@@ -368,7 +368,7 @@ export function NutritionComparativePage() {
         <Card>
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-brand-primary/15 text-brand-primary dark:text-brand-primary text-xs font-semibold">
                 1
               </span>
               <CardTitle>Elegí el paciente y el modo</CardTitle>
@@ -414,7 +414,7 @@ export function NutritionComparativePage() {
         <Card>
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-brand-primary/15 text-brand-primary dark:text-brand-primary text-xs font-semibold">
                 2
               </span>
               <CardTitle>Seleccioná los dos controles a comparar</CardTitle>
@@ -519,7 +519,7 @@ export function NutritionComparativePage() {
         <Card>
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+              <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-brand-primary/15 text-brand-primary dark:text-brand-primary text-xs font-semibold">
                 3
               </span>
               <CardTitle>Generar análisis y devolución</CardTitle>
@@ -536,8 +536,8 @@ export function NutritionComparativePage() {
           </div>
 
           {diffRows.length > 0 ? (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 mb-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">
+            <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-3 mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary dark:text-brand-primary mb-2">
                 Cambios detectados
               </p>
               <div className="space-y-1">
@@ -570,7 +570,7 @@ export function NutritionComparativePage() {
 
         <Button
           className="w-full"
-          variant="gradientPrimary"
+          variant="gradientSecondary"
           icon={<Download className="h-4 w-4" />}
           loading={generating}
           onClick={generatePdf}
@@ -600,7 +600,7 @@ function ModePill({
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+          ? 'bg-brand-primary/15 text-brand-primary dark:text-brand-primary border border-brand-primary/30'
           : 'border border-surface-border/70 text-ink-secondary hover:bg-surface-elevated/60 hover:text-ink-primary',
       )}
     >

@@ -166,8 +166,8 @@ export function NutritionResumenDashboard({
               <AreaChart data={heroData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="resumen-peso-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="0%" stopColor="rgb(var(--ink-muted))" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="rgb(var(--ink-muted))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-surface-border" />
@@ -193,8 +193,8 @@ export function NutritionResumenDashboard({
                 <Area
                   type="monotone"
                   dataKey="peso"
-                  stroke="#10b981"
-                  strokeWidth={2.2}
+                  stroke="rgb(var(--ink-secondary))"
+                  strokeWidth={2}
                   fill="url(#resumen-peso-fill)"
                   isAnimationActive={false}
                 />
@@ -260,9 +260,9 @@ function NextConsultationBanner({
   const hasNext = !!followup?.next_consultation_date
 
   return (
-    <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/8 to-emerald-500/0 px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-2xl border border-surface-border/80 bg-surface-card px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
-        <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+        <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-elevated text-ink-muted">
           <CalendarDays className="h-4 w-4" />
         </span>
         <div className="min-w-0">
@@ -302,10 +302,10 @@ function QuickAction({
     <button
       type="button"
       onClick={onClick}
-      className="text-left rounded-xl border border-surface-border/70 bg-surface-elevated/40 px-4 py-3.5 hover:border-emerald-500/30 hover:bg-surface-elevated/70 transition-colors"
+      className="text-left rounded-xl border border-surface-border/70 bg-surface-elevated/40 px-4 py-3.5 hover:border-surface-border hover:bg-surface-elevated/70 transition-colors"
     >
       <div className="flex items-center gap-2 text-ink-secondary">
-        <span className="text-emerald-600 dark:text-emerald-400">{icon}</span>
+        <span className="text-ink-muted">{icon}</span>
         <span className="text-sm font-medium text-ink-primary">{label}</span>
       </div>
       <p className="mt-1 text-xs text-ink-muted">{description}</p>

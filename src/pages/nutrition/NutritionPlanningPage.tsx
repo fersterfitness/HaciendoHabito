@@ -1823,7 +1823,7 @@ export function NutritionPlanningPage() {
                     ['TDEE · H', calcTdeeMale],
                     ['TDEE · M', calcTdeeFemale],
                   ].map(([label, val]) => (
-                    <div key={String(label)} className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-2.5 py-2">
+                    <div key={String(label)} className="rounded-lg border border-brand-primary/20 bg-brand-primary/[0.06] px-2.5 py-2">
                       <p className="text-[9px] uppercase text-ink-muted font-bold">{label}</p>
                       <p className="text-base font-semibold tabular-nums text-ink-primary">
                         {Number.isFinite(val as number) ? `${fmt1(val as number)} kcal` : '—'}
@@ -2335,7 +2335,7 @@ export function NutritionPlanningPage() {
                                         {studentQty.prepLine || hintText ? (
                                           <p className="mt-1 text-[10px] leading-snug">
                                             {studentQty.prepLine ? (
-                                              <span className="text-emerald-700 dark:text-emerald-400/90">
+                                              <span className="text-brand-primary dark:text-brand-primary/90">
                                                 {studentQty.prepLine}
                                               </span>
                                             ) : null}

@@ -115,7 +115,7 @@ export function NutritionWebIntakePanel({ student }: { student: Student }) {
     <div className="rounded-2xl border border-surface-border/80 bg-surface-elevated/20 p-5 sm:p-6">
       <div className="mb-6 flex flex-col gap-2 border-b border-zinc-200/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-800/60">
         <div className="flex items-start gap-2">
-          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary dark:text-brand-primary" aria-hidden />
           <div>
             <h3 className="text-[13px] font-semibold text-ink-primary">Cuestionario nutricional del registro</h3>
             <p className="text-[11px] text-ink-muted">

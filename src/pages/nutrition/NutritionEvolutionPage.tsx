@@ -44,7 +44,7 @@ export function NutritionEvolutionPage() {
             <Button
               type="button"
               size="sm"
-              variant="gradientPrimary"
+              variant="gradientSecondary"
               icon={<Users className="h-4 w-4" />}
               onClick={() => navigate('/nutrition')}
             >
@@ -58,7 +58,7 @@ export function NutritionEvolutionPage() {
                 key={f.label}
                 className="rounded-xl border border-surface-border/70 bg-surface-elevated/40 p-3 flex items-start gap-3"
               >
-                <span className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                <span className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
                   {f.icon}
                 </span>
                 <div>

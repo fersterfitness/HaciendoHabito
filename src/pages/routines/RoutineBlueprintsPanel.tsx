@@ -66,6 +66,7 @@ export function RoutineBlueprintsPanel() {
         </p>
         <Button
           size="sm"
+          variant="gradientSecondary"
           className="shrink-0"
           icon={<Plus className="h-4 w-4" />}
           onClick={() => navigate('/routines?create=1')}

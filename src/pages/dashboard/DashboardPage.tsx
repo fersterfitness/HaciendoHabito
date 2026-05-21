@@ -3,18 +3,10 @@ import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
-  Users,
-  Dumbbell,
-  FileText,
   Calendar,
-  TrendingUp,
-  TrendingDown,
   BarChart3,
-  Salad,
-  UtensilsCrossed,
   Cake,
   ChevronRight,
-  Wallet,
   AlertTriangle,
   ClipboardCheck,
 } from 'lucide-react'
@@ -1036,7 +1028,9 @@ export function DashboardPage() {
             title={activePeopleLabel}
             value={stats.activeStudents}
             countUp
-            icon={<Users className="h-5 w-5" />}
+            surface="gradient"
+            kpiFigmaIcon="patients"
+            iconVariant="3d"
             monthOverMonth={{ thisMonth: stats.momStudentsThis, prevMonth: stats.momStudentsPrev, scopeLabel: 'Altas' }}
             onClick={() => navigate(peopleHubPath)}
           />
@@ -1046,7 +1040,9 @@ export function DashboardPage() {
                 title="Rutinas vigentes"
                 value={stats.activeRoutines}
                 countUp
-                icon={<Dumbbell className="h-5 w-5" />}
+                surface="gradient"
+                kpiFigmaIcon="routines"
+                iconVariant="3d"
                 monthOverMonth={{ thisMonth: stats.momRoutinesThis, prevMonth: stats.momRoutinesPrev, scopeLabel: 'Nuevas rutinas' }}
                 onClick={() => navigate('/routines')}
               />
@@ -1054,42 +1050,26 @@ export function DashboardPage() {
                 title="Planes alimentación"
                 value={stats.activeMealPlans}
                 countUp
-                icon={<UtensilsCrossed className="h-5 w-5" />}
+                surface="gradient"
+                kpiFigmaIcon="meal-plans"
+                iconVariant="3d"
                 monthOverMonth={{ thisMonth: stats.momMealPlansThis, prevMonth: stats.momMealPlansPrev, scopeLabel: 'Planes nuevos' }}
                 onClick={() => navigate('/meal-plans')}
               />
-              {/* Income KPI — hero card con gradiente */}
-              <div
-                className="relative overflow-hidden rounded-2xl border border-brand-secondary/30 bg-gradient-to-br from-brand-secondary/20 via-surface-card to-surface-card p-4 cursor-pointer transition-all hover:border-brand-secondary/50 hover:shadow-md hover:shadow-brand-secondary/10 group"
+              <StatCard
+                title="Ingresos · este mes"
+                value={formatCurrency(animatedIncome)}
+                surface="gradient"
+                kpiFigmaIcon="income"
+                iconVariant="3d"
+                featured
+                subtitle={
+                  incomeDelta !== 0
+                    ? `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs mes anterior`
+                    : 'vs mes anterior'
+                }
                 onClick={() => navigate('/finances')}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && navigate('/finances')}
-              >
-                {/* Brillo decorativo */}
-                <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand-secondary/15 blur-2xl" />
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-brand-secondary/80">Ingresos · este mes</p>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-secondary/15">
-                    <Wallet className="h-3.5 w-3.5 text-brand-secondary" />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold tabular-nums text-ink-primary">
-                  {formatCurrency(animatedIncome)}
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  {incomeDelta !== 0 ? (
-                    <span className={cn(
-                      'inline-flex items-center gap-1 text-xs font-semibold',
-                      incomeDelta > 0 ? 'text-status-generated' : 'text-status-expired',
-                    )}>
-                      {incomeDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {incomeDelta > 0 ? '+' : ''}{incomeDelta}%
-                    </span>
-                  ) : null}
-                  <span className="text-[11px] text-ink-muted">vs mes anterior</span>
-                </div>
-              </div>
+              />
             </>
           ) : (
             <>
@@ -1097,48 +1077,36 @@ export function DashboardPage() {
                 title="Planes nutrición"
                 value={stats.activeNutritionPlans}
                 countUp
-                icon={<Salad className="h-5 w-5" />}
+                surface="gradient"
+                kpiFigmaIcon="nutrition-plans"
+                iconVariant="3d"
                 monthOverMonth={{ thisMonth: stats.momNutPlansThis, prevMonth: stats.momNutPlansPrev, scopeLabel: 'Planes nuevos' }}
-                onClick={() => navigate('/nutrition')} />
+                onClick={() => navigate('/nutrition')}
+              />
               <StatCard
                 title="PDFs antropometría"
                 value={stats.nutritionDocuments}
                 countUp
-                icon={<FileText className="h-5 w-5" />}
+                surface="gradient"
+                kpiFigmaIcon="anthropometry-pdf"
+                iconVariant="3d"
                 monthOverMonth={{ thisMonth: stats.momNutDocsThis, prevMonth: stats.momNutDocsPrev, scopeLabel: 'PDFs subidos' }}
                 onClick={() => navigate('/nutrition')}
               />
-              {/* Income KPI — hero card con gradiente */}
-              <div
-                className="relative overflow-hidden rounded-2xl border border-brand-secondary/30 bg-gradient-to-br from-brand-secondary/20 via-surface-card to-surface-card p-4 cursor-pointer transition-all hover:border-brand-secondary/50 hover:shadow-md hover:shadow-brand-secondary/10 group col-span-2 lg:col-span-1"
+              <StatCard
+                title="Ingresos · este mes"
+                value={formatCurrency(animatedIncome)}
+                surface="gradient"
+                kpiFigmaIcon="income"
+                iconVariant="3d"
+                featured
+                subtitle={
+                  incomeDelta !== 0
+                    ? `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs mes anterior`
+                    : 'vs mes anterior'
+                }
                 onClick={() => navigate('/finances')}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && navigate('/finances')}
-              >
-                <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand-secondary/15 blur-2xl" />
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-brand-secondary/80">Ingresos · este mes</p>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-secondary/15">
-                    <Wallet className="h-3.5 w-3.5 text-brand-secondary" />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold tabular-nums text-ink-primary">
-                  {formatCurrency(animatedIncome)}
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  {incomeDelta !== 0 ? (
-                    <span className={cn(
-                      'inline-flex items-center gap-1 text-xs font-semibold',
-                      incomeDelta > 0 ? 'text-status-generated' : 'text-status-expired',
-                    )}>
-                      {incomeDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {incomeDelta > 0 ? '+' : ''}{incomeDelta}%
-                    </span>
-                  ) : null}
-                  <span className="text-[11px] text-ink-muted">vs mes anterior</span>
-                </div>
-              </div>
+              />
             </>
           )}
         </div>
@@ -1187,9 +1155,9 @@ export function DashboardPage() {
                   key={b.id}
                   type="button"
                   onClick={() => navigate(peopleDetailPath(b.id))}
-                  className="inline-flex items-center gap-2 rounded-xl border border-status-expiring/25 bg-status-expiring/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expiring/15 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15 transition-colors"
                 >
-                  <Cake className="h-3.5 w-3.5 text-status-expiring shrink-0" />
+                  <Cake className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
                   <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
                 </button>
               ))}

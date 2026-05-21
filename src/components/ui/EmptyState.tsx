@@ -11,8 +11,8 @@ interface EmptyStateProps {
     onClick: () => void
     icon?: ReactNode
   }
-  /** CTA del estado vacío: degradé naranja o `outline`. */
-  actionVariant?: 'gradientPrimary' | 'outline'
+  /** CTA del estado vacío: acento secondary o `outline`. */
+  actionVariant?: 'gradientSecondary' | 'outline'
   className?: string
 }
 
@@ -21,7 +21,7 @@ export function EmptyState({
   title,
   description,
   action,
-  actionVariant = 'gradientPrimary',
+  actionVariant = 'gradientSecondary',
   className,
 }: EmptyStateProps) {
   return (
@@ -32,7 +32,7 @@ export function EmptyState({
       )}
     >
       {icon && (
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-primary/15 bg-brand-warm/50 text-brand-primary dark:bg-brand-primary/10">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-secondary/25 bg-brand-secondary/10 text-brand-secondary dark:border-brand-secondary/20 dark:bg-brand-secondary/12 [&_svg]:text-brand-secondary">
           {icon}
         </div>
       )}

@@ -208,7 +208,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
     return { dayInCycle, phase, daysToOv, daysToNext, nextPeriod, cycleLen: lastCycle.cycle_length }
   }, [lastCycle])
 
-  if (loading) return <div className="flex justify-center py-12"><Spinner /></div>
+  if (loading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>
 
   return (
     <div className="space-y-4">
@@ -282,8 +282,8 @@ export function CicloTab({ studentId }: { studentId: string }) {
           <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Historial de ciclos</h3>
           <Button
             size="sm"
+            variant="gradientSecondary"
             icon={<Plus className="h-3.5 w-3.5" />}
-            className="!border-0 !bg-[#ff4800] !text-white hover:!bg-[#e04100]"
             onClick={() => setShowForm(true)}
           >
             Registrar período

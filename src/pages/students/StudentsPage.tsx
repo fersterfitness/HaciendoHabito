@@ -29,6 +29,13 @@ import { cn } from '@/lib/utils'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { Button } from '@/components/ui/Button'
+import {
+  directoryFilterChipClassName,
+  directoryPopoverDividerClassName,
+  directoryToolbarBtnClassName,
+} from '@/lib/primaryGradientCtaClasses'
+import { Input } from '@/components/ui/Input'
+import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
@@ -276,17 +283,15 @@ function FiltersDropdown({
             type="button"
             onClick={onClick}
             className={cn(
-              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-              activeCount > 0
-                ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
-                : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+              directoryToolbarBtnClassName,
+              activeCount > 0 && 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary',
             )}
             {...a11y}
           >
-            <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            <Filter className="h-4 w-4 opacity-70" aria-hidden />
             Filtrar
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-secondary px-1.5 text-[10px] font-bold text-white">
                 {activeCount}
               </span>
             )}
@@ -314,7 +319,7 @@ function FiltersDropdown({
             ))}
           </div>
 
-          <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
+          <div className={directoryPopoverDividerClassName}>
             <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Estado</p>
             {([{ value: '' as StatusFilter, label: 'Todos' }, ...STATUS_OPTIONS]).map((opt) => (
               <button
@@ -333,7 +338,7 @@ function FiltersDropdown({
             ))}
           </div>
 
-          <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
+          <div className={directoryPopoverDividerClassName}>
             <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Plan</p>
             {([
               { value: '' as ExpiryFilter, label: 'Todos' },
@@ -357,7 +362,7 @@ function FiltersDropdown({
           </div>
 
           {allTags.length > 0 && (
-            <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
+            <div className={directoryPopoverDividerClassName}>
               <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Etiqueta</p>
               {(['', ...allTags]).map((t) => (
                 <button
@@ -381,7 +386,7 @@ function FiltersDropdown({
             <button
               type="button"
               onClick={() => { setFilterLevel(''); setFilterStatus(''); setFilterExpiry(''); setFilterTag(''); setOpen(false) }}
-              className="w-full flex items-center justify-center gap-1 border-t border-zinc-200/65 pt-2 text-xs text-ink-muted transition-colors hover:text-status-expired dark:border-zinc-800/80"
+              className={cn('w-full flex items-center justify-center gap-1 text-xs text-ink-muted transition-colors hover:text-status-expired', directoryPopoverDividerClassName)}
             >
               <X className="h-3 w-3" />
               Limpiar filtros
@@ -411,20 +416,16 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
             aria-label={`Ordenar tabla. Actual: ${selectedLabel}`}
             onClick={onClick}
             title={selectedLabel}
-            className={cn(
-              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-              'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80',
-              'dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
-            )}
+            className={directoryToolbarBtnClassName}
             {...a11y}
           >
-            <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            <ArrowDownUp className="h-4 w-4 opacity-70" aria-hidden />
             Ordenar
             <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
             Orden de la tabla
           </p>
           {TABLE_SORT_OPTS.map((opt) => (
@@ -438,8 +439,8 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
               className={cn(
                 'w-full rounded-md px-2.5 py-2 text-left text-xs transition-colors',
                 opt.value === value
-                  ? 'bg-zinc-200/85 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                  : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                  ? 'bg-brand-secondary/12 font-medium text-ink-primary'
+                  : 'text-ink-secondary hover:bg-surface-elevated',
               )}
             >
               {opt.label}
@@ -647,14 +648,10 @@ export function StudentsPage() {
     <div>
       <Header title={entityLabel} />
 
-      <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 lg:px-6 lg:py-8">
-        {/* Barra estilo Gray: sin panel con fondo; búsqueda a la izquierda · acciones a la derecha */}
+      <DirectoryPageShell>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
-          <div className="relative min-h-10 min-w-0 flex-1">
-            <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
-              <Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" aria-hidden />
-            </span>
-            <input
+          <div className="min-w-0 flex-1 max-w-xl">
+            <Input
               ref={searchRef}
               type="search"
               placeholder={`Buscar ${entityLabelSingular} por nombre, email… ( / para enfocar )`}
@@ -663,13 +660,7 @@ export function StudentsPage() {
               aria-label={`Buscar ${entityLabelSingular}`}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              className={cn(
-                'h-10 w-full rounded-md border border-zinc-200/75 bg-transparent pl-10 pr-3 text-[14px] text-zinc-900 outline-none shadow-none',
-                'placeholder:text-zinc-400',
-                'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50',
-                'dark:border-zinc-700/80 dark:text-zinc-100 dark:placeholder:text-zinc-500',
-                'dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
-              )}
+              leftIcon={<Search className="h-4 w-4" />}
             />
           </div>
 
@@ -678,13 +669,9 @@ export function StudentsPage() {
               type="button"
               onClick={() => exportStudentsCSV(filtered)}
               title="Exportar lista a CSV"
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-zinc-200/75 bg-transparent px-3.5 text-sm font-medium text-zinc-800',
-                'transition-colors hover:border-zinc-300 hover:bg-zinc-50/90',
-                'dark:border-zinc-700/80 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/45',
-              )}
+              className={directoryToolbarBtnClassName}
             >
-              <Download className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+              <Download className="h-4 w-4 opacity-70" aria-hidden />
               Exportar
             </button>
 
@@ -703,17 +690,17 @@ export function StudentsPage() {
             <SortDropdown value={tableSort} onChange={setTableSort} />
 
             {filterLevel && (
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+              <span className={directoryFilterChipClassName}>
                 {LEVEL_LABELS[filterLevel]}
-                <button type="button" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200" onClick={() => setFilterLevel('')} aria-label="Quitar filtro nivel">
+                <button type="button" className="text-ink-muted hover:text-ink-primary" onClick={() => setFilterLevel('')} aria-label="Quitar filtro nivel">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </span>
             )}
             {filterStatus && (
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+              <span className={directoryFilterChipClassName}>
                 {STATUS_OPTIONS.find((o) => o.value === filterStatus)?.label}
-                <button type="button" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200" onClick={() => setFilterStatus('')} aria-label="Quitar filtro estado">
+                <button type="button" className="text-ink-muted hover:text-ink-primary" onClick={() => setFilterStatus('')} aria-label="Quitar filtro estado">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </span>
@@ -727,10 +714,10 @@ export function StudentsPage() {
               </span>
             )}
             {filterTag && (
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 bg-transparent px-2.5 text-xs font-medium text-zinc-700 dark:border-zinc-700/80 dark:text-zinc-300">
-                <Tag className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className={directoryFilterChipClassName}>
+                <Tag className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
                 {filterTag}
-                <button type="button" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200" onClick={() => setFilterTag('')} aria-label="Quitar etiqueta">
+                <button type="button" className="text-ink-muted hover:text-ink-primary" onClick={() => setFilterTag('')} aria-label="Quitar etiqueta">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </span>
@@ -738,10 +725,10 @@ export function StudentsPage() {
 
             <Button
               type="button"
-              variant="gradientPrimary"
+              variant="gradientSecondary"
               onClick={openNewStudentModal}
               title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
-              icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
+              icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
             >
               {role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
             </Button>
@@ -756,7 +743,7 @@ export function StudentsPage() {
         />
 
         {loading ? (
-          <div className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/70">
+          <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card p-4">
             <div className="mb-4 h-4 w-32 animate-pulse rounded bg-surface-elevated" />
             <TableSkeleton rows={6} cols={5} />
           </div>
@@ -794,7 +781,7 @@ export function StudentsPage() {
             onStatusChanged={handleStatusChanged}
           />
         )}
-      </div>
+      </DirectoryPageShell>
 
       {selectedStudentId && (
         <>
@@ -917,7 +904,7 @@ function StudentDirectoryTable({
               className={cn(
                 'hh-row-drop-in flex items-center gap-2 px-4 py-2.5 cursor-pointer transition-colors',
                 'outline-none focus-within:bg-surface-elevated/35',
-                isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-zinc-400' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
+                isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-brand-primary' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
               )}
             >
               <StudentAvatar

@@ -567,10 +567,10 @@ export function FinancesPage() {
             </button>
             <Button
               type="button"
-              variant="gradientPrimary"
+              variant="gradientSecondary"
               title={tab === 'income' ? 'Registrar ingreso' : 'Registrar gasto'}
               onClick={() => navigate(tab === 'income' ? '/finances/income/new' : '/finances/expenses/new')}
-              icon={<Plus className="h-[1.125rem] w-[1.125rem] shrink-0" strokeWidth={2.25} aria-hidden />}
+              icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
             >
               {tab === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto'}
             </Button>

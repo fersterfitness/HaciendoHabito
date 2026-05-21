@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { useAuthStore } from '@/stores/authStore'
 
 type Theme = 'dark' | 'light'
 export type UiDensity = 'comfortable' | 'compact'
@@ -23,7 +22,6 @@ const ThemeContext = createContext<ThemeContextValue>({
 })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const role = useAuthStore((state) => state.profile?.role)
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem('hh-theme') as Theme | null
     if (stored === 'dark' || stored === 'light') return stored
@@ -45,13 +43,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.add(theme)
     localStorage.setItem('hh-theme', theme)
   }, [theme])
-
-  /** Solo nutricionista usa tema verde; admin y entrenador siempre marca naranja (sin `data-role-theme`). */
-  useEffect(() => {
-    const root = document.documentElement
-    root.removeAttribute('data-role-theme')
-    if (role === 'nutritionist') root.setAttribute('data-role-theme', 'nutritionist')
-  }, [role])
 
   function toggleTheme() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))

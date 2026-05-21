@@ -267,7 +267,7 @@ export function ExerciseFormPage() {
             <Button type="button" variant="secondary" className="flex-1" onClick={() => navigate(-1)}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" loading={isSubmitting}>
+            <Button type="submit" variant="gradientSecondary" className="flex-1" loading={isSubmitting}>
               {isEditing ? 'Guardar cambios' : 'Crear ejercicio'}
             </Button>
           </div>

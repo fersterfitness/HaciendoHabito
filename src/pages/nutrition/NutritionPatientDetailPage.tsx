@@ -569,18 +569,16 @@ export function NutritionPatientDetailPage() {
         }
       />
 
-      <div className="px-4 lg:px-6 pt-4 pb-2">
-        <div className="sticky top-14 sm:top-16 z-20 -mx-4 px-4 lg:-mx-6 lg:px-6 py-2.5 bg-surface-base/95 backdrop-blur-md border-y border-surface-border/60">
-          <Tabs
-            tabs={tabs}
-            active={activeTab}
-            onChange={handleTabChange}
-            ariaLabel="Secciones de la carpeta nutricional"
-          />
-        </div>
+      <div className="page-shell-x sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm">
+        <Tabs
+          tabs={tabs}
+          active={activeTab}
+          onChange={handleTabChange}
+          ariaLabel="Secciones de la carpeta nutricional"
+        />
       </div>
 
-      <div className="px-4 lg:px-6 pb-8 space-y-6">
+      <div className="page-shell-x page-shell-y pb-8 space-y-6">
         {/* ───────────── RESUMEN ───────────── */}
         <TabPanel id="resumen" active={activeTab}>
           <NutritionResumenDashboard
@@ -749,7 +747,7 @@ export function NutritionPatientDetailPage() {
                 </label>
               </div>
               <div className="mt-3">
-                <Button size="sm" onClick={saveMeasurement} loading={savingMeasurement}>
+                <Button size="sm" variant="gradientSecondary" onClick={saveMeasurement} loading={savingMeasurement}>
                   Guardar medición
                 </Button>
               </div>
@@ -891,7 +889,7 @@ export function NutritionPatientDetailPage() {
                     className={
                       'inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ' +
                       (isActive
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                        ? 'bg-surface-elevated text-ink-primary border border-surface-border'
                         : 'border border-surface-border/70 text-ink-secondary hover:bg-surface-elevated/60 hover:text-ink-primary')
                     }
                   >
@@ -900,7 +898,7 @@ export function NutritionPatientDetailPage() {
                       className={
                         'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold tabular-nums ' +
                         (isActive
-                          ? 'bg-emerald-500/25 text-emerald-700 dark:text-emerald-200'
+                          ? 'bg-surface-border/80 text-ink-secondary'
                           : 'bg-surface-elevated text-ink-muted')
                       }
                     >
@@ -921,7 +919,7 @@ export function NutritionPatientDetailPage() {
                   >
                     <button onClick={() => openDocument(doc.file_path)} className="flex-1 min-w-0 text-left">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-brand-primary shrink-0" />
+                        <FileText className="h-4 w-4 text-ink-muted shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-ink-primary truncate">{doc.title}</p>
                           <p className="text-xs text-ink-muted capitalize">

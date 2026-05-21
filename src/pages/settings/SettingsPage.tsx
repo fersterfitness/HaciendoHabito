@@ -223,7 +223,7 @@ export function SettingsPage() {
                 {...register('role')}
               />
             </FormSection>
-            <Button type="submit" variant="gradientPrimary" loading={isSubmitting}>
+            <Button type="submit" variant="gradientSecondary" loading={isSubmitting}>
               Guardar cambios
             </Button>
           </form>

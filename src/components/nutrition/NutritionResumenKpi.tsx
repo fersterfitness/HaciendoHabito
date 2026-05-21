@@ -28,7 +28,7 @@ export function NutritionResumenKpi({
   value,
   previous,
   unit,
-  desiredDirection = 'neutral',
+  desiredDirection: _desiredDirection = 'neutral',
   series,
   precision = 1,
 }: NutritionKpiProps) {
@@ -43,26 +43,14 @@ export function NutritionResumenKpi({
     return cleaned
   }, [series])
 
-  const tone = useMemo(() => {
-    if (delta == null || delta === 0 || desiredDirection === 'neutral') {
-      return 'text-ink-muted'
-    }
-    const isGood =
-      (desiredDirection === 'down' && delta < 0) || (desiredDirection === 'up' && delta > 0)
-    return isGood ? 'text-status-generated' : 'text-status-expired'
-  }, [delta, desiredDirection])
+  const tone = 'text-ink-muted'
 
-  const sparkStroke =
-    delta == null || delta === 0
-      ? 'var(--spark-neutral, #6b7280)'
-      : (desiredDirection === 'down' && delta < 0) || (desiredDirection === 'up' && delta > 0)
-        ? 'var(--spark-good, #16a34a)'
-        : 'var(--spark-bad, #ef4444)'
+  const sparkStroke = 'rgb(var(--ink-muted) / 0.55)'
 
   return (
     <div className="rounded-2xl border border-surface-border/80 bg-surface-card p-4 flex flex-col gap-3 min-h-[150px]">
       <div className="flex items-center gap-2">
-        <span className="text-emerald-600 dark:text-emerald-400 shrink-0 [&_svg]:h-4 [&_svg]:w-4">
+        <span className="text-ink-muted shrink-0 [&_svg]:h-4 [&_svg]:w-4">
           {icon}
         </span>
         <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider truncate">

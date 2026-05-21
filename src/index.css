@@ -83,13 +83,6 @@
     --status-paused: 107 107 107;
   }
 
-  :root[data-role-theme='nutritionist'] {
-    --brand-primary: 34 197 94;
-    --brand-hover: 74 222 128;
-    --status-active: 34 197 94;
-    --status-pending: 22 163 74;
-  }
-
   * {
     box-sizing: border-box;
   }
@@ -192,8 +185,8 @@
   @keyframes hh-row-drop-in {
     from {
       opacity: 0;
-      transform: translateY(-2.75rem);
-      filter: blur(8px);
+      transform: translateY(-0.65rem);
+      filter: blur(2px);
     }
     to {
       opacity: 1;
@@ -203,7 +196,7 @@
   }
 
   .hh-row-drop-in {
-    animation: hh-row-drop-in 1.28s cubic-bezier(0.25, 0.9, 0.35, 1) both;
+    animation: hh-row-drop-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: var(--row-enter-delay, 0ms);
   }
 
@@ -246,5 +239,108 @@
   .page-shell-y {
     padding-top: var(--density-page-y);
     padding-bottom: var(--density-page-y);
+  }
+
+  /** KPI / dashboard: icono con relieve 3D (sombras + luz superior). */
+  .stat-icon-3d {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.875rem;
+    border: 1px solid rgb(var(--surface-border) / 0.65);
+    background: linear-gradient(
+      145deg,
+      rgb(var(--surface-elevated)) 0%,
+      rgb(var(--surface-card)) 48%,
+      rgb(var(--surface-border) / 0.22) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.14),
+      inset 0 -2px 0 rgb(0 0 0 / 0.06),
+      0 2px 4px rgb(0 0 0 / 0.06),
+      0 8px 16px rgb(0 0 0 / 0.08);
+    transform: translateY(-1px);
+    color: rgb(var(--ink-secondary));
+  }
+
+  .dark .stat-icon-3d {
+    border-color: rgb(var(--surface-border) / 0.85);
+    background: linear-gradient(
+      145deg,
+      rgb(var(--surface-elevated)) 0%,
+      rgb(var(--surface-card)) 52%,
+      rgb(0 0 0 / 0.22) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      inset 0 -2px 0 rgb(0 0 0 / 0.35),
+      0 3px 6px rgb(0 0 0 / 0.28),
+      0 10px 22px rgb(0 0 0 / 0.22);
+  }
+
+  .stat-icon-3d::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: inherit;
+    background: linear-gradient(155deg, rgb(255 255 255 / 0.16) 0%, transparent 42%);
+    pointer-events: none;
+  }
+
+  .stat-icon-3d::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: -5px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.14);
+    filter: blur(3px);
+    pointer-events: none;
+  }
+
+  .dark .stat-icon-3d::after {
+    background: rgb(0 0 0 / 0.45);
+  }
+
+  .stat-icon-3d-accent {
+    border-color: rgb(var(--brand-secondary) / 0.35);
+    background: linear-gradient(
+      145deg,
+      rgb(var(--brand-secondary) / 0.28) 0%,
+      rgb(var(--surface-card)) 55%,
+      rgb(var(--surface-border) / 0.2) 100%
+    );
+    color: rgb(var(--brand-secondary));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 -2px 0 rgb(0 0 0 / 0.08),
+      0 2px 6px rgb(var(--brand-secondary) / 0.18),
+      0 10px 20px rgb(0 0 0 / 0.12);
+  }
+
+  .dark .stat-icon-3d-accent {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      inset 0 -2px 0 rgb(0 0 0 / 0.3),
+      0 3px 10px rgb(var(--brand-secondary) / 0.22),
+      0 12px 24px rgb(0 0 0 / 0.28);
+  }
+
+  .stat-icon-3d svg {
+    position: relative;
+    z-index: 1;
+    width: 1.25rem;
+    height: 1.25rem;
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.2));
+    transform: translateY(-0.5px);
+  }
+
+  .dark .stat-icon-3d svg {
+    filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
   }
 }

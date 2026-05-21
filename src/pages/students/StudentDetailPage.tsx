@@ -212,6 +212,7 @@ export function StudentDetailView({
   const [showPayModal,  setShowPayModal]  = useState(false)
 
   const [mealPlans, setMealPlans] = useState<TrainerStudentMealPlan[]>([])
+  const [mealPlansLoading, setMealPlansLoading] = useState(false)
   const [mealPlanPdfBusy, setMealPlanPdfBusy] = useState<string | null>(null)
 
   useEffect(() => {
@@ -235,14 +236,19 @@ export function StudentDetailView({
     if (!id || !user?.id) return
     if (profile?.role !== 'trainer' && profile?.role !== 'admin') return
     let cancelled = false
+    setMealPlansLoading(true)
     ;(async () => {
-      const { data } = await supabase
-        .from('trainer_student_meal_plans')
-        .select('*')
-        .eq('student_id', id)
-        .eq('owner_id', user.id)
-        .order('updated_at', { ascending: false })
-      if (!cancelled) setMealPlans((data ?? []) as TrainerStudentMealPlan[])
+      try {
+        const { data } = await supabase
+          .from('trainer_student_meal_plans')
+          .select('*')
+          .eq('student_id', id)
+          .eq('owner_id', user.id)
+          .order('updated_at', { ascending: false })
+        if (!cancelled) setMealPlans((data ?? []) as TrainerStudentMealPlan[])
+      } finally {
+        if (!cancelled) setMealPlansLoading(false)
+      }
     })()
     return () => {
       cancelled = true
@@ -611,8 +617,8 @@ export function StudentDetailView({
             </Button>
             <Button
               size="sm"
+              variant="gradientSecondary"
               icon={<DollarSign className="h-3.5 w-3.5" />}
-              className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
               onClick={() => setShowPayModal(true)}
             >
               Registrar pago
@@ -742,7 +748,7 @@ export function StudentDetailView({
                 {/* Barra de progreso top */}
                 <div className="h-1 w-full bg-zinc-200/70 dark:bg-zinc-800">
                   <div
-                    className="h-full bg-[#ff4800] transition-all duration-700"
+                    className="h-full bg-brand-secondary transition-all duration-700"
                     style={{ width: `${routineProgressPct}%` }}
                   />
                 </div>
@@ -792,7 +798,8 @@ export function StudentDetailView({
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <Button
                       size="sm"
-                      className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100] sm:flex-1"
+                      variant="gradientSecondary"
+                      className="sm:flex-1"
                       onClick={() => navigate(`/routines/${activeRoutine.id}`)}
                     >
                       Abrir rutina
@@ -840,8 +847,8 @@ export function StudentDetailView({
                     <div className="mt-5 flex flex-wrap gap-2">
                       <Button
                         size="sm"
+                        variant="gradientSecondary"
                         icon={<Plus className="h-3.5 w-3.5" />}
-                        className="!border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
                         onClick={() => navigate(`/routines?create=1&student=${id}`)}
                       >
                         {rutinaHistorialVacío ? 'Crear rutina' : 'Nueva rutina'}
@@ -876,7 +883,7 @@ export function StudentDetailView({
                     '!h-8 text-[12px] font-semibold',
                     rutinaHistorialVacío
                       ? 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-300'
-                      : '!text-[#ff4800] hover:bg-[#ff4800]/10',
+                      : '!text-brand-secondary hover:bg-brand-secondary/10',
                   )}
                   onClick={() => navigate(`/routines?create=1&student=${id}`)}
                 >
@@ -944,7 +951,11 @@ export function StudentDetailView({
                 </button>
               </p>
             </div>
-            {mealPlans.length === 0 ? (
+            {mealPlansLoading ? (
+              <div className="flex justify-center py-10">
+                <Spinner size="md" />
+              </div>
+            ) : mealPlans.length === 0 ? (
               <EmptyState
                 className="py-10"
                 icon={<ClipboardList className="h-7 w-7" aria-hidden />}
@@ -1211,8 +1222,8 @@ function PagosTab({
           <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Historial de pagos</h3>
           <Button
             size="sm"
+            variant="gradientSecondary"
             icon={<DollarSign className="h-3.5 w-3.5" />}
-            className="!border-0 !bg-[#ff4800] !text-white hover:!bg-[#e04100]"
             onClick={onRegisterPago}
           >
             Registrar
@@ -1777,7 +1788,7 @@ function PesoTab({ studentId }: { studentId: string }) {
           <div className="flex justify-center py-8"><Spinner size="md" /></div>
         ) : logs.length === 0 ? (
           <EmptyState
-            icon={<Scale className="h-8 w-8 text-zinc-400" aria-hidden />}
+            icon={<Scale className="h-8 w-8" aria-hidden />}
             title="Sin registros de peso"
             description="Registrá el peso periódicamente para ver la evolución."
           />
@@ -1918,7 +1929,7 @@ function PesoTab({ studentId }: { studentId: string }) {
                   value={goalInput}
                   onChange={(e) => setGoalInput(e.target.value)}
                 />
-                <Button size="sm" onClick={saveGoal}>Guardar</Button>
+                <Button size="sm" variant="gradientSecondary" onClick={saveGoal}>Guardar</Button>
                 <button onClick={() => setEditingGoal(false)} className="text-xs text-ink-muted hover:text-ink-primary px-2 py-1.5">Cancelar</button>
               </div>
             ) : (
@@ -2110,7 +2121,8 @@ function QuickPayModal({
           </div>
 
           <Button
-            className="w-full !border-0 !bg-[#ff4800] !text-white shadow-none hover:!bg-[#e04100]"
+            className="w-full"
+            variant="gradientSecondary"
             loading={saving}
             onClick={handleSave}
           >

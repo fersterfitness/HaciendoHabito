@@ -173,7 +173,8 @@ export function ExpenseFormPage() {
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-[#ff4800] shadow-none hover:bg-[#e04100] hover:shadow-none focus-visible:ring-[#ff4800]/45"
+              variant="gradientSecondary"
+              className="flex-1"
               loading={isSubmitting}
             >
               {isEditing ? 'Guardar cambios' : 'Registrar gasto'}

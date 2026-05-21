@@ -470,7 +470,7 @@ export function TrainerResourcesPage() {
             rows={2}
             className="text-sm"
           />
-          <Button type="button" onClick={() => void addResource()} loading={saving} icon={<Plus className="h-4 w-4" />}>
+          <Button type="button" variant="gradientSecondary" onClick={() => void addResource()} loading={saving} icon={<Plus className="h-4 w-4" />}>
             Guardar recurso
           </Button>
         </Card>
@@ -644,7 +644,7 @@ export function TrainerResourcesPage() {
                   </Button>
                   <Button
                     type="button"
-                    variant="gradientPrimary"
+                    variant="gradientSecondary"
                     size="sm"
                     icon={<MessageCircle className="h-4 w-4" />}
                     onClick={() => openAllWhatsApp()}
