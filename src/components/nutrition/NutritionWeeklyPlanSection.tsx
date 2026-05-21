@@ -370,11 +370,11 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-brand-primary/20 bg-gradient-to-r from-brand-primary/10 to-brand-primary/10 p-3 sm:p-4">
+      <div className="rounded-2xl border border-brand-secondary/25 bg-gradient-to-r from-brand-secondary/[0.12] to-brand-secondary/[0.04] p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-ink-primary flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-brand-primary" />
+              <Sparkles className="h-4 w-4 text-brand-secondary" />
               Exportación premium del plan
             </p>
             <p className="text-xs text-ink-secondary mt-1">
@@ -393,6 +393,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             <Button
               type="button"
               size="sm"
+              variant="gradientSecondary"
               icon={<FileDown className="h-4 w-4" />}
               onClick={() => downloadPdf()}
               loading={exportingPdf}
@@ -430,7 +431,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
               setNextConsultDate(v)
               schedulePersist({ nextConsultDate: v })
             }}
-            className="mt-1 rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm focus:outline-none focus:border-brand-primary block min-w-[10rem]"
+            className="mt-1 rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm focus:outline-none focus:border-brand-secondary block min-w-[10rem]"
           />
         </label>
       </div>
@@ -496,8 +497,8 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
                 onClick={() => void activateVersion(v.id)}
                 className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
                   v.id === activeVersionId
-                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary font-semibold'
-                    : 'border-surface-border hover:border-brand-primary/50 text-ink-secondary'
+                    ? 'border-brand-secondary/40 bg-brand-secondary/10 text-brand-secondary font-semibold'
+                    : 'border-surface-border hover:border-brand-secondary/35 text-ink-secondary'
                 }`}
               >
                 V{v.version_number}{v.is_active ? ' · Activa' : ''}

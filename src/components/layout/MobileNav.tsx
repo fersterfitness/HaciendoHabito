@@ -1,23 +1,31 @@
 import { Fragment, useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { trainerCtaAccentTextClassName, trainerCtaTintBgClassName } from '@/lib/primaryGradientCtaClasses'
+import {
+  mobileNavActiveTextClassName,
+  mobileNavActiveTintBgClassName,
+} from '@/lib/primaryGradientCtaClasses'
+import type { NavItem } from '@/config/navigation'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { useAuthStore } from '@/stores/authStore'
-import { getMobileNavItems } from '@/config/navigation'
+import {
+  getMobileNavItems,
+  getMobileNavPrimaryItems,
+  navItemKey,
+} from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
-import { Settings, LogOut, X, MoreHorizontal, UserCircle, type LucideIcon } from 'lucide-react'
+import { Settings, LogOut, X, Menu, UserCircle, type LucideIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 import type { AppRole } from '@/types/database'
 
-const MAX_PRIMARY = 4 // items shown directly in the bar (+ Más button)
-
-function isMobileItemActive(pathname: string, href: string) {
-  const home = pathname === '/' || pathname === '/dashboard'
-  if (href === '/dashboard') return home
+function isMobileItemActive(pathname: string, href: string, exactMatch?: boolean) {
+  if (exactMatch) return pathname === href
+  const homeHref = href === '/dashboard'
+  const atHome = pathname === '/' || pathname === '/dashboard'
+  if (homeHref && atHome) return true
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
@@ -33,15 +41,17 @@ function DrawerNavItem({
   to,
   label,
   icon: Icon,
+  exactMatch,
   onClose,
 }: {
   to: string
   label: string
   icon: LucideIcon
+  exactMatch?: boolean
   onClose: () => void
 }) {
   const { pathname } = useLocation()
-  const active = isMobileItemActive(pathname, to)
+  const active = isMobileItemActive(pathname, to, exactMatch)
   return (
     <NavLink
       to={to}
@@ -52,11 +62,11 @@ function DrawerNavItem({
         'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
         appFocusRingClassName,
         active
-          ? cn(trainerCtaTintBgClassName, trainerCtaAccentTextClassName)
+          ? cn(mobileNavActiveTintBgClassName, mobileNavActiveTextClassName)
           : 'text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
       )}
     >
-      <Icon className={cn('h-4 w-4 shrink-0', active && trainerCtaAccentTextClassName)} />
+      <Icon className={cn('h-4 w-4 shrink-0', active && mobileNavActiveTextClassName)} />
       {label}
     </NavLink>
   )
@@ -67,12 +77,16 @@ export function MobileNav() {
   const navigate = useNavigate()
   const { profile, reset } = useAuthStore()
   const role = profile?.role
-  const allItems = getMobileNavItems(role)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const reduceMotion = useReducedMotion()
 
-  const primaryItems = allItems.slice(0, MAX_PRIMARY)
-  const drawerItems = allItems.slice(MAX_PRIMARY)
+  const primaryItems = getMobileNavPrimaryItems(role)
+  const primaryKeys = new Set(primaryItems.map(navItemKey))
+  const drawerItems = getMobileNavItems(role).filter((item) => !primaryKeys.has(navItemKey(item)))
+  const drawerRouteActive = drawerItems.some((item) =>
+    isMobileItemActive(pathname, item.href, item.exactMatch),
+  )
+  const moreActive = drawerOpen || drawerRouteActive
 
   // Close drawer on route change
   useEffect(() => { setDrawerOpen(false) }, [pathname])
@@ -100,7 +114,7 @@ export function MobileNav() {
           {primaryItems.map((item) => {
             const Icon = item.icon
             const to = item.href
-            const active = isMobileItemActive(pathname, to)
+            const active = isMobileItemActive(pathname, to, item.exactMatch)
             return (
               <NavLink
                 key={item.href + item.label}
@@ -111,11 +125,11 @@ export function MobileNav() {
                   'flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 shrink-0 sm:min-w-[56px]',
                   'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
                   appFocusRingClassName,
-                  active ? trainerCtaAccentTextClassName : 'text-ink-muted hover:text-ink-secondary',
+                  active ? mobileNavActiveTextClassName : 'text-ink-muted hover:text-ink-secondary',
                 )}
               >
-                <div className={cn('p-1.5 rounded-lg transition-colors', active && trainerCtaTintBgClassName)}>
-                  <Icon className={cn('h-4 w-4', active && trainerCtaAccentTextClassName)} />
+                <div className={cn('p-1.5 rounded-lg transition-colors', active && mobileNavActiveTintBgClassName)}>
+                  <Icon className={cn('h-4 w-4', active && mobileNavActiveTextClassName)} />
                 </div>
                 <span className="text-[10px] font-medium leading-none text-center max-w-[4.5rem] truncate">
                   {item.label}
@@ -132,11 +146,11 @@ export function MobileNav() {
               'flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 shrink-0 sm:min-w-[56px]',
               'transition-[color,transform] duration-200 ease-out motion-safe:active:scale-95',
               appFocusRingClassName,
-              drawerOpen ? trainerCtaAccentTextClassName : 'text-ink-muted hover:text-ink-secondary',
+              moreActive ? mobileNavActiveTextClassName : 'text-ink-muted hover:text-ink-secondary',
             )}
           >
-            <div className={cn('p-1.5 rounded-lg transition-colors', drawerOpen && trainerCtaTintBgClassName)}>
-              <MoreHorizontal className={cn('h-4 w-4', drawerOpen && trainerCtaAccentTextClassName)} />
+            <div className={cn('p-1.5 rounded-lg transition-colors', moreActive && mobileNavActiveTintBgClassName)}>
+              <Menu className={cn('h-4 w-4', moreActive && mobileNavActiveTextClassName)} />
             </div>
             <span className="text-[10px] font-medium leading-none">Más</span>
           </button>
@@ -161,7 +175,7 @@ export function MobileNav() {
             />
 
             <motion.div
-              className="relative z-10 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-lg dark:shadow-xl max-h-[85dvh] flex flex-col overflow-hidden"
+              className="relative z-10 min-h-0 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-lg dark:shadow-xl max-h-[85dvh] flex flex-col overflow-hidden"
               initial={reduceMotion ? false : { y: '100%' }}
               animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
               transition={
@@ -195,23 +209,21 @@ export function MobileNav() {
             </div>
 
             {/* Scrollable nav list */}
-            <div className="overflow-y-auto flex-1 px-3 py-3 space-y-0.5">
-              {drawerItems.length > 0 && (
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-0.5">
+              {drawerItems.length > 0 ? (
                 <Fragment>
-                  <p className="px-4 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
-                    Navegación
-                  </p>
-                  {drawerItems.map((item) => (
+                  {drawerItems.map((item: NavItem) => (
                     <DrawerNavItem
-                      key={item.href + item.label}
+                      key={navItemKey(item)}
                       to={item.href}
                       label={item.label}
                       icon={item.icon}
+                      exactMatch={item.exactMatch}
                       onClose={() => setDrawerOpen(false)}
                     />
                   ))}
                 </Fragment>
-              )}
+              ) : null}
 
               {/* Settings + Profile always visible */}
               <div className="mt-2 border-t border-surface-border/60 pt-2 space-y-0.5">

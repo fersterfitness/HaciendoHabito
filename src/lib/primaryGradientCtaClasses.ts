@@ -24,6 +24,11 @@ export const trainerCtaFocusInputChromeClassName = cn(
 /** Fondo suave tipo item activo (nav móvil, etc.). */
 export const trainerCtaTintBgClassName = 'bg-[#ff5508]/10 dark:bg-[#ff5508]/16'
 
+/** Ítem activo en barra / drawer móvil (acento secondary, no naranja CTA). */
+export const mobileNavActiveTextClassName = 'text-brand-secondary'
+export const mobileNavActiveTintBgClassName =
+  'bg-brand-secondary/10 dark:bg-brand-secondary/16'
+
 /** CTA naranja sólido (formularios públicos, guardar en ajustes). Listados usan `secondaryGradientCtaClassName`. */
 export const primaryGradientCtaClassName = cn(
   'inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold text-white',

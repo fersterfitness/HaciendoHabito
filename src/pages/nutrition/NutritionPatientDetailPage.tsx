@@ -27,7 +27,10 @@ import { Spinner } from '@/components/ui/Spinner'
 import { Tabs, TabPanel, type TabItem } from '@/components/ui/Tabs'
 import { NutritionAnamnesisSection } from '@/components/nutrition/NutritionAnamnesisSection'
 import { NutritionWeeklyPlanSection } from '@/components/nutrition/NutritionWeeklyPlanSection'
-import { NutritionAnthropometryProgramForm } from '@/components/nutrition/NutritionAnthropometryProgramForm'
+import {
+  NutritionAnthropometryProgramForm,
+  type AnthropometryProgramDraft,
+} from '@/components/nutrition/NutritionAnthropometryProgramForm'
 import { NutritionAnthropometryPresentationPanel } from '@/components/nutrition/NutritionAnthropometryPresentationPanel'
 import {
   NutritionMeasurementHistoryList,
@@ -145,8 +148,10 @@ export function NutritionPatientDetailPage() {
   const [documents, setDocuments] = useState<NutritionPatientDocument[]>([])
   const [measurements, setMeasurements] = useState<NutritionMeasurement[]>([])
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null)
+  const [programDraft, setProgramDraft] = useState<AnthropometryProgramDraft>(null)
   const measurementsSorted = useMemo(() => sortMeasurementsDesc(measurements), [measurements])
   const measurementsCountRef = useRef(0)
+  const programFormRef = useRef<HTMLDivElement>(null)
   const [planText, setPlanText] = useState('')
   const [followup, setFollowup] = useState<NutritionPatientFollowup | null>(null)
   const [measurementForm, setMeasurementForm] = useState({
@@ -162,6 +167,27 @@ export function NutritionPatientDetailPage() {
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTone, setPdfTone] = useState<InterpretationTone>('empatico')
   const planDebounceRef = useRef<number | null>(null)
+
+  const scrollToProgramForm = useCallback(() => {
+    programFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  const handleEditMeasurement = useCallback(
+    (id: string) => {
+      setSelectedMeasurementId(id)
+      setProgramDraft({ mode: 'edit', measurementId: id })
+      scrollToProgramForm()
+    },
+    [scrollToProgramForm],
+  )
+
+  const handleCloneMeasurement = useCallback(
+    (id: string) => {
+      setProgramDraft({ mode: 'clone', measurementId: id })
+      scrollToProgramForm()
+    },
+    [scrollToProgramForm],
+  )
 
   const handleTabChange = useCallback(
     (next: string) => {
@@ -608,7 +634,7 @@ export function NutritionPatientDetailPage() {
         <TabPanel id="antropometria" active={activeTab}>
           <div className="space-y-6">
             <div className="grid xl:grid-cols-2 gap-6">
-              <Card>
+              <Card ref={programFormRef}>
                 <CardTitle className="mb-1">Programa de antropometría</CardTitle>
                 <p className="text-sm text-ink-muted mb-4">
                   Cargá las 5 mediciones por variable; la app calcula la mediana y el % error técnico (TE).
@@ -618,7 +644,12 @@ export function NutritionPatientDetailPage() {
                     ownerId={user.id}
                     student={student}
                     measurements={measurements}
-                    onSaved={() => refreshMeasurements()}
+                    draft={programDraft}
+                    onDraftClear={() => setProgramDraft(null)}
+                    onSaved={() => {
+                      setProgramDraft(null)
+                      void refreshMeasurements()
+                    }}
                   />
                 ) : null}
               </Card>
@@ -626,7 +657,8 @@ export function NutritionPatientDetailPage() {
               <Card>
                 <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
                 <p className="text-sm text-ink-muted mb-4">
-                  Peso, cintura y % grasa por fecha. Con una medición ves el valor; con dos o más, la evolución.
+                  Medianas de perímetros (cm) y pliegues (mm) del programa Holway por fecha. Solo se grafican las
+                  variables que cargaste en cada control.
                 </p>
                 <NutritionMeasurementCharts measurements={measurements} />
               </Card>
@@ -638,6 +670,8 @@ export function NutritionPatientDetailPage() {
                 measurements={measurementsSorted}
                 selectedId={selectedMeasurementId}
                 onSelect={setSelectedMeasurementId}
+                onEdit={handleEditMeasurement}
+                onClone={handleCloneMeasurement}
               />
             </Card>
 

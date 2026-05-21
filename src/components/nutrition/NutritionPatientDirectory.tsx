@@ -154,22 +154,22 @@ export function NutritionPatientDesktopTable({
 }) {
   return (
     <div className="hidden sm:block overflow-x-auto">
-      <table className="w-full text-body-sm border-collapse min-w-[800px]">
+      <table className="w-full border-collapse min-w-[720px]">
         <thead>
           <tr className="border-b border-surface-border bg-surface-elevated/30">
-            <th className="text-left px-4 py-3 text-table-head font-semibold text-ink-muted uppercase">
+            <th className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
               Paciente
             </th>
-            <th className="text-left px-4 py-3 text-table-head font-semibold text-ink-muted uppercase">
+            <th className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
               Última consulta
             </th>
-            <th className="text-left px-4 py-3 text-table-head font-semibold text-ink-muted uppercase">
+            <th className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
               Próxima consulta
             </th>
-            <th className="text-left px-4 py-3 text-table-head font-semibold text-ink-muted uppercase min-w-[10rem]">
+            <th className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
               Estado
             </th>
-            <th className="text-right px-4 py-3 text-table-head font-semibold text-ink-muted uppercase w-[1%] whitespace-nowrap">
+            <th className="w-[1%] whitespace-nowrap px-2 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-3">
               Acción
             </th>
           </tr>
@@ -181,62 +181,63 @@ export function NutritionPatientDesktopTable({
               <tr
                 key={row.id}
                 className={cn(
-                  'hover:bg-surface-elevated/30 transition-colors cursor-pointer',
+                  'group hh-row-drop-in cursor-pointer transition-colors hover:bg-surface-elevated/35',
                   index < rows.length - 1 && 'border-b border-surface-border',
                 )}
                 onClick={() => onOpen(row.id)}
               >
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-3 min-w-0">
+                <td className="px-4 py-2.5 sm:px-5">
+                  <div className="flex min-w-0 items-center gap-2">
                     <StudentAvatar
                       studentId={row.id}
                       fullName={row.full_name}
                       avatarPath={row.avatar_path}
-                      size="md2"
+                      size="xs"
                       stopRowNavigation
                       onPathChange={(path) => onAvatarChange(row.id, path)}
                     />
-                    <span className="font-semibold text-ink-primary hover:text-brand-primary truncate">
+                    <span className="min-w-0 truncate text-[13px] font-semibold leading-snug text-ink-primary group-hover:text-brand-secondary">
                       {row.full_name}
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                <td className="px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="date"
                     value={row.followup?.last_consultation_date ?? ''}
                     onChange={(e) =>
                       onUpdateFollowup(row.id, { last_consultation_date: e.target.value || null })
                     }
-                    className="w-full bg-surface-input text-ink-primary rounded-lg px-2.5 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-caption"
+                    className="h-8 w-full max-w-[10.5rem] rounded-md border border-surface-border bg-surface-input px-2 text-[12px] text-ink-primary outline-none focus:border-brand-secondary/50"
                   />
                 </td>
-                <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex flex-col gap-1">
+                <td className="px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex min-w-0 max-w-[12rem] items-center gap-2">
                     <input
                       type="date"
                       value={row.followup?.next_consultation_date ?? ''}
                       onChange={(e) =>
                         onUpdateFollowup(row.id, { next_consultation_date: e.target.value || null })
                       }
-                      className="w-full bg-surface-input text-ink-primary rounded-lg px-2.5 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-caption"
+                      className="h-8 min-w-0 flex-1 rounded-md border border-surface-border bg-surface-input px-2 text-[12px] text-ink-primary outline-none focus:border-brand-secondary/50"
                     />
                     {next.tone !== 'none' ? (
                       <span
                         className={cn(
-                          'text-caption font-medium',
+                          'hidden shrink-0 text-[10px] font-medium xl:inline',
                           next.tone === 'soon' && 'text-status-active',
                           next.tone === 'past' && 'text-status-expired',
                           next.tone === 'far' && 'text-ink-muted',
                         )}
+                        title={next.sub}
                       >
                         {next.sub}
                       </span>
                     ) : null}
                   </div>
                 </td>
-                <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex flex-wrap gap-1">
+                <td className="px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-nowrap items-center gap-1">
                     {STATUS_OPTIONS.map((s) => {
                       const active = (row.followup?.attendance_status ?? 'ST') === s
                       return (
@@ -245,8 +246,8 @@ export function NutritionPatientDesktopTable({
                           type="button"
                           onClick={() => onUpdateFollowup(row.id, { attendance_status: s })}
                           className={cn(
-                            'text-caption font-medium px-2.5 py-1 rounded-md border transition-colors',
-                            active ? ATTENDANCE_PILLS[s] : 'border-surface-border/60 text-ink-muted',
+                            'rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors whitespace-nowrap',
+                            active ? ATTENDANCE_PILLS[s] : 'border-surface-border/60 text-ink-muted hover:text-ink-secondary',
                           )}
                         >
                           {ATTENDANCE_LABELS[s]}
@@ -255,21 +256,17 @@ export function NutritionPatientDesktopTable({
                     })}
                   </div>
                 </td>
-                <td className="px-4 py-3.5 text-right">
-                  <Button
+                <td className="px-2 py-2.5 text-right sm:px-3">
+                  <button
                     type="button"
-                    size="sm"
-                    variant="outline"
-                    className="whitespace-nowrap"
-                    icon={<ChevronRight className="h-4 w-4" />}
-                    iconPosition="right"
+                    className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary transition-colors hover:border-brand-secondary/40 hover:text-brand-secondary"
                     onClick={(e) => {
                       e.stopPropagation()
                       onOpen(row.id)
                     }}
                   >
-                    Abrir
-                  </Button>
+                    Abrir <ChevronRight className="h-3 w-3" aria-hidden />
+                  </button>
                 </td>
               </tr>
             )

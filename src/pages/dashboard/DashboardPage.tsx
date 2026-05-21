@@ -77,6 +77,7 @@ interface Stats {
   activeMealPlans: number
   /** Turnos futuros del perfil entrenamiento (scheduled / confirmed). */
   pendingAppointments: number
+  /** Modelos en `nutrition_plan_library` (Planes de alimentación). */
   activeNutritionPlans: number
   nutritionDocuments: number
   /** Ingresos cobrados en el mes actual */
@@ -633,17 +634,15 @@ export function DashboardPage() {
       } else if (canSeeNutrition) {
         momPromises.push(
           supabase
-            .from('nutrition_plans')
+            .from('nutrition_plan_library')
             .select('id', { count: 'exact', head: true })
             .eq('owner_id', user!.id)
-            .in('status', ['activa', 'por_vencer'])
             .gte('created_at', mb.startThis)
             .lt('created_at', mb.startNext),
           supabase
-            .from('nutrition_plans')
+            .from('nutrition_plan_library')
             .select('id', { count: 'exact', head: true })
             .eq('owner_id', user!.id)
-            .in('status', ['activa', 'por_vencer'])
             .gte('created_at', mb.startPrev)
             .lt('created_at', mb.startThis),
           supabase
@@ -687,7 +686,7 @@ export function DashboardPage() {
               .gte('starts_at', appointmentsPendingFromISO)
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeNutrition
-          ? supabase.from('nutrition_plans').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
+          ? supabase.from('nutrition_plan_library').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeNutrition
           ? supabase.from('nutrition_patient_documents').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
@@ -1074,14 +1073,19 @@ export function DashboardPage() {
           ) : (
             <>
               <StatCard
-                title="Planes nutrición"
+                title="Planes base"
                 value={stats.activeNutritionPlans}
                 countUp
                 surface="gradient"
                 kpiFigmaIcon="nutrition-plans"
                 iconVariant="3d"
-                monthOverMonth={{ thisMonth: stats.momNutPlansThis, prevMonth: stats.momNutPlansPrev, scopeLabel: 'Planes nuevos' }}
-                onClick={() => navigate('/nutrition')}
+                subtitle="Biblioteca reusable"
+                monthOverMonth={{
+                  thisMonth: stats.momNutPlansThis,
+                  prevMonth: stats.momNutPlansPrev,
+                  scopeLabel: 'Nuevos en biblioteca',
+                }}
+                onClick={() => navigate('/nutrition/plans')}
               />
               <StatCard
                 title="PDFs antropometría"

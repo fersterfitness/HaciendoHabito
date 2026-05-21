@@ -45,7 +45,7 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
               'border-b-2 -mb-px',
               appFocusRingClassName,
               isActive
-                ? 'border-ink-primary text-ink-primary'
+                ? 'border-brand-secondary text-brand-secondary'
                 : 'border-transparent text-ink-muted hover:text-ink-secondary',
             )}
           >
@@ -53,7 +53,7 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
               <span
                 className={cn(
                   'shrink-0 [&_svg]:h-4 [&_svg]:w-4',
-                  isActive ? 'text-ink-primary' : 'text-ink-muted',
+                  isActive ? 'text-brand-secondary' : 'text-ink-muted',
                 )}
               >
                 {tab.icon}

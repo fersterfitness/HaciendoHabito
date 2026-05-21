@@ -8,8 +8,10 @@ import {
   normalizeWeeklyGrid,
   removeMealRowAt,
 } from '@/lib/nutrition/weeklyPlanGrid'
-import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
+
+const planFocusClassName =
+  'focus:border-brand-secondary focus:ring-1 focus:ring-brand-secondary/25 outline-none'
 
 interface Props {
   mergeWeekends: boolean
@@ -45,7 +47,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
       <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-ink-secondary">
         <input
           type="checkbox"
-          className={cn('rounded border-surface-inputBorder', trainerCtaFormAccentClassName)}
+          className="rounded border-surface-inputBorder accent-brand-secondary"
           checked={mergeWeekends}
           onChange={(e) => onMergeWeekendsChange(e.target.checked)}
         />
@@ -66,7 +68,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                   gridTemplateColumns: `minmax(120px, 150px) repeat(${cols}, minmax(110px, 1fr))`,
                 }}
               >
-                <div className="p-3 bg-brand-primary/5">
+                <div className="p-3 bg-brand-secondary/[0.06]">
                   <label className="flex items-center gap-1 text-[10px] uppercase text-ink-muted mb-1">
                     <Clock className="w-3 h-3" />
                     Comida
@@ -74,13 +76,13 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                   <input
                     value={meal.label}
                     onChange={(e) => updateMealField(mi, 'label', e.target.value)}
-                    className="w-full bg-surface-input border border-surface-inputBorder rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-brand-primary mb-2"
+                    className={cn('w-full bg-surface-input border border-surface-inputBorder rounded-lg px-2 py-1.5 text-sm font-medium mb-2', planFocusClassName)}
                   />
                   <input
                     value={meal.approxTime}
                     onChange={(e) => updateMealField(mi, 'approxTime', e.target.value)}
                     placeholder="~10:00"
-                    className="w-full bg-surface-input border border-surface-inputBorder rounded-lg px-2 py-1 text-xs text-ink-muted focus:outline-none focus:border-brand-primary mb-2"
+                    className={cn('w-full bg-surface-input border border-surface-inputBorder rounded-lg px-2 py-1 text-xs text-ink-muted mb-2', planFocusClassName)}
                   />
                   <button
                     type="button"
@@ -97,7 +99,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
 
                 {meal.columns.map((cell, ci) => (
                   <div key={ci} className="flex flex-col min-h-[8rem] bg-surface-input/40">
-                    <div className="text-[9px] font-semibold uppercase tracking-wide text-center py-1.5 bg-brand-primary/10 text-ink-primary dark:text-brand-primary border-b border-surface-border/80">
+                    <div className="text-[9px] font-semibold uppercase tracking-wide text-center py-1.5 bg-brand-secondary/10 text-brand-secondary border-b border-surface-border/80">
                       {days[ci]}
                     </div>
                     <textarea
@@ -105,7 +107,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                       onChange={(e) => updateCell(mi, ci, e.target.value)}
                       rows={7}
                       placeholder="Menú y orientaciones…"
-                      className="flex-1 w-full text-xs leading-snug px-2 py-2 bg-transparent resize-y min-h-[6rem] focus:outline-none focus:ring-1 focus:ring-brand-primary/30 border-0"
+                      className="flex-1 w-full text-xs leading-snug px-2 py-2 bg-transparent resize-y min-h-[6rem] focus:outline-none focus:ring-1 focus:ring-brand-secondary/30 border-0"
                     />
                   </div>
                 ))}
@@ -118,7 +120,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
       <button
         type="button"
         onClick={() => onGridChange(addMealRow(normalizeWeeklyGrid(grid, mergeWeekends), mergeWeekends))}
-        className="inline-flex items-center gap-2 text-sm font-medium text-brand-primary hover:underline"
+        className="inline-flex items-center gap-2 text-sm font-medium text-brand-secondary hover:underline"
       >
         <Plus className="w-4 h-4" />
         Agregar momento / comida

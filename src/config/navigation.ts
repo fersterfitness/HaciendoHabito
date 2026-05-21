@@ -16,6 +16,7 @@ import {
   UtensilsCrossed,
   Share2,
   ClipboardCheck,
+  Activity,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -32,6 +33,11 @@ export type SidebarBlock =
   | { kind: 'items'; items: NavItem[] }
   | { kind: 'section'; title: string; items: NavItem[] }
 
+export type NavSection = {
+  title: string
+  items: NavItem[]
+}
+
 export const NAV_HOME: NavItem = { label: 'Inicio', href: '/dashboard', icon: Home }
 
 export const NAV_APPOINTMENTS: NavItem = {
@@ -46,16 +52,21 @@ const NAV_STUDENT_MEAL_PLANS: NavItem = {
   icon: ClipboardList,
 }
 
-/** Entrenador / admin: núcleo operativo. «Hábitos» está en la ficha del alumno + /habits desde ahí (no sidebar). */
+/** Entrenamiento (sin planes de alimentación; esos van en «Alimentación»). */
 export const NAV_TRAINING_CORE: NavItem[] = [
   { label: 'Alumnos', href: '/students', icon: Users },
   { label: 'Rutinas', href: '/routines', icon: Dumbbell },
-  { label: 'Planes alimentación', href: '/meal-plans', icon: UtensilsCrossed },
   { label: 'Devoluciones', href: '/feedback', icon: MessageSquare },
   { label: 'Recursos (WA)', href: '/resources', icon: Share2 },
   { label: 'Check-ins', href: '/check-ins', icon: ClipboardCheck },
   { label: 'Ejercicios', href: '/exercises', icon: BookOpen },
 ]
+
+export const NAV_MEAL_PLANS: NavItem = {
+  label: 'Planes alimentación',
+  href: '/meal-plans',
+  icon: UtensilsCrossed,
+}
 
 export const NAV_FINANCE: NavItem[] = [{ label: 'Finanzas', href: '/finances', icon: Wallet }]
 
@@ -65,31 +76,27 @@ export const NAV_TRAINER_NUTRITION_GUIDE: NavItem[] = [
   { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
 ]
 
+/** Pacientes, evolución antropométrica y diagnóstico comparativo. */
+export const NAV_NUTRITION_PATIENT_ANTHRO: NavItem[] = [
+  { label: 'Pacientes', href: '/nutrition', icon: Users, exactMatch: true },
+  { label: 'Evolución', href: '/nutrition/evolution', icon: LineChart },
+  { label: 'Diagnóstico comparativo', href: '/nutrition-pdfs', icon: Activity },
+]
+
+/** Planes, menús y biblioteca de alimentos. */
+export const NAV_NUTRITION_FOOD: NavItem[] = [
+  { label: 'Menús estacionales', href: '/nutrition/menus', icon: Salad },
+  { label: 'Planes', href: '/nutrition/plans', icon: Library },
+  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
+  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
+]
+
+/** Lista plana legacy (admin / referencias externas). */
 export const NAV_NUTRITION: NavItem[] = [
   { label: 'Nutrición', href: '/nutrition', icon: Salad, exactMatch: true },
-  { label: 'Evolución', href: '/nutrition/evolution', icon: LineChart },
-  { label: 'Planes', href: '/nutrition/plans', icon: Library },
-  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
-  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
-  { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
+  ...NAV_NUTRITION_PATIENT_ANTHRO.slice(1),
+  ...NAV_NUTRITION_FOOD,
 ]
-
-/** Utilidades de nutrición visibles al nutricionista (sin duplicar Pacientes). */
-const NAV_NUTRITION_UTILITIES: NavItem[] = [
-  { label: 'Menús estacionales', href: '/nutrition/menus', icon: Salad },
-  { label: 'Evolución', href: '/nutrition/evolution', icon: LineChart },
-  { label: 'Planes', href: '/nutrition/plans', icon: Library },
-  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
-  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
-  { label: 'PDFs Nutrición', href: '/nutrition-pdfs', icon: FileText },
-]
-
-const NAV_NUTRITIONIST_PATIENTS: NavItem = {
-  label: 'Pacientes',
-  href: '/nutrition',
-  icon: Users,
-  exactMatch: true,
-}
 
 export function canSeeTraining(role: AppRole | undefined): boolean {
   return role === 'admin' || role === 'trainer'
@@ -99,97 +106,106 @@ export function canSeeNutrition(role: AppRole | undefined): boolean {
   return role === 'admin' || role === 'nutritionist'
 }
 
-/**
- * Bloques del sidebar desktop: misma semántica que el layout anterior,
- * con Pacientes visibles también en desktop para nutricionistas (aliné con mobile).
- */
-export function getSidebarBlocks(role: AppRole | undefined): SidebarBlock[] {
-  const blocks: SidebarBlock[] = []
-  blocks.push({ kind: 'items', items: [NAV_HOME, NAV_APPOINTMENTS] })
+export function navItemKey(item: NavItem): string {
+  return `${item.href}::${item.label}`
+}
 
+function flattenSections(sections: NavSection[]): NavItem[] {
+  return sections.flatMap((s) => s.items)
+}
+
+/**
+ * Secciones del menú por rol: Gestión (inicio/turnos/finanzas), Paciente/antropometría, Alimentación, Entrenamiento.
+ */
+export function getNavSections(role: AppRole | undefined): NavSection[] {
   if (role === 'student') {
-    blocks.push({
-      kind: 'section',
-      title: 'Tu entrenador',
-      items: [NAV_STUDENT_MEAL_PLANS],
-    })
-    return blocks
+    return [
+      { title: 'Gestión', items: [NAV_HOME, NAV_APPOINTMENTS] },
+      { title: 'Alimentación', items: [NAV_STUDENT_MEAL_PLANS] },
+    ]
   }
+
+  const sections: NavSection[] = [
+    { title: 'Gestión', items: [NAV_HOME, NAV_APPOINTMENTS] },
+  ]
 
   const showTraining = canSeeTraining(role)
   const showNutrition = canSeeNutrition(role)
 
-  if (showTraining || showNutrition) {
-    blocks.push({ kind: 'divider' })
-  }
-
   if (showTraining) {
-    blocks.push({ kind: 'items', items: NAV_TRAINING_CORE })
-    blocks.push({ kind: 'section', title: 'Finanzas', items: NAV_FINANCE })
+    sections.push({ title: 'Entrenamiento', items: [...NAV_TRAINING_CORE] })
   }
 
   if (role === 'trainer') {
-    blocks.push({
-      kind: 'section',
-      title: 'Nutrición (guía alumno)',
-      items: NAV_TRAINER_NUTRITION_GUIDE,
+    sections.push({
+      title: 'Alimentación',
+      items: [NAV_MEAL_PLANS, ...NAV_TRAINER_NUTRITION_GUIDE],
     })
+  } else if (showNutrition) {
+    const patientItems =
+      role === 'admin'
+        ? [
+            { label: 'Nutrición', href: '/nutrition', icon: Salad, exactMatch: true } as NavItem,
+            ...NAV_NUTRITION_PATIENT_ANTHRO.slice(1),
+          ]
+        : [...NAV_NUTRITION_PATIENT_ANTHRO]
+
+    sections.push({ title: 'Paciente y antropometría', items: patientItems })
+
+    const foodItems: NavItem[] = [...NAV_NUTRITION_FOOD]
+    if (showTraining) {
+      foodItems.unshift(NAV_MEAL_PLANS)
+    }
+    sections.push({ title: 'Alimentación', items: foodItems })
+  } else if (showTraining) {
+    sections.push({ title: 'Alimentación', items: [NAV_MEAL_PLANS] })
   }
 
-  if (role === 'nutritionist') {
-    blocks.push({ kind: 'items', items: [NAV_NUTRITIONIST_PATIENTS] })
-    blocks.push({ kind: 'section', title: 'Nutrición', items: NAV_NUTRITION_UTILITIES })
-    blocks.push({ kind: 'section', title: 'Finanzas', items: NAV_FINANCE })
-    return blocks
+  if (role !== 'student') {
+    sections.push({ title: 'Finanzas', items: [...NAV_FINANCE] })
   }
 
-  // Admin: ve todo (incluido el bloque histórico de Nutrición con su /nutrition propio)
-  if (showNutrition) {
-    blocks.push({ kind: 'section', title: 'Nutrición', items: NAV_NUTRITION })
-  }
+  return sections
+}
+
+/** Bloques del sidebar desktop (icon rail + separadores por sección). */
+export function getSidebarBlocks(role: AppRole | undefined): SidebarBlock[] {
+  const sections = getNavSections(role)
+  const blocks: SidebarBlock[] = []
+
+  sections.forEach((section, index) => {
+    if (index === 0) {
+      blocks.push({ kind: 'items', items: section.items })
+      return
+    }
+    blocks.push({ kind: 'section', title: section.title, items: section.items })
+  })
 
   return blocks
 }
 
-/** Dock inferior móvil por rol (orden y alcance existentes). */
-export function getMobileNavItems(role: AppRole | undefined): NavItem[] {
+const MAX_MOBILE_PRIMARY = 4
+
+/** Ítems fijos en la barra inferior móvil. */
+export function getMobileNavPrimaryItems(role: AppRole | undefined): NavItem[] {
   if (role === 'student') {
-    return [NAV_HOME, NAV_STUDENT_MEAL_PLANS, NAV_APPOINTMENTS]
-  }
-  if (role === 'admin') {
-    return [
-      NAV_HOME,
-      NAV_APPOINTMENTS,
-      NAV_TRAINING_CORE[0],
-      NAV_TRAINING_CORE[1],
-      { label: 'Planes', href: '/meal-plans', icon: UtensilsCrossed },
-      NAV_NUTRITION[0],
-      NAV_NUTRITION[3],
-      ...NAV_FINANCE,
-    ]
+    return [NAV_HOME, NAV_STUDENT_MEAL_PLANS, NAV_APPOINTMENTS].slice(0, MAX_MOBILE_PRIMARY)
   }
   if (role === 'nutritionist') {
-    return [
-      NAV_HOME,
-      NAV_APPOINTMENTS,
-      NAV_NUTRITIONIST_PATIENTS,
-      NAV_NUTRITION_UTILITIES[0], // Menús estacionales
-      NAV_NUTRITION_UTILITIES[3], // Armar plan de alimentación
-      ...NAV_FINANCE,
-    ]
+    return [NAV_HOME, NAV_APPOINTMENTS, NAV_NUTRITION_PATIENT_ANTHRO[0]!, NAV_NUTRITION_FOOD[0]!]
   }
-  // trainer (default) + admin-like sin duplicar rutas no usadas en mobile anterior
+  if (role === 'admin') {
+    return [NAV_HOME, NAV_APPOINTMENTS, NAV_TRAINING_CORE[0]!, NAV_NUTRITION_PATIENT_ANTHRO[0]!]
+  }
   return [
     NAV_HOME,
     NAV_APPOINTMENTS,
-    NAV_TRAINING_CORE[0],
-    NAV_TRAINING_CORE[1],
-    { label: 'Planes', href: '/meal-plans', icon: UtensilsCrossed },
-    NAV_TRAINER_NUTRITION_GUIDE[0],
-    NAV_TRAINER_NUTRITION_GUIDE[1],
-    ...NAV_FINANCE,
-    NAV_TRAINING_CORE[3], // Devoluciones
-    NAV_TRAINING_CORE[4],
-    NAV_TRAINING_CORE[5],
+    NAV_TRAINING_CORE[0]!,
+    NAV_TRAINING_CORE[1]!,
   ]
+}
+
+/** Lista plana; orden = secciones de `getNavSections`. */
+export function getMobileNavItems(role: AppRole | undefined): NavItem[] {
+  return flattenSections(getNavSections(role))
 }

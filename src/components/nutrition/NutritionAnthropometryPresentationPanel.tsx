@@ -59,7 +59,7 @@ export function NutritionAnthropometryPresentationPanel({
           <td className="px-2 py-1.5 text-ink-secondary">{r.label}</td>
           <td className="px-2 py-1.5 tabular-nums text-ink-primary">{r.resultado}</td>
           <td className="px-2 py-1.5 tabular-nums text-ink-primary">{r.valorAjustado}</td>
-          <td className="px-2 py-1.5 tabular-nums text-brand-primary">{r.diffVsAnterior}</td>
+          <td className="px-2 py-1.5 tabular-nums text-brand-secondary">{r.diffVsAnterior}</td>
           <td className="px-2 py-1.5 text-ink-muted">{r.scoreZ}</td>
         </tr>,
       )
@@ -123,7 +123,14 @@ export function NutritionAnthropometryPresentationPanel({
               : ' · Sin control anterior para diferencias'}
           </p>
         </div>
-        <Button type="button" size="sm" variant="secondary" icon={<Download className="h-4 w-4" />} loading={exporting} onClick={() => void exportPdf()}>
+        <Button
+          type="button"
+          size="sm"
+          variant="gradientSecondary"
+          icon={<Download className="h-4 w-4" />}
+          loading={exporting}
+          onClick={() => void exportPdf()}
+        >
           Descargar PDF
         </Button>
       </div>

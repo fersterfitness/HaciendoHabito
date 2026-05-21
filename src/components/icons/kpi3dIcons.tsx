@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils'
 
 export type Kpi3dIconId =
   | 'patients'
+  | 'calendar'
+  | 'overdue'
+  | 'attended'
   | 'routines'
   | 'meal-plans'
   | 'nutrition-plans'
@@ -17,6 +20,9 @@ export type KpiFigmaIconId = Kpi3dIconId
 
 const KPI_3D_SRC: Record<Kpi3dIconId, string> = {
   patients: '/icons/3dicons/kpi/patients.png',
+  calendar: '/icons/3dicons/kpi/calendar.png',
+  overdue: '/icons/3dicons/kpi/overdue.png',
+  attended: '/icons/3dicons/kpi/attended.png',
   routines: '/icons/3dicons/kpi/routines.png',
   'meal-plans': '/icons/3dicons/kpi/meal-plans.png',
   'nutrition-plans': '/icons/3dicons/kpi/nutrition-plans.png',

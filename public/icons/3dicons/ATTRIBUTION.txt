@@ -3,6 +3,9 @@ License: CC0 1.0 Universal — free for personal and commercial use.
 Metadata: github.com/realvjy/3dicons (content/3dicons-meta)
 
 kpi/patients.png       — custom (3dicons-style thumbs up), alumnos / pacientes activos
+kpi/calendar.png       — custom (calendario 3D), próx. 7 días nutrición
+kpi/overdue.png        — custom (fantasma 3D), atrasados nutrición
+kpi/attended.png       — custom (corazón 3D), asistieron (último) nutrición
 kpi/routines.png       — gym-dynamic-color (rutinas vigentes)
 kpi/meal-plans.png     — takeaway-cup-dynamic-color (planes alimentación)
 kpi/nutrition-plans.png — calender-dynamic-color (planes nutrición)

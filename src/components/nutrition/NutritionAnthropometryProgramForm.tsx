@@ -7,6 +7,11 @@ import {
   buildBasicAnthroPrefill,
 } from '@/lib/nutrition/anthropometryMetaDefaults'
 import {
+  measurementToFormState,
+  nextMeasurementNumber,
+  type AnthropometryFormInputs,
+} from '@/lib/nutrition/anthropometryFormState'
+import {
   ANTHRO_BASIC_KEYS,
   ANTHRO_DIAMETER_KEYS,
   ANTHRO_PERIMETER_KEYS,
@@ -24,9 +29,9 @@ import {
 } from '@/lib/nutrition/anthropometryProgramModel'
 import toast from 'react-hot-toast'
 
-function emptyInputs(): Record<AnthropometryVariableKey, [string, string, string, string, string]> {
+function emptyInputs(): AnthropometryFormInputs {
   const z: [string, string, string, string, string] = ['', '', '', '', '']
-  const o = {} as Record<AnthropometryVariableKey, [string, string, string, string, string]>
+  const o = {} as AnthropometryFormInputs
   for (const k of [...ANTHRO_BASIC_KEYS, ...ANTHRO_DIAMETER_KEYS, ...ANTHRO_PERIMETER_KEYS, ...ANTHRO_SKINFOLD_KEYS]) {
     o[k] = [...z]
   }
@@ -35,7 +40,7 @@ function emptyInputs(): Record<AnthropometryVariableKey, [string, string, string
 
 function inputsWithBasicPrefill(
   prefill: ReturnType<typeof buildBasicAnthroPrefill>,
-): Record<AnthropometryVariableKey, [string, string, string, string, string]> {
+): AnthropometryFormInputs {
   const base = emptyInputs()
   const put = (key: AnthropometryVariableKey, v: number | null | undefined) => {
     if (v == null || !Number.isFinite(v)) return
@@ -74,22 +79,31 @@ function SeriesRow({
           className="w-full min-w-0 rounded-lg border border-surface-inputBorder bg-surface-input px-1.5 py-1 text-[11px] text-ink-primary"
         />
       ))}
-      <span className="text-right text-[11px] font-medium text-brand-primary tabular-nums">
+      <span className="text-right text-[11px] font-medium text-brand-secondary tabular-nums">
         {median == null ? '—' : median}
       </span>
     </div>
   )
 }
 
+export type AnthropometryProgramDraft =
+  | { mode: 'edit'; measurementId: string }
+  | { mode: 'clone'; measurementId: string }
+  | null
+
 export function NutritionAnthropometryProgramForm({
   ownerId,
   student,
   measurements,
+  draft,
+  onDraftClear,
   onSaved,
 }: {
   ownerId: string
   student: Student
   measurements: NutritionMeasurement[]
+  draft?: AnthropometryProgramDraft
+  onDraftClear?: () => void
   onSaved: () => void | Promise<void>
 }) {
   const studentId = student.id
@@ -116,10 +130,27 @@ export function NutritionAnthropometryProgramForm({
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setMeta(defaults.meta)
-    setInputs(defaults.inputs)
-    setMeasuredAt(new Date().toISOString().slice(0, 10))
-  }, [defaults])
+    if (!draft) {
+      setMeta(defaults.meta)
+      setInputs(defaults.inputs)
+      setMeasuredAt(new Date().toISOString().slice(0, 10))
+      return
+    }
+    const source = measurements.find((m) => m.id === draft.measurementId)
+    if (!source) return
+    const loaded = measurementToFormState(source)
+    setInputs(loaded.inputs)
+    if (draft.mode === 'clone') {
+      setMeasuredAt(new Date().toISOString().slice(0, 10))
+      setMeta({
+        ...loaded.meta,
+        measurement_number: nextMeasurementNumber(measurements),
+      })
+    } else {
+      setMeasuredAt(loaded.measuredAt)
+      setMeta(loaded.meta)
+    }
+  }, [draft, defaults, measurements])
 
   function setCell(key: AnthropometryVariableKey, idx: number, v: string) {
     setInputs((prev) => {
@@ -161,10 +192,7 @@ export function NutritionAnthropometryProgramForm({
       medians,
     }
 
-    setSaving(true)
-    const { error } = await supabase.from('nutrition_measurements').insert({
-      owner_id: ownerId,
-      student_id: studentId,
+    const row = {
       measured_at: measuredAt,
       measurement_number: meta.measurement_number ?? null,
       weight_kg: weight,
@@ -177,18 +205,64 @@ export function NutritionAnthropometryProgramForm({
       skinfolds_notes: skinfolds || null,
       notes: null,
       detail: detail as unknown as Json,
-    })
+    }
+
+    setSaving(true)
+    let error: { message: string } | null = null
+    if (draft?.mode === 'edit') {
+      const res = await supabase
+        .from('nutrition_measurements')
+        .update(row)
+        .eq('id', draft.measurementId)
+        .eq('owner_id', ownerId)
+        .eq('student_id', studentId)
+      error = res.error
+    } else {
+      const res = await supabase.from('nutrition_measurements').insert({
+        owner_id: ownerId,
+        student_id: studentId,
+        ...row,
+      })
+      error = res.error
+    }
     setSaving(false)
     if (error) {
       toast.error(error.message)
       return
     }
-    toast.success('Medición del programa guardada')
+    toast.success(
+      draft?.mode === 'edit'
+        ? 'Control actualizado'
+        : draft?.mode === 'clone'
+          ? 'Control clonado y guardado'
+          : 'Medición del programa guardada',
+    )
+    onDraftClear?.()
     await onSaved()
   }
 
+  const draftLabel =
+    draft?.mode === 'edit'
+      ? 'Editando control seleccionado'
+      : draft?.mode === 'clone'
+        ? 'Clonando control — se guardará como medición nueva'
+        : null
+
   return (
     <div className="space-y-5">
+      {draftLabel ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-secondary/30 bg-brand-secondary/10 px-3 py-2">
+          <p className="text-xs font-medium text-brand-secondary">{draftLabel}</p>
+          <button
+            type="button"
+            onClick={() => onDraftClear?.()}
+            className="text-xs font-medium text-ink-muted hover:text-ink-primary underline-offset-2 hover:underline"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : null}
+
       <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-3 space-y-3">
         <SectionTitle>Datos generales (como en el Excel)</SectionTitle>
         <p className="text-[10px] text-ink-muted leading-relaxed -mt-1">
@@ -322,9 +396,26 @@ export function NutritionAnthropometryProgramForm({
         otro método.
       </p>
 
-      <Button type="button" size="sm" onClick={() => void handleSave()} loading={saving}>
-        Guardar control del programa
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="gradientSecondary"
+          onClick={() => void handleSave()}
+          loading={saving}
+        >
+          {draft?.mode === 'edit'
+            ? 'Guardar cambios'
+            : draft?.mode === 'clone'
+              ? 'Guardar clon'
+              : 'Guardar control del programa'}
+        </Button>
+        {draft ? (
+          <Button type="button" size="sm" variant="outline" onClick={() => onDraftClear?.()} disabled={saving}>
+            Descartar
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }

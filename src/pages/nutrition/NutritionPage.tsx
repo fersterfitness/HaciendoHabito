@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns'
-import { BookOpen, CalendarClock, FolderOpen, LineChart, Plus, Search } from 'lucide-react'
+import { BookOpen, LineChart, Plus, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
@@ -123,21 +123,21 @@ export function NutritionPage() {
             {
               label: 'Próx. 7 días',
               value: stats.upcomingWeek,
-              lucideIcon: CalendarClock,
+              kpiFigmaIcon: 'calendar',
               iconVariant: '3d',
               tone: 'neutral',
             },
             {
               label: 'Atrasados',
               value: stats.overdue,
-              lucideIcon: CalendarClock,
+              kpiFigmaIcon: 'overdue',
               iconVariant: '3d',
               tone: 'neutral',
             },
             {
               label: 'Asistieron (último)',
               value: stats.attended,
-              lucideIcon: FolderOpen,
+              kpiFigmaIcon: 'attended',
               iconVariant: '3d',
               tone: 'neutral',
             },

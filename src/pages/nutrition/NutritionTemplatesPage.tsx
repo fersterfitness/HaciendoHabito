@@ -1,12 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Trash2, Pencil, Plus, Check, Copy, Search, BookOpen, FileText } from 'lucide-react'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
+import {
+  Trash2,
+  Pencil,
+  Plus,
+  Check,
+  Copy,
+  Search,
+  BookOpen,
+  FileText,
+  X,
+  CalendarDays,
+  Target,
+  Layers,
+} from 'lucide-react'
 import { Header } from '@/components/layout/Header'
-import { Card, CardTitle } from '@/components/ui/Card'
+import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
+import { DirectoryStatGrid } from '@/components/directory/DirectoryStatGrid'
+import { DirectoryTableShell } from '@/components/directory/DirectoryTableShell'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
-import { Spinner } from '@/components/ui/Spinner'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -15,8 +32,17 @@ import {
   reshapeGrid,
   type WeeklyPlanGridJson,
 } from '@/lib/nutrition/weeklyPlanGrid'
+import { cn } from '@/lib/utils'
 import type { NutritionPlanLibrary } from '@/types/database'
 import toast from 'react-hot-toast'
+
+function relativeUpdated(iso: string): string {
+  try {
+    return formatDistanceToNow(parseISO(iso), { addSuffix: true, locale: es })
+  } catch {
+    return '—'
+  }
+}
 
 export function NutritionTemplatesPage() {
   const { user } = useAuthStore()
@@ -31,6 +57,7 @@ export function NutritionTemplatesPage() {
   const [mergeWeekends, setMergeWeekends] = useState(true)
   const [grid, setGrid] = useState<WeeklyPlanGridJson>(() => createEmptyWeeklyGrid(true))
   const saveTimer = useRef<number | null>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -72,8 +99,14 @@ export function NutritionTemplatesPage() {
         if (error) toast.error(error.message)
       }, 880)
     },
-    [user, editingId, draftObjective, draftNotes]
+    [user, editingId, draftObjective, draftNotes],
   )
+
+  const scrollToEditor = useCallback(() => {
+    requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [])
 
   async function createPlan() {
     if (!user) return
@@ -107,6 +140,7 @@ export function NutritionTemplatesPage() {
     setGrid(normalizeWeeklyGrid(row.grid, row.merge_weekends))
     setNewName('')
     toast.success('Plan creado')
+    scrollToEditor()
   }
 
   function openEditor(t: NutritionPlanLibrary) {
@@ -117,6 +151,7 @@ export function NutritionTemplatesPage() {
     const mw = t.merge_weekends
     setMergeWeekends(mw)
     setGrid(normalizeWeeklyGrid(t.grid, mw))
+    scrollToEditor()
   }
 
   function closeEditor() {
@@ -196,54 +231,98 @@ export function NutritionTemplatesPage() {
     return plans.filter((p) => p.name.toLowerCase().includes(q) || (p.objective ?? '').toLowerCase().includes(q))
   }, [plans, search])
 
+  const stats = useMemo(() => {
+    const withObjective = plans.filter((p) => (p.objective ?? '').trim().length > 0).length
+    const mergedWeekends = plans.filter((p) => p.merge_weekends).length
+    return { total: plans.length, withObjective, mergedWeekends }
+  }, [plans])
+
+  const editingPlan = useMemo(
+    () => (editingId ? plans.find((p) => p.id === editingId) : null),
+    [editingId, plans],
+  )
+
   return (
     <div>
       <Header title="Planes de alimentación" />
-      <div className="px-4 lg:px-6 py-6 space-y-6 max-w-6xl mx-auto">
-        <Card>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
-                <BookOpen className="h-5 w-5" />
-              </span>
-              <div>
-                <CardTitle className="mb-1">Nuevo plan base</CardTitle>
-                <p className="text-sm text-ink-muted">
-                  Biblioteca reusable: creá un plan modelo y luego importalo en cualquier paciente.
-                </p>
-              </div>
+
+      <DirectoryPageShell className="space-y-5">
+        {/* Hero crear */}
+        <section
+          className={cn(
+            'relative overflow-hidden rounded-xl border border-brand-secondary/20',
+            'bg-gradient-to-br from-brand-secondary/[0.1] via-brand-secondary/[0.04] to-transparent',
+            'px-4 py-3 sm:px-5 sm:py-3.5',
+          )}
+        >
+          <div
+            className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-brand-secondary/8 blur-2xl"
+            aria-hidden
+          />
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-brand-secondary/90">
+                Biblioteca reusable
+              </p>
+              <h2 className="text-sm font-semibold text-ink-primary">
+                Nuevo plan base
+              </h2>
+              <p className="max-w-md text-xs text-ink-muted leading-snug">
+                Modelá la grilla una vez e importala en pacientes.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2 items-center shrink-0">
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Nombre opcional…"
-                className="rounded-xl bg-surface-input border border-surface-inputBorder px-3 py-2 text-sm min-w-[14rem] focus:outline-none focus:border-brand-primary"
+                onKeyDown={(e) => e.key === 'Enter' && void createPlan()}
+                placeholder="Nombre (opcional)"
+                className={cn(
+                  'h-9 w-full min-w-0 rounded-lg border border-surface-border/80 bg-surface-card/80 px-3 text-sm text-ink-primary',
+                  'placeholder:text-ink-muted outline-none transition-shadow',
+                  'focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/15 sm:min-w-[12rem]',
+                )}
               />
               <Button
                 type="button"
+                size="sm"
                 variant="gradientSecondary"
-                icon={<Plus className="h-4 w-4" />}
-                onClick={() => createPlan()}
+                icon={<Plus className="h-3.5 w-3.5" />}
+                onClick={() => void createPlan()}
+                className="shrink-0"
               >
                 Crear plan
               </Button>
             </div>
           </div>
-        </Card>
+        </section>
 
-        <div>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-ink-primary">Biblioteca de planes</h2>
-              <p className="text-xs text-ink-muted">
-                {plans.length} {plans.length === 1 ? 'plan guardado' : 'planes guardados'}
-                {search ? ` · ${filteredPlans.length} coinciden` : ''}
-              </p>
-            </div>
-            <div className="min-w-[16rem]">
+        <DirectoryStatGrid
+          items={[
+            { label: 'Planes guardados', value: stats.total, lucideIcon: BookOpen, tone: 'neutral' },
+            { label: 'Con objetivo', value: stats.withObjective, lucideIcon: Target, tone: 'info' },
+            {
+              label: 'Sáb–dom unidos',
+              value: stats.mergedWeekends,
+              lucideIcon: CalendarDays,
+              tone: 'neutral',
+            },
+          ]}
+        />
+
+        <DirectoryTableShell
+          title="Biblioteca de planes"
+          subtitle={
+            search
+              ? `${filteredPlans.length} coincidencias de ${plans.length}`
+              : 'Clic en una fila para editar la grilla'
+          }
+          count={filteredPlans.length}
+        >
+          <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/20 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+            <div className="min-w-0 flex-1">
               <Input
-                placeholder="Buscar plan u objetivo…"
+                placeholder="Buscar por nombre u objetivo…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="h-4 w-4" />}
@@ -252,151 +331,272 @@ export function NutritionTemplatesPage() {
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" accent="trainerCta" />
+            <div className="px-4 py-6 sm:px-5">
+              <TableSkeleton rows={4} cols={4} />
             </div>
           ) : filteredPlans.length === 0 ? (
-            plans.length === 0 ? (
-              <EmptyState
-                icon={<BookOpen className="h-8 w-8" />}
-                title="Sin planes guardados"
-                description="Creá tu primer plan base desde el formulario de arriba."
-              />
-            ) : (
-              <EmptyState
-                icon={<Search className="h-8 w-8" />}
-                title={`Sin resultados para "${search}"`}
-                description="Probá con otro nombre o limpiá el buscador."
-              />
-            )
+            <div className="px-4 py-10 sm:px-5">
+              {plans.length === 0 ? (
+                <EmptyState
+                  icon={<BookOpen className="h-8 w-8" />}
+                  title="Sin planes guardados"
+                  description="Creá tu primer plan con el botón de arriba."
+                />
+              ) : (
+                <EmptyState
+                  icon={<Search className="h-8 w-8" />}
+                  title={`Sin resultados para «${search}»`}
+                  description="Probá otro término o limpiá el buscador."
+                />
+              )}
+            </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredPlans.map((t) => (
-                <div
-                  key={t.id}
-                  className="group flex flex-col rounded-2xl border border-surface-border/80 bg-surface-card p-4 hover:border-brand-primary/30 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15">
-                      <FileText className="h-3 w-3" />
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-surface-border/80 bg-surface-elevated/40">
+                    <th className="w-[1%] px-3 py-3 sm:px-4" aria-hidden />
+                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                       Plan
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => deletePlan(t.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md text-ink-muted hover:text-status-expired hover:bg-status-expired/10"
-                      title="Eliminar plan"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <p className="text-sm font-semibold text-ink-primary mb-1 leading-tight">{t.name}</p>
-                  {t.objective ? (
-                    <p className="text-xs text-ink-secondary mb-1.5 leading-snug line-clamp-2">{t.objective}</p>
-                  ) : (
-                    <p className="text-xs text-ink-muted italic mb-1.5">Sin objetivo definido</p>
-                  )}
-                  <p className="text-[11px] text-ink-muted mt-auto pt-3 border-t border-surface-border/60">
-                    Actualizado {new Date(t.updated_at).toLocaleDateString('es-AR')}
-                  </p>
-
-                  <div className="mt-3 flex gap-1.5">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      icon={<Pencil className="w-3.5 h-3.5" />}
-                      onClick={() => openEditor(t)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      icon={<Copy className="w-3.5 h-3.5" />}
-                      onClick={() => clonePlan(t)}
-                    >
-                      Clonar
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                    </th>
+                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+                      Objetivo
+                    </th>
+                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+                      Grilla
+                    </th>
+                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+                      Actualizado
+                    </th>
+                    <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPlans.map((t) => {
+                    const active = editingId === t.id
+                    return (
+                      <tr
+                        key={t.id}
+                        className={cn(
+                          'group cursor-pointer transition-[background-color,box-shadow] duration-150',
+                          active
+                            ? 'bg-brand-secondary/[0.09] shadow-[inset_3px_0_0_0_rgb(var(--brand-secondary))]'
+                            : 'hover:bg-surface-elevated/35',
+                          'border-b border-surface-border/60 last:border-b-0',
+                        )}
+                        onClick={() => openEditor(t)}
+                      >
+                        <td className="px-2 py-3 sm:px-3">
+                          <span
+                            className={cn(
+                              'block h-8 w-1 rounded-full transition-colors',
+                              active ? 'bg-brand-secondary' : 'bg-transparent group-hover:bg-brand-secondary/35',
+                            )}
+                            aria-hidden
+                          />
+                        </td>
+                        <td className="px-3 py-3 sm:px-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span
+                              className={cn(
+                                'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors',
+                                active
+                                  ? 'border-brand-secondary/35 bg-brand-secondary/15 text-brand-secondary'
+                                  : 'border-surface-border/70 bg-surface-elevated/50 text-ink-muted group-hover:text-brand-secondary',
+                              )}
+                            >
+                              <FileText className="h-4 w-4" aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <p
+                                className={cn(
+                                  'truncate text-sm font-semibold',
+                                  active ? 'text-brand-secondary' : 'text-ink-primary',
+                                )}
+                              >
+                                {t.name}
+                              </p>
+                              {active ? (
+                                <p className="text-[10px] font-medium text-brand-secondary/80 mt-0.5">
+                                  Editando ahora
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="max-w-[14rem] px-3 py-3 sm:max-w-xs sm:px-4">
+                          {t.objective ? (
+                            <p className="line-clamp-2 text-sm leading-snug text-ink-secondary">{t.objective}</p>
+                          ) : (
+                            <span className="text-sm text-ink-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 sm:px-4">
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-medium',
+                              t.merge_weekends
+                                ? 'border-brand-tertiary/30 bg-brand-tertiary/10 text-brand-tertiary'
+                                : 'border-surface-border/80 bg-surface-elevated/40 text-ink-muted',
+                            )}
+                          >
+                            <Layers className="h-3 w-3 shrink-0" aria-hidden />
+                            {t.merge_weekends ? 'Lun–vie + finde' : '7 días'}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 sm:px-4">
+                          <p className="text-sm tabular-nums text-ink-secondary">
+                            {new Date(t.updated_at).toLocaleDateString('es-AR', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </p>
+                          <p className="text-[10px] text-ink-muted mt-0.5">{relativeUpdated(t.updated_at)}</p>
+                        </td>
+                        <td className="px-2 py-2.5 sm:px-3" onClick={(e) => e.stopPropagation()}>
+                          <div
+                            className={cn(
+                              'flex items-center justify-end gap-0.5 rounded-xl border border-surface-border/60',
+                              'bg-surface-card/60 p-0.5 transition-opacity',
+                              'opacity-70 group-hover:opacity-100',
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => openEditor(t)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-brand-secondary/12 hover:text-brand-secondary"
+                              title="Editar"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void clonePlan(t)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-brand-tertiary/12 hover:text-brand-tertiary"
+                              title="Clonar"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void deletePlan(t.id)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
+        </DirectoryTableShell>
 
-        {editingId && (
-          <Card>
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div className="flex flex-wrap gap-3 items-center">
-                <CardTitle>Editar plan base</CardTitle>
-                <label className="text-xs text-ink-secondary flex gap-2 items-center">
-                  Nombre
+        {editingId && editingPlan ? (
+          <section
+            ref={editorRef}
+            className={cn(
+              'overflow-hidden rounded-2xl border border-brand-secondary/30',
+              'bg-surface-card shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.35)]',
+            )}
+          >
+            <div className="border-b border-surface-border/70 bg-gradient-to-r from-brand-secondary/[0.12] via-transparent to-brand-tertiary/[0.06] px-4 py-4 sm:px-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-secondary">
+                      Editor de plan
+                    </span>
+                    <span className="rounded-md border border-brand-secondary/25 bg-brand-secondary/10 px-2 py-0.5 text-[10px] font-medium text-brand-secondary">
+                      Autoguardado en grilla
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      className={cn(
+                        'min-w-0 flex-1 rounded-xl border border-surface-border/80 bg-surface-card px-3 py-2',
+                        'text-base font-semibold text-ink-primary outline-none sm:min-w-[14rem] sm:text-lg',
+                        'focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20',
+                      )}
+                      aria-label="Nombre del plan"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void renameNow()}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border/80 text-ink-secondary transition-colors hover:border-brand-secondary/40 hover:text-brand-secondary"
+                      title="Guardar nombre y metadatos"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEditor}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-surface-border/80 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                  aria-label="Cerrar editor"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-medium text-ink-secondary">
+                  Objetivo del plan
                   <input
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                    className="rounded-xl bg-surface-input border border-surface-inputBorder px-2 py-1 text-sm min-w-[12rem]"
+                    value={draftObjective}
+                    onChange={(e) => {
+                      setDraftObjective(e.target.value)
+                      persistDraft({ name: draftName, mergeWeekends, grid })
+                    }}
+                    placeholder="Ej: Recomp. corporal, mantenimiento…"
+                    className="mt-1.5 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/15"
                   />
-                  <button
-                    type="button"
-                    onClick={() => renameNow()}
-                    className="p-2 rounded-lg border border-surface-border hover:border-brand-primary/50 text-ink-secondary"
-                  >
-                    <Check className="w-4 h-4" />
-                  </button>
+                </label>
+                <label className="block text-xs font-medium text-ink-secondary sm:col-span-2">
+                  Notas generales
+                  <textarea
+                    value={draftNotes}
+                    onChange={(e) => {
+                      setDraftNotes(e.target.value)
+                      persistDraft({ name: draftName, mergeWeekends, grid })
+                    }}
+                    rows={2}
+                    className="mt-1.5 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/15"
+                  />
                 </label>
               </div>
-              <button type="button" onClick={closeEditor} className="text-sm text-brand-primary hover:underline">
-                Cerrar
-              </button>
+
+              <WeeklyPlanGridFields
+                mergeWeekends={mergeWeekends}
+                grid={grid}
+                onMergeWeekendsChange={toggleMergeWeekendsTemplate}
+                onGridChange={(next) => {
+                  const normalized = normalizeWeeklyGrid(next, mergeWeekends)
+                  setGrid(normalized)
+                  persistDraft({ name: draftName, mergeWeekends, grid: normalized })
+                }}
+              />
+
+              <p className="text-xs text-ink-muted leading-relaxed rounded-xl border border-surface-border/60 bg-surface-elevated/30 px-3 py-2.5">
+                Los cambios de la grilla se guardan solos al dejar de editar. Después importá este plan en la ficha
+                del paciente para generar su versión clínica.
+              </p>
             </div>
-            <div className="grid md:grid-cols-2 gap-3 mb-4">
-              <label className="text-xs text-ink-secondary">
-                Objetivo del plan
-                <input
-                  value={draftObjective}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setDraftObjective(v)
-                    persistDraft({ name: draftName, mergeWeekends, grid })
-                  }}
-                  placeholder="Ej: Recomp. corporal, mantenimiento..."
-                  className="mt-1 rounded-xl bg-surface-input border border-surface-inputBorder px-2.5 py-2 text-sm w-full"
-                />
-              </label>
-              <label className="text-xs text-ink-secondary md:col-span-2">
-                Notas generales
-                <textarea
-                  value={draftNotes}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setDraftNotes(v)
-                    persistDraft({ name: draftName, mergeWeekends, grid })
-                  }}
-                  rows={2}
-                  className="mt-1 rounded-xl bg-surface-input border border-surface-inputBorder px-2.5 py-2 text-sm w-full"
-                />
-              </label>
-            </div>
-            <WeeklyPlanGridFields
-              mergeWeekends={mergeWeekends}
-              grid={grid}
-              onMergeWeekendsChange={toggleMergeWeekendsTemplate}
-              onGridChange={(next) => {
-                const normalized = normalizeWeeklyGrid(next, mergeWeekends)
-                setGrid(normalized)
-                persistDraft({ name: draftName, mergeWeekends, grid: normalized })
-              }}
-            />
-            <p className="text-xs text-ink-muted mt-4">
-              Los cambios de grilla se guardan al pausar la edición. Este plan luego se importa al paciente y genera una versión clínica.
-            </p>
-          </Card>
-        )}
-      </div>
+          </section>
+        ) : null}
+      </DirectoryPageShell>
     </div>
   )
 }
