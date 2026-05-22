@@ -14,25 +14,39 @@ import { getSidebarBlocks } from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
-const RAIL_W = 'w-[56px]'
+const RAIL_W = 'w-[52px]'
+const RAIL_ITEM = 'size-[32px] rounded-lg'
 
-/** Contenido visual del tooltip (pastilla + caret, estilo Gray). */
+const railFocusRing = cn(
+  'focus-visible:ring-2 focus-visible:ring-brand-secondary/35 focus-visible:ring-offset-2',
+  'focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+)
+
+/** Activo: acento secondary sutil en ambos temas. */
+const railNavActiveClassName = cn(
+  'bg-brand-secondary/12 text-brand-secondary shadow-[inset_0_0_0_1px_rgb(var(--brand-secondary)/0.22)]',
+  'dark:bg-brand-secondary/16 dark:shadow-[inset_0_0_0_1px_rgb(var(--brand-secondary)/0.28)]',
+)
+
+const railNavIdleClassName = cn(
+  'text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-900',
+  'dark:text-white/40 dark:hover:bg-brand-secondary/10 dark:hover:text-white/90',
+)
+
+const railNavBaseTransition = 'transition-[color,background-color,box-shadow] duration-150 ease-out'
+
+/** Tooltip compacto alineado al acento secondary. */
 function RailTooltipBubble({ label }: { label: string }) {
   return (
-    <span className="inline-flex max-w-full flex-row items-center">
-      <span
-        aria-hidden
-        className="h-0 w-0 shrink-0 border-y-[6px] border-y-transparent border-r-[7px] border-r-white drop-shadow-sm"
-      />
-      <span
-        className={cn(
-          '-ml-px min-w-0 max-w-[min(16rem,calc(100vw-5rem))] rounded-full bg-white px-3.5 py-1.5 text-left text-xs font-semibold',
-          'tracking-tight text-zinc-900 shadow-[0_4px_16px_rgba(0,0,0,0.14)]',
-          'whitespace-normal leading-snug break-words [overflow-wrap:anywhere]',
-        )}
-      >
-        {label}
-      </span>
+    <span
+      className={cn(
+        'inline-block max-w-[min(14rem,calc(100vw-4.5rem))] truncate rounded-md px-2.5 py-1',
+        'border border-surface-border/90 bg-surface-card text-[11px] font-medium leading-snug tracking-tight text-ink-primary',
+        'shadow-card-md',
+        'dark:border-brand-secondary/25 dark:bg-zinc-950/95 dark:text-white/90 dark:shadow-[0_6px_20px_rgba(0,0,0,0.4)]',
+      )}
+    >
+      {label}
     </span>
   )
 }
@@ -50,7 +64,7 @@ function SidebarRailTooltip({ label, children }: { label: string; children: Reac
     const el = triggerRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    setPos({ top: r.top + r.height / 2, left: r.right + 10 })
+    setPos({ top: r.top + r.height / 2, left: r.right + 8 })
   }, [])
 
   const show = useCallback(() => {
@@ -78,7 +92,7 @@ function SidebarRailTooltip({ label, children }: { label: string; children: Reac
     <>
       <div
         ref={triggerRef}
-        className="relative flex w-full justify-center px-1.5 py-0.5"
+        className="relative flex w-full justify-center px-1 py-px"
         onMouseEnter={show}
         onMouseLeave={hide}
         onFocusCapture={() => {
@@ -98,7 +112,7 @@ function SidebarRailTooltip({ label, children }: { label: string; children: Reac
         createPortal(
           <div
             role="tooltip"
-            className="pointer-events-none fixed z-[9999] max-w-[min(18rem,calc(100vw-4rem))] -translate-y-1/2"
+            className="pointer-events-none fixed z-[9999] -translate-y-1/2"
             style={{ top: pos.top, left: pos.left }}
           >
             <RailTooltipBubble label={label} />
@@ -125,15 +139,14 @@ function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/** Activo: fondo negro (claro) / blanco (oscuro); icono hereda color, mismo trazo que el resto. */
-const railNavActiveClassName = cn(
-  'bg-black text-white',
-  'dark:bg-white dark:text-black',
-)
-
-const railNavBaseTransition = cn(
-  'transition-[color,background-color] duration-150 ease-out',
-)
+function RailActiveIndicator() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute left-0 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-secondary"
+    />
+  )
+}
 
 function RailNavLink({
   to,
@@ -161,26 +174,23 @@ function RailNavLink({
         onMouseLeave={() => setHovered(false)}
         onFocus={() => prefetchRouteChunkByHref(to)}
         className={cn(
-          'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none',
+          'relative flex shrink-0 items-center justify-center outline-none',
+          RAIL_ITEM,
           railNavBaseTransition,
-          'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-secondary/45 dark:focus-visible:ring-brand-secondary/35',
-          'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
-          isActive
-            ? railNavActiveClassName
-            : cn(
-                'text-zinc-500/90 hover:bg-black/[0.035] hover:text-zinc-900',
-                'dark:text-white/42 dark:hover:bg-white/[0.04] dark:hover:text-white',
-              ),
+          railFocusRing,
+          isActive ? railNavActiveClassName : railNavIdleClassName,
         )}
         aria-current={isActive ? 'page' : undefined}
         aria-label={label}
       >
+        {isActive ? <RailActiveIndicator /> : null}
         <span className="flex size-full items-center justify-center" aria-hidden>
           <SidebarAnimateIcon
             href={to}
             fallback={Icon}
             isActive={isActive}
             parentHovered={hovered}
+            className={isActive ? 'text-brand-secondary' : undefined}
           />
         </span>
       </NavLink>
@@ -208,12 +218,13 @@ function RailIconButton({
         onMouseLeave={() => setHovered(false)}
         aria-label={label}
         className={cn(
-          'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
-          'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400/90 dark:focus-visible:ring-white/35',
-          'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+          'relative flex shrink-0 items-center justify-center outline-none',
+          RAIL_ITEM,
+          'transition-colors duration-150',
+          railFocusRing,
           danger
-            ? 'text-zinc-400 hover:bg-status-expired/10 hover:text-status-expired dark:text-white/35 dark:hover:bg-status-expired/15 dark:hover:text-status-expired'
-            : 'text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-white/50 dark:hover:bg-white/[0.10] dark:hover:text-white',
+            ? 'text-zinc-400 hover:bg-status-expired/10 hover:text-status-expired dark:text-white/35 dark:hover:bg-status-expired/12'
+            : railNavIdleClassName,
         )}
       >
         <SidebarLogOutIcon parentHovered={hovered} />
@@ -246,22 +257,19 @@ export function Sidebar() {
       className={cn(
         RAIL_W,
         'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 overflow-visible',
-        'border-r border-black/[0.08] bg-zinc-100 dark:border-white/[0.06] dark:bg-[rgb(var(--surface-sidebar))]',
+        'border-r border-[rgb(var(--sidebar-border)/0.14)] bg-[rgb(var(--surface-sidebar))]',
+        'dark:border-[rgb(var(--sidebar-border)/0.06)]',
         'print:border-0 print:hidden',
       )}
     >
-      <div
-        className="flex h-[54px] shrink-0 items-center justify-center border-b border-black/[0.08] px-0.5 dark:border-white/[0.07]"
-        aria-hidden={false}
-      >
+      <div className="flex h-12 shrink-0 items-center justify-center border-b border-[rgb(var(--sidebar-border)/0.12)] dark:border-[rgb(var(--sidebar-border)/0.06)]">
         <SidebarRailTooltip label="Inicio · panel">
           <NavLink
             to="/dashboard"
             className={cn(
-              'flex size-[3.25rem] shrink-0 items-center justify-center rounded-xl outline-none transition-colors',
-              'hover:bg-zinc-200/90 dark:hover:bg-white/[0.10]',
-              'focus-visible:ring-2 focus-visible:ring-zinc-400/90 focus-visible:ring-offset-2',
-              'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-white/35 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+              'flex size-9 shrink-0 items-center justify-center rounded-lg outline-none transition-colors',
+              'hover:bg-zinc-200/80 dark:hover:bg-brand-secondary/12',
+              railFocusRing,
             )}
             aria-label="Inicio"
           >
@@ -270,13 +278,14 @@ export function Sidebar() {
         </SidebarRailTooltip>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden py-2 scrollbar-hide">
+      <nav className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto overflow-x-hidden py-1.5 scrollbar-hide">
         {sidebarBlocks.map((block, blockIndex) => {
           if (block.kind === 'divider') {
             return (
               <div
                 key={`divider-${blockIndex}`}
-                className="mx-2 my-2 h-px shrink-0 bg-zinc-300 dark:bg-white/10"
+                className="mx-2.5 my-1.5 h-px shrink-0 bg-zinc-300/80 dark:bg-brand-secondary/12"
+                role="separator"
               />
             )
           }
@@ -299,7 +308,7 @@ export function Sidebar() {
 
           return (
             <Fragment key={`section-${block.title}-${blockIndex}`}>
-              <div className="mt-2 border-t border-black/10 pt-2 dark:border-white/[0.08]">
+              <div className="mt-1 border-t border-[rgb(var(--sidebar-border)/0.12)] pt-1 dark:border-[rgb(var(--sidebar-border)/0.06)]">
                 {block.items.map((item) => (
                   <RailNavLink
                     key={`${item.href}-${item.label}`}
@@ -315,24 +324,30 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="shrink-0 space-y-0.5 border-t border-black/[0.08] py-2 dark:border-white/[0.07]">
+      <div className="shrink-0 space-y-px border-t border-[rgb(var(--sidebar-border)/0.12)] py-1.5 dark:border-[rgb(var(--sidebar-border)/0.06)]">
         <RailNavLink to="/settings" label="Configuración" icon={Settings} />
 
         <SidebarRailTooltip label={profileTip}>
           <NavLink
             to="/profile"
             className={cn(
-              'relative flex size-[34px] shrink-0 items-center justify-center rounded-xl outline-none',
-              'focus-visible:ring-2 focus-visible:ring-zinc-400/90 focus-visible:ring-offset-2',
-              'focus-visible:ring-offset-zinc-100 dark:focus-visible:ring-white/35 dark:focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
+              'relative flex shrink-0 items-center justify-center outline-none',
+              RAIL_ITEM,
+              railFocusRing,
               profilePathActive
-                ? cn(railNavBaseTransition, railNavActiveClassName)
-                : cn('overflow-hidden transition-opacity duration-200 ease-out hover:opacity-95'),
+                ? cn(railNavBaseTransition, railNavActiveClassName, 'overflow-hidden p-0.5')
+                : 'overflow-hidden p-0.5 transition-opacity duration-150 hover:opacity-90',
             )}
             aria-label={profileTip}
             aria-current={profilePathActive ? 'page' : undefined}
           >
-            <span className={cn('relative z-[1] flex size-full overflow-hidden rounded-[10px]')}>
+            {profilePathActive ? <RailActiveIndicator /> : null}
+            <span
+              className={cn(
+                'relative z-[1] flex size-full overflow-hidden rounded-md',
+                profilePathActive && 'ring-1 ring-brand-secondary/45',
+              )}
+            >
               <AvatarOrInitials
                 fullName={profile?.full_name ?? '?'}
                 avatarUrl={profile?.avatar_url}

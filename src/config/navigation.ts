@@ -10,7 +10,6 @@ import {
   Salad,
   LineChart,
   CalendarClock,
-  Library,
   Apple,
   ClipboardList,
   UtensilsCrossed,
@@ -76,6 +75,12 @@ export const NAV_TRAINER_NUTRITION_GUIDE: NavItem[] = [
   { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
 ]
 
+/** Planes de alimentación del entrenador (icono distinto a «Armar plan»). */
+export const NAV_MEAL_PLANS_TRAINER: NavItem = {
+  ...NAV_MEAL_PLANS,
+  icon: UtensilsCrossed,
+}
+
 /** Pacientes, evolución antropométrica y diagnóstico comparativo. */
 export const NAV_NUTRITION_PATIENT_ANTHRO: NavItem[] = [
   { label: 'Pacientes', href: '/nutrition', icon: Users, exactMatch: true },
@@ -83,10 +88,10 @@ export const NAV_NUTRITION_PATIENT_ANTHRO: NavItem[] = [
   { label: 'Diagnóstico comparativo', href: '/nutrition-pdfs', icon: Activity },
 ]
 
-/** Planes, menús y biblioteca de alimentos. */
+/** Planes, menús y biblioteca de alimentos (iconos Lucide distintos en el rail). */
 export const NAV_NUTRITION_FOOD: NavItem[] = [
   { label: 'Menús estacionales', href: '/nutrition/menus', icon: Salad },
-  { label: 'Planes', href: '/nutrition/plans', icon: Library },
+  { label: 'Planes', href: '/nutrition/plans', icon: FileText },
   { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
   { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
 ]
@@ -139,7 +144,7 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
   if (role === 'trainer') {
     sections.push({
       title: 'Alimentación',
-      items: [NAV_MEAL_PLANS, ...NAV_TRAINER_NUTRITION_GUIDE],
+      items: [NAV_MEAL_PLANS_TRAINER, ...NAV_TRAINER_NUTRITION_GUIDE],
     })
   } else if (showNutrition) {
     const patientItems =
@@ -154,7 +159,7 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
 
     const foodItems: NavItem[] = [...NAV_NUTRITION_FOOD]
     if (showTraining) {
-      foodItems.unshift(NAV_MEAL_PLANS)
+      foodItems.unshift(NAV_MEAL_PLANS_TRAINER)
     }
     sections.push({ title: 'Alimentación', items: foodItems })
   } else if (showTraining) {

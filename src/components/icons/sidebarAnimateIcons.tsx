@@ -5,9 +5,10 @@
 import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Activity } from '@/components/animate-ui/icons/activity'
+import { AlarmClock } from '@/components/animate-ui/icons/alarm-clock'
 import { ChartBarIncreasing } from '@/components/animate-ui/icons/chart-bar-increasing'
 import { ChartLine } from '@/components/animate-ui/icons/chart-line'
-import { Clipboard } from '@/components/animate-ui/icons/clipboard'
+import { CircleCheckBig } from '@/components/animate-ui/icons/circle-check-big'
 import { ClipboardCheck } from '@/components/animate-ui/icons/clipboard-check'
 import { ClipboardList } from '@/components/animate-ui/icons/clipboard-list'
 import { Clock } from '@/components/animate-ui/icons/clock'
@@ -24,7 +25,10 @@ import { cn } from '@/lib/utils'
 
 type SidebarAnimatedIcon = ComponentType<IconProps<string>>
 
-/** Ruta → componente Animate UI (coincidencia exacta de `href`). */
+/**
+ * Ruta → Animate UI. Sin entrada aquí → icono Lucide de `navigation.ts` (formas distintas).
+ * Evita repetir List / Clipboard / ClipboardList en la sección Alimentación.
+ */
 export const SIDEBAR_ANIMATED_ICON_BY_HREF: Record<string, SidebarAnimatedIcon> = {
   '/dashboard': LayoutDashboard,
   '/appointments': Clock,
@@ -35,19 +39,16 @@ export const SIDEBAR_ANIMATED_ICON_BY_HREF: Record<string, SidebarAnimatedIcon> 
   '/check-ins': ClipboardCheck,
   '/exercises': List,
   '/finances': ChartBarIncreasing,
-  '/meal-plans': ClipboardList,
   '/my/meal-plans': ClipboardList,
   '/nutrition': Sparkles,
   '/nutrition/evolution': ChartLine,
-  '/nutrition-pdfs': Activity,
-  '/nutrition/menus': Sparkles,
-  '/nutrition/plans': Clipboard,
+  '/nutrition-pdfs': AlarmClock,
+  '/nutrition/plans': CircleCheckBig,
   '/nutrition/planning': ClipboardList,
-  '/nutrition/foods': List,
   '/settings': Settings,
 }
 
-const SIDEBAR_ICON_SIZE = 17
+const SIDEBAR_ICON_SIZE = 16
 
 export function SidebarAnimateIcon({
   href,
@@ -77,8 +78,8 @@ export function SidebarAnimateIcon({
   const Lucide = Fallback
   return (
     <Lucide
-      className={cn('size-[17px] shrink-0', className)}
-      strokeWidth={isActive ? 2 : 1.75}
+      className={cn('size-4 shrink-0', isActive && 'text-brand-secondary', className)}
+      strokeWidth={isActive ? 2 : 1.65}
       aria-hidden
     />
   )

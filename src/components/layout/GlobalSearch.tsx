@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef, useCallback, useId } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Search, Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
+import { Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
+import { HeaderSearchIcon } from '@/components/icons/headerAnimateIcons'
 import { supabase } from '@/lib/supabase'
 import { fetchAccessibleStudents, filterAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
-import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { GLOBAL_SEARCH_OPEN_EVENT } from '@/lib/globalSearch'
 
 type Result = {
@@ -16,6 +16,12 @@ type Result = {
   href: string
 }
 
+const searchInputClass =
+  'flex-1 min-h-10 bg-transparent text-sm text-ink-primary placeholder:text-ink-muted outline-none border-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 shadow-none'
+
+const resultIconPodClass =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-border/70 bg-surface-elevated/80 text-ink-muted'
+
 export function GlobalSearch() {
   const navigate = useAppNavigate()
   const { user, profile } = useAuthStore()
@@ -24,6 +30,7 @@ export function GlobalSearch() {
   const [results, setResults] = useState<Result[]>([])
   const [active, setActive] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [inputHovered, setInputHovered] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -143,12 +150,12 @@ export function GlobalSearch() {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] px-4 print:hidden"
+      className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[12vh] print:hidden"
       role="presentation"
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+        className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-[2px] dark:bg-black/55"
         aria-label="Cerrar búsqueda"
         onClick={() => setOpen(false)}
       />
@@ -158,105 +165,97 @@ export function GlobalSearch() {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-2xl shadow-lg dark:shadow-xl overflow-hidden"
+        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card shadow-card-md"
       >
         <p id={titleId} className="sr-only">
           Búsqueda global
         </p>
 
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-border">
-          <Search className="h-4 w-4 text-ink-muted shrink-0" aria-hidden />
+        <div
+          className="flex items-center gap-2.5 border-b border-surface-border/80 px-3 py-2.5"
+          onMouseEnter={() => setInputHovered(true)}
+          onMouseLeave={() => setInputHovered(false)}
+        >
+          <HeaderSearchIcon animate={inputHovered} className="text-ink-muted" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Buscar alumnos, rutinas, planes..."
+            placeholder="Buscar alumnos, rutinas, planes…"
             aria-label="Buscar alumnos, rutinas y planes"
             aria-controls={listboxId}
             aria-activedescendant={results[active] ? `search-result-${active}` : undefined}
             autoComplete="off"
-            className={cn(
-              'flex-1 min-h-10 rounded-lg bg-transparent text-sm text-ink-primary placeholder:text-ink-muted',
-              appFocusRingClassName,
-            )}
+            className={searchInputClass}
           />
-          {query && (
+          {query ? (
             <button
               type="button"
               aria-label="Limpiar búsqueda"
               onClick={() => setQuery('')}
-              className={cn(
-                'rounded-lg p-1.5 text-ink-muted transition-colors hover:text-ink-primary',
-                appFocusRingClassName,
-              )}
+              className="rounded-md p-1 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
             >
               <X className="h-3.5 w-3.5" />
             </button>
-          )}
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-elevated text-ink-muted border border-surface-border">
-            ESC
+          ) : null}
+          <kbd className="hidden shrink-0 rounded border border-surface-border/80 bg-surface-elevated/60 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted sm:inline">
+            esc
           </kbd>
         </div>
 
-        <div id={listboxId} role="listbox" className="max-h-[50vh] overflow-y-auto">
+        <div id={listboxId} role="listbox" className="max-h-[min(50vh,22rem)] overflow-y-auto">
           {loading ? (
-            <div className="px-4 py-6 text-center text-xs text-ink-muted animate-pulse">Buscando…</div>
+            <div className="px-4 py-8 text-center text-xs text-ink-muted">Buscando…</div>
           ) : results.length === 0 && query.trim() ? (
-            <div className="px-4 py-6 text-center text-xs text-ink-muted">Sin resultados para «{query}»</div>
+            <div className="px-4 py-8 text-center text-xs text-ink-muted">Sin resultados para «{query}»</div>
           ) : results.length === 0 ? (
-            <div className="px-4 py-6 text-center text-xs text-ink-muted">
+            <div className="px-4 py-8 text-center text-xs text-ink-muted">
               Escribí para buscar alumnos, rutinas y planes
             </div>
           ) : (
-            <div>
+            <div className="py-1">
               {(['student', 'routine', 'mealplan'] as const).map((k) => {
                 const group = results.filter((r) => r.kind === k)
                 if (group.length === 0) return null
                 const label = k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
                 return (
-                  <div key={k} className="py-1">
-                    <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <div key={k}>
+                    <p className="px-3 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                       {label}
                     </p>
                     <ul>
                       {group.map((r) => {
                         const i = results.indexOf(r)
+                        const isActive = active === i
                         return (
                           <li key={`${r.kind}-${r.id}`} role="presentation">
                             <button
                               id={`search-result-${i}`}
                               type="button"
                               role="option"
-                              aria-selected={active === i}
+                              aria-selected={isActive}
                               onClick={() => go(r.href)}
                               onMouseEnter={() => setActive(i)}
                               className={cn(
-                                'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
-                                appFocusRingClassName,
-                                active === i ? 'bg-surface-elevated' : 'hover:bg-surface-elevated/50',
+                                'flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors',
+                                isActive
+                                  ? 'bg-surface-elevated border-l-2 border-brand-secondary/40'
+                                  : 'border-l-2 border-transparent hover:bg-surface-elevated/60',
                               )}
                             >
-                              <span
-                                className={cn(
-                                  'flex h-8 w-8 items-center justify-center rounded-xl shrink-0',
-                                  r.kind === 'student' && 'bg-brand-primary/10 text-brand-primary',
-                                  r.kind === 'routine' && 'bg-brand-primary/10 text-brand-primary',
-                                  r.kind === 'mealplan' && 'bg-brand-tertiary/10 text-brand-tertiary',
-                                )}
-                                aria-hidden
-                              >
+                              <span className={resultIconPodClass} aria-hidden>
                                 {r.kind === 'student' ? (
-                                  <Users className="h-4 w-4" />
+                                  <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 ) : r.kind === 'routine' ? (
-                                  <Dumbbell className="h-4 w-4" />
+                                  <Dumbbell className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 ) : (
-                                  <UtensilsCrossed className="h-4 w-4" />
+                                  <UtensilsCrossed className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 )}
                               </span>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-ink-primary truncate">{r.label}</p>
-                                <p className="text-xs text-ink-muted">{r.sub}</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-ink-primary">{r.label}</p>
+                                <p className="truncate text-[11px] text-ink-muted">{r.sub}</p>
                               </div>
                             </button>
                           </li>
@@ -270,7 +269,7 @@ export function GlobalSearch() {
           )}
         </div>
 
-        <div className="flex items-center gap-3 px-4 py-2 border-t border-surface-border bg-surface-elevated/50">
+        <div className="flex items-center gap-3 border-t border-surface-border/80 bg-surface-elevated/30 px-3 py-1.5">
           <span className="text-[10px] text-ink-muted">↑↓ navegar</span>
           <span className="text-[10px] text-ink-muted">↵ abrir</span>
           <span className="text-[10px] text-ink-muted">esc cerrar</span>

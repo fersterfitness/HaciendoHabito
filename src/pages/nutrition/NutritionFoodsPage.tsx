@@ -10,14 +10,15 @@ import {
   XCircle,
   BookOpen,
 } from 'lucide-react'
+import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { PageSectionTitle } from '@/components/ui/PageSectionTitle'
 import { supabase } from '@/lib/supabase'
-import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
 import { filterFoodCatalogEs, type FoodCatalogItemEs } from '@/lib/nutrition/foodCatalogEs'
@@ -47,8 +48,33 @@ const MACRO_QTY_OPTS: { v: NutritionFoodMacroQtyPresentation; label: string }[] 
 const CATALOGO_LABEL = 'Catálogo guía (español)'
 const CATEGORY_MAX = 80
 
-const INPUT_GRAY_FOCUS_CLASS =
-  'rounded-md border-zinc-200/80 bg-surface-input focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20 dark:border-zinc-700 dark:focus:border-zinc-500'
+/** UI monocromática; secondary/tertiary solo en acentos mínimos. */
+const foodsPanelClass = 'rounded-2xl border border-surface-border/80 bg-surface-card shadow-card'
+
+const foodsSectionTitleClass =
+  'text-label font-semibold uppercase tracking-wider text-ink-muted'
+
+const foodsMetaClass = 'text-[11px] leading-snug text-ink-muted'
+
+const foodsHintClass = 'text-[10px] leading-snug text-ink-muted'
+
+const foodsInputClass =
+  'rounded-xl border border-surface-border/80 bg-surface-input outline-none transition-colors focus:border-surface-border focus:ring-2 focus:ring-brand-secondary/12'
+
+const foodsLabelClass = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-ink-muted'
+
+const foodsChipActiveClass =
+  'border-surface-border bg-surface-elevated font-medium text-ink-primary shadow-[inset_2px_0_0_0_rgb(var(--brand-secondary)/0.55)]'
+
+const foodsChipIdleClass =
+  'border-surface-border/70 bg-transparent text-ink-muted hover:border-surface-border hover:bg-surface-elevated/50 hover:text-ink-secondary'
+
+const foodsListItemClass =
+  'group flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border/70 bg-surface-elevated/10 px-3 py-2 transition-colors hover:border-surface-border hover:bg-surface-elevated/35'
+
+/** Acentos puntuales (opacidad baja). */
+/** Detalles mínimos en color (baja opacidad). */
+const foodsDetailTertiary = 'text-brand-tertiary/50'
 
 function normalizeFoodCategory(raw: string): string {
   const t = raw.trim()
@@ -427,42 +453,30 @@ export function NutritionFoodsPage() {
     <div className="min-h-0">
       <Header title="Guía de alimentos" />
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-28 lg:px-6 lg:py-8">
-        <div className="mb-6 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3.5">
-          <div className="flex items-start gap-3">
-            <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
-              <Wheat className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-sm font-medium text-ink-primary mb-0.5">Guía de alimentos</p>
-              <p className="text-xs text-ink-secondary leading-relaxed">
-                Elegí del catálogo en español (con macros precargadas por 100 g), buscá en la base USDA FDC, o cargá los tuyos a mano.
-                Todo se guarda en <strong className="text-ink-primary">«Mi lista»</strong> agrupado por categoría.
-              </p>
-            </div>
-          </div>
-        </div>
+      <DirectoryPageShell className="max-w-[1600px] space-y-4 pb-24">
+        <PageSectionTitle
+          title="Biblioteca y carga"
+          description="Catálogo en español, USDA FDC o manual. Todo queda en Mi lista por categoría."
+        />
 
-        <div className="grid gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
-          <div className="space-y-6 lg:col-span-7 xl:col-span-7">
-        <section className="rounded-2xl border border-surface-border/80 bg-surface-card p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
-              <Wheat className="h-4 w-4 text-brand-primary dark:text-brand-primary shrink-0" aria-hidden />
+        <div className="grid gap-4 xl:grid-cols-12 xl:items-start xl:gap-5">
+          <div className="space-y-4 xl:col-span-8 2xl:col-span-9">
+        <section className={cn('p-3.5 sm:p-4', foodsPanelClass)}>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className={cn('inline-flex items-center gap-2', foodsSectionTitleClass)}>
+              <Wheat className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
               Mi lista
             </h2>
             {!loading && rows.length > 0 ? (
-              <span className="text-[11px] font-medium text-ink-muted">
-                {rows.length} {rows.length === 1 ? 'alimento' : 'alimentos'}
+              <span className="rounded-md border border-surface-border/80 bg-surface-elevated/40 px-2 py-0.5 text-[10px] font-medium tabular-nums text-ink-muted">
+                <span className={foodsDetailTertiary}>{rows.length}</span>
               </span>
             ) : null}
           </div>
-          <p className="mb-4 text-xs text-ink-muted leading-relaxed">
-            Tu biblioteca personal, agrupada por categoría.
-          </p>
+          <p className={cn('mb-3', foodsHintClass)}>Tu biblioteca personal, agrupada por categoría.</p>
           {loading ? (
             <div className="flex justify-center py-10">
-              <Spinner accent="trainerCta" />
+              <Spinner size="md" className="text-ink-muted" variant="spin" />
             </div>
           ) : rows.length === 0 ? (
             <EmptyState
@@ -470,48 +484,52 @@ export function NutritionFoodsPage() {
               description="Elegí del catálogo en español, completá los datos del panel y tocá «Guardar en mi lista»."
             />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {groupedSavedFoods.map(([catLabel, items]) => (
                 <div key={catLabel}>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                     {catLabel}
                   </p>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {items.map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-zinc-200/70 bg-zinc-50/50 px-3 py-2.5 dark:border-zinc-700/60 dark:bg-zinc-900/30"
-                      >
+                      <li key={r.id} className={foodsListItemClass}>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-ink-primary truncate">{r.display_name}</p>
-                          <p className="text-xs text-ink-muted mt-0.5">
-                            Prot {r.protein_g_per_100g ?? '—'} g · Grasas {r.fat_g_per_100g ?? '—'} g · Carbos{' '}
-                            {r.carbs_g_per_100g ?? '—'} g · Fibra {r.fiber_g_per_100g ?? '—'} g · {r.energy_kcal_per_100g ?? '—'}{' '}
-                            kcal <span className="text-ink-secondary/90">{macroQtyMiListaSuffix(r)}</span>
+                          <p className="truncate text-sm font-medium text-ink-primary">{r.display_name}</p>
+                          <p className={cn('mt-0.5 tabular-nums', foodsMetaClass)}>
+                            P {r.protein_g_per_100g ?? '—'} · G {r.fat_g_per_100g ?? '—'} · HC {r.carbs_g_per_100g ?? '—'} ·
+                            Fib {r.fiber_g_per_100g ?? '—'} · {r.energy_kcal_per_100g ?? '—'} kcal
+                            <span className={foodsDetailTertiary}> {macroQtyMiListaSuffix(r)}</span>
                           </p>
-                          <p className="text-[11px] text-ink-muted mt-1">
+                          <p className={cn('mt-0.5', foodsHintClass)}>
                             {r.portion_basis === 'cocido'
-                              ? 'Referencia cocido'
+                              ? 'Cocido'
                               : r.portion_basis === 'crudo'
-                                ? 'Referencia crudo'
-                                : 'Crudo/cocido no indicado'}
-                            {' · '}
-                            <span className="text-ink-secondary">{sourceBadge(r)}</span>
+                                ? 'Crudo'
+                                : 'Sin indicar'}
+                            <span className="text-ink-muted/50"> · </span>
+                            {sourceBadge(r)}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button type="button" variant="ghost" size="icon" onClick={() => populateFromRow(r)} aria-label="Editar">
-                            <PencilLine className="w-4 h-4" />
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
+                            onClick={() => populateFromRow(r)}
+                            aria-label="Editar"
+                          >
+                            <PencilLine className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="text-status-expired hover:text-status-expired/80"
+                            className="h-8 w-8 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                             onClick={() => setDeleteTarget(r)}
                             aria-label="Eliminar"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </li>
@@ -525,17 +543,18 @@ export function NutritionFoodsPage() {
 
         <section
           className={cn(
-            'space-y-3 rounded-2xl border border-surface-border/80 bg-surface-card p-4 sm:p-5',
+            'space-y-2.5 p-3.5 sm:p-4',
+            foodsPanelClass,
             showCatalogDropdown && 'relative z-[100]',
           )}
         >
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
-            <BookOpen className="h-4 w-4 text-brand-primary dark:text-brand-primary shrink-0" aria-hidden />
+          <h2 className={cn('inline-flex items-center gap-2', foodsSectionTitleClass)}>
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
             Catálogo en español
           </h2>
-          <p className="text-xs leading-relaxed text-ink-muted">
-            Buscá alimento por nombre. Pesos en <strong className="text-ink-secondary">cocido</strong> para carnes y guarniciones;
-            cereales/lácteos según uso. Para alimentos nuevos, probá <strong className="text-ink-secondary">Buscar USDA FDC</strong> abajo.
+          <p className={foodsHintClass}>
+            Buscá por nombre. Carnes/guarniciones en <span className={foodsDetailTertiary}>cocido</span>; cereales/lácteos según
+            uso. Nuevos: <span className={foodsDetailTertiary}>USDA FDC</span> en el panel derecho.
           </p>
           <div ref={catalogPopoverRef} className="relative space-y-2">
             <Input
@@ -553,14 +572,14 @@ export function NutritionFoodsPage() {
               aria-controls="nutrition-catalog-results"
               aria-autocomplete="list"
               autoComplete="off"
-              className={INPUT_GRAY_FOCUS_CLASS}
+              className={foodsInputClass}
             />
             {catalogQuery.trim().length === 0 ? (
-              <p className="px-0.5 text-[11px] text-zinc-500 dark:text-zinc-500" id="nutrition-catalog-results" role="status">
+              <p className={foodsHintClass} id="nutrition-catalog-results" role="status">
                 La lista aparece cuando escribís al menos un carácter.
               </p>
             ) : !catalogPanelOpen ? (
-              <p className="px-0.5 text-[11px] text-zinc-500 dark:text-zinc-500" id="nutrition-catalog-results" role="status">
+              <p className={foodsHintClass} id="nutrition-catalog-results" role="status">
                 Tocá de nuevo el buscador para abrir los resultados, o borrá el texto.
               </p>
             ) : (
@@ -569,33 +588,33 @@ export function NutritionFoodsPage() {
                 role="listbox"
                 aria-label="Resultados del catálogo"
                 className={cn(
-                  'absolute left-0 right-0 top-full z-[120] mt-1 max-h-60 overflow-y-auto rounded-md border border-zinc-200/90',
-                  'bg-white text-sm shadow-lg dark:border-zinc-700 dark:bg-zinc-950',
+                  'absolute left-0 right-0 top-full z-[120] mt-1 max-h-56 overflow-y-auto rounded-xl border border-surface-border/90',
+                  'bg-surface-card text-sm shadow-card-md',
                 )}
               >
                 {groupedCatalog.length === 0 ? (
-                  <p className="px-3 py-4 text-sm text-zinc-500 dark:text-zinc-500">Sin coincidencias. Probá otra palabra.</p>
+                  <p className="px-3 py-3 text-sm text-ink-muted">Sin coincidencias. Probá otra palabra.</p>
                 ) : (
                   groupedCatalog.map(([grupo, items]) => (
                     <div key={grupo}>
-                      <div className="sticky top-0 z-[1] border-b border-zinc-200/80 bg-zinc-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-400">
+                      <div className="sticky top-0 z-[1] border-b border-surface-border/80 bg-surface-elevated/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                         {grupo}
                       </div>
-                      <ul className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-950" role="group" aria-label={grupo}>
+                      <ul className="divide-y divide-surface-border/60" role="group" aria-label={grupo}>
                         {items.map((item) => (
                           <li key={item.id} role="option">
                             <button
                               type="button"
-                              className="flex w-full flex-col gap-0.5 bg-transparent px-3 py-2 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/80 sm:flex-row sm:items-start sm:justify-between"
+                              className="flex w-full flex-col gap-0.5 bg-transparent px-3 py-2 text-left transition-colors hover:bg-surface-elevated/50 sm:flex-row sm:items-start sm:justify-between"
                               onClick={() => applyCatalogItem(item)}
                             >
-                              <span className="min-w-0 font-medium text-ink-primary">{item.nombre}</span>
+                              <span className="min-w-0 text-sm font-medium text-ink-primary">{item.nombre}</span>
                               <div className="flex shrink-0 flex-col items-end gap-0.5 sm:ml-2">
-                                <span className="text-[10px] text-ink-muted tabular-nums">
+                                <span className={cn('text-[10px] tabular-nums', foodsDetailTertiary)}>
                                   {item.portion_basis === 'cocido'
-                                    ? 'base cocido'
+                                    ? 'cocido'
                                     : item.portion_basis === 'crudo'
-                                      ? 'base crudo / listo'
+                                      ? 'crudo'
                                       : '—'}
                                 </span>
                                 {item.serving_examples ? (
@@ -617,46 +636,47 @@ export function NutritionFoodsPage() {
         </section>
           </div>
 
-          <div className="lg:sticky lg:top-20 lg:col-span-5 xl:col-span-5 lg:self-start">
-        <section className="space-y-4 rounded-md border border-zinc-200/75 bg-surface-card p-4 sm:p-5 dark:border-zinc-700/65">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-              <Plus className="h-[1.125rem] w-[1.125rem] shrink-0 text-zinc-500 dark:text-zinc-400" aria-hidden />
-              {editingId ? 'Editar' : 'Agregar o ajustar'}
-            </h2>
-            {(editingId || displayName) && (
-              <button
-                type="button"
-                onClick={() => resetForm()}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
-              >
-                <XCircle className="h-3.5 w-3.5" aria-hidden /> Empezar de nuevo
-              </button>
-            )}
+          <div className="xl:sticky xl:top-16 xl:col-span-4 2xl:col-span-3 xl:self-start">
+        <section className={cn('overflow-hidden', foodsPanelClass)}>
+          <div className="border-b border-surface-border/80 bg-surface-elevated/25 px-3.5 py-2.5 sm:px-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h2 className={cn('inline-flex items-center gap-2', foodsSectionTitleClass)}>
+                <Plus className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+                {editingId ? 'Editar alimento' : 'Agregar o ajustar'}
+              </h2>
+              {(editingId || displayName) && (
+                <button
+                  type="button"
+                  onClick={() => resetForm()}
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-ink-muted hover:text-ink-secondary"
+                >
+                  <XCircle className="h-3 w-3" aria-hidden /> Limpiar
+                </button>
+              )}
+            </div>
           </div>
+
+          <div className="space-y-3 p-3.5 sm:p-4">
 
           <datalist id="nutrition-food-category-suggestions">
             {existingCategories.map((c) => (
               <option key={c} value={c} />
             ))}
           </datalist>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+          <form onSubmit={handleSave} className="space-y-3">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Nombre del alimento *</label>
+                <label className={foodsLabelClass}>Nombre del alimento *</label>
                 <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
-                  className={INPUT_GRAY_FOCUS_CLASS}
+                  className={foodsInputClass}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label
-                  htmlFor="nutrition-food-category-field"
-                  className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400"
-                >
-                  Categoría (agrupa en «Mi lista»)
+                <label htmlFor="nutrition-food-category-field" className={foodsLabelClass}>
+                  Categoría
                 </label>
                 <input
                   id="nutrition-food-category-field"
@@ -666,30 +686,27 @@ export function NutritionFoodsPage() {
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="Ej. Lácteos, Verduras…"
                   className={cn(
-                    'w-full px-3 py-2.5 text-sm text-ink-primary outline-none placeholder:text-ink-muted',
-                    INPUT_GRAY_FOCUS_CLASS,
+                    'w-full px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted',
+                    foodsInputClass,
                   )}
                 />
-                <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-500">
-                  Podés inventar categorías (ej. Verduras, Hortalizas A) escribiendo texto libre; aparecen en Mi lista y el
-                  datalist reutiliza las que ya creaste. Vacío ⇒ «General». Máximo {CATEGORY_MAX} caracteres.
+                <p className={cn('mt-1', foodsHintClass)}>
+                  Texto libre · vacío = General · máx. {CATEGORY_MAX} caracteres
                 </p>
               </div>
-              <div>
-                <p id="portion-basis-label" className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-400">
-                  ¿El peso es crudo o cocido?
+              <div className="sm:col-span-2">
+                <p id="portion-basis-label" className={foodsLabelClass}>
+                  Peso crudo o cocido
                 </p>
-                <div className="flex flex-wrap gap-2" role="group" aria-labelledby="portion-basis-label">
+                <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="portion-basis-label">
                   {PORTION_OPTS.map((o) => (
                     <button
                       key={o.v}
                       type="button"
                       onClick={() => setPortionBasis(o.v)}
                       className={cn(
-                        'shrink-0 rounded-md border px-3 py-2 text-sm transition-colors',
-                        portionBasis === o.v
-                          ? 'border-zinc-800 bg-zinc-100 font-medium text-zinc-950 ring-2 ring-zinc-300 ring-offset-1 ring-offset-surface-card dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-50 dark:ring-zinc-600'
-                          : 'border-zinc-200/90 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-600',
+                        'shrink-0 rounded-lg border px-2.5 py-1.5 text-xs transition-colors',
+                        portionBasis === o.v ? foodsChipActiveClass : foodsChipIdleClass,
                       )}
                     >
                       {o.label}
@@ -697,55 +714,45 @@ export function NutritionFoodsPage() {
                   ))}
                 </div>
               </div>
-              <div className="sm:col-span-1">
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Nota (opcional)</label>
+              <div className="sm:col-span-2">
+                <label className={foodsLabelClass}>Nota (opcional)</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  placeholder="Ej. marca que usás, preparación…"
+                  placeholder="Marca, preparación…"
                   className={cn(
-                    'min-h-[2.75rem] w-full resize-y px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted',
-                    INPUT_GRAY_FOCUS_CLASS,
+                    'min-h-[2.5rem] w-full resize-y px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted',
+                    foodsInputClass,
                   )}
                 />
               </div>
-              <div className="sm:col-span-2 flex flex-col gap-2 rounded-md border border-zinc-200/70 bg-zinc-50/40 p-3 dark:border-zinc-700/60 dark:bg-zinc-900/25">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-                  <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400 min-w-0 flex-1">
+              <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2.5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+                  <p className={cn('min-w-0 flex-1', foodsHintClass)}>
                     {macroQtyPresentation === 'volume' ? (
-                      <>
-                        Valores por <strong>100 mililitros</strong> (como en planillas de bebidas). Los mismos campos numéricos
-                        aplican a esa base.
-                      </>
+                      <>Base <span className={foodsDetailTertiary}>100 ml</span> en los campos numéricos.</>
                     ) : macroQtyPresentation === 'units' ? (
-                      <>
-                        Valores nutricionales por <strong>100 gramos</strong> de referencia; al armar el plan se usará modo{' '}
-                        <strong>unidades</strong> (completás uds. y gramos equivalentes en la tabla).
-                      </>
+                      <>Referencia <span className={foodsDetailTertiary}>100 g</span>; en el plan usás unidades.</>
                     ) : (
                       <>
-                        Valores por <strong>{macroRefBasisG.trim() ? macroRefBasisG.trim().replace(',', '.') : '100'} gramos</strong>{' '}
-                        de referencia (podés cambiar el número: ej. 25 pan, 50 dulce de leche). Los campos P/G/HC/kcal son para
-                        esa cantidad, no obligatoriamente 100.
+                        Base{' '}
+                        <span className={cn('tabular-nums', foodsDetailTertiary)}>
+                          {macroRefBasisG.trim() ? macroRefBasisG.trim().replace(',', '.') : '100'} g
+                        </span>{' '}
+                        (P/G/HC/kcal para esa cantidad).
                       </>
                     )}
                   </p>
-                  <div className="shrink-0 w-full sm:w-[11.5rem]">
-                    <label
-                      htmlFor="nutrition-food-macro-qty"
-                      className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400"
-                    >
-                      Referencia al planificar
+                  <div className="w-full shrink-0 sm:w-[10.5rem]">
+                    <label htmlFor="nutrition-food-macro-qty" className={foodsLabelClass}>
+                      Al planificar
                     </label>
                     <select
                       id="nutrition-food-macro-qty"
                       value={macroQtyPresentation}
                       onChange={(e) => setMacroQtyPresentation(e.target.value as NutritionFoodMacroQtyPresentation)}
-                      className={cn(
-                        'w-full px-3 py-2 text-sm text-ink-primary outline-none bg-white dark:bg-zinc-950',
-                        INPUT_GRAY_FOCUS_CLASS,
-                      )}
+                      className={cn('w-full px-2.5 py-1.5 text-sm text-ink-primary', foodsInputClass)}
                     >
                       {MACRO_QTY_OPTS.map((o) => (
                         <option key={o.v} value={o.v}>
@@ -756,13 +763,10 @@ export function NutritionFoodsPage() {
                   </div>
                 </div>
                 {macroQtyPresentation === 'grams' ? (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4 border-t border-zinc-200/60 pt-2 dark:border-zinc-700/50">
-                    <div className="w-full max-w-[10rem]">
-                      <label
-                        htmlFor="nutrition-macro-ref-basis-g"
-                        className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400"
-                      >
-                        Gramos de referencia
+                  <div className="flex flex-col gap-2 border-t border-surface-border/70 pt-2 sm:flex-row sm:items-end sm:gap-3">
+                    <div className="w-full max-w-[9rem]">
+                      <label htmlFor="nutrition-macro-ref-basis-g" className={foodsLabelClass}>
+                        Gramos ref.
                       </label>
                       <Input
                         id="nutrition-macro-ref-basis-g"
@@ -770,128 +774,104 @@ export function NutritionFoodsPage() {
                         onChange={(e) => setMacroRefBasisG(e.target.value)}
                         inputMode="decimal"
                         placeholder="100"
-                        className={INPUT_GRAY_FOCUS_CLASS}
+                        className={foodsInputClass}
                       />
                     </div>
-                    <p className="text-[10px] leading-relaxed text-zinc-500 dark:text-zinc-500 flex-1 pb-0.5">
-                      Ese número define la base del cálculo cuando cargás gramos en el plan (ej. si acá ponés 25 y Proteínas 2,5,
-                      son 2,5 g de proteína por cada 25 g de producto).
+                    <p className={cn('flex-1 pb-0.5', foodsHintClass)}>
+                      Define la base al cargar gramos en el plan.
                     </p>
                   </div>
                 ) : null}
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Proteínas (g)</label>
-                <Input
-                  value={protein}
-                  onChange={(e) => setProtein(e.target.value)}
-                  inputMode="decimal"
-                  className={INPUT_GRAY_FOCUS_CLASS}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Grasas (g)</label>
-                <Input value={fat} onChange={(e) => setFat(e.target.value)} inputMode="decimal" className={INPUT_GRAY_FOCUS_CLASS} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Carbohidratos (g)</label>
-                <Input
-                  value={carbs}
-                  onChange={(e) => setCarbs(e.target.value)}
-                  inputMode="decimal"
-                  className={INPUT_GRAY_FOCUS_CLASS}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Fibra (g)</label>
-                <Input value={fiber} onChange={(e) => setFiber(e.target.value)} inputMode="decimal" className={INPUT_GRAY_FOCUS_CLASS} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-400">Calorías (kcal)</label>
-                <Input value={kcal} onChange={(e) => setKcal(e.target.value)} inputMode="decimal" className={INPUT_GRAY_FOCUS_CLASS} />
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                <div>
+                  <label className={foodsLabelClass}>Prot. (g)</label>
+                  <Input value={protein} onChange={(e) => setProtein(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                </div>
+                <div>
+                  <label className={foodsLabelClass}>Grasas (g)</label>
+                  <Input value={fat} onChange={(e) => setFat(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                </div>
+                <div>
+                  <label className={foodsLabelClass}>HC (g)</label>
+                  <Input value={carbs} onChange={(e) => setCarbs(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                </div>
+                <div>
+                  <label className={foodsLabelClass}>Fibra (g)</label>
+                  <Input value={fiber} onChange={(e) => setFiber(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className={foodsLabelClass}>kcal</label>
+                  <Input value={kcal} onChange={(e) => setKcal(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                </div>
               </div>
             </div>
 
             {isUsda && (
-              <div className="space-y-2 rounded-md border border-zinc-200/75 bg-zinc-50/60 p-3 text-sm dark:border-zinc-700/65 dark:bg-zinc-900/35">
-                <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Detalle importación internacional</p>
+              <div className="space-y-2 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2.5 text-sm">
+                <p className={cn('text-[10px] font-semibold uppercase tracking-wide', foodsDetailTertiary)}>
+                  Importación internacional
+                </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div>
-                    <label className="block text-[10px] font-medium text-zinc-600 dark:text-zinc-400">ID técnico</label>
-                    <Input
-                      value={externalFdcId}
-                      onChange={(e) => setExternalFdcId(e.target.value)}
-                      inputMode="numeric"
-                      className={INPUT_GRAY_FOCUS_CLASS}
-                    />
+                    <label className={foodsLabelClass}>ID técnico</label>
+                    <Input value={externalFdcId} onChange={(e) => setExternalFdcId(e.target.value)} inputMode="numeric" className={foodsInputClass} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-zinc-600 dark:text-zinc-400">Referencia</label>
-                    <Input
-                      value={sourceLabel}
-                      onChange={(e) => setSourceLabel(e.target.value)}
-                      className={INPUT_GRAY_FOCUS_CLASS}
-                    />
+                    <label className={foodsLabelClass}>Referencia</label>
+                    <Input value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} className={foodsInputClass} />
                   </div>
                 </div>
               </div>
             )}
 
             {!isUsda && sourceLabel && (
-              <p className="text-[11px] text-ink-muted">
-                Origen: <span className="text-ink-secondary">{sourceLabel}</span>
+              <p className={foodsHintClass}>
+                Origen: <span className={foodsDetailTertiary}>{sourceLabel}</span>
               </p>
             )}
 
-            <details className="rounded-md border border-dashed border-zinc-200/85 bg-zinc-50/40 dark:border-zinc-700 dark:bg-zinc-900/25">
-              <summary className="cursor-pointer select-none list-none px-3 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-400 [&::-webkit-details-marker]:hidden">
-                Otra opción: base internacional (inglés) — opcional
+            <details className="rounded-xl border border-dashed border-surface-border/80 bg-surface-elevated/10">
+              <summary className="cursor-pointer select-none list-none px-3 py-2 text-xs font-medium text-ink-secondary [&::-webkit-details-marker]:hidden">
+                USDA FDC (inglés) — opcional
               </summary>
-              <div className="space-y-2 border-t border-zinc-200/70 px-3 pb-3 pt-0 dark:border-zinc-700/70">
-                <p className="pt-2 text-[11px] text-zinc-500 dark:text-zinc-500">
-                  Los resultados suelen estar en inglés; podés traducir el nombre arriba antes de guardar.
-                </p>
+              <div className="space-y-2 border-t border-surface-border/70 px-3 pb-3 pt-0">
+                <p className={cn('pt-2', foodsHintClass)}>Resultados en inglés; traducí el nombre antes de guardar.</p>
                 <div className="flex flex-wrap gap-2">
-                  <div className="flex-1 min-w-[160px]">
+                  <div className="min-w-0 flex-1">
                     <Input
                       value={fdcQuery}
                       onChange={(e) => setFdcQuery(e.target.value)}
                       placeholder="Ej. oats, chicken breast…"
                       aria-label="Búsqueda internacional"
-                      className={INPUT_GRAY_FOCUS_CLASS}
+                      className={foodsInputClass}
                     />
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-zinc-200 text-zinc-800 shadow-none hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80"
+                    className="shrink-0 border-surface-border/80 text-ink-secondary hover:bg-surface-elevated/50"
                     disabled={fdcSearching || fdcQuery.trim().length < 2}
-                    icon={
-                      fdcSearching ? (
-                        <Loader2 className={cn('w-4 h-4 animate-spin', trainerCtaAccentTextClassName)} />
-                      ) : (
-                        <Search className="w-4 h-4" />
-                      )
-                    }
+                    icon={fdcSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     onClick={() => runFdcSearch()}
                   >
                     Buscar
                   </Button>
                 </div>
                 {fdcHits.length > 0 && (
-                  <ul className="max-h-40 divide-y divide-zinc-100 overflow-y-auto rounded-md border border-zinc-200/80 bg-white text-xs dark:divide-zinc-800 dark:border-zinc-700 dark:bg-zinc-950">
+                  <ul className="max-h-36 divide-y divide-surface-border/60 overflow-y-auto rounded-lg border border-surface-border/80 text-xs">
                     {fdcHits.map((h) => (
                       <li key={h.fdcId}>
                         <button
                           type="button"
-                          className="flex w-full justify-between gap-2 bg-transparent px-2 py-1.5 text-left text-zinc-800 transition-colors hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800/70"
+                          className="flex w-full justify-between gap-2 bg-transparent px-2 py-1.5 text-left text-ink-primary transition-colors hover:bg-surface-elevated/50"
                           onClick={() => loadFdcDetail(h)}
                           disabled={detailLoadingId === h.fdcId}
                         >
                           <span className="line-clamp-2">{h.description}</span>
                           {detailLoadingId === h.fdcId ? (
-                            <Loader2 className={cn('w-3.5 h-3.5 shrink-0 animate-spin', trainerCtaAccentTextClassName)} />
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-ink-muted" />
                           ) : null}
                         </button>
                       </li>
@@ -904,18 +884,19 @@ export function NutritionFoodsPage() {
             <Button
               type="submit"
               size="sm"
-              variant="gradientSecondary"
+              variant="secondary"
               disabled={saving}
-              className="w-full sm:w-auto"
-              icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              className="w-full ring-1 ring-brand-secondary/15"
+              icon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             >
               {editingId ? 'Guardar cambios' : 'Guardar en mi lista'}
             </Button>
           </form>
+          </div>
         </section>
           </div>
         </div>
-      </div>
+      </DirectoryPageShell>
 
       <ConfirmDialog
         open={!!deleteTarget}

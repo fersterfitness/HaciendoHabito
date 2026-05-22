@@ -1019,11 +1019,11 @@ export function DashboardPage() {
 
       <div className="page-shell-x page-shell-y space-y-6">
 
-        <PageSectionTitle title="Resumen del mes" className="mb-1" />
+        <section className="space-y-2">
+          <PageSectionTitle title="Resumen del mes" />
 
-        {/* ── KPIs ─────────────────────────────────────────────────── */}
-        {/* pt extra: deja respirar a los avatars 3D que sobresalen por arriba de la card */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 items-stretch gap-3 gap-y-5 lg:gap-4 lg:gap-y-6 overflow-visible pt-10 lg:pt-14 [&>*]:h-full">
+          {/* pt mínimo: los avatares sobresalen con overflow-visible, sin hueco grande bajo el título */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 items-stretch gap-3 gap-y-5 lg:gap-4 lg:gap-y-6 overflow-visible pt-2 sm:pt-3 [&>*]:h-full">
           <StatCard
             title={activePeopleLabel}
             value={stats.activeStudents}
@@ -1113,7 +1113,8 @@ export function DashboardPage() {
               />
             </>
           )}
-        </div>
+          </div>
+        </section>
 
 
 

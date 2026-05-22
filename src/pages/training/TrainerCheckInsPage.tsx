@@ -4,11 +4,13 @@ import { CalendarClock, ClipboardCheck, Copy, Plus, Trash2, Download } from 'luc
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
+import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
-import { Card } from '@/components/ui/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
+import { PageSectionTitle } from '@/components/ui/PageSectionTitle'
 import {
   buildWhatsAppGroupPickUrl,
   buildWhatsAppUrl,
@@ -72,6 +74,26 @@ type ScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
 /** Botones de acción en la tabla de invitaciones (misma altura y padding). */
 const inviteTableActionBtnClass =
   'h-7 min-h-7 min-w-[3.25rem] px-2.5 text-[10px] font-medium gap-1 shrink-0'
+
+const checkInPanelCardClass =
+  'border-brand-secondary/20 bg-gradient-to-br from-brand-secondary/[0.08] via-surface-card to-surface-card shadow-[0_8px_28px_rgba(169,121,255,0.06)]'
+
+const checkInFormTileActiveClass =
+  'border-brand-secondary/45 bg-gradient-to-br from-brand-secondary/18 via-brand-secondary/8 to-transparent text-ink-primary font-semibold shadow-[0_4px_18px_rgba(169,121,255,0.12)]'
+
+const checkInFormTileIdleClass =
+  'border-surface-border/80 bg-surface-elevated/25 text-ink-secondary hover:border-brand-secondary/35 hover:bg-brand-secondary/10 hover:text-ink-primary'
+
+const checkInFieldSelectClass =
+  'text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2 outline-none transition-colors focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20'
+
+const checkInCheckboxClass = 'rounded border-surface-border accent-brand-secondary'
+
+const checkInHighlightPanelClass =
+  'rounded-xl border border-brand-secondary/25 bg-gradient-to-br from-brand-secondary/12 via-brand-secondary/5 to-transparent p-3 space-y-3'
+
+const checkInQuestionRowClass =
+  'flex flex-col sm:flex-row gap-2 items-start rounded-xl border border-surface-border/80 bg-surface-elevated/20 p-2.5 transition-colors hover:border-brand-secondary/25'
 
 export function TrainerCheckInsPage() {
   const { user } = useAuthStore()
@@ -502,26 +524,31 @@ export function TrainerCheckInsPage() {
   return (
     <div>
       <Header title="Check-ins" />
-      <div className="px-4 lg:px-6 py-8 space-y-6 max-w-5xl">
-        <p className="text-sm text-ink-secondary max-w-prose">
-          Armá un formulario corto y compartí un <span className="font-medium text-ink-primary">link general</span> en el grupo (cada alumno completa con
-          su correo). Si preferís, también podés generar links personales por alumno. Las respuestas aparecen abajo en «Devoluciones».
-        </p>
+      <DirectoryPageShell className="max-w-5xl space-y-6">
+        <PageSectionTitle
+          title="Formularios semanales"
+          description="Armá un formulario corto y compartí un link general en el grupo (cada alumno completa con su correo). También podés generar links personales por alumno."
+          action={
+            <Button
+              type="button"
+              variant="gradientSecondary"
+              size="md"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => openForm(null)}
+            >
+              Nuevo formulario
+            </Button>
+          }
+        />
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => openForm(null)}
-          >
-            Nuevo formulario
-          </Button>
-        </div>
-
-        <div className="grid lg:grid-cols-5 gap-6">
-          <Card className="p-4 sm:p-5 space-y-2 lg:col-span-2">
-            <h2 className="text-sm font-semibold text-ink-primary mb-2">Mis formularios</h2>
+        <div className="grid lg:grid-cols-5 gap-4 lg:gap-6">
+          <Card padding="lg" className={cn('space-y-3 lg:col-span-2', checkInPanelCardClass)}>
+            <CardHeader className="mb-2">
+              <CardTitle className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                Mis formularios
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
             {loading ? (
               <p className="text-sm text-ink-muted">Cargando…</p>
             ) : forms.length === 0 ? (
@@ -531,24 +558,25 @@ export function TrainerCheckInsPage() {
                 action={{ label: 'Nuevo formulario', onClick: () => openForm(null), icon: <Plus className="h-4 w-4" /> }}
               />
             ) : (
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {forms.map((f) => (
-                  <li key={f.id} className="flex items-center gap-1">
+                  <li key={f.id} className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      className={`flex-1 text-left rounded-xl border px-3 py-2 text-sm transition-colors ${
-                        activeFormId === f.id
-                          ? 'border-brand-primary/50 bg-brand-primary/[0.06] font-medium'
-                          : 'border-surface-border hover:bg-surface-elevated/40'
-                      }`}
+                      className={cn(
+                        'flex-1 min-w-0 text-left rounded-xl border px-3 py-2.5 text-sm transition-all duration-200',
+                        activeFormId === f.id ? checkInFormTileActiveClass : checkInFormTileIdleClass,
+                      )}
                       onClick={() => openForm(f)}
                     >
-                      {f.title}
-                      {!f.is_active ? <span className="text-[10px] text-ink-muted"> · pausado</span> : null}
+                      <span className="block truncate">{f.title}</span>
+                      {!f.is_active ? (
+                        <span className="text-[10px] font-normal text-ink-muted">Pausado</span>
+                      ) : null}
                     </button>
                     <button
                       type="button"
-                      className="p-2 text-ink-muted hover:text-status-expired"
+                      className="shrink-0 rounded-lg p-2 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired"
                       title="Eliminar formulario"
                       aria-label={`Eliminar formulario ${f.title}`}
                       onClick={() => void deleteForm(f.id, f.title)}
@@ -559,13 +587,18 @@ export function TrainerCheckInsPage() {
                 ))}
               </ul>
             )}
+            </CardContent>
           </Card>
 
-          <Card className="p-4 sm:p-5 space-y-4 lg:col-span-3">
-            <h2 className="text-sm font-semibold text-ink-primary inline-flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4" />
-              {activeFormId ? 'Editar formulario' : 'Nuevo formulario'}
-            </h2>
+          <Card padding="lg" className={cn('space-y-4 lg:col-span-3', checkInPanelCardClass)}>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-secondary/25 bg-brand-secondary/10">
+                <ClipboardCheck className="h-4 w-4 text-brand-secondary" strokeWidth={1.75} />
+              </span>
+              <h2 className="text-sm font-semibold text-ink-primary">
+                {activeFormId ? 'Editar formulario' : 'Nuevo formulario'}
+              </h2>
+            </div>
             <Input label="Título" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Check semanal" />
             <Textarea
               label="Intro (opcional)"
@@ -574,21 +607,34 @@ export function TrainerCheckInsPage() {
               rows={2}
               placeholder="Texto que ve el alumno arriba del formulario…"
             />
-            <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer">
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded border-surface-border" />
+            <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer rounded-xl border border-surface-border/60 bg-surface-elevated/20 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className={checkInCheckboxClass}
+              />
               Formulario activo (si no, el link muestra error)
             </label>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-ink-muted">Preguntas</span>
-                <Button type="button" size="sm" variant="ghost" className="text-xs h-7" onClick={addQuestion}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-label font-semibold uppercase tracking-wider text-brand-secondary/80">Preguntas</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs h-8 text-brand-secondary hover:text-brand-secondary hover:bg-brand-secondary/10"
+                  onClick={addQuestion}
+                >
                   + Pregunta
                 </Button>
               </div>
               {questions.map((q, idx) => (
-                <div key={q.id} className="flex flex-col sm:flex-row gap-2 items-start rounded-lg border border-surface-border p-2">
-                  <span className="text-[10px] text-ink-muted pt-2 w-5">{idx + 1}</span>
+                <div key={q.id} className={checkInQuestionRowClass}>
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-secondary/12 text-[10px] font-semibold text-brand-secondary tabular-nums">
+                    {idx + 1}
+                  </span>
                   <Input
                     className="flex-1 text-sm"
                     value={q.label}
@@ -596,34 +642,46 @@ export function TrainerCheckInsPage() {
                     placeholder="Texto de la pregunta"
                   />
                   <select
-                    className="text-xs rounded-lg border border-surface-border bg-surface-input px-2 py-2"
+                    className={checkInFieldSelectClass}
                     value={q.type}
                     onChange={(e) => updateQuestion(q.id, { type: e.target.value === 'scale' ? 'scale' : 'text' })}
                   >
                     <option value="text">Texto libre</option>
                     <option value="scale">Escala 1–5</option>
                   </select>
-                  <button type="button" className="p-1 text-ink-muted hover:text-status-expired" onClick={() => removeQuestion(q.id)}>
+                  <button
+                    type="button"
+                    className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired"
+                    onClick={() => removeQuestion(q.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
             </div>
 
-            <Button type="button" onClick={() => void saveForm()} loading={saving}>
+            <Button type="button" variant="gradientSecondary" onClick={() => void saveForm()} loading={saving}>
               {activeFormId ? 'Guardar cambios' : 'Crear formulario'}
             </Button>
 
             {activeFormId && savedForm ? (
               <>
-                <div className="border-t border-surface-border pt-4 space-y-3 rounded-lg border border-brand-primary/20 bg-brand-primary/5 p-3">
-                  <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Link general (recomendado)</h3>
+                <div className={cn('border-t border-surface-border/80 pt-4', checkInHighlightPanelClass)}>
+                  <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                    Link general (recomendado)
+                  </h3>
                   <p className="text-[11px] text-ink-muted leading-relaxed">
                     Un solo link para todos. Cada persona ingresa su correo (el mismo de la ficha) y la respuesta queda vinculada automáticamente. El
                     texto del intro (con emojis) se incluye al compartir por WhatsApp.
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    <Button type="button" size="sm" variant="secondary" className="text-xs h-7" onClick={() => void copySharedLink()}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="gradientSecondary"
+                      className="text-xs h-8"
+                      onClick={() => void copySharedLink()}
+                    >
                       Copiar link general
                     </Button>
                     <Button
@@ -650,29 +708,32 @@ export function TrainerCheckInsPage() {
                   <p className="text-[10px] text-ink-muted font-mono break-all">{sharedPublicUrl(savedForm.public_token)}</p>
                 </div>
 
-                <div className="border-t border-surface-border pt-4 space-y-3">
-                  <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Links por alumno (opcional)</h3>
+                <div className="border-t border-surface-border/80 pt-4 space-y-3">
+                  <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                    Links por alumno (opcional)
+                  </h3>
                   <p className="text-[11px] text-ink-muted">Marcá alumnos que todavía no tienen fila en la tabla de abajo y generá el link.</p>
                   <p className="text-[11px] text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
                     No compartas los links en grupos públicos: son como una clave. Si un formulario queda pausado, el link deja de aceptar respuestas
                     nuevas.
                   </p>
-                  <div className="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-surface-border p-2">
+                  <div className="max-h-36 overflow-y-auto space-y-1 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2">
                     {students.map((s) => {
                       const has = invites.some((i) => i.student_id === s.id)
                       return (
                         <label
                           key={s.id}
-                          className={`flex items-center gap-2 rounded-lg px-2 py-1 text-sm ${
-                            has ? 'opacity-40 cursor-not-allowed' : 'hover:bg-surface-elevated/50 cursor-pointer'
-                          }`}
+                          className={cn(
+                            'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors',
+                            has ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-brand-secondary/8',
+                          )}
                         >
                           <input
                             type="checkbox"
                             disabled={has}
                             checked={selectedStudentIds.has(s.id)}
                             onChange={() => toggleStudent(s.id)}
-                            className="rounded border-surface-border"
+                            className={checkInCheckboxClass}
                           />
                           {s.full_name}
                           {has ? <span className="text-[10px] text-ink-muted">ya tiene link</span> : null}
@@ -683,7 +744,7 @@ export function TrainerCheckInsPage() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
+                    variant="gradientSecondary"
                     loading={inviteBusy}
                     disabled={inviteBusy || selectedStudentIds.size === 0}
                     onClick={() => void createInvites()}
@@ -692,9 +753,11 @@ export function TrainerCheckInsPage() {
                   </Button>
                 </div>
 
-                <div className="border-t border-surface-border pt-4 space-y-2">
+                <div className="border-t border-surface-border/80 pt-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Invitaciones y respuestas</h3>
+                    <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                      Invitaciones y respuestas
+                    </h3>
                     <div className="flex flex-wrap gap-1.5">
                       {invites.some((i) => responseByInvite.has(i.id)) ? (
                         <Button type="button" size="sm" variant="outline" className="text-xs h-7" icon={<Download className="h-3.5 w-3.5" />} onClick={exportResponsesCsv}>
@@ -783,14 +846,19 @@ export function TrainerCheckInsPage() {
                 </div>
 
                 {invites.some((i) => responseByInvite.has(i.id)) ? (
-                  <div className="border-t border-surface-border pt-4 space-y-3">
-                    <h3 className="text-xs font-semibold text-ink-primary uppercase tracking-wide">Detalle de respuestas</h3>
+                  <div className="border-t border-surface-border/80 pt-4 space-y-3">
+                    <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                      Detalle de respuestas
+                    </h3>
                     {invites.map((inv) => {
                       const resp = responseByInvite.get(inv.id)
                       if (!resp) return null
                       const obj = resp.responses && typeof resp.responses === 'object' && !Array.isArray(resp.responses) ? (resp.responses as Record<string, unknown>) : {}
                       return (
-                        <div key={inv.id} className="rounded-xl border border-surface-border p-3 space-y-1 text-sm">
+                        <div
+                          key={inv.id}
+                          className="rounded-xl border border-brand-secondary/20 bg-brand-secondary/5 p-3 space-y-1 text-sm"
+                        >
                           <p className="font-medium text-ink-primary">{inv.student?.full_name ?? '—'}</p>
                           <p className="text-[10px] text-ink-muted">
                             Testimonio OK: {resp.testimonial_consent ? 'sí' : 'no'}
@@ -815,11 +883,13 @@ export function TrainerCheckInsPage() {
           </Card>
         </div>
 
-        <Card className="p-4 sm:p-5 space-y-4 max-w-5xl">
-          <h2 className="text-sm font-semibold text-ink-primary inline-flex items-center gap-2">
-            <CalendarClock className="h-4 w-4" aria-hidden />
-            Recordatorios de envío (WhatsApp)
-          </h2>
+        <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-secondary/25 bg-brand-secondary/10">
+              <CalendarClock className="h-4 w-4 text-brand-secondary" strokeWidth={1.75} aria-hidden />
+            </span>
+            <h2 className="text-sm font-semibold text-ink-primary">Recordatorios de envío (WhatsApp)</h2>
+          </div>
           <p className="text-xs text-ink-secondary max-w-prose">
             Definí un día fijo por formulario (en tu zona horaria). Ese día verás un recordatorio en <strong className="text-ink-primary">Inicio</strong>.
             WhatsApp no se envía solo: desde acá usá <strong className="text-ink-primary">Grupo WA</strong> para mandar todos los links juntos.
@@ -831,7 +901,7 @@ export function TrainerCheckInsPage() {
               </label>
               <select
                 id="sched-dow"
-                className="w-full rounded-lg border border-surface-border bg-surface-input px-2 py-2 text-sm"
+                className={cn('w-full', checkInFieldSelectClass, 'text-sm')}
                 value={newScheduleDow}
                 onChange={(e) => setNewScheduleDow(Number(e.target.value))}
               >
@@ -848,7 +918,7 @@ export function TrainerCheckInsPage() {
               </label>
               <select
                 id="sched-tz"
-                className="w-full rounded-lg border border-surface-border bg-surface-input px-2 py-2 text-sm"
+                className={cn('w-full', checkInFieldSelectClass, 'text-sm')}
                 value={newScheduleTz}
                 onChange={(e) => setNewScheduleTz(e.target.value)}
               >
@@ -864,13 +934,14 @@ export function TrainerCheckInsPage() {
                 type="checkbox"
                 checked={newSchedulePreferGroup}
                 onChange={(e) => setNewSchedulePreferGroup(e.target.checked)}
-                className="rounded border-surface-border"
+                className={checkInCheckboxClass}
               />
               Preferir envío al grupo
             </label>
             <Button
               type="button"
               size="sm"
+              variant="gradientSecondary"
               loading={scheduleBusy}
               disabled={scheduleBusy || !activeFormId || forms.length === 0}
               onClick={() => void addCheckInSchedule()}
@@ -890,7 +961,7 @@ export function TrainerCheckInsPage() {
               {schedules.map((s) => (
                 <li
                   key={s.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border px-3 py-2 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-3 py-2.5 text-sm transition-colors hover:border-brand-secondary/25"
                 >
                   <div className="min-w-0">
                     <p className="font-medium text-ink-primary truncate">{s.form?.title ?? 'Formulario'}</p>
@@ -925,7 +996,7 @@ export function TrainerCheckInsPage() {
             </ul>
           )}
         </Card>
-      </div>
+      </DirectoryPageShell>
     </div>
   )
 }
