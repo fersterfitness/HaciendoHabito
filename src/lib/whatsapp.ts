@@ -205,3 +205,45 @@ export function buildResourceShareMessage(title: string, url: string, note?: str
   if (note?.trim()) lines.push('', note.trim())
   return lines.join('\n')
 }
+
+/** Mensaje al enviar rutina (PDF) al alumno por WhatsApp. */
+export function buildRoutinePdfShareMessage(params: {
+  studentName: string
+  routineName: string
+  pdfUrl: string
+  extraNote?: string | null
+}): string {
+  const first = params.studentName.trim().split(/\s+/)[0] || params.studentName.trim()
+  const lines = [
+    `Hola ${first},`,
+    '',
+    `Te comparto tu rutina «${params.routineName.trim()}»:`,
+    '',
+    params.pdfUrl.trim(),
+  ]
+  if (params.extraNote?.trim()) lines.push('', params.extraNote.trim())
+  lines.push('', 'Cualquier duda me escribís. ¡A entrenar!')
+  return lines.join('\n')
+}
+
+export function buildRoutinePdfShareWaUrl(params: {
+  phoneRaw: string | null | undefined
+  studentName: string
+  routineName: string
+  pdfUrl: string
+  extraNote?: string | null
+}): string | null {
+  const digits = normalizePhoneForWhatsApp(params.phoneRaw)
+  if (!digits) return null
+  const msg = buildRoutinePdfShareMessage({
+    studentName: params.studentName,
+    routineName: params.routineName,
+    pdfUrl: params.pdfUrl,
+    extraNote: params.extraNote,
+  })
+  return buildWhatsAppUrl(digits, msg)
+}
+
+export function openWhatsAppUrl(url: string): void {
+  window.open(url, '_blank', 'noopener,noreferrer')
+}

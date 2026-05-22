@@ -108,6 +108,7 @@ export function prefetchRouteChunkByHref(href: string): void {
   if (path.startsWith('/exercises')) {
     runOnce('exercises', () => {
       void import('@/pages/exercises/ExercisesPage')
+      void import('@/pages/exercises/TrainingMethodsPage')
       void import('@/pages/exercises/ExerciseFormPage')
     })
     return

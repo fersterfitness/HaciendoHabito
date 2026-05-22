@@ -546,6 +546,30 @@ export interface RoutineDay {
   sort_order: number
 }
 
+export interface TrainingMethodCategory {
+  id: string
+  owner_id: string
+  name: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainingMethod {
+  id: string
+  owner_id: string
+  category_id: string | null
+  name: string
+  default_reps_scheme: string | null
+  default_sets: number | null
+  /** Guía privada del entrenador; no se muestra en PDF ni al alumno. */
+  coach_guide: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+  category?: TrainingMethodCategory | null
+}
+
 export interface RoutineExercise {
   id: string
   day_id: string
@@ -564,7 +588,11 @@ export interface RoutineExercise {
   technical_notes: string | null
   is_superset: boolean
   superset_group: number | null
+  training_method_id: string | null
+  /** Notas privadas al aplicar un método en esta rutina (no PDF). */
+  method_coach_notes: string | null
   exercise?: Exercise
+  training_method?: TrainingMethod | null
 }
 
 export interface Exercise {

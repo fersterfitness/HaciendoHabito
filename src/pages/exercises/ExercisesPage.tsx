@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
+import { ExercisesSectionNav } from '@/components/exercises/ExercisesSectionNav'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -174,6 +175,7 @@ export function ExercisesPage() {
       <Header title="Ejercicios" />
 
       <div className="mx-auto max-w-[1600px] space-y-3 px-4 py-4 lg:px-6 lg:py-6">
+        <ExercisesSectionNav />
 
         {/* ── Barra de búsqueda + acciones ── */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">

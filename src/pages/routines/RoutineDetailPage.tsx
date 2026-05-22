@@ -38,6 +38,11 @@ import {
   type StudentRmLookup,
 } from '@/lib/routine/studentRmLookup'
 import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
+import { cascadeWeekDatesFromBlock } from '@/lib/routine/weekBlockDates'
+import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
+import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
+import { TRAINER_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -145,6 +150,7 @@ export function RoutineDetailPage() {
   const [showDelete, setShowDelete]   = useState(false)
   const [deleting, setDeleting]       = useState(false)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [sendingWa, setSendingWa] = useState(false)
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set())
   const [expandedDays, setExpandedDays]     = useState<Set<string>>(new Set())
   const [showExercisePicker, setShowExercisePicker] = useState<{
@@ -232,6 +238,58 @@ export function RoutineDetailPage() {
 
   // ── PDF ───────────────────────────────────────────────────────────────────
 
+  async function handleSendRoutineWhatsApp() {
+    if (!id || !user || !routine?.student) return
+    setSendingWa(true)
+    try {
+      await recoverStaleRoutinePdfs(user.id)
+      const { data: latestPdf } = await supabase
+        .from('routine_pdfs')
+        .select('id, file_path, status')
+        .eq('routine_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let filePath =
+        latestPdf?.status === 'generado' && latestPdf.file_path ? latestPdf.file_path : null
+
+      if (!filePath) {
+        const toastId = toast.loading('Generando PDF para enviar…')
+        let pdfId = latestPdf?.id
+        if (!pdfId) {
+          const { data: created, error } = await supabase
+            .from('routine_pdfs')
+            .insert({ owner_id: user.id, routine_id: id, student_id: routine.student_id, status: 'pendiente' })
+            .select('id')
+            .single()
+          if (error || !created) throw new Error(error?.message ?? 'No se pudo crear el PDF')
+          pdfId = created.id
+        }
+        await generateRoutinePdf(id, pdfId)
+        const { data: pdfRecord } = await supabase.from('routine_pdfs').select('file_path').eq('id', pdfId).single()
+        filePath = pdfRecord?.file_path ?? null
+        toast.dismiss(toastId)
+      }
+
+      if (!filePath) {
+        toast.error('No se pudo generar el PDF')
+        return
+      }
+
+      await sendRoutinePdfViaWhatsApp({
+        studentPhone: routine.student.phone,
+        studentName: routine.student.full_name,
+        routineName: routine.name,
+        filePath,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo enviar')
+    } finally {
+      setSendingWa(false)
+    }
+  }
+
   async function handleGeneratePdf() {
     if (!id || !user || !routine) return
     setGeneratingPdf(true)
@@ -290,6 +348,27 @@ export function RoutineDetailPage() {
   async function updateBlock(blockId: string, patch: Partial<RoutineBlock>) {
     await supabase.from('routine_blocks').update(patch).eq('id', blockId)
     setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, ...patch } : b))
+  }
+
+  /** Inicio de semana → fin +6 días y semanas siguientes en cadena (editable manual después). */
+  async function cascadeBlockWeekDates(blockId: string, newStart: string) {
+    const patches = cascadeWeekDatesFromBlock(blocks, blockId, newStart)
+    if (patches.length === 0) return
+    await Promise.all(
+      patches.map((p) =>
+        supabase
+          .from('routine_blocks')
+          .update({ start_date: p.start_date, end_date: p.end_date })
+          .eq('id', p.id),
+      ),
+    )
+    setBlocks((prev) => {
+      const byId = Object.fromEntries(patches.map((p) => [p.id, p]))
+      return prev.map((b) => (byId[b.id] ? { ...b, ...byId[b.id] } : b))
+    })
+    if (patches.length > 1) {
+      toast.success(`Fechas actualizadas en ${patches.length} semanas`, { duration: 2500 })
+    }
   }
 
   async function deleteBlock(blockId: string) {
@@ -805,6 +884,19 @@ export function RoutineDetailPage() {
             </button>
             <button
               type="button"
+              onClick={() => void handleSendRoutineWhatsApp()}
+              disabled={sendingWa || !routine?.student}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50',
+                'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400',
+              )}
+              title={`Enviar rutina por WhatsApp (${TRAINER_WHATSAPP_DISPLAY})`}
+            >
+              {sendingWa ? <Spinner className="h-3.5 w-3.5" /> : <WhatsAppIcon className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{sendingWa ? 'Enviando…' : 'WhatsApp'}</span>
+            </button>
+            <button
+              type="button"
               onClick={handleGeneratePdf}
               disabled={generatingPdf}
               className={cn(
@@ -942,6 +1034,7 @@ export function RoutineDetailPage() {
               return next
             })}
             onUpdateBlock={(patch) => updateBlock(block.id, patch)}
+            onCascadeWeekStart={(start) => void cascadeBlockWeekDates(block.id, start)}
             onDeleteBlock={() => deleteBlock(block.id)}
             onMoveBlock={(direction) => moveBlock(block.id, direction)}
             onAddDay={() => addDay(block.id)}
@@ -1059,7 +1152,7 @@ export function RoutineDetailPage() {
 
 function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0,
-  onToggle, onToggleDay, onUpdateBlock, onDeleteBlock, onMoveBlock, onAddDay,
+  onToggle, onToggleDay, onUpdateBlock, onCascadeWeekStart, onDeleteBlock, onMoveBlock, onAddDay,
   onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
 }: {
@@ -1068,7 +1161,9 @@ function BlockCard({
   stripeIndex?: number
   expandedDays: Set<string>; showCopyMenu: boolean
   onToggle: () => void; onToggleDay: (id: string) => void
-  onUpdateBlock: (patch: Partial<RoutineBlock>) => void; onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
+  onUpdateBlock: (patch: Partial<RoutineBlock>) => void
+  onCascadeWeekStart: (startDate: string) => void
+  onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
   onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
   onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void;   onAddExercise: (dayId: string) => void
   onReplaceExercise: (dayId: string, routineExerciseId: string) => void
@@ -1191,7 +1286,11 @@ function BlockCard({
                   'focus-visible:border-brand-primary',
                 )}
                 value={block.start_date ?? ''}
-                onChange={(e) => onUpdateBlock({ start_date: e.target.value || null })}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v) onCascadeWeekStart(v)
+                  else onUpdateBlock({ start_date: null })
+                }}
               />
             </div>
             <div>
@@ -1206,6 +1305,7 @@ function BlockCard({
                 value={block.end_date ?? ''}
                 onChange={(e) => onUpdateBlock({ end_date: e.target.value || null })}
               />
+              <p className="mt-0.5 text-[9px] text-ink-muted">Editable manualmente</p>
             </div>
           </div>
 
@@ -1213,10 +1313,10 @@ function BlockCard({
             <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Aclaración general del bloque</label>
             <Textarea
               placeholder="Ej: Intermitente HIIT corto 20x20'' x 4 vueltas. Descanso entre vueltas: 3'."
-              rows={2}
+              rows={5}
               value={block.notes ?? ''}
               onChange={(e) => onUpdateBlock({ notes: e.target.value || null })}
-              className="text-xs"
+              className="min-h-[6.5rem] resize-y text-xs leading-relaxed whitespace-pre-wrap"
             />
           </div>
 
@@ -1778,6 +1878,15 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
           />
         </div>
       </div>
+
+      <TrainingMethodPicker
+        exercise={exercise}
+        onApply={(patch) => {
+          if (patch.reps_scheme != null) setReps(patch.reps_scheme)
+          if (patch.sets != null) setSets(patch.sets)
+          save(patch)
+        }}
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
         <div>

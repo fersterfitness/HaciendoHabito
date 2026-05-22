@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { formatDate } from '@/lib/utils'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
 import { recoverStaleRoutinePdfs } from '@/lib/pdf/routinePdfRecovery'
+import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
 import type { RoutinePdf, Routine, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -29,7 +30,7 @@ export function RoutinePdfsPanel() {
     await recoverStaleRoutinePdfs(user.id)
     const { data, error } = await supabase
       .from('routine_pdfs')
-      .select('*, routine:routines(name), student:students(full_name)')
+      .select('*, routine:routines(name), student:students(full_name, phone)')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
     if (error) toast.error(error.message)
@@ -168,11 +169,18 @@ export function RoutinePdfsPanel() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="secondary"
                       icon={<Send className="h-3.5 w-3.5" />}
-                      onClick={() => toast('Envío por WhatsApp próximamente', { icon: '📲' })}
+                      onClick={() =>
+                        void sendRoutinePdfViaWhatsApp({
+                          studentPhone: (pdf.student as { phone?: string | null })?.phone,
+                          studentName: pdf.student?.full_name ?? 'Alumno',
+                          routineName: pdf.routine?.name ?? 'Rutina',
+                          filePath: pdf.file_path!,
+                        })
+                      }
                     >
-                      Enviar
+                      WhatsApp
                     </Button>
                   </>
                 ) : null}
