@@ -1,8 +1,6 @@
 export const APP_NAME = 'Haciéndolo Hábito'
 export const APP_BRAND = 'FERSTER FITNESS'
 
-export const FEATURE_NUTRITION = import.meta.env.VITE_FEATURE_NUTRITION === 'true'
-
 export const STUDENT_LEVELS = [
   { value: 'inicial', label: 'Inicial' },
   { value: 'intermedio', label: 'Intermedio' },

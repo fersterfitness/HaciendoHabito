@@ -19,6 +19,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
+import { StudentTagChips } from '@/components/students/StudentTagChips'
+import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { Header } from '@/components/layout/Header'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -490,6 +492,8 @@ export function StudentsPage() {
   const [filterExpiry, setFilterExpiry] = useState<ExpiryFilter>('')
   const [filterTag,    setFilterTag]    = useState('')
   const [tableSort, setTableSort] = useState<TableSort>('recommended')
+  const TABLE_PAGE_SIZE = 50
+  const [tableVisibleCount, setTableVisibleCount] = useState(TABLE_PAGE_SIZE)
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
@@ -607,14 +611,10 @@ export function StudentsPage() {
     )
   }
 
-  // Compute all unique tags from localStorage
   const allTags = useMemo(() => {
     const tagSet = new Set<string>()
     for (const s of localStudents) {
-      const raw = localStorage.getItem(`tags_${s.id}`)
-      if (raw) {
-        try { (JSON.parse(raw) as string[]).forEach((t) => tagSet.add(t)) } catch { /* ignore */ }
-      }
+      studentTrainerTags(s).forEach((t) => tagSet.add(t))
     }
     return Array.from(tagSet).sort()
   }, [localStudents])
@@ -628,14 +628,7 @@ export function StudentsPage() {
       if (filterExpiry === 'pronto'  && !(d >= 0 && d <= 14)) return false
       if (filterExpiry === 'vencido' && d >= 0)               return false
     }
-    if (filterTag) {
-      const raw = localStorage.getItem(`tags_${s.id}`)
-      if (!raw) return false
-      try {
-        const tags = JSON.parse(raw) as string[]
-        if (!tags.includes(filterTag)) return false
-      } catch { return false }
-    }
+    if (filterTag && !studentTrainerTags(s).includes(filterTag)) return false
     return true
   }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag])
 
@@ -643,6 +636,15 @@ export function StudentsPage() {
     () => sortStudentsClone(filtered, tableSort),
     [filtered, tableSort],
   )
+
+  const visibleForTable = useMemo(
+    () => sortedForTable.slice(0, tableVisibleCount),
+    [sortedForTable, tableVisibleCount],
+  )
+
+  useEffect(() => {
+    setTableVisibleCount(TABLE_PAGE_SIZE)
+  }, [search, filterLevel, filterStatus, filterExpiry, filterTag, tableSort])
 
   return (
     <div>
@@ -765,21 +767,37 @@ export function StudentsPage() {
             description="Probá con otros filtros o limpiá la selección."
           />
         ) : (
-          <StudentDirectoryTable
-            entityLabel={entityLabel}
-            entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
-            sortSubtitle={SORT_SUBTITLE[tableSort]}
-            students={sortedForTable}
-            selectedStudentId={selectedStudentId}
-            onAvatarUpdated={() => { void fetchStudents(search) }}
-            activeRoutineStudentIds={activeRoutineStudentIds}
-            routineExpiryMap={routineExpiryMap}
-            hasMealPlanStudentIds={hasMealPlanStudentIds}
-            onRowClick={(studentId) => setSelectedStudentId(studentId)}
-            onEdit={(id) => navigate(`/students/${id}/edit`)}
-            onDelete={(s) => setDeleteTarget(s)}
-            onStatusChanged={handleStatusChanged}
-          />
+          <>
+            <StudentDirectoryTable
+              entityLabel={entityLabel}
+              entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
+              sortSubtitle={SORT_SUBTITLE[tableSort]}
+              students={visibleForTable}
+              selectedStudentId={selectedStudentId}
+              onAvatarUpdated={() => { void fetchStudents(search) }}
+              activeRoutineStudentIds={activeRoutineStudentIds}
+              routineExpiryMap={routineExpiryMap}
+              hasMealPlanStudentIds={hasMealPlanStudentIds}
+              onRowClick={(studentId) => setSelectedStudentId(studentId)}
+              onEdit={(id) => navigate(`/students/${id}/edit`)}
+              onDelete={(s) => setDeleteTarget(s)}
+              onStatusChanged={handleStatusChanged}
+              onFilterTag={setFilterTag}
+            />
+            {sortedForTable.length > tableVisibleCount ? (
+              <div className="flex justify-center border-t border-surface-border/80 py-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    setTableVisibleCount((n) => Math.min(n + TABLE_PAGE_SIZE, sortedForTable.length))
+                  }
+                >
+                  Mostrar más ({sortedForTable.length - tableVisibleCount} restantes)
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </DirectoryPageShell>
 
@@ -814,6 +832,7 @@ export function StudentsPage() {
               studentId={selectedStudentId}
               variant="panel"
               onClosePanel={() => setSelectedStudentId(null)}
+              onStudentPatch={handleStudentPatch}
             />
           </div>
         </>
@@ -850,6 +869,7 @@ function StudentDirectoryTable({
   onEdit,
   onDelete,
   onStatusChanged,
+  onFilterTag,
   activeRoutineStudentIds,
   routineExpiryMap: _routineExpiryMap,
   hasMealPlanStudentIds,
@@ -864,6 +884,7 @@ function StudentDirectoryTable({
   onEdit: (id: string) => void
   onDelete: (student: Student) => void
   onStatusChanged: (id: string, status: StudentStatus) => void
+  onFilterTag?: (tag: string) => void
   activeRoutineStudentIds: Set<string>
   routineExpiryMap: Map<string, string>
   hasMealPlanStudentIds: Set<string>
@@ -926,6 +947,12 @@ function StudentDirectoryTable({
                   <StatusToggle student={student} onChanged={onStatusChanged} />
                   {student.plan_end_date && <PlanDaysChip date={student.plan_end_date} />}
                 </div>
+                <StudentTagChips
+                  student={student}
+                  maxVisible={2}
+                  onTagClick={onFilterTag}
+                  className="mt-1"
+                />
                 <div className="mt-1 flex items-center gap-1.5">
                   <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
                     <span className={cn(iconWrapBase, hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
@@ -1027,6 +1054,12 @@ function StudentDirectoryTable({
                           </div>
                         </div>
                         {student.email ? <span className="truncate text-[11px] text-ink-muted lg:hidden">{student.email}</span> : null}
+                        <StudentTagChips
+                          student={student}
+                          maxVisible={2}
+                          onTagClick={onFilterTag}
+                          className="mt-0.5"
+                        />
                       </div>
                     </div>
                   </td>

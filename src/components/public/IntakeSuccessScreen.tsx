@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'motion/react'
 import { CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

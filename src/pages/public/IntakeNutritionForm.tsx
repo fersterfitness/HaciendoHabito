@@ -26,14 +26,10 @@ import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
 import { IntakeQuickTextFill } from '@/components/public/IntakeQuickTextFill'
 import type { IntakeProfessional } from '@/lib/intake/intakeProfessionals'
+import { submitPublicIntake } from '@/lib/intake/submitPublicIntake'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const PHONE_HINT = `Formato: ${STUDENT_PHONE_FORMAT_HINT}`
-
-const intakeSecret =
-  typeof import.meta.env.VITE_PUBLIC_INTAKE_SECRET === 'string'
-    ? import.meta.env.VITE_PUBLIC_INTAKE_SECRET
-    : ''
 
 // Campos requeridos por paso (los opcionales no se validan al avanzar)
 const STEP_FIELDS: (keyof NutritionIntakeFormValues)[][] = [
@@ -164,10 +160,6 @@ export function IntakeNutritionForm({
     const phone = canonicalizeArgentinaStudentPhone(values.phone)
     if (!phone) return
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-    if (!supabaseUrl || !anon) { toast.error('Falta configuración del sitio'); return }
-
     const payload = {
       ...values,
       phone,
@@ -176,58 +168,25 @@ export function IntakeNutritionForm({
       intake_nutritionist_slug: selectedNutritionist?.slug ?? '',
       website: '',
     }
-    const endpoint = `${supabaseUrl}/functions/v1/public-intake-form`
-    const fnHeaders: Record<string, string> = {
-      apikey: anon,
-      Authorization: `Bearer ${anon}`,
+
+    const hasFiles = profileFile !== null || labFile !== null
+    let submitFiles: { profile?: File | null; medical?: File | null } | undefined
+    if (hasFiles) {
+      const profilePrepared = profileFile ? await compressImageFileForUpload(profileFile) : null
+      const labPrepared =
+        labFile && labFile.type.startsWith('image/')
+          ? await compressImageFileForUpload(labFile)
+          : labFile
+      submitFiles = { profile: profilePrepared, medical: labPrepared }
     }
-    if (intakeSecret) fnHeaders['x-intake-secret'] = intakeSecret
 
-    let res: Response
-    try {
-      const hasFiles = profileFile !== null || labFile !== null
-      if (!hasFiles) {
-        res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { ...fnHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        const profilePrepared = profileFile ? await compressImageFileForUpload(profileFile) : null
-        const labPrepared =
-          labFile && labFile.type.startsWith('image/')
-            ? await compressImageFileForUpload(labFile)
-            : labFile
-
-        const formData = new FormData()
-        formData.append('payload', JSON.stringify(payload))
-        if (profilePrepared) formData.append('profile', profilePrepared)
-        if (labPrepared) formData.append('medical', labPrepared)
-        res = await fetch(endpoint, { method: 'POST', headers: fnHeaders, body: formData })
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'desconocido'
-      toast.error(`No se pudo conectar (${msg}). Recargá e intentá de nuevo.`)
+    const result = await submitPublicIntake(payload, submitFiles)
+    if (!result.ok) {
+      toast.error(result.error)
       return
     }
-
-    const rawText = await res.text()
-    let body: { ok?: boolean; error?: string }
-    try {
-      body = JSON.parse(rawText) as { ok?: boolean; error?: string }
-    } catch {
-      toast.error(
-        res.status === 413
-          ? 'Los archivos pesan demasiado.'
-          : `Error del servidor (${res.status}).`,
-      )
-      return
-    }
-    if (!res.ok || body.error) { toast.error(body.error || 'Error al enviar'); return }
-    if (!body.ok) { toast.error('No se pudo completar el registro'); return }
-
-    if (Array.isArray(body.warnings) && body.warnings.length > 0) {
-      toast(body.warnings.join(' '), { icon: 'ℹ️', duration: 9000 })
+    if (result.warnings?.length) {
+      toast(result.warnings.join(' '), { icon: 'ℹ️', duration: 9000 })
     }
 
     toast.success('¡Listo!')

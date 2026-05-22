@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'motion/react'
 
 /**
  * Entrada suave del contenido al navegar (solo pathname; no reacciona a ?query).

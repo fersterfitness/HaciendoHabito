@@ -4,7 +4,8 @@
  * El formulario público **ya no usa** esta ruta por defecto: en Vercel el proxy sumaba latencia y **504**
  * (timeout en Hobby) con multipart. El cliente llama directo a Supabase.
  *
- * Vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, opcional VITE_PUBLIC_INTAKE_SECRET.
+ * Vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY.
+ * Secreto (servidor): INTAKE_SECRET o legacy VITE_PUBLIC_INTAKE_SECRET.
  */
 export const config = {
   runtime: 'nodejs',
@@ -30,7 +31,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   const base = process.env.VITE_SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY
-  const secret = process.env.VITE_PUBLIC_INTAKE_SECRET
+  const secret = process.env.INTAKE_SECRET ?? process.env.VITE_PUBLIC_INTAKE_SECRET
 
   if (!base || !anon) {
     console.error('[api/intake] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY')

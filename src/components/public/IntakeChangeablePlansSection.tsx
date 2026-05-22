@@ -3,7 +3,7 @@
  * `tone="card"`: en `uiTheme="light"` usa cromado claro embebido; en `uiTheme="dark"` mismo layout con superficies oscuras.
  */
 import { useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'motion/react'
 import { Check, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { intakePanelPlansCtaClass } from '@/lib/intake/intakePanelUi'

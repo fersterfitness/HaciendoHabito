@@ -463,6 +463,12 @@ export interface Student {
   avatar_path: string | null
   /** Fecha de vencimiento del plan activo (ISO date YYYY-MM-DD). */
   plan_end_date: string | null
+  /** Etiquetas libres del entrenador (sync entre dispositivos). */
+  trainer_tags: string[]
+  /** Cuota mensual de referencia (ARS). */
+  monthly_fee_amount: number | null
+  /** Peso objetivo en kg (seguimiento). */
+  target_weight_kg: number | null
   created_at: string
   updated_at: string
 }

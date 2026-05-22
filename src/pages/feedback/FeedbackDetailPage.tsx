@@ -122,7 +122,7 @@ export function FeedbackDetailPage() {
                 <Button
                   key={status}
                   size="sm"
-                  variant={status === 'cerrada' ? 'secondary' : 'primary'}
+                  variant={status === 'cerrada' ? 'secondary' : 'gradientSecondary'}
                   onClick={() => changeStatus(status)}
                 >
                   {label}
@@ -227,8 +227,9 @@ export function FeedbackDetailPage() {
               </div>
               <Button
                 type="submit"
+                variant="gradientSecondary"
                 className="w-full"
-                icon={<Send className="h-4 w-4" />}
+                icon={<Send className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
                 loading={isSubmitting || uploading}
               >
                 {uploading ? 'Subiendo video...' : 'Enviar devolución'}

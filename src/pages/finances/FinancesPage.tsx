@@ -27,6 +27,7 @@ import { cn, formatDate, formatCurrency } from '@/lib/utils'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { Button } from '@/components/ui/Button'
 import type { Income, Expense, Student } from '@/types/database'
+import { studentMonthlyFeeAmount } from '@/lib/students/studentTrainerPrefs'
 import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
@@ -301,9 +302,8 @@ export function FinancesPage() {
 
   const deudores = students
     .map((s) => {
-      const raw = localStorage.getItem(`cuota_mensual_${s.id}`)
-      if (!raw) return null
-      const cuota = Number(raw)
+      const cuota = studentMonthlyFeeAmount(s)
+      if (cuota == null) return null
       const paid = businessIncomesOnly
         .filter((i) => i.status === 'cobrado' && i.student_id === s.id && i.income_date.startsWith(thisMonthKey))
         .reduce((sum, i) => sum + i.amount, 0)

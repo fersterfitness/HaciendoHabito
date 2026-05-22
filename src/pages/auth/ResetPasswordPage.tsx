@@ -19,8 +19,8 @@ import { Spinner } from '@/components/ui/Spinner'
 
 const resetSchema = z
   .object({
-    password: z.string().min(6, 'Mínimo 6 caracteres'),
-    confirm: z.string().min(6, 'Mínimo 6 caracteres'),
+    password: z.string().min(8, 'Mínimo 8 caracteres'),
+    confirm: z.string().min(8, 'Mínimo 8 caracteres'),
   })
   .refine((d) => d.password === d.confirm, {
     message: 'Las contraseñas no coinciden',

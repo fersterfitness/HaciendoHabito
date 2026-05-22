@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'motion/react'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'

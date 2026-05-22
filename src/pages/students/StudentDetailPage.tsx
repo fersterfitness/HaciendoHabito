@@ -28,6 +28,14 @@ import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan, Income } from '@/types/database'
 import { INCOME_TYPES, PAYMENT_METHODS } from '@/lib/constants'
+import { devLog } from '@/lib/devLog'
+import { fetchAccessibleStudentById } from '@/lib/students/studentAccess'
+import {
+  migrateLocalTrainerPrefsToDb,
+  updateStudentTrainerPrefs,
+} from '@/lib/students/studentTrainerPrefs'
+import { PagosTab } from '@/pages/students/studentDetail/PagosTab'
+import { PesoTab } from '@/pages/students/studentDetail/PesoTab'
 import { buildPersonalFullMirrorIncomeRow, buildPersonalHalfIncomeRow } from '@/lib/financePersonalSplit'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
@@ -156,13 +164,19 @@ export interface StudentDetailViewProps {
   studentId: string
   variant?: 'page' | 'panel'
   onClosePanel?: () => void
+  /** Sincroniza lista / finanzas cuando cambian prefs en el panel lateral. */
+  onStudentPatch?: (patch: Partial<Student> & { id: string }) => void
 }
 
 // ─── Ficha ─────────────────────────────────────────────────────────────────────
+const MAX_TRAINER_TAGS = 20
+const MAX_TAG_LENGTH = 24
+
 export function StudentDetailView({
   studentId: id,
   variant = 'page',
   onClosePanel,
+  onStudentPatch,
 }: StudentDetailViewProps) {
   const navigate = useAppNavigate()
   const { deleteStudent } = useStudents()
@@ -179,27 +193,51 @@ export function StudentDetailView({
   const [sheetTab,      setSheetTab]      = useState<SheetTab>('ficha')
   const [seguimientoTab, setSeguimientoTab] = useState<SeguimientoTab>('peso')
 
-  // Tags (localStorage)
-  const tagsKey = id ? `tags_${id}` : ''
-  const [tags, setTags] = useState<string[]>(() => {
-    if (!id) return []
-    const raw = localStorage.getItem(`tags_${id}`)
-    try { return raw ? (JSON.parse(raw) as string[]) : [] } catch { return [] }
-  })
+  const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [editingTags, setEditingTags] = useState(false)
+  const [savingTags, setSavingTags] = useState(false)
+
+  async function persistTags(next: string[], rollback: string[]) {
+    if (!id) return
+    setSavingTags(true)
+    const err = await updateStudentTrainerPrefs(id, { trainer_tags: next })
+    setSavingTags(false)
+    if (err) {
+      setTags(rollback)
+      toast.error(err)
+    } else {
+      setStudent((s) => (s ? { ...s, trainer_tags: next } : s))
+      if (id) onStudentPatch?.({ id, trainer_tags: next })
+      const removed = rollback.length > next.length
+      toast.success(removed ? 'Etiqueta quitada' : 'Guardado', { id: 'trainer-tags', duration: 2000 })
+    }
+  }
+
   function addTag(t: string) {
     const clean = t.trim().toLowerCase()
-    if (!clean || tags.includes(clean)) return
+    if (!clean || tags.includes(clean) || savingTags) return
+    if (clean.length > MAX_TAG_LENGTH) {
+      toast.error(`Máximo ${MAX_TAG_LENGTH} caracteres`)
+      return
+    }
+    if (tags.length >= MAX_TRAINER_TAGS) {
+      toast.error(`Máximo ${MAX_TRAINER_TAGS} etiquetas`)
+      return
+    }
+    const prev = tags
     const next = [...tags, clean]
     setTags(next)
-    localStorage.setItem(tagsKey, JSON.stringify(next))
     setTagInput('')
+    void persistTags(next, prev)
   }
+
   function removeTag(t: string) {
+    if (savingTags) return
+    const prev = tags
     const next = tags.filter((x) => x !== t)
     setTags(next)
-    localStorage.setItem(tagsKey, JSON.stringify(next))
+    void persistTags(next, prev)
   }
 
   // Notas rápidas
@@ -217,19 +255,40 @@ export function StudentDetailView({
 
   useEffect(() => {
     if (!id || !user) return
-    Promise.all([
-      supabase.from('students').select('*').eq('id', id).eq('owner_id', user.id).single(),
-      supabase.from('routines').select('*').eq('student_id', id).eq('owner_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('student_rm_records')
-        .select('*, exercise:exercise_library(id, name)')
-        .eq('student_id', id)
-        .eq('owner_id', user.id)
-        .order('tested_at', { ascending: false }),
-    ]).then(([{ data: s }, { data: r }, { data: rm }]) => {
-      setStudent(s)
+    let cancelled = false
+    setLoading(true)
+    ;(async () => {
+      const { data: s, error: studentErr } = await fetchAccessibleStudentById(id)
+      const [{ data: r }, { data: rm }] = await Promise.all([
+        supabase
+          .from('routines')
+          .select('*')
+          .eq('student_id', id)
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('student_rm_records')
+          .select('*, exercise:exercise_library(id, name)')
+          .eq('student_id', id)
+          .eq('owner_id', user.id)
+          .order('tested_at', { ascending: false }),
+      ])
+      if (cancelled) return
+      if (studentErr || !s) {
+        setStudent(null)
+        setTags([])
+      } else {
+        const merged = await migrateLocalTrainerPrefsToDb(s)
+        setStudent(merged)
+        setTags(merged.trainer_tags ?? [])
+      }
       setRoutines(r ?? [])
       setRmRecords((rm as unknown as StudentRmRecord[]) ?? [])
-    }).finally(() => setLoading(false))
+      setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [id, user])
 
   useEffect(() => {
@@ -284,7 +343,7 @@ export function StudentDetailView({
       })
       toast.success('PDF descargado.')
     } catch (e) {
-      console.error(e)
+      devLog.error(e)
       toast.error('No se pudo generar el PDF.')
     } finally {
       setMealPlanPdfBusy(null)
@@ -554,49 +613,92 @@ export function StudentDetailView({
                   </span>
                 )}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {savingTags ? (
+                  <span className="inline-flex h-8 items-center gap-1.5 px-1 text-[11px] text-ink-muted" aria-live="polite">
+                    <Spinner size="sm" variant="spin" />
+                    Guardando…
+                  </span>
+                ) : null}
                 {tags.map((t) => (
                   <span
                     key={t}
-                    className="inline-flex items-center gap-1 border border-zinc-300/70 px-1.5 py-0.5 text-[11px] text-zinc-600 dark:border-zinc-600 dark:text-zinc-400"
+                    className={cn(
+                      'inline-flex h-8 max-w-[12rem] items-center gap-1.5 rounded-xl border px-3 text-xs font-medium',
+                      'border-surface-border/80 bg-surface-card text-ink-primary shadow-none',
+                      'dark:bg-zinc-800/40',
+                    )}
                   >
-                    {t}
+                    <span className="truncate">{t}</span>
                     {editingTags && (
-                      <button type="button" onClick={() => removeTag(t)} className="text-zinc-400 hover:text-zinc-200" aria-label="Quitar etiqueta">
-                        <X className="h-2.5 w-2.5" />
+                      <button
+                        type="button"
+                        onClick={() => removeTag(t)}
+                        disabled={savingTags}
+                        className={cn(
+                          'flex h-5 w-5 shrink-0 items-center justify-center rounded-lg',
+                          'text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary',
+                        )}
+                        aria-label={`Quitar etiqueta ${t}`}
+                      >
+                        <X className="h-3 w-3" strokeWidth={2} />
                       </button>
                     )}
                   </span>
                 ))}
                 {editingTags ? (
-                  <div className="flex items-center gap-1">
+                  <div className="inline-flex flex-wrap items-center gap-2">
                     <input
                       autoFocus
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') addTag(tagInput)
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addTag(tagInput)
+                        }
                         if (e.key === 'Escape') setEditingTags(false)
                       }}
                       placeholder="Nueva etiqueta…"
-                      className="w-28 border border-zinc-300 bg-transparent px-1.5 py-0.5 text-[11px] text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-600 dark:text-zinc-100"
+                      disabled={savingTags}
+                      className={cn(
+                        'h-8 w-36 rounded-xl border border-surface-border/80 bg-surface-card px-3 text-xs text-ink-primary',
+                        'outline-none placeholder:text-ink-muted',
+                        'focus:border-brand-secondary/35 focus:ring-2 focus:ring-brand-secondary/15',
+                        'dark:border-zinc-600 dark:bg-zinc-900/60',
+                      )}
                     />
-                    <button type="button" onClick={() => addTag(tagInput)} className="text-[11px] font-semibold text-zinc-700 hover:underline dark:text-zinc-300">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={savingTags || !tagInput.trim()}
+                      onClick={() => addTag(tagInput)}
+                    >
                       Agregar
-                    </button>
-                    <button type="button" onClick={() => setEditingTags(false)} className="text-[11px] text-zinc-500 hover:text-zinc-300">
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingTags(false)
+                        setTagInput('')
+                      }}
+                    >
                       Listo
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
+                    variant="secondary"
+                    icon={<Tag className="h-3.5 w-3.5" />}
                     onClick={() => setEditingTags(true)}
-                    className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300"
                   >
-                    <Tag className="h-3 w-3" aria-hidden />
-                    {tags.length === 0 ? 'Etiqueta' : '+'}
-                  </button>
+                    {tags.length === 0 ? 'Etiqueta' : 'Agregar'}
+                  </Button>
                 )}
               </div>
             </div>
@@ -1026,12 +1128,30 @@ export function StudentDetailView({
             </div>
 
             {seguimientoTab === 'pagos' && (
-              <PagosTab studentId={id!} studentName={student.full_name} onRegisterPago={() => setShowPayModal(true)} />
+              <PagosTab
+                studentId={id!}
+                studentName={student.full_name}
+                monthlyFee={student.monthly_fee_amount}
+                onMonthlyFeeChange={(amount) => {
+                  setStudent((s) => (s ? { ...s, monthly_fee_amount: amount } : s))
+                  if (id) onStudentPatch?.({ id, monthly_fee_amount: amount })
+                }}
+                onRegisterPago={() => setShowPayModal(true)}
+              />
             )}
 
             {seguimientoTab === 'ciclo' && <CicloTab studentId={id!} />}
 
-            {seguimientoTab === 'peso' && <PesoTab studentId={id!} />}
+            {seguimientoTab === 'peso' && (
+              <PesoTab
+                studentId={id!}
+                targetWeightKg={student.target_weight_kg}
+                onTargetWeightKgChange={(kg) => {
+                  setStudent((s) => (s ? { ...s, target_weight_kg: kg } : s))
+                  if (id) onStudentPatch?.({ id, target_weight_kg: kg })
+                }}
+              />
+            )}
 
             {seguimientoTab === 'fuerza' && (
               <FuerzaTab records={rmRecords} onAdd={addRmRecord} onDelete={deleteRmRecord} />
@@ -1083,182 +1203,6 @@ export function StudentDetailPage() {
   return <StudentDetailView studentId={id} variant="page" />
 }
 
-// ─── PagosTab ─────────────────────────────────────────────────────────────────
-
-function PagosTab({
-  studentId,
-  studentName,
-  onRegisterPago,
-}: { studentId: string; studentName: string; onRegisterPago: () => void }) {
-  const { user } = useAuthStore()
-  const [payments, setPayments] = useState<Income[]>([])
-  const [loading, setLoading]   = useState(true)
-
-  // ── Cuota mensual (stored in localStorage, no migration needed) ──
-  const cuotaKey = `cuota_mensual_${studentId}`
-  const [cuota, setCuota]             = useState<number | null>(() => {
-    const v = localStorage.getItem(cuotaKey); return v ? Number(v) : null
-  })
-  const [editingCuota, setEditingCuota] = useState(false)
-  const [cuotaInput, setCuotaInput]     = useState('')
-  function saveCuota() {
-    const n = parseFloat(cuotaInput)
-    if (!isNaN(n) && n > 0) {
-      localStorage.setItem(cuotaKey, String(n))
-      setCuota(n)
-    } else {
-      localStorage.removeItem(cuotaKey)
-      setCuota(null)
-    }
-    setEditingCuota(false)
-  }
-
-  useEffect(() => {
-    if (!user) return
-    supabase
-      .from('income')
-      .select('*')
-      .eq('owner_id', user.id)
-      .eq('student_id', studentId)
-      .order('income_date', { ascending: false })
-      .then(({ data }) => { setPayments((data as Income[]) ?? []); setLoading(false) })
-  }, [user, studentId])
-
-  const totalCobrado  = payments.filter((p) => p.status === 'cobrado').reduce((s, p) => s + p.amount, 0)
-  const now           = new Date()
-  const thisMonthKey  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
-  const ultimoPago    = payments.find((p) => p.status === 'cobrado')
-
-  const METHOD_LABEL: Record<string, string> = Object.fromEntries(
-    PAYMENT_METHODS.map((m) => [m.value, m.label]),
-  ) as Record<string, string>
-
-  return (
-    <div className="space-y-4">
-      {/* ── Cuota mensual ── */}
-      <div className="border-b border-zinc-200/60 pb-4 dark:border-zinc-800/60">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <p className="text-xs font-semibold text-zinc-600 uppercase tracking-wide dark:text-zinc-400">Plan de cuota mensual</p>
-          {!editingCuota && (
-            <button
-              type="button"
-              onClick={() => { setCuotaInput(String(cuota ?? '')); setEditingCuota(true) }}
-              className="text-[11px] font-semibold text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              {cuota ? 'Modificar' : 'Configurar'}
-            </button>
-          )}
-        </div>
-        {editingCuota ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-ink-muted">$</span>
-            <input
-              type="number"
-              min={0}
-              step={100}
-              autoFocus
-              value={cuotaInput}
-              onChange={(e) => setCuotaInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && saveCuota()}
-              placeholder="Ej: 15000"
-              className="w-36 rounded-xl border border-zinc-300 bg-zinc-50 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-400/40 dark:border-zinc-600 dark:bg-zinc-950/50"
-            />
-            <Button size="sm" variant="secondary" onClick={saveCuota}>Guardar</Button>
-            <button onClick={() => setEditingCuota(false)} className="text-xs text-ink-muted hover:text-ink-secondary">Cancelar</button>
-          </div>
-        ) : cuota ? (
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(cuota)}<span className="ml-1 text-sm font-normal text-zinc-500">/ mes</span></p>
-            {(() => {
-              const now = new Date()
-              const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-              const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
-              const totalEsteMes  = payments.filter((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey)).reduce((s, p) => s + p.amount, 0)
-              return (
-                <div className="text-right">
-                  {pagadoEsteMes ? (
-                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pagó este mes</p>
-                  ) : (
-                    <p className="text-sm font-medium text-status-expiring">Pendiente de cobro</p>
-                  )}
-                  {totalEsteMes > 0 && totalEsteMes < cuota && (
-                    <p className="text-[11px] text-ink-muted mt-0.5">Cobrado: {formatCurrency(totalEsteMes)} / {formatCurrency(cuota)}</p>
-                  )}
-                </div>
-              )
-            })()}
-          </div>
-        ) : (
-          <p className="text-sm text-ink-muted">Sin cuota configurada — establecé el monto mensual para seguimiento automático.</p>
-        )}
-      </div>
-
-      {/* Estado de cuenta */}
-      <div className="grid grid-cols-3 gap-px border border-zinc-200/70 bg-zinc-200/70 dark:border-zinc-800 dark:bg-zinc-800">
-        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Total cobrado</p>
-          <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(totalCobrado)}</p>
-        </div>
-        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Este mes</p>
-          <p
-            className={cn(
-              'text-sm font-medium',
-              pagadoEsteMes ? 'text-emerald-700 dark:text-emerald-400' : 'text-status-expiring',
-            )}
-          >
-            {pagadoEsteMes ? 'Al día' : 'Pendiente'}
-          </p>
-        </div>
-        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Último pago</p>
-          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
-        </div>
-      </div>
-
-      <section>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/50">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Historial de pagos</h3>
-          <Button
-            size="sm"
-            variant="gradientSecondary"
-            icon={<DollarSign className="h-3.5 w-3.5" />}
-            onClick={onRegisterPago}
-          >
-            Registrar
-          </Button>
-        </div>
-        {loading ? (
-          <div className="flex justify-center py-6"><Spinner size="md" /></div>
-        ) : payments.length === 0 ? (
-          <EmptyState
-            icon={<DollarSign className="h-6 w-6" />}
-            title="Sin pagos registrados"
-            description={`${studentName} todavía no tiene pagos cargados.`}
-          />
-        ) : (
-          <ul className="divide-y divide-zinc-200/55 dark:divide-zinc-800/60">
-            {payments.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(p.amount)}</p>
-                  <p className="text-xs text-zinc-500">{p.income_type} · {METHOD_LABEL[p.payment_method] ?? p.payment_method}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{formatDate(p.income_date)}</p>
-                  <p className={cn('text-[11px] font-medium', incomeLedgerStatusClass(p.status))}>
-                    {incomeStatusPhrase(p.status)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
-  )
-}
 
 // ─── FuerzaTab ────────────────────────────────────────────────────────────────
 
@@ -1638,335 +1582,6 @@ function AddRmModal({
           </Button>
         </div>
       </div>
-    </div>
-  )
-}
-
-// ─── PesoTab ──────────────────────────────────────────────────────────────────
-
-function PesoTab({ studentId }: { studentId: string }) {
-  const { user } = useAuthStore()
-  const [logs,    setLogs]    = useState<StudentWeightLog[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [weight,   setWeight]  = useState('')
-  const [fat,      setFat]     = useState('')
-  const [noteVal,  setNoteVal] = useState('')
-  const [dateVal,  setDateVal] = useState(new Date().toISOString().split('T')[0])
-  const [saving,   setSaving]  = useState(false)
-
-  const fetchLogs = useCallback(async () => {
-    if (!user) return
-    const { data, error } = await supabase
-      .from('student_weight_logs')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('owner_id', user.id)
-      .order('logged_at', { ascending: false })
-    if (!error) setLogs((data as StudentWeightLog[]) ?? [])
-    setLoading(false)
-  }, [user, studentId])
-
-  useEffect(() => { void fetchLogs() }, [fetchLogs])
-
-  async function handleSave() {
-    if (!user) return
-    const w = Number(weight)
-    if (!w || w <= 0) { toast.error('Ingresá un peso válido'); return }
-    setSaving(true)
-    const { error } = await supabase.from('student_weight_logs').insert({
-      owner_id:     user.id,
-      student_id:   studentId,
-      logged_at:    dateVal,
-      weight_kg:    w,
-      body_fat_pct: fat ? Number(fat) : null,
-      notes:        noteVal || null,
-    })
-    setSaving(false)
-    if (error) { toast.error(error.message); return }
-    toast.success('Peso registrado')
-    setWeight(''); setFat(''); setNoteVal('')
-    setDateVal(new Date().toISOString().split('T')[0])
-    setShowForm(false)
-    void fetchLogs()
-  }
-
-  async function handleDelete(logId: string) {
-    if (!user) return
-    const prev = logs
-    setLogs((p) => p.filter((l) => l.id !== logId))
-    const { error } = await supabase
-      .from('student_weight_logs')
-      .delete()
-      .eq('id', logId)
-      .eq('owner_id', user.id)
-    if (error) { setLogs(prev); toast.error(error.message) }
-  }
-
-  const chartData = useMemo(
-    () => [...logs].sort((a, b) => a.logged_at.localeCompare(b.logged_at)),
-    [logs],
-  )
-
-  // Peso objetivo (localStorage)
-  const goalKey  = `peso_goal_${studentId}`
-  const [goal, setGoal]           = useState<number | null>(() => {
-    const v = localStorage.getItem(goalKey); return v ? Number(v) : null
-  })
-  const [editingGoal, setEditingGoal] = useState(false)
-  const [goalInput,   setGoalInput]   = useState('')
-
-  function saveGoal() {
-    const v = Number(goalInput)
-    if (!v || v <= 0) { toast.error('Ingresá un peso válido'); return }
-    localStorage.setItem(goalKey, String(v))
-    setGoal(v); setEditingGoal(false)
-  }
-
-  return (
-    <div className="space-y-4">
-      <section>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Historial de peso</h3>
-          <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowForm((v) => !v)}>
-            Registrar
-          </Button>
-        </div>
-
-        {/* Quick-add form */}
-        {showForm && (
-          <div className="mt-4 space-y-3 border border-zinc-200/55 bg-zinc-50/50 p-3 dark:border-zinc-800/65 dark:bg-zinc-950/25">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Peso (kg) *</label>
-                <input
-                  type="number" min={0} step={0.1} placeholder="ej: 75.5"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center font-bold"
-                  value={weight} onChange={(e) => setWeight(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Grasa corporal %</label>
-                <input
-                  type="number" min={0} max={100} step={0.1} placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                  value={fat} onChange={(e) => setFat(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Fecha</label>
-                <input
-                  type="date"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-                  value={dateVal} onChange={(e) => setDateVal(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Notas</label>
-                <input
-                  placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
-                  value={noteVal} onChange={(e) => setNoteVal(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowForm(false)} className="text-xs text-ink-muted hover:text-ink-primary px-3 py-1.5 rounded-lg hover:bg-surface-card transition-colors">
-                Cancelar
-              </button>
-              <Button size="sm" variant="secondary" loading={saving} onClick={handleSave}>
-                Guardar
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center py-8"><Spinner size="md" /></div>
-        ) : logs.length === 0 ? (
-          <EmptyState
-            icon={<Scale className="h-8 w-8" aria-hidden />}
-            title="Sin registros de peso"
-            description="Registrá el peso periódicamente para ver la evolución."
-          />
-        ) : (
-          <>
-            {/* Weight line chart */}
-            {chartData.length >= 2 && (() => {
-              const first = chartData[0]
-              const last  = chartData[chartData.length - 1]
-              const delta = Math.round((last.weight_kg - first.weight_kg) * 10) / 10
-              const hasFat = chartData.some((l) => l.body_fat_pct != null)
-              const rechartsData = chartData.map((l) => ({
-                date:   l.logged_at.slice(5),
-                weight: l.weight_kg,
-                fat:    l.body_fat_pct ?? undefined,
-              }))
-              return (
-                <div className="mb-5">
-                  {/* KPIs row */}
-                  <div className="flex items-end gap-5 mb-3 px-1 flex-wrap">
-                    <div>
-                      <p className="text-[10px] text-ink-muted uppercase tracking-wide">Actual</p>
-                      <p className="text-2xl font-bold text-ink-primary">{last.weight_kg} <span className="text-sm font-normal text-ink-muted">kg</span></p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-ink-muted uppercase tracking-wide">Δ inicio</p>
-                      <p
-                        className={cn(
-                          'text-base font-bold tabular-nums',
-                          delta === 0 ? 'text-zinc-500' : 'text-zinc-800 dark:text-zinc-200',
-                        )}
-                      >
-                        {delta > 0 ? '+' : ''}{delta} kg
-                      </p>
-                    </div>
-                    {hasFat && last.body_fat_pct != null && (
-                      <div>
-                        <p className="text-[10px] text-ink-muted uppercase tracking-wide">% Grasa</p>
-                        <p className="text-base font-bold text-zinc-600 dark:text-zinc-400">{last.body_fat_pct}%</p>
-                      </div>
-                    )}
-                    {goal && (
-                      <div>
-                        <p className="text-[10px] text-ink-muted uppercase tracking-wide">Objetivo</p>
-                        <p className="text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{goal} kg</p>
-                        {(() => {
-                          const toGoal = Math.round((last.weight_kg - goal) * 10) / 10
-                          return toGoal !== 0 && (
-                            <p className="text-[10px] text-ink-muted">{toGoal > 0 ? `-${toGoal}` : `+${Math.abs(toGoal)}`} kg restantes</p>
-                          )
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                  {/* Barra progreso hacia objetivo */}
-                  {goal && (() => {
-                    const start  = first.weight_kg
-                    const curr   = last.weight_kg
-                    const pct    = start === goal ? 100 : Math.min(100, Math.max(0, Math.round(Math.abs(start - curr) / Math.abs(start - goal) * 100)))
-                    return (
-                      <div className="mb-3 px-1">
-                        <div className="flex justify-between text-[10px] text-ink-muted mb-1">
-                          <span>Inicio: {start} kg</span>
-                          <span className="font-semibold text-zinc-600 dark:text-zinc-300">{pct}% completado</span>
-                          <span>Objetivo: {goal} kg</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                          <div className="h-full rounded-full bg-zinc-500 transition-all dark:bg-zinc-400" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={rechartsData} margin={{ top: 5, right: 8, bottom: 0, left: -20 }}>
-                      <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.35)' }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        domain={['auto', 'auto']}
-                        tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={36}
-                      />
-                      <Tooltip
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload?.length) return null
-                          return (
-                            <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
-                              <p className="text-ink-muted mb-1">{label}</p>
-                              <p className="font-bold text-ink-primary">{payload[0].value} kg</p>
-                              {payload[1]?.value != null && (
-                                <p className="text-zinc-500">{payload[1].value}% grasa</p>
-                              )}
-                            </div>
-                          )
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="weight"
-                        stroke="#a1a1aa"
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#a1a1aa', stroke: '#a1a1aa', strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: '#d4d4d8' }}
-                      />
-                      {hasFat && (
-                        <Line
-                          type="monotone"
-                          dataKey="fat"
-                          stroke="#71717a"
-                          strokeWidth={1.25}
-                          strokeDasharray="4 2"
-                          dot={false}
-                          activeDot={{ r: 4, fill: '#71717a' }}
-                          connectNulls
-                        />
-                      )}
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )
-            })()}
-
-            {/* Objetivo de peso */}
-            {editingGoal ? (
-              <div className="mb-4 flex items-center gap-2">
-                <input
-                  type="number" min={30} max={300} step={0.5} autoFocus
-                  placeholder="Peso objetivo (kg)"
-                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                  value={goalInput}
-                  onChange={(e) => setGoalInput(e.target.value)}
-                />
-                <Button size="sm" variant="gradientSecondary" onClick={saveGoal}>Guardar</Button>
-                <button onClick={() => setEditingGoal(false)} className="text-xs text-ink-muted hover:text-ink-primary px-2 py-1.5">Cancelar</button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => { setGoalInput(String(goal ?? '')); setEditingGoal(true) }}
-                className="mb-4 flex w-full items-center gap-2 border-b border-dashed border-zinc-400/70 py-3 text-left text-xs text-zinc-500 transition-colors hover:border-zinc-500 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-200"
-              >
-                {goal ? `Objetivo: ${goal} kg — modificar` : 'Establecer peso objetivo'}
-              </button>
-            )}
-
-            {/* Log list */}
-            <ul className="divide-y divide-zinc-200/50 dark:divide-zinc-800/55">
-              {logs.map((l) => (
-                <li key={l.id} className="group flex items-center gap-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{l.weight_kg} kg</span>
-                    {l.body_fat_pct != null && (
-                      <span className="ml-2 text-xs text-zinc-500">{l.body_fat_pct}% grasa</span>
-                    )}
-                    {l.notes && <p className="mt-0.5 truncate text-xs text-zinc-500">{l.notes}</p>}
-                  </div>
-                  <span className="shrink-0 text-xs tabular-nums text-zinc-500">{l.logged_at}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(l.id)}
-                    className="text-zinc-500 opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
     </div>
   )
 }

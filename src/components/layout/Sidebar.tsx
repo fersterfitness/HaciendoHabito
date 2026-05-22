@@ -331,30 +331,27 @@ export function Sidebar() {
           <NavLink
             to="/profile"
             className={cn(
-              'relative flex shrink-0 items-center justify-center outline-none',
+              'relative flex shrink-0 items-center justify-center overflow-hidden outline-none',
               RAIL_ITEM,
               railFocusRing,
               profilePathActive
-                ? cn(railNavBaseTransition, railNavActiveClassName, 'overflow-hidden p-0.5')
-                : 'overflow-hidden p-0.5 transition-opacity duration-150 hover:opacity-90',
+                ? cn(railNavBaseTransition, railNavActiveClassName, 'p-0')
+                : 'p-0 transition-opacity duration-150 hover:opacity-90',
             )}
             aria-label={profileTip}
             aria-current={profilePathActive ? 'page' : undefined}
           >
             {profilePathActive ? <RailActiveIndicator /> : null}
-            <span
+            <AvatarOrInitials
+              fullName={profile?.full_name ?? '?'}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+              rounded="xl"
               className={cn(
-                'relative z-[1] flex size-full overflow-hidden rounded-md',
+                'size-full rounded-lg',
                 profilePathActive && 'ring-1 ring-brand-secondary/45',
               )}
-            >
-              <AvatarOrInitials
-                fullName={profile?.full_name ?? '?'}
-                avatarUrl={profile?.avatar_url}
-                size="sm"
-                rounded="xl"
-              />
-            </span>
+            />
           </NavLink>
         </SidebarRailTooltip>
 

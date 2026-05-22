@@ -47,7 +47,7 @@ export function AvatarOrInitials({
         <img
           src={src!}
           alt=""
-          className="size-full object-cover"
+          className="block size-full object-cover object-center"
           onError={() => setBroken(true)}
         />
       ) : (

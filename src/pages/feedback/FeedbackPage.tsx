@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageToolbar } from '@/components/ui/PageToolbar'
+import { NewFeedbackModal } from '@/components/feedback/NewFeedbackModal'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn, formatDate } from '@/lib/utils'
 import { inboxHighlightCardClassName } from '@/lib/inboxRowClasses'
@@ -64,11 +65,43 @@ export function FeedbackPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuthStore()
   const mainSection: MainSection = searchParams.get('tab') === 'checkins' ? 'checkins' : 'consultas'
+  const showNewFeedbackModal = searchParams.get('create') === '1'
 
   const setMainSection = (next: MainSection) => {
-    if (next === 'checkins') setSearchParams({ tab: 'checkins' }, { replace: true })
-    else setSearchParams({}, { replace: true })
+    setSearchParams(
+      (prev) => {
+        const nextParams = new URLSearchParams(prev)
+        if (next === 'checkins') nextParams.set('tab', 'checkins')
+        else nextParams.delete('tab')
+        nextParams.delete('create')
+        return nextParams
+      },
+      { replace: true },
+    )
   }
+
+  const openNewFeedbackModal = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('create', '1')
+        next.delete('tab')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
+
+  const closeNewFeedbackModal = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('create')
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
 
   const [questions, setQuestions] = useState<QuestionFull[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -169,9 +202,10 @@ export function FeedbackPage() {
         actions={
           mainSection === 'consultas' ? (
             <Button
+              variant="gradientSecondary"
               size="sm"
-              icon={<Plus className="h-4 w-4" />}
-              onClick={() => navigate('/feedback/new')}
+              icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
+              onClick={openNewFeedbackModal}
             >
               Nueva consulta
             </Button>
@@ -352,7 +386,16 @@ export function FeedbackPage() {
             description={
               search || tab !== 'todas'
                 ? 'Probá con otro filtro o búsqueda.'
-                : 'Registrá una consulta con el botón "Nueva consulta".'
+                : 'Registrá la primera consulta desde el panel lateral.'
+            }
+            action={
+              !search && tab === 'todas'
+                ? {
+                    label: 'Nueva consulta',
+                    onClick: openNewFeedbackModal,
+                    icon: <Plus className="h-4 w-4" />,
+                  }
+                : undefined
             }
           />
         ) : (
@@ -364,6 +407,15 @@ export function FeedbackPage() {
         )}
       </div>
       ) : null}
+
+      <NewFeedbackModal
+        open={showNewFeedbackModal}
+        onClose={closeNewFeedbackModal}
+        onCreated={(id) => {
+          void fetchQuestions()
+          navigate(`/feedback/${id}`)
+        }}
+      />
     </div>
   )
 }

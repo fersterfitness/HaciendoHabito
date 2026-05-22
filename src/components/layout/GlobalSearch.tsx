@@ -7,6 +7,8 @@ import { fetchAccessibleStudents, filterAccessibleStudents } from '@/lib/student
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import { GLOBAL_SEARCH_OPEN_EVENT } from '@/lib/globalSearch'
+import { escapeIlikePattern } from '@/lib/escapeIlikePattern'
+import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 
 type Result = {
   id: string
@@ -76,31 +78,53 @@ export function GlobalSearch() {
       return
     }
     setLoading(true)
-    const studentHref = profile?.role === 'nutritionist' ? '/nutrition' : '/students'
+    const isNutritionist = profile?.role === 'nutritionist'
+    const studentHref = isNutritionist ? '/nutrition' : '/students'
+    const trimmed = q.trim()
+    const ilike = `%${escapeIlikePattern(trimmed)}%`
     const { data: accessibleStudents } = await fetchAccessibleStudents()
-    const students = filterAccessibleStudents(accessibleStudents, { search: q }).slice(0, 5)
+    const students = filterAccessibleStudents(accessibleStudents, { search: trimmed }).slice(0, 5)
+    const accessibleIds = accessibleStudents.map((s) => s.id)
+
+    const routinesPromise =
+      accessibleIds.length > 0
+        ? supabase
+            .from('routines')
+            .select('id, name, status, student_id')
+            .in('student_id', accessibleIds)
+            .ilike('name', ilike)
+            .limit(5)
+        : Promise.resolve({
+            data: [] as { id: string; name: string; status: string; student_id: string }[],
+            error: null,
+          })
+
+    const mealPlansPromise =
+      accessibleIds.length > 0
+        ? supabase
+            .from('trainer_student_meal_plans')
+            .select('id, title, student_id, student:students(full_name)')
+            .in('student_id', accessibleIds)
+            .ilike('title', ilike)
+            .limit(5)
+        : Promise.resolve({ data: [] as { id: string; title: string | null; student_id: string; student?: { full_name?: string } | null }[], error: null })
+
     const [{ data: routines }, { data: mealPlans }] = await Promise.all([
-      supabase
-        .from('routines')
-        .select('id, name, status, student_id')
-        .eq('owner_id', user.id)
-        .ilike('name', `%${q}%`)
-        .limit(5),
-      supabase
-        .from('trainer_student_meal_plans')
-        .select('id, title, student_id, student:students(full_name)')
-        .eq('owner_id', user.id)
-        .ilike('title', `%${q}%`)
-        .limit(5),
+      routinesPromise,
+      mealPlansPromise,
     ])
     const res: Result[] = [
-      ...(students ?? []).map((s) => ({
-        id: s.id,
-        label: s.full_name,
-        sub: `${s.level} · ${s.status}`,
-        kind: 'student' as const,
-        href: `${studentHref}/${s.id}`,
-      })),
+      ...(students ?? []).map((s) => {
+        const tagHint = studentTrainerTags(s).slice(0, 2).join(', ')
+        const subParts = [s.level, s.status, tagHint].filter(Boolean)
+        return {
+          id: s.id,
+          label: s.full_name,
+          sub: subParts.join(' · '),
+          kind: 'student' as const,
+          href: `${studentHref}/${s.id}`,
+        }
+      }),
       ...(routines ?? []).map((r) => ({
         id: r.id,
         label: r.name,
@@ -113,7 +137,9 @@ export function GlobalSearch() {
         label: (p.title as string) || 'Plan de alimentación',
         sub: `Plan · ${((p as { student?: { full_name?: string } | null }).student?.full_name ?? 'Alumno')}`,
         kind: 'mealplan' as const,
-        href: `/students/${p.student_id}/meal-plan/${p.id}`,
+        href: isNutritionist
+          ? `${studentHref}/${p.student_id}`
+          : `/students/${p.student_id}/meal-plan/${p.id}`,
       })),
     ]
     setResults(res)

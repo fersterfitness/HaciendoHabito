@@ -519,7 +519,7 @@ function IconWrapper<T extends string>({
           initialOnAnimateEnd={initialOnAnimateEnd ?? parentInitialOnAnimateEnd}
           delay={delay ?? parentDelay}
           completeOnStop={completeOnStop ?? parentCompleteOnStop}
-          asChild
+          className="inline-flex shrink-0"
         >
           <IconComponent
             size={size}
@@ -586,7 +586,7 @@ function IconWrapper<T extends string>({
         loopDelay={loopDelay}
         delay={delay}
         completeOnStop={completeOnStop}
-        asChild
+        className="inline-flex shrink-0"
       >
         <IconComponent
           size={size}

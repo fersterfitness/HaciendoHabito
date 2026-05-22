@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { cloneElement, forwardRef, isValidElement, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -47,6 +47,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       loading = false,
       icon,
       iconPosition = 'left',
+      asChild = false,
       children,
       className,
       disabled,
@@ -61,25 +62,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           ? secondaryGradientCtaClassName
           : null
 
-    return (
-      <button
-        ref={ref}
-        disabled={disabled || loading}
-        className={cn(
-          'inline-flex items-center justify-center',
-          gradientClass
-            ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', gradientClass)
-            : cn(
-                'rounded-xl transition-colors duration-150',
-                appFocusRingClassName,
-                'disabled:opacity-50 disabled:pointer-events-none',
-                variantStyles[variant],
-                sizeStyles[size],
-              ),
-          className
-        )}
-        {...props}
-      >
+    const composedClassName = cn(
+      'inline-flex items-center justify-center',
+      gradientClass
+        ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', gradientClass)
+        : cn(
+            'rounded-xl transition-colors duration-150',
+            appFocusRingClassName,
+            'disabled:opacity-50 disabled:pointer-events-none',
+            variantStyles[variant],
+            sizeStyles[size],
+          ),
+      className,
+    )
+
+    const inner = (
+      <>
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
@@ -91,6 +89,30 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && icon && iconPosition === 'right' && (
           <span className="shrink-0">{icon}</span>
         )}
+      </>
+    )
+
+    if (asChild && isValidElement(children)) {
+      const child = children
+      const childProps = child.props as { className?: string; children?: ReactNode }
+      return cloneElement(child, {
+        ...props,
+        ref,
+        className: cn(composedClassName, childProps.className),
+        'aria-disabled': disabled || loading ? true : undefined,
+        children: (
+          <>
+            {!loading && icon && iconPosition === 'left' && <span className="shrink-0">{icon}</span>}
+            {childProps.children}
+            {!loading && icon && iconPosition === 'right' && <span className="shrink-0">{icon}</span>}
+          </>
+        ),
+      } as Record<string, unknown>)
+    }
+
+    return (
+      <button ref={ref} disabled={disabled || loading} className={composedClassName} {...props}>
+        {inner}
       </button>
     )
   }
