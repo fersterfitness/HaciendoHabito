@@ -719,6 +719,7 @@ function LeftBrandPanel({
   soloSegmentImageUrl,
   withNutritionistSegmentImageUrl,
   crisSoloSegmentImageUrl,
+  catalogSettingsResolved,
   modalityOptions,
   catalogError,
   catalogLoading,
@@ -748,6 +749,8 @@ function LeftBrandPanel({
   soloSegmentImageUrl: string | null
   withNutritionistSegmentImageUrl: string | null
   crisSoloSegmentImageUrl: string | null
+  /** True una vez resuelto el fetch del panel; evita parpadeo entre avatar de perfil y catálogo. */
+  catalogSettingsResolved: boolean
   modalityOptions: { segment: WebPlanCatalogSegment; label: string }[]
   /** Texto del botón de acción principal en el selector de planes. */
   buttonText?: string
@@ -779,7 +782,11 @@ function LeftBrandPanel({
   const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
       trainers.map((o) => {
-        /** Si el admin subió foto desde Panel → Planes web, esa manda sobre el avatar de perfil. */
+        /** Si el admin subió foto desde Panel → Planes web, esa manda sobre el avatar de perfil.
+         *  Esperamos a que el fetch del panel termine para evitar un parpadeo perfil→catálogo. */
+        if (!catalogSettingsResolved) {
+          return { id: o.slug, label: o.fullName, avatarUrl: null }
+        }
         const adminOverride = o.slug === INTAKE_TRAINER_SLUG_DEFAULT ? soloSegmentImageUrl : null
         return {
           id: o.slug,
@@ -787,12 +794,15 @@ function LeftBrandPanel({
           avatarUrl: adminOverride ?? o.avatarUrl ?? null,
         }
       }),
-    [soloSegmentImageUrl, trainers],
+    [catalogSettingsResolved, soloSegmentImageUrl, trainers],
   )
 
   const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
       nutritionists.map((o) => {
+        if (!catalogSettingsResolved) {
+          return { id: o.slug, label: o.fullName, avatarUrl: null }
+        }
         const adminOverride = o.slug === INTAKE_NUTRITION_SLUG_DEFAULT ? nutritionAvatarUrl : null
         return {
           id: o.slug,
@@ -800,7 +810,7 @@ function LeftBrandPanel({
           avatarUrl: adminOverride ?? o.avatarUrl ?? null,
         }
       }),
-    [nutritionAvatarUrl, nutritionists],
+    [catalogSettingsResolved, nutritionAvatarUrl, nutritionists],
   )
 
   const modalityChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
@@ -1036,6 +1046,8 @@ export function PublicIntakeFormPage() {
     withNutritionist: string | null
     crisSolo: string | null
   }>({ solo: null, withNutritionist: null, crisSolo: null })
+  /** True cuando se resolvió el fetch del panel (evita parpadeo de avatar de perfil → del catálogo). */
+  const [catalogSettingsResolved, setCatalogSettingsResolved] = useState(false)
   const [modalityLabels, setModalityLabels] = useState<{
     solo: string | null
     withNutritionist: string | null
@@ -1150,6 +1162,7 @@ export function PublicIntakeFormPage() {
         .eq('id', 1)
         .maybeSingle()
       if (!mounted) return
+      setCatalogSettingsResolved(true)
       if (data) {
         const d = data as Record<string, unknown>
         setPublicSpots({
@@ -1383,6 +1396,7 @@ export function PublicIntakeFormPage() {
             soloSegmentImageUrl={catalogSegmentImages.solo}
             withNutritionistSegmentImageUrl={catalogSegmentImages.withNutritionist}
             crisSoloSegmentImageUrl={catalogSegmentImages.crisSolo}
+            catalogSettingsResolved={catalogSettingsResolved}
             modalityOptions={modalityOptions}
             catalogError={catalogError}
             catalogLoading={catalogLoading}
@@ -1423,6 +1437,7 @@ export function PublicIntakeFormPage() {
     soloSegmentImageUrl: catalogSegmentImages.solo,
     withNutritionistSegmentImageUrl: catalogSegmentImages.withNutritionist,
     crisSoloSegmentImageUrl: catalogSegmentImages.crisSolo,
+    catalogSettingsResolved,
     modalityOptions,
     catalogError,
     catalogLoading,
