@@ -95,7 +95,7 @@ const checkInHighlightPanelClass =
 const checkInQuestionRowClass =
   'flex flex-col sm:flex-row gap-2 items-start rounded-xl border border-surface-border/80 bg-surface-elevated/20 p-2.5 transition-colors hover:border-brand-secondary/25'
 
-export function TrainerCheckInsPage() {
+export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const formIdFromUrl = searchParams.get('formId')
@@ -523,8 +523,8 @@ export function TrainerCheckInsPage() {
 
   return (
     <div>
-      <Header title="Check-ins" />
-      <DirectoryPageShell className="max-w-5xl space-y-6">
+      {!embedded ? <Header title="Check-ins" /> : null}
+      <DirectoryPageShell className={cn('max-w-5xl space-y-6', embedded && 'py-0')}>
         <PageSectionTitle
           title="Formularios semanales"
           description="Armá un formulario corto y compartí un link general en el grupo (cada alumno completa con su correo). También podés generar links personales por alumno."
@@ -891,7 +891,8 @@ export function TrainerCheckInsPage() {
             <h2 className="text-sm font-semibold text-ink-primary">Recordatorios de envío (WhatsApp)</h2>
           </div>
           <p className="text-xs text-ink-secondary max-w-prose">
-            Definí un día fijo por formulario (en tu zona horaria). Ese día verás un recordatorio en <strong className="text-ink-primary">Inicio</strong>.
+            Definí un día fijo por formulario (en tu zona horaria). Ese día verás un recordatorio en{' '}
+            <strong className="text-ink-primary">Inicio</strong> (panel Devoluciones → Check-ins).
             WhatsApp no se envía solo: desde acá usá <strong className="text-ink-primary">Grupo WA</strong> para mandar todos los links juntos.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">

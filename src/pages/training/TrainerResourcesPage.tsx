@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft, Link2 } from 'lucide-react'
+import { CalendarClock, MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft, Link2 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -18,7 +18,8 @@ import {
   normalizePhoneForWhatsApp,
 } from '@/lib/whatsapp'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
-import type { Student, TrainerMessageTemplate, TrainerResource } from '@/types/database'
+import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES, scheduleMatchesToday } from '@/lib/checkInSchedule'
+import type { Student, TrainerMessageTemplate, TrainerResource, TrainerResourceSendSchedule } from '@/types/database'
 import toast from 'react-hot-toast'
 
 /** Tabla aún no migrada o cache de PostgREST sin la relación. */
@@ -66,7 +67,9 @@ function dedupeSendLogRows(rows: SendLogRow[]): SendLogRow[] {
   return kept
 }
 
-export function TrainerResourcesPage() {
+type ResourceScheduleRow = TrainerResourceSendSchedule & { resource: { title: string } | null }
+
+export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()
   const [resources, setResources] = useState<TrainerResource[]>([])
   const [students, setStudents] = useState<Student[]>([])
@@ -86,6 +89,11 @@ export function TrainerResourcesPage() {
   const [tplSaving, setTplSaving] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [autoLogOnWaOpen, setAutoLogOnWaOpen] = useState(true)
+  const [resourceSchedules, setResourceSchedules] = useState<ResourceScheduleRow[]>([])
+  const [resourceScheduleBusy, setResourceScheduleBusy] = useState(false)
+  const [newResSchedDow, setNewResSchedDow] = useState(5)
+  const [newResSchedTz, setNewResSchedTz] = useState('America/Argentina/Buenos_Aires')
+  const [newResSchedPreferGroup, setNewResSchedPreferGroup] = useState(true)
   const [logSendPending, setLogSendPending] = useState(false)
   const [sendLogHiddenDuplicateCount, setSendLogHiddenDuplicateCount] = useState(0)
   const newResourceRef = useRef<HTMLDivElement>(null)
@@ -115,10 +123,15 @@ export function TrainerResourcesPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [rRes, sRes, tRes] = await Promise.all([
+    const [rRes, sRes, tRes, schRes] = await Promise.all([
       supabase.from('trainer_resources').select('*').eq('owner_id', user.id).order('sort_order', { ascending: true }),
       supabase.from('students').select('*').eq('owner_id', user.id).eq('status', 'activo').order('full_name'),
       supabase.from('trainer_message_templates').select('*').eq('owner_id', user.id).order('sort_order', { ascending: true }),
+      supabase
+        .from('trainer_resource_send_schedules')
+        .select('*, resource:trainer_resources(title)')
+        .eq('owner_id', user.id)
+        .order('day_of_week', { ascending: true }),
     ])
     setLoading(false)
     if (rRes.error) toast.error(rRes.error.message)
@@ -127,6 +140,8 @@ export function TrainerResourcesPage() {
     else setStudents((sRes.data as Student[]) ?? [])
     if (tRes.error && !isMissingRelationError(tRes.error)) toast.error(tRes.error.message)
     else setTemplates((tRes.data as TrainerMessageTemplate[]) ?? [])
+    if (schRes.error && !isMissingRelationError(schRes.error)) toast.error(schRes.error.message)
+    else setResourceSchedules((schRes.data as unknown as ResourceScheduleRow[]) ?? [])
     void loadSendLog()
   }, [user, loadSendLog])
 
@@ -347,6 +362,44 @@ export function TrainerResourcesPage() {
     toast.success('Elegí el grupo (o chat) en WhatsApp y enviá el mensaje')
   }
 
+  async function addResourceSchedule() {
+    if (!user || !selectedResourceId) {
+      toast.error('Seleccioná un recurso de la lista')
+      return
+    }
+    setResourceScheduleBusy(true)
+    const { error } = await supabase.from('trainer_resource_send_schedules').insert({
+      owner_id: user.id,
+      resource_id: selectedResourceId,
+      day_of_week: newResSchedDow,
+      timezone: newResSchedTz,
+      prefer_group_whatsapp: newResSchedPreferGroup,
+      is_enabled: true,
+    })
+    setResourceScheduleBusy(false)
+    if (error) {
+      if (isMissingRelationError(error)) {
+        toast.error('Falta aplicar la migración trainer_resource_send_schedules en Supabase.')
+      } else if (error.message.includes('duplicate') || error.code === '23505') {
+        toast.error('Ya tenés un recordatorio para ese recurso ese día.')
+      } else toast.error(error.message)
+      return
+    }
+    toast.success('Recordatorio guardado')
+    void load()
+  }
+
+  async function deleteResourceSchedule(id: string) {
+    if (!user) return
+    if (!window.confirm('¿Quitar este recordatorio?')) return
+    const { error } = await supabase.from('trainer_resource_send_schedules').delete().eq('id', id).eq('owner_id', user.id)
+    if (error) toast.error(error.message)
+    else {
+      toast.success('Recordatorio eliminado')
+      void load()
+    }
+  }
+
   function openAllWhatsApp() {
     if (!selectedResource) {
       toast.error('Seleccioná un recurso de la lista')
@@ -392,8 +445,8 @@ export function TrainerResourcesPage() {
 
   return (
     <div>
-      <Header title="Recursos y WhatsApp" />
-      <div className="px-4 lg:px-6 py-8 space-y-6 max-w-5xl">
+      {!embedded ? <Header title="Recursos y WhatsApp" /> : null}
+      <div className={cn('px-4 lg:px-6 space-y-6 max-w-5xl', embedded ? 'py-4' : 'py-8')}>
         <p className="text-sm text-ink-secondary max-w-prose">
           Guardá links (videos, PDFs, artículos). Elegí alumnos y abrí WhatsApp con el mismo mensaje para cada uno. Podés usar plantillas de texto fijo
           arriba del mensaje y dejar que el historial se registre solo al abrir WhatsApp. El historial solo lo ves vos con la sesión iniciada; igual revisá
@@ -690,6 +743,99 @@ export function TrainerResourcesPage() {
             )}
           </Card>
         </div>
+
+        <Card className="p-4 sm:p-5 space-y-4 border-brand-secondary/20">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-secondary/25 bg-brand-secondary/10">
+              <CalendarClock className="h-4 w-4 text-brand-secondary" aria-hidden />
+            </span>
+            <h2 className="text-sm font-semibold text-ink-primary">Recordatorios de envío (WhatsApp)</h2>
+          </div>
+          <p className="text-xs text-ink-secondary max-w-prose">
+            Elegí un día fijo por recurso. Ese día verás un aviso en <strong className="text-ink-primary">Inicio</strong> para
+            enviar el mensaje o video (no se envía solo: abrís WhatsApp desde acá).
+          </p>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+            <div className="space-y-1 min-w-[8rem]">
+              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">Día</label>
+              <select
+                className="w-full text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2"
+                value={newResSchedDow}
+                onChange={(e) => setNewResSchedDow(Number(e.target.value))}
+              >
+                {([0, 1, 2, 3, 4, 5, 6] as const).map((d) => (
+                  <option key={d} value={d}>
+                    {WEEKDAY_LABELS_ES[d]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1 flex-1 min-w-[10rem]">
+              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">Zona horaria</label>
+              <select
+                className="w-full text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2"
+                value={newResSchedTz}
+                onChange={(e) => setNewResSchedTz(e.target.value)}
+              >
+                {COMMON_TIMEZONES.map((z) => (
+                  <option key={z.value} value={z.value}>
+                    {z.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-ink-secondary cursor-pointer pb-2">
+              <input
+                type="checkbox"
+                checked={newResSchedPreferGroup}
+                onChange={(e) => setNewResSchedPreferGroup(e.target.checked)}
+              />
+              Preferir envío al grupo
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="gradientSecondary"
+              loading={resourceScheduleBusy}
+              disabled={resourceScheduleBusy || !selectedResourceId}
+              onClick={() => void addResourceSchedule()}
+            >
+              Agregar para «{selectedResource?.title ?? '…'}»
+            </Button>
+          </div>
+          {!selectedResourceId ? (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">Seleccioná un recurso en la lista para asociar el recordatorio.</p>
+          ) : null}
+          {resourceSchedules.length === 0 ? (
+            <p className="text-sm text-ink-muted">Todavía no hay recordatorios.</p>
+          ) : (
+            <ul className="space-y-2">
+              {resourceSchedules.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-3 py-2.5 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink-primary truncate">{s.resource?.title ?? 'Recurso'}</p>
+                    <p className="text-[11px] text-ink-muted">
+                      Cada {WEEKDAY_LABELS_ES[s.day_of_week] ?? '—'} · {s.timezone}
+                      {scheduleMatchesToday(s) ? (
+                        <span className="ml-1 font-semibold text-brand-secondary">· hoy</span>
+                      ) : null}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs text-ink-muted hover:text-status-expired"
+                    onClick={() => void deleteResourceSchedule(s.id)}
+                  >
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
         <Card className="p-4 sm:p-5 space-y-3">
           <h2 className="text-sm font-semibold text-ink-primary inline-flex items-center gap-2">

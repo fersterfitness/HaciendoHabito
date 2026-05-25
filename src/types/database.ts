@@ -313,6 +313,12 @@ export interface Database {
         Update: Partial<Omit<TrainerResourceSend, 'id'>>
         Relationships: []
       }
+      trainer_resource_send_schedules: {
+        Row: TrainerResourceSendSchedule
+        Insert: Omit<TrainerResourceSendSchedule, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TrainerResourceSendSchedule, 'id' | 'created_at'>>
+        Relationships: []
+      }
       notifications: {
         Row: Notification
         Insert: Omit<Notification, 'id' | 'created_at'>
@@ -1119,6 +1125,18 @@ export interface TrainerResourceSend {
   resource_id: string
   student_id: string
   sent_at: string
+}
+
+export interface TrainerResourceSendSchedule {
+  id: string
+  owner_id: string
+  resource_id: string
+  is_enabled: boolean
+  day_of_week: number
+  timezone: string
+  prefer_group_whatsapp: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface CheckInForm {

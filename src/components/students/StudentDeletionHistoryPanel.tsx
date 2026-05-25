@@ -99,16 +99,15 @@ export function StudentDeletionHistoryPanel({
 
   return (
     <div className="space-y-3">
-      <Button
+      <button
         type="button"
-        size="sm"
-        variant="outline"
-        icon={<Archive className="h-4 w-4" />}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-muted hover:text-ink-primary transition-colors"
       >
+        <Archive className="h-3.5 w-3.5 opacity-70" aria-hidden />
         {open ? 'Ocultar eliminados' : 'Ver eliminados'}
-      </Button>
+      </button>
 
       {open ? (
         <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">

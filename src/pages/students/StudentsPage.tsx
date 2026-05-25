@@ -291,13 +291,13 @@ function FiltersDropdown({
             {...a11y}
           >
             <Filter className="h-4 w-4 opacity-70" aria-hidden />
-            Filtrar
+            <span className="hidden sm:inline">Filtrar</span>
             {activeCount > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-secondary px-1.5 text-[10px] font-bold text-white">
                 {activeCount}
               </span>
             )}
-            <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+            <ChevronDown className={cn('h-3 w-3 transition-transform hidden sm:inline-block', open && 'rotate-180')} />
           </button>
         )}
       >
@@ -422,8 +422,8 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
             {...a11y}
           >
             <ArrowDownUp className="h-4 w-4 opacity-70" aria-hidden />
-            Ordenar
-            <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
+            <span className="hidden sm:inline">Ordenar</span>
+            <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform hidden sm:inline-block', open && 'rotate-180')} />
           </button>
         )}
       >
@@ -611,6 +611,13 @@ export function StudentsPage() {
     )
   }
 
+  /** Sincroniza cambios desde el panel lateral (tags, prefs, etc.) sin refetch. */
+  function handleStudentPatch(patch: Partial<Student> & { id: string }) {
+    setLocalStudents((prev) =>
+      prev.map((s) => (s.id === patch.id ? { ...s, ...patch } : s)),
+    )
+  }
+
   const allTags = useMemo(() => {
     const tagSet = new Set<string>()
     for (const s of localStudents) {
@@ -671,10 +678,11 @@ export function StudentsPage() {
               type="button"
               onClick={() => exportStudentsCSV(filtered)}
               title="Exportar lista a CSV"
+              aria-label="Exportar lista a CSV"
               className={directoryToolbarBtnClassName}
             >
               <Download className="h-4 w-4 opacity-70" aria-hidden />
-              Exportar
+              <span className="hidden sm:inline">Exportar</span>
             </button>
 
             <FiltersDropdown
@@ -820,11 +828,9 @@ export function StudentsPage() {
             aria-labelledby="student-sheet-title"
             className={cn(
               'fixed z-[9991] flex flex-col overflow-hidden border border-surface-border/85 bg-surface-panel shadow-lg dark:bg-surface-panel dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]',
-              /* Móvil: panel centrado · sm+: entra deslizando de derecha → izquierda */
-              'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-panel-soft motion-safe:sm:animate-panel-slide-in',
-              /* Móvil: tarjeta con margen en los cuatro lados (estilo modal Gray) */
-              'inset-3 sm:inset-auto',
-              'sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-3xl lg:right-6 lg:top-6 lg:bottom-6 lg:max-w-4xl',
+              'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-none motion-safe:sm:animate-panel-slide-in',
+              'left-3 right-3 top-3 bottom-3 w-auto h-[calc(100dvh-1.5rem)] max-h-[calc(100dvh-1.5rem)]',
+              'sm:inset-auto sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:max-h-none sm:w-full sm:max-w-3xl lg:right-6 lg:top-6 lg:bottom-6 lg:max-w-4xl',
             )}
           >
             <StudentDetailView
@@ -895,14 +901,15 @@ function StudentDirectoryTable({
     "after:content-[''] after:absolute after:left-1/2 after:top-1/2 after:h-[2px] after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-[-35deg] after:bg-current after:opacity-55"
 
   const tableHeader = (
-    <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-      <div className="min-w-0">
+    <div className="flex items-center justify-between gap-3 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-2.5 sm:py-3">
+      <div className="min-w-0 flex items-baseline gap-2">
         <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel}</h2>
-        <p className="truncate text-[11px] text-ink-muted">{sortSubtitle}</p>
+        <span className="text-[11px] tabular-nums text-ink-muted">
+          · {students.length}
+        </span>
+        <span className="hidden sm:inline text-[11px] text-ink-muted truncate">· {sortSubtitle}</span>
       </div>
-      <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
-        {students.length === 1 ? '1 registro' : `${students.length} registros`}
-      </span>
+      <span className="sm:hidden text-[10px] uppercase tracking-wide text-ink-muted truncate">{sortSubtitle}</span>
     </div>
   )
 
@@ -923,7 +930,7 @@ function StudentDirectoryTable({
               onClick={() => onRowClick(student.id)}
               style={tableRowEnterStyle(rowIndex)}
               className={cn(
-                'hh-row-drop-in flex items-center gap-2 px-4 py-2.5 cursor-pointer transition-colors',
+                'hh-row-drop-in flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
                 'outline-none focus-within:bg-surface-elevated/35',
                 isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-brand-primary' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
               )}
@@ -932,20 +939,33 @@ function StudentDirectoryTable({
                 studentId={student.id}
                 fullName={student.full_name}
                 avatarPath={student.avatar_path ?? null}
-                size="xs"
+                size="sm"
                 stopRowNavigation
                 onPathChange={() => onAvatarUpdated()}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate font-semibold text-[13px] leading-snug text-ink-primary">{student.full_name}</span>
+                  <span className="truncate font-semibold text-[14px] leading-snug text-ink-primary">{student.full_name}</span>
                   {age !== null && (
                     <span className="shrink-0 text-[11px] text-ink-muted">{age}a</span>
                   )}
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <StatusToggle student={student} onChanged={onStatusChanged} />
                   {student.plan_end_date && <PlanDaysChip date={student.plan_end_date} />}
+                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+                    <span className="text-[11px] text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                    <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
+                      <span className={cn(iconWrapBase, 'h-5 w-5', hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
+                        <Dumbbell className="h-2.5 w-2.5" />
+                      </span>
+                    </Tooltip>
+                    <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
+                      <span className={cn(iconWrapBase, 'h-5 w-5', hasPlan ? 'border-surface-border/75 text-brand-tertiary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasPlan && iconStrike)}>
+                        <Utensils className="h-2.5 w-2.5" />
+                      </span>
+                    </Tooltip>
+                  </span>
                 </div>
                 <StudentTagChips
                   student={student}
@@ -953,36 +973,27 @@ function StudentDirectoryTable({
                   onTagClick={onFilterTag}
                   className="mt-1"
                 />
-                <div className="mt-1 flex items-center gap-1.5">
-                  <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
-                    <span className={cn(iconWrapBase, hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
-                      <Dumbbell className="h-3 w-3" />
-                    </span>
-                  </Tooltip>
-                  <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
-                    <span className={cn(iconWrapBase, hasPlan ? 'border-surface-border/75 text-brand-tertiary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasPlan && iconStrike)}>
-                      <Utensils className="h-3 w-3" />
-                    </span>
-                  </Tooltip>
-                  <span className="text-[11px] text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
-                </div>
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-1">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onRowClick(student.id) }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary hover:border-brand-secondary/40 hover:text-brand-secondary transition-colors"
+                  onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/60 transition-colors"
+                  title="Editar"
+                  aria-label="Editar"
                 >
-                  Abrir <ChevronRight className="h-3 w-3" />
+                  <Pencil className="h-4 w-4" />
                 </button>
-                <div className="flex gap-0.5">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg p-1 text-ink-muted hover:text-ink-primary transition-colors" title="Editar">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg p-1 text-ink-muted hover:text-status-expired transition-colors" title="Eliminar">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDelete(student) }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:text-status-expired hover:bg-surface-elevated/60 transition-colors"
+                  title="Eliminar"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
               </div>
             </div>
           )

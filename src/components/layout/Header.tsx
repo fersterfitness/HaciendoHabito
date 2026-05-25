@@ -83,7 +83,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
 
       <h1 className="flex-1 text-lg font-semibold tracking-tight text-ink-primary truncate">{title}</h1>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {actions}
 
         <HeaderActionButton
@@ -129,7 +129,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           type="button"
           onClick={() => navigate('/settings')}
           className={cn(
-            'ml-1 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50',
+            'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50',
             appFocusRingClassName,
           )}
           aria-label="Ajustes y perfil"

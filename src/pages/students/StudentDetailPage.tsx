@@ -435,7 +435,9 @@ export function StudentDetailView({
     return variant === 'page' ? (
       <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
     ) : (
-      <div className="flex flex-1 flex-col items-center justify-center py-24"><Spinner size="lg" /></div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-zinc-50 py-24 dark:bg-[rgb(var(--surface-base))]">
+        <Spinner size="lg" />
+      </div>
     )
   }
   if (!student) {
@@ -535,19 +537,26 @@ export function StudentDetailView({
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    aria-label={label}
+                    title={label}
                     onClick={() => setSheetTab(key)}
                     className={cn(
                       'relative -mb-px flex min-w-0 flex-1 items-center justify-center gap-2',
-                      'rounded-t-2xl border px-4 py-3 text-[12px] font-semibold transition-colors',
+                      'rounded-t-2xl border px-2 py-3 sm:px-4 text-[12px] font-semibold transition-colors',
                       active
                         ? 'border-surface-border/80 bg-surface-card text-ink-primary shadow-card'
                         : 'border-transparent bg-transparent text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/25',
                     )}
                   >
-                    <span className={cn('shrink-0', active ? 'text-ink-secondary' : 'text-ink-muted')}>
+                    <span
+                      className={cn(
+                        'shrink-0 [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-3.5 sm:[&>svg]:w-3.5',
+                        active ? 'text-ink-secondary' : 'text-ink-muted',
+                      )}
+                    >
                       {icon}
                     </span>
-                    <span className="min-w-0 truncate">{label}</span>
+                    <span className="hidden min-w-0 truncate sm:inline">{label}</span>
                   </button>
                 )
               })}

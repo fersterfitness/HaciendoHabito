@@ -14,7 +14,7 @@ export const TRAINER_WEEKLY_REMINDERS: TrainerWeeklyReminder[] = [
     title: 'ENVIAR CHECK INS TODOS LOS VIERNES',
     description:
       'Abrí Check-ins, generá o copiá los links de los formularios programados y envialos al grupo de WhatsApp con «Grupo WA».',
-    href: '/check-ins',
+    href: '/feedback?tab=checkins',
     highlightOnWeekday: 5,
   },
   {
@@ -28,7 +28,7 @@ export const TRAINER_WEEKLY_REMINDERS: TrainerWeeklyReminder[] = [
     id: 'resources-weekly',
     title: 'ENVIAR MENSAJE DE RECURSOS «AVISO SEMANAL»',
     description: 'Compartí el aviso semanal de recursos o plantillas guardadas con el grupo o alumnos que corresponda.',
-    href: '/resources',
+    href: '/feedback?tab=recursos',
     highlightOnWeekday: null,
   },
   {

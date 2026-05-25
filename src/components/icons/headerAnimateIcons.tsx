@@ -9,7 +9,7 @@ import { Sun } from '@/components/animate-ui/icons/sun'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 
-const HEADER_ICON_SIZE = 16
+const HEADER_ICON_SIZE = 18
 
 const headerIconClass = 'shrink-0'
 
@@ -86,7 +86,7 @@ export function HeaderMoonIcon({
 }
 
 const headerActionBtnClass =
-  'p-2.5 rounded-xl bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/60 transition-colors'
+  'inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/50 transition-colors'
 
 /** Botón de acción del header; `renderIcon` recibe hover para animar en todo el botón. */
 export function HeaderActionButton({

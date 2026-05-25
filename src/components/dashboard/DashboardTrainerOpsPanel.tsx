@@ -8,10 +8,16 @@ import {
 } from '@/lib/trainerWeeklyReminders'
 import { cn } from '@/lib/utils'
 
-type DueSchedule = {
+type DueCheckInSchedule = {
   id: string
   form_id: string
   form: { title: string } | null
+}
+
+type DueResourceSchedule = {
+  id: string
+  resource_id: string
+  resource: { title: string } | null
 }
 
 function shortReminderLabel(r: TrainerWeeklyReminder): string {
@@ -33,31 +39,55 @@ function shortReminderLabel(r: TrainerWeeklyReminder): string {
 }
 
 type Props = {
-  dueCheckInSchedules: DueSchedule[]
+  dueCheckInSchedules: DueCheckInSchedule[]
+  dueResourceSchedules: DueResourceSchedule[]
 }
 
 /** Guía operativa compacta: no compite con las métricas del tablero. */
-export function DashboardTrainerOpsPanel({ dueCheckInSchedules }: Props) {
+export function DashboardTrainerOpsPanel({ dueCheckInSchedules, dueResourceSchedules }: Props) {
   const navigate = useAppNavigate()
   const [open, setOpen] = useState(false)
   const fridayHighlight = TRAINER_WEEKLY_REMINDERS.some((r) => isTrainerReminderHighlightedToday(r))
+  const hasDueToday = dueCheckInSchedules.length > 0 || dueResourceSchedules.length > 0
 
   return (
     <div className="rounded-xl border border-surface-border/70 bg-surface-elevated/15">
-      {dueCheckInSchedules.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-surface-border/60 px-3 py-2">
-          <CalendarClock className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
-          <span className="text-[11px] text-ink-muted">Hoy · enviar check-in:</span>
-          {dueCheckInSchedules.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => navigate(`/check-ins?formId=${encodeURIComponent(s.form_id)}`)}
-              className="rounded-md border border-sky-500/25 bg-sky-500/8 px-2 py-0.5 text-[11px] font-medium text-ink-primary hover:bg-sky-500/14 transition-colors"
-            >
-              {s.form?.title ?? 'Formulario'}
-            </button>
-          ))}
+      {hasDueToday ? (
+        <div className="flex flex-col gap-2 border-b border-surface-border/60 px-3 py-2">
+          {dueCheckInSchedules.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <CalendarClock className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
+              <span className="text-[11px] text-ink-muted">Hoy · enviar check-in:</span>
+              {dueCheckInSchedules.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() =>
+                    navigate(`/feedback?tab=checkins&formId=${encodeURIComponent(s.form_id)}`)
+                  }
+                  className="rounded-md border border-sky-500/25 bg-sky-500/8 px-2 py-0.5 text-[11px] font-medium text-ink-primary hover:bg-sky-500/14 transition-colors"
+                >
+                  {s.form?.title ?? 'Formulario'}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {dueResourceSchedules.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <CalendarClock className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
+              <span className="text-[11px] text-ink-muted">Hoy · enviar recurso:</span>
+              {dueResourceSchedules.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => navigate('/feedback?tab=recursos')}
+                  className="rounded-md border border-brand-secondary/25 bg-brand-secondary/8 px-2 py-0.5 text-[11px] font-medium text-ink-primary hover:bg-brand-secondary/14 transition-colors"
+                >
+                  {s.resource?.title ?? 'Recurso'}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

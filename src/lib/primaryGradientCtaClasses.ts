@@ -54,8 +54,8 @@ export const directoryPopoverDividerClassName = 'border-t border-surface-border/
 
 /** Botones secundarios de barra (Exportar, Filtrar, Ordenar) en listados. */
 export const directoryToolbarBtnClassName = cn(
-  'inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-surface-border/80',
-  'bg-surface-card/40 px-3.5 text-sm font-medium text-ink-secondary',
+  'inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-surface-border/80',
+  'bg-surface-card/40 px-3 text-sm font-medium text-ink-secondary sm:px-3.5',
   'outline-none transition-colors duration-200',
   'hover:border-surface-border hover:bg-surface-elevated/50 hover:text-ink-primary',
   'focus-visible:ring-2 focus-visible:ring-brand-secondary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',

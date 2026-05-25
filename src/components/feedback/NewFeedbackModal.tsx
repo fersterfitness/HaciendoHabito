@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { X } from 'lucide-react'
 import { FeedbackFormContent } from '@/components/feedback/FeedbackFormContent'
 import { cn } from '@/lib/utils'
+import { modalPanelMotionVariants } from '@/lib/modalPanelMotion'
 
 type Props = {
   open: boolean
@@ -40,18 +41,7 @@ export function NewFeedbackModal({ open, onClose, onCreated }: Props) {
   }, [open, onClose])
 
   const overlayDur = reduceMotion ? 0.15 : 1.1
-  const enterDur = reduceMotion ? 0.22 : 1.45
-  const exitDur = reduceMotion ? 0.16 : 0.58
-
-  const slideVariants = {
-    hidden: reduceMotion ? { opacity: 0 } : { x: '100%' },
-    visible: reduceMotion
-      ? { opacity: 1, transition: { duration: enterDur, ease: PANEL_EASE } }
-      : { x: 0, transition: { duration: enterDur, ease: PANEL_EASE } },
-    leave: reduceMotion
-      ? { opacity: 0, transition: { duration: exitDur } }
-      : { x: '100%', transition: { duration: exitDur, ease: PANEL_EASE } },
-  }
+  const slideVariants = modalPanelMotionVariants(reduceMotion)
 
   return createPortal(
     <AnimatePresence>

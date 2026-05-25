@@ -119,9 +119,14 @@ function IntakeProAvatar({
   const [failed, setFailed] = useState(false)
   const [useOriginalSrc, setUseOriginalSrc] = useState(false)
   const cssPx = INTAKE_AVATAR_PX[sizeClass] ?? 56
-  const optimizedSrc = webIntakeCatalogDisplayUrl(url, cssPx)
   const rawSrc = url?.trim() || null
-  const imgSrc = useOriginalSrc ? rawSrc : optimizedSrc
+  const isCatalogAsset = Boolean(rawSrc?.includes('/web-intake-catalog/'))
+  const preferRaw =
+    !isCatalogAsset ||
+    (typeof window !== 'undefined' &&
+      (window.matchMedia('(max-width: 639px)').matches || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)))
+  const optimizedSrc = preferRaw ? rawSrc : webIntakeCatalogDisplayUrl(url, cssPx)
+  const imgSrc = useOriginalSrc ? rawSrc : optimizedSrc ?? rawSrc
 
   useEffect(() => {
     setFailed(false)
@@ -141,7 +146,6 @@ function IntakeProAvatar({
         theme === 'light' ? 'ring-neutral-200/80' : 'ring-white/20',
       )}
       loading={priority ? 'eager' : 'lazy'}
-      fetchPriority={priority ? 'high' : 'auto'}
       decoding="async"
       onError={() => {
         if (!useOriginalSrc && rawSrc && optimizedSrc !== rawSrc) {
@@ -774,23 +778,28 @@ function LeftBrandPanel({
 
   const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
-      trainers.map((o) => ({
-        id: o.slug,
-        label: o.fullName,
-        avatarUrl:
-          o.slug === INTAKE_TRAINER_SLUG_DEFAULT ? soloSegmentImageUrl : null,
-      })),
+      trainers.map((o) => {
+        /** Si el admin subió foto desde Panel → Planes web, esa manda sobre el avatar de perfil. */
+        const adminOverride = o.slug === INTAKE_TRAINER_SLUG_DEFAULT ? soloSegmentImageUrl : null
+        return {
+          id: o.slug,
+          label: o.fullName,
+          avatarUrl: adminOverride ?? o.avatarUrl ?? null,
+        }
+      }),
     [soloSegmentImageUrl, trainers],
   )
 
   const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
-      nutritionists.map((o) => ({
-        id: o.slug,
-        label: o.fullName,
-        avatarUrl:
-          o.slug === INTAKE_NUTRITION_SLUG_DEFAULT ? nutritionAvatarUrl : null,
-      })),
+      nutritionists.map((o) => {
+        const adminOverride = o.slug === INTAKE_NUTRITION_SLUG_DEFAULT ? nutritionAvatarUrl : null
+        return {
+          id: o.slug,
+          label: o.fullName,
+          avatarUrl: adminOverride ?? o.avatarUrl ?? null,
+        }
+      }),
     [nutritionAvatarUrl, nutritionists],
   )
 
@@ -862,7 +871,7 @@ function LeftBrandPanel({
                   Actualizando precios…
                 </p>
               ) : null}
-            <div className="relative flex items-center justify-center gap-3 sm:justify-start">
+            <div className="relative flex items-center justify-start gap-3 pr-32 sm:justify-start sm:pr-0">
               {isDarkPanel ? (
                 <div
                   className="pointer-events-none absolute left-1/2 top-4 h-28 w-[min(100%,18rem)] -translate-x-1/2 rounded-full bg-brand-secondary/20 opacity-40 blur-3xl sm:left-[12%] sm:translate-x-0"
@@ -875,7 +884,7 @@ function LeftBrandPanel({
                 />
               )}
               <BrandLogo size="sm" decorative className="relative z-[1] h-9 w-9 shrink-0" />
-              <div className="relative z-[1] min-w-0">
+              <div className="relative z-[1] min-w-0 flex-1">
                 <p
                   className={cn(
                     'truncate text-base font-bold leading-tight tracking-tight',
@@ -901,9 +910,9 @@ function LeftBrandPanel({
                   options={modalityChoiceOptions}
                 />
 
-                {/* En mobile se ocultan: son valores fijos de un solo profesional
-                    que suman ruido visual sin aportar decisión al usuario. */}
-                <div className="hidden lg:block space-y-3.5">
+                {/* Visible también en mobile: los alumnos quieren ver al equipo
+                    antes de elegir plan, incluso cuando hay un solo profesional. */}
+                <div className="space-y-3.5">
                   <IntakeHorizontalChoiceRow
                     groupId="intake-trainer"
                     groupLabel="Entrenador"

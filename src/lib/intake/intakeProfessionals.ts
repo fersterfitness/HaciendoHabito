@@ -1,3 +1,5 @@
+import { profileAvatarDisplayUrl } from '@/lib/profileAvatar'
+
 /** Profesional visible en /form (selector + asignación de owner al enviar). */
 export type IntakeProfessional = {
   slug: string
@@ -6,6 +8,8 @@ export type IntakeProfessional = {
   /** Credencial corta; no incluye el nombre (ya está en fullName). */
   credentialLine: string
   role: 'trainer' | 'nutritionist'
+  /** Foto de perfil (bucket profile-avatars). */
+  avatarUrl?: string | null
 }
 
 export const INTAKE_TRAINER_SLUG_DEFAULT = 'tomas-ferster'
@@ -70,6 +74,7 @@ function mergeProfessionals(
       profileId: row.id,
       fullName: row.full_name.trim() || d.fullName,
       credentialLine: row.intake_credential_line?.trim() || d.credentialLine,
+      avatarUrl: profileAvatarDisplayUrl(row.avatar_url) ?? d.avatarUrl ?? null,
     }
   })
 
@@ -82,6 +87,7 @@ function mergeProfessionals(
       fullName: row.full_name.trim() || row.public_intake_slug,
       credentialLine: row.intake_credential_line?.trim() || '',
       role: intakeRole,
+      avatarUrl: profileAvatarDisplayUrl(row.avatar_url),
     })
   }
 
