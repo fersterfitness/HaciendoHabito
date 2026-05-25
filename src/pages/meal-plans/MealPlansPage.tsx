@@ -626,10 +626,11 @@ export function MealPlansPage() {
                                 e.stopPropagation()
                                 setSelectedPlanId(p.id)
                               }}
-                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                              title="Ver detalle"
+                              className="flex items-center gap-1.5 rounded-lg border border-surface-border/70 px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-surface-border hover:bg-surface-elevated hover:text-ink-primary"
                             >
                               <Pencil className="h-3.5 w-3.5" />
-                              Detalle
+                              <span className="hidden md:inline">Detalle</span>
                             </button>
                             <button
                               disabled={pdfBusyId === p.id}
@@ -637,7 +638,8 @@ export function MealPlansPage() {
                                 e.stopPropagation()
                                 void handlePdf(p)
                               }}
-                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-[#ff5508]/10 hover:text-[#ff5508] disabled:opacity-50 dark:hover:bg-[#ff5508]/14 dark:hover:text-[#ffa065]"
+                              title="Descargar PDF"
+                              className="flex items-center gap-1.5 rounded-lg border border-[#ff5508]/30 bg-[#ff5508]/10 px-2.5 py-1.5 text-xs font-semibold text-[#ff5508] transition-colors hover:border-[#ff5508]/50 hover:bg-[#ff5508]/15 disabled:opacity-50 dark:border-[#ff7c3a]/35 dark:bg-[#ff5508]/12 dark:text-[#ffa065] dark:hover:border-[#ff7c3a]/55"
                             >
                               <FileDown className="h-3.5 w-3.5" />
                               {pdfBusyId === p.id ? 'PDF…' : 'PDF'}
@@ -647,10 +649,11 @@ export function MealPlansPage() {
                                 e.stopPropagation()
                                 setDeleteTarget(p)
                               }}
-                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired"
+                              title="Eliminar plan"
+                              className="flex items-center gap-1.5 rounded-lg border border-surface-border/70 px-2.5 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-status-expired/40 hover:bg-status-expired/12 hover:text-status-expired"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                              Eliminar
+                              <span className="hidden md:inline">Eliminar</span>
                             </button>
                           </div>
                         </td>

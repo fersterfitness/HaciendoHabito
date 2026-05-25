@@ -34,10 +34,32 @@ const ribbon = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
+  logoFallbackDark: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: PDF_BRAND.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  logoDark: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    marginRight: 14,
+    objectFit: 'contain',
+  },
   logoMonogram: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.white,
+  },
+  logoMonogramDark: {
+    fontSize: 20,
+    fontFamily: 'Helvetica-Bold',
+    color: PDF_BRAND.white,
+    letterSpacing: 0.4,
   },
   textCol: { flex: 1 },
   kicker: {
@@ -59,32 +81,35 @@ const ribbon = StyleSheet.create({
     marginTop: 2,
     lineHeight: 1.4,
   },
-  /** Cabecera oscura (plan alimentación landscape). */
+  /** Cabecera oscura compacta (plan alimentación landscape). Tono slate-700 con bajo contraste. */
   rowDark: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: PDF_BRAND.dark,
-    borderRadius: 8,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    marginBottom: 10,
+    backgroundColor: '#334155',
+    borderRadius: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    marginBottom: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: PDF_BRAND.primary,
   },
   titleOnDark: {
-    fontSize: 11,
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.white,
+    letterSpacing: 0.3,
   },
   subtitleOnDark: {
-    fontSize: 8,
+    fontSize: 8.4,
     color: '#CBD5E1',
-    marginTop: 2,
+    marginTop: 1.5,
   },
   kickerOnDark: {
-    fontSize: 6.5,
+    fontSize: 6.8,
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.primary,
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
@@ -115,11 +140,19 @@ export function PdfBrandRibbon({
     </View>
   )
 
+  const logoDark = brandLogoSrc ? (
+    <Image src={brandLogoSrc} style={ribbon.logoDark} />
+  ) : (
+    <View style={ribbon.logoFallbackDark}>
+      <Text style={ribbon.logoMonogramDark}>HH</Text>
+    </View>
+  )
+
   if (variant === 'dark') {
     return (
       <View style={ribbon.rowDark}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          {logo}
+          {logoDark}
           <View>
             <Text style={ribbon.kickerOnDark}>{kicker}</Text>
             <Text style={ribbon.titleOnDark}>{title}</Text>

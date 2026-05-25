@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
 import { differenceInYears } from 'date-fns'
 import { FileDown, Sparkles } from 'lucide-react'
-import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
+import { colorBrandLogoSrc, socialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import { createEmptyWeeklyGrid, normalizeWeeklyGrid, reshapeGrid } from '@/lib/nutrition/weeklyPlanGrid'
@@ -69,6 +69,8 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
   const [nextConsultDate, setNextConsultDate] = useState('')
   const [grid, setGrid] = useState<WeeklyPlanGridJson>(() => createEmptyWeeklyGrid(true))
   const [libraryPlans, setLibraryPlans] = useState<NutritionPlanLibrary[]>([])
+  const [importDialog, setImportDialog] = useState<{ planId: string; planName: string } | null>(null)
+  const [importBusy, setImportBusy] = useState(false)
   const [legacyTemplates, setLegacyTemplates] = useState<NutritionWeekPlanTemplate[]>([])
   const [usingLegacyStore, setUsingLegacyStore] = useState(false)
   const persistTimer = useRef<number | null>(null)
@@ -244,7 +246,8 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             email: 'cris.crossetto@gmail.com',
             instagram: '@c.vazqueznutricion',
           }}
-          appLogoUrl={defaultBrandLogoSrc()}
+          appLogoUrl={colorBrandLogoSrc()}
+          socialIcons={socialIconUrls()}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -281,17 +284,18 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
     if (!user || !planId) return
     const source = libraryPlans.find((x) => x.id === planId)
     if (!source) return
-    const response = window.prompt(
-      `Importar "${source.name}"\nEscribí:\nR = reemplazar plan activo\nC = crear copia nueva`,
-      'C'
-    )
-    if (!response) return
-    const mode = response.trim().toUpperCase()
-    if (mode !== 'R' && mode !== 'C') {
-      toast.error('Opción inválida. Usá R o C.')
+    setImportDialog({ planId, planName: source.name })
+  }
+
+  async function confirmImportFromLibrary(mode: 'R' | 'C') {
+    if (!user || !importDialog) return
+    const source = libraryPlans.find((x) => x.id === importDialog.planId)
+    if (!source) {
+      setImportDialog(null)
       return
     }
-
+    setImportBusy(true)
+    try {
     const maxVersion = versions.reduce((acc, v) => Math.max(acc, v.version_number), 0)
     const currentActive = versions.find((v) => v.is_active)
     if (mode === 'R' && currentActive) {
@@ -336,6 +340,10 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
     setNextConsultDate(created.next_consultation_date ?? '')
     await reloadVersions()
     toast.success(mode === 'R' ? 'Plan reemplazado' : 'Nueva versión creada')
+    } finally {
+      setImportBusy(false)
+      setImportDialog(null)
+    }
   }
 
   async function activateVersion(versionId: string) {
@@ -531,6 +539,67 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
         </Button>
         <span className="text-xs text-ink-muted">{saving ? 'Guardando…' : 'Sin cambios pendientes'}</span>
       </div>
+
+      {importDialog ? (
+        <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Cerrar"
+            className="absolute inset-0 bg-black/45 backdrop-blur-[2px] dark:bg-black/60"
+            onClick={() => !importBusy && setImportDialog(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal
+            aria-labelledby="import-plan-title"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-surface-border bg-surface-card p-5 shadow-card-lg"
+          >
+            <p id="import-plan-title" className="text-sm font-semibold text-ink-primary">
+              Importar plan «{importDialog.planName}»
+            </p>
+            <p className="mt-2 text-xs text-ink-secondary">
+              ¿Cómo querés aplicar este plan al paciente?
+            </p>
+            <ul className="mt-3 space-y-2 text-xs text-ink-secondary">
+              <li>
+                <strong className="text-ink-primary">Reemplazar plan activo</strong>: el plan actual se archiva y este queda activo en su lugar.
+              </li>
+              <li>
+                <strong className="text-ink-primary">Crear copia nueva</strong>: se crea una nueva versión activa sin tocar la actual (queda en historial).
+              </li>
+            </ul>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportDialog(null)}
+                disabled={importBusy}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void confirmImportFromLibrary('C')}
+                loading={importBusy}
+              >
+                Crear copia nueva
+              </Button>
+              <Button
+                type="button"
+                variant="gradientSecondary"
+                size="sm"
+                onClick={() => void confirmImportFromLibrary('R')}
+                loading={importBusy}
+              >
+                Reemplazar plan activo
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
