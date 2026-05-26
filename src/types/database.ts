@@ -1130,13 +1130,34 @@ export interface TrainerResourceSend {
 export interface TrainerResourceSendSchedule {
   id: string
   owner_id: string
-  resource_id: string
+  /** Recurso con URL; mutuamente excluyente con `template_id`. */
+  resource_id: string | null
+  /** Plantilla de texto; mutuamente excluyente con `resource_id`. */
+  template_id?: string | null
   is_enabled: boolean
   day_of_week: number
   timezone: string
   prefer_group_whatsapp: boolean
   created_at: string
   updated_at: string
+}
+
+/** Fila del historial de rutinas eliminadas (RPC list_my_routine_deletions). */
+export interface RoutineDeletionLogEntry {
+  id: string
+  routine_id: string
+  routine_name: string
+  student_id: string
+  student_name: string | null
+  objective: string | null
+  level: string | null
+  status: string | null
+  start_date: string | null
+  end_date: string | null
+  deleted_at: string
+  deleted_by: string | null
+  deleted_by_name: string | null
+  can_restore?: boolean
 }
 
 export interface CheckInForm {
@@ -1168,6 +1189,17 @@ export interface CheckInResponse {
   submitted_at: string
   responder_email: string | null
   email_verified: boolean
+  /**
+   * Timestamp en que el trainer marcó la respuesta como respondida (después
+   * de contestarle al alumno por WhatsApp/manualmente).
+   * - `null` → todavía pendiente de respuesta por parte del trainer.
+   * - timestamp → respondido en esa fecha.
+   *
+   * Se setea/desetea vía RPC `set_check_in_response_trainer_status`.
+   */
+  trainer_replied_at: string | null
+  /** Nota privada del trainer asociada a esta respuesta. No visible para el alumno. */
+  trainer_note: string | null
 }
 
 export interface CheckInSendSchedule {

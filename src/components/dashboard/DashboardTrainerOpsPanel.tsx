@@ -16,8 +16,10 @@ type DueCheckInSchedule = {
 
 type DueResourceSchedule = {
   id: string
-  resource_id: string
+  resource_id: string | null
+  template_id?: string | null
   resource: { title: string } | null
+  template: { title: string } | null
 }
 
 function shortReminderLabel(r: TrainerWeeklyReminder): string {
@@ -75,7 +77,7 @@ export function DashboardTrainerOpsPanel({ dueCheckInSchedules, dueResourceSched
           {dueResourceSchedules.length > 0 ? (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
               <CalendarClock className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
-              <span className="text-[11px] text-ink-muted">Hoy · enviar recurso:</span>
+              <span className="text-[11px] text-ink-muted">Hoy · enviar:</span>
               {dueResourceSchedules.map((s) => (
                 <button
                   key={s.id}
@@ -83,7 +85,7 @@ export function DashboardTrainerOpsPanel({ dueCheckInSchedules, dueResourceSched
                   onClick={() => navigate('/feedback?tab=recursos')}
                   className="rounded-md border border-brand-secondary/25 bg-brand-secondary/8 px-2 py-0.5 text-[11px] font-medium text-ink-primary hover:bg-brand-secondary/14 transition-colors"
                 >
-                  {s.resource?.title ?? 'Recurso'}
+                  {s.template?.title ?? s.resource?.title ?? 'Recordatorio'}
                 </button>
               ))}
             </div>

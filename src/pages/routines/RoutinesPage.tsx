@@ -29,6 +29,7 @@ import { cn, formatDate, daysUntil } from '@/lib/utils'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
+import { RoutineDeletionHistoryPanel } from '@/components/routines/RoutineDeletionHistoryPanel'
 import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
 
 const RoutinePdfsPanelLazy = lazy(() =>
@@ -642,6 +643,8 @@ export function RoutinesPage() {
           </Suspense>
         ) : (
           <div className="mx-auto max-w-[1600px] space-y-4">
+            <RoutineDeletionHistoryPanel onRestored={() => void fetchRoutines()} />
+
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
               <div className="relative min-h-10 min-w-0 flex-1">
                 <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
@@ -938,7 +941,7 @@ export function RoutinesPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="¿Eliminar rutina?"
-        description={`Se eliminarán todos los bloques, días y ejercicios de "${deleteTarget?.name}". Esta acción no se puede deshacer.`}
+        description={`Se eliminarán todos los bloques, días y ejercicios de "${deleteTarget?.name}". Podés recuperarla desde «Ver rutinas eliminadas» si el alumno sigue en la lista.`}
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />

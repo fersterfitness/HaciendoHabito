@@ -43,7 +43,10 @@ interface RecentIncomeRow {
 }
 
 type DueCheckInScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
-type DueResourceScheduleRow = TrainerResourceSendSchedule & { resource: { title: string } | null }
+type DueResourceScheduleRow = TrainerResourceSendSchedule & {
+  resource: { title: string } | null
+  template: { title: string } | null
+}
 
 const LEVEL_META = [
   { key: 'inicial', label: 'Inicial' },
@@ -511,7 +514,11 @@ export function DashboardPage() {
   const [goalDist, setGoalDist] = useState<{ key: string; label: string; count: number; pct: number }[]>([])
   const [habitAvg, setHabitAvg] = useState(0)
   const [habitTop5, setHabitTop5] = useState<{ id: string; name: string; pct: number }[]>([])
-  /** Respuestas de check-in (últimos 30 días); prioridad en Inicio para no olvidar devolución. */
+  /**
+   * Check-ins recibidos en los últimos 30 días que el trainer todavía no marcó
+   * como respondidos (vía WhatsApp/manual). Se prioriza en Inicio para no
+   * olvidarse de contestar.
+   */
   const [checkInRecentCount, setCheckInRecentCount] = useState(0)
   const [dueCheckInSchedules, setDueCheckInSchedules] = useState<DueCheckInScheduleRow[]>([])
   const [dueResourceSchedules, setDueResourceSchedules] = useState<DueResourceScheduleRow[]>([])
@@ -959,10 +966,13 @@ export function DashboardPage() {
       if (canSeeTraining) {
         const sinceCi = new Date()
         sinceCi.setDate(sinceCi.getDate() - 30)
+        // Mostramos pendientes de respuesta (no el total) — es la métrica
+        // accionable: "todavía no le contesté a X alumnos esta semana".
         const ciRes = await supabase
           .from('check_in_responses')
           .select('id', { count: 'exact', head: true })
           .gte('submitted_at', sinceCi.toISOString())
+          .is('trainer_replied_at', null)
         setCheckInRecentCount(ciRes.count ?? 0)
         const schRes = await supabase
           .from('check_in_send_schedules')
@@ -977,7 +987,7 @@ export function DashboardPage() {
           const resSchRes = await supabase
             .from('trainer_resource_send_schedules')
             .select(
-              'id, owner_id, resource_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, resource:trainer_resources(title)',
+              'id, owner_id, resource_id, template_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, resource:trainer_resources(title), template:trainer_message_templates(title)',
             )
             .eq('owner_id', user!.id)
             .eq('is_enabled', true)
@@ -1140,17 +1150,20 @@ export function DashboardPage() {
 
 
         {canSeeTraining && checkInRecentCount > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/15 px-3 py-2 text-[11px]">
-            <ClipboardCheck className="h-3.5 w-3.5 shrink-0 text-brand-primary" aria-hidden />
-            <span className="text-ink-secondary">
-              {checkInRecentCount === 1 ? '1 respuesta' : `${checkInRecentCount} respuestas`} de check-in (30 días)
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-[11px]">
+            <ClipboardCheck className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+            <span className="text-amber-900 dark:text-amber-200">
+              {checkInRecentCount === 1
+                ? '1 check-in pendiente de respuesta'
+                : `${checkInRecentCount} check-ins pendientes de respuesta`}{' '}
+              <span className="text-ink-muted">(30 días)</span>
             </span>
             <button
               type="button"
               onClick={() => navigate('/feedback?tab=checkins')}
-              className="ml-auto font-medium text-brand-primary hover:underline"
+              className="ml-auto font-medium text-amber-700 hover:underline dark:text-amber-300"
             >
-              Ver devoluciones
+              Responder
             </button>
           </div>
         ) : null}

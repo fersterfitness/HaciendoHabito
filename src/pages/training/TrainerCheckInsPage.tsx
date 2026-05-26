@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarClock, ClipboardCheck, Copy, Plus, Trash2, Download } from 'lucide-react'
+import { CalendarClock, Check, ClipboardCheck, Clock, Copy, Plus, Save, Trash2, Download, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -67,6 +67,10 @@ type ResponseRow = {
   testimonial_consent: boolean
   responder_email: string | null
   email_verified: boolean
+  /** `null` ⇒ pendiente. Timestamp ⇒ ya respondido (vía WhatsApp/manual). */
+  trainer_replied_at: string | null
+  /** Nota corta del trainer (no visible para el alumno). */
+  trainer_note: string | null
 }
 
 type ScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
@@ -117,6 +121,17 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const [newScheduleDow, setNewScheduleDow] = useState(5)
   const [newScheduleTz, setNewScheduleTz] = useState('America/Argentina/Buenos_Aires')
   const [newSchedulePreferGroup, setNewSchedulePreferGroup] = useState(true)
+  /** Vista principal: por formulario (edición) o historial cronológico agrupado por alumno. */
+  const [checkInView, setCheckInView] = useState<'form' | 'student'>(embedded ? 'student' : 'form')
+  const [studentHistoryLoading, setStudentHistoryLoading] = useState(false)
+
+  type StudentHistoryRow = ResponseRow & {
+    formId: string
+    formTitle: string
+    studentId: string
+    studentName: string
+  }
+  const [studentHistory, setStudentHistory] = useState<StudentHistoryRow[]>([])
 
   const loadForms = useCallback(async () => {
     if (!user) return
@@ -143,6 +158,91 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     void loadForms()
   }, [loadForms])
 
+  const loadStudentHistory = useCallback(async () => {
+    if (!user || forms.length === 0) {
+      setStudentHistory([])
+      return
+    }
+    setStudentHistoryLoading(true)
+    const formIds = forms.map((f) => f.id)
+    const { data: invData, error: invErr } = await supabase
+      .from('check_in_invites')
+      .select('id, form_id, student_id, student:students(full_name), form:check_in_forms(title)')
+      .in('form_id', formIds)
+    if (invErr) {
+      toast.error(invErr.message)
+      setStudentHistory([])
+      setStudentHistoryLoading(false)
+      return
+    }
+    const invites = (invData ?? []) as unknown as Array<{
+      id: string
+      form_id: string
+      student_id: string
+      student: { full_name: string } | null
+      form: { title: string } | null
+    }>
+    const inviteIds = invites.map((i) => i.id)
+    if (!inviteIds.length) {
+      setStudentHistory([])
+      setStudentHistoryLoading(false)
+      return
+    }
+    const { data: respData, error: respErr } = await supabase
+      .from('check_in_responses')
+      .select(
+        'id, invite_id, submitted_at, responses, testimonial_consent, responder_email, email_verified, trainer_replied_at, trainer_note',
+      )
+      .in('invite_id', inviteIds)
+      .order('submitted_at', { ascending: false })
+    if (respErr) {
+      toast.error(respErr.message)
+      setStudentHistory([])
+      setStudentHistoryLoading(false)
+      return
+    }
+    const inviteById = new Map(invites.map((i) => [i.id, i]))
+    const rows: StudentHistoryRow[] = []
+    for (const r of (respData ?? []) as ResponseRow[]) {
+      const inv = inviteById.get(r.invite_id)
+      if (!inv) continue
+      rows.push({
+        ...r,
+        formId: inv.form_id,
+        formTitle: inv.form?.title ?? 'Formulario',
+        studentId: inv.student_id,
+        studentName: inv.student?.full_name ?? '—',
+      })
+    }
+    setStudentHistory(rows)
+    setStudentHistoryLoading(false)
+  }, [user, forms])
+
+  useEffect(() => {
+    if (checkInView !== 'student') return
+    void loadStudentHistory()
+  }, [checkInView, loadStudentHistory])
+
+  const historyByStudent = useMemo(() => {
+    const map = new Map<string, { studentName: string; rows: StudentHistoryRow[] }>()
+    for (const row of studentHistory) {
+      const g = map.get(row.studentId) ?? { studentName: row.studentName, rows: [] }
+      g.rows.push(row)
+      map.set(row.studentId, g)
+    }
+    return [...map.entries()].sort((a, b) => a[1].studentName.localeCompare(b[1].studentName, 'es'))
+  }, [studentHistory])
+
+  const questionLabelsByFormId = useMemo(() => {
+    const out = new Map<string, Map<string, string>>()
+    for (const f of forms) {
+      const labels = new Map<string, string>()
+      for (const q of parseQuestions(f.questions)) labels.set(q.id, q.label)
+      out.set(f.id, labels)
+    }
+    return out
+  }, [forms])
+
   const savedForm = useMemo(() => (activeFormId ? forms.find((f) => f.id === activeFormId) ?? null : null), [forms, activeFormId])
 
   const loadInvitesAndResponses = useCallback(async (formId: string) => {
@@ -163,7 +263,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     }
     const { data: respData, error: respErr } = await supabase
       .from('check_in_responses')
-      .select('id, invite_id, submitted_at, responses, testimonial_consent, responder_email, email_verified')
+      .select('id, invite_id, submitted_at, responses, testimonial_consent, responder_email, email_verified, trainer_replied_at, trainer_note')
       .in('invite_id', inviteIds)
     if (respErr) toast.error(respErr.message)
     else setResponses((respData as ResponseRow[]) ?? [])
@@ -476,6 +576,77 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     return m
   }, [responses])
 
+  /**
+   * Borradores locales de la nota privada por respuesta. Permite que el trainer
+   * escriba sin tocar el server en cada keystroke; se persisten al hacer click
+   * en "Guardar nota" o al togglear el estado respondido/pendiente.
+   */
+  const [noteDrafts, setNoteDrafts] = useState<Map<string, string>>(new Map())
+  const [savingResponseIds, setSavingResponseIds] = useState<Set<string>>(new Set())
+
+  function noteDraftFor(resp: ResponseRow): string {
+    const draft = noteDrafts.get(resp.id)
+    return draft !== undefined ? draft : resp.trainer_note ?? ''
+  }
+
+  const setSavingFlag = useCallback((id: string, on: boolean) => {
+    setSavingResponseIds((prev) => {
+      const next = new Set(prev)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }, [])
+
+  /**
+   * Marca/desmarca la respuesta como contestada y persiste la nota privada.
+   * Usa la RPC `set_check_in_response_trainer_status` que valida ownership.
+   *
+   * - `replied=true` → setea `trainer_replied_at` a now() (o lo conserva si ya estaba).
+   * - `replied=false` → limpia `trainer_replied_at` (vuelve a pendiente).
+   * - `note` → se trimea; vacío se guarda como `null`.
+   */
+  const setResponseTrainerStatus = useCallback(
+    async (response: ResponseRow, replied: boolean, noteOverride?: string) => {
+      const note = noteOverride !== undefined ? noteOverride : noteDraftFor(response)
+      setSavingFlag(response.id, true)
+      const { data, error } = await supabase.rpc('set_check_in_response_trainer_status', {
+        p_response_id: response.id,
+        p_replied: replied,
+        p_note: note,
+      })
+      setSavingFlag(response.id, false)
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+      const updated = data as ResponseRow | null
+      if (!updated) return
+      setResponses((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)))
+      setStudentHistory((prev) =>
+        prev.map((r) =>
+          r.id === updated.id
+            ? {
+                ...r,
+                trainer_replied_at: updated.trainer_replied_at,
+                trainer_note: updated.trainer_note,
+              }
+            : r,
+        ),
+      )
+      // Sincronizar el draft con el valor persistido (por si el server trimeó).
+      setNoteDrafts((prev) => {
+        const next = new Map(prev)
+        next.set(response.id, updated.trainer_note ?? '')
+        return next
+      })
+      toast.success(replied ? 'Marcado como respondido' : 'Marcado como pendiente')
+    },
+    // noteDraftFor depende de noteDrafts + responses; ambos están cubiertos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [noteDrafts, responses, setSavingFlag],
+  )
+
   function exportResponsesCsv() {
     if (!savedForm) return
     const qs = parseQuestions(savedForm.questions)
@@ -529,18 +700,160 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
           title="Formularios semanales"
           description="Armá un formulario corto y compartí un link general en el grupo (cada alumno completa con su correo). También podés generar links personales por alumno."
           action={
-            <Button
-              type="button"
-              variant="gradientSecondary"
-              size="md"
-              icon={<Plus className="h-4 w-4" />}
-              onClick={() => openForm(null)}
-            >
-              Nuevo formulario
-            </Button>
+            checkInView === 'form' ? (
+              <Button
+                type="button"
+                variant="gradientSecondary"
+                size="md"
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => openForm(null)}
+              >
+                Nuevo formulario
+              </Button>
+            ) : null
           }
         />
 
+        <div
+          className="flex w-full max-w-md gap-1 rounded-xl border border-surface-border bg-surface-elevated/40 p-1"
+          role="tablist"
+          aria-label="Vista de check-ins"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={checkInView === 'student'}
+            onClick={() => setCheckInView('student')}
+            className={cn(
+              'flex flex-1 min-h-9 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
+              checkInView === 'student'
+                ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
+                : 'border-transparent text-ink-secondary hover:bg-surface-elevated',
+            )}
+          >
+            <Users className="h-4 w-4 shrink-0" aria-hidden />
+            Por alumno
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={checkInView === 'form'}
+            onClick={() => setCheckInView('form')}
+            className={cn(
+              'flex flex-1 min-h-9 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
+              checkInView === 'form'
+                ? 'border-surface-border bg-surface-card text-ink-primary shadow-sm'
+                : 'border-transparent text-ink-secondary hover:bg-surface-elevated',
+            )}
+          >
+            <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden />
+            Por formulario
+          </button>
+        </div>
+
+        {checkInView === 'student' ? (
+          <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
+            <p className="text-xs text-ink-secondary max-w-prose">
+              Todas las respuestas guardadas, agrupadas por alumno y ordenadas de la más reciente a la más antigua. No se borran al enviar nuevos check-ins.
+            </p>
+            {studentHistoryLoading ? (
+              <p className="text-sm text-ink-muted py-8 text-center">Cargando historial…</p>
+            ) : historyByStudent.length === 0 ? (
+              <EmptyState
+                title="Sin respuestas todavía"
+                description="Cuando los alumnos completen un formulario, aparecerán acá agrupados por nombre."
+              />
+            ) : (
+              <ul className="space-y-4">
+                {historyByStudent.map(([studentId, group]) => {
+                  const pending = group.rows.filter((r) => !r.trainer_replied_at).length
+                  return (
+                    <li
+                      key={studentId}
+                      className="rounded-xl border border-surface-border/80 bg-surface-elevated/15 overflow-hidden"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border/60 bg-surface-elevated/30 px-4 py-2.5">
+                        <p className="font-semibold text-ink-primary">{group.studentName}</p>
+                        <span className="text-[11px] text-ink-muted tabular-nums">
+                          {group.rows.length} respuesta{group.rows.length !== 1 ? 's' : ''}
+                          {pending > 0 ? (
+                            <span className="ml-2 font-medium text-amber-700 dark:text-amber-300">
+                              · {pending} pendiente{pending !== 1 ? 's' : ''}
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      <ul className="divide-y divide-surface-border/60">
+                        {group.rows.map((row) => {
+                          const obj =
+                            row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
+                              ? (row.responses as Record<string, unknown>)
+                              : {}
+                          const isReplied = !!row.trainer_replied_at
+                          const isSaving = savingResponseIds.has(row.id)
+                          return (
+                            <li key={row.id} className="px-4 py-3 space-y-2">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-ink-primary">{row.formTitle}</p>
+                                  <p className="text-[10px] text-ink-muted">
+                                    {new Date(row.submitted_at).toLocaleString('es-AR')}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => void setResponseTrainerStatus(row, !isReplied)}
+                                  disabled={isSaving}
+                                  aria-pressed={isReplied}
+                                  className={cn(
+                                    'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium disabled:opacity-50',
+                                    isReplied
+                                      ? 'border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                      : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                                  )}
+                                >
+                                  {isReplied ? (
+                                    <>
+                                      <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                                      Respondido
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="h-3 w-3" aria-hidden />
+                                      Pendiente
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                              <ul className="text-xs space-y-0.5">
+                                {Object.entries(obj).map(([k, v]) => {
+                                  const label = questionLabelsByFormId.get(row.formId)?.get(k) ?? k
+                                  return (
+                                    <li key={k}>
+                                      <span className="text-ink-muted">{label}: </span>
+                                      <span className="text-ink-primary">{String(v ?? '—')}</span>
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                              {row.trainer_note ? (
+                                <p className="text-[11px] text-ink-secondary italic border-l-2 border-brand-secondary/30 pl-2">
+                                  Nota: {row.trainer_note}
+                                </p>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Card>
+        ) : null}
+
+        {checkInView === 'form' ? (
         <div className="grid lg:grid-cols-5 gap-4 lg:gap-6">
           <Card padding="lg" className={cn('space-y-3 lg:col-span-2', checkInPanelCardClass)}>
             <CardHeader className="mb-2">
@@ -786,9 +1099,36 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                 <td className="py-2 pr-2 text-ink-primary">{inv.student?.full_name ?? '—'}</td>
                                 <td className="py-2 pr-2">
                                   {resp ? (
-                                    <span className="text-emerald-600 dark:text-emerald-400">
-                                      Respondió {new Date(resp.submitted_at).toLocaleString('es-AR')}
-                                    </span>
+                                    <div className="flex flex-col items-start gap-1">
+                                      <span className="text-emerald-600 dark:text-emerald-400">
+                                        Respondió {new Date(resp.submitted_at).toLocaleDateString('es-AR')}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => void setResponseTrainerStatus(resp, !resp.trainer_replied_at)}
+                                        disabled={savingResponseIds.has(resp.id)}
+                                        title={resp.trainer_replied_at ? 'Marcar como pendiente' : 'Marcar como respondido'}
+                                        aria-pressed={!!resp.trainer_replied_at}
+                                        className={cn(
+                                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50',
+                                          resp.trainer_replied_at
+                                            ? 'border border-emerald-600/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300'
+                                            : 'border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300',
+                                        )}
+                                      >
+                                        {resp.trainer_replied_at ? (
+                                          <>
+                                            <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                                            Respondido
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Clock className="h-3 w-3" strokeWidth={2} aria-hidden />
+                                            Pendiente
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
                                   ) : (
                                     <span className="text-ink-muted">Pendiente</span>
                                   )}
@@ -854,18 +1194,66 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       const resp = responseByInvite.get(inv.id)
                       if (!resp) return null
                       const obj = resp.responses && typeof resp.responses === 'object' && !Array.isArray(resp.responses) ? (resp.responses as Record<string, unknown>) : {}
+                      const noteDraft = noteDraftFor(resp)
+                      const noteDirty = noteDraft.trim() !== (resp.trainer_note ?? '').trim()
+                      const isSaving = savingResponseIds.has(resp.id)
+                      const isReplied = !!resp.trainer_replied_at
                       return (
                         <div
                           key={inv.id}
-                          className="rounded-xl border border-brand-secondary/20 bg-brand-secondary/5 p-3 space-y-1 text-sm"
+                          className={cn(
+                            'rounded-xl border p-3 space-y-2 text-sm transition-colors',
+                            isReplied
+                              ? 'border-emerald-600/25 bg-emerald-500/[0.04]'
+                              : 'border-brand-secondary/20 bg-brand-secondary/5',
+                          )}
                         >
-                          <p className="font-medium text-ink-primary">{inv.student?.full_name ?? '—'}</p>
-                          <p className="text-[10px] text-ink-muted">
-                            Testimonio OK: {resp.testimonial_consent ? 'sí' : 'no'}
-                            {' · '}
-                            Correo: {resp.responder_email ?? '—'} ({resp.email_verified ? 'verificado' : 'no verif.'})
-                          </p>
-                          <ul className="text-xs space-y-1 mt-2">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-ink-primary">{inv.student?.full_name ?? '—'}</p>
+                              <p className="text-[10px] text-ink-muted">
+                                Llegó {new Date(resp.submitted_at).toLocaleString('es-AR')}
+                                {' · '}
+                                Testimonio: {resp.testimonial_consent ? 'sí' : 'no'}
+                                {' · '}
+                                Correo: {resp.responder_email ?? '—'} ({resp.email_verified ? 'verificado' : 'no verif.'})
+                                {isReplied ? (
+                                  <>
+                                    {' · '}
+                                    <span className="text-emerald-700 dark:text-emerald-400">
+                                      Respondido el {new Date(resp.trainer_replied_at!).toLocaleString('es-AR')}
+                                    </span>
+                                  </>
+                                ) : null}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void setResponseTrainerStatus(resp, !isReplied)}
+                              disabled={isSaving}
+                              aria-pressed={isReplied}
+                              title={isReplied ? 'Marcar como pendiente' : 'Marcar como respondido'}
+                              className={cn(
+                                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50',
+                                isReplied
+                                  ? 'border-emerald-600/45 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300'
+                                  : 'border-amber-500/45 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300',
+                              )}
+                            >
+                              {isReplied ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                                  Respondido
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                                  Marcar respondido
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <ul className="text-xs space-y-1 mt-1">
                             {questions.map((q) => (
                               <li key={q.id}>
                                 <span className="text-ink-muted">{q.label}: </span>
@@ -873,6 +1261,44 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                               </li>
                             ))}
                           </ul>
+                          <div className="pt-1 space-y-1.5">
+                            <label
+                              htmlFor={`note-${resp.id}`}
+                              className="text-[10px] font-medium uppercase tracking-wide text-ink-muted"
+                            >
+                              Nota privada (no la ve el alumno)
+                            </label>
+                            <Textarea
+                              id={`note-${resp.id}`}
+                              value={noteDraft}
+                              onChange={(e) =>
+                                setNoteDrafts((prev) => {
+                                  const next = new Map(prev)
+                                  next.set(resp.id, e.target.value)
+                                  return next
+                                })
+                              }
+                              rows={2}
+                              placeholder="Ej. aumentar proteínas, pedir foto de comida, etc."
+                              className="text-xs"
+                            />
+                            {noteDirty ? (
+                              <div className="flex justify-end">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  loading={isSaving}
+                                  disabled={isSaving}
+                                  onClick={() => void setResponseTrainerStatus(resp, isReplied, noteDraft)}
+                                  icon={<Save className="h-3 w-3" aria-hidden />}
+                                  className="h-7 min-h-7 px-2 text-[10px]"
+                                >
+                                  Guardar nota
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                       )
                     })}
@@ -882,7 +1308,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             ) : null}
           </Card>
         </div>
+        ) : null}
 
+        {checkInView === 'form' ? (
         <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-secondary/25 bg-brand-secondary/10">
@@ -892,7 +1320,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
           </div>
           <p className="text-xs text-ink-secondary max-w-prose">
             Definí un día fijo por formulario (en tu zona horaria). Ese día verás un recordatorio en{' '}
-            <strong className="text-ink-primary">Inicio</strong> (panel Devoluciones → Check-ins).
+            <strong className="text-ink-primary">Inicio</strong> (panel Consulta semanal → Check-ins).
             WhatsApp no se envía solo: desde acá usá <strong className="text-ink-primary">Grupo WA</strong> para mandar todos los links juntos.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
@@ -997,6 +1425,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             </ul>
           )}
         </Card>
+        ) : null}
       </DirectoryPageShell>
     </div>
   )

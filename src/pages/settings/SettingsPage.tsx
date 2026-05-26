@@ -164,7 +164,7 @@ export function SettingsPage() {
                   eso, fallan tablas o RPC de check-in.
                 </li>
                 <li>
-                  <strong className="text-ink-secondary">Recursos (Devoluciones → Recursos):</strong> creá un recurso con URL, marcá alumnos activos con
+                  <strong className="text-ink-secondary">Recursos (Consulta semanal → Recursos):</strong> creá un recurso con URL, marcá alumnos activos con
                   teléfono válido, probá «Copiar mensaje» y «WhatsApp». Con «Registrar al abrir WhatsApp» activado, el historial debe sumar una fila
                   por alumno; si repetís el mismo alumno y recurso dentro de 60 minutos, no duplica (manual muestra aviso informativo).
                 </li>
@@ -173,7 +173,7 @@ export function SettingsPage() {
                   texto vaya arriba del mensaje al copiar o abrir WhatsApp.
                 </li>
                 <li>
-                  <strong className="text-ink-secondary">Check-ins (Devoluciones → Check-ins):</strong> creá un formulario, guardá, generá links para alumnos,
+                  <strong className="text-ink-secondary">Check-ins (Consulta semanal → Check-ins):</strong> creá un formulario, guardá, generá links para alumnos,
                   abrí el link en otra ventana o navegador (ruta <code className="text-[10px] bg-surface-base px-1 rounded">/form/check-in/…</code>
                   ), enviá respuestas y confirmá que aparecen en la app y en export CSV si hay datos. No compartas esos links en público: equivalen a
                   acceso a nombre del alumno.

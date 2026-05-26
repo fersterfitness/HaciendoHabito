@@ -26,9 +26,10 @@ type BadgeStatus =
   | 'plan-full'
 
 const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
+  /** Rutinas: verde = en curso, ámbar = alerta, rojo = vencida, gris = pausada/cancelada */
   activa: {
     label: 'Activa',
-    className: 'bg-brand-primary/20 text-brand-primary border border-brand-primary/45',
+    className: 'bg-status-generated/20 text-status-generated border border-status-generated/45',
   },
   activo: {
     label: 'Activo',
@@ -36,19 +37,19 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   por_vencer: {
     label: 'Por vencer',
-    className: 'bg-status-expiring/20 text-status-expiring border border-status-expiring/45',
+    className: 'bg-status-expiring/15 text-status-expiring border border-status-expiring/40',
   },
   vencida: {
     label: 'Vencida',
-    className: 'bg-status-expired/24 text-status-expired border border-status-expired/55',
+    className: 'bg-status-expired/20 text-status-expired border border-status-expired/50',
   },
   pausada: {
     label: 'Pausada',
-    className: 'bg-surface-border/50 text-ink-muted border border-surface-border',
+    className: 'bg-status-paused/15 text-status-paused border border-status-paused/35',
   },
   cancelada: {
     label: 'Cancelada',
-    className: 'bg-surface-border/30 text-ink-muted border border-surface-border/50',
+    className: 'bg-surface-border/40 text-ink-muted border border-surface-border/60',
   },
   inactivo: {
     label: 'Inactivo',

@@ -20,7 +20,7 @@ export const TRAINER_WEEKLY_REMINDERS: TrainerWeeklyReminder[] = [
   {
     id: 'checkins-review',
     title: 'CHEQUEAR CHECK INS Y HACER CORRECCIONES',
-    description: 'Revisá las respuestas nuevas en Devoluciones y respondé o ajustá rutinas según lo que reporten.',
+    description: 'Revisá las respuestas nuevas en Consulta semanal y respondé por WhatsApp o ajustá rutinas según lo que reporten.',
     href: '/feedback?tab=checkins',
     highlightOnWeekday: null,
   },

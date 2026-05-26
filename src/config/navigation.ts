@@ -53,7 +53,7 @@ const NAV_STUDENT_MEAL_PLANS: NavItem = {
 export const NAV_TRAINING_CORE: NavItem[] = [
   { label: 'Alumnos', href: '/students', icon: Users },
   { label: 'Rutinas', href: '/routines', icon: Dumbbell },
-  { label: 'Devoluciones', href: '/feedback', icon: MessageSquare },
+  { label: 'Consulta semanal', href: '/feedback', icon: MessageSquare },
   { label: 'Ejercicios', href: '/exercises', icon: BookOpen },
 ]
 

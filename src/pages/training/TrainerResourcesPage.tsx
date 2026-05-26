@@ -67,7 +67,10 @@ function dedupeSendLogRows(rows: SendLogRow[]): SendLogRow[] {
   return kept
 }
 
-type ResourceScheduleRow = TrainerResourceSendSchedule & { resource: { title: string } | null }
+type ResourceScheduleRow = TrainerResourceSendSchedule & {
+  resource: { title: string } | null
+  template: { title: string } | null
+}
 
 export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()
@@ -94,6 +97,8 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
   const [newResSchedDow, setNewResSchedDow] = useState(5)
   const [newResSchedTz, setNewResSchedTz] = useState('America/Argentina/Buenos_Aires')
   const [newResSchedPreferGroup, setNewResSchedPreferGroup] = useState(true)
+  /** Recordatorio asociado a un recurso (URL) o a una plantilla de texto sola. */
+  const [scheduleTargetType, setScheduleTargetType] = useState<'resource' | 'template'>('resource')
   const [logSendPending, setLogSendPending] = useState(false)
   const [sendLogHiddenDuplicateCount, setSendLogHiddenDuplicateCount] = useState(0)
   const newResourceRef = useRef<HTMLDivElement>(null)
@@ -129,7 +134,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
       supabase.from('trainer_message_templates').select('*').eq('owner_id', user.id).order('sort_order', { ascending: true }),
       supabase
         .from('trainer_resource_send_schedules')
-        .select('*, resource:trainer_resources(title)')
+        .select('*, resource:trainer_resources(title), template:trainer_message_templates(title)')
         .eq('owner_id', user.id)
         .order('day_of_week', { ascending: true }),
     ])
@@ -363,14 +368,21 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
   }
 
   async function addResourceSchedule() {
-    if (!user || !selectedResourceId) {
+    if (!user) return
+    if (scheduleTargetType === 'template') {
+      if (!selectedTemplateId) {
+        toast.error('Seleccioná una plantilla de la lista')
+        return
+      }
+    } else if (!selectedResourceId) {
       toast.error('Seleccioná un recurso de la lista')
       return
     }
     setResourceScheduleBusy(true)
     const { error } = await supabase.from('trainer_resource_send_schedules').insert({
       owner_id: user.id,
-      resource_id: selectedResourceId,
+      resource_id: scheduleTargetType === 'resource' ? selectedResourceId : null,
+      template_id: scheduleTargetType === 'template' ? selectedTemplateId : null,
       day_of_week: newResSchedDow,
       timezone: newResSchedTz,
       prefer_group_whatsapp: newResSchedPreferGroup,
@@ -379,15 +391,29 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
     setResourceScheduleBusy(false)
     if (error) {
       if (isMissingRelationError(error)) {
-        toast.error('Falta aplicar la migración trainer_resource_send_schedules en Supabase.')
-      } else if (error.message.includes('duplicate') || error.code === '23505') {
-        toast.error('Ya tenés un recordatorio para ese recurso ese día.')
+        toast.error('Falta aplicar las migraciones de recordatorios en Supabase.')
+      } else if (
+        error.message.includes('duplicate') ||
+        error.code === '23505' ||
+        error.message.includes('trainer_resource_send_schedules_target_chk')
+      ) {
+        toast.error('Ya tenés un recordatorio para ese ítem ese día.')
+      } else if (error.message.includes('template_id') || error.code === '42703') {
+        toast.error('Falta aplicar la migración 20260625132000_trainer_schedule_templates.sql en Supabase.')
       } else toast.error(error.message)
       return
     }
     toast.success('Recordatorio guardado')
     void load()
   }
+
+  const scheduleAddLabel =
+    scheduleTargetType === 'template'
+      ? templates.find((t) => t.id === selectedTemplateId)?.title ?? '…'
+      : selectedResource?.title ?? '…'
+
+  const canAddSchedule =
+    scheduleTargetType === 'template' ? !!selectedTemplateId : !!selectedResourceId
 
   async function deleteResourceSchedule(id: string) {
     if (!user) return
@@ -480,7 +506,28 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
           {templates.length > 0 ? (
             <ul className="space-y-1 pt-2 border-t border-surface-border">
               {templates.map((t) => (
-                <li key={t.id} className="flex items-start justify-between gap-2 rounded-lg border border-surface-border px-3 py-2 text-xs">
+                <li
+                  key={t.id}
+                  className={cn(
+                    'flex items-start justify-between gap-2 rounded-lg border px-3 py-2 text-xs cursor-pointer transition-colors',
+                    selectedTemplateId === t.id
+                      ? 'border-brand-secondary/40 bg-brand-secondary/10'
+                      : 'border-surface-border hover:border-brand-secondary/25',
+                  )}
+                  onClick={() => {
+                    setSelectedTemplateId(t.id)
+                    setScheduleTargetType('template')
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedTemplateId(t.id)
+                      setScheduleTargetType('template')
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="min-w-0">
                     <p className="font-medium text-ink-primary">{t.title}</p>
                     <p className="text-ink-muted line-clamp-2 whitespace-pre-wrap">{t.body}</p>
@@ -490,7 +537,10 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     className="shrink-0 p-1 text-ink-muted hover:text-status-expired"
                     title="Eliminar plantilla"
                     aria-label={`Eliminar plantilla ${t.title}`}
-                    onClick={() => void deleteTemplate(t.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void deleteTemplate(t.id)
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -752,9 +802,36 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <h2 className="text-sm font-semibold text-ink-primary">Recordatorios de envío (WhatsApp)</h2>
           </div>
           <p className="text-xs text-ink-secondary max-w-prose">
-            Elegí un día fijo por recurso. Ese día verás un aviso en <strong className="text-ink-primary">Inicio</strong> para
-            enviar el mensaje o video (no se envía solo: abrís WhatsApp desde acá).
+            Elegí un día fijo por <strong className="text-ink-primary">recurso</strong> o por{' '}
+            <strong className="text-ink-primary">plantilla de texto</strong> (ej. AVISO SEMANAL). Ese día verás un aviso en{' '}
+            <strong className="text-ink-primary">Inicio</strong> (no se envía solo: abrís WhatsApp desde acá).
           </p>
+          <div className="flex flex-wrap gap-1 rounded-xl border border-surface-border bg-surface-elevated/40 p-1 max-w-md">
+            <button
+              type="button"
+              onClick={() => setScheduleTargetType('resource')}
+              className={cn(
+                'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                scheduleTargetType === 'resource'
+                  ? 'bg-surface-card text-ink-primary shadow-sm'
+                  : 'text-ink-muted hover:text-ink-secondary',
+              )}
+            >
+              Recurso
+            </button>
+            <button
+              type="button"
+              onClick={() => setScheduleTargetType('template')}
+              className={cn(
+                'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                scheduleTargetType === 'template'
+                  ? 'bg-surface-card text-ink-primary shadow-sm'
+                  : 'text-ink-muted hover:text-ink-secondary',
+              )}
+            >
+              Plantilla
+            </button>
+          </div>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
             <div className="space-y-1 min-w-[8rem]">
               <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">Día</label>
@@ -797,14 +874,18 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               size="sm"
               variant="gradientSecondary"
               loading={resourceScheduleBusy}
-              disabled={resourceScheduleBusy || !selectedResourceId}
+              disabled={resourceScheduleBusy || !canAddSchedule}
               onClick={() => void addResourceSchedule()}
             >
-              Agregar para «{selectedResource?.title ?? '…'}»
+              Agregar para «{scheduleAddLabel}»
             </Button>
           </div>
-          {!selectedResourceId ? (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">Seleccioná un recurso en la lista para asociar el recordatorio.</p>
+          {!canAddSchedule ? (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              {scheduleTargetType === 'template'
+                ? 'Seleccioná una plantilla en la lista de arriba para asociar el recordatorio.'
+                : 'Seleccioná un recurso en la lista para asociar el recordatorio.'}
+            </p>
           ) : null}
           {resourceSchedules.length === 0 ? (
             <p className="text-sm text-ink-muted">Todavía no hay recordatorios.</p>
@@ -816,7 +897,12 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                   className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-3 py-2.5 text-sm"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-ink-primary truncate">{s.resource?.title ?? 'Recurso'}</p>
+                    <p className="font-medium text-ink-primary truncate">
+                      {s.template?.title ?? s.resource?.title ?? 'Recordatorio'}
+                      {s.template_id ? (
+                        <span className="ml-1.5 text-[10px] font-normal text-brand-secondary">plantilla</span>
+                      ) : null}
+                    </p>
                     <p className="text-[11px] text-ink-muted">
                       Cada {WEEKDAY_LABELS_ES[s.day_of_week] ?? '—'} · {s.timezone}
                       {scheduleMatchesToday(s) ? (

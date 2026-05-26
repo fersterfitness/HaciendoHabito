@@ -106,9 +106,12 @@ function routineStatusPillClass(status: string, compact = false): string {
         'border-rose-400/45 bg-rose-500/12 text-rose-800 dark:border-rose-400/35 dark:bg-rose-500/10 dark:text-rose-400',
       )
     case 'pausada':
-      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400')
+      return cn(
+        base,
+        'border-status-paused/35 bg-status-paused/15 text-status-paused',
+      )
     case 'cancelada':
-      return cn(base, 'border-zinc-300/80 bg-zinc-500/8 text-zinc-600 dark:border-zinc-700 dark:text-zinc-500')
+      return cn(base, 'border-surface-border/60 bg-surface-border/40 text-ink-muted')
     default:
       return cn(base, 'border-zinc-200/80 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400')
   }
