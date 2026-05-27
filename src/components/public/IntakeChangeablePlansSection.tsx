@@ -11,6 +11,7 @@ import {
   type PlanBilling,
   type IntakeNormalizedPricingPlan,
 } from '@/lib/publicIntakePlanPricing'
+import { WebPlanIncludesSectionsDisplay } from '@/components/webPlans/WebPlanIncludesSectionsDisplay'
 
 export type PlanId = string
 
@@ -367,44 +368,52 @@ export function IntakeChangeablePlansSection({
                           )}
                           aria-hidden
                         />
-                        {plan.features.length > 0 ? (
-                          <p
-                            className={cn(
-                              'mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]',
-                              darkChrome ? 'text-white/45' : 'text-neutral-400',
-                            )}
-                          >
-                            {plan.featuresLabel ?? 'Incluye'}
-                          </p>
-                        ) : null}
-                        <div className="flex flex-col gap-1.5">
-                          {plan.features.map((feature, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                              <Check
-                                size={14}
-                                strokeWidth={2.8}
-                                className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/45' : 'text-emerald-600')}
-                              />
-                              <span
-                                className={cn(
-                                  'text-[13px] font-medium leading-snug',
-                                  darkChrome ? 'text-white/78' : 'text-neutral-600',
-                                )}
-                              >
-                                {feature.text}
-                              </span>
-                              {feature.hasInfo ? (
-                                <Info
-                                  size={13}
-                                  className={cn(
-                                    'ml-0.5 shrink-0',
-                                    darkChrome ? 'text-white/35' : 'text-neutral-300',
-                                  )}
-                                />
-                              ) : null}
+                        {plan.featureSections && plan.featureSections.length > 0 ? (
+                          <WebPlanIncludesSectionsDisplay
+                            sections={plan.featureSections}
+                            darkChrome={darkChrome}
+                            listTitle={plan.featuresLabel ?? 'Incluye'}
+                          />
+                        ) : plan.features.length > 0 ? (
+                          <>
+                            <p
+                              className={cn(
+                                'mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]',
+                                darkChrome ? 'text-white/45' : 'text-neutral-400',
+                              )}
+                            >
+                              {plan.featuresLabel ?? 'Incluye'}
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                              {plan.features.map((feature, idx) => (
+                                <div key={idx} className="flex items-start gap-2">
+                                  <Check
+                                    size={14}
+                                    strokeWidth={2.8}
+                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/45' : 'text-emerald-600')}
+                                  />
+                                  <span
+                                    className={cn(
+                                      'text-[13px] font-medium leading-snug',
+                                      darkChrome ? 'text-white/78' : 'text-neutral-600',
+                                    )}
+                                  >
+                                    {feature.text}
+                                  </span>
+                                  {feature.hasInfo ? (
+                                    <Info
+                                      size={13}
+                                      className={cn(
+                                        'ml-0.5 shrink-0',
+                                        darkChrome ? 'text-white/35' : 'text-neutral-300',
+                                      )}
+                                    />
+                                  ) : null}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </>
+                        ) : null}
                         {plan.gifts && plan.gifts.length > 0 ? (
                           <>
                             <p

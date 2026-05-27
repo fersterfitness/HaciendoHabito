@@ -1,4 +1,5 @@
-import type { WebPlanCatalogSegment } from '@/types/database'
+import type { WebPlanCatalogSegment, WebPlanIncludeSection } from '@/types/database'
+import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
 import {
   INTAKE_FERSTER_OFFERS,
   INTAKE_FULL_INTEGRAL_OFFERS,
@@ -18,6 +19,7 @@ export type CanonicalEditableWebPlan = {
   short_description: string
   intro_text: string
   includes_items: string[]
+  includes_sections: WebPlanIncludeSection[]
   gifts_items: string[]
   sort_order: number
   is_active: boolean
@@ -57,6 +59,9 @@ function offerToEditable(offer: PublicIntakePlanDetail, sortOrder: number): Cano
     short_description: offer.shortDescription,
     intro_text: offer.intro,
     includes_items: [...offer.info],
+    includes_sections: offer.includeSections?.length
+      ? offer.includeSections.map((s) => ({ ...s, items: [...s.items] }))
+      : normalizeIncludeSections(null, offer.info, offer.catalogSegment),
     gifts_items: [...offer.gifts],
     sort_order: sortOrder,
     is_active: true,

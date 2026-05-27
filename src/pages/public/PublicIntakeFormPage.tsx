@@ -26,6 +26,8 @@ import {
   mergePublicIntakePlansFromDb,
   type PublicIntakePlanDetail,
 } from '@/lib/publicIntakeCatalogOffers'
+import { normalizeIncludeSections, toIntakeIncludeSectionViews } from '@/lib/webPlanIncludeSections'
+import { WebPlanIncludesSectionsDisplay } from '@/components/webPlans/WebPlanIncludesSectionsDisplay'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import { webIntakeCatalogDisplayUrl } from '@/lib/webIntakeCatalogAssets'
 import {
@@ -562,15 +564,16 @@ function PlanDetailView({
         ) : null}
 
         <div className="mt-5 pt-4 border-t border-white/10">
-          <p className="text-sm font-semibold text-white mb-2">Incluye</p>
-          <ul className="space-y-2">
-            {plan.info.map((item) => (
-              <li key={item} className="flex items-start gap-2 text-sm text-white/85 leading-relaxed">
-                <Check className="h-4 w-4 mt-0.5 text-white/70 shrink-0" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <WebPlanIncludesSectionsDisplay
+            sections={toIntakeIncludeSectionViews(
+              plan.includeSections?.length
+                ? plan.includeSections
+                : normalizeIncludeSections(null, plan.info, plan.catalogSegment),
+            )}
+            darkChrome
+            listTitle="Incluye"
+            checkSize={16}
+          />
         </div>
 
         <div className="mt-6 pt-4 border-t border-white/10">
@@ -1200,7 +1203,7 @@ export function PublicIntakeFormPage() {
       const { data, error } = await supabase
         .from('web_plans')
         .select(
-          'slug, title, price_label, price_yearly_label, price_3m_label, price_6m_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
+          'slug, title, price_label, price_yearly_label, price_3m_label, price_6m_label, short_description, intro_text, includes_items, includes_sections, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
         )
         .eq('is_active', true)
         .eq('show_in_public_intake', true)
@@ -1253,6 +1256,11 @@ export function PublicIntakeFormPage() {
           shortDescription: row.short_description,
           intro: row.intro_text,
           info: row.includes_items ?? [],
+          includeSections: normalizeIncludeSections(
+            row.includes_sections,
+            row.includes_items ?? [],
+            segment,
+          ),
           gifts: row.gifts_items ?? [],
         }
       })

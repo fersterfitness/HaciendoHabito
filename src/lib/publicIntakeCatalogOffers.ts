@@ -1,4 +1,4 @@
-import type { WebPlanCatalogSegment } from '@/types/database'
+import type { WebPlanCatalogSegment, WebPlanIncludeSection } from '@/types/database'
 
 /** Fila de oferta del intake público (alineada con `web_plans` + defaults de la app). */
 export type PublicIntakePlanDetail = {
@@ -16,6 +16,8 @@ export type PublicIntakePlanDetail = {
   shortDescription: string
   intro: string
   info: string[]
+  /** Secciones por profesional (Entrenador / Psicólogo / Nutricionista) con colores en el form. */
+  includeSections?: WebPlanIncludeSection[]
   gifts: string[]
 }
 

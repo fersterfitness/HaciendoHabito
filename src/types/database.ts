@@ -639,6 +639,14 @@ export interface RoutineBlueprint {
 
 export type WebPlanCatalogSegment = 'solo' | 'with_nutritionist' | 'full'
 
+/** Profesional asociado a una sección de «Incluye» en `web_plans`. */
+export type WebPlanIncludeProfessional = 'trainer' | 'psychologist' | 'nutritionist'
+
+export interface WebPlanIncludeSection {
+  professional: WebPlanIncludeProfessional
+  items: string[]
+}
+
 export interface WebPlan {
   id: string
   slug: string
@@ -653,6 +661,8 @@ export interface WebPlan {
   short_description: string
   intro_text: string
   includes_items: string[]
+  /** Secciones de «Incluye» por profesional; vacío = derivar de `includes_items` en la app. */
+  includes_sections?: WebPlanIncludeSection[] | null
   gifts_items: string[]
   /** Formulario público: solo nutrición vs full vs solo entrenador. */
   catalog_segment: WebPlanCatalogSegment

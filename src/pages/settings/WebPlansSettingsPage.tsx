@@ -8,7 +8,19 @@ import { Card } from '@/components/ui/Card'
 import { Input, Textarea } from '@/components/ui/Input'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import type { WebIntakeCatalogSettings, WebPlan, WebPlanCatalogSegment } from '@/types/database'
+import type {
+  WebIntakeCatalogSettings,
+  WebPlan,
+  WebPlanCatalogSegment,
+  WebPlanIncludeSection,
+} from '@/types/database'
+import { WebPlanIncludesSectionsEditor } from '@/components/webPlans/WebPlanIncludesSectionsEditor'
+import {
+  flattenIncludeSections,
+  normalizeIncludeSections,
+  parseIncludeSectionsJson,
+  totalIncludeItemCount,
+} from '@/lib/webPlanIncludeSections'
 import toast from 'react-hot-toast'
 import {
   WEB_INTAKE_CATALOG_BUCKET,
@@ -36,6 +48,7 @@ type EditableWebPlan = Pick<
   | 'short_description'
   | 'intro_text'
   | 'includes_items'
+  | 'includes_sections'
   | 'gifts_items'
   | 'sort_order'
   | 'is_active'
@@ -157,6 +170,7 @@ function newPlanDraft(sortOrder: number): EditableWebPlan {
     intro_text:
       'Detalle que se muestra al tocar «más info». Podés extenderlo hasta 3500 caracteres con el nombre original del servicio y lo que incluye.',
     includes_items: ['Primer ítem del plan (editá o agregá líneas abajo).'],
+    includes_sections: [{ professional: 'trainer', items: ['Primer ítem del plan (editá o agregá líneas abajo).'] }],
     gifts_items: ['Bonificación o material de regalo.'],
     sort_order: sortOrder,
     is_active: true,
@@ -416,6 +430,11 @@ export function WebPlansSettingsPage() {
         short_description: row.short_description,
         intro_text: row.intro_text,
         includes_items: row.includes_items ?? [],
+        includes_sections: normalizeIncludeSections(
+          parseIncludeSectionsJson(row.includes_sections),
+          row.includes_items ?? [],
+          (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
+        ),
         gifts_items: row.gifts_items ?? [],
         sort_order: row.sort_order,
         is_active: row.is_active,
@@ -612,8 +631,13 @@ export function WebPlansSettingsPage() {
       if (cred && cred.length > LIMITS.credentialLine) {
         return `La línea de credencial libre de la oferta «${plan.slug}» supera ${LIMITS.credentialLine} caracteres.`
       }
-      if (plan.includes_items.length === 0 || plan.gifts_items.length === 0) return 'Cada oferta necesita al menos un ítem en Incluye y De regalo.'
-      if (plan.includes_items.some((item) => item.length > LIMITS.item) || plan.gifts_items.some((item) => item.length > LIMITS.item)) {
+      const includeCount = totalIncludeItemCount(plan.includes_sections)
+      if (includeCount === 0 || plan.gifts_items.length === 0) {
+        return 'Cada oferta necesita al menos un ítem en Incluye (por profesional) y De regalo.'
+      }
+      if (includeCount > 16) return 'Máximo 16 ítems en total en «Incluye» (sumando todas las secciones).'
+      const flatIncludes = flattenIncludeSections(plan.includes_sections)
+      if (flatIncludes.some((item) => item.length > LIMITS.item) || plan.gifts_items.some((item) => item.length > LIMITS.item)) {
         return 'Hay ítems muy largos; límite 180 caracteres por línea.'
       }
     }
@@ -636,7 +660,8 @@ export function WebPlansSettingsPage() {
       price_6m_label: plan.price_6m_label?.trim() ? plan.price_6m_label.trim().slice(0, LIMITS.price) : null,
       short_description: plan.short_description.trim(),
       intro_text: plan.intro_text.trim(),
-      includes_items: plan.includes_items,
+      includes_sections: plan.includes_sections,
+      includes_items: flattenIncludeSections(plan.includes_sections),
       gifts_items: plan.gifts_items,
       sort_order: plan.sort_order,
       is_active: plan.is_active,
@@ -666,6 +691,11 @@ export function WebPlansSettingsPage() {
       short_description: row.short_description,
       intro_text: row.intro_text,
       includes_items: row.includes_items ?? [],
+      includes_sections: normalizeIncludeSections(
+        parseIncludeSectionsJson(row.includes_sections),
+        row.includes_items ?? [],
+        (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
+      ),
       gifts_items: row.gifts_items ?? [],
       sort_order: row.sort_order,
       is_active: row.is_active,
@@ -1350,12 +1380,21 @@ export function WebPlansSettingsPage() {
                     hint={`${plan.intro_text.length}/${LIMITS.intro}`}
                     onChange={(e) => updatePlan(plan.slug, { intro_text: e.target.value })}
                   />
-                  <Textarea
-                    label="Incluye — una línea por ítem"
-                    value={toMultiline(plan.includes_items)}
-                    hint="Máx. 180 caracteres por línea."
-                    onChange={(e) => updatePlan(plan.slug, { includes_items: parseItems(e.target.value) })}
-                  />
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-muted mb-2">
+                      Incluye — por profesional
+                    </p>
+                    <WebPlanIncludesSectionsEditor
+                      sections={plan.includes_sections}
+                      itemMaxLength={LIMITS.item}
+                      onChange={(includes_sections: WebPlanIncludeSection[]) => {
+                        updatePlan(plan.slug, {
+                          includes_sections,
+                          includes_items: flattenIncludeSections(includes_sections),
+                        })
+                      }}
+                    />
+                  </div>
                   <Textarea
                     label="De regalo — una línea por ítem"
                     value={toMultiline(plan.gifts_items)}

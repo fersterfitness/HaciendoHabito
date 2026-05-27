@@ -1,3 +1,11 @@
+import {
+  normalizeIncludeSections,
+  toIntakeIncludeSectionViews,
+  type WebPlanIncludeSection,
+} from '@/lib/webPlanIncludeSections'
+import type { WebPlanCatalogSegment } from '@/types/database'
+import type { IntakeIncludeSectionView } from '@/lib/webPlanIncludeSections'
+
 /** Modalidades de pago en /form (x3/x6: total referencial desde precio mensual con descuento). */
 export type PlanBilling = 'monthly' | 'months3' | 'months6' | 'annual'
 
@@ -72,8 +80,25 @@ export interface IntakeNormalizedPricingPlan {
   badge?: string | null
   featuresLabel?: string
   features: { text: string; hasInfo?: boolean }[]
+  /** Si hay secciones por profesional, la tarjeta las muestra agrupadas con tildes de color. */
+  featureSections?: IntakeIncludeSectionView[]
   giftsLabel?: string
   gifts?: { text: string }[]
+}
+
+function pricingFeaturesFromPlan(
+  info: string[],
+  includeSections: WebPlanIncludeSection[] | undefined,
+  catalogSegment: WebPlanCatalogSegment,
+): { features: { text: string }[]; featureSections?: IntakeIncludeSectionView[] } {
+  const sections = includeSections?.length
+    ? includeSections
+    : normalizeIncludeSections(null, info, catalogSegment)
+  const views = toIntakeIncludeSectionViews(sections).filter((s) => s.items.length > 0)
+  if (views.length > 0) {
+    return { features: [], featureSections: views }
+  }
+  return { features: info.map((text) => ({ text })) }
 }
 
 export function intakePlansToPricingPlans(
@@ -87,10 +112,14 @@ export function intakePlansToPricingPlans(
     price6mLabel?: string | null
     badge: string
     info: string[]
+    includeSections?: WebPlanIncludeSection[]
+    catalogSegment?: WebPlanCatalogSegment
     gifts?: string[]
   }>,
 ): IntakeNormalizedPricingPlan[] {
   return plans.map((p) => {
+    const segment = p.catalogSegment ?? 'solo'
+    const feat = pricingFeaturesFromPlan(p.info, p.includeSections, segment)
     const commit = inferWebPlanBundleCommitment(p.id, p.name)
     const totalN = numericFromPriceLabel(p.price)
     const override3 = p.price3mLabel?.trim()
@@ -108,7 +137,8 @@ export function intakePlansToPricingPlans(
         priceYearlyDisplay: effectiveYearlyLabel(impliedMonthly, p.priceYearly),
         badge: p.badge,
         featuresLabel: 'Incluye',
-        features: p.info.map((text) => ({ text })),
+        features: feat.features,
+        featureSections: feat.featureSections,
         giftsLabel: p.gifts?.length ? 'De regalo' : undefined,
         gifts: p.gifts?.length ? p.gifts.map((text) => ({ text })) : undefined,
       }
@@ -126,7 +156,8 @@ export function intakePlansToPricingPlans(
         priceYearlyDisplay: effectiveYearlyLabel(impliedMonthly, p.priceYearly),
         badge: p.badge,
         featuresLabel: 'Incluye',
-        features: p.info.map((text) => ({ text })),
+        features: feat.features,
+        featureSections: feat.featureSections,
         giftsLabel: p.gifts?.length ? 'De regalo' : undefined,
         gifts: p.gifts?.length ? p.gifts.map((text) => ({ text })) : undefined,
       }
@@ -142,7 +173,8 @@ export function intakePlansToPricingPlans(
       priceYearlyDisplay: effectiveYearlyLabel(p.price, p.priceYearly),
       badge: p.badge,
       featuresLabel: 'Incluye',
-      features: p.info.map((text) => ({ text })),
+      features: feat.features,
+      featureSections: feat.featureSections,
       giftsLabel: p.gifts?.length ? 'De regalo' : undefined,
       gifts: p.gifts?.length ? p.gifts.map((text) => ({ text })) : undefined,
     }
