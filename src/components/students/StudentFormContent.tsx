@@ -10,7 +10,12 @@ import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS, STUDENT_STATUSES } from '@/lib/constants'
 import { canonicalizeArgentinaStudentPhone, STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary'
-import { emptyToNull } from '@/lib/formUtils'
+import {
+  emptyToNull,
+  parseHeightCmFromInput,
+  parseLocaleNumber,
+  parseLocaleNumberOrNull,
+} from '@/lib/formUtils'
 import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 
@@ -26,8 +31,8 @@ const schema = z
     gender: z.enum(['M', 'F', 'otro']).optional(),
     gender_other: z.string().max(120).optional().or(z.literal('')),
     address: z.string().max(500).optional().or(z.literal('')),
-    weight_kg: z.coerce.number().min(20).max(400).optional().or(z.literal('')),
-    height_cm: z.coerce.number().min(50).max(250).optional().or(z.literal('')),
+    weight_kg: z.union([z.string(), z.number()]).optional().or(z.literal('')),
+    height_cm: z.union([z.string(), z.number()]).optional().or(z.literal('')),
     level: z.enum(['inicial', 'intermedio', 'avanzado']),
     status: z.enum(['activo', 'inactivo', 'pausado', 'baja']),
     plan_end_date: z.string().optional().or(z.literal('')),
@@ -54,6 +59,41 @@ const schema = z
         message: PHONE_HINT,
         path: ['phone'],
       })
+    }
+    if (data.weight_kg !== '' && data.weight_kg != null) {
+      const n =
+        typeof data.weight_kg === 'number'
+          ? data.weight_kg
+          : parseLocaleNumber(String(data.weight_kg))
+      if (Number.isNaN(n)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Peso inválido. Usá coma o punto (ej: 67,5)',
+          path: ['weight_kg'],
+        })
+      } else if (n < 20 || n > 400) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Peso entre 20 y 400 kg',
+          path: ['weight_kg'],
+        })
+      }
+    }
+    if (data.height_cm !== '' && data.height_cm != null) {
+      const cm = parseHeightCmFromInput(String(data.height_cm))
+      if (cm == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Altura inválida. Ej: 175 cm o 1,75 m',
+          path: ['height_cm'],
+        })
+      } else if (cm < 50 || cm > 250) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Altura entre 50 y 250 cm',
+          path: ['height_cm'],
+        })
+      }
     }
   })
 
@@ -183,8 +223,14 @@ export function StudentFormContent({
       notes: emptyToNull(values.notes),
       document_id: emptyToNull(values.document_id),
       address: emptyToNull(values.address),
-      weight_kg: values.weight_kg !== '' && values.weight_kg != null ? Number(values.weight_kg) : null,
-      height_cm: values.height_cm !== '' && values.height_cm != null ? Number(values.height_cm) : null,
+      weight_kg:
+        values.weight_kg !== '' && values.weight_kg != null
+          ? parseLocaleNumberOrNull(String(values.weight_kg))
+          : null,
+      height_cm:
+        values.height_cm !== '' && values.height_cm != null
+          ? parseHeightCmFromInput(String(values.height_cm))
+          : null,
       intake_ferster: intakeFerster,
       profile_id: null,
       intake_nutrition: null,
@@ -273,15 +319,19 @@ export function StudentFormContent({
         <div className={g2}>
           <Input
             label="Peso (kg)"
-            type="number"
-            placeholder="70"
+            type="text"
+            inputMode="decimal"
+            placeholder="Ej: 67,5"
+            hint="Podés usar coma o punto decimal"
             error={errors.weight_kg?.message}
             {...register('weight_kg')}
           />
           <Input
             label="Altura (cm)"
-            type="number"
-            placeholder="170"
+            type="text"
+            inputMode="decimal"
+            placeholder="Ej: 175 o 1,75 m"
+            hint="En cm o en metros (1,75 → 175 cm)"
             error={errors.height_cm?.message}
             {...register('height_cm')}
           />
@@ -536,15 +586,19 @@ export function StudentFormContent({
               <div className={g2}>
                 <Input
                   label="Peso (kg)"
-                  type="number"
-                  placeholder="70"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ej: 67,5"
+                  hint="Podés usar coma o punto decimal"
                   error={errors.weight_kg?.message}
                   {...register('weight_kg')}
                 />
                 <Input
                   label="Altura (cm)"
-                  type="number"
-                  placeholder="170"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ej: 175 o 1,75 m"
+                  hint="En cm o en metros (1,75 → 175 cm)"
                   error={errors.height_cm?.message}
                   {...register('height_cm')}
                 />

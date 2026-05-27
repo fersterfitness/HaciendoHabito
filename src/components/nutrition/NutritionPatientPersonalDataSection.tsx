@@ -9,6 +9,10 @@ import { updateAccessibleStudent } from '@/lib/students/studentAccess'
 import { personalPatchFromIntakeSnapshot } from '@/lib/students/personalFromIntakeSnapshot'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
+import {
+  parseHeightCmFromInput,
+  parseLocaleNumberOrNull,
+} from '@/lib/formUtils'
 
 interface Props {
   student: Student
@@ -46,10 +50,13 @@ function fromStudent(s: Student): FormState {
   }
 }
 
-function toNullableNumber(value: string): number | null {
+function toNullableWeightKg(value: string): number | null {
+  return parseLocaleNumberOrNull(value)
+}
+
+function toNullableHeightCm(value: string): number | null {
   if (!value.trim()) return null
-  const n = Number(value.replace(',', '.'))
-  return Number.isFinite(n) ? n : null
+  return parseHeightCmFromInput(value)
 }
 
 function ageFromBirth(birth: string): string | null {
@@ -112,8 +119,8 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
       gender: (form.gender || null) as Student['gender'],
       document_id: form.document_id.trim() || null,
       address: form.address.trim() || null,
-      weight_kg: toNullableNumber(form.weight_kg),
-      height_cm: toNullableNumber(form.height_cm),
+      weight_kg: toNullableWeightKg(form.weight_kg),
+      height_cm: toNullableHeightCm(form.height_cm),
       notes: form.notes.trim() || null,
       plan_end_date: form.plan_end_date || null,
     }
@@ -295,7 +302,7 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
               inputMode="decimal"
               value={form.weight_kg}
               onChange={(e) => patch('weight_kg', e.target.value)}
-              placeholder="Ej: 78.4"
+              placeholder="Ej: 67,5"
               className={inputClass}
             />
           </Field>
@@ -305,7 +312,7 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
               inputMode="decimal"
               value={form.height_cm}
               onChange={(e) => patch('height_cm', e.target.value)}
-              placeholder="Ej: 172"
+              placeholder="Ej: 175 o 1,75 m"
               className={inputClass}
             />
           </Field>

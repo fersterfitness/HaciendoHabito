@@ -1,23 +1,12 @@
-/** Número con coma o punto decimal */
-
 import {
   MEAL_SLOT_KEYS,
   normalizeMealDistribution,
   type PlanningWorkbookStateV1,
 } from '@/lib/nutrition/planningWorkbookTypes'
 import type { NutritionFoodLibrary } from '@/types/database'
+import { parseLocaleNumber, parseLocaleNumberOrZero } from '@/lib/formUtils'
 
-export function parseLocaleNumber(raw: string): number {
-  const t = raw.trim().replace(/\s+/g, '').replace(',', '.')
-  if (!t) return NaN
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
-}
-
-export function parseLocaleNumberOrZero(raw: string): number {
-  const n = parseLocaleNumber(raw)
-  return Number.isNaN(n) ? 0 : n
-}
+export { parseLocaleNumber, parseLocaleNumberOrZero } from '@/lib/formUtils'
 
 export interface MacroTotals {
   carbsG: number

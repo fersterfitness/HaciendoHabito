@@ -84,7 +84,7 @@ export function NutritionComparativePdfDocument({
           ) : (
             differences.map((d) => (
               <Text key={d.label} style={styles.paragraph}>
-                {d.label}: {d.from} {'->'} {d.to} (cambio {d.delta})
+                {d.label}: {d.from} {'->'} {d.to} (cambió {d.delta})
               </Text>
             ))
           )}
