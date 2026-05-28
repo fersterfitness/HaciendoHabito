@@ -309,7 +309,7 @@ export function IntakeNutritionForm({
         {/* ── Paso 1: Salud y antropometría ────────────────────────────────── */}
         {step === 1 && (
           <>
-            <p className="rounded-xl border border-brand-secondary/20 bg-brand-secondary/8 px-4 py-3 text-xs leading-relaxed text-ink-secondary">
+            <p className="rounded-xl border border-[#ff6a00]/20 bg-[#ff6a00]/[0.08] px-4 py-3 text-xs leading-relaxed text-ink-secondary">
               Las medidas de cintura, cadera y brazo las tomará el profesional en la consulta. Solo completá peso y altura.
             </p>
 

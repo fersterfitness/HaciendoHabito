@@ -119,6 +119,7 @@ function IntakeHorizontalChoiceRow({
   disabled = false,
   emptyLabel = 'No aplica',
   theme = 'dark',
+  compact = false,
 }: {
   groupId: string
   groupLabel: string
@@ -128,6 +129,8 @@ function IntakeHorizontalChoiceRow({
   disabled?: boolean
   emptyLabel?: string
   theme?: 'light' | 'dark'
+  /** Menos padding en botones segmentados (bloque modalidad). */
+  compact?: boolean
 }) {
   const selected = options.find((o) => o.id === value)
   const interactive = !disabled && options.length > 0
@@ -140,9 +143,10 @@ function IntakeHorizontalChoiceRow({
 
   const segmentedButtonClass = (isSelected: boolean) =>
     cn(
-      'flex min-h-[2.75rem] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border px-2 py-2 transition-all',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/35 focus-visible:ring-offset-0',
-      'text-center text-[12px] font-semibold leading-tight',
+      'flex min-w-0 flex-1 touch-manipulation items-center justify-center rounded-lg border transition-all',
+      compact ? 'min-h-[2.25rem] px-1.5 py-1.5 text-[11px]' : 'min-h-[2.75rem] rounded-xl px-2 py-2 text-[12px]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6a00]/35 focus-visible:ring-offset-0',
+      'text-center font-semibold leading-tight',
       isSelected ? intakePanelSegmentSelectedClass(theme) : intakePanelSegmentIdleClass(theme),
     )
 
@@ -153,11 +157,11 @@ function IntakeHorizontalChoiceRow({
   const compactBtnClasses = (isSelected: boolean) =>
     isDark
       ? isSelected
-        ? 'border-brand-secondary/45 bg-brand-secondary/12 ring-1 ring-brand-secondary/28'
-        : 'border-white/12 bg-white/[0.025] hover:border-brand-secondary/30 hover:bg-brand-secondary/8'
+        ? 'border-white/30 bg-white/[0.1] ring-1 ring-[#ff6a00]/25'
+        : 'border-white/12 bg-white/[0.025] hover:border-white/22 hover:bg-white/[0.05]'
       : isSelected
-        ? 'border-brand-secondary/35 bg-brand-secondary/8 ring-1 ring-brand-secondary/20 shadow-sm'
-        : 'border-surface-border bg-surface-card hover:border-brand-secondary/25 hover:bg-surface-elevated'
+        ? 'border-surface-border bg-surface-elevated ring-1 ring-[#ff6a00]/18 shadow-sm'
+        : 'border-surface-border bg-surface-card hover:border-surface-border/90 hover:bg-surface-elevated'
 
   const compactNameClass = isDark ? '!text-white' : 'text-ink-primary'
   const compactSubtitleClass = isDark ? '!text-white/55' : 'text-ink-muted'
@@ -165,14 +169,16 @@ function IntakeHorizontalChoiceRow({
 
   return (
     <div className="min-w-0">
-      <p id={labelId} className={intakePanelGroupLabelClass(theme)}>
-        {groupLabel}
-      </p>
+      {groupLabel.trim() ? (
+        <p id={labelId} className={intakePanelGroupLabelClass(theme)}>
+          {groupLabel}
+        </p>
+      ) : null}
 
       {!interactive ? (
         <div
           className={cn(
-            'mt-1.5 rounded-lg border border-dashed px-3 py-2 text-[12px] italic',
+            compact ? 'mt-1 rounded-lg border border-dashed px-2 py-1.5 text-[11px] italic' : 'mt-1.5 rounded-lg border border-dashed px-3 py-2 text-[12px] italic',
             emptyClasses,
           )}
           aria-disabled
@@ -198,7 +204,7 @@ function IntakeHorizontalChoiceRow({
                 className={cn(
                   'flex w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
-                  isDark ? 'focus-visible:ring-brand-secondary/40' : 'focus-visible:ring-brand-secondary/35',
+                  isDark ? 'focus-visible:ring-[#ff6a00]/40' : 'focus-visible:ring-[#ff6a00]/35',
                   compactBtnClasses(isSelected),
                 )}
               >
@@ -228,8 +234,8 @@ function IntakeHorizontalChoiceRow({
         <>
           <div
             role="radiogroup"
-            aria-labelledby={labelId}
-            className={cn('mt-1.5 flex gap-1.5', options.length > 3 && 'flex-wrap')}
+            aria-labelledby={groupLabel.trim() ? labelId : undefined}
+            className={cn(compact ? 'mt-1 flex gap-1' : 'mt-1.5 flex gap-1.5', options.length > 3 && 'flex-wrap')}
           >
             {options.map((opt) => {
               const isSelected = value === opt.id
@@ -251,7 +257,7 @@ function IntakeHorizontalChoiceRow({
           {selected?.detail ? (
             <p
               id={detailId}
-              className={cn('mt-1.5 text-[11px] leading-snug', detailClass)}
+              className={cn(compact ? 'mt-1 text-[10px] leading-snug' : 'mt-1.5 text-[11px] leading-snug', detailClass)}
               aria-live="polite"
             >
               {selected.detail}
@@ -260,6 +266,132 @@ function IntakeHorizontalChoiceRow({
         </>
       )}
     </div>
+  )
+}
+
+function IntakeTeamShowcase({
+  theme = 'dark',
+  includeTraining,
+  includeNutrition,
+  trainerChoice,
+  nutritionChoice,
+  onTrainerChoiceChange,
+  onNutritionChoiceChange,
+  trainerOptions,
+  nutritionOptions,
+}: {
+  theme?: 'light' | 'dark'
+  includeTraining: boolean
+  includeNutrition: boolean
+  trainerChoice: string
+  nutritionChoice: string
+  onTrainerChoiceChange: (slug: string) => void
+  onNutritionChoiceChange: (slug: string) => void
+  trainerOptions: IntakeHorizontalChoiceOption[]
+  nutritionOptions: IntakeHorizontalChoiceOption[]
+}) {
+  const isDark = theme === 'dark'
+  const textMuted = isDark ? 'text-white/58' : 'text-ink-muted'
+  const panelClass = isDark
+    ? 'border-white/14 bg-gradient-to-br from-[#1f2027]/94 via-[#181a21]/94 to-[#121419]/96 shadow-[0_14px_44px_rgba(0,0,0,0.35)]'
+    : 'border-surface-border bg-gradient-to-br from-surface-elevated via-surface-card to-surface-elevated'
+  const cardIdle = isDark
+    ? 'border-white/12 bg-white/[0.03] hover:border-white/24 hover:bg-white/[0.06]'
+    : 'border-surface-border bg-surface-card hover:border-surface-border/85'
+  const cardSelected = isDark
+    ? 'border-white/32 bg-white/[0.11] ring-1 ring-white/20'
+    : 'border-surface-border bg-surface-elevated ring-1 ring-white/15'
+
+  const roleClass = isDark ? 'text-[#ffb27e]/85' : 'text-ink-muted'
+  const nameClass = isDark ? 'text-white' : 'text-ink-primary'
+  const subtitleClass = isDark ? 'text-white/55' : 'text-ink-muted'
+  const activeGroups = [
+    includeTraining && trainerOptions.length > 0
+      ? {
+          id: 'trainer',
+          label: 'Entrenador',
+          value: trainerChoice,
+          options: trainerOptions,
+          onChange: onTrainerChoiceChange,
+        }
+      : null,
+    includeNutrition && nutritionOptions.length > 0
+      ? {
+          id: 'nutritionist',
+          label: 'Nutricionista',
+          value: nutritionChoice,
+          options: nutritionOptions,
+          onChange: onNutritionChoiceChange,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    id: string
+    label: string
+    value: string
+    options: IntakeHorizontalChoiceOption[]
+    onChange: (id: string) => void
+  }>
+
+  const proRows = activeGroups.flatMap((group) =>
+    group.options.map((opt) => ({
+      ...opt,
+      roleLabel: group.label,
+      isSelected: group.value === opt.id,
+      onSelect: () => group.onChange(opt.id),
+    })),
+  )
+
+  return (
+    <section className={cn('rounded-lg border px-2.5 py-2 sm:px-3 sm:py-2.5', panelClass)}>
+      <p className={cn('text-[9px] font-semibold uppercase tracking-[0.14em]', textMuted)}>
+        Equipo que te acompaña
+      </p>
+      {proRows.length === 0 ? (
+        <p className={cn('mt-1 text-[11px]', textMuted)}>Estamos preparando el equipo para esta modalidad.</p>
+      ) : (
+        <div className="mt-1.5 space-y-1">
+          {proRows.map((row) => {
+            const displayName = row.avatarLabel ?? row.title
+            return (
+              <button
+                key={`${row.roleLabel}-${row.id}`}
+                type="button"
+                onClick={row.onSelect}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors',
+                  row.isSelected ? cardSelected : cardIdle,
+                )}
+              >
+                <IntakeProAvatar
+                  theme={theme}
+                  label={displayName}
+                  url={row.avatarUrl}
+                  sizeClass="h-8 w-8"
+                  priority={proRows.length === 1}
+                  expandable
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={cn('truncate text-[12px] font-semibold leading-tight', nameClass)}>
+                    <span className={cn('text-[9px] font-bold uppercase tracking-[0.12em]', roleClass)}>
+                      {row.roleLabel}
+                    </span>
+                    <span className={cn('mx-1 font-normal', isDark ? 'text-white/35' : 'text-ink-muted')}>
+                      ·
+                    </span>
+                    {displayName}
+                  </p>
+                  {row.subtitle?.trim() ? (
+                    <p className={cn('mt-0.5 line-clamp-1 text-[10px] leading-snug', subtitleClass)}>
+                      {row.subtitle.trim()}
+                    </p>
+                  ) : null}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -550,12 +682,13 @@ function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: photo }} />
         <div className="absolute inset-0 bg-gradient-to-b from-[#15101f]/85 via-transparent to-[#0c0b12]/92" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/58 via-[#170f25]/24 to-transparent" />
       </div>
       <div
         className="absolute inset-0 z-[1] pointer-events-none opacity-50 mix-blend-screen"
         style={{
-          background: 'radial-gradient(ellipse 120% 80% at 50% -10%, rgba(255,255,255,0.14), transparent 55%)',
+          background:
+            'radial-gradient(ellipse 120% 80% at 50% -10%, rgba(255,255,255,0.14), transparent 55%), radial-gradient(ellipse 85% 70% at 12% 8%, rgba(255,106,0,0.24), transparent 58%)',
         }}
       />
     </>
@@ -583,7 +716,7 @@ function PublicIntakeTopActions({
 
   const surfaceClasses = darkTone
     ? 'border-white/15 bg-white/[0.06] text-white/85 hover:border-white/30 hover:text-white hover:bg-white/[0.1]'
-    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-brand-secondary/40 hover:text-brand-secondary'
+    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-[#ff6a00]/35 hover:text-ink-primary'
 
   const iconSurfaceClasses = darkTone
     ? 'border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/[0.1] hover:text-white'
@@ -798,65 +931,62 @@ function LeftBrandPanel({
             <div className="relative flex items-center justify-start gap-3 pr-32 sm:justify-start sm:pr-0">
               {isDarkPanel ? (
                 <div
-                  className="pointer-events-none absolute left-1/2 top-4 h-28 w-[min(100%,18rem)] -translate-x-1/2 rounded-full bg-brand-secondary/20 opacity-40 blur-3xl sm:left-[12%] sm:translate-x-0"
+                  className="pointer-events-none absolute left-1/2 top-4 h-28 w-[min(100%,18rem)] -translate-x-1/2 rounded-full bg-white/12 opacity-25 blur-3xl sm:left-[12%] sm:translate-x-0"
                   aria-hidden
                 />
               ) : (
                 <div
-                  className="pointer-events-none absolute -left-4 top-0 h-20 w-32 rounded-full bg-brand-secondary/15 blur-2xl"
+                  className="pointer-events-none absolute -left-4 top-0 h-20 w-32 rounded-full bg-white/10 blur-2xl"
                   aria-hidden
                 />
               )}
-              <BrandLogo size="sm" decorative className="relative z-[1] h-9 w-9 shrink-0" />
+              <BrandLogo size="sm" decorative className="relative z-[1] h-12 w-12 shrink-0 drop-shadow-[0_8px_22px_rgba(255,106,0,0.45)]" />
               <div className="relative z-[1] min-w-0 flex-1">
                 <p
                   className={cn(
-                    'truncate text-base font-bold leading-tight tracking-tight',
-                    isDarkPanel ? 'text-white' : 'text-ink-primary',
+                    'truncate text-lg font-extrabold leading-tight tracking-tight',
+                    isDarkPanel ? 'text-[#ffb27e]' : 'text-ink-primary',
                   )}
                 >
                   Haciéndolo hábito
                 </p>
-                <p className={cn('text-[11px]', isDarkPanel ? 'text-white/50' : 'text-ink-muted')}>
+                <p className={cn('text-[11px] font-medium', isDarkPanel ? 'text-white/56' : 'text-ink-muted')}>
                   Elegí modalidad y plan
                 </p>
               </div>
             </div>
 
             <div className={intakePanelSurfaceClass(panelTheme)}>
-              <div className="space-y-3.5">
-                <IntakeHorizontalChoiceRow
-                  groupId="intake-modality"
-                  groupLabel="Modalidad"
+              <div className="space-y-2">
+                <IntakeTeamShowcase
                   theme={panelTheme}
-                  value={modalitySegment}
-                  onChange={(seg) => onSelectCatalogSegment(seg as WebPlanCatalogSegment)}
-                  options={modalityChoiceOptions}
+                  includeTraining={includeTraining}
+                  includeNutrition={includeNutrition}
+                  trainerChoice={trainerChoice}
+                  nutritionChoice={nutritionChoice}
+                  onTrainerChoiceChange={onTrainerChoiceChange}
+                  onNutritionChoiceChange={onNutritionChoiceChange}
+                  trainerOptions={trainerChoiceOptions}
+                  nutritionOptions={nutritionChoiceOptions}
                 />
 
-                {/* Visible también en mobile: los alumnos quieren ver al equipo
-                    antes de elegir plan, incluso cuando hay un solo profesional. */}
-                <div className="space-y-3.5">
+                <div className="rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 sm:px-3 sm:py-2.5">
+                  <p
+                    className={cn(
+                      'mb-1 text-[11px] font-bold uppercase tracking-[0.1em]',
+                      isDarkPanel ? 'text-[#ffb27e]' : 'text-ink-secondary',
+                    )}
+                  >
+                    Selecciona una modalidad
+                  </p>
                   <IntakeHorizontalChoiceRow
-                    groupId="intake-trainer"
-                    groupLabel="Entrenador"
+                    groupId="intake-modality"
+                    groupLabel=""
                     theme={panelTheme}
-                    value={includeTraining ? trainerChoice : ''}
-                    disabled={!includeTraining}
-                    emptyLabel="No aplica"
-                    onChange={onTrainerChoiceChange}
-                    options={trainerChoiceOptions}
-                  />
-
-                  <IntakeHorizontalChoiceRow
-                    groupId="intake-nutrition"
-                    groupLabel="Nutricionista"
-                    theme={panelTheme}
-                    value={includeNutrition ? nutritionChoice : ''}
-                    disabled={!includeNutrition}
-                    emptyLabel="No aplica"
-                    onChange={onNutritionChoiceChange}
-                    options={nutritionChoiceOptions}
+                    compact
+                    value={modalitySegment}
+                    onChange={(seg) => onSelectCatalogSegment(seg as WebPlanCatalogSegment)}
+                    options={modalityChoiceOptions}
                   />
                 </div>
               </div>
@@ -1472,13 +1602,13 @@ export function PublicIntakeFormPage() {
           {mobileStep === 'form' ? (
             <div
               id="intake-form-panel"
-              className="relative flex min-h-screen flex-1 flex-col bg-gradient-to-b from-brand-secondary/[0.08] via-surface-base to-surface-base pt-14"
+              className="relative flex min-h-screen flex-1 flex-col bg-gradient-to-b from-zinc-500/[0.05] via-surface-base to-surface-base pt-14"
             >
               <div className="relative z-[1] flex-1 px-4 pt-2 pb-[max(4rem,env(safe-area-inset-bottom))]">
                 {selectedPlan ? (
-                  <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-brand-secondary/25 bg-surface-card/90 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
+                  <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-surface-border bg-surface-card/90 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-brand-secondary">Tu plan</p>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-ink-secondary">Tu plan</p>
                       <p className="truncate text-sm font-semibold text-ink-primary leading-tight">
                         {selectedPlan.name}
                       </p>
@@ -1489,7 +1619,7 @@ export function PublicIntakeFormPage() {
                     <button
                       type="button"
                       onClick={onRequestChangePlan}
-                      className="shrink-0 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2.5 py-1.5 text-[11px] font-semibold text-brand-secondary"
+                      className="shrink-0 rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-[11px] font-semibold text-ink-primary"
                     >
                       Cambiar
                     </button>
@@ -1505,7 +1635,7 @@ export function PublicIntakeFormPage() {
           <LeftBrandPanel {...leftPanelProps} />
           <div className="relative flex min-w-0 flex-1 flex-col self-stretch px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-12 lg:pr-12">
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-secondary/[0.06] via-transparent to-brand-tertiary/[0.04]"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-500/[0.04] via-transparent to-zinc-500/[0.015]"
               aria-hidden
             />
             <div className="relative z-[1] w-full min-w-0">

@@ -425,7 +425,7 @@ export function IntakeFullForm({
         {/* ── PASO 1: Entrenamiento (Tomás Ferster) ── */}
         {step === 1 && (
           <>
-            <div className="mb-2 rounded-md border-l-2 border-brand-secondary/50 bg-brand-secondary/6 px-2.5 py-2">
+            <div className="mb-2 rounded-md border-l-2 border-[#ff6a00]/45 bg-[#ff6a00]/[0.07] px-2.5 py-2">
               <p className="text-[11px] text-ink-secondary">
                 Entrenamiento · <span className="font-semibold text-ink-primary">{trainerName}</span>
               </p>
@@ -566,7 +566,7 @@ export function IntakeFullForm({
         {/* ── PASO 3: Nutrición (Cristian Crossetto) ── */}
         {step === 3 && (
           <>
-            <div className="mb-2 rounded-md border-l-2 border-brand-secondary/50 bg-brand-secondary/6 px-2.5 py-2">
+            <div className="mb-2 rounded-md border-l-2 border-[#ff6a00]/45 bg-[#ff6a00]/[0.07] px-2.5 py-2">
               <p className="text-[11px] text-ink-secondary">
                 Nutrición · <span className="font-semibold text-ink-primary">{nutritionistName}</span>
               </p>

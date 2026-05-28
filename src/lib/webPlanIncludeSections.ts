@@ -12,7 +12,7 @@ export const WEB_PLAN_INCLUDE_PROFESSIONAL_ORDER: WebPlanIncludeProfessional[] =
   'nutritionist',
 ]
 
-/** Metadatos y colores para tildes y títulos: Entrenador = secondary, Nutricionista = tertiary, Psicólogo = cyan. */
+/** Metadatos por rol: tonos neutros en /form; la barra lateral distingue sin violeta/cyan. */
 export const WEB_PLAN_PROFESSIONAL_META: Record<
   WebPlanIncludeProfessional,
   {
@@ -22,31 +22,39 @@ export const WEB_PLAN_PROFESSIONAL_META: Record<
     headingClassDark: string
     headingClassLight: string
     chipClass: string
+    accentBarClassDark: string
+    accentBarClassLight: string
   }
 > = {
   trainer: {
     label: 'Entrenador',
-    checkClassDark: 'text-brand-secondary',
-    checkClassLight: 'text-brand-secondary',
-    headingClassDark: 'text-brand-secondary',
-    headingClassLight: 'text-brand-secondary',
-    chipClass: 'border-brand-secondary/35 bg-brand-secondary/10 text-brand-secondary',
+    checkClassDark: 'text-emerald-400/75',
+    checkClassLight: 'text-emerald-600/85',
+    headingClassDark: 'text-white/80',
+    headingClassLight: 'text-neutral-700',
+    chipClass: 'border-white/15 bg-white/[0.04] text-white/75',
+    accentBarClassDark: 'border-l-zinc-400/55',
+    accentBarClassLight: 'border-l-neutral-400',
   },
   psychologist: {
     label: 'Psicólogo',
-    checkClassDark: 'text-cyan-400',
-    checkClassLight: 'text-cyan-600',
-    headingClassDark: 'text-cyan-400',
-    headingClassLight: 'text-cyan-600',
-    chipClass: 'border-cyan-500/35 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+    checkClassDark: 'text-emerald-400/75',
+    checkClassLight: 'text-emerald-600/85',
+    headingClassDark: 'text-white/80',
+    headingClassLight: 'text-neutral-700',
+    chipClass: 'border-white/15 bg-white/[0.04] text-white/75',
+    accentBarClassDark: 'border-l-zinc-500/50',
+    accentBarClassLight: 'border-l-neutral-500',
   },
   nutritionist: {
     label: 'Nutricionista',
-    checkClassDark: 'text-brand-tertiary',
-    checkClassLight: 'text-brand-tertiary',
-    headingClassDark: 'text-brand-tertiary',
-    headingClassLight: 'text-brand-tertiary',
-    chipClass: 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary',
+    checkClassDark: 'text-emerald-400/75',
+    checkClassLight: 'text-emerald-600/85',
+    headingClassDark: 'text-white/80',
+    headingClassLight: 'text-neutral-700',
+    chipClass: 'border-white/15 bg-white/[0.04] text-white/75',
+    accentBarClassDark: 'border-l-zinc-300/45',
+    accentBarClassLight: 'border-l-neutral-300',
   },
 }
 
@@ -132,6 +140,8 @@ export type IntakeIncludeSectionView = {
   checkClassLight: string
   headingClassDark: string
   headingClassLight: string
+  accentBarClassDark: string
+  accentBarClassLight: string
   /** Foto del profesional (formulario público). */
   avatarUrl?: string | null
   /** Credencial corta bajo el título (opcional). */
@@ -168,6 +178,8 @@ export function toIntakeIncludeSectionViews(sections: WebPlanIncludeSection[]): 
       checkClassLight: meta.checkClassLight,
       headingClassDark: meta.headingClassDark,
       headingClassLight: meta.headingClassLight,
+      accentBarClassDark: meta.accentBarClassDark,
+      accentBarClassLight: meta.accentBarClassLight,
     }
   })
 }

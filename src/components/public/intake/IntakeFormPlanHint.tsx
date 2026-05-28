@@ -26,12 +26,12 @@ export function IntakeFormPlanHint({
   return (
     <div
       className={cn(
-        'mb-4 flex min-w-0 items-center justify-between gap-3 rounded-xl border border-brand-secondary/25',
-        'bg-gradient-to-r from-brand-secondary/[0.08] to-transparent px-3.5 py-2.5',
+        'mb-4 flex min-w-0 items-center justify-between gap-3 rounded-xl border border-surface-border',
+        'bg-gradient-to-r from-zinc-500/[0.07] to-transparent px-3.5 py-2.5',
       )}
     >
       <div className="min-w-0">
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-brand-secondary">Plan elegido</p>
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-ink-secondary">Plan elegido</p>
         <p className="truncate text-sm font-semibold text-ink-primary">{selectedPlanLabel}</p>
         {selectedPlanPrice ? (
           <p className="text-xs tabular-nums text-ink-muted">{selectedPlanPrice}</p>
@@ -41,7 +41,7 @@ export function IntakeFormPlanHint({
         <button
           type="button"
           onClick={onRequestChangePlan}
-          className="shrink-0 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2.5 py-1.5 text-xs font-semibold text-brand-secondary transition-colors hover:bg-brand-secondary/15"
+          className="shrink-0 rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-xs font-semibold text-ink-primary transition-colors hover:bg-surface-card"
         >
           Cambiar
         </button>

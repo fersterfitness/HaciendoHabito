@@ -18,8 +18,8 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
         <div
           className={cn(
             'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-            'border border-brand-secondary/30 bg-brand-secondary/12',
-            'text-sm font-bold tabular-nums text-brand-secondary',
+            'border border-white/20 bg-white/[0.07]',
+            'text-sm font-bold tabular-nums text-ink-primary',
           )}
           aria-hidden
         >
@@ -44,7 +44,7 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
         aria-label="Progreso del formulario"
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-brand-secondary/80 to-brand-secondary transition-[width] duration-500 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-zinc-300/95 to-zinc-500/90 dark:from-zinc-300/70 dark:to-zinc-500/70 transition-[width] duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -60,9 +60,9 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
               className={cn(
                 'shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold transition-all',
                 i === step
-                  ? 'bg-brand-secondary/15 text-brand-secondary ring-1 ring-brand-secondary/30'
+                  ? 'bg-zinc-500/[0.14] text-ink-primary ring-1 ring-zinc-500/30'
                   : i < step
-                    ? 'bg-surface-elevated text-ink-secondary hover:text-brand-secondary'
+                    ? 'bg-surface-elevated text-ink-secondary hover:text-ink-primary'
                     : 'cursor-not-allowed border border-dashed border-surface-border/60 text-ink-muted/60',
               )}
             >
@@ -74,7 +74,7 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
 
       {stepNavHint ? (
         <p
-          className="mt-3 rounded-lg border border-brand-secondary/15 bg-brand-secondary/6 px-3 py-2 text-center text-[11px] leading-snug text-ink-secondary"
+          className="mt-3 rounded-lg border border-zinc-500/25 bg-zinc-500/[0.08] px-3 py-2 text-center text-[11px] leading-snug text-ink-secondary"
           role="status"
           aria-live="polite"
         >

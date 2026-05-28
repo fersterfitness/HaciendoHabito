@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
-import { secondaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
+import { primaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
 
-export const INTAKE_FORM_ACCENT = 'rgb(var(--brand-secondary))'
+export const INTAKE_FORM_ACCENT = 'rgb(var(--brand-primary))'
 
 /** @deprecated */
 export const intakePublicSelectedPlanBarClass =
@@ -17,22 +17,22 @@ export function intakeFormSectionClass(className?: string) {
 
 export function intakeFormSectionTitleClass() {
   return cn(
-    'flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-secondary',
-    'before:h-3.5 before:w-0.5 before:shrink-0 before:rounded-full before:bg-brand-secondary before:content-[""]',
+    'flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-primary',
+    'before:h-3.5 before:w-0.5 before:shrink-0 before:rounded-full before:bg-brand-primary before:content-[""]',
   )
 }
 
-/** CTA Siguiente / Enviar — acento secondary (sin naranja). */
+/** CTA Siguiente / Enviar — acento primary. */
 export const intakeFormCtaPrimaryClass = cn(
-  secondaryGradientCtaClassName,
+  primaryGradientCtaClassName,
   '!h-11 justify-center text-sm',
 )
 
 export const intakeFormBackButtonClass = cn(
   'inline-flex h-11 min-w-[5.5rem] items-center justify-center rounded-xl border border-surface-border/80',
   'bg-transparent px-4 text-sm font-medium text-ink-secondary transition-colors',
-  'hover:border-brand-secondary/30 hover:bg-brand-secondary/5 hover:text-ink-primary',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/30',
+  'hover:border-brand-primary/30 hover:bg-brand-primary/5 hover:text-ink-primary',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30',
 )
 
 /** @deprecated */
@@ -51,7 +51,7 @@ export function intakeFormInputClass(err?: string) {
     'w-full rounded-xl border px-3.5 text-base sm:text-sm transition-all duration-150',
     'min-h-[2.75rem] py-2.5',
     'bg-surface-input border-surface-inputBorder/90 text-ink-primary placeholder:text-ink-muted/80',
-    'focus:outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/18',
+    'focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/18',
     err && 'border-status-expired focus:border-status-expired focus:ring-status-expired/20',
   )
 }
@@ -59,6 +59,6 @@ export function intakeFormInputClass(err?: string) {
 export function intakeAttachPlusBox() {
   return cn(
     'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashed',
-    'border-brand-secondary/35 bg-brand-secondary/5 text-sm font-medium text-brand-secondary',
+    'border-brand-primary/35 bg-brand-primary/5 text-sm font-medium text-brand-primary',
   )
 }

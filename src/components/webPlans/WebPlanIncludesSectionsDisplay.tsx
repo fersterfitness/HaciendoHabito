@@ -74,8 +74,11 @@ export function WebPlanIncludesSectionsDisplay({
 
   const subtitleClass = darkChrome ? 'text-[11px] leading-snug text-white/55' : 'text-[11px] leading-snug text-neutral-500'
   const itemTextClass = darkChrome ? 'text-white/78' : 'text-neutral-600'
-  const giftCheckClass = darkChrome ? 'text-brand-tertiary/80' : 'text-brand-tertiary'
+  const giftCheckClass = darkChrome ? 'text-emerald-400/75' : 'text-emerald-600/85'
   const dividerClass = darkChrome ? 'border-white/10' : 'border-neutral-200/80'
+
+  const sectionAccentClass = (s: IntakeIncludeSectionView) =>
+    darkChrome ? s.accentBarClassDark : s.accentBarClassLight
 
   return (
     <div className={className}>
@@ -84,7 +87,10 @@ export function WebPlanIncludesSectionsDisplay({
           {listTitle ? <p className={eyebrowClass}>{listTitle}</p> : null}
           <div className="flex flex-col gap-5">
             {sections.map((sec) => (
-              <section key={sec.professional} className="space-y-2.5">
+              <section
+                key={sec.professional}
+                className={cn('space-y-2.5 border-l-2 pl-2.5', sectionAccentClass(sec))}
+              >
                 {showProfessionalAvatars ? (
                   <div className="flex items-center gap-3">
                     <IntakeProAvatar

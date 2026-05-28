@@ -109,7 +109,7 @@ export function IntakeProAvatar({
             layout={false}
             className={cn(
               thumbFrameClass,
-              'cursor-pointer transition-shadow hover:ring-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/50',
+              'cursor-pointer transition-shadow hover:ring-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6a00]/45',
             )}
             aria-label={`Ver foto de ${label}`}
             onClick={() => setLightboxOpen(true)}

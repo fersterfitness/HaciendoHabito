@@ -24,7 +24,7 @@ export function IntakeGenderField({
   return (
     <div>
       <span className={intakeFormFieldLabelClass()}>
-        Género <span className="normal-case tracking-normal text-brand-tertiary">*</span>
+        Género <span className="normal-case tracking-normal text-ink-muted">*</span>
       </span>
       <div className="mt-1.5 grid grid-cols-3 gap-2">
         {GENDER_OPTIONS.map((opt) => (
@@ -33,8 +33,8 @@ export function IntakeGenderField({
             className={cn(
               'inline-flex min-h-[2.75rem] cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-xs font-semibold transition-all sm:text-sm',
               gender === opt.value
-                ? 'border-brand-secondary/45 bg-brand-secondary/12 text-brand-secondary ring-1 ring-brand-secondary/25'
-                : 'border-surface-inputBorder bg-surface-input text-ink-secondary hover:border-brand-secondary/30 hover:text-ink-primary',
+                ? 'border-zinc-500/35 bg-zinc-500/[0.1] text-ink-primary ring-1 ring-zinc-500/18'
+                : 'border-surface-inputBorder bg-surface-input text-ink-secondary hover:border-zinc-500/28 hover:text-ink-primary',
             )}
           >
             <input type="radio" value={opt.value} className="sr-only" {...register('gender')} />

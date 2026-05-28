@@ -94,36 +94,36 @@ export function IntakeChangeablePlansSection({
   const selectedRing = useMemo(() => {
     if (lightChrome) {
       return cn(
-        'border border-brand-secondary/35 bg-gradient-to-b from-white via-brand-secondary/[0.04] to-transparent',
-        'shadow-[0_4px_20px_rgba(169,121,255,0.12)] ring-1 ring-brand-secondary/20',
-        'border-l-[3px] border-l-brand-secondary',
+        'border border-neutral-300/90 bg-gradient-to-b from-white via-neutral-50/80 to-transparent',
+        'shadow-[0_4px_20px_rgba(15,23,42,0.08)] ring-1 ring-neutral-200/80',
+        'border-l-[3px] border-l-neutral-400/70',
       )
     }
     return cn(
-      'border border-brand-secondary/35 bg-brand-secondary/10',
-      'border-l-[3px] border-l-brand-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
-      'ring-1 ring-brand-secondary/25',
+      'border border-white/22 bg-white/[0.06]',
+      'border-l-[3px] border-l-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+      'ring-1 ring-white/12',
     )
   }, [lightChrome])
 
   const unselectedRow = lightChrome
     ? cn(
         'border border-surface-border/80 bg-surface-card/80',
-        'hover:border-brand-secondary/25 hover:shadow-[0_4px_16px_rgba(169,121,255,0.08)]',
+        'hover:border-[#ff6a00]/22 hover:shadow-[0_4px_16px_rgba(255,106,0,0.08)]',
       )
     : cn(
         'border border-white/10 bg-black/20',
-        'hover:border-brand-secondary/25 hover:bg-brand-secondary/8',
+        'hover:border-[#ff6a00]/25 hover:bg-[#ff6a00]/[0.08]',
       )
 
   if (plans.length === 0) return null
 
   const toggleActive = darkChrome
-    ? 'border border-brand-secondary/40 bg-brand-secondary/22 !text-white shadow-sm ring-1 ring-brand-secondary/30'
-    : 'border border-brand-secondary/35 bg-white !text-brand-secondary shadow-sm ring-1 ring-brand-secondary/20'
+    ? 'border border-[#ff6a00]/35 bg-[#ff6a00]/[0.2] !text-white shadow-sm ring-1 ring-[#ff6a00]/30'
+    : 'border border-[#ff6a00]/35 bg-white !text-ink-primary shadow-sm ring-1 ring-[#ff6a00]/20'
   const toggleInactive = darkChrome
-    ? '!text-white/65 hover:!text-white hover:bg-brand-secondary/10'
-    : 'text-ink-muted hover:text-brand-secondary hover:bg-brand-secondary/5'
+    ? '!text-white/65 hover:!text-white hover:bg-[#ff6a00]/[0.1]'
+    : 'text-ink-muted hover:text-ink-primary hover:bg-[#ff6a00]/[0.06]'
 
   return (
     <div
@@ -157,12 +157,12 @@ export function IntakeChangeablePlansSection({
             'font-semibold tracking-tight',
             flushEmbed
               ? lightChrome
-                ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary'
-                : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary/80'
+                ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-ink-secondary'
+                : 'text-[10px] font-bold uppercase tracking-[0.14em] text-[#ffb27e]'
               : heroTone
-                ? 'text-xs uppercase tracking-[0.16em] text-brand-secondary/80'
+                ? 'text-xs uppercase tracking-[0.16em] text-[#ffb27e]'
                 : darkChrome && !heroTone
-                  ? 'text-xs uppercase tracking-[0.14em] text-brand-secondary/75'
+                  ? 'text-xs uppercase tracking-[0.14em] text-[#ffb27e]'
                   : lightChrome
                     ? 'text-[15px] font-semibold text-ink-primary'
                     : 'text-[17px] font-medium text-ink-primary',
@@ -286,7 +286,7 @@ export function IntakeChangeablePlansSection({
                 !flushEmbed && (lightChrome || darkChrome) && 'rounded-[14px]',
                 !flushEmbed && !lightChrome && !darkChrome && 'rounded-[18px]',
                 flushEmbed && 'rounded-lg',
-                'focus-visible:ring-brand-secondary/35',
+                'focus-visible:ring-white/25',
                 isSelected ? selectedRing : unselectedRow,
               )}
             >
@@ -298,7 +298,7 @@ export function IntakeChangeablePlansSection({
                         className={cn(
                           'flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4',
                           isSelected
-                            ? 'border-brand-secondary bg-brand-secondary text-white shadow-sm'
+                            ? 'border-[#ff6a00] bg-[#ff6a00] text-white shadow-sm'
                             : lightChrome
                               ? 'border-surface-border bg-white'
                               : 'border-white/25 bg-transparent',
@@ -401,7 +401,7 @@ export function IntakeChangeablePlansSection({
                                   <Check
                                     size={14}
                                     strokeWidth={2.8}
-                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/45' : 'text-emerald-600')}
+                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-emerald-400/75' : 'text-emerald-600/85')}
                                   />
                                   <span
                                     className={cn(
