@@ -206,8 +206,9 @@ function IntakeHorizontalChoiceRow({
                   theme={theme}
                   label={displayName}
                   url={opt.avatarUrl}
-                  sizeClass="h-14 w-14"
+                  sizeClass="h-11 w-11"
                   priority={options.length === 1}
+                  expandable
                 />
                 <div className="min-w-0 flex-1">
                   <p className={cn('text-[13px] font-semibold leading-tight', compactNameClass)}>

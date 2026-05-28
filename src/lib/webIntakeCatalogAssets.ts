@@ -29,15 +29,17 @@ const SUPABASE_PUBLIC_OBJECT_RE =
  */
 export function webIntakeCatalogDisplayUrl(
   url: string | null | undefined,
-  /** Tamaño CSS en px (ej. 56 para `h-14`). Se pide el doble al CDN. */
+  /** Tamaño CSS en px (ej. 56 para `h-14`). */
   cssPx = 56,
+  /** Multiplicador de resolución para el CDN (2 = retina, 3 = retrato lejano). */
+  pixelScale = 2,
 ): string | null {
   const raw = url?.trim()
   if (!raw) return null
   const match = raw.match(SUPABASE_PUBLIC_OBJECT_RE)
   if (!match) return raw
   const [, host, bucket, objectPath] = match
-  const px = Math.min(512, Math.max(64, Math.round(cssPx * 2)))
+  const px = Math.min(512, Math.max(64, Math.round(cssPx * pixelScale)))
   const q = new URLSearchParams({
     width: String(px),
     height: String(px),

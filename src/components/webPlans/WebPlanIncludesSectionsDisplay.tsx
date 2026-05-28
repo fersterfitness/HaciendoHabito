@@ -92,6 +92,9 @@ export function WebPlanIncludesSectionsDisplay({
                       url={sec.avatarUrl ?? null}
                       sizeClass="h-10 w-10"
                       theme={darkChrome ? 'dark' : 'light'}
+                      focus={sec.professional === 'psychologist' ? 'headshot' : 'face'}
+                      priority
+                      expandable
                     />
                     <div className="min-w-0 flex-1">
                       <p className={sectionHeadingClass(sec)}>{sec.title}</p>
