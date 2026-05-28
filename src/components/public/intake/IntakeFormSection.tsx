@@ -10,7 +10,7 @@ type IntakeFormSectionProps = {
 export function IntakeFormSection({ title, children, className }: IntakeFormSectionProps) {
   return (
     <section className={intakeFormSectionClass(className)}>
-      <h2 className={intakeFormSectionTitleClass}>{title}</h2>
+      <h2 className={intakeFormSectionTitleClass()}>{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   )

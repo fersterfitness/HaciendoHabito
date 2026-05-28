@@ -96,6 +96,15 @@ export async function submitPublicIntake(
   }
 
   const rawText = await res.text()
+  if (res.status === 503 && rawText.includes('BOOT_ERROR')) {
+    return {
+      ok: false,
+      error:
+        'El formulario no está disponible en el servidor (error de arranque). Volvé a intentar en unos minutos o contactá al estudio.',
+      status: 503,
+    }
+  }
+
   const body = parsePublicIntakeResponseBody(res, rawText)
   if ('parseError' in body) {
     return { ok: false, error: friendlyPublicIntakeParseError(body.status), status: body.status }

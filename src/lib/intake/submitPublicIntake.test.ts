@@ -63,4 +63,18 @@ describe('submitPublicIntake', () => {
     const result = await submitPublicIntake({ form_type: 'ferster' })
     expect(result).toMatchObject({ ok: false, error: 'No autorizado', status: 401 })
   })
+
+  it('mensaje claro si la Edge Function no arranca (BOOT_ERROR)', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: 'BOOT_ERROR', message: 'Function failed to start' }), {
+        status: 503,
+      }),
+    )
+    const result = await submitPublicIntake({ form_type: 'full' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('no está disponible')
+      expect(result.status).toBe(503)
+    }
+  })
 })

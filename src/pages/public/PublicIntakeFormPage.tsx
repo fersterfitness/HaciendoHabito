@@ -26,21 +26,27 @@ import {
   mergePublicIntakePlansFromDb,
   type PublicIntakePlanDetail,
 } from '@/lib/publicIntakeCatalogOffers'
-import { normalizeIncludeSections, toIntakeIncludeSectionViews } from '@/lib/webPlanIncludeSections'
+import {
+  attachAvatarsToIncludeSectionViews,
+  normalizeIncludeSections,
+  toIntakeIncludeSectionViews,
+  type IntakeIncludeSectionAvatarMap,
+} from '@/lib/webPlanIncludeSections'
+import type { IntakeCatalogSegmentImages } from '@/lib/intake/intakeProfessionals'
 import { WebPlanIncludesSectionsDisplay } from '@/components/webPlans/WebPlanIncludesSectionsDisplay'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
-import { webIntakeCatalogDisplayUrl } from '@/lib/webIntakeCatalogAssets'
 import {
   intakePanelGroupLabelClass,
   intakePanelSegmentIdleClass,
   intakePanelSegmentSelectedClass,
   intakePanelSurfaceClass,
 } from '@/lib/intake/intakePanelUi'
+import { IntakeProAvatar } from '@/components/public/intake/IntakeProAvatar'
 import {
   findIntakeProfessional,
-  fullPlanCredentialLine,
   INTAKE_NUTRITION_SLUG_DEFAULT,
   INTAKE_TRAINER_SLUG_DEFAULT,
+  intakeProfessionalDisplayAvatar,
   mergeIntakeNutritionistsFromDb,
   mergeIntakeTrainersFromDb,
   type IntakeProfessional,
@@ -88,91 +94,6 @@ function buildIntakeModalityOptions(labels: {
   ]
 }
 
-function initialsFromProfessionalName(label: string): string {
-  const parts = label.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
-  return `${parts[0]!.charAt(0)}${parts[1]!.charAt(0)}`.toUpperCase()
-}
-
-const INTAKE_AVATAR_PX: Record<string, number> = {
-  'h-8 w-8': 32,
-  'h-10 w-10': 40,
-  'h-12 w-12': 48,
-  'h-14 w-14': 56,
-  'h-16 w-16': 64,
-}
-
-/** Cuadrado con esquinas redondeadas (alineado a inputs / tarjetas), no óvalo ni cápsula. */
-function IntakeProAvatar({
-  label,
-  url,
-  sizeClass = 'h-14 w-14',
-  theme = 'dark',
-  priority = false,
-}: {
-  label: string
-  url?: string | null
-  sizeClass?: string
-  theme?: 'light' | 'dark'
-  /** true = eager + fetchpriority (fotos visibles al cargar el paso). */
-  priority?: boolean
-}) {
-  const [failed, setFailed] = useState(false)
-  const [useOriginalSrc, setUseOriginalSrc] = useState(false)
-  const cssPx = INTAKE_AVATAR_PX[sizeClass] ?? 56
-  const rawSrc = url?.trim() || null
-  const isCatalogAsset = Boolean(rawSrc?.includes('/web-intake-catalog/'))
-  const preferRaw =
-    !isCatalogAsset ||
-    (typeof window !== 'undefined' &&
-      (window.matchMedia('(max-width: 639px)').matches || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)))
-  const optimizedSrc = preferRaw ? rawSrc : webIntakeCatalogDisplayUrl(url, cssPx)
-  const imgSrc = useOriginalSrc ? rawSrc : optimizedSrc ?? rawSrc
-
-  useEffect(() => {
-    setFailed(false)
-    setUseOriginalSrc(false)
-  }, [url])
-
-  const showImg = Boolean(imgSrc && !failed)
-  return showImg ? (
-    <img
-      src={imgSrc!}
-      alt=""
-      width={cssPx}
-      height={cssPx}
-      className={cn(
-        sizeClass,
-        'shrink-0 rounded-xl object-cover object-[center_18%] ring-1',
-        theme === 'light' ? 'ring-neutral-200/80' : 'ring-white/20',
-      )}
-      loading={priority ? 'eager' : 'lazy'}
-      decoding="async"
-      onError={() => {
-        if (!useOriginalSrc && rawSrc && optimizedSrc !== rawSrc) {
-          setUseOriginalSrc(true)
-          return
-        }
-        setFailed(true)
-      }}
-    />
-  ) : (
-    <span
-      className={cn(
-        sizeClass,
-        'flex shrink-0 items-center justify-center rounded-lg px-0.5 text-[9px] font-bold uppercase leading-tight ring-1',
-        theme === 'light'
-          ? 'bg-neutral-200/90 text-neutral-800 ring-neutral-300/70'
-          : 'bg-white/12 text-white/90 ring-white/15',
-      )}
-      aria-hidden
-    >
-      {initialsFromProfessionalName(label)}
-    </span>
-  )
-}
-
 type IntakeAvatarOption = { id: string; label: string; avatarUrl?: string | null }
 
 type IntakeHorizontalChoiceOption = {
@@ -213,9 +134,9 @@ function IntakeHorizontalChoiceRow({
   const labelId = `${groupId}-label`
   const detailId = `${groupId}-detail`
   const isDark = theme === 'dark'
-  /** Caso compacto: un solo profesional con avatar → tile horizontal. */
-  const compactSingleAvatar =
-    interactive && options.length === 1 && Boolean(options[0]?.avatarLabel)
+  /** Tarjetas con foto + credencial (entrenador / nutricionista). */
+  const professionalAvatarMode =
+    interactive && options.some((o) => Boolean(o.avatarLabel))
 
   const segmentedButtonClass = (isSelected: boolean) =>
     cn(
@@ -258,43 +179,50 @@ function IntakeHorizontalChoiceRow({
         >
           {emptyLabel}
         </div>
-      ) : compactSingleAvatar ? (
-        (() => {
-          const opt = options[0]!
-          const isSelected = value === opt.id
-          return (
-            <button
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              onClick={() => onChange(opt.id)}
-              className={cn(
-                'mt-1.5 flex w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
-                isDark ? 'focus-visible:ring-brand-secondary/40' : 'focus-visible:ring-brand-secondary/35',
-                compactBtnClasses(isSelected),
-              )}
-            >
-              <IntakeProAvatar
-                theme={theme}
-                label={opt.avatarLabel!}
-                url={opt.avatarUrl}
-                sizeClass="h-14 w-14"
-                priority
-              />
-              <div className="min-w-0 flex-1">
-                <p className={cn('truncate text-[13px] font-semibold leading-tight', compactNameClass)}>
-                  {opt.avatarLabel}
-                </p>
-                {opt.subtitle ? (
-                  <p className={cn('mt-0.5 text-[11px] leading-snug line-clamp-2', compactSubtitleClass)}>
-                    {opt.subtitle}
+      ) : professionalAvatarMode ? (
+        <div
+          role="radiogroup"
+          aria-labelledby={labelId}
+          className="mt-1.5 space-y-2"
+        >
+          {options.map((opt) => {
+            const isSelected = value === opt.id
+            const displayName = opt.avatarLabel ?? opt.title
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => onChange(opt.id)}
+                className={cn(
+                  'flex w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
+                  isDark ? 'focus-visible:ring-brand-secondary/40' : 'focus-visible:ring-brand-secondary/35',
+                  compactBtnClasses(isSelected),
+                )}
+              >
+                <IntakeProAvatar
+                  theme={theme}
+                  label={displayName}
+                  url={opt.avatarUrl}
+                  sizeClass="h-14 w-14"
+                  priority={options.length === 1}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={cn('text-[13px] font-semibold leading-tight', compactNameClass)}>
+                    {displayName}
                   </p>
-                ) : null}
-              </div>
-            </button>
-          )
-        })()
+                  {opt.subtitle ? (
+                    <p className={cn('mt-0.5 text-[11px] leading-snug', compactSubtitleClass)}>
+                      {opt.subtitle}
+                    </p>
+                  ) : null}
+                </div>
+              </button>
+            )
+          })}
+        </div>
       ) : (
         <>
           <div
@@ -511,22 +439,23 @@ function PlanDetailView({
   planBilling,
   onBack,
   panelId,
-  selectedTrainer,
-  selectedNutritionist,
+  includeSectionAvatars,
 }: {
   plan: PlanDetail
   planBilling: PlanBilling
   onBack: () => void
   panelId?: string
-  selectedTrainer: IntakeProfessional | null
-  selectedNutritionist: IntakeProfessional | null
+  includeSectionAvatars: IntakeIncludeSectionAvatarMap
 }) {
-  const credentialFallback =
-    plan.catalogSegment === 'with_nutritionist'
-      ? selectedNutritionist?.credentialLine
-      : plan.catalogSegment === 'full'
-        ? fullPlanCredentialLine(selectedTrainer, selectedNutritionist)
-        : selectedTrainer?.credentialLine
+  const includeViews = attachAvatarsToIncludeSectionViews(
+    toIntakeIncludeSectionViews(
+      plan.includeSections?.length
+        ? plan.includeSections
+        : normalizeIncludeSections(null, plan.info, plan.catalogSegment),
+    ),
+    includeSectionAvatars,
+  )
+
   return (
     <div
       id={panelId}
@@ -557,35 +486,18 @@ function PlanDetailView({
           <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90 whitespace-pre-wrap">
             {plan.credentialLineOverride.trim()}
           </p>
-        ) : credentialFallback?.trim() ? (
-          <p className="mt-4 border-l-2 border-white/35 pl-3 text-sm font-medium leading-relaxed text-white/90">
-            {credentialFallback.trim()}
-          </p>
         ) : null}
 
         <div className="mt-5 pt-4 border-t border-white/10">
           <WebPlanIncludesSectionsDisplay
-            sections={toIntakeIncludeSectionViews(
-              plan.includeSections?.length
-                ? plan.includeSections
-                : normalizeIncludeSections(null, plan.info, plan.catalogSegment),
-            )}
+            sections={includeViews}
             darkChrome
             listTitle="Incluye"
             checkSize={16}
+            showProfessionalAvatars
+            gifts={plan.gifts}
+            giftsLabel="De regalo"
           />
-        </div>
-
-        <div className="mt-6 pt-4 border-t border-white/10">
-          <p className="text-sm font-semibold text-white mb-2">De regalo</p>
-          <ul className="space-y-2">
-            {plan.gifts.map((gift) => (
-              <li key={gift} className="flex items-start gap-2 text-sm text-white/85 leading-relaxed">
-                <Check className="h-4 w-4 mt-0.5 text-white/70 shrink-0" />
-                <span>{gift}</span>
-              </li>
-            ))}
-          </ul>
         </div>
 
         <button
@@ -734,6 +646,7 @@ function LeftBrandPanel({
   onTrainerChoiceChange,
   nutritionChoice,
   onNutritionChoiceChange,
+  includeSectionAvatars,
 }: {
   theme: 'light' | 'dark'
   catalogError?: string | null
@@ -764,6 +677,7 @@ function LeftBrandPanel({
   onTrainerChoiceChange: (slug: string) => void
   nutritionChoice: string
   onNutritionChoiceChange: (slug: string) => void
+  includeSectionAvatars: IntakeIncludeSectionAvatarMap
 }) {
   const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
   const panelTheme = appTheme
@@ -777,43 +691,39 @@ function LeftBrandPanel({
   const includeTraining = modalitySegment === 'solo' || modalitySegment === 'full'
   const includeNutrition = modalitySegment === 'with_nutritionist' || modalitySegment === 'full'
 
-  const nutritionAvatarUrl: string | null =
-    modalitySegment === 'with_nutritionist'
-      ? crisSoloSegmentImageUrl ?? withNutritionistSegmentImageUrl
-      : withNutritionistSegmentImageUrl
+  const catalogImages = useMemo(
+    () => ({
+      solo: soloSegmentImageUrl,
+      withNutritionist: withNutritionistSegmentImageUrl,
+      crisSolo: crisSoloSegmentImageUrl,
+    }),
+    [soloSegmentImageUrl, withNutritionistSegmentImageUrl, crisSoloSegmentImageUrl],
+  )
 
   const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
-      trainers.map((o) => {
-        /** Si el admin subió foto desde Panel → Planes web, esa manda sobre el avatar de perfil.
-         *  Esperamos a que el fetch del panel termine para evitar un parpadeo perfil→catálogo. */
-        if (!catalogSettingsResolved) {
-          return { id: o.slug, label: o.fullName, avatarUrl: null }
-        }
-        const adminOverride = o.slug === INTAKE_TRAINER_SLUG_DEFAULT ? soloSegmentImageUrl : null
-        return {
-          id: o.slug,
-          label: o.fullName,
-          avatarUrl: adminOverride ?? o.avatarUrl ?? null,
-        }
-      }),
-    [catalogSettingsResolved, soloSegmentImageUrl, trainers],
+      trainers.map((o) => ({
+        id: o.slug,
+        label: o.fullName,
+        avatarUrl: intakeProfessionalDisplayAvatar(o, {
+          catalogImages,
+          modalitySegment,
+        }),
+      })),
+    [catalogImages, modalitySegment, trainers],
   )
 
   const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
     () =>
-      nutritionists.map((o) => {
-        if (!catalogSettingsResolved) {
-          return { id: o.slug, label: o.fullName, avatarUrl: null }
-        }
-        const adminOverride = o.slug === INTAKE_NUTRITION_SLUG_DEFAULT ? nutritionAvatarUrl : null
-        return {
-          id: o.slug,
-          label: o.fullName,
-          avatarUrl: adminOverride ?? o.avatarUrl ?? null,
-        }
-      }),
-    [catalogSettingsResolved, nutritionAvatarUrl, nutritionists],
+      nutritionists.map((o) => ({
+        id: o.slug,
+        label: o.fullName,
+        avatarUrl: intakeProfessionalDisplayAvatar(o, {
+          catalogImages,
+          modalitySegment,
+        }),
+      })),
+    [catalogImages, modalitySegment, nutritionists],
   )
 
   const modalityChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
@@ -974,6 +884,7 @@ function LeftBrandPanel({
                     embedded
                     flush
                     uiTheme={panelTheme}
+                    includeSectionAvatars={includeSectionAvatars}
                   />
                   {publicSpots ? (
                     <div className="mt-3 hidden lg:block">
@@ -1044,11 +955,12 @@ export function PublicIntakeFormPage() {
     slotsMessage: null,
   })
   const [testimonialVideos, setTestimonialVideos] = useState<string[]>([])
-  const [catalogSegmentImages, setCatalogSegmentImages] = useState<{
-    solo: string | null
-    withNutritionist: string | null
-    crisSolo: string | null
-  }>({ solo: null, withNutritionist: null, crisSolo: null })
+  const [catalogSegmentImages, setCatalogSegmentImages] = useState<IntakeCatalogSegmentImages>({
+    solo: null,
+    withNutritionist: null,
+    crisSolo: null,
+    psychologist: null,
+  })
   /** True cuando se resolvió el fetch del panel (evita parpadeo de avatar de perfil → del catálogo). */
   const [catalogSettingsResolved, setCatalogSettingsResolved] = useState(false)
   const [modalityLabels, setModalityLabels] = useState<{
@@ -1071,6 +983,62 @@ export function PublicIntakeFormPage() {
     () => findIntakeProfessional(nutritionists, nutritionChoice),
     [nutritionists, nutritionChoice],
   )
+
+  const intakeCatalogImages = useMemo(
+    (): IntakeCatalogSegmentImages => catalogSegmentImages,
+    [catalogSegmentImages],
+  )
+
+  const selectedTrainerAvatarUrl = useMemo(
+    () =>
+      selectedTrainer
+        ? intakeProfessionalDisplayAvatar(selectedTrainer, {
+            catalogImages: intakeCatalogImages,
+            modalitySegment: catalogSegment ?? 'solo',
+          })
+        : null,
+    [catalogSegment, intakeCatalogImages, selectedTrainer],
+  )
+
+  const selectedNutritionistAvatarUrl = useMemo(
+    () =>
+      selectedNutritionist
+        ? intakeProfessionalDisplayAvatar(selectedNutritionist, {
+            catalogImages: intakeCatalogImages,
+            modalitySegment: catalogSegment ?? 'with_nutritionist',
+          })
+        : null,
+    [catalogSegment, intakeCatalogImages, selectedNutritionist],
+  )
+
+  const includeSectionAvatars = useMemo((): IntakeIncludeSectionAvatarMap => {
+    const map: IntakeIncludeSectionAvatarMap = {}
+    const segment = catalogSegment ?? 'solo'
+    if (selectedTrainer && (segment === 'solo' || segment === 'full')) {
+      map.trainer = {
+        avatarUrl: selectedTrainerAvatarUrl,
+        subtitle: selectedTrainer.credentialLine,
+      }
+    }
+    if (selectedNutritionist && (segment === 'with_nutritionist' || segment === 'full')) {
+      map.nutritionist = {
+        avatarUrl: selectedNutritionistAvatarUrl,
+        subtitle: selectedNutritionist.credentialLine,
+      }
+    }
+    if (intakeCatalogImages.psychologist) {
+      map.psychologist = { avatarUrl: intakeCatalogImages.psychologist }
+    }
+    return map
+  }, [
+    catalogSegment,
+    intakeCatalogImages.psychologist,
+    selectedNutritionist,
+    selectedNutritionistAvatarUrl,
+    selectedTrainer,
+    selectedTrainerAvatarUrl,
+  ])
+
   const plansVisible = useMemo(() => {
     return plans.filter((p) => {
       if (catalogSegment === null || p.catalogSegment !== catalogSegment) return false
@@ -1160,7 +1128,7 @@ export function PublicIntakeFormPage() {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
         .select(
-          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_nutritionist_segment_image_url, cris_solo_segment_image_url, modality_label_solo, modality_label_with_nutritionist, modality_label_full',
+          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_nutritionist_segment_image_url, cris_solo_segment_image_url, psychologist_segment_image_url, modality_label_solo, modality_label_with_nutritionist, modality_label_full',
         )
         .eq('id', 1)
         .maybeSingle()
@@ -1179,6 +1147,7 @@ export function PublicIntakeFormPage() {
           solo: str('solo_segment_image_url'),
           withNutritionist: str('with_nutritionist_segment_image_url'),
           crisSolo: str('cris_solo_segment_image_url'),
+          psychologist: str('psychologist_segment_image_url'),
         })
         setModalityLabels({
           solo: typeof d.modality_label_solo === 'string' && d.modality_label_solo.trim() ? d.modality_label_solo.trim() : null,
@@ -1456,6 +1425,7 @@ export function PublicIntakeFormPage() {
     onTrainerChoiceChange: setTrainerChoice,
     nutritionChoice,
     onNutritionChoiceChange: setNutritionChoice,
+    includeSectionAvatars,
   } as const
 
   const mobileBack =
@@ -1492,8 +1462,7 @@ export function PublicIntakeFormPage() {
                   plan={selectedPlan}
                   planBilling={planBilling}
                   onBack={handleBackToForm}
-                  selectedTrainer={selectedTrainer}
-                  selectedNutritionist={selectedNutritionist}
+                  includeSectionAvatars={includeSectionAvatars}
                 />
               </div>
             </div>
@@ -1544,8 +1513,7 @@ export function PublicIntakeFormPage() {
                   plan={selectedPlan}
                   planBilling={planBilling}
                   onBack={handleBackToForm}
-                  selectedTrainer={selectedTrainer}
-                  selectedNutritionist={selectedNutritionist}
+                  includeSectionAvatars={includeSectionAvatars}
                 />
               ) : (
                 renderIntakeForm()

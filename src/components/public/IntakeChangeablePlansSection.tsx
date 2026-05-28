@@ -12,6 +12,8 @@ import {
   type IntakeNormalizedPricingPlan,
 } from '@/lib/publicIntakePlanPricing'
 import { WebPlanIncludesSectionsDisplay } from '@/components/webPlans/WebPlanIncludesSectionsDisplay'
+import type { IntakeIncludeSectionAvatarMap } from '@/lib/webPlanIncludeSections'
+import { attachAvatarsToIncludeSectionViews } from '@/lib/webPlanIncludeSections'
 
 export type PlanId = string
 
@@ -42,6 +44,8 @@ export interface IntakeChangeablePlansSectionProps {
   flush?: boolean
   billing: PlanBilling
   onBillingChange: (mode: PlanBilling) => void
+  /** Fotos por rol para cada bloque del «Incluye». */
+  includeSectionAvatars?: IntakeIncludeSectionAvatarMap
 }
 
 function normalizeBadgeClass(variant: 'green' | 'amber', dark: boolean) {
@@ -76,6 +80,7 @@ export function IntakeChangeablePlansSection({
   flush = false,
   billing,
   onBillingChange,
+  includeSectionAvatars = {},
 }: IntakeChangeablePlansSectionProps) {
   const heroTone = tone === 'hero'
   const lightChrome = tone === 'card' && uiTheme === 'light'
@@ -370,9 +375,15 @@ export function IntakeChangeablePlansSection({
                         />
                         {plan.featureSections && plan.featureSections.length > 0 ? (
                           <WebPlanIncludesSectionsDisplay
-                            sections={plan.featureSections}
+                            sections={attachAvatarsToIncludeSectionViews(
+                              plan.featureSections,
+                              includeSectionAvatars,
+                            )}
                             darkChrome={darkChrome}
                             listTitle={plan.featuresLabel ?? 'Incluye'}
+                            showProfessionalAvatars
+                            gifts={plan.gifts}
+                            giftsLabel={plan.giftsLabel ?? 'De regalo'}
                           />
                         ) : plan.features.length > 0 ? (
                           <>
@@ -414,36 +425,16 @@ export function IntakeChangeablePlansSection({
                             </div>
                           </>
                         ) : null}
-                        {plan.gifts && plan.gifts.length > 0 ? (
-                          <>
-                            <p
-                              className={cn(
-                                'mb-2 mt-4 text-[9px] font-bold uppercase tracking-[0.14em]',
-                                darkChrome ? 'text-white/40' : 'text-neutral-400',
-                              )}
-                            >
-                              {plan.giftsLabel ?? 'De regalo'}
-                            </p>
-                            <div className="flex flex-col gap-1.5">
-                              {plan.gifts.map((g, gidx) => (
-                                <div key={`g-${gidx}`} className="flex items-start gap-2">
-                                  <Check
-                                    size={14}
-                                    strokeWidth={2.8}
-                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-brand-tertiary/80' : 'text-brand-tertiary')}
-                                  />
-                                  <span
-                                    className={cn(
-                                      'text-[13px] font-medium leading-snug',
-                                      darkChrome ? 'text-white/78' : 'text-neutral-600',
-                                    )}
-                                  >
-                                    {g.text}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </>
+                        {(!plan.featureSections || plan.featureSections.length === 0) &&
+                        plan.gifts &&
+                        plan.gifts.length > 0 ? (
+                          <WebPlanIncludesSectionsDisplay
+                            sections={[]}
+                            darkChrome={darkChrome}
+                            listTitle=""
+                            gifts={plan.gifts}
+                            giftsLabel={plan.giftsLabel ?? 'De regalo'}
+                          />
                         ) : null}
                       </div>
                     </motion.div>

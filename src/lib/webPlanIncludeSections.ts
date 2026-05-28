@@ -132,6 +132,29 @@ export type IntakeIncludeSectionView = {
   checkClassLight: string
   headingClassDark: string
   headingClassLight: string
+  /** Foto del profesional (formulario público). */
+  avatarUrl?: string | null
+  /** Credencial corta bajo el título (opcional). */
+  subtitle?: string
+}
+
+export type IntakeIncludeSectionAvatarMap = Partial<
+  Record<WebPlanIncludeProfessional, { avatarUrl: string | null; subtitle?: string }>
+>
+
+export function attachAvatarsToIncludeSectionViews(
+  views: IntakeIncludeSectionView[],
+  avatars: IntakeIncludeSectionAvatarMap,
+): IntakeIncludeSectionView[] {
+  return views.map((view) => {
+    const extra = avatars[view.professional]
+    if (!extra) return view
+    return {
+      ...view,
+      avatarUrl: extra.avatarUrl,
+      subtitle: extra.subtitle?.trim() || undefined,
+    }
+  })
 }
 
 export function toIntakeIncludeSectionViews(sections: WebPlanIncludeSection[]): IntakeIncludeSectionView[] {

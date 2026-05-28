@@ -199,6 +199,7 @@ export function WebPlansSettingsPage() {
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
   const [withNutritionistSegmentImg, setWithNutritionistSegmentImg] = useState('')
   const [fullSegmentImg, setFullSegmentImg] = useState('')
+  const [psychologistSegmentImg, setPsychologistSegmentImg] = useState('')
   const [intakeSlotsOpen, setIntakeSlotsOpen] = useState(true)
   const [intakeSlotsRemaining, setIntakeSlotsRemaining] = useState('')
   const [intakeSlotsMessage, setIntakeSlotsMessage] = useState('')
@@ -210,9 +211,11 @@ export function WebPlansSettingsPage() {
   const soloFileRef = useRef<HTMLInputElement>(null)
   const nutritionSegmentFileRef = useRef<HTMLInputElement>(null)
   const fullFileRef = useRef<HTMLInputElement>(null)
+  const psychologistFileRef = useRef<HTMLInputElement>(null)
   const [soloUploadBusy, setSoloUploadBusy] = useState(false)
   const [nutritionSegmentUploadBusy, setNutritionSegmentUploadBusy] = useState(false)
   const [fullUploadBusy, setFullUploadBusy] = useState(false)
+  const [psychologistUploadBusy, setPsychologistUploadBusy] = useState(false)
   const catalogUserId = useAuthStore((s) => s.user?.id)
   /** Si es false (defecto), no listamos filas que parecen solo variantes 3/6 meses (iguales al catálogo web resumido). */
   const [showDurationVariantRows, setShowDurationVariantRows] = useState(false)
@@ -226,6 +229,7 @@ export function WebPlansSettingsPage() {
       setSoloSegmentImg(row.solo_segment_image_url ?? '')
       setWithNutritionistSegmentImg(row.with_nutritionist_segment_image_url ?? '')
       setFullSegmentImg(row.full_segment_image_url ?? '')
+      setPsychologistSegmentImg(row.psychologist_segment_image_url ?? '')
       setTestimonialUrlsText(((row.testimonial_videos ?? []) as string[]).join('\n'))
       if (typeof row.intake_slots_open === 'boolean') setIntakeSlotsOpen(row.intake_slots_open)
       if (row.intake_slots_remaining != null && Number.isFinite(row.intake_slots_remaining)) {
@@ -242,7 +246,8 @@ export function WebPlansSettingsPage() {
     if (
       soloSegmentImg.length > LIMITS.segmentImgUrl ||
       withNutritionistSegmentImg.length > LIMITS.segmentImgUrl ||
-      fullSegmentImg.length > LIMITS.segmentImgUrl
+      fullSegmentImg.length > LIMITS.segmentImgUrl ||
+      psychologistSegmentImg.length > LIMITS.segmentImgUrl
     ) {
       toast.error(`Las URL no pueden superar ${LIMITS.segmentImgUrl} caracteres.`)
       return
@@ -254,6 +259,7 @@ export function WebPlansSettingsPage() {
         solo_segment_image_url: soloSegmentImg.trim() ? soloSegmentImg.trim() : null,
         with_nutritionist_segment_image_url: withNutritionistSegmentImg.trim() ? withNutritionistSegmentImg.trim() : null,
         full_segment_image_url: fullSegmentImg.trim() ? fullSegmentImg.trim() : null,
+        psychologist_segment_image_url: psychologistSegmentImg.trim() ? psychologistSegmentImg.trim() : null,
       })
       if (error) {
         toast.error(error.message.includes('does not exist') ? 'Ejecutá la migración SQL (web_intake_catalog_settings).' : error.message)
@@ -358,7 +364,10 @@ export function WebPlansSettingsPage() {
     }
   }
 
-  async function uploadSegmentHero(field: 'solo' | 'with_nutritionist' | 'full', file: File | null | undefined) {
+  async function uploadSegmentHero(
+    field: 'solo' | 'with_nutritionist' | 'full' | 'psychologist',
+    file: File | null | undefined,
+  ) {
     if (!file || !catalogUserId) return
     if (file.size > WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES) {
       toast.error('La imagen debe pesar menos de 5 MB')
@@ -372,14 +381,17 @@ export function WebPlansSettingsPage() {
     const slug =
       field === 'solo' ? 'solo-line'
       : field === 'with_nutritionist' ? 'with-nutritionist-line'
+      : field === 'psychologist' ? 'psychologist-line'
       : 'full-line'
     const setBusy =
       field === 'solo' ? setSoloUploadBusy
       : field === 'with_nutritionist' ? setNutritionSegmentUploadBusy
+      : field === 'psychologist' ? setPsychologistUploadBusy
       : setFullUploadBusy
     const setUrl =
       field === 'solo' ? setSoloSegmentImg
       : field === 'with_nutritionist' ? setWithNutritionistSegmentImg
+      : field === 'psychologist' ? setPsychologistSegmentImg
       : setFullSegmentImg
     const path = `${catalogUserId}/segment-${slug}.${ext}`
     setBusy(true)
@@ -404,6 +416,7 @@ export function WebPlansSettingsPage() {
       setBusy(false)
       if (field === 'solo' && soloFileRef.current) soloFileRef.current.value = ''
       else if (field === 'with_nutritionist' && nutritionSegmentFileRef.current) nutritionSegmentFileRef.current.value = ''
+      else if (field === 'psychologist' && psychologistFileRef.current) psychologistFileRef.current.value = ''
       else if (field === 'full' && fullFileRef.current) fullFileRef.current.value = ''
     }
   }
@@ -801,6 +814,13 @@ export function WebPlansSettingsPage() {
                 className="hidden"
                 onChange={(e) => void uploadSegmentHero('full', e.target.files?.length ? e.target.files[0] : undefined)}
               />
+              <input
+                ref={psychologistFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void uploadSegmentHero('psychologist', e.target.files?.length ? e.target.files[0] : undefined)}
+              />
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
@@ -835,6 +855,17 @@ export function WebPlansSettingsPage() {
                 >
                   Subir · Full
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={psychologistUploadBusy}
+                  icon={<Upload className="h-4 w-4" />}
+                  disabled={!catalogUserId}
+                  onClick={() => psychologistFileRef.current?.click()}
+                >
+                  Subir · Psicólogo
+                </Button>
               </div>
               <Input
                 label="URL · Entrenador"
@@ -856,6 +887,13 @@ export function WebPlansSettingsPage() {
                 value={fullSegmentImg}
                 maxLength={LIMITS.segmentImgUrl}
                 onChange={(e) => setFullSegmentImg(e.target.value)}
+              />
+              <Input
+                label="URL · Psicólogo (bloques «Incluye»)"
+                placeholder="https://..."
+                value={psychologistSegmentImg}
+                maxLength={LIMITS.segmentImgUrl}
+                onChange={(e) => setPsychologistSegmentImg(e.target.value)}
               />
               <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveSegmentImages()} loading={assetsSaving}>
                 Guardar fotos

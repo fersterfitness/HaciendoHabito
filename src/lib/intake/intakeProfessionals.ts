@@ -1,4 +1,5 @@
 import { profileAvatarDisplayUrl } from '@/lib/profileAvatar'
+import type { WebPlanCatalogSegment } from '@/types/database'
 
 /** Profesional visible en /form (selector + asignación de owner al enviar). */
 export type IntakeProfessional = {
@@ -119,4 +120,34 @@ export function fullPlanCredentialLine(
   const n = nutritionist?.fullName?.trim()
   if (t && n) return `Plan integral con ${t} y ${n}`
   return 'Entrenamiento y nutrición en un mismo plan'
+}
+
+export type IntakeCatalogSegmentImages = {
+  solo: string | null
+  withNutritionist: string | null
+  crisSolo: string | null
+  psychologist: string | null
+}
+
+/** Foto visible en /form: catálogo del panel (si hay URL) + avatar de perfil. */
+export function intakeProfessionalDisplayAvatar(
+  pro: IntakeProfessional,
+  opts: {
+    catalogImages: IntakeCatalogSegmentImages
+    modalitySegment?: WebPlanCatalogSegment
+  },
+): string | null {
+  if (pro.role === 'trainer' && pro.slug === INTAKE_TRAINER_SLUG_DEFAULT) {
+    return opts.catalogImages.solo ?? pro.avatarUrl ?? null
+  }
+
+  if (pro.role === 'nutritionist' && pro.slug === INTAKE_NUTRITION_SLUG_DEFAULT) {
+    const nutritionCatalog =
+      opts.modalitySegment === 'with_nutritionist'
+        ? opts.catalogImages.crisSolo ?? opts.catalogImages.withNutritionist
+        : opts.catalogImages.withNutritionist
+    return nutritionCatalog ?? pro.avatarUrl ?? null
+  }
+
+  return pro.avatarUrl ?? null
 }

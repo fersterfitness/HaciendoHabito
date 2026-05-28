@@ -686,6 +686,8 @@ export interface WebIntakeCatalogSettings {
   full_segment_image_url: string | null
   /** Tras migración 20260516120000. */
   cris_solo_segment_image_url?: string | null
+  /** Foto del psicólogo en bloques «Incluye» del /form. */
+  psychologist_segment_image_url?: string | null
   testimonial_videos: string[] | null
   intake_slots_open?: boolean
   intake_slots_remaining?: number | null
