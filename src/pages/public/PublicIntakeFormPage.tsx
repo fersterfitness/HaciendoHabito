@@ -42,6 +42,7 @@ import {
   intakePanelSurfaceClass,
 } from '@/lib/intake/intakePanelUi'
 import { IntakeProAvatar } from '@/components/public/intake/IntakeProAvatar'
+import { IntakeTeamHeroStrip, type IntakeTeamHeroMember } from '@/components/public/intake/IntakeTeamHeroStrip'
 import {
   findIntakeProfessional,
   INTAKE_NUTRITION_SLUG_DEFAULT,
@@ -49,6 +50,7 @@ import {
   intakeProfessionalDisplayAvatar,
   mergeIntakeNutritionistsFromDb,
   mergeIntakeTrainersFromDb,
+  intakeProfessionalPublicName,
   type IntakeProfessional,
   type PublicIntakeProfessionalRow,
 } from '@/lib/intake/intakeProfessionals'
@@ -93,8 +95,6 @@ function buildIntakeModalityOptions(labels: {
     { segment: 'full', label: labels.full?.trim() || DEFAULT_INTAKE_MODALITY_LABELS.full },
   ]
 }
-
-type IntakeAvatarOption = { id: string; label: string; avatarUrl?: string | null }
 
 type IntakeHorizontalChoiceOption = {
   id: string
@@ -145,7 +145,7 @@ function IntakeHorizontalChoiceRow({
     cn(
       'flex min-w-0 flex-1 touch-manipulation items-center justify-center rounded-lg border transition-all',
       compact ? 'min-h-[2.25rem] px-1.5 py-1.5 text-[11px]' : 'min-h-[2.75rem] rounded-xl px-2 py-2 text-[12px]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6a00]/35 focus-visible:ring-offset-0',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-0',
       'text-center font-semibold leading-tight',
       isSelected ? intakePanelSegmentSelectedClass(theme) : intakePanelSegmentIdleClass(theme),
     )
@@ -157,10 +157,10 @@ function IntakeHorizontalChoiceRow({
   const compactBtnClasses = (isSelected: boolean) =>
     isDark
       ? isSelected
-        ? 'border-white/30 bg-white/[0.1] ring-1 ring-[#ff6a00]/25'
+        ? 'border-white/30 bg-white/[0.1] ring-1 ring-white/15'
         : 'border-white/12 bg-white/[0.025] hover:border-white/22 hover:bg-white/[0.05]'
       : isSelected
-        ? 'border-surface-border bg-surface-elevated ring-1 ring-[#ff6a00]/18 shadow-sm'
+        ? 'border-surface-border bg-surface-elevated ring-1 ring-zinc-300/50'
         : 'border-surface-border bg-surface-card hover:border-surface-border/90 hover:bg-surface-elevated'
 
   const compactNameClass = isDark ? '!text-white' : 'text-ink-primary'
@@ -204,7 +204,7 @@ function IntakeHorizontalChoiceRow({
                 className={cn(
                   'flex w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
-                  isDark ? 'focus-visible:ring-[#ff6a00]/40' : 'focus-visible:ring-[#ff6a00]/35',
+                  isDark ? 'focus-visible:ring-white/30' : 'focus-visible:ring-zinc-400/35',
                   compactBtnClasses(isSelected),
                 )}
               >
@@ -266,132 +266,6 @@ function IntakeHorizontalChoiceRow({
         </>
       )}
     </div>
-  )
-}
-
-function IntakeTeamShowcase({
-  theme = 'dark',
-  includeTraining,
-  includeNutrition,
-  trainerChoice,
-  nutritionChoice,
-  onTrainerChoiceChange,
-  onNutritionChoiceChange,
-  trainerOptions,
-  nutritionOptions,
-}: {
-  theme?: 'light' | 'dark'
-  includeTraining: boolean
-  includeNutrition: boolean
-  trainerChoice: string
-  nutritionChoice: string
-  onTrainerChoiceChange: (slug: string) => void
-  onNutritionChoiceChange: (slug: string) => void
-  trainerOptions: IntakeHorizontalChoiceOption[]
-  nutritionOptions: IntakeHorizontalChoiceOption[]
-}) {
-  const isDark = theme === 'dark'
-  const textMuted = isDark ? 'text-white/58' : 'text-ink-muted'
-  const panelClass = isDark
-    ? 'border-white/14 bg-gradient-to-br from-[#1f2027]/94 via-[#181a21]/94 to-[#121419]/96 shadow-[0_14px_44px_rgba(0,0,0,0.35)]'
-    : 'border-surface-border bg-gradient-to-br from-surface-elevated via-surface-card to-surface-elevated'
-  const cardIdle = isDark
-    ? 'border-white/12 bg-white/[0.03] hover:border-white/24 hover:bg-white/[0.06]'
-    : 'border-surface-border bg-surface-card hover:border-surface-border/85'
-  const cardSelected = isDark
-    ? 'border-white/32 bg-white/[0.11] ring-1 ring-white/20'
-    : 'border-surface-border bg-surface-elevated ring-1 ring-white/15'
-
-  const roleClass = isDark ? 'text-[#ffb27e]/85' : 'text-ink-muted'
-  const nameClass = isDark ? 'text-white' : 'text-ink-primary'
-  const subtitleClass = isDark ? 'text-white/55' : 'text-ink-muted'
-  const activeGroups = [
-    includeTraining && trainerOptions.length > 0
-      ? {
-          id: 'trainer',
-          label: 'Entrenador',
-          value: trainerChoice,
-          options: trainerOptions,
-          onChange: onTrainerChoiceChange,
-        }
-      : null,
-    includeNutrition && nutritionOptions.length > 0
-      ? {
-          id: 'nutritionist',
-          label: 'Nutricionista',
-          value: nutritionChoice,
-          options: nutritionOptions,
-          onChange: onNutritionChoiceChange,
-        }
-      : null,
-  ].filter(Boolean) as Array<{
-    id: string
-    label: string
-    value: string
-    options: IntakeHorizontalChoiceOption[]
-    onChange: (id: string) => void
-  }>
-
-  const proRows = activeGroups.flatMap((group) =>
-    group.options.map((opt) => ({
-      ...opt,
-      roleLabel: group.label,
-      isSelected: group.value === opt.id,
-      onSelect: () => group.onChange(opt.id),
-    })),
-  )
-
-  return (
-    <section className={cn('rounded-lg border px-2.5 py-2 sm:px-3 sm:py-2.5', panelClass)}>
-      <p className={cn('text-[9px] font-semibold uppercase tracking-[0.14em]', textMuted)}>
-        Equipo que te acompaña
-      </p>
-      {proRows.length === 0 ? (
-        <p className={cn('mt-1 text-[11px]', textMuted)}>Estamos preparando el equipo para esta modalidad.</p>
-      ) : (
-        <div className="mt-1.5 space-y-1">
-          {proRows.map((row) => {
-            const displayName = row.avatarLabel ?? row.title
-            return (
-              <button
-                key={`${row.roleLabel}-${row.id}`}
-                type="button"
-                onClick={row.onSelect}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors',
-                  row.isSelected ? cardSelected : cardIdle,
-                )}
-              >
-                <IntakeProAvatar
-                  theme={theme}
-                  label={displayName}
-                  url={row.avatarUrl}
-                  sizeClass="h-8 w-8"
-                  priority={proRows.length === 1}
-                  expandable
-                />
-                <div className="min-w-0 flex-1">
-                  <p className={cn('truncate text-[12px] font-semibold leading-tight', nameClass)}>
-                    <span className={cn('text-[9px] font-bold uppercase tracking-[0.12em]', roleClass)}>
-                      {row.roleLabel}
-                    </span>
-                    <span className={cn('mx-1 font-normal', isDark ? 'text-white/35' : 'text-ink-muted')}>
-                      ·
-                    </span>
-                    {displayName}
-                  </p>
-                  {row.subtitle?.trim() ? (
-                    <p className={cn('mt-0.5 line-clamp-1 text-[10px] leading-snug', subtitleClass)}>
-                      {row.subtitle.trim()}
-                    </p>
-                  ) : null}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </section>
   )
 }
 
@@ -695,6 +569,20 @@ function HeroBgLayers({ theme }: { theme: 'light' | 'dark' }) {
   )
 }
 
+function intakeTopActionButtonClasses(darkTone: boolean) {
+  const buttonBase =
+    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm backdrop-blur-sm transition-colors'
+  const iconButtonBase =
+    'inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur-sm transition-all'
+  const surfaceClasses = darkTone
+    ? 'border-white/15 bg-white/[0.06] text-white/85 hover:border-white/30 hover:text-white hover:bg-white/[0.1]'
+    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-[#ff6a00]/35 hover:text-ink-primary'
+  const iconSurfaceClasses = darkTone
+    ? 'border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/[0.1] hover:text-white'
+    : 'border-surface-border bg-surface-card text-ink-muted hover:bg-surface-elevated hover:text-ink-primary'
+  return { buttonBase, iconButtonBase, surfaceClasses, iconSurfaceClasses }
+}
+
 /** Acciones flotantes — mismo patrón que /login (Panel + tema). */
 function PublicIntakeTopActions({
   backLabel,
@@ -703,24 +591,15 @@ function PublicIntakeTopActions({
 }: {
   backLabel?: string
   onBack?: () => void
-  /** `dark` = botones translúcidos para fondo oscuro (paso planes en mobile). */
   tone?: 'light' | 'dark'
 }) {
   const { theme, toggleTheme } = useTheme()
-  const darkTone = tone === 'dark'
-
-  const buttonBase =
-    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium shadow-sm backdrop-blur-sm transition-colors'
-  const iconButtonBase =
-    'inline-flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm backdrop-blur-sm transition-all'
-
-  const surfaceClasses = darkTone
-    ? 'border-white/15 bg-white/[0.06] text-white/85 hover:border-white/30 hover:text-white hover:bg-white/[0.1]'
-    : 'border-surface-border bg-surface-card text-ink-secondary hover:border-[#ff6a00]/35 hover:text-ink-primary'
-
-  const iconSurfaceClasses = darkTone
-    ? 'border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/[0.1] hover:text-white'
-    : 'border-surface-border bg-surface-card text-ink-muted hover:bg-surface-elevated hover:text-ink-primary'
+  const { buttonBase, iconButtonBase, surfaceClasses, iconSurfaceClasses } = intakeTopActionButtonClasses(
+    tone === 'dark',
+  )
+  const edgeTop = 'top-5 sm:top-6'
+  const edgeRight = 'right-5 sm:right-6'
+  const edgeLeft = 'left-5 sm:left-6'
 
   return (
     <>
@@ -728,13 +607,13 @@ function PublicIntakeTopActions({
         <button
           type="button"
           onClick={onBack}
-          className={cn('absolute top-4 left-4 z-30', buttonBase, surfaceClasses, 'gap-1 px-2.5')}
+          className={cn('absolute z-30', edgeTop, edgeLeft, buttonBase, surfaceClasses, 'gap-1 px-2.5')}
         >
           <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {backLabel ?? 'Planes'}
         </button>
       ) : null}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+      <div className={cn('absolute z-30 flex items-center gap-2', edgeTop, edgeRight)}>
         <Link to="/login" className={cn(buttonBase, surfaceClasses)}>
           Panel
           <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -776,10 +655,7 @@ function LeftBrandPanel({
   publicSpots,
   trainers,
   nutritionists,
-  trainerChoice,
-  onTrainerChoiceChange,
-  nutritionChoice,
-  onNutritionChoiceChange,
+  psychologistSegmentImageUrl,
   includeSectionAvatars,
 }: {
   theme: 'light' | 'dark'
@@ -807,10 +683,7 @@ function LeftBrandPanel({
   publicSpots?: PublicIntakeSlots
   trainers: IntakeProfessional[]
   nutritionists: IntakeProfessional[]
-  trainerChoice: string
-  onTrainerChoiceChange: (slug: string) => void
-  nutritionChoice: string
-  onNutritionChoiceChange: (slug: string) => void
+  psychologistSegmentImageUrl: string | null
   includeSectionAvatars: IntakeIncludeSectionAvatarMap
 }) {
   const hasPlansForSegment = (seg: WebPlanCatalogSegment) => plansAll.some((p) => p.catalogSegment === seg)
@@ -822,9 +695,6 @@ function LeftBrandPanel({
       ? catalogSegment
       : 'solo'
 
-  const includeTraining = modalitySegment === 'solo' || modalitySegment === 'full'
-  const includeNutrition = modalitySegment === 'with_nutritionist' || modalitySegment === 'full'
-
   const catalogImages = useMemo(
     () => ({
       solo: soloSegmentImageUrl,
@@ -834,31 +704,46 @@ function LeftBrandPanel({
     [soloSegmentImageUrl, withNutritionistSegmentImageUrl, crisSoloSegmentImageUrl],
   )
 
-  const trainerAvatarOptions: IntakeAvatarOption[] = useMemo(
-    () =>
-      trainers.map((o) => ({
-        id: o.slug,
-        label: o.fullName,
-        avatarUrl: intakeProfessionalDisplayAvatar(o, {
-          catalogImages,
-          modalitySegment,
-        }),
-      })),
-    [catalogImages, modalitySegment, trainers],
-  )
-
-  const nutritionAvatarOptions: IntakeAvatarOption[] = useMemo(
-    () =>
-      nutritionists.map((o) => ({
-        id: o.slug,
-        label: o.fullName,
-        avatarUrl: intakeProfessionalDisplayAvatar(o, {
-          catalogImages,
-          modalitySegment,
-        }),
-      })),
-    [catalogImages, modalitySegment, nutritionists],
-  )
+  const teamHeroMembers = useMemo((): IntakeTeamHeroMember[] => {
+    const members: IntakeTeamHeroMember[] = []
+    const trainer = trainers[0]
+    if (trainer) {
+      members.push({
+        id: 'trainer',
+        role: 'trainer',
+        roleLabel: 'Entrenador',
+        name: intakeProfessionalPublicName(trainer),
+        avatarUrl:
+          catalogImages.solo?.trim() ||
+          intakeProfessionalDisplayAvatar(trainer, { catalogImages, modalitySegment: 'solo' }),
+      })
+    }
+    members.push({
+      id: 'psychologist',
+      role: 'psychologist',
+      roleLabel: 'Psicólogo',
+      name: 'Julián Díaz',
+      avatarUrl: psychologistSegmentImageUrl?.trim() || null,
+    })
+    const nutritionist = nutritionists[0]
+    if (nutritionist) {
+      const nutritionCatalog =
+        catalogImages.withNutritionist?.trim() || catalogImages.crisSolo?.trim() || null
+      members.push({
+        id: 'nutritionist',
+        role: 'nutritionist',
+        roleLabel: 'Nutricionista',
+        name: intakeProfessionalPublicName(nutritionist),
+        avatarUrl:
+          nutritionCatalog ||
+          intakeProfessionalDisplayAvatar(nutritionist, {
+            catalogImages,
+            modalitySegment: 'with_nutritionist',
+          }),
+      })
+    }
+    return members
+  }, [catalogImages, nutritionists, psychologistSegmentImageUrl, trainers])
 
   const modalityChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
     () =>
@@ -873,45 +758,29 @@ function LeftBrandPanel({
     [modalityOptions],
   )
 
-  const trainerChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
-    () =>
-      trainerAvatarOptions.map((o) => {
-        const pro = trainers.find((t) => t.slug === o.id)
-        return {
-          id: o.id,
-          title: o.label.split(/\s+/)[0] ?? o.label,
-          detail: '',
-          subtitle: pro?.credentialLine ?? '',
-          avatarUrl: o.avatarUrl,
-          avatarLabel: o.label,
-        }
-      }),
-    [trainerAvatarOptions, trainers],
-  )
-
-  const nutritionChoiceOptions = useMemo<IntakeHorizontalChoiceOption[]>(
-    () =>
-      nutritionAvatarOptions.map((o) => {
-        const pro = nutritionists.find((n) => n.slug === o.id)
-        return {
-          id: o.id,
-          title: o.label.split(/\s+/)[0] ?? o.label,
-          detail: '',
-          subtitle: pro?.credentialLine ?? '',
-          avatarUrl: o.avatarUrl,
-          avatarLabel: o.label,
-        }
-      }),
-    [nutritionAvatarOptions, nutritionists],
-  )
-
   return (
-    <div className="relative min-w-0 flex-shrink-0 lg:w-[48%] lg:self-start">
+    <div className="relative min-w-0 flex-shrink-0 overflow-hidden lg:w-[42%] xl:w-[40%] lg:rounded-tl-3xl lg:rounded-bl-3xl">
       <HeroBgLayers theme={panelTheme} />
 
       <div className="relative z-[2] flex flex-col px-4 pt-4 pb-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-visible [-webkit-overflow-scrolling:touch] min-w-0 max-lg:max-h-[calc(100dvh-4rem)] lg:overflow-visible">
-          <div className="mx-auto w-full max-w-[min(400px,calc(100vw-2rem))] min-w-0 shrink-0 space-y-4">
+          <div className="mx-auto w-full min-w-0 max-w-none shrink-0 space-y-3 lg:max-w-[min(100%,28rem)] xl:max-w-none">
+            {/* Logo + título arriba */}
+            <div className="relative flex flex-col items-center gap-2 pb-1 text-center">
+              {isDarkPanel ? (
+                <div
+                  className="pointer-events-none absolute left-1/2 top-0 h-24 w-[min(100%,16rem)] -translate-x-1/2 rounded-full bg-white/12 opacity-20 blur-3xl"
+                  aria-hidden
+                />
+              ) : null}
+              <BrandLogo size="lg" decorative className="relative z-[1] h-20 w-20 shrink-0" />
+              <p className={cn('relative z-[1] text-xl font-extrabold leading-tight tracking-tight', isDarkPanel ? 'text-white' : 'text-ink-primary')}>
+                Haciéndolo hábito
+              </p>
+            </div>
+
+            <IntakeTeamHeroStrip theme={panelTheme} members={teamHeroMembers} compact />
+
               {catalogError ? (
                 <p
                   className={cn(
@@ -928,56 +797,16 @@ function LeftBrandPanel({
                   Actualizando precios…
                 </p>
               ) : null}
-            <div className="relative flex items-center justify-start gap-3 pr-32 sm:justify-start sm:pr-0">
-              {isDarkPanel ? (
-                <div
-                  className="pointer-events-none absolute left-1/2 top-4 h-28 w-[min(100%,18rem)] -translate-x-1/2 rounded-full bg-white/12 opacity-25 blur-3xl sm:left-[12%] sm:translate-x-0"
-                  aria-hidden
-                />
-              ) : (
-                <div
-                  className="pointer-events-none absolute -left-4 top-0 h-20 w-32 rounded-full bg-white/10 blur-2xl"
-                  aria-hidden
-                />
-              )}
-              <BrandLogo size="sm" decorative className="relative z-[1] h-12 w-12 shrink-0 drop-shadow-[0_8px_22px_rgba(255,106,0,0.45)]" />
-              <div className="relative z-[1] min-w-0 flex-1">
-                <p
-                  className={cn(
-                    'truncate text-lg font-extrabold leading-tight tracking-tight',
-                    isDarkPanel ? 'text-[#ffb27e]' : 'text-ink-primary',
-                  )}
-                >
-                  Haciéndolo hábito
-                </p>
-                <p className={cn('text-[11px] font-medium', isDarkPanel ? 'text-white/56' : 'text-ink-muted')}>
-                  Elegí modalidad y plan
-                </p>
-              </div>
-            </div>
-
             <div className={intakePanelSurfaceClass(panelTheme)}>
               <div className="space-y-2">
-                <IntakeTeamShowcase
-                  theme={panelTheme}
-                  includeTraining={includeTraining}
-                  includeNutrition={includeNutrition}
-                  trainerChoice={trainerChoice}
-                  nutritionChoice={nutritionChoice}
-                  onTrainerChoiceChange={onTrainerChoiceChange}
-                  onNutritionChoiceChange={onNutritionChoiceChange}
-                  trainerOptions={trainerChoiceOptions}
-                  nutritionOptions={nutritionChoiceOptions}
-                />
-
                 <div className="rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 sm:px-3 sm:py-2.5">
                   <p
                     className={cn(
-                      'mb-1 text-[11px] font-bold uppercase tracking-[0.1em]',
-                      isDarkPanel ? 'text-[#ffb27e]' : 'text-ink-secondary',
+                      'mb-1 text-xs font-medium',
+                      isDarkPanel ? 'text-white/55' : 'text-ink-muted',
                     )}
                   >
-                    Selecciona una modalidad
+                    Modalidad
                   </p>
                   <IntakeHorizontalChoiceRow
                     groupId="intake-modality"
@@ -1002,7 +831,7 @@ function LeftBrandPanel({
                   />
                   <IntakeChangeablePlansSection
                     title="Ofertas"
-                    footerText="Podés cancelar cuando quieras."
+                    showFooter={false}
                     buttonText={buttonText}
                     plans={intakePlansToPricingPlans(plansVisible)}
                     selectedPlanId={selectedPlanId}
@@ -1259,7 +1088,7 @@ export function PublicIntakeFormPage() {
       const { data } = await supabase
         .from('web_intake_catalog_settings')
         .select(
-          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_nutritionist_segment_image_url, cris_solo_segment_image_url, psychologist_segment_image_url, modality_label_solo, modality_label_with_nutritionist, modality_label_full',
+          'testimonial_videos, intake_slots_open, intake_slots_remaining, intake_slots_public_message, solo_segment_image_url, with_nutritionist_segment_image_url, full_segment_image_url, psychologist_segment_image_url, modality_label_solo, modality_label_with_nutritionist, modality_label_full',
         )
         .eq('id', 1)
         .maybeSingle()
@@ -1277,7 +1106,7 @@ export function PublicIntakeFormPage() {
         setCatalogSegmentImages({
           solo: str('solo_segment_image_url'),
           withNutritionist: str('with_nutritionist_segment_image_url'),
-          crisSolo: str('cris_solo_segment_image_url'),
+          crisSolo: str('full_segment_image_url'),
           psychologist: str('psychologist_segment_image_url'),
         })
         setModalityLabels({
@@ -1487,9 +1316,9 @@ export function PublicIntakeFormPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-surface-base flex items-center justify-center p-4 pt-16 sm:pt-4 py-10 relative">
-        <PublicIntakeTopActions />
-        <div className="w-full max-w-[1040px] rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border border-surface-border bg-surface-card shadow-none sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
+      <div className="relative min-h-screen bg-surface-base flex items-center justify-center p-4 py-10 sm:pt-4">
+        <PublicIntakeTopActions tone="light" />
+        <div className="relative w-full max-w-[1280px] overflow-hidden rounded-none border-0 bg-surface-card shadow-none sm:min-h-0 sm:rounded-3xl sm:border sm:border-surface-border sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
           <LeftBrandPanel
             theme={theme}
             plansAll={plans}
@@ -1510,10 +1339,8 @@ export function PublicIntakeFormPage() {
             catalogLoading={catalogLoading}
             trainers={trainers}
             nutritionists={nutritionists}
-            trainerChoice={trainerChoice}
-            onTrainerChoiceChange={setTrainerChoice}
-            nutritionChoice={nutritionChoice}
-            onNutritionChoiceChange={setNutritionChoice}
+            psychologistSegmentImageUrl={catalogSegmentImages.psychologist}
+            includeSectionAvatars={includeSectionAvatars}
           />
           <IntakeSuccessScreen planName={selectedPlan?.name ?? null} className="flex-1" />
         </div>
@@ -1552,10 +1379,7 @@ export function PublicIntakeFormPage() {
     publicSpots,
     trainers,
     nutritionists,
-    trainerChoice,
-    onTrainerChoiceChange: setTrainerChoice,
-    nutritionChoice,
-    onNutritionChoiceChange: setNutritionChoice,
+    psychologistSegmentImageUrl: catalogSegmentImages.psychologist,
     includeSectionAvatars,
   } as const
 
@@ -1570,12 +1394,10 @@ export function PublicIntakeFormPage() {
     isMobile && mobileStep === 'plans' && theme === 'dark' ? 'dark' : 'light'
 
   return (
-    <div className="min-h-screen bg-surface-base flex items-start justify-center sm:items-center p-0 sm:p-4 sm:pt-4 sm:py-8 md:py-12 relative">
-      <PublicIntakeTopActions
-        backLabel={mobileBack?.label}
-        onBack={mobileBack?.onBack}
-        tone={intakeTopTone}
-      />
+    <div className="relative min-h-screen bg-surface-base flex items-start justify-center sm:items-center p-0 sm:p-4 sm:pt-20 sm:pb-8 md:pt-20 md:pb-12">
+      {!isMobile && (
+        <PublicIntakeTopActions tone="light" />
+      )}
       {isMobile ? (
         <div
           className={cn(
@@ -1583,6 +1405,11 @@ export function PublicIntakeFormPage() {
             mobileStep === 'plans' ? 'pt-0' : 'pt-14',
           )}
         >
+          <PublicIntakeTopActions
+            backLabel={mobileBack?.label}
+            onBack={mobileBack?.onBack}
+            tone={intakeTopTone}
+          />
           {mobileStep === 'plans' ? <LeftBrandPanel {...leftPanelProps} /> : null}
 
           {mobileStep === 'detail' && selectedPlan ? (
@@ -1631,13 +1458,9 @@ export function PublicIntakeFormPage() {
           ) : null}
         </div>
       ) : (
-        <div className="flex w-full max-w-[1040px] min-h-screen flex-col overflow-hidden rounded-none border-0 bg-surface-card shadow-none sm:min-h-0 sm:rounded-3xl sm:border sm:border-surface-border sm:shadow-card dark:sm:shadow-lg lg:min-h-0 lg:flex-row lg:items-start lg:overflow-visible">
+        <div className="relative flex w-full max-w-[1280px] min-h-screen flex-col overflow-hidden rounded-none border-0 bg-surface-card shadow-none sm:min-h-0 sm:rounded-3xl sm:border sm:border-surface-border sm:shadow-card dark:sm:shadow-lg lg:min-h-0 lg:flex-row lg:items-stretch">
           <LeftBrandPanel {...leftPanelProps} />
-          <div className="relative flex min-w-0 flex-1 flex-col self-stretch px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-12 lg:pr-12">
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-500/[0.04] via-transparent to-zinc-500/[0.015]"
-              aria-hidden
-            />
+          <div className="relative flex min-w-0 flex-1 flex-col self-stretch overflow-hidden bg-surface-card lg:rounded-tr-3xl lg:rounded-br-3xl px-4 py-6 sm:px-8 sm:py-8 lg:px-8 lg:py-10 xl:px-12 xl:py-12">
             <div className="relative z-[1] w-full min-w-0">
               {isPlanFlipped && selectedPlan ? (
                 <PlanDetailView

@@ -15,13 +15,14 @@ import {
   intakeFormFieldLabelClass,
   intakeFormFieldLabelInlineClass,
   intakeFormInputClass,
+  intakeFormPageContainerClass,
 } from '@/lib/intake/intakeFormUi'
 import { IntakeFormStepNav } from '@/components/public/intake/IntakeFormStepNav'
-import { IntakeFormSection } from '@/components/public/intake/IntakeFormSection'
 import { IntakeGenderField } from '@/components/public/intake/IntakeGenderField'
 import { IntakeFormPlanHint } from '@/components/public/intake/IntakeFormPlanHint'
 import { IntakeFormShell } from '@/components/public/intake/IntakeFormShell'
 import { IntakeFormStepActions } from '@/components/public/intake/IntakeFormStepActions'
+import { IntakeFormReviewStrip } from '@/components/public/intake/IntakeFormReviewStrip'
 import { IntakePaymentPreferenceFields } from '@/components/public/IntakePaymentPreferenceFields'
 import { IntakeQuickTextFill } from '@/components/public/IntakeQuickTextFill'
 import type { IntakeProfessional } from '@/lib/intake/intakeProfessionals'
@@ -203,7 +204,6 @@ export function IntakeFullForm({
   const gender = watch('gender')
   const watchedFirstName = watch('first_name')
   const watchedLastName = watch('last_name')
-  const watchedEmail = watch('email')
   const watchedPhone = watch('phone')
 
   useEffect(() => {
@@ -325,7 +325,7 @@ export function IntakeFullForm({
   }
 
   return (
-    <div ref={scrollRef} className="w-full max-w-lg mx-auto lg:mx-0 lg:max-w-md">
+    <div ref={scrollRef} className={intakeFormPageContainerClass()}>
       <IntakeFormPlanHint
         compact={compact}
         selectedPlanLabel={selectedPlanLabel}
@@ -344,92 +344,80 @@ export function IntakeFullForm({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
         {step === 0 && (
-          <div className="space-y-5">
-            <IntakeFormSection title="Identidad">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <FieldLabel required>Nombre</FieldLabel>
-                  <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
-                  {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
-                </div>
-                <div>
-                  <FieldLabel required>Apellido</FieldLabel>
-                  <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
-                  {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
-                </div>
-              </div>
-              <div>
-                <FieldLabel required>Documento</FieldLabel>
-                <input type="text" className={inputClass(errors.document_id?.message)} {...register('document_id')} />
-                {errors.document_id?.message && <p className="mt-1 text-xs text-status-expired">{errors.document_id.message}</p>}
-              </div>
-              <div>
-                <FieldLabel required>Fecha de nacimiento</FieldLabel>
-                <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
-                {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
-              </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
+            <div>
+              <FieldLabel required>Nombre</FieldLabel>
+              <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
+              {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Apellido</FieldLabel>
+              <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
+              {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Documento</FieldLabel>
+              <input type="text" className={inputClass(errors.document_id?.message)} {...register('document_id')} />
+              {errors.document_id?.message && <p className="mt-1 text-xs text-status-expired">{errors.document_id.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Fecha de nacimiento</FieldLabel>
+              <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
+              {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
+            </div>
+            <div className="sm:col-span-2">
               <IntakeGenderField register={register} gender={gender} errors={errors} inputClass={inputClass} />
-            </IntakeFormSection>
-
-            <IntakeFormSection title="Contacto">
-              <div>
-                <FieldLabel required>Teléfono</FieldLabel>
-                <input
-                  type="tel"
-                  autoComplete="tel"
-                  className={inputClass(errors.phone?.message)}
-                  {...register('phone', {
-                    onFocus: () => setPhoneFocused(true),
-                    onBlur: (e) => {
-                      setPhoneFocused(false)
-                      const formatted = formatArgPhoneInput(e.target.value)
-                      if (formatted !== e.target.value) setValue('phone', formatted, { shouldValidate: true })
-                    },
-                  })}
-                />
-                {errors.phone?.message ? (
-                  <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
-                ) : phoneFocused ? (
-                  <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>
-                ) : null}
-              </div>
-              <div>
-                <FieldLabel required>Correo electrónico</FieldLabel>
-                <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
-                {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
-              </div>
-              <div>
-                <FieldLabel required>Dirección completa</FieldLabel>
-                <textarea rows={2} className={cn(inputClass(errors.address?.message), 'resize-y min-h-[72px]')} {...register('address')} />
-                {errors.address?.message && <p className="mt-1 text-xs text-status-expired">{errors.address.message}</p>}
-              </div>
-            </IntakeFormSection>
-
-            <IntakeFormSection title="Medidas">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <FieldLabel required>Peso (kg)</FieldLabel>
-                  <input type="number" step="0.1" inputMode="decimal" className={inputClass(errors.weight_kg?.message)} {...register('weight_kg', { valueAsNumber: true })} />
-                  {errors.weight_kg?.message && <p className="mt-1 text-xs text-status-expired">{String(errors.weight_kg.message)}</p>}
-                </div>
-                <div>
-                  <FieldLabel required>Altura (cm)</FieldLabel>
-                  <input type="number" inputMode="numeric" className={inputClass(errors.height_cm?.message)} {...register('height_cm', { valueAsNumber: true })} />
-                  {errors.height_cm?.message && <p className="mt-1 text-xs text-status-expired">{String(errors.height_cm.message)}</p>}
-                </div>
-              </div>
-            </IntakeFormSection>
+            </div>
+            <div>
+              <FieldLabel required>Teléfono</FieldLabel>
+              <input
+                type="tel"
+                autoComplete="tel"
+                className={inputClass(errors.phone?.message)}
+                {...register('phone', {
+                  onFocus: () => setPhoneFocused(true),
+                  onBlur: (e) => {
+                    setPhoneFocused(false)
+                    const formatted = formatArgPhoneInput(e.target.value)
+                    if (formatted !== e.target.value) setValue('phone', formatted, { shouldValidate: true })
+                  },
+                })}
+              />
+              {errors.phone?.message ? (
+                <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
+              ) : phoneFocused ? (
+                <p className="mt-1 text-xs text-ink-muted">{PHONE_HINT}</p>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel required>Correo electrónico</FieldLabel>
+              <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
+              {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
+            </div>
+            <div className="sm:col-span-2">
+              <FieldLabel required>Dirección completa</FieldLabel>
+              <textarea rows={2} className={cn(inputClass(errors.address?.message), 'resize-y min-h-[72px]')} {...register('address')} />
+              {errors.address?.message && <p className="mt-1 text-xs text-status-expired">{errors.address.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Peso (kg)</FieldLabel>
+              <input type="number" step="0.1" inputMode="decimal" className={inputClass(errors.weight_kg?.message)} {...register('weight_kg', { valueAsNumber: true })} />
+              {errors.weight_kg?.message && <p className="mt-1 text-xs text-status-expired">{String(errors.weight_kg.message)}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Altura (cm)</FieldLabel>
+              <input type="number" inputMode="numeric" className={inputClass(errors.height_cm?.message)} {...register('height_cm', { valueAsNumber: true })} />
+              {errors.height_cm?.message && <p className="mt-1 text-xs text-status-expired">{String(errors.height_cm.message)}</p>}
+            </div>
           </div>
         )}
 
         {/* ── PASO 1: Entrenamiento (Tomás Ferster) ── */}
         {step === 1 && (
           <>
-            <div className="mb-2 rounded-md border-l-2 border-[#ff6a00]/45 bg-[#ff6a00]/[0.07] px-2.5 py-2">
-              <p className="text-[11px] text-ink-secondary">
-                Entrenamiento · <span className="font-semibold text-ink-primary">{trainerName}</span>
-              </p>
-            </div>
+            <p className="mb-1 text-sm text-ink-muted">
+              Entrenamiento · <span className="font-medium text-ink-primary">{trainerName}</span>
+            </p>
             <div>
               <FieldLabel required>¿Hace cuánto entrenás?</FieldLabel>
               <select className={cn(inputClass(), 'cursor-pointer')} {...register('training_since')}>
@@ -566,11 +554,9 @@ export function IntakeFullForm({
         {/* ── PASO 3: Nutrición (Cristian Crossetto) ── */}
         {step === 3 && (
           <>
-            <div className="mb-2 rounded-md border-l-2 border-[#ff6a00]/45 bg-[#ff6a00]/[0.07] px-2.5 py-2">
-              <p className="text-[11px] text-ink-secondary">
-                Nutrición · <span className="font-semibold text-ink-primary">{nutritionistName}</span>
-              </p>
-            </div>
+            <p className="mb-1 text-sm text-ink-muted">
+              Nutrición · <span className="font-medium text-ink-primary">{nutritionistName}</span>
+            </p>
             <div>
               <FieldLabel>Motivo de consulta nutricional</FieldLabel>
               <textarea rows={3} className={cn(inputClass(), 'resize-y min-h-[88px]')} placeholder="¿Por qué buscás asesoramiento nutricional?" {...register('motivo_consulta')} />
@@ -640,41 +626,13 @@ export function IntakeFullForm({
         {/* ── PASO 4: Fotos y envío ── */}
         {step === 4 && (
           <>
-            {/* Summary */}
-            {(watchedFirstName || watchedEmail || watchedPhone) && (
-              <div className="mb-2 space-y-1 rounded-lg border border-surface-border bg-surface-elevated/50 p-2.5">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-ink-muted">Revisión</p>
-                {(watchedFirstName || watchedLastName) && (
-                  <p className="text-xs text-ink-secondary">
-                    <span className="text-ink-muted">Nombre · </span>
-                    {[watchedFirstName, watchedLastName].filter(Boolean).join(' ')}
-                  </p>
-                )}
-                {watchedEmail && (
-                  <p className="truncate text-xs text-ink-secondary">
-                    <span className="text-ink-muted">Email · </span>
-                    {watchedEmail}
-                  </p>
-                )}
-                {watchedPhone && (
-                  <p className="text-xs text-ink-secondary">
-                    <span className="text-ink-muted">Tel. · </span>
-                    {watchedPhone}
-                  </p>
-                )}
-                {selectedPlanLabel && (
-                  <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-ink-secondary">
-                    <span className="text-ink-muted">Plan · </span>
-                    <span className="font-medium">{selectedPlanLabel}</span>
-                    {selectedPlanPrice && (
-                      <span className="ml-auto font-semibold tabular-nums text-ink-primary">
-                        {selectedPlanPrice}
-                      </span>
-                    )}
-                  </p>
-                )}
-              </div>
-            )}
+            <IntakeFormReviewStrip
+              firstName={watchedFirstName}
+              lastName={watchedLastName}
+              phone={watchedPhone}
+              planLabel={selectedPlanLabel}
+              planPrice={selectedPlanPrice}
+            />
 
             <p className="text-[11px] leading-snug text-ink-muted">
               Fotos y estudios opcionales. Hasta 5 imágenes, 10 MB c/u.
@@ -796,7 +754,6 @@ export function IntakeFullForm({
           isSubmitting={isSubmitting}
         />
 
-        <p className="pt-3 text-center text-[10px] text-ink-muted/80">Plan Full · Haciéndolo hábito</p>
         </form>
       </IntakeFormShell>
     </div>

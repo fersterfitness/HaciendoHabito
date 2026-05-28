@@ -103,6 +103,23 @@ export function mergeIntakeNutritionistsFromDb(rows: PublicIntakeProfessionalRow
   return mergeProfessionals(DEFAULT_INTAKE_NUTRITIONISTS, rows, 'nutritionist')
 }
 
+const EMAIL_LIKE_NAME_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Nombre visible en /form; evita mostrar el mail del perfil si vino mal cargado en BD. */
+export function intakeProfessionalPublicName(pro: IntakeProfessional): string {
+  const raw = pro.fullName.trim()
+  if (raw && !EMAIL_LIKE_NAME_RE.test(raw)) return raw
+  const fallback =
+    pro.role === 'trainer'
+      ? DEFAULT_INTAKE_TRAINERS.find((d) => d.slug === pro.slug)?.fullName
+      : DEFAULT_INTAKE_NUTRITIONISTS.find((d) => d.slug === pro.slug)?.fullName
+  if (fallback?.trim()) return fallback.trim()
+  return pro.slug
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
 export function findIntakeProfessional(
   list: IntakeProfessional[],
   slug: string | null | undefined,

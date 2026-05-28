@@ -13,30 +13,18 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
   const progress = Math.round(((step + 1) / total) * 100)
 
   return (
-    <div className="mb-6">
-      <div className="mb-3 flex items-start gap-3">
-        <div
-          className={cn(
-            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-            'border border-white/20 bg-white/[0.07]',
-            'text-sm font-bold tabular-nums text-ink-primary',
-          )}
-          aria-hidden
-        >
-          {step + 1}
-        </div>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-muted">
-            Paso {step + 1} de {total}
-          </p>
-          <p className="mt-0.5 text-lg font-semibold leading-tight tracking-tight text-ink-primary sm:text-xl">
-            {current}
-          </p>
-        </div>
+    <div className="mb-5">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-sm text-ink-muted">
+          Paso {step + 1} de {total}
+          <span className="text-ink-muted/50"> · </span>
+          <span className="font-medium text-ink-primary">{current}</span>
+        </p>
+        <span className="shrink-0 text-xs tabular-nums text-ink-muted">{progress}%</span>
       </div>
 
       <div
-        className="h-1.5 overflow-hidden rounded-full bg-surface-border/70 dark:bg-zinc-800/80"
+        className="h-1 overflow-hidden rounded-full bg-surface-border/60 dark:bg-zinc-800/80"
         role="progressbar"
         aria-valuenow={progress}
         aria-valuemin={0}
@@ -44,13 +32,13 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
         aria-label="Progreso del formulario"
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-zinc-300/95 to-zinc-500/90 dark:from-zinc-300/70 dark:to-zinc-500/70 transition-[width] duration-500 ease-out"
+          className="h-full rounded-full bg-brand-primary transition-[width] duration-400 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
       {onGoToStep && total <= 6 ? (
-        <div className="-mx-0.5 mt-3.5 flex gap-1.5 overflow-x-auto px-0.5 pb-0.5 scrollbar-hide">
+        <div className="mt-3 flex flex-wrap gap-1">
           {stepTitles.map((title, i) => (
             <button
               key={title}
@@ -58,12 +46,12 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
               onClick={() => onGoToStep(i)}
               disabled={i > step}
               className={cn(
-                'shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold transition-all',
+                'rounded-md px-2 py-1 text-xs font-medium transition-colors',
                 i === step
-                  ? 'bg-zinc-500/[0.14] text-ink-primary ring-1 ring-zinc-500/30'
+                  ? 'bg-surface-elevated text-ink-primary'
                   : i < step
-                    ? 'bg-surface-elevated text-ink-secondary hover:text-ink-primary'
-                    : 'cursor-not-allowed border border-dashed border-surface-border/60 text-ink-muted/60',
+                    ? 'text-ink-secondary hover:text-ink-primary hover:underline'
+                    : 'cursor-not-allowed text-ink-muted/45',
               )}
             >
               {title}
@@ -73,11 +61,7 @@ export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }:
       ) : null}
 
       {stepNavHint ? (
-        <p
-          className="mt-3 rounded-lg border border-zinc-500/25 bg-zinc-500/[0.08] px-3 py-2 text-center text-[11px] leading-snug text-ink-secondary"
-          role="status"
-          aria-live="polite"
-        >
+        <p className="mt-2.5 text-xs leading-snug text-ink-muted" role="status" aria-live="polite">
           {stepNavHint}
         </p>
       ) : null}

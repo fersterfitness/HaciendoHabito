@@ -10,9 +10,9 @@ import {
   intakeFormFieldLabelClass,
   intakeFormFieldLabelInlineClass,
   intakeFormInputClass,
+  intakeFormPageContainerClass,
 } from '@/lib/intake/intakeFormUi'
 import { IntakeFormStepNav } from '@/components/public/intake/IntakeFormStepNav'
-import { IntakeFormSection } from '@/components/public/intake/IntakeFormSection'
 import { IntakeFormPlanHint } from '@/components/public/intake/IntakeFormPlanHint'
 import { IntakeFormShell } from '@/components/public/intake/IntakeFormShell'
 import { IntakeFormStepActions } from '@/components/public/intake/IntakeFormStepActions'
@@ -194,7 +194,7 @@ export function IntakeNutritionForm({
   }
 
   return (
-    <div ref={scrollRef} className="w-full max-w-lg mx-auto lg:mx-0 lg:max-w-md">
+    <div ref={scrollRef} className={intakeFormPageContainerClass()}>
       <IntakeFormPlanHint
         compact={compact}
         selectedPlanLabel={selectedPlanLabel}
@@ -213,103 +213,89 @@ export function IntakeNutritionForm({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
         {step === 0 && (
-          <div className="space-y-5">
-            <IntakeFormSection title="Consulta">
-              <div>
-                <FieldLabel>Motivo de consulta</FieldLabel>
-                <textarea
-                  rows={3}
-                  className={taClass()}
-                  placeholder="¿Por qué buscás asesoramiento nutricional?"
-                  {...register('motivo_consulta')}
-                />
-              </div>
-            </IntakeFormSection>
-
-            <IntakeFormSection title="Tus datos">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <FieldLabel required>Nombre</FieldLabel>
-                  <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
-                  {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
-                </div>
-                <div>
-                  <FieldLabel required>Apellido</FieldLabel>
-                  <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
-                  {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
-                </div>
-              </div>
-              <div>
-                <FieldLabel required>Fecha de nacimiento</FieldLabel>
-                <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
-                {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
-              </div>
-              <div>
-                <FieldLabel required>Correo electrónico</FieldLabel>
-                <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
-                {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
-              </div>
-              <div>
-                <FieldLabel required>Teléfono</FieldLabel>
-                <input
-                  type="tel"
-                  autoComplete="tel"
-                  className={inputClass(errors.phone?.message)}
-                  {...register('phone', {
-                    onFocus: () => setPhoneFocused(true),
-                    onBlur: (e) => {
-                      setPhoneFocused(false)
-                      const digits = e.target.value.replace(/\D/g, '')
-                      if (!digits) return
-                      let rest = digits
-                      if (digits.startsWith('54')) rest = digits.slice(2)
-                      else if (digits.startsWith('0')) rest = digits.slice(1)
-                      const formatted = `+54 ${rest.slice(0, 2)} ${rest.slice(2)}`
-                      if (formatted !== e.target.value) setValue('phone', formatted, { shouldValidate: true })
-                    },
-                  })}
-                />
-                {errors.phone?.message ? (
-                  <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
-                ) : phoneFocused ? (
-                  <p className="mt-1 text-[11px] text-ink-muted">{PHONE_HINT}</p>
-                ) : null}
-              </div>
-            </IntakeFormSection>
-
-            <IntakeFormSection title="Vida diaria">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <FieldLabel>Profesión / Ocupación</FieldLabel>
-                  <input type="text" className={inputClass()} placeholder="ej: docente" {...register('profession')} />
-                </div>
-                <div>
-                  <FieldLabel>Horario de trabajo</FieldLabel>
-                  <input type="text" className={inputClass()} placeholder="ej: 8 a 17hs" {...register('work_hours')} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <FieldLabel>Estado civil</FieldLabel>
-                  <input type="text" className={inputClass()} placeholder="ej: soltero/a" {...register('marital_status')} />
-                </div>
-                <div>
-                  <FieldLabel>Convivís con</FieldLabel>
-                  <input type="text" className={inputClass()} placeholder="ej: pareja e hijos" {...register('family_composition')} />
-                </div>
-              </div>
-              <div>
-                <FieldLabel>Hobbies</FieldLabel>
-                <input type="text" className={inputClass()} placeholder="ej: lectura, caminatas..." {...register('hobbies')} />
-              </div>
-            </IntakeFormSection>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
+            <div className="sm:col-span-2">
+              <FieldLabel>Motivo de consulta</FieldLabel>
+              <textarea
+                rows={3}
+                className={taClass()}
+                placeholder="¿Por qué buscás asesoramiento nutricional?"
+                {...register('motivo_consulta')}
+              />
+            </div>
+            <div>
+              <FieldLabel required>Nombre</FieldLabel>
+              <input type="text" autoComplete="given-name" className={inputClass(errors.first_name?.message)} {...register('first_name')} />
+              {errors.first_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.first_name.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Apellido</FieldLabel>
+              <input type="text" autoComplete="family-name" className={inputClass(errors.last_name?.message)} {...register('last_name')} />
+              {errors.last_name?.message && <p className="mt-1 text-xs text-status-expired">{errors.last_name.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Fecha de nacimiento</FieldLabel>
+              <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
+              {errors.birth_date?.message && <p className="mt-1 text-xs text-status-expired">{errors.birth_date.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Correo electrónico</FieldLabel>
+              <input type="email" autoComplete="email" className={inputClass(errors.email?.message)} {...register('email')} />
+              {errors.email?.message && <p className="mt-1 text-xs text-status-expired">{errors.email.message}</p>}
+            </div>
+            <div>
+              <FieldLabel required>Teléfono</FieldLabel>
+              <input
+                type="tel"
+                autoComplete="tel"
+                className={inputClass(errors.phone?.message)}
+                {...register('phone', {
+                  onFocus: () => setPhoneFocused(true),
+                  onBlur: (e) => {
+                    setPhoneFocused(false)
+                    const digits = e.target.value.replace(/\D/g, '')
+                    if (!digits) return
+                    let rest = digits
+                    if (digits.startsWith('54')) rest = digits.slice(2)
+                    else if (digits.startsWith('0')) rest = digits.slice(1)
+                    const formatted = `+54 ${rest.slice(0, 2)} ${rest.slice(2)}`
+                    if (formatted !== e.target.value) setValue('phone', formatted, { shouldValidate: true })
+                  },
+                })}
+              />
+              {errors.phone?.message ? (
+                <p className="mt-1 text-xs text-status-expired">{errors.phone.message}</p>
+              ) : phoneFocused ? (
+                <p className="mt-1 text-xs text-ink-muted">{PHONE_HINT}</p>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel>Profesión / Ocupación</FieldLabel>
+              <input type="text" className={inputClass()} placeholder="ej: docente" {...register('profession')} />
+            </div>
+            <div>
+              <FieldLabel>Horario de trabajo</FieldLabel>
+              <input type="text" className={inputClass()} placeholder="ej: 8 a 17hs" {...register('work_hours')} />
+            </div>
+            <div>
+              <FieldLabel>Estado civil</FieldLabel>
+              <input type="text" className={inputClass()} placeholder="ej: soltero/a" {...register('marital_status')} />
+            </div>
+            <div>
+              <FieldLabel>Convivís con</FieldLabel>
+              <input type="text" className={inputClass()} placeholder="ej: pareja e hijos" {...register('family_composition')} />
+            </div>
+            <div className="sm:col-span-2">
+              <FieldLabel>Hobbies</FieldLabel>
+              <input type="text" className={inputClass()} placeholder="ej: lectura, caminatas..." {...register('hobbies')} />
+            </div>
           </div>
         )}
 
         {/* ── Paso 1: Salud y antropometría ────────────────────────────────── */}
         {step === 1 && (
           <>
-            <p className="rounded-xl border border-[#ff6a00]/20 bg-[#ff6a00]/[0.08] px-4 py-3 text-xs leading-relaxed text-ink-secondary">
+            <p className="text-sm leading-relaxed text-ink-muted">
               Las medidas de cintura, cadera y brazo las tomará el profesional en la consulta. Solo completá peso y altura.
             </p>
 
@@ -729,7 +715,6 @@ export function IntakeNutritionForm({
           isSubmitting={isSubmitting}
         />
 
-        <p className="pt-3 text-center text-[10px] text-ink-muted/80">Plan nutricional · Haciéndolo hábito</p>
         </form>
       </IntakeFormShell>
     </div>

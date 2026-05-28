@@ -21,7 +21,7 @@ export function webIntakeImageExt(file: File): string | null {
 }
 
 const SUPABASE_PUBLIC_OBJECT_RE =
-  /^(https:\/\/[^/]+)\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/i
+  /^(https:\/\/[^/]+)\/storage\/v1\/object\/public\/([^/]+)\/([^?]+)/i
 
 /**
  * URL optimizada para avatares en /form: resize en servidor (2× retina) sin servir el hero completo.
@@ -36,7 +36,9 @@ export function webIntakeCatalogDisplayUrl(
 ): string | null {
   const raw = url?.trim()
   if (!raw) return null
-  const match = raw.match(SUPABASE_PUBLIC_OBJECT_RE)
+  // Strip any cache-bust query params before matching
+  const rawNoQuery = raw.split('?')[0]!
+  const match = rawNoQuery.match(SUPABASE_PUBLIC_OBJECT_RE)
   if (!match) return raw
   const [, host, bucket, objectPath] = match
   const px = Math.min(512, Math.max(64, Math.round(cssPx * pixelScale)))

@@ -410,7 +410,8 @@ export function WebPlansSettingsPage() {
         return
       }
       const { data } = supabase.storage.from(WEB_INTAKE_CATALOG_BUCKET).getPublicUrl(path)
-      setUrl(data.publicUrl)
+      // Cache-bust: misma ruta pero URL única en cada upload para evitar CDN stale
+      setUrl(`${data.publicUrl}?t=${Date.now()}`)
       toast.success('Imagen subida. Tocá «Guardar fotos del selector» para publicar.')
     } finally {
       setBusy(false)

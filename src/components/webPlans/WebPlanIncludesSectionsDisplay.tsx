@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { IntakeProAvatar } from '@/components/public/intake/IntakeProAvatar'
+import { IntakeProAvatar, intakeProAvatarFocusForRole } from '@/components/public/intake/IntakeProAvatar'
 import type { IntakeIncludeSectionView } from '@/lib/webPlanIncludeSections'
 
 export type WebPlanGiftLine = string | { text: string }
@@ -98,7 +98,7 @@ export function WebPlanIncludesSectionsDisplay({
                       url={sec.avatarUrl ?? null}
                       sizeClass="h-10 w-10"
                       theme={darkChrome ? 'dark' : 'light'}
-                      focus={sec.professional === 'psychologist' ? 'headshot' : 'face'}
+                      focus={intakeProAvatarFocusForRole(sec.professional)}
                       priority
                       expandable
                     />

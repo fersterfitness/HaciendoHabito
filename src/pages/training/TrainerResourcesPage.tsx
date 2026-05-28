@@ -645,8 +645,72 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
 
           <Card className="p-4 sm:p-5 space-y-4">
             <h2 className="text-sm font-semibold text-ink-primary">Enviar por WhatsApp</h2>
-            {!selectedResource ? (
-              <p className="text-sm text-ink-muted">Elegí un recurso de la biblioteca.</p>
+            {!selectedResource && !selectedTemplateId ? (
+              <p className="text-sm text-ink-muted">Elegí un recurso de la biblioteca o una plantilla de texto.</p>
+            ) : !selectedResource && selectedTemplateId ? (
+              /* ── Envío solo plantilla (sin recurso) ── */
+              (() => {
+                const tpl = templates.find((t) => t.id === selectedTemplateId)
+                if (!tpl) return null
+                const tplMsg = tpl.body?.trim() ?? ''
+                function openGroupWaTemplate() {
+                  window.open(buildWhatsAppGroupPickUrl(tplMsg), '_blank', 'noopener,noreferrer')
+                }
+                function openWaStudentTemplate(student: Student) {
+                  const digits = normalizePhoneForWhatsApp(student.phone)
+                  if (!digits) { toast.error(`Sin teléfono válido para ${student.full_name}`); return }
+                  window.open(buildWhatsAppUrl(digits, tplMsg), '_blank', 'noopener,noreferrer')
+                }
+                return (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-surface-border bg-surface-elevated/30 px-3 py-2 text-xs space-y-1">
+                      <p className="font-semibold text-ink-primary">{tpl.title}</p>
+                      <p className="text-ink-muted whitespace-pre-wrap line-clamp-4">{tpl.body}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        icon={<Copy className="h-4 w-4" />}
+                        onClick={async () => {
+                          try { await navigator.clipboard.writeText(tplMsg); toast.success('Mensaje copiado') }
+                          catch { toast.error('No se pudo copiar') }
+                        }}
+                      >
+                        Copiar mensaje
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12"
+                        icon={<WhatsAppIcon className="h-4 w-4" />}
+                        onClick={openGroupWaTemplate}
+                      >
+                        Compartir en grupo
+                      </Button>
+                    </div>
+                    {students.length > 0 ? (
+                      <div className="space-y-1 border-t border-surface-border pt-3">
+                        <p className="text-xs font-medium text-ink-secondary mb-2">Un alumno a la vez</p>
+                        {students.map((s) => (
+                          <div key={s.id} className="flex items-center justify-between gap-2 text-xs">
+                            <span className="truncate text-ink-primary">{s.full_name}</span>
+                            <Button
+                              type="button" size="sm" variant="outline"
+                              className="shrink-0 text-[11px] h-7"
+                              onClick={() => openWaStudentTemplate(s)}
+                            >
+                              WhatsApp
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })()
             ) : (
               <>
                 <div className="rounded-lg border border-surface-border bg-surface-elevated/30 px-3 py-2 text-xs space-y-1">

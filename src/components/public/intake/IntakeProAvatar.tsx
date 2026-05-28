@@ -11,6 +11,9 @@ const INTAKE_AVATAR_PX: Record<string, number> = {
   'h-12 w-12': 48,
   'h-14 w-14': 56,
   'h-16 w-16': 64,
+  'h-[4.5rem] w-[4.5rem]': 72,
+  'h-20 w-20': 80,
+  'h-full w-full': 80,
 }
 
 /** Encuadre según tipo de foto subida al catálogo. */
@@ -20,10 +23,17 @@ const AVATAR_FOCUS: Record<
   IntakeProAvatarFocus,
   { objectPosition: string; scale: string; renderScale: number }
 > = {
-  standard: { objectPosition: 'object-[center_28%]', scale: 'scale-100', renderScale: 2 },
+  standard: { objectPosition: 'object-center', scale: 'scale-100', renderScale: 2 },
   face: { objectPosition: 'object-[center_22%]', scale: 'scale-110', renderScale: 2.25 },
-  /** Plano amplio / cuerpo entero: acercar al rostro en miniatura. */
-  headshot: { objectPosition: 'object-top', scale: 'scale-[1.55]', renderScale: 3 },
+  /** Plano amplio / cuerpo entero en listas «Incluye». */
+  headshot: { objectPosition: 'object-center', scale: 'scale-100', renderScale: 2 },
+}
+
+/** Encuadre en bloques «Incluye» (miniatura). */
+export function intakeProAvatarFocusForRole(
+  role: 'trainer' | 'nutritionist' | 'psychologist',
+): IntakeProAvatarFocus {
+  return role === 'psychologist' ? 'headshot' : 'face'
 }
 
 export function initialsFromProfessionalName(label: string): string {
@@ -50,6 +60,10 @@ export function IntakeProAvatar({
   priority = false,
   focus = 'face',
   expandable = false,
+  shape = 'rounded',
+  imageFit = 'cover',
+  useOriginalImage = false,
+  noRing = false,
 }: {
   label: string
   url?: string | null
@@ -57,8 +71,12 @@ export function IntakeProAvatar({
   theme?: 'light' | 'dark'
   priority?: boolean
   focus?: IntakeProAvatarFocus
-  /** Tap: miniatura compacta → foto grande animada. */
   expandable?: boolean
+  shape?: 'rounded' | 'circle'
+  imageFit?: 'cover' | 'contain'
+  useOriginalImage?: boolean
+  /** Sin borde/ring externo (para fotos flotantes en hero). */
+  noRing?: boolean
 }) {
   const reactId = useId()
   const { groupId, imageId } = photoLayoutIds(label, reactId)
@@ -69,6 +87,8 @@ export function IntakeProAvatar({
   const rawSrc = url?.trim() || null
   const isCatalogAsset = Boolean(rawSrc?.includes('/web-intake-catalog/'))
   const preferRaw =
+    useOriginalImage ||
+    imageFit === 'contain' ||
     !isCatalogAsset ||
     (typeof window !== 'undefined' &&
       (window.matchMedia('(max-width: 639px)').matches || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)))
@@ -89,15 +109,20 @@ export function IntakeProAvatar({
   const canExpand = expandable && Boolean(rawSrc && showImg)
 
   const imgClassName = cn(
-    'h-full w-full object-cover',
+    'h-full w-full',
+    imageFit === 'contain' ? 'object-contain' : 'object-cover',
     focusStyle.objectPosition,
-    focusStyle.scale,
+    imageFit === 'cover' ? focusStyle.scale : '',
   )
 
+  const radiusClass = shape === 'circle' ? 'rounded-full' : 'rounded-lg'
   const thumbFrameClass = cn(
     sizeClass,
-    'relative shrink-0 overflow-hidden rounded-xl ring-1',
-    ringClass,
+    'relative shrink-0 overflow-hidden',
+    !noRing && 'ring-1',
+    radiusClass,
+    !noRing && ringClass,
+    imageFit === 'contain' && (theme === 'light' ? 'bg-neutral-100/90' : 'bg-white/[0.06]'),
   )
 
   if (showImg && canExpand) {
@@ -109,7 +134,7 @@ export function IntakeProAvatar({
             layout={false}
             className={cn(
               thumbFrameClass,
-              'cursor-pointer transition-shadow hover:ring-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6a00]/45',
+              'cursor-pointer transition-shadow hover:ring-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
             )}
             aria-label={`Ver foto de ${label}`}
             onClick={() => setLightboxOpen(true)}
@@ -179,7 +204,8 @@ export function IntakeProAvatar({
     <span
       className={cn(
         sizeClass,
-        'flex shrink-0 items-center justify-center rounded-lg px-0.5 text-[9px] font-bold uppercase leading-tight ring-1',
+        'flex shrink-0 items-center justify-center px-0.5 text-[9px] font-bold uppercase leading-tight ring-1',
+        shape === 'circle' ? 'rounded-full' : 'rounded-lg',
         theme === 'light'
           ? 'bg-neutral-200/90 text-neutral-800 ring-neutral-300/70'
           : 'bg-white/12 text-white/90 ring-white/15',

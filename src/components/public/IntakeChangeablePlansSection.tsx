@@ -46,6 +46,8 @@ export interface IntakeChangeablePlansSectionProps {
   onBillingChange: (mode: PlanBilling) => void
   /** Fotos por rol para cada bloque del «Incluye». */
   includeSectionAvatars?: IntakeIncludeSectionAvatarMap
+  /** Pie de sección (ej. cancelación). */
+  showFooter?: boolean
 }
 
 function normalizeBadgeClass(variant: 'green' | 'amber', dark: boolean) {
@@ -81,6 +83,7 @@ export function IntakeChangeablePlansSection({
   billing,
   onBillingChange,
   includeSectionAvatars = {},
+  showFooter = true,
 }: IntakeChangeablePlansSectionProps) {
   const heroTone = tone === 'hero'
   const lightChrome = tone === 'card' && uiTheme === 'light'
@@ -109,21 +112,21 @@ export function IntakeChangeablePlansSection({
   const unselectedRow = lightChrome
     ? cn(
         'border border-surface-border/80 bg-surface-card/80',
-        'hover:border-[#ff6a00]/22 hover:shadow-[0_4px_16px_rgba(255,106,0,0.08)]',
+        'hover:border-neutral-300 hover:bg-neutral-50/80',
       )
     : cn(
         'border border-white/10 bg-black/20',
-        'hover:border-[#ff6a00]/25 hover:bg-[#ff6a00]/[0.08]',
+        'hover:border-white/18 hover:bg-white/[0.04]',
       )
 
   if (plans.length === 0) return null
 
   const toggleActive = darkChrome
-    ? 'border border-[#ff6a00]/35 bg-[#ff6a00]/[0.2] !text-white shadow-sm ring-1 ring-[#ff6a00]/30'
-    : 'border border-[#ff6a00]/35 bg-white !text-ink-primary shadow-sm ring-1 ring-[#ff6a00]/20'
+    ? 'border border-white/22 bg-white/[0.1] !text-white'
+    : 'border border-surface-border bg-white text-ink-primary shadow-sm'
   const toggleInactive = darkChrome
-    ? '!text-white/65 hover:!text-white hover:bg-[#ff6a00]/[0.1]'
-    : 'text-ink-muted hover:text-ink-primary hover:bg-[#ff6a00]/[0.06]'
+    ? '!text-white/55 hover:!text-white/85 hover:bg-white/[0.05]'
+    : 'text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/80'
 
   return (
     <div
@@ -158,11 +161,11 @@ export function IntakeChangeablePlansSection({
             flushEmbed
               ? lightChrome
                 ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-ink-secondary'
-                : 'text-[10px] font-bold uppercase tracking-[0.14em] text-[#ffb27e]'
+                : 'text-xs font-medium text-ink-muted'
               : heroTone
-                ? 'text-xs uppercase tracking-[0.16em] text-[#ffb27e]'
+                ? 'text-xs font-medium text-white/55'
                 : darkChrome && !heroTone
-                  ? 'text-xs uppercase tracking-[0.14em] text-[#ffb27e]'
+                  ? 'text-xs font-medium text-white/55'
                   : lightChrome
                     ? 'text-[15px] font-semibold text-ink-primary'
                     : 'text-[17px] font-medium text-ink-primary',
@@ -298,7 +301,9 @@ export function IntakeChangeablePlansSection({
                         className={cn(
                           'flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4',
                           isSelected
-                            ? 'border-[#ff6a00] bg-[#ff6a00] text-white shadow-sm'
+                            ? darkChrome
+                              ? 'border-white/50 bg-white text-zinc-900'
+                              : 'border-zinc-700 bg-zinc-800 text-white'
                             : lightChrome
                               ? 'border-surface-border bg-white'
                               : 'border-white/25 bg-transparent',
@@ -363,7 +368,7 @@ export function IntakeChangeablePlansSection({
                       }}
                       className="overflow-hidden"
                     >
-                      <div className="mb-0.5 mt-3 pt-3 sm:mt-3.5 sm:pt-3.5">
+                      <div className="mb-0.5 mt-2 pt-2 sm:mt-2.5 sm:pt-2.5">
                         <div
                           className={cn(
                             'mb-3 h-px w-full',
@@ -401,7 +406,7 @@ export function IntakeChangeablePlansSection({
                                   <Check
                                     size={14}
                                     strokeWidth={2.8}
-                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-emerald-400/75' : 'text-emerald-600/85')}
+                                    className={cn('mt-0.5 shrink-0', darkChrome ? 'text-white/40' : 'text-ink-muted')}
                                   />
                                   <span
                                     className={cn(
@@ -448,8 +453,8 @@ export function IntakeChangeablePlansSection({
 
       <div
         className={cn(
-          'flex flex-col items-stretch pb-1 sm:flex-row sm:items-center sm:justify-between',
-          flushEmbed ? 'mt-2 gap-2 sm:gap-3' : 'mt-3 gap-2.5',
+          'flex flex-col items-stretch pb-1 sm:flex-row sm:items-center sm:justify-end',
+          flushEmbed ? 'mt-2 gap-2' : 'mt-3 gap-2.5',
           darkChrome && !flushEmbed && 'mt-2.5',
           embedded && heroTone && !lightInsetChrome && 'px-0 pb-0',
           lightInsetChrome && 'mt-3 gap-3 px-0.5 pb-0.5 pt-1 sm:px-1 sm:pb-1',
@@ -457,19 +462,16 @@ export function IntakeChangeablePlansSection({
           flushEmbed && cn('border-t pt-3', darkChrome ? 'border-white/[0.06]' : 'border-neutral-200/75'),
         )}
       >
-        <span
-          className={cn(
-            flushEmbed
-              ? cn(
-                  'max-w-[18rem] text-center text-[8px] font-medium uppercase leading-snug tracking-[0.08em] sm:text-left',
-                  lightChrome ? 'text-neutral-500' : 'text-white/38',
-                )
-              : 'max-w-[16rem] text-center text-[8px] font-bold uppercase leading-relaxed tracking-[0.12em] sm:max-w-[14rem] sm:text-left sm:text-[9px]',
-            !flushEmbed && (darkChrome ? 'text-white/45' : 'text-neutral-500'),
-          )}
-        >
-          {footerText}
-        </span>
+        {showFooter && footerText ? (
+          <span
+            className={cn(
+              'mr-auto max-w-[18rem] text-[10px] leading-snug sm:text-left',
+              darkChrome ? 'text-white/40' : 'text-ink-muted',
+            )}
+          >
+            {footerText}
+          </span>
+        ) : null}
         <button
           type="button"
           disabled={!selectedPlanId}
