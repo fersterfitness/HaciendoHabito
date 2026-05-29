@@ -103,9 +103,10 @@ export function IntakeChangeablePlansSection({
       )
     }
     return cn(
-      'border border-white/22 bg-white/[0.06]',
-      'border-l-[3px] border-l-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
-      'ring-1 ring-white/12',
+      'border border-white/20 bg-white/[0.07]',
+      'border-l-[3px] border-l-[rgb(255,72,0)]/70',
+      'ring-1 ring-white/10',
+      'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.4)]',
     )
   }, [lightChrome])
 
@@ -122,7 +123,7 @@ export function IntakeChangeablePlansSection({
   if (plans.length === 0) return null
 
   const toggleActive = darkChrome
-    ? 'border border-white/22 bg-white/[0.1] !text-white'
+    ? 'border border-[rgb(255,72,0)]/40 bg-[rgb(255,72,0)]/[0.12] !text-white shadow-[0_0_10px_rgba(255,72,0,0.2)]'
     : 'border border-surface-border bg-white text-ink-primary shadow-sm'
   const toggleInactive = darkChrome
     ? '!text-white/55 hover:!text-white/85 hover:bg-white/[0.05]'
@@ -299,19 +300,19 @@ export function IntakeChangeablePlansSection({
                     <div className="mt-px shrink-0">
                       <div
                         className={cn(
-                          'flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4',
+                          'flex h-4 w-4 items-center justify-center rounded-full border transition-all duration-200 sm:h-4.5 sm:w-4.5',
                           isSelected
                             ? darkChrome
-                              ? 'border-white/50 bg-white text-zinc-900'
-                              : 'border-zinc-700 bg-zinc-800 text-white'
+                              ? 'border-[rgb(255,72,0)] bg-[rgb(255,72,0)] shadow-[0_0_8px_rgba(255,72,0,0.4)]'
+                              : 'border-zinc-700 bg-zinc-800'
                             : lightChrome
                               ? 'border-surface-border bg-white'
-                              : 'border-white/25 bg-transparent',
+                              : 'border-white/20 bg-transparent',
                         )}
                         aria-hidden
                       >
                         {isSelected ? (
-                          <Check size={9} strokeWidth={2.75} className="text-white" />
+                          <Check size={9} strokeWidth={3} className="text-white" />
                         ) : null}
                       </div>
                     </div>
@@ -320,7 +321,10 @@ export function IntakeChangeablePlansSection({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span
                           className={cn(
-                            'text-[13px] font-medium leading-snug',
+                            'leading-snug transition-all duration-200',
+                            isSelected
+                              ? 'text-[14px] font-semibold'
+                              : 'text-[13px] font-medium',
                             darkChrome ? 'text-white/95' : 'text-neutral-900',
                           )}
                         >
