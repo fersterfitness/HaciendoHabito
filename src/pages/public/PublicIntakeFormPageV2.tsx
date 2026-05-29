@@ -39,10 +39,20 @@ import {
 } from '@/lib/publicIntakeCatalogOffers'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 
-const MODALITY_OPTIONS: { segment: WebPlanCatalogSegment; short: string; label: string; desc: string }[] = [
-  { segment: 'solo',              short: 'Entrenamiento', label: 'Ferster Fitness',  desc: 'Plan de entrenamiento personalizado' },
-  { segment: 'with_nutritionist', short: 'Nutrición',     label: 'Con nutricionista', desc: 'Acompañamiento nutricional individual' },
-  { segment: 'full',              short: 'Full',          label: 'Entreno + Nutrición', desc: 'Plan integral de transformación' },
+type ModalityId = WebPlanCatalogSegment | 'psychologist'
+
+const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: string }[] = [
+  { id: 'full',              short: 'Más Completos',  label: 'Planes Más Completos',           desc: 'Nuestros mejores planes personalizados y en conjunto.' },
+  { id: 'solo',              short: 'Entrenamiento',  label: 'Entrenamiento Individual',        desc: 'Planes de entrenamiento personalizado' },
+  { id: 'with_nutritionist', short: 'Nutrición',      label: 'Nutrición',                      desc: 'Planes individuales de nutrición' },
+  { id: 'psychologist',      short: 'Psicología',     label: 'Psicólogo Deportivo',             desc: 'Planes individuales Psicología deportiva' },
+]
+
+/** Subcategorías visuales dentro del segmento "full". */
+const FULL_SUBCATEGORIES = [
+  { key: 'entreno_nutricion',            label: 'Entreno + Nutrición',                       matchFn: (name: string) => !/psic/i.test(name) },
+  { key: 'entreno_psicologo',            label: 'Entreno + Psicólogo Deportivo',              matchFn: (name: string) => /psic/i.test(name) && !/nutri/i.test(name) },
+  { key: 'entreno_nutricion_psicologo',  label: 'Entreno + Nutrición + Psicólogo Deportivo',  matchFn: (name: string) => /psic/i.test(name) && /nutri/i.test(name) },
 ]
 
 const STEPS = [
@@ -102,7 +112,7 @@ export function PublicIntakeFormPageV2() {
   const [plans, setPlans] = useState<PublicIntakePlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
-  const [catalogSegment, setCatalogSegment] = useState<WebPlanCatalogSegment>('solo')
+  const [catalogSegment, setCatalogSegment] = useState<ModalityId>('full')
   const [step, setStep] = useState<StepId>('plan')
   const [catalogImages, setCatalogImages] = useState<{
     trainer: string | null
@@ -189,11 +199,14 @@ export function PublicIntakeFormPageV2() {
   }, [])
 
   /* ─────────────── Derivados ─────────────── */
-  const plansVisible = useMemo(() => plans.filter((p) => {
-    if (p.catalogSegment !== catalogSegment) return false
-    const bundle = inferWebPlanBundleCommitment(p.id, p.name)
-    return planVisibleForIntakeBilling(bundle, planBilling)
-  }), [plans, catalogSegment, planBilling])
+  const plansVisible = useMemo(() => {
+    if (catalogSegment === 'psychologist') return []
+    return plans.filter((p) => {
+      if (p.catalogSegment !== (catalogSegment as WebPlanCatalogSegment)) return false
+      const bundle = inferWebPlanBundleCommitment(p.id, p.name)
+      return planVisibleForIntakeBilling(bundle, planBilling)
+    })
+  }, [plans, catalogSegment, planBilling])
 
   useEffect(() => {
     if (plansVisible.length === 0) return
@@ -205,7 +218,7 @@ export function PublicIntakeFormPageV2() {
     () => (selectedPlanId ? plans.find((p) => p.id === selectedPlanId) ?? null : null),
     [plans, selectedPlanId],
   )
-  const intakeKind = catalogSegment === 'with_nutritionist' ? 'nutricion' : catalogSegment === 'full' ? 'full' : 'entrenamiento'
+  const intakeKind = catalogSegment === 'with_nutritionist' ? 'nutricion' : catalogSegment === 'full' ? 'full' : catalogSegment === 'psychologist' ? 'entrenamiento' : 'entrenamiento'
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
   if (!isReady) {
@@ -402,14 +415,14 @@ export function PublicIntakeFormPageV2() {
                 {/* Modality cards */}
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Modalidad</p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {MODALITY_OPTIONS.map((m) => {
-                      const active = catalogSegment === m.segment
+                      const active = catalogSegment === m.id
                       return (
                         <button
-                          key={m.segment}
+                          key={m.id}
                           type="button"
-                          onClick={() => setCatalogSegment(m.segment)}
+                          onClick={() => setCatalogSegment(m.id)}
                           className={cn(
                             'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-xl border p-3.5 text-left',
                             active
@@ -441,7 +454,69 @@ export function PublicIntakeFormPageV2() {
                 {/* Plans section */}
                 <div>
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Ofertas disponibles</p>
-                  {plansVisible.length > 0 ? (
+
+                  {catalogSegment === 'psychologist' ? (
+                    <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
+                      <Sparkles className="mx-auto mb-3 h-6 w-6 text-brand-primary/60" aria-hidden />
+                      <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Próximamente</p>
+                      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Estamos preparando los planes de Psicología Deportiva.</p>
+                    </div>
+                  ) : catalogSegment === 'full' && plansVisible.length > 0 ? (
+                    /* ── Subcategorías para "Planes Más Completos" ── */
+                    <div className="space-y-6">
+                      {FULL_SUBCATEGORIES.map((sub) => {
+                        const subPlans = plansVisible.filter((p) => sub.matchFn(p.name))
+                        if (subPlans.length === 0) return null
+                        return (
+                          <div key={sub.key}>
+                            <div className="mb-3 flex items-center gap-3">
+                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
+                              <span className="rounded-full border border-zinc-300/70 bg-zinc-100 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                {sub.label}
+                              </span>
+                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
+                            </div>
+                            <div className="-mx-1">
+                              <IntakeChangeablePlansSection
+                                title=""
+                                footerText=""
+                                buttonText={selectedPlanId && subPlans.some(p => p.id === selectedPlanId) ? 'Continuar →' : 'Elegí un plan'}
+                                plans={intakePlansToPricingPlans(subPlans)}
+                                selectedPlanId={selectedPlanId}
+                                onSelectPlan={(id) => setSelectedPlanId(id)}
+                                onContinue={() => { if (selectedPlanId) setStep('form') }}
+                                billing={planBilling}
+                                onBillingChange={setPlanBilling}
+                                badgeVariant="amber"
+                                tone="card"
+                                embedded
+                                flush
+                                showFooter={false}
+                                uiTheme={theme}
+                                includeSectionAvatars={{
+                                  trainer:      { avatarUrl: catalogImages.trainer,      subtitle: 'Tomás Ferster' },
+                                  nutritionist: { avatarUrl: catalogImages.nutritionist, subtitle: 'Cristian Crossetto' },
+                                  psychologist: { avatarUrl: catalogImages.psychologist, subtitle: 'Santiago Rodríguez' },
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {/* Botón continuar global del segmento full */}
+                      <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Cancelás cuando quieras.</span>
+                        <button
+                          type="button"
+                          disabled={!selectedPlanId}
+                          onClick={() => { if (selectedPlanId) setStep('form') }}
+                          className={cn('rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40')}
+                        >
+                          {selectedPlanId ? 'Continuar →' : 'Elegí un plan'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : plansVisible.length > 0 ? (
                     <div className="-mx-1">
                       <IntakeChangeablePlansSection
                         title="Ofertas"
@@ -705,7 +780,7 @@ function MeetTheTeam({
               key={p.key}
               className={cn(
                 'v2f-team-card group relative overflow-hidden rounded-3xl p-2.5',
-                'bg-white shadow-[0_8px_40px_-4px_rgba(0,0,0,0.18),0_2px_12px_-2px_rgba(0,0,0,0.10)]',
+                'bg-zinc-100 shadow-[0_8px_40px_-4px_rgba(0,0,0,0.18),0_2px_12px_-2px_rgba(0,0,0,0.10)]',
                 'hover:shadow-[0_20px_60px_-8px_rgba(0,0,0,0.24),0_6px_20px_-4px_rgba(255,72,0,0.15)]',
                 'dark:bg-zinc-800 dark:shadow-[0_8px_40px_-2px_rgba(0,0,0,0.7),0_2px_14px_-1px_rgba(0,0,0,0.5)]',
                 'dark:hover:shadow-[0_20px_60px_-6px_rgba(0,0,0,0.8),0_6px_20px_-4px_rgba(255,72,0,0.25)]',

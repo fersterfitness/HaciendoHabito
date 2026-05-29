@@ -103,8 +103,10 @@ function isDurationVariantWebOffer(plan: EditableWebPlan): boolean {
   return false
 }
 
+type ExtendedSegment = WebPlanCatalogSegment | 'psychologist'
+
 /** Borde y leve tinte para distinguir segmentos al editar muchas ofertas. */
-function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
+function segmentOfferCardClass(seg: ExtendedSegment): string {
   switch (seg) {
     case 'solo':
       return 'border-l-[5px] border-l-amber-500 ring-1 ring-amber-500/12 dark:ring-amber-400/10'
@@ -112,12 +114,14 @@ function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
       return 'border-l-[5px] border-l-sky-500 ring-1 ring-sky-500/12 dark:ring-sky-400/10'
     case 'full':
       return 'border-l-[5px] border-l-emerald-500 ring-1 ring-emerald-500/12 dark:ring-emerald-400/10'
+    case 'psychologist':
+      return 'border-l-[5px] border-l-violet-500 ring-1 ring-violet-500/12 dark:ring-violet-400/10'
     default:
       return ''
   }
 }
 
-function segmentOfferHeaderTintClass(seg: WebPlanCatalogSegment): string {
+function segmentOfferHeaderTintClass(seg: ExtendedSegment): string {
   switch (seg) {
     case 'solo':
       return 'bg-amber-500/[0.07] dark:bg-amber-500/10'
@@ -125,6 +129,8 @@ function segmentOfferHeaderTintClass(seg: WebPlanCatalogSegment): string {
       return 'bg-sky-500/[0.07] dark:bg-sky-500/10'
     case 'full':
       return 'bg-emerald-500/[0.07] dark:bg-emerald-500/10'
+    case 'psychologist':
+      return 'bg-violet-500/[0.07] dark:bg-violet-500/10'
     default:
       return 'bg-surface-elevated/45'
   }
@@ -196,6 +202,7 @@ export function WebPlansSettingsPage() {
   const [plans, setPlans] = useState<EditableWebPlan[]>(() => mergeWebPlansForManagement([]))
   /** Slugs creados en esta sesión y aún no guardados en la base (se pueden borrar). */
   const [draftSlugs, setDraftSlugs] = useState<string[]>([])
+  const [pendingScrollSlug, setPendingScrollSlug] = useState<string | null>(null)
   const [soloSegmentImg, setSoloSegmentImg] = useState('')
   const [withNutritionistSegmentImg, setWithNutritionistSegmentImg] = useState('')
   const [fullSegmentImg, setFullSegmentImg] = useState('')
@@ -573,7 +580,17 @@ export function WebPlansSettingsPage() {
     setPlans((prev) => [...prev, row])
     setDraftSlugs((ds) => [...ds, row.slug])
     setExpandedOfferSlugs((prev) => new Set(prev).add(row.slug))
+    setPendingScrollSlug(row.slug)
   }
+
+  useEffect(() => {
+    if (!pendingScrollSlug) return
+    const el = document.getElementById(`offer-card-${pendingScrollSlug}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setPendingScrollSlug(null)
+    }
+  }, [pendingScrollSlug, plans])
 
   function removeDraft(slug: string) {
     if (!draftSlugs.includes(slug)) return
@@ -747,35 +764,27 @@ export function WebPlansSettingsPage() {
             <p className="text-sm font-semibold text-ink-primary">Cómo se arma el formulario público (/form)</p>
             <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-ink-secondary marker:text-ink-muted">
               <li>
-                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> fotos del equipo, nombres del desplegable «Modalidad»,
-                cupos y videos de testimonio.
+                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo (entrenador, nutricionista, psicólogo) y las 4 modalidades disponibles.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">FERSTER FITNESS:</span> tres cards fijas en la app, más cualquier oferta extra con segmento{' '}
-                <code className="font-mono text-[10px]">solo</code> que agregues abajo (activa y «Mostrar en /form»).
+                <span className="font-medium text-ink-primary">Planes Más Completos (full):</span> las ofertas salen de la base con segmento <code className="font-mono text-[10px]">full</code>, activas y con «Mostrar en /form». Se agrupan en subcategorías automáticas: Entreno + Nutrición, Entreno + Psicólogo, Entreno + Nutrición + Psicólogo.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Nutrición (modalidad 2):</span> las cards salen de las ofertas de esta página con
-                segmento Nutrición (<code className="font-mono text-[10px]">with_nutritionist</code>), activas y con «Mostrar en /form» (igual criterio que Plan
-                full). Ferster: tres fijas en código + extras «solo» de la base.
+                <span className="font-medium text-ink-primary">Entrenamiento Individual (solo):</span> ofertas con segmento <code className="font-mono text-[10px]">solo</code>, activas y con «Mostrar en /form».
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Plan full (entreno + nutrición):</span> las cards salen de las ofertas de esta página,
-                segmento Plan full, activas y con «Mostrar en /form», más tres ofertas fijas en código. Las ofertas con slug{' '}
-                <code className="font-mono text-[10px]">promo-3m-*</code> o <code className="font-mono text-[10px]">promo-6m-*</code> (o título «… — 3
-                meses» / «… — 6 meses») en el /form solo se listan al elegir x3 o x6 meses en el toggle, no en Mensual ni Anual.
+                <span className="font-medium text-ink-primary">Nutrición (with_nutritionist):</span> ofertas con segmento <code className="font-mono text-[10px]">with_nutritionist</code>, activas y con «Mostrar en /form».
               </li>
               <li>
-                El visitante puede elegir <span className="font-medium text-ink-primary">Mensual, x3, x6 o Anual</span> arriba de las cards: solo
-                cambian los importes mostrados, no el texto de cada oferta.
+                <span className="font-medium text-ink-primary">Psicólogo Deportivo (psychologist):</span> muestra «Próximamente» en el /form. Cuando haya ofertas creadas con este segmento y activadas, se mostrarán automáticamente.
+              </li>
+              <li>
+                El visitante elige <span className="font-medium text-ink-primary">Mensual, x3, x6 o Anual</span> para ver los precios correspondientes — no cambia el contenido de las ofertas.
               </li>
             </ul>
           </div>
           <div className="rounded-lg border border-surface-border bg-surface-card/50 px-3 py-2.5 text-xs leading-relaxed text-ink-secondary">
-            <span className="font-semibold text-ink-primary">Tip:</span> las ofertas con segmento Nutrición sí se listan en el /form cuando están activas
-            y con «Mostrar en /form». Ferster y el trío «Plan full» fijo siguen en{' '}
-            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-[10px]">publicIntakeCatalogOffers.ts</code>. Para x3/x6 en una
-            sola fila, usá «Precios por plazo (opcional)» en cada oferta.
+            <span className="font-semibold text-ink-primary">Tip:</span> para que una oferta aparezca en el /form debe estar activa <strong>y</strong> con «Mostrar en /form» activado. Para mostrar precios x3/x6 en una sola fila, usá «Precios por plazo (opcional)» en cada oferta.
           </div>
           <p className="text-xs text-ink-muted">
             <a href="#web-plans-ofertas" className="font-medium text-ink-primary underline decoration-ink-primary/30 underline-offset-2 hover:decoration-ink-primary">
@@ -906,11 +915,11 @@ export function WebPlansSettingsPage() {
             <div className="space-y-4">
               <SubsectionTitle>Nombres del desplegable «Modalidad»</SubsectionTitle>
               <p className="text-xs text-ink-muted">
-                Si dejás un campo vacío, el /form usa el texto por defecto: FERSTER FITNESS / NUTRICIÓN / PLAN FULL (ENTRENO + NUTRICIÓN).
+                Si dejás un campo vacío, el /form usa el texto por defecto de cada modalidad.
               </p>
               <Input
-                label="Opción 1 — Solo entrenamiento (segmento solo)"
-                placeholder="Ej. FERSTER FITNESS"
+                label="Opción 1 — Entrenamiento Individual (segmento solo)"
+                placeholder="Ej. ENTRENAMIENTO INDIVIDUAL"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelSolo}
                 onChange={(e) => setModalityLabelSolo(e.target.value)}
@@ -923,8 +932,8 @@ export function WebPlansSettingsPage() {
                 onChange={(e) => setModalityLabelWithNutritionist(e.target.value)}
               />
               <Input
-                label="Opción 3 — Plan integral (segmento full)"
-                placeholder="Ej. PLAN FULL (ENTRENO + NUTRICIÓN)"
+                label="Opción 3 — Planes Más Completos (segmento full)"
+                placeholder="Ej. PLANES MÁS COMPLETOS"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelFull}
                 onChange={(e) => setModalityLabelFull(e.target.value)}
@@ -996,8 +1005,7 @@ export function WebPlansSettingsPage() {
             Catálogo de ofertas ({CANONICAL_WEB_PLAN_SLUGS.length} planes base + extras)
           </h2>
           <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
-            Las <strong className="text-ink-primary">7 ofertas del /form</strong> (3 Ferster, Nutrición individual, 3 Plan full) aparecen siempre acá con sus
-            textos alineados a la web, aunque aún no estén en la base. Editá y pulsá{' '}
+            Todas las ofertas activas y con «Mostrar en /form» aparecen en el formulario público, agrupadas por segmento y modalidad. Editá y pulsá{' '}
             <strong className="text-ink-primary">Guardar ofertas</strong> para persistir en{' '}
             <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Las filas marcadas «Catálogo /form» no se pueden
             borrar.
@@ -1090,8 +1098,9 @@ export function WebPlansSettingsPage() {
             return (
             <div
               key={plan.slug}
+              id={`offer-card-${plan.slug}`}
               className={cn(
-                'rounded-2xl transition-[opacity,box-shadow]',
+                'scroll-mt-24 rounded-2xl transition-[opacity,box-shadow]',
                 draggingPlanSlug === plan.slug && 'opacity-55',
                 dragOverPlanSlug === plan.slug &&
                   draggingPlanSlug &&
@@ -1317,15 +1326,16 @@ export function WebPlansSettingsPage() {
                       }
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
-                      <option value="solo">FERSTER FITNESS (solo)</option>
+                      <option value="solo">ENTRENAMIENTO INDIVIDUAL (solo)</option>
                       <option value="with_nutritionist">NUTRICIÓN (with_nutritionist)</option>
-                      <option value="full">PLAN FULL (full)</option>
+                      <option value="full">PLANES MÁS COMPLETOS (full)</option>
+                      <option value="psychologist">PSICÓLOGO DEPORTIVO (psychologist)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      En <strong className="text-ink-secondary">Plan full</strong> el /form combina tres ofertas fijas en código más las filas de este
-                      segmento en la base. En <strong className="text-ink-secondary">Nutrición</strong> las cards son solo las filas de la base con este
-                      segmento (activas y «Mostrar en /form»). Ferster (<strong className="text-ink-secondary">solo</strong>): tres ofertas base en código
-                      más cualquier extra «solo» que agregues acá (p. ej. ACTION SPORT GYM).
+                      <strong className="text-ink-secondary">Planes Más Completos (full)</strong>: aparece en la modalidad "full" del /form, agrupado por subcategorías.{' '}
+                      <strong className="text-ink-secondary">Entrenamiento (solo)</strong>: planes individuales de entrenamiento.{' '}
+                      <strong className="text-ink-secondary">Nutrición</strong>: planes individuales de nutrición.{' '}
+                      <strong className="text-ink-secondary">Psicólogo Deportivo</strong>: planes de psicología (próximamente visible en el /form).
                     </p>
                   </div>
                 </FieldGroup>
