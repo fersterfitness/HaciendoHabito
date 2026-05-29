@@ -48,23 +48,26 @@ export interface IntakeChangeablePlansSectionProps {
   includeSectionAvatars?: IntakeIncludeSectionAvatarMap
   /** Pie de sección (ej. cancelación). */
   showFooter?: boolean
+  /**
+   * Layout estilo "pricing card" (referencia minimal): cada plan es una card
+   * completa siempre expandida — badge ámbar en esquina, precio grande,
+   * descripción + CTA a la izquierda y features a la derecha.
+   * Sin acordeón. Sólo lo usa el form V2.
+   */
+  cardLayout?: boolean
 }
 
-function normalizeBadgeClass(variant: 'green' | 'amber', dark: boolean) {
-  if (variant === 'amber') {
-    return dark
-      ? 'border border-white/12 bg-white/[0.06] text-white/65'
-      : 'border border-neutral-200 bg-neutral-100 text-neutral-700'
-  }
-  return dark ? 'bg-emerald-500/15 text-emerald-300' : 'border border-emerald-200 bg-emerald-50 text-emerald-800'
-}
-
-function badgeChipClass(planBadge: string | undefined | null, variant: 'green' | 'amber', dark: boolean): string {
+/**
+ * Clase para el badge corner (absoluto, top-right de la card).
+ * Amber variant → pill sólido ámbar, igual a la referencia.
+ */
+function cornerBadgeClass(planBadge: string | undefined | null, variant: 'green' | 'amber'): string {
   const raw = planBadge?.trim() ?? ''
   if (/popular|recomendado|destacado/i.test(raw)) {
-    return dark ? 'border border-emerald-400/40 bg-emerald-500/20 text-emerald-200' : 'border border-emerald-200 bg-emerald-50 text-emerald-800 font-bold'
+    return 'bg-emerald-400 text-zinc-900'
   }
-  return normalizeBadgeClass(variant, dark)
+  if (variant === 'amber') return 'bg-amber-400 text-zinc-900'
+  return 'bg-emerald-400 text-zinc-900'
 }
 
 export function IntakeChangeablePlansSection({
@@ -84,6 +87,7 @@ export function IntakeChangeablePlansSection({
   onBillingChange,
   includeSectionAvatars = {},
   showFooter = true,
+  cardLayout = false,
 }: IntakeChangeablePlansSectionProps) {
   const heroTone = tone === 'hero'
   const lightChrome = tone === 'card' && uiTheme === 'light'
@@ -97,16 +101,14 @@ export function IntakeChangeablePlansSection({
   const selectedRing = useMemo(() => {
     if (lightChrome) {
       return cn(
-        'border border-neutral-300/90 bg-gradient-to-b from-white via-neutral-50/80 to-transparent',
-        'shadow-[0_4px_20px_rgba(15,23,42,0.08)] ring-1 ring-neutral-200/80',
-        'border-l-[3px] border-l-neutral-400/70',
+        'border border-zinc-300 bg-white',
+        'shadow-[0_6px_28px_-8px_rgba(15,23,42,0.14)] ring-1 ring-zinc-200/80',
       )
     }
     return cn(
-      'border border-white/20 bg-white/[0.07]',
-      'border-l-[3px] border-l-[rgb(255,72,0)]/70',
-      'ring-1 ring-white/10',
-      'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.4)]',
+      'border border-white/22 bg-white/[0.07]',
+      'ring-1 ring-white/12',
+      'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.45)]',
     )
   }, [lightChrome])
 
@@ -123,7 +125,7 @@ export function IntakeChangeablePlansSection({
   if (plans.length === 0) return null
 
   const toggleActive = darkChrome
-    ? 'border border-[rgb(255,72,0)]/40 bg-[rgb(255,72,0)]/[0.12] !text-white shadow-[0_0_10px_rgba(255,72,0,0.2)]'
+    ? 'border border-white/20 bg-white/[0.12] !text-white shadow-sm'
     : 'border border-surface-border bg-white text-ink-primary shadow-sm'
   const toggleInactive = darkChrome
     ? '!text-white/55 hover:!text-white/85 hover:bg-white/[0.05]'
@@ -246,13 +248,14 @@ export function IntakeChangeablePlansSection({
       <div
         className={cn(
           'flex flex-col',
-          flushEmbed ? 'mt-2 gap-2.5' : lightChrome ? 'mt-1.5 gap-2 sm:gap-2' : 'gap-2',
-          darkInsetChrome && 'mt-2.5',
+          cardLayout
+            ? 'mt-4 gap-4'
+            : flushEmbed ? 'mt-2 gap-2.5' : lightChrome ? 'mt-1.5 gap-2 sm:gap-2' : 'gap-2',
+          darkInsetChrome && !cardLayout && 'mt-2.5',
         )}
       >
         {plans.map((plan) => {
           const isSelected = selectedPlanId === plan.id
-          const badgeCls = badgeChipClass(plan.badge, badgeVariant, darkChrome)
           const priceMain =
             billing === 'monthly'
               ? plan.priceMonthlyDisplay
@@ -269,6 +272,122 @@ export function IntakeChangeablePlansSection({
                 : billing === 'months6'
                   ? 'Total · 6 meses'
                   : 'Por año · pago único'
+
+          /* ═══ Layout estilo referencia (pricing card minimal) ═══ */
+          if (cardLayout) {
+            const hasSections = Boolean(plan.featureSections && plan.featureSections.length > 0)
+            return (
+              <div
+                key={plan.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectPlan(plan.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onSelectPlan(plan.id)
+                  }
+                }}
+                className={cn(
+                  'relative cursor-pointer rounded-2xl border outline-none transition-all duration-300 ease-out',
+                  'will-change-transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-amber-400/40',
+                  darkChrome
+                    ? isSelected
+                      ? 'border-amber-400/55 bg-zinc-900 ring-1 ring-amber-400/25 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.75)] hover:shadow-[0_28px_60px_-12px_rgba(0,0,0,0.85)]'
+                      : 'border-zinc-800 bg-zinc-900/50 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.6)] hover:border-zinc-700 hover:bg-zinc-900/70 hover:shadow-[0_24px_50px_-14px_rgba(0,0,0,0.7)]'
+                    : isSelected
+                      ? 'border-amber-400/70 bg-white ring-1 ring-amber-400/25 shadow-[0_22px_50px_-16px_rgba(15,23,42,0.30)] hover:shadow-[0_30px_60px_-16px_rgba(15,23,42,0.36)]'
+                      : 'border-zinc-200 bg-white shadow-[0_12px_30px_-16px_rgba(15,23,42,0.14)] hover:border-zinc-300 hover:shadow-[0_24px_48px_-18px_rgba(15,23,42,0.22)]',
+                )}
+              >
+                {/* Badge ámbar — esquina superior derecha, montado sobre el borde */}
+                {plan.badge?.trim() ? (
+                  <span className="absolute -top-2.5 right-5 z-10 rounded-full bg-amber-400 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-zinc-900 shadow-sm">
+                    {plan.badge.trim()}
+                  </span>
+                ) : null}
+
+                <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,0.85fr)_1px_minmax(0,1.25fr)] sm:gap-0 sm:p-6">
+                  {/* IZQUIERDA: nombre, precio, descripción, CTA */}
+                  <div className="sm:pr-6">
+                    <p className={cn('text-[12px] font-bold uppercase tracking-[0.12em]', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
+                      {plan.name}
+                    </p>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <span className={cn('text-3xl font-extrabold leading-none tracking-tight tabular-nums', darkChrome ? 'text-white' : 'text-neutral-900')}>
+                        {priceMain}
+                      </span>
+                      <span className={cn('text-[11px] font-medium lowercase', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
+                        {priceSub}
+                      </span>
+                    </div>
+                    {plan.description?.trim() ? (
+                      <p className={cn('mt-3 max-w-[15rem] text-[12px] leading-relaxed', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
+                        {plan.description.trim()}
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (isSelected) onContinue?.()
+                        else onSelectPlan(plan.id)
+                      }}
+                      className={cn(
+                        'mt-4 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors',
+                        isSelected
+                          ? 'bg-amber-400 text-zinc-900 hover:bg-amber-300'
+                          : darkChrome
+                            ? 'bg-white text-zinc-900 hover:bg-white/90'
+                            : 'bg-zinc-900 text-white hover:bg-zinc-800',
+                      )}
+                    >
+                      {isSelected ? buttonText : 'Elegir plan'}
+                      <span aria-hidden>→</span>
+                    </button>
+                  </div>
+
+                  {/* Divisor vertical */}
+                  <div className={cn('hidden sm:block', darkChrome ? 'bg-white/10' : 'bg-neutral-200')} aria-hidden />
+
+                  {/* DERECHA: features */}
+                  <div className="border-t pt-4 sm:border-t-0 sm:pl-6 sm:pt-0" style={{ borderColor: darkChrome ? 'rgba(255,255,255,0.1)' : 'rgb(229 229 229)' }}>
+                    {hasSections ? (
+                      <WebPlanIncludesSectionsDisplay
+                        sections={attachAvatarsToIncludeSectionViews(plan.featureSections!, includeSectionAvatars)}
+                        darkChrome={darkChrome}
+                        listTitle={plan.featuresLabel ?? 'Incluye'}
+                        showProfessionalAvatars
+                        marker="dot"
+                      />
+                    ) : plan.features.length > 0 ? (
+                      <>
+                        <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
+                          {plan.featuresLabel ?? 'Incluye'}
+                        </p>
+                        <ul className="flex flex-col gap-1.5">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span
+                                aria-hidden
+                                className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', darkChrome ? 'bg-amber-400/70' : 'bg-amber-500')}
+                              />
+                              <span className={cn('text-[13px] font-medium leading-snug', darkChrome ? 'text-white/78' : 'text-neutral-600')}>
+                                {feature.text}
+                              </span>
+                              {feature.hasInfo ? (
+                                <Info size={13} className={cn('ml-0.5 shrink-0', darkChrome ? 'text-white/35' : 'text-neutral-300')} />
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            )
+          }
 
           return (
             <motion.div
@@ -294,16 +413,29 @@ export function IntakeChangeablePlansSection({
                 isSelected ? selectedRing : unselectedRow,
               )}
             >
-              <div className={cn(flushEmbed ? 'px-2.5 py-2 sm:px-3' : 'px-3 py-2.5 sm:px-4 sm:py-3.5', darkChrome && !flushEmbed && 'py-2 sm:py-2.5')}>
+              {/* Badge corner — absoluto top-right, ámbar sólido (como la referencia) */}
+              {plan.badge?.trim() ? (
+                <span
+                  className={cn(
+                    'absolute right-3 top-3 z-10 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.07em]',
+                    cornerBadgeClass(plan.badge, badgeVariant),
+                  )}
+                >
+                  {plan.badge.trim()}
+                </span>
+              ) : null}
+
+              <div className={cn(flushEmbed ? 'px-2.5 py-3 sm:px-3' : 'px-3 py-3 sm:px-4 sm:py-4', darkChrome && !flushEmbed && 'py-3')}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-1 gap-3">
+                    {/* Checkbox indicator */}
                     <div className="mt-px shrink-0">
                       <div
                         className={cn(
                           'flex h-4 w-4 items-center justify-center rounded-full border transition-all duration-200 sm:h-4.5 sm:w-4.5',
                           isSelected
                             ? darkChrome
-                              ? 'border-[rgb(255,72,0)] bg-[rgb(255,72,0)] shadow-[0_0_8px_rgba(255,72,0,0.4)]'
+                              ? 'border-white/70 bg-white/90'
                               : 'border-zinc-700 bg-zinc-800'
                             : lightChrome
                               ? 'border-surface-border bg-white'
@@ -312,37 +444,32 @@ export function IntakeChangeablePlansSection({
                         aria-hidden
                       >
                         {isSelected ? (
-                          <Check size={9} strokeWidth={3} className="text-white" />
+                          <Check size={9} strokeWidth={3} className={darkChrome ? 'text-zinc-800' : 'text-white'} />
                         ) : null}
                       </div>
                     </div>
 
+                    {/* Nombre del plan — sin badge inline, el badge va al corner */}
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span
-                          className={cn(
-                            'leading-snug transition-all duration-200',
-                            isSelected
-                              ? 'text-[14px] font-semibold'
-                              : 'text-[13px] font-medium',
-                            darkChrome ? 'text-white/95' : 'text-neutral-900',
-                          )}
-                        >
-                          {plan.name}
-                        </span>
-                        {plan.badge?.trim() ? (
-                          <span className={cn('rounded-md px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em]', badgeCls)}>
-                            {plan.badge.trim()}
-                          </span>
-                        ) : null}
-                      </div>
+                      <span
+                        className={cn(
+                          'leading-snug transition-all duration-200',
+                          isSelected ? 'text-[14px] font-semibold' : 'text-[13px] font-medium',
+                          darkChrome ? 'text-white/95' : 'text-neutral-900',
+                          /* dejar espacio para el badge corner si hay badge */
+                          plan.badge?.trim() ? 'pr-20' : '',
+                        )}
+                      >
+                        {plan.name}
+                      </span>
                     </div>
                   </div>
 
+                  {/* Precio — más prominente */}
                   <div className="flex shrink-0 flex-col items-end">
                     <div
                       className={cn(
-                        'text-[13px] font-semibold leading-none tabular-nums',
+                        'text-[16px] font-bold leading-none tabular-nums',
                         darkChrome ? 'text-white' : 'text-neutral-900',
                       )}
                     >
@@ -455,39 +582,47 @@ export function IntakeChangeablePlansSection({
         })}
       </div>
 
-      <div
-        className={cn(
-          'flex flex-col items-stretch pb-1 sm:flex-row sm:items-center sm:justify-end',
-          flushEmbed ? 'mt-2 gap-2' : 'mt-3 gap-2.5',
-          darkChrome && !flushEmbed && 'mt-2.5',
-          embedded && heroTone && !lightInsetChrome && 'px-0 pb-0',
-          lightInsetChrome && 'mt-3 gap-3 px-0.5 pb-0.5 pt-1 sm:px-1 sm:pb-1',
-          darkInsetChrome && 'mt-3 px-0.5 pb-0.5 pt-2 sm:border-t sm:border-white/10 sm:px-0 sm:pb-0 sm:pt-3',
-          flushEmbed && cn('border-t pt-3', darkChrome ? 'border-white/[0.06]' : 'border-neutral-200/75'),
-        )}
-      >
-        {showFooter && footerText ? (
-          <span
-            className={cn(
-              'mr-auto max-w-[18rem] text-[10px] leading-snug sm:text-left',
-              darkChrome ? 'text-white/40' : 'text-ink-muted',
-            )}
-          >
+      {cardLayout ? (
+        showFooter && footerText ? (
+          <p className={cn('mt-4 text-center text-[10px] leading-snug', darkChrome ? 'text-white/40' : 'text-ink-muted')}>
             {footerText}
-          </span>
-        ) : null}
-        <button
-          type="button"
-          disabled={!selectedPlanId}
-          onClick={() => selectedPlanId && onContinue?.()}
+          </p>
+        ) : null
+      ) : (
+        <div
           className={cn(
-            intakePanelPlansCtaClass,
-            'active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
+            'flex flex-col items-stretch pb-1 sm:flex-row sm:items-center sm:justify-end',
+            flushEmbed ? 'mt-2 gap-2' : 'mt-3 gap-2.5',
+            darkChrome && !flushEmbed && 'mt-2.5',
+            embedded && heroTone && !lightInsetChrome && 'px-0 pb-0',
+            lightInsetChrome && 'mt-3 gap-3 px-0.5 pb-0.5 pt-1 sm:px-1 sm:pb-1',
+            darkInsetChrome && 'mt-3 px-0.5 pb-0.5 pt-2 sm:border-t sm:border-white/10 sm:px-0 sm:pb-0 sm:pt-3',
+            flushEmbed && cn('border-t pt-3', darkChrome ? 'border-white/[0.06]' : 'border-neutral-200/75'),
           )}
         >
-          {buttonText}
-        </button>
-      </div>
+          {showFooter && footerText ? (
+            <span
+              className={cn(
+                'mr-auto max-w-[18rem] text-[10px] leading-snug sm:text-left',
+                darkChrome ? 'text-white/40' : 'text-ink-muted',
+              )}
+            >
+              {footerText}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            disabled={!selectedPlanId}
+            onClick={() => selectedPlanId && onContinue?.()}
+            className={cn(
+              intakePanelPlansCtaClass,
+              'active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
+            )}
+          >
+            {buttonText}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

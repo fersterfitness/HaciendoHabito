@@ -18,6 +18,8 @@ type Props = {
   /** Ítems de regalo bajo el mismo bloque visual que «Incluye». */
   gifts?: WebPlanGiftLine[]
   giftsLabel?: string
+  /** Marcador de cada ítem: tilde (default) o viñeta minimal estilo pricing. */
+  marker?: 'check' | 'dot'
 }
 
 function giftLineText(g: WebPlanGiftLine): string {
@@ -30,19 +32,29 @@ function FeatureCheckList({
   checkClass,
   itemTextClass,
   keyPrefix,
+  marker = 'check',
 }: {
   items: string[]
   checkSize: number
   checkClass: string
   itemTextClass: string
   keyPrefix: string
+  marker?: 'check' | 'dot'
 }) {
   if (!items.length) return null
   return (
     <ul className="flex flex-col gap-1.5">
       {items.map((text, idx) => (
         <li key={`${keyPrefix}-${idx}`} className="flex items-start gap-2">
-          <Check size={checkSize} strokeWidth={2.8} className={cn('mt-0.5 shrink-0', checkClass)} />
+          {marker === 'dot' ? (
+            <span
+              aria-hidden
+              className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', checkClass)}
+              style={{ backgroundColor: 'currentColor' }}
+            />
+          ) : (
+            <Check size={checkSize} strokeWidth={2.8} className={cn('mt-0.5 shrink-0', checkClass)} />
+          )}
           <span className={cn('text-[13px] font-medium leading-snug', itemTextClass)}>{text}</span>
         </li>
       ))}
@@ -59,6 +71,7 @@ export function WebPlanIncludesSectionsDisplay({
   showProfessionalAvatars = false,
   gifts,
   giftsLabel = 'De regalo',
+  marker = 'check',
 }: Props) {
   const giftItems = (gifts ?? []).map(giftLineText).filter(Boolean)
   if (!sections.length && !giftItems.length) return null
@@ -123,6 +136,7 @@ export function WebPlanIncludesSectionsDisplay({
                   checkClass={darkChrome ? sec.checkClassDark : sec.checkClassLight}
                   itemTextClass={itemTextClass}
                   keyPrefix={sec.professional}
+                  marker={marker}
                 />
               </section>
             ))}
@@ -145,6 +159,7 @@ export function WebPlanIncludesSectionsDisplay({
             checkClass={giftCheckClass}
             itemTextClass={itemTextClass}
             keyPrefix="gift"
+            marker={marker}
           />
         </div>
       ) : null}

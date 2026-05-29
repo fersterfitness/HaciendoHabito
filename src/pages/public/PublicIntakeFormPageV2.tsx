@@ -426,17 +426,17 @@ export function PublicIntakeFormPageV2() {
                           className={cn(
                             'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-xl border p-3.5 text-left',
                             active
-                              ? 'border-brand-primary bg-gradient-to-br from-brand-primary/[0.08] to-brand-primary/[0.03] ring-2 ring-brand-primary/20 shadow-[0_8px_28px_-12px_rgba(255,72,0,0.35)]'
+                              ? 'border-zinc-400 bg-gradient-to-br from-zinc-100 via-zinc-50 to-transparent ring-2 ring-zinc-300/60 shadow-[0_8px_28px_-12px_rgba(15,23,42,0.25)] dark:border-zinc-500 dark:from-white/[0.10] dark:via-white/[0.04] dark:to-transparent dark:ring-white/15 dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.6)]'
                               : 'border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-zinc-700 dark:hover:bg-zinc-900',
                           )}
                         >
-                          {/* Glow naranja en active */}
+                          {/* Glow neutro en active */}
                           {active && (
-                            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-brand-primary/20 blur-2xl" aria-hidden />
+                            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-zinc-400/20 blur-2xl dark:bg-white/10" aria-hidden />
                           )}
                           <span className={cn(
                             'relative text-[10px] font-bold uppercase tracking-wider',
-                            active ? 'text-brand-primary' : 'text-zinc-500 dark:text-zinc-400',
+                            active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
                           )}>{m.short}</span>
                           <span className="relative text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</span>
                           <span className="relative text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</span>
@@ -480,7 +480,7 @@ export function PublicIntakeFormPageV2() {
                               <IntakeChangeablePlansSection
                                 title=""
                                 footerText=""
-                                buttonText={selectedPlanId && subPlans.some(p => p.id === selectedPlanId) ? 'Continuar →' : 'Elegí un plan'}
+                                buttonText={selectedPlanId && subPlans.some(p => p.id === selectedPlanId) ? 'Continuar' : 'Elegí un plan'}
                                 plans={intakePlansToPricingPlans(subPlans)}
                                 selectedPlanId={selectedPlanId}
                                 onSelectPlan={(id) => setSelectedPlanId(id)}
@@ -491,6 +491,7 @@ export function PublicIntakeFormPageV2() {
                                 tone="card"
                                 embedded
                                 flush
+                                cardLayout
                                 showFooter={false}
                                 uiTheme={theme}
                                 includeSectionAvatars={{
@@ -503,25 +504,17 @@ export function PublicIntakeFormPageV2() {
                           </div>
                         )
                       })}
-                      {/* Botón continuar global del segmento full */}
-                      <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Cancelás cuando quieras.</span>
-                        <button
-                          type="button"
-                          disabled={!selectedPlanId}
-                          onClick={() => { if (selectedPlanId) setStep('form') }}
-                          className={cn('rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40')}
-                        >
-                          {selectedPlanId ? 'Continuar →' : 'Elegí un plan'}
-                        </button>
-                      </div>
+                      {/* CTA vive dentro de cada card (cardLayout); aquí solo la nota */}
+                      <p className="border-t border-zinc-200 pt-4 text-center text-[10px] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+                        Cancelás cuando quieras.
+                      </p>
                     </div>
                   ) : plansVisible.length > 0 ? (
                     <div className="-mx-1">
                       <IntakeChangeablePlansSection
                         title="Ofertas"
                         footerText="Cancelás cuando quieras."
-                        buttonText={selectedPlanId ? 'Continuar →' : 'Elegí un plan'}
+                        buttonText={selectedPlanId ? 'Continuar' : 'Elegí un plan'}
                         plans={intakePlansToPricingPlans(plansVisible)}
                         selectedPlanId={selectedPlanId}
                         onSelectPlan={(id) => setSelectedPlanId(id)}
@@ -532,6 +525,7 @@ export function PublicIntakeFormPageV2() {
                         tone="card"
                         embedded
                         flush
+                        cardLayout
                         uiTheme={theme}
                         includeSectionAvatars={{
                           trainer:      { avatarUrl: catalogImages.trainer,      subtitle: 'Tomás Ferster' },
@@ -782,7 +776,7 @@ function MeetTheTeam({
                 'v2f-team-card group relative overflow-hidden rounded-3xl p-2.5',
                 'bg-zinc-100 shadow-[0_8px_40px_-4px_rgba(0,0,0,0.18),0_2px_12px_-2px_rgba(0,0,0,0.10)]',
                 'hover:shadow-[0_20px_60px_-8px_rgba(0,0,0,0.24),0_6px_20px_-4px_rgba(255,72,0,0.15)]',
-                'dark:bg-zinc-800 dark:shadow-[0_8px_40px_-2px_rgba(0,0,0,0.7),0_2px_14px_-1px_rgba(0,0,0,0.5)]',
+                'dark:bg-zinc-900 dark:shadow-[0_8px_40px_-2px_rgba(0,0,0,0.7),0_2px_14px_-1px_rgba(0,0,0,0.5)]',
                 'dark:hover:shadow-[0_20px_60px_-6px_rgba(0,0,0,0.8),0_6px_20px_-4px_rgba(255,72,0,0.25)]',
                 'transition-all duration-300',
               )}
@@ -809,10 +803,10 @@ function MeetTheTeam({
               </div>
 
               {/* Info */}
-              <div className="px-2 py-3">
+              <div className="px-2.5 pb-3 pt-3.5">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold text-zinc-900 dark:text-white leading-tight">{p.name}</p>
-                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <p className="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{p.name}</p>
+                  <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
                       fill="#22c55e"
                       d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z"
@@ -823,7 +817,7 @@ function MeetTheTeam({
                     />
                   </svg>
                 </div>
-                <p className="mt-0.5 text-[10px] leading-snug text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1.5 text-[13px] leading-snug text-zinc-500 dark:text-zinc-400">
                   {p.tagline}
                 </p>
               </div>
