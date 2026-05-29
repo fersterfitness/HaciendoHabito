@@ -12,7 +12,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight, ArrowLeft, Check, CheckCircle2, Sparkles,
-  Calendar, Users, Moon, Sun,
+  Calendar, Moon, Sun, BadgeCheck,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -337,14 +337,14 @@ export function PublicIntakeFormPageV2() {
 
       {/* ═══════════ Top bar ═══════════ */}
       <header className="v2f-fade-up sticky top-0 z-30 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <BrandLogo size="lg" decorative className="h-9 w-9 sm:h-10 sm:w-10" />
-            <span className="text-sm font-bold tracking-tight text-zinc-900 sm:text-base dark:text-white">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-2.5">
+          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
+            <BrandLogo size="lg" decorative className="h-14 w-14 shrink-0 sm:h-16 sm:w-16" />
+            <span className="hidden whitespace-nowrap text-sm font-bold tracking-tight text-zinc-900 lg:inline dark:text-white">
               Haciéndolo <span className="text-brand-primary">Hábito</span>
             </span>
           </div>
-          <nav className="hidden items-center gap-1 sm:flex" aria-label="Secciones del formulario">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex" aria-label="Secciones del formulario">
             <button
               type="button"
               onClick={goToPlanes}
@@ -370,13 +370,13 @@ export function PublicIntakeFormPageV2() {
               Datos
             </button>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
               to="/v2/login"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 sm:gap-1.5 sm:px-3 sm:text-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
             >
               Ya tengo cuenta
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
             </Link>
             <button
               type="button"
@@ -419,43 +419,32 @@ export function PublicIntakeFormPageV2() {
           step === 'form' ? 'lg:grid-cols-[1fr_320px]' : 'grid-cols-1',
         )}>
 
-          {/* ─────────── Card principal: contenido del step ─────────── */}
-          <section
-            className={cn(
-              'v2f-drop v2f-d3 v2f-card rounded-2xl border bg-white p-5 sm:p-7',
-              'border-zinc-200/80 shadow-[0_2px_24px_-12px_rgba(15,23,42,0.08)]',
-              'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_2px_24px_-8px_rgba(0,0,0,0.5)]',
-            )}
-          >
-            {step === 'plan' && (
-              <div key="step-plan" className="v2f-slide space-y-7">
-                <header className="text-center">
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-white sm:text-3xl">
-                    Elegí tu plan
-                  </h2>
-                </header>
+          {/* ─────────── Paso "plan": cards independientes (sin contenedor monolítico) ─────────── */}
+          {step === 'plan' && (
+            <div key="step-plan" className="v2f-drop v2f-d3 v2f-slide space-y-8">
+              <header className="text-center">
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+                  Elegí tu plan
+                </h2>
+              </header>
 
-                {/* Conocé al equipo — siempre visible, primero */}
-                <MeetTheTeam
-                  trainerImage={catalogImages.trainer}
-                  nutritionistImage={catalogImages.nutritionist}
-                  psychologistImage={catalogImages.psychologist}
-                />
+              {/* Conocé al equipo — cards independientes */}
+              <MeetTheTeam
+                trainerImage={catalogImages.trainer}
+                nutritionistImage={catalogImages.nutritionist}
+                psychologistImage={catalogImages.psychologist}
+              />
 
-                {/* Separador visual */}
-                <div className="flex items-center gap-4">
-                  <span className="h-px flex-1 bg-gradient-to-r from-transparent to-zinc-200 dark:to-zinc-800" />
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-brand-primary" aria-hidden />
-                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Tu plan</span>
-                  </div>
-                  <span className="h-px flex-1 bg-gradient-to-l from-transparent to-zinc-200 dark:to-zinc-800" />
-                </div>
-
-                {/* Modality cards */}
-                <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Modalidad</p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {/* Modalidad — card independiente */}
+              <div
+                className={cn(
+                  'rounded-3xl p-5 sm:p-6',
+                  'bg-white ring-1 ring-black/[0.04] shadow-[0_18px_50px_-18px_rgba(15,23,42,0.12)]',
+                  'dark:bg-zinc-900 dark:ring-white/[0.06] dark:shadow-[0_18px_50px_-14px_rgba(0,0,0,0.6)]',
+                )}
+              >
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Modalidad</p>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                     {MODALITY_OPTIONS.map((m) => {
                       const active = catalogSegment === m.id
                       return (
@@ -464,10 +453,10 @@ export function PublicIntakeFormPageV2() {
                           type="button"
                           onClick={() => setCatalogSegment(m.id)}
                           className={cn(
-                            'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-xl border p-3.5 text-left',
+                            'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-2xl border p-3.5 text-left',
                             active
                               ? 'border-zinc-400 bg-gradient-to-br from-zinc-100 via-zinc-50 to-transparent ring-2 ring-zinc-300/60 shadow-[0_8px_28px_-12px_rgba(15,23,42,0.25)] dark:border-zinc-500 dark:from-white/[0.10] dark:via-white/[0.04] dark:to-transparent dark:ring-white/15 dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.6)]'
-                              : 'border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-zinc-700 dark:hover:bg-zinc-900',
+                              : 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800',
                           )}
                         >
                           {/* Glow neutro en active */}
@@ -491,9 +480,9 @@ export function PublicIntakeFormPageV2() {
                   </div>
                 </div>
 
-                {/* Plans section */}
+                {/* Plans section — cards independientes */}
                 <div>
-                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Ofertas disponibles</p>
+                  <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
 
                   {catalogSegment === 'psychologist' ? (
                     <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
@@ -582,8 +571,17 @@ export function PublicIntakeFormPageV2() {
                   )}
                 </div>
               </div>
-            )}
+          )}
 
+          {/* ─────────── Pasos "form" / "confirmation": card contenedora ─────────── */}
+          {(step === 'form' || step === 'confirmation') && (
+            <section
+              className={cn(
+                'v2f-drop v2f-d3 v2f-card rounded-3xl border bg-white p-5 sm:p-7',
+                'border-zinc-200/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.10)]',
+                'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_18px_50px_-16px_rgba(0,0,0,0.55)]',
+              )}
+            >
             {step === 'form' && (
               <div key="step-form" className="v2f-slide space-y-6">
                 <header className="flex items-center justify-between gap-3 border-b border-zinc-100 pb-5 dark:border-zinc-800">
@@ -650,7 +648,8 @@ export function PublicIntakeFormPageV2() {
                 planName={selectedPlan?.name ?? null}
               />
             )}
-          </section>
+            </section>
+          )}
 
           {/* ─────────── Sidebar: resumen del plan (solo durante form) ─────────── */}
           {step === 'form' && (
@@ -748,8 +747,10 @@ type ProfessionalDef = {
   credential: string
   tagline: string
   key: ProfKey
-  /** Color de acento para el fallback (cuando no hay foto). */
-  accentClass: string
+  /** Ring de acento al hacer hover sobre la card. */
+  hoverRingClass: string
+  /** Degradé de fondo detrás del recorte PNG (foto sin fondo). */
+  photoGradientClass: string
 }
 
 const TEAM: ProfessionalDef[] = [
@@ -759,7 +760,8 @@ const TEAM: ProfessionalDef[] = [
     credential: 'Lic. alto rendimiento · Prof. Educación física',
     tagline: 'Diseña y supervisa tu plan de entrenamiento.',
     key: 'trainer',
-    accentClass: 'from-blue-500/15 to-blue-400/5 text-blue-700 dark:text-blue-300',
+    hoverRingClass: 'group-hover:ring-blue-300/70 dark:group-hover:ring-blue-500/30',
+    photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
   },
   {
     name: 'Cristian Crossetto',
@@ -767,7 +769,8 @@ const TEAM: ProfessionalDef[] = [
     credential: 'Lic. en Nutrición · Especialización deportiva',
     tagline: 'Tu alimentación, planificada e individualizada.',
     key: 'nutritionist',
-    accentClass: 'from-green-500/15 to-green-400/5 text-green-700 dark:text-green-300',
+    hoverRingClass: 'group-hover:ring-emerald-300/70 dark:group-hover:ring-emerald-500/30',
+    photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
   },
   {
     name: 'Santiago Rodríguez',
@@ -775,7 +778,8 @@ const TEAM: ProfessionalDef[] = [
     credential: 'Acompañamiento mental · Hábitos y motivación',
     tagline: 'Trabaja la cabeza y la adherencia al proceso.',
     key: 'psychologist',
-    accentClass: 'from-violet-500/15 to-violet-400/5 text-violet-700 dark:text-violet-300',
+    hoverRingClass: 'group-hover:ring-violet-300/70 dark:group-hover:ring-violet-500/30',
+    photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
   },
 ]
 
@@ -790,19 +794,11 @@ function MeetTheTeam({
 }) {
   return (
     <section>
-      <div className="mb-4 flex flex-col items-center gap-2 text-center">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 animate-bounce text-brand-primary" aria-hidden />
-          <h3 className="text-base font-bold tracking-tight text-zinc-900 dark:text-white sm:text-lg">
-            Nuestro equipo de profesionales
-          </h3>
-        </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-green-700 ring-1 ring-green-200 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30">
-          <Check className="h-2.5 w-2.5" aria-hidden /> Verificados
-        </span>
-      </div>
+      <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+        Nuestro equipo
+      </p>
 
-      <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
         {TEAM.map((p) => {
           const img =
             p.key === 'trainer'      ? trainerImage :
@@ -813,53 +809,54 @@ function MeetTheTeam({
             <article
               key={p.key}
               className={cn(
-                'v2f-team-card group relative overflow-hidden rounded-3xl p-3',
-                'bg-white ring-1 ring-black/[0.04] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.22),0_4px_16px_-4px_rgba(0,0,0,0.12)]',
-                'hover:-translate-y-1 hover:shadow-[0_30px_70px_-14px_rgba(0,0,0,0.30),0_8px_24px_-6px_rgba(255,72,0,0.18)]',
-                'dark:bg-zinc-800 dark:ring-white/[0.06] dark:shadow-[0_18px_50px_-8px_rgba(0,0,0,0.75),0_4px_18px_-2px_rgba(0,0,0,0.6)]',
-                'dark:hover:shadow-[0_32px_72px_-10px_rgba(0,0,0,0.85),0_8px_24px_-6px_rgba(255,72,0,0.25)]',
+                'v2f-team-card group relative flex flex-col justify-end overflow-hidden rounded-3xl',
+                'aspect-[4/5] ring-1 ring-black/[0.06] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.30)]',
+                'hover:-translate-y-1 hover:shadow-[0_30px_70px_-14px_rgba(0,0,0,0.45)]',
+                'dark:ring-white/[0.08] dark:shadow-[0_18px_50px_-8px_rgba(0,0,0,0.8)]',
                 'transition-all duration-300 ease-out will-change-transform',
+                p.photoGradientClass,
+                p.hoverRingClass,
               )}
             >
-              {/* Foto con margen y esquinas redondeadas */}
-              <div className="relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-700" style={{ aspectRatio: '3/4' }}>
-                {img ? (
-                  <img
-                    src={img}
-                    alt={p.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    style={{ objectPosition: 'center' }}
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <span className={cn(
-                    'flex h-full w-full items-center justify-center text-2xl font-bold bg-gradient-to-br',
-                    p.accentClass,
-                  )}>
-                    {initials}
-                  </span>
-                )}
-              </div>
+              {/* Glow de acento detrás de la cabeza */}
+              <div className="pointer-events-none absolute left-1/2 top-6 h-32 w-32 -translate-x-1/2 rounded-full bg-white/30 blur-3xl dark:bg-white/10" aria-hidden />
 
-              {/* Info */}
-              <div className="px-2.5 pb-3 pt-3.5">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{p.name}</p>
-                  <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      fill="#22c55e"
-                      d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z"
-                    />
-                    <path
-                      fill="#fff"
-                      d="M9.8 17.3l-4.2-4.1L7 11.8l2.8 2.7L17 7.4l1.4 1.4-8.6 8.5z"
-                    />
-                  </svg>
+              {/* Foto recortada (PNG sin fondo) que llena la card */}
+              {img ? (
+                <img
+                  src={img}
+                  alt={p.name}
+                  className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-white/80">
+                  {initials}
+                </span>
+              )}
+
+              {/* Scrim inferior para legibilidad del texto */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
+
+              {/* Texto overlay */}
+              <div className="relative p-2.5 sm:p-4">
+                <span className="inline-flex items-center rounded-full bg-white/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/25 backdrop-blur-sm sm:px-2 sm:text-[9px]">
+                  {p.role}
+                </span>
+                <div className="mt-1.5 flex items-center gap-1 sm:mt-2 sm:gap-1.5">
+                  <p className="text-sm font-semibold leading-tight text-white drop-shadow-sm sm:text-lg">{p.name}</p>
+                  <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-400 sm:h-[18px] sm:w-[18px]" aria-hidden />
                 </div>
-                <p className="mt-1.5 text-[13px] leading-snug text-zinc-500 dark:text-zinc-400">
+                <p className="mt-0.5 text-[11px] leading-snug text-white/75 sm:mt-1 sm:text-[13px]">
                   {p.tagline}
                 </p>
+                {/* Credencial — se despliega en hover */}
+                <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-out group-hover:grid-rows-[1fr]">
+                  <div className="overflow-hidden">
+                    <p className="pt-1.5 text-[11px] leading-snug text-white/55">{p.credential}</p>
+                  </div>
+                </div>
               </div>
             </article>
           )
