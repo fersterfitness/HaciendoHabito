@@ -327,34 +327,6 @@ export function Sidebar() {
       <div className="shrink-0 space-y-px border-t border-[rgb(var(--sidebar-border)/0.12)] py-1.5 dark:border-[rgb(var(--sidebar-border)/0.06)]">
         <RailNavLink to="/settings" label="Configuración" icon={Settings} />
 
-        <SidebarRailTooltip label={profileTip}>
-          <NavLink
-            to="/profile"
-            className={cn(
-              'relative flex shrink-0 items-center justify-center overflow-hidden outline-none',
-              RAIL_ITEM,
-              railFocusRing,
-              profilePathActive
-                ? cn(railNavBaseTransition, railNavActiveClassName, 'p-0')
-                : 'p-0 transition-opacity duration-150 hover:opacity-90',
-            )}
-            aria-label={profileTip}
-            aria-current={profilePathActive ? 'page' : undefined}
-          >
-            {profilePathActive ? <RailActiveIndicator /> : null}
-            <AvatarOrInitials
-              fullName={profile?.full_name ?? '?'}
-              avatarUrl={profile?.avatar_url}
-              size="sm"
-              rounded="xl"
-              className={cn(
-                'size-full rounded-lg',
-                profilePathActive && 'ring-1 ring-brand-secondary/45',
-              )}
-            />
-          </NavLink>
-        </SidebarRailTooltip>
-
         <RailIconButton label="Cerrar sesión" danger onClick={() => void handleLogout()} />
       </div>
     </aside>

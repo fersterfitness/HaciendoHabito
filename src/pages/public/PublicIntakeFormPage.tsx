@@ -588,10 +588,12 @@ function PublicIntakeTopActions({
   backLabel,
   onBack,
   tone = 'light',
+  loginHref = '/login',
 }: {
   backLabel?: string
   onBack?: () => void
   tone?: 'light' | 'dark'
+  loginHref?: string
 }) {
   const { theme, toggleTheme } = useTheme()
   const { buttonBase, iconButtonBase, surfaceClasses, iconSurfaceClasses } = intakeTopActionButtonClasses(
@@ -614,7 +616,7 @@ function PublicIntakeTopActions({
         </button>
       ) : null}
       <div className={cn('absolute z-30 flex items-center gap-2', edgeTop, edgeRight)}>
-        <Link to="/login" className={cn(buttonBase, surfaceClasses)}>
+        <Link to={loginHref} className={cn(buttonBase, surfaceClasses)}>
           Panel
           <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
         </Link>
@@ -722,7 +724,7 @@ function LeftBrandPanel({
       id: 'psychologist',
       role: 'psychologist',
       roleLabel: 'Psicólogo',
-      name: 'Julián Díaz',
+      name: 'Santiago Rodríguez',
       avatarUrl: psychologistSegmentImageUrl?.trim() || null,
     })
     const nutritionist = nutritionists[0]
@@ -894,7 +896,7 @@ function LeftBrandPanel({
 }
 
 
-export function PublicIntakeFormPage() {
+export function PublicIntakeFormPage({ loginHref = '/login' }: { loginHref?: string } = {}) {
   const { theme } = useTheme()
   const [done,      setDone]      = useState(false)
   const [plans, setPlans] = useState<PlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
@@ -1317,7 +1319,7 @@ export function PublicIntakeFormPage() {
   if (done) {
     return (
       <div className="relative min-h-screen bg-surface-base flex items-center justify-center p-4 py-10 sm:pt-4">
-        <PublicIntakeTopActions tone="light" />
+        <PublicIntakeTopActions tone="light" loginHref={loginHref} />
         <div className="relative w-full max-w-[1280px] overflow-hidden rounded-none border-0 bg-surface-card shadow-none sm:min-h-0 sm:rounded-3xl sm:border sm:border-surface-border sm:shadow-card dark:sm:shadow-lg flex flex-col lg:flex-row min-h-screen sm:min-h-0">
           <LeftBrandPanel
             theme={theme}
@@ -1396,7 +1398,7 @@ export function PublicIntakeFormPage() {
   return (
     <div className="relative min-h-screen bg-surface-base flex items-start justify-center sm:items-center p-0 sm:p-4 sm:pt-20 sm:pb-8 md:pt-20 md:pb-12">
       {!isMobile && (
-        <PublicIntakeTopActions tone="light" />
+        <PublicIntakeTopActions tone="light" loginHref={loginHref} />
       )}
       {isMobile ? (
         <div
@@ -1409,6 +1411,7 @@ export function PublicIntakeFormPage() {
             backLabel={mobileBack?.label}
             onBack={mobileBack?.onBack}
             tone={intakeTopTone}
+            loginHref={loginHref}
           />
           {mobileStep === 'plans' ? <LeftBrandPanel {...leftPanelProps} /> : null}
 
