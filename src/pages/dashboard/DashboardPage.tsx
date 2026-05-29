@@ -31,6 +31,13 @@ import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { scheduleMatchesToday } from '@/lib/checkInSchedule'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
+import {
+  loadDashboardQuickSends,
+  loadStudentsMissingCheckIn,
+  type DashboardCheckInQuickSend,
+  type DashboardMissingCheckInStudent,
+  type DashboardResourceQuickSend,
+} from '@/lib/dashboard/dashboardTrainerOps'
 import type { Routine, Notification, CheckInSendSchedule, TrainerResourceSendSchedule } from '@/types/database'
 
 interface RecentIncomeRow {
@@ -44,8 +51,8 @@ interface RecentIncomeRow {
 
 type DueCheckInScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
 type DueResourceScheduleRow = TrainerResourceSendSchedule & {
-  resource: { title: string } | null
-  template: { title: string } | null
+  resource: { title: string; url: string; description: string | null } | null
+  template: { title: string; body: string } | null
 }
 
 const LEVEL_META = [
@@ -522,6 +529,9 @@ export function DashboardPage() {
   const [checkInRecentCount, setCheckInRecentCount] = useState(0)
   const [dueCheckInSchedules, setDueCheckInSchedules] = useState<DueCheckInScheduleRow[]>([])
   const [dueResourceSchedules, setDueResourceSchedules] = useState<DueResourceScheduleRow[]>([])
+  const [checkInQuickSends, setCheckInQuickSends] = useState<DashboardCheckInQuickSend[]>([])
+  const [resourceQuickSends, setResourceQuickSends] = useState<DashboardResourceQuickSend[]>([])
+  const [missingCheckInStudents, setMissingCheckInStudents] = useState<DashboardMissingCheckInStudent[]>([])
 
   const animatedIncome = useCountUp(stats.currentMonthIncome, {
     duration: 2600,
@@ -982,29 +992,42 @@ export function DashboardPage() {
           .eq('owner_id', user!.id)
           .eq('is_enabled', true)
         const srows = (schRes.data ?? []) as DueCheckInScheduleRow[]
-        setDueCheckInSchedules(srows.filter((s) => scheduleMatchesToday(s)))
+        const dueCheckIns = srows.filter((s) => scheduleMatchesToday(s))
+        setDueCheckInSchedules(dueCheckIns)
+        let dueResources: DueResourceScheduleRow[] = []
         try {
           const resSchRes = await supabase
             .from('trainer_resource_send_schedules')
             .select(
-              'id, owner_id, resource_id, template_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, resource:trainer_resources(title), template:trainer_message_templates(title)',
+              'id, owner_id, resource_id, template_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, resource:trainer_resources(title, url, description), template:trainer_message_templates(title, body)',
             )
             .eq('owner_id', user!.id)
             .eq('is_enabled', true)
           if (!resSchRes.error) {
-            const rrows = (resSchRes.data ?? []) as DueResourceScheduleRow[]
-            setDueResourceSchedules(rrows.filter((s) => scheduleMatchesToday(s)))
+            dueResources = (resSchRes.data ?? []) as DueResourceScheduleRow[]
+            dueResources = dueResources.filter((s) => scheduleMatchesToday(s))
+            setDueResourceSchedules(dueResources)
           } else {
-            /** Migración de schedules no aplicada todavía; degradar silenciosamente. */
             setDueResourceSchedules([])
           }
         } catch {
           setDueResourceSchedules([])
         }
+
+        const [quickSends, missing] = await Promise.all([
+          loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
+          loadStudentsMissingCheckIn(user!.id, 7),
+        ])
+        setCheckInQuickSends(quickSends.checkInSends)
+        setResourceQuickSends(quickSends.resourceSends)
+        setMissingCheckInStudents(missing)
       } else {
         setCheckInRecentCount(0)
         setDueCheckInSchedules([])
         setDueResourceSchedules([])
+        setCheckInQuickSends([])
+        setResourceQuickSends([])
+        setMissingCheckInStudents([])
       }
 
       setDataUpdatedAt(new Date())
@@ -1049,6 +1072,16 @@ export function DashboardPage() {
       )}
 
       <div className="page-shell-x page-shell-y space-y-6">
+
+        {canSeeTraining ? (
+          <DashboardTrainerOpsPanel
+            dueCheckInSchedules={dueCheckInSchedules}
+            dueResourceSchedules={dueResourceSchedules}
+            checkInQuickSends={checkInQuickSends}
+            resourceQuickSends={resourceQuickSends}
+            missingCheckInStudents={missingCheckInStudents}
+          />
+        ) : null}
 
         <section className="space-y-2">
           <PageSectionTitle title="Resumen del mes" />
@@ -1167,14 +1200,6 @@ export function DashboardPage() {
             </button>
           </div>
         ) : null}
-
-        {canSeeTraining ? (
-          <DashboardTrainerOpsPanel
-            dueCheckInSchedules={dueCheckInSchedules}
-            dueResourceSchedules={dueResourceSchedules}
-          />
-        ) : null}
-
 
         {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
         {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (

@@ -187,11 +187,11 @@ export function SettingsPage() {
         <Card>
           <FormSection title="Planes Web">
             <p className="text-sm text-ink-secondary">
-              Editá planes del formulario público (/form), segmento solo / conjunto Cristian Vázquez, fotos del selector y textos largos sin
-              tocar código.
+              Catálogo del formulario público: Planes Más Completos, Entrenamiento Individual, Nutrición y Psicólogo Deportivo. Fotos del equipo,
+              ofertas y textos sin tocar código.
             </p>
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
-              <Link to="/settings/web-plans">Gestionar planes</Link>
+              <Link to="/settings/web-plans">Abrir Planes Web</Link>
             </Button>
           </FormSection>
         </Card>

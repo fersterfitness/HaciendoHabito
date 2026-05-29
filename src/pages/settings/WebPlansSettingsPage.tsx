@@ -89,7 +89,7 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /**
  * Ofertas que en la práctica son la misma oferta base con duración (3/6 meses).
- * En /form suelen verse como precios dentro de una card; acá las ocultamos por defecto para alinear la gestión con el catálogo.
+ * En /form suelen verse como precios dentro de una card; acá las ocultamos por defecto para alinear Planes Web con el catálogo.
  */
 function isDurationVariantWebOffer(plan: EditableWebPlan): boolean {
   const title = plan.title

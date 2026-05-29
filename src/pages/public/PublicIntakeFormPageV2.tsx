@@ -221,6 +221,25 @@ export function PublicIntakeFormPageV2() {
   const intakeKind = catalogSegment === 'with_nutritionist' ? 'nutricion' : catalogSegment === 'full' ? 'full' : catalogSegment === 'psychologist' ? 'entrenamiento' : 'entrenamiento'
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
+  function scrollFormTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function goToPlanes() {
+    setStep('plan')
+    scrollFormTop()
+  }
+
+  function goToDatos() {
+    if (!selectedPlanId) {
+      setStep('plan')
+      scrollFormTop()
+      return
+    }
+    setStep('form')
+    scrollFormTop()
+  }
+
   if (!isReady) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-stone-100 dark:bg-zinc-950">
@@ -325,13 +344,35 @@ export function PublicIntakeFormPageV2() {
               Haciéndolo <span className="text-brand-primary">Hábito</span>
             </span>
           </div>
-          <nav className="hidden items-center gap-1 sm:flex">
-            <a href="#planes" className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">Planes</a>
-            <a href="#datos"  className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">Datos</a>
+          <nav className="hidden items-center gap-1 sm:flex" aria-label="Secciones del formulario">
+            <button
+              type="button"
+              onClick={goToPlanes}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                step === 'plan'
+                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white'
+                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+              )}
+            >
+              Planes
+            </button>
+            <button
+              type="button"
+              onClick={goToDatos}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                step === 'form'
+                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white'
+                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+              )}
+            >
+              Datos
+            </button>
           </nav>
           <div className="flex items-center gap-2">
             <Link
-              to="/login"
+              to="/v2/login"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
             >
               Ya tengo cuenta
@@ -380,7 +421,6 @@ export function PublicIntakeFormPageV2() {
 
           {/* ─────────── Card principal: contenido del step ─────────── */}
           <section
-            id={step === 'plan' ? 'planes' : 'datos'}
             className={cn(
               'v2f-drop v2f-d3 v2f-card rounded-2xl border bg-white p-5 sm:p-7',
               'border-zinc-200/80 shadow-[0_2px_24px_-12px_rgba(15,23,42,0.08)]',
@@ -773,12 +813,12 @@ function MeetTheTeam({
             <article
               key={p.key}
               className={cn(
-                'v2f-team-card group relative overflow-hidden rounded-3xl p-2.5',
-                'bg-zinc-100 shadow-[0_8px_40px_-4px_rgba(0,0,0,0.18),0_2px_12px_-2px_rgba(0,0,0,0.10)]',
-                'hover:shadow-[0_20px_60px_-8px_rgba(0,0,0,0.24),0_6px_20px_-4px_rgba(255,72,0,0.15)]',
-                'dark:bg-zinc-900 dark:shadow-[0_8px_40px_-2px_rgba(0,0,0,0.7),0_2px_14px_-1px_rgba(0,0,0,0.5)]',
-                'dark:hover:shadow-[0_20px_60px_-6px_rgba(0,0,0,0.8),0_6px_20px_-4px_rgba(255,72,0,0.25)]',
-                'transition-all duration-300',
+                'v2f-team-card group relative overflow-hidden rounded-3xl p-3',
+                'bg-white ring-1 ring-black/[0.04] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.22),0_4px_16px_-4px_rgba(0,0,0,0.12)]',
+                'hover:-translate-y-1 hover:shadow-[0_30px_70px_-14px_rgba(0,0,0,0.30),0_8px_24px_-6px_rgba(255,72,0,0.18)]',
+                'dark:bg-zinc-800 dark:ring-white/[0.06] dark:shadow-[0_18px_50px_-8px_rgba(0,0,0,0.75),0_4px_18px_-2px_rgba(0,0,0,0.6)]',
+                'dark:hover:shadow-[0_32px_72px_-10px_rgba(0,0,0,0.85),0_8px_24px_-6px_rgba(255,72,0,0.25)]',
+                'transition-all duration-300 ease-out will-change-transform',
               )}
             >
               {/* Foto con margen y esquinas redondeadas */}

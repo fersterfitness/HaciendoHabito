@@ -673,7 +673,7 @@ function LeftBrandPanel({
   onConfirmPlan: () => void
   planBilling: PlanBilling
   onPlanBillingChange: (v: PlanBilling) => void
-  /** Fotos del panel Ajustes → Planes web (`web_intake_catalog_settings`). */
+  /** Fotos del panel Ajustes → Planes Web (`web_intake_catalog_settings`). */
   soloSegmentImageUrl: string | null
   withNutritionistSegmentImageUrl: string | null
   crisSoloSegmentImageUrl: string | null
@@ -864,9 +864,9 @@ function LeftBrandPanel({
                   {catalogSegment === null
                     ? 'Elegí una opción del paso 1.'
                     : catalogSegment === 'with_nutritionist'
-                      ? 'Todavía no hay ofertas publicadas en esta modalidad. Cargalas desde Planes web (segmento Nutrición) en el panel.'
+                      ? 'Todavía no hay ofertas publicadas en esta modalidad. Cargalas desde Planes Web (Nutrición) en Ajustes.'
                     : catalogSegment === 'full' && !hasPlansForSegment('full')
-                      ? 'Plan integral entrenamiento + nutrición. Si no ves planes, cargalos desde el panel.'
+                      ? 'Plan integral entrenamiento + nutrición. Si no ves planes, cargalos desde Planes Web en Ajustes.'
                       : 'Próximamente sumaremos opciones para esta línea.'}
                 </p>
               )}

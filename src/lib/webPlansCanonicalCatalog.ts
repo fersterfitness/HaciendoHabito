@@ -31,7 +31,7 @@ export type CanonicalEditableWebPlan = {
   isCatalogCanonical: boolean
 }
 
-/** Orden fijo en gestión y en /form (7 planes base). */
+/** Orden fijo en Planes Web y en /form (7 planes base). */
 export const CANONICAL_WEB_PLAN_SLUGS: readonly string[] = [
   'ferster-habitos-sedentario',
   'ferster-habitos-alto-rendimiento',
