@@ -331,7 +331,7 @@ export function PublicIntakeFormPageV2() {
           </nav>
           <div className="flex items-center gap-2">
             <Link
-              to="/v2/login"
+              to="/login"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
             >
               Ya tengo cuenta
@@ -938,7 +938,7 @@ function ConfirmationView({ planName, onAgain }: { planName: string | null; onAg
           Hacer otra inscripción
         </button>
         <Link
-          to="/v2/login"
+          to="/login"
           className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-hover"
         >
           Ir al login

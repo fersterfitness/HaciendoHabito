@@ -7,8 +7,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthGuard } from '@/components/layout/AuthGuard'
 import { PageRouteFallback } from '@/components/layout/PageRouteFallback'
-import { LoginPage } from '@/pages/auth/LoginPage'
-import { LoginPageV2 } from '@/pages/auth/LoginPageV2'
+import { LoginPageV2 as LoginPage } from '@/pages/auth/LoginPageV2'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/students/StudentsPage'
@@ -62,8 +61,7 @@ const StudentMealPlansPage = lazy(() => import('@/pages/student/StudentMealPlans
 const StudentMealPlanDetailPage = lazy(() =>
   import('@/pages/student/StudentMealPlanDetailPage').then((m) => ({ default: m.StudentMealPlanDetailPage })),
 )
-const PublicIntakeFormPage = lazy(() => import('@/pages/public/PublicIntakeFormPage').then((m) => ({ default: m.PublicIntakeFormPage })))
-const PublicIntakeFormPageV2 = lazy(() => import('@/pages/public/PublicIntakeFormPageV2').then((m) => ({ default: m.PublicIntakeFormPageV2 })))
+const PublicIntakeFormPage = lazy(() => import('@/pages/public/PublicIntakeFormPageV2').then((m) => ({ default: m.PublicIntakeFormPageV2 })))
 const PublicCheckInPage = lazy(() => import('@/pages/public/PublicCheckInPage').then((m) => ({ default: m.PublicCheckInPage })))
 const TrainingSectionRedirect = lazy(() =>
   import('@/pages/training/TrainingSectionRedirect').then((m) => ({ default: m.TrainingSectionRedirect })),
@@ -266,13 +264,13 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/v2/login" element={<LoginPageV2 />} />
+      <Route path="/v2/login" element={<Navigate to="/login" replace />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route path="/form/check-in/compartido/:token" element={withPageSuspense(<PublicCheckInPage shared />)} />
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
       <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
-      <Route path="/v2/form" element={withPageSuspense(<PublicIntakeFormPageV2 />)} />
+      <Route path="/v2/form" element={<Navigate to="/form" replace />} />
 
       <Route element={<AuthGuard />}>
         <Route element={<AppLayout />}>{renderLoggedInRoutes(loggedInProps)}</Route>
