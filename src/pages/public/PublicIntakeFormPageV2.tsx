@@ -109,6 +109,9 @@ export function PublicIntakeFormPageV2() {
     nutritionist: string | null
     psychologist: string | null
   }>({ trainer: null, nutritionist: null, psychologist: null })
+  const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [plansLoaded, setPlansLoaded] = useState(false)
+  const isReady = imagesLoaded && plansLoaded
 
   /* ─────────────── Fetch de imágenes del equipo ─────────────── */
   useEffect(() => {
@@ -119,14 +122,17 @@ export function PublicIntakeFormPageV2() {
         .select('solo_segment_image_url, with_nutritionist_segment_image_url, cris_solo_segment_image_url, psychologist_segment_image_url')
         .eq('id', 1)
         .maybeSingle()
-      if (!mounted || !data) return
-      const str = (v: unknown): string | null => (typeof v === 'string' && v.trim()) ? v.trim() : null
-      const d = data as Record<string, unknown>
-      setCatalogImages({
-        trainer:      str(d.solo_segment_image_url),
-        nutritionist: str(d.cris_solo_segment_image_url) ?? str(d.with_nutritionist_segment_image_url),
-        psychologist: str(d.psychologist_segment_image_url),
-      })
+      if (!mounted) return
+      if (data) {
+        const str = (v: unknown): string | null => (typeof v === 'string' && v.trim()) ? v.trim() : null
+        const d = data as Record<string, unknown>
+        setCatalogImages({
+          trainer:      str(d.solo_segment_image_url),
+          nutritionist: str(d.cris_solo_segment_image_url) ?? str(d.with_nutritionist_segment_image_url),
+          psychologist: str(d.psychologist_segment_image_url),
+        })
+      }
+      setImagesLoaded(true)
     })()
     return () => { mounted = false }
   }, [])
@@ -174,7 +180,10 @@ export function PublicIntakeFormPageV2() {
         if (da !== db) return da - db
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
       })
-      if (mounted) setPlans(mergePublicIntakePlansFromDb(mapped))
+      if (mounted) {
+        setPlans(mergePublicIntakePlansFromDb(mapped))
+        setPlansLoaded(true)
+      }
     })()
     return () => { mounted = false }
   }, [])
@@ -199,6 +208,30 @@ export function PublicIntakeFormPageV2() {
   const intakeKind = catalogSegment === 'with_nutritionist' ? 'nutricion' : catalogSegment === 'full' ? 'full' : 'entrenamiento'
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-stone-100 dark:bg-zinc-950">
+        <img
+          src="/logo_mark_original_white_transparent.png"
+          alt="Haciéndolo Hábito"
+          className="v2f-splash-logo h-24 w-24 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:drop-shadow-[0_8px_32px_rgba(0,0,0,0.6)] sm:h-32 sm:w-32"
+          draggable={false}
+        />
+        <div className="flex gap-1.5">
+          <span className="v2f-dot h-2 w-2 rounded-full bg-brand-primary/60" style={{ animationDelay: '0ms' }} />
+          <span className="v2f-dot h-2 w-2 rounded-full bg-brand-primary/60" style={{ animationDelay: '160ms' }} />
+          <span className="v2f-dot h-2 w-2 rounded-full bg-brand-primary/60" style={{ animationDelay: '320ms' }} />
+        </div>
+        <style>{`
+          @keyframes v2f-logo-pulse { 0%,100% { opacity:1; transform: scale(1) } 50% { opacity:0.7; transform: scale(0.94) } }
+          @keyframes v2f-dot-bounce { 0%,80%,100% { transform: translateY(0); opacity:0.4 } 40% { transform: translateY(-6px); opacity:1 } }
+          .v2f-splash-logo { animation: v2f-logo-pulse 2s ease-in-out infinite }
+          .v2f-dot { animation: v2f-dot-bounce 1.2s ease-in-out infinite }
+        `}</style>
+      </div>
+    )
+  }
+
   return (
     <div className="v2form-root relative min-h-screen bg-stone-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       {/* Fondo radial sutil solo en dark */}
@@ -209,11 +242,15 @@ export function PublicIntakeFormPageV2() {
       <style>{`
         @keyframes v2f-fade-up { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
         @keyframes v2f-slide-in { from { opacity: 0; transform: translateX(20px) } to { opacity: 1; transform: translateX(0) } }
+        @keyframes v2f-drop-in { from { opacity: 0; transform: translateY(-28px) } to { opacity: 1; transform: translateY(0) } }
         .v2f-fade-up { opacity: 0; animation: v2f-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards }
         .v2f-slide { opacity: 0; animation: v2f-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards }
+        .v2f-drop { opacity: 0; animation: v2f-drop-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards }
         .v2f-d1 { animation-delay: 60ms }
         .v2f-d2 { animation-delay: 140ms }
         .v2f-d3 { animation-delay: 220ms }
+        .v2f-d4 { animation-delay: 300ms }
+        .v2f-d5 { animation-delay: 380ms }
 
         /* Card moderna con hover lift sutil */
         .v2f-card {
@@ -302,14 +339,14 @@ export function PublicIntakeFormPageV2() {
 
       <main className="v2f-shell mx-auto w-full max-w-6xl px-3 py-6 sm:px-6 sm:py-10">
         {/* ═══════════ Hero compacto ═══════════ */}
-        <div className="v2f-fade-up v2f-d1 mb-6 text-center sm:mb-7">
+        <div className="v2f-drop v2f-d1 mb-6 text-center sm:mb-7">
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl md:text-[34px]">
             Empezá tu transformación
           </h1>
         </div>
 
         {/* ═══════════ Stepper horizontal — clickable en steps completados ═══════════ */}
-        <div className="v2f-fade-up v2f-d2 mb-6 sm:mb-8">
+        <div className="v2f-drop v2f-d2 mb-6 sm:mb-8">
           <Stepper
             steps={STEPS}
             currentIndex={stepIndex}
@@ -332,7 +369,7 @@ export function PublicIntakeFormPageV2() {
           <section
             id={step === 'plan' ? 'planes' : 'datos'}
             className={cn(
-              'v2f-fade-up v2f-d3 v2f-card rounded-2xl border bg-white p-5 sm:p-7',
+              'v2f-drop v2f-d3 v2f-card rounded-2xl border bg-white p-5 sm:p-7',
               'border-zinc-200/80 shadow-[0_2px_24px_-12px_rgba(15,23,42,0.08)]',
               'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_2px_24px_-8px_rgba(0,0,0,0.5)]',
             )}
@@ -508,7 +545,7 @@ export function PublicIntakeFormPageV2() {
 
           {/* ─────────── Sidebar: resumen del plan (solo durante form) ─────────── */}
           {step === 'form' && (
-            <aside className="v2f-fade-up v2f-d3 lg:sticky lg:top-[5.5rem] lg:self-start">
+            <aside className="v2f-drop v2f-d4 lg:sticky lg:top-[5.5rem] lg:self-start">
               <PlanSummary
                 plan={selectedPlan}
                 billing={planBilling}
