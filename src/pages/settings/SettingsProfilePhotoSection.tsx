@@ -43,7 +43,10 @@ export function SettingsProfilePhotoSection({ profile, onUpdated }: Props) {
       if (prevPath) {
         await supabase.storage.from(PROFILE_AVATAR_BUCKET).remove([prevPath])
       }
-      const path = `${user.id}/avatar.${ext}`
+      // Nombre único por subida: la URL pública es estable por path, así que si
+      // reusáramos `avatar.<ext>` el navegador/CDN seguiría mostrando la foto
+      // cacheada y "no se cambiaría". El timestamp fuerza una URL nueva.
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`
       const { error: upErr } = await supabase.storage.from(PROFILE_AVATAR_BUCKET).upload(path, file, {
         upsert: true,
         contentType: file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,

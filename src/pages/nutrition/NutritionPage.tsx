@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns'
-import { BookOpen, LineChart, Plus, Search } from 'lucide-react'
+import {
+  AlarmClock,
+  BookOpen,
+  CalendarCheck,
+  CalendarClock,
+  CalendarX,
+  FolderOpen,
+  LineChart,
+  Plus,
+  Search,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
@@ -15,22 +27,70 @@ import { directoryToolbarBtnClassName } from '@/lib/primaryGradientCtaClasses'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
-import { DirectoryStatGrid } from '@/components/directory/DirectoryStatGrid'
-import { DirectoryTableShell } from '@/components/directory/DirectoryTableShell'
 import {
   formatNextConsult,
-  NutritionPatientDesktopTable,
-  NutritionPatientMobileList,
+  NutritionPatientCards,
   type NutritionFollowupRow,
 } from '@/components/nutrition/NutritionPatientDirectory'
+import { cn } from '@/lib/utils'
 import type { NutritionPatientFollowup } from '@/types/database'
 import toast from 'react-hot-toast'
+
+type PatientFilter = 'all' | 'soon' | 'overdue' | 'none' | 'attended' | 'absent'
+
+const PATIENT_FILTERS: { id: PatientFilter; label: string; icon: LucideIcon }[] = [
+  { id: 'all', label: 'Todos', icon: Users },
+  { id: 'soon', label: 'Próx. 7 días', icon: CalendarClock },
+  { id: 'overdue', label: 'Atrasados', icon: AlarmClock },
+  { id: 'none', label: 'Sin turno', icon: CalendarX },
+  { id: 'attended', label: 'Asistió', icon: CalendarCheck },
+  { id: 'absent', label: 'No asistió', icon: X },
+]
+
+function FilterChip({
+  active,
+  count,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean
+  count: number
+  icon: LucideIcon
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors',
+        active
+          ? 'border-brand-secondary bg-brand-secondary/10 text-brand-secondary'
+          : 'border-surface-border/70 text-ink-muted hover:border-surface-border hover:text-ink-secondary',
+      )}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {label}
+      <span
+        className={cn(
+          'ml-0.5 rounded-full px-1.5 text-[10px] tabular-nums',
+          active ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-elevated text-ink-muted',
+        )}
+      >
+        {count}
+      </span>
+    </button>
+  )
+}
 
 export function NutritionPage() {
   const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeFilter, setActiveFilter] = useState<PatientFilter>('all')
   const [rows, setRows] = useState<NutritionFollowupRow[]>([])
   const [newPatientOpen, setNewPatientOpen] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
@@ -46,7 +106,7 @@ export function NutritionPage() {
         ])
 
       if (studentsError || followupsError) {
-        toast.error(studentsError?.message ?? followupsError?.message ?? 'No se pudieron cargar pacientes')
+        toast.error(studentsError ?? followupsError?.message ?? 'No se pudieron cargar pacientes')
         setLoading(false)
         return
       }
@@ -61,28 +121,54 @@ export function NutritionPage() {
     })()
   }, [user, reloadToken])
 
-  const filteredRows = useMemo(() => {
+  const searchedRows = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return rows
     return rows.filter((r) => r.full_name.toLowerCase().includes(q))
   }, [rows, search])
 
-  const stats = useMemo(() => {
-    const today = startOfDay(new Date())
-    let upcomingWeek = 0
-    let overdue = 0
-    let attended = 0
-    for (const r of rows) {
-      const next = r.followup?.next_consultation_date
-      if (next) {
-        const d = differenceInCalendarDays(parseISO(next), today)
-        if (d < 0) overdue++
-        else if (d <= 7) upcomingWeek++
-      }
-      if (r.followup?.attendance_status === 'P') attended++
+  const filterCounts = useMemo(() => {
+    const counts: Record<PatientFilter, number> = {
+      all: searchedRows.length,
+      soon: 0,
+      overdue: 0,
+      none: 0,
+      attended: 0,
+      absent: 0,
     }
-    return { total: rows.length, upcomingWeek, overdue, attended }
-  }, [rows])
+    for (const r of searchedRows) {
+      const tone = formatNextConsult(r.followup?.next_consultation_date ?? null).tone
+      if (tone === 'soon') counts.soon++
+      else if (tone === 'past') counts.overdue++
+      else if (tone === 'none') counts.none++
+      const status = r.followup?.attendance_status ?? 'ST'
+      if (status === 'P') counts.attended++
+      else if (status === 'A') counts.absent++
+    }
+    return counts
+  }, [searchedRows])
+
+  const filteredRows = useMemo(() => {
+    if (activeFilter === 'all') return searchedRows
+    return searchedRows.filter((r) => {
+      const tone = formatNextConsult(r.followup?.next_consultation_date ?? null).tone
+      const status = r.followup?.attendance_status ?? 'ST'
+      switch (activeFilter) {
+        case 'soon':
+          return tone === 'soon'
+        case 'overdue':
+          return tone === 'past'
+        case 'none':
+          return tone === 'none'
+        case 'attended':
+          return status === 'P'
+        case 'absent':
+          return status === 'A'
+        default:
+          return true
+      }
+    })
+  }, [searchedRows, activeFilter])
 
   async function updateFollowup(studentId: string, patch: Partial<NutritionPatientFollowup>) {
     if (!user) return
@@ -117,33 +203,6 @@ export function NutritionPage() {
     <div>
       <Header title="Nutrición · Pacientes" />
       <DirectoryPageShell>
-        <DirectoryStatGrid
-          items={[
-            { label: 'Pacientes', value: stats.total, kpiFigmaIcon: 'patients', iconVariant: '3d', tone: 'neutral' },
-            {
-              label: 'Próx. 7 días',
-              value: stats.upcomingWeek,
-              kpiFigmaIcon: 'calendar',
-              iconVariant: '3d',
-              tone: 'neutral',
-            },
-            {
-              label: 'Atrasados',
-              value: stats.overdue,
-              kpiFigmaIcon: 'overdue',
-              iconVariant: '3d',
-              tone: 'neutral',
-            },
-            {
-              label: 'Asistieron (último)',
-              value: stats.attended,
-              kpiFigmaIcon: 'attended',
-              iconVariant: '3d',
-              tone: 'neutral',
-            },
-          ]}
-        />
-
         <PageToolbar>
           <div className="flex flex-col lg:flex-row gap-4 w-full lg:items-center lg:justify-between">
             <div className="w-full max-w-lg">
@@ -184,6 +243,19 @@ export function NutritionPage() {
           </div>
         </PageToolbar>
 
+        <div className="flex flex-wrap gap-1.5">
+          {PATIENT_FILTERS.map((f) => (
+            <FilterChip
+              key={f.id}
+              active={activeFilter === f.id}
+              count={filterCounts[f.id]}
+              icon={f.icon}
+              label={f.label}
+              onClick={() => setActiveFilter(f.id)}
+            />
+          ))}
+        </div>
+
         <StudentDeletionHistoryPanel
           entityLabel="Pacientes"
           entityLabelSingular="paciente"
@@ -191,8 +263,12 @@ export function NutritionPage() {
         />
 
         {loading ? (
-          <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card p-4">
-            <TableSkeleton rows={6} cols={5} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-[2rem] border border-surface-border bg-surface-card p-5">
+                <TableSkeleton rows={4} cols={1} />
+              </div>
+            ))}
           </div>
         ) : filteredRows.length === 0 ? (
           rows.length === 0 ? (
@@ -209,27 +285,25 @@ export function NutritionPage() {
           ) : (
             <EmptyState
               icon={<Search className="h-8 w-8" />}
-              title={`Sin resultados para "${search}"`}
-              description="Probá con otro nombre o limpiá el buscador."
+              title={search ? `Sin resultados para "${search}"` : 'Sin pacientes en este filtro'}
+              description="Probá con otro nombre, cambiá el filtro o limpiá el buscador."
             />
           )
         ) : (
-          <DirectoryTableShell title="Pacientes" count={filteredRows.length}>
-            <NutritionPatientMobileList
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-0.5">
+              <h2 className="text-sm font-semibold text-ink-primary">
+                Pacientes <span className="font-normal text-ink-muted">· {filteredRows.length}</span>
+              </h2>
+            </div>
+            <NutritionPatientCards
               rows={filteredRows}
               nextConsultLabel={formatNextConsult}
               onOpen={(id) => navigate(`/nutrition/${id}`)}
               onUpdateFollowup={updateFollowup}
               onAvatarChange={handleAvatarChange}
             />
-            <NutritionPatientDesktopTable
-              rows={filteredRows}
-              nextConsultLabel={formatNextConsult}
-              onOpen={(id) => navigate(`/nutrition/${id}`)}
-              onUpdateFollowup={updateFollowup}
-              onAvatarChange={handleAvatarChange}
-            />
-          </DirectoryTableShell>
+          </div>
         )}
       </DirectoryPageShell>
 

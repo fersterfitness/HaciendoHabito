@@ -216,6 +216,99 @@
     }
   }
 
+  /**
+   * Tarjeta de paciente (Nutrición): silueta con recorte superior-derecho (SVG).
+   * El borde (.hh-patient-card__outline) y el clip del cuerpo comparten el mismo path.
+   */
+  .hh-patient-card {
+    --hh-patient-btn-w: 2.75rem;
+    --hh-patient-btn-h: 2.25rem;
+    --hh-patient-edge-gap: 0.625rem;
+    position: relative;
+    filter:
+      drop-shadow(0 1px 2px rgb(15 15 35 / 0.05))
+      drop-shadow(0 6px 16px rgb(15 15 35 / 0.07))
+      drop-shadow(0 14px 36px rgb(15 15 35 / 0.09));
+    transition: filter 0.2s ease;
+  }
+
+  .hh-patient-card:hover {
+    filter:
+      drop-shadow(0 2px 6px rgb(15 15 35 / 0.06))
+      drop-shadow(0 10px 26px rgb(15 15 35 / 0.1))
+      drop-shadow(0 22px 48px rgb(15 15 35 / 0.12));
+  }
+
+  .dark .hh-patient-card {
+    filter:
+      drop-shadow(0 1px 2px rgb(0 0 0 / 0.2))
+      drop-shadow(0 8px 20px rgb(0 0 0 / 0.24));
+  }
+
+  .dark .hh-patient-card:hover {
+    filter:
+      drop-shadow(0 4px 10px rgb(0 0 0 / 0.24))
+      drop-shadow(0 14px 32px rgb(0 0 0 / 0.3));
+  }
+
+  .hh-patient-card__body {
+    position: relative;
+    -webkit-clip-path: url(#hh-patient-card-clip);
+    clip-path: url(#hh-patient-card-clip);
+  }
+
+  .hh-patient-card__outline {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  .hh-patient-card__outline path {
+    fill: none;
+    stroke: rgb(var(--surface-border) / 0.72);
+    stroke-width: 1.25;
+    transition: stroke 0.2s ease;
+  }
+
+  .hh-patient-card:hover .hh-patient-card__outline path {
+    stroke: rgb(var(--brand-secondary) / 0.42);
+  }
+
+  .dark .hh-patient-card__outline path {
+    stroke: rgb(var(--surface-border) / 0.58);
+  }
+
+  .dark .hh-patient-card:hover .hh-patient-card__outline path {
+    stroke: rgb(var(--brand-secondary) / 0.48);
+  }
+
+  .hh-patient-card__action {
+    position: absolute;
+    top: var(--hh-patient-edge-gap);
+    right: var(--hh-patient-edge-gap);
+    z-index: 20;
+    width: var(--hh-patient-btn-w);
+    height: var(--hh-patient-btn-h);
+    border-radius: 0.75rem;
+    border: 1px solid rgb(var(--surface-border) / 0.55);
+    box-shadow: 0 1px 3px rgb(15 15 35 / 0.08), 0 4px 10px rgb(15 15 35 / 0.06);
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .hh-patient-card:hover .hh-patient-card__action {
+    border-color: rgb(var(--brand-secondary) / 0.4);
+  }
+
+  .dark .hh-patient-card__action {
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.28);
+  }
+
   .text-balance {
     text-wrap: balance;
   }

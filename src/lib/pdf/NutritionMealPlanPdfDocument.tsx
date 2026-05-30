@@ -13,6 +13,7 @@ import {
 } from '@react-pdf/renderer'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import { columnLabels } from '@/lib/nutrition/weeklyPlanGrid'
+import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
 import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
 import { InstagramIcon, WhatsAppIcon } from '@/lib/pdf/pdfBrandIcons'
 import type { SocialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
@@ -22,6 +23,13 @@ type ProfessionalContact = {
   email?: string
   instagram?: string
 }
+
+/**
+ * Cuánto más ancha es la columna combinada «Sáb y Dom» respecto a un día
+ * suelto (los días sueltos usan flexGrow: 1). Lleva el doble de contenido
+ * (sábado + domingo), así que necesita más aire para no quedar apretada.
+ */
+const WEEKEND_COL_GROW = 1.8
 
 const styles = StyleSheet.create({
   page: {
@@ -305,6 +313,12 @@ const styles = StyleSheet.create({
   cellEmpty: {
     color: '#CBD5E1',
   },
+  cellBold: {
+    fontFamily: 'Helvetica-Bold',
+  },
+  cellItalic: {
+    fontFamily: 'Helvetica-Oblique',
+  },
   footer: {
     position: 'absolute',
     left: 22,
@@ -359,7 +373,6 @@ export function NutritionMealPlanPdfDocument({
   ageText,
   weightKgText,
   totalKcalLabel,
-  nextConsultLabel,
   mergeWeekends,
   grid,
   variant = 'detailed',
@@ -448,10 +461,6 @@ export function NutritionMealPlanPdfDocument({
               <Text style={styles.headerLabel}>Valor calórico</Text>
               <Text style={styles.headerValue}>{totalKcalLabel ?? 'Consensuado'}</Text>
             </View>
-            <View style={styles.headerItem}>
-              <Text style={styles.headerLabel}>Próxima consulta</Text>
-              <Text style={styles.headerValue}>{nextConsultLabel ?? '—'}</Text>
-            </View>
           </View>
         </View>
 
@@ -460,38 +469,67 @@ export function NutritionMealPlanPdfDocument({
           // Alternancia secondary (verde) / tertiary (ámbar) por bloque de comida.
           const isAlt = idx % 2 === 1
           return (
-            <View key={meal.id} style={styles.mealBlock} wrap={false}>
+            <View key={meal.id} style={styles.mealBlock}>
               <View style={isAlt ? [styles.mealAccent, styles.mealAccentAlt] : styles.mealAccent} />
-              <View style={isAlt ? [styles.mealHeader, styles.mealHeaderAlt] : styles.mealHeader}>
-                <Text style={styles.mealTitleText}>{meal.label}</Text>
-                {time ? (
-                  <Text style={isAlt ? [styles.mealTimePill, styles.mealTimePillAlt] : styles.mealTimePill}>
-                    {time}
-                  </Text>
-                ) : null}
-              </View>
-              <View style={styles.colHeaderRow}>
-                {days.map((d, i) => (
-                  <Text
-                    key={i}
-                    style={i === days.length - 1 ? [styles.colHeadCell, { borderRightWidth: 0 }] : styles.colHeadCell}
-                  >
-                    {d}
-                  </Text>
-                ))}
+              {/*
+                Header (título + horarios de columna) se mantiene unido y nunca
+                queda huérfano al pie de página (minPresenceAhead). El bloque
+                de celdas de abajo SÍ puede partirse entre páginas, así un menú
+                con mucho texto fluye a la página siguiente en vez de cortarse.
+              */}
+              <View wrap={false} minPresenceAhead={60}>
+                <View style={isAlt ? [styles.mealHeader, styles.mealHeaderAlt] : styles.mealHeader}>
+                  <Text style={styles.mealTitleText}>{meal.label}</Text>
+                  {time ? (
+                    <Text style={isAlt ? [styles.mealTimePill, styles.mealTimePillAlt] : styles.mealTimePill}>
+                      {time}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.colHeaderRow}>
+                  {days.map((d, i) => {
+                    const isLast = i === days.length - 1
+                    // La columna combinada Sáb+Dom lleva el doble de texto → más ancha.
+                    const wide = isLast && mergeWeekends ? { flexGrow: WEEKEND_COL_GROW } : {}
+                    return (
+                      <Text
+                        key={i}
+                        style={[styles.colHeadCell, isLast ? { borderRightWidth: 0 } : {}, wide]}
+                      >
+                        {d}
+                      </Text>
+                    )
+                  })}
+                </View>
               </View>
               <View style={isCompact ? [styles.rowCells, { minHeight: 34 }] : styles.rowCells}>
                 {meal.columns.map((txt, ci) => {
                   const text = txt?.trim() || ''
                   const isEmpty = text.length === 0
+                  const isLast = ci === meal.columns.length - 1
                   const baseStyle = isCompact
                     ? [styles.cell, { fontSize: 6.2, lineHeight: 1.25, paddingVertical: 3 }]
                     : [styles.cell]
-                  const lastCell = ci === meal.columns.length - 1 ? [{ borderRightWidth: 0 }] : []
+                  // Columna Sáb+Dom más ancha (debe coincidir con el header).
+                  const lastCell = isLast
+                    ? [{ borderRightWidth: 0, ...(mergeWeekends ? { flexGrow: WEEKEND_COL_GROW } : {}) }]
+                    : []
                   const emptyStyle = isEmpty ? [styles.cellEmpty] : []
                   return (
                     <Text key={ci} style={[...baseStyle, ...lastCell, ...emptyStyle]}>
-                      {isEmpty ? '—' : text}
+                      {isEmpty
+                        ? '—'
+                        : parseInlineMarkdown(text).map((seg, si) => (
+                            <Text
+                              key={si}
+                              style={[
+                                seg.bold ? styles.cellBold : {},
+                                seg.italic ? styles.cellItalic : {},
+                              ]}
+                            >
+                              {seg.text}
+                            </Text>
+                          ))}
                     </Text>
                   )
                 })}

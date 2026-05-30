@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn, getInitials } from '@/lib/utils'
 import { profileAvatarDisplayUrl } from '@/lib/profileAvatar'
 
@@ -31,6 +31,10 @@ export function AvatarOrInitials({
 }: AvatarOrInitialsProps) {
   const [broken, setBroken] = useState(false)
   const src = profileAvatarDisplayUrl(avatarUrl)
+  // Si cambia la foto (nueva URL), olvidamos un error previo para reintentar cargarla.
+  useEffect(() => {
+    setBroken(false)
+  }, [src])
   const showImg = Boolean(src && !broken)
 
   return (
@@ -47,7 +51,9 @@ export function AvatarOrInitials({
         <img
           src={src!}
           alt=""
-          className="block size-full object-cover object-center"
+          // `object-top`: las fotos de perfil suelen tener la cabeza arriba; anclar
+          // el recorte al tope evita cortar la frente/cabeza (look "cortado").
+          className="block size-full object-cover object-top"
           onError={() => setBroken(true)}
         />
       ) : (

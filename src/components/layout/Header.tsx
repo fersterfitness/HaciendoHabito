@@ -129,7 +129,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           type="button"
           onClick={() => navigate('/settings')}
           className={cn(
-            'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:bg-surface-border/50',
+            'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:border-brand-primary/50 hover:bg-surface-border/50',
             appFocusRingClassName,
           )}
           aria-label="Ajustes y perfil"

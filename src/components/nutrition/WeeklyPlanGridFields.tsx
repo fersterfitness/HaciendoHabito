@@ -8,6 +8,7 @@ import {
   normalizeWeeklyGrid,
   removeMealRowAt,
 } from '@/lib/nutrition/weeklyPlanGrid'
+import { RichTextCell } from '@/components/nutrition/RichTextCell'
 import { cn } from '@/lib/utils'
 
 const planFocusClassName =
@@ -102,12 +103,10 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                     <div className="text-[9px] font-semibold uppercase tracking-wide text-center py-1.5 bg-brand-secondary/10 text-brand-secondary border-b border-surface-border/80">
                       {days[ci]}
                     </div>
-                    <textarea
+                    <RichTextCell
                       value={cell}
-                      onChange={(e) => updateCell(mi, ci, e.target.value)}
-                      rows={7}
+                      onChange={(next) => updateCell(mi, ci, next)}
                       placeholder="Menú y orientaciones…"
-                      className="flex-1 w-full text-xs leading-snug px-2 py-2 bg-transparent resize-y min-h-[6rem] focus:outline-none focus:ring-1 focus:ring-brand-secondary/30 border-0"
                     />
                   </div>
                 ))}

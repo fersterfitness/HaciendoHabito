@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Search, Snowflake, Sun, Calendar, Flame, Wheat, Copy, ChevronRight } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
+import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -74,8 +75,9 @@ export function NutritionSeasonalMenusPage() {
 
   return (
     <div>
-      <Header title="Menús estacionales" />
+      <Header title="Biblioteca" />
       <div className="px-4 lg:px-6 py-6 space-y-5">
+        <NutritionLibraryTabs />
         <Card>
           <CardTitle className="mb-2">Biblioteca de menús</CardTitle>
           <p className="text-sm text-ink-secondary leading-relaxed">
@@ -252,10 +254,10 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'bg-brand-primary/15 text-brand-primary dark:text-brand-primary border border-brand-primary/30'
-          : 'border border-surface-border/70 text-ink-secondary hover:bg-surface-elevated/60 hover:text-ink-primary',
+          ? 'border-brand-secondary bg-brand-secondary/10 text-brand-secondary'
+          : 'border-surface-border/70 text-ink-muted hover:border-surface-border hover:text-ink-secondary',
       )}
     >
       {icon}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
+import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
@@ -451,9 +452,10 @@ export function NutritionFoodsPage() {
 
   return (
     <div className="min-h-0">
-      <Header title="Guía de alimentos" />
+      <Header title="Biblioteca" />
 
       <DirectoryPageShell className="max-w-[1600px] space-y-4 pb-24">
+        <NutritionLibraryTabs />
         <PageSectionTitle
           title="Biblioteca y carga"
           description="Catálogo en español, USDA FDC o manual. Todo queda en Mi lista por categoría."

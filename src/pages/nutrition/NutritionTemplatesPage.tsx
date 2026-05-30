@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { formatDistanceToNow, parseISO } from 'date-fns'
+import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
   Trash2,
@@ -22,8 +22,8 @@ import { DirectoryTableShell } from '@/components/directory/DirectoryTableShell'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { TableSkeleton } from '@/components/ui/Skeleton'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
+import { NutritionPlansTabs } from '@/components/nutrition/NutritionPlansTabs'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -32,6 +32,7 @@ import {
   reshapeGrid,
   type WeeklyPlanGridJson,
 } from '@/lib/nutrition/weeklyPlanGrid'
+import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { cn } from '@/lib/utils'
 import type { NutritionPlanLibrary } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -43,6 +44,13 @@ function relativeUpdated(iso: string): string {
     return '—'
   }
 }
+
+/**
+ * Misma grilla en cabecera y filas (anchos fijos → columnas alineadas).
+ * Plan | Objetivo (flex) | Formato | Actualización (corta) | Acciones
+ */
+const PLAN_LIBRARY_ROW_GRID =
+  'sm:grid sm:[grid-template-columns:minmax(9.5rem,1.05fr)_minmax(0,1fr)_7.25rem_5.25rem_5.5rem] sm:items-center sm:gap-x-4'
 
 export function NutritionTemplatesPage() {
   const { user } = useAuthStore()
@@ -247,6 +255,7 @@ export function NutritionTemplatesPage() {
       <Header title="Planes de alimentación" />
 
       <DirectoryPageShell className="space-y-5">
+        <NutritionPlansTabs />
         {/* Hero crear */}
         <section
           className={cn(
@@ -331,8 +340,13 @@ export function NutritionTemplatesPage() {
           </div>
 
           {loading ? (
-            <div className="px-4 py-6 sm:px-5">
-              <TableSkeleton rows={4} cols={4} />
+            <div className="space-y-2 px-4 py-4 sm:px-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-11 animate-pulse rounded-lg border border-surface-border/60 bg-surface-elevated/40"
+                />
+              ))}
             </div>
           ) : filteredPlans.length === 0 ? (
             <div className="px-4 py-10 sm:px-5">
@@ -351,150 +365,170 @@ export function NutritionTemplatesPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-surface-border/80 bg-surface-elevated/40">
-                    <th className="w-[1%] px-3 py-3 sm:px-4" aria-hidden />
-                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
-                      Plan
-                    </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
-                      Objetivo
-                    </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
-                      Grilla
-                    </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
-                      Actualizado
-                    </th>
-                    <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPlans.map((t) => {
-                    const active = editingId === t.id
-                    return (
-                      <tr
-                        key={t.id}
-                        className={cn(
-                          'group cursor-pointer transition-[background-color,box-shadow] duration-150',
-                          active
-                            ? 'bg-brand-secondary/[0.09] shadow-[inset_3px_0_0_0_rgb(var(--brand-secondary))]'
-                            : 'hover:bg-surface-elevated/35',
-                          'border-b border-surface-border/60 last:border-b-0',
-                        )}
-                        onClick={() => openEditor(t)}
-                      >
-                        <td className="px-2 py-3 sm:px-3">
-                          <span
-                            className={cn(
-                              'block h-8 w-1 rounded-full transition-colors',
-                              active ? 'bg-brand-secondary' : 'bg-transparent group-hover:bg-brand-secondary/35',
-                            )}
-                            aria-hidden
-                          />
-                        </td>
-                        <td className="px-3 py-3 sm:px-4">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              className={cn(
-                                'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors',
-                                active
-                                  ? 'border-brand-secondary/35 bg-brand-secondary/15 text-brand-secondary'
-                                  : 'border-surface-border/70 bg-surface-elevated/50 text-ink-muted group-hover:text-brand-secondary',
-                              )}
-                            >
-                              <FileText className="h-4 w-4" aria-hidden />
-                            </span>
-                            <div className="min-w-0">
-                              <p
-                                className={cn(
-                                  'truncate text-sm font-semibold',
-                                  active ? 'text-brand-secondary' : 'text-ink-primary',
-                                )}
-                              >
-                                {t.name}
-                              </p>
-                              {active ? (
-                                <p className="text-[10px] font-medium text-brand-secondary/80 mt-0.5">
-                                  Editando ahora
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="max-w-[14rem] px-3 py-3 sm:max-w-xs sm:px-4">
-                          {t.objective ? (
-                            <p className="line-clamp-2 text-sm leading-snug text-ink-secondary">{t.objective}</p>
-                          ) : (
-                            <span className="text-sm text-ink-muted">—</span>
+            <div className="px-3 pb-3 pt-1.5 sm:px-4 sm:pb-4">
+              <div
+                className={cn(
+                  'mb-1.5 hidden py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted',
+                  PLAN_LIBRARY_ROW_GRID,
+                )}
+                aria-hidden
+              >
+                <span className="text-left">Plan</span>
+                <span className="min-w-0 text-left">Objetivo</span>
+                <span className="text-left">Formato</span>
+                <span className="text-left">Actualiz.</span>
+                <span className="text-right">Acciones</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {filteredPlans.map((t, rowIndex) => {
+                  const active = editingId === t.id
+                  const updatedShort = (() => {
+                    try {
+                      return format(parseISO(t.updated_at), 'dd/MM/yy', { locale: es })
+                    } catch {
+                      return '—'
+                    }
+                  })()
+                  const updatedTitle = `${new Date(t.updated_at).toLocaleDateString('es-AR', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })} · ${relativeUpdated(t.updated_at)}`
+                  return (
+                    <div
+                      key={t.id}
+                      role="button"
+                      tabIndex={0}
+                      style={tableRowEnterStyle(rowIndex)}
+                      onClick={() => openEditor(t)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') openEditor(t)
+                      }}
+                      className={cn(
+                        'group grid cursor-pointer grid-cols-1 gap-2 rounded-lg border px-3 py-2.5 shadow-sm transition-colors',
+                        PLAN_LIBRARY_ROW_GRID,
+                        active
+                          ? 'border-brand-secondary/50 bg-brand-secondary/[0.06] shadow-card'
+                          : 'border-surface-border/70 bg-surface-card hover:border-brand-secondary/35 hover:shadow-card',
+                      )}
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span
+                          className={cn(
+                            'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors',
+                            active
+                              ? 'border-brand-secondary/35 bg-brand-secondary/15 text-brand-secondary'
+                              : 'border-surface-border/70 bg-surface-elevated/50 text-ink-muted group-hover:text-brand-secondary',
                           )}
-                        </td>
-                        <td className="px-3 py-3 sm:px-4">
-                          <span
-                            className={cn(
-                              'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-medium',
-                              t.merge_weekends
-                                ? 'border-brand-tertiary/30 bg-brand-tertiary/10 text-brand-tertiary'
-                                : 'border-surface-border/80 bg-surface-elevated/40 text-ink-muted',
-                            )}
-                          >
-                            <Layers className="h-3 w-3 shrink-0" aria-hidden />
-                            {t.merge_weekends ? 'Lun–vie + finde' : '7 días'}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 sm:px-4">
-                          <p className="text-sm tabular-nums text-ink-secondary">
-                            {new Date(t.updated_at).toLocaleDateString('es-AR', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
+                        >
+                          <FileText className="h-3.5 w-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                            Plan
                           </p>
-                          <p className="text-[10px] text-ink-muted mt-0.5">{relativeUpdated(t.updated_at)}</p>
-                        </td>
-                        <td className="px-2 py-2.5 sm:px-3" onClick={(e) => e.stopPropagation()}>
-                          <div
+                          <p
                             className={cn(
-                              'flex items-center justify-end gap-0.5 rounded-xl border border-surface-border/60',
-                              'bg-surface-card/60 p-0.5 transition-opacity',
-                              'opacity-70 group-hover:opacity-100',
+                              'truncate text-[13px] font-semibold leading-tight',
+                              active ? 'text-brand-secondary' : 'text-ink-primary group-hover:text-brand-secondary',
                             )}
                           >
-                            <button
-                              type="button"
-                              onClick={() => openEditor(t)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-brand-secondary/12 hover:text-brand-secondary"
-                              title="Editar"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void clonePlan(t)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-brand-tertiary/12 hover:text-brand-tertiary"
-                              title="Clonar"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void deletePlan(t.id)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                            {t.name}
+                          </p>
+                          {active ? (
+                            <p className="truncate text-[10px] text-brand-secondary/80 sm:hidden">Editando ahora</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                          Objetivo
+                        </p>
+                        <p
+                          className={cn(
+                            'truncate text-[12px] leading-snug',
+                            t.objective ? 'text-ink-secondary' : 'text-ink-muted',
+                          )}
+                          title={t.objective ?? undefined}
+                        >
+                          {t.objective || 'Sin objetivo definido'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                          Formato
+                        </p>
+                        <span
+                          className={cn(
+                            'inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap',
+                            t.merge_weekends
+                              ? 'border-brand-tertiary/30 bg-brand-tertiary/10 text-brand-tertiary'
+                              : 'border-surface-border/80 bg-surface-elevated/40 text-ink-muted',
+                          )}
+                        >
+                          <Layers className="h-2.5 w-2.5 shrink-0" aria-hidden />
+                          {t.merge_weekends ? 'Lun–vie + finde' : '7 días'}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                          Actualización
+                        </p>
+                        <p
+                          className="truncate text-[11px] tabular-nums text-ink-muted"
+                          title={active ? 'Editando ahora' : updatedTitle}
+                        >
+                          {active ? (
+                            <span className="text-brand-secondary/80">Ahora</span>
+                          ) : (
+                            <>
+                              <span className="sm:hidden">{relativeUpdated(t.updated_at)}</span>
+                              <span className="hidden sm:inline">{updatedShort}</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+
+                      <div
+                        className="flex items-center justify-end gap-0.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="mr-auto text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                          Acciones
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openEditor(t)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-brand-secondary/12 hover:text-brand-secondary"
+                          title="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void clonePlan(t)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-brand-tertiary/12 hover:text-brand-tertiary"
+                          title="Clonar"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deletePlan(t.id)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </DirectoryTableShell>

@@ -8,12 +8,10 @@ import {
   BookOpen,
   Wallet,
   Salad,
-  LineChart,
   CalendarClock,
   Apple,
   ClipboardList,
   UtensilsCrossed,
-  Activity,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -77,19 +75,24 @@ export const NAV_MEAL_PLANS_TRAINER: NavItem = {
   icon: UtensilsCrossed,
 }
 
-/** Pacientes, evolución antropométrica y diagnóstico comparativo. */
+/**
+ * Pacientes. La evolución antropométrica y el diagnóstico comparativo ya no
+ * viven en el menú: se acceden contextualmente desde la ficha del paciente
+ * (botón «Comparar 2 PDFs» / evolución dentro del paciente). Las rutas siguen
+ * activas en App.tsx, solo se quitó el acceso suelto del menú.
+ */
 export const NAV_NUTRITION_PATIENT_ANTHRO: NavItem[] = [
   { label: 'Pacientes', href: '/nutrition', icon: Users, exactMatch: true },
-  { label: 'Evolución', href: '/nutrition/evolution', icon: LineChart },
-  { label: 'Diagnóstico comparativo', href: '/nutrition-pdfs', icon: Activity },
 ]
 
-/** Planes, menús y biblioteca de alimentos (iconos Lucide distintos en el rail). */
+/**
+ * Planes y biblioteca (iconos Lucide distintos en el rail).
+ * «Biblioteca» unifica alimentos + menús estacionales: ambas vistas viven dentro
+ * de la misma página con pestañas, así el menú no repite dos accesos separados.
+ */
 export const NAV_NUTRITION_FOOD: NavItem[] = [
-  { label: 'Menús estacionales', href: '/nutrition/menus', icon: Salad },
   { label: 'Planes', href: '/nutrition/plans', icon: FileText },
-  { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
-  { label: 'Biblioteca de alimentos', href: '/nutrition/foods', icon: Apple },
+  { label: 'Biblioteca', href: '/nutrition/foods', icon: Apple },
 ]
 
 /** Lista plana legacy (admin / referencias externas). */
@@ -162,9 +165,8 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
     sections.push({ title: 'Alimentación', items: [NAV_MEAL_PLANS] })
   }
 
-  if (role !== 'student') {
-    sections.push({ title: 'Finanzas', items: [...NAV_FINANCE] })
-  }
+  // Los estudiantes ya retornaron arriba; el resto de roles ve Finanzas.
+  sections.push({ title: 'Finanzas', items: [...NAV_FINANCE] })
 
   return sections
 }
