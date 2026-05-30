@@ -36,6 +36,7 @@ import {
   mergeWebPlansForManagement,
   type CanonicalEditableWebPlan,
 } from '@/lib/webPlansCanonicalCatalog'
+import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -103,10 +104,8 @@ function isDurationVariantWebOffer(plan: EditableWebPlan): boolean {
   return false
 }
 
-type ExtendedSegment = WebPlanCatalogSegment | 'psychologist'
-
 /** Borde y leve tinte para distinguir segmentos al editar muchas ofertas. */
-function segmentOfferCardClass(seg: ExtendedSegment): string {
+function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
   switch (seg) {
     case 'solo':
       return 'border-l-[5px] border-l-amber-500 ring-1 ring-amber-500/12 dark:ring-amber-400/10'
@@ -121,7 +120,7 @@ function segmentOfferCardClass(seg: ExtendedSegment): string {
   }
 }
 
-function segmentOfferHeaderTintClass(seg: ExtendedSegment): string {
+function segmentOfferHeaderTintClass(seg: WebPlanCatalogSegment): string {
   switch (seg) {
     case 'solo':
       return 'bg-amber-500/[0.07] dark:bg-amber-500/10'
@@ -214,6 +213,7 @@ export function WebPlansSettingsPage() {
   const [modalityLabelSolo, setModalityLabelSolo] = useState('')
   const [modalityLabelWithNutritionist, setModalityLabelWithNutritionist] = useState('')
   const [modalityLabelFull, setModalityLabelFull] = useState('')
+  const [modalityLabelPsychologist, setModalityLabelPsychologist] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
   const soloFileRef = useRef<HTMLInputElement>(null)
   const nutritionSegmentFileRef = useRef<HTMLInputElement>(null)
@@ -246,6 +246,7 @@ export function WebPlansSettingsPage() {
       setModalityLabelSolo(row.modality_label_solo ?? '')
       setModalityLabelWithNutritionist(row.modality_label_with_nutritionist ?? '')
       setModalityLabelFull(row.modality_label_full ?? '')
+      setModalityLabelPsychologist(row.modality_label_psychologist ?? '')
     })()
   }, [canManage])
 
@@ -309,7 +310,8 @@ export function WebPlansSettingsPage() {
     const a = modalityLabelSolo.trim()
     const b = modalityLabelWithNutritionist.trim()
     const c = modalityLabelFull.trim()
-    if ([a, b, c].some((t) => t.length > LIMITS.modalityLabel)) {
+    const d = modalityLabelPsychologist.trim()
+    if ([a, b, c, d].some((t) => t.length > LIMITS.modalityLabel)) {
       toast.error(`Cada etiqueta admite hasta ${LIMITS.modalityLabel} caracteres.`)
       return
     }
@@ -320,6 +322,7 @@ export function WebPlansSettingsPage() {
         modality_label_solo: a || null,
         modality_label_with_nutritionist: b || null,
         modality_label_full: c || null,
+        modality_label_psychologist: d || null,
       })
       if (error) {
         toast.error(
@@ -454,13 +457,13 @@ export function WebPlansSettingsPage() {
         includes_sections: normalizeIncludeSections(
           parseIncludeSectionsJson(row.includes_sections),
           row.includes_items ?? [],
-          (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
-        ),
-        gifts_items: row.gifts_items ?? [],
-        sort_order: row.sort_order,
-        is_active: row.is_active,
-        show_in_public_intake: row.show_in_public_intake !== false,
-        catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
+          normalizeWebPlanCatalogSegment(row.catalog_segment),
+      ),
+      gifts_items: row.gifts_items ?? [],
+      sort_order: row.sort_order,
+      is_active: row.is_active,
+      show_in_public_intake: row.show_in_public_intake !== false,
+      catalog_segment: normalizeWebPlanCatalogSegment(row.catalog_segment),
         display_badge: row.display_badge ?? null,
         credential_line_override: row.credential_line_override ?? null,
       }))
@@ -697,7 +700,7 @@ export function WebPlansSettingsPage() {
       sort_order: plan.sort_order,
       is_active: plan.is_active,
       show_in_public_intake: plan.show_in_public_intake !== false,
-      catalog_segment: plan.catalog_segment,
+      catalog_segment: normalizeWebPlanCatalogSegment(plan.catalog_segment),
       display_badge: plan.display_badge?.trim() ? plan.display_badge.trim().slice(0, LIMITS.badge) : null,
       credential_line_override: plan.credential_line_override?.trim()
         ? plan.credential_line_override.trim().slice(0, LIMITS.credentialLine)
@@ -725,13 +728,13 @@ export function WebPlansSettingsPage() {
       includes_sections: normalizeIncludeSections(
         parseIncludeSectionsJson(row.includes_sections),
         row.includes_items ?? [],
-        (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
+        normalizeWebPlanCatalogSegment(row.catalog_segment),
       ),
       gifts_items: row.gifts_items ?? [],
       sort_order: row.sort_order,
       is_active: row.is_active,
       show_in_public_intake: row.show_in_public_intake !== false,
-      catalog_segment: (row.catalog_segment ?? 'solo') as WebPlanCatalogSegment,
+      catalog_segment: normalizeWebPlanCatalogSegment(row.catalog_segment),
       display_badge: row.display_badge ?? null,
       credential_line_override: row.credential_line_override ?? null,
       isCatalogCanonical: isCanonicalWebPlanSlug(row.slug),
@@ -764,7 +767,7 @@ export function WebPlansSettingsPage() {
             <p className="text-sm font-semibold text-ink-primary">Cómo se arma el formulario público (/form)</p>
             <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-ink-secondary marker:text-ink-muted">
               <li>
-                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo (entrenador, nutricionista, psicólogo) y las 4 modalidades disponibles.
+                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo (entrenador, nutricionista, psicólogo) y las 4 modalidades: Planes Más Completos, Entrenamiento, Nutrición y Psicólogo Deportivo.
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Planes Más Completos (full):</span> las ofertas salen de la base con segmento <code className="font-mono text-[10px]">full</code>, activas y con «Mostrar en /form». Se agrupan en subcategorías automáticas: Entreno + Nutrición, Entreno + Psicólogo, Entreno + Nutrición + Psicólogo.
@@ -918,8 +921,8 @@ export function WebPlansSettingsPage() {
                 Si dejás un campo vacío, el /form usa el texto por defecto de cada modalidad.
               </p>
               <Input
-                label="Opción 1 — Entrenamiento Individual (segmento solo)"
-                placeholder="Ej. ENTRENAMIENTO INDIVIDUAL"
+                label="Opción 1 — Entrenamiento (segmento solo)"
+                placeholder="Ej. ENTRENAMIENTO"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelSolo}
                 onChange={(e) => setModalityLabelSolo(e.target.value)}
@@ -937,6 +940,13 @@ export function WebPlansSettingsPage() {
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelFull}
                 onChange={(e) => setModalityLabelFull(e.target.value)}
+              />
+              <Input
+                label="Opción 4 — Psicólogo Deportivo (segmento psychologist)"
+                placeholder="Ej. PSICÓLOGO DEPORTIVO"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelPsychologist}
+                onChange={(e) => setModalityLabelPsychologist(e.target.value)}
               />
               <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
                 Guardar etiquetas
@@ -1148,12 +1158,8 @@ export function WebPlansSettingsPage() {
                 )}
               >
                 <div
-                  draggable={showDurationVariantRows}
+                  draggable
                   onDragStart={(e) => {
-                    if (!showDurationVariantRows) {
-                      e.preventDefault()
-                      return
-                    }
                     setDraggingPlanSlug(plan.slug)
                     e.dataTransfer.setData('text/plain', plan.slug)
                     e.dataTransfer.effectAllowed = 'move'
@@ -1164,16 +1170,10 @@ export function WebPlansSettingsPage() {
                   }}
                   className={cn(
                     'mt-0.5 shrink-0 rounded-lg border border-surface-border/70 bg-surface-base/50 p-1.5 text-ink-muted',
-                    showDurationVariantRows
-                      ? 'cursor-grab touch-none hover:bg-surface-elevated hover:text-ink-secondary active:cursor-grabbing'
-                      : 'cursor-not-allowed opacity-50',
+                    'cursor-grab touch-none hover:bg-surface-elevated hover:text-ink-secondary active:cursor-grabbing',
                     appFocusRingClassName,
                   )}
-                  title={
-                    showDurationVariantRows
-                      ? 'Arrastrá y soltá sobre otra oferta (mitad superior = antes, mitad inferior = después)'
-                      : 'Activá «Mostrar variantes de duración» para arrastrar todas las filas y reordenar con precisión.'
-                  }
+                  title="Arrastrá y soltá sobre otra oferta para reordenar (mitad superior = antes, mitad inferior = después). Guardá ofertas para persistir."
                   aria-label="Arrastrar para reordenar ofertas"
                 >
                   <GripVertical className="h-4 w-4" aria-hidden />
@@ -1202,14 +1202,18 @@ export function WebPlansSettingsPage() {
                           ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
                           : plan.catalog_segment === 'with_nutritionist'
                             ? 'border-sky-500/35 bg-sky-500/10 text-sky-900 dark:text-sky-200'
-                            : 'border-surface-border bg-surface-elevated/80 text-ink-muted',
+                            : plan.catalog_segment === 'psychologist'
+                              ? 'border-violet-500/35 bg-violet-500/10 text-violet-900 dark:text-violet-200'
+                              : 'border-surface-border bg-surface-elevated/80 text-ink-muted',
                       )}
                     >
                       {plan.catalog_segment === 'solo'
                         ? 'Ferster'
                         : plan.catalog_segment === 'with_nutritionist'
                           ? 'Nutrición'
-                          : 'Plan full'}
+                          : plan.catalog_segment === 'psychologist'
+                            ? 'Psicólogo'
+                            : 'Plan full'}
                     </span>
                   </div>
                   <p className={cn('mt-0.5 font-mono text-ink-muted', isExpanded ? 'text-xs' : 'text-[11px] leading-tight')}>{plan.slug}</p>

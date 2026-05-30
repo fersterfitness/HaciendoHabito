@@ -637,7 +637,7 @@ export interface RoutineBlueprint {
   updated_at: string
 }
 
-export type WebPlanCatalogSegment = 'solo' | 'with_nutritionist' | 'full'
+export type WebPlanCatalogSegment = 'solo' | 'with_nutritionist' | 'full' | 'psychologist'
 
 /** Profesional asociado a una sección de «Incluye» en `web_plans`. */
 export type WebPlanIncludeProfessional = 'trainer' | 'psychologist' | 'nutritionist'
@@ -696,6 +696,7 @@ export interface WebIntakeCatalogSettings {
   modality_label_solo?: string | null
   modality_label_with_nutritionist?: string | null
   modality_label_full?: string | null
+  modality_label_psychologist?: string | null
   updated_at: string
 }
 

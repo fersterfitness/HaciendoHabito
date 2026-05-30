@@ -39,21 +39,22 @@ import {
 } from '@/lib/publicIntakeCatalogOffers'
 import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
+import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 
 type ModalityId = WebPlanCatalogSegment | 'psychologist'
 
 const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: string }[] = [
   { id: 'full',              short: 'Más Completos',  label: 'Planes Más Completos',           desc: 'Nuestros mejores planes personalizados y en conjunto.' },
-  { id: 'solo',              short: 'Entrenamiento',  label: 'Entrenamiento Individual',        desc: 'Planes de entrenamiento personalizado' },
+  { id: 'solo',              short: 'Entrenamiento',  label: 'Entrenamiento',                   desc: 'Planes individuales de entrenamiento' },
   { id: 'with_nutritionist', short: 'Nutrición',      label: 'Nutrición',                      desc: 'Planes individuales de nutrición' },
   { id: 'psychologist',      short: 'Psicología',     label: 'Psicólogo Deportivo',             desc: 'Planes individuales Psicología deportiva' },
 ]
 
 /** Subcategorías visuales dentro del segmento "full". */
 const FULL_SUBCATEGORIES = [
-  { key: 'entreno_nutricion',            label: 'Entreno + Nutrición',                       matchFn: (name: string) => !/psic/i.test(name) },
-  { key: 'entreno_psicologo',            label: 'Entreno + Psicólogo Deportivo',              matchFn: (name: string) => /psic/i.test(name) && !/nutri/i.test(name) },
   { key: 'entreno_nutricion_psicologo',  label: 'Entreno + Nutrición + Psicólogo Deportivo',  matchFn: (name: string) => /psic/i.test(name) && /nutri/i.test(name) },
+  { key: 'entreno_nutricion',            label: 'Entreno + Nutrición',                        matchFn: (name: string) => !/psic/i.test(name) },
+  { key: 'entreno_psicologo',            label: 'Entreno + Psicólogo Deportivo',               matchFn: (name: string) => /psic/i.test(name) && !/nutri/i.test(name) },
 ]
 
 const STEPS = [
@@ -163,10 +164,7 @@ export function PublicIntakeFormPageV2() {
       if (!mounted || error) return
       type Row = Pick<WebPlan, 'slug' | 'title' | 'price_label' | 'price_yearly_label' | 'price_3m_label' | 'price_6m_label' | 'short_description' | 'intro_text' | 'includes_items' | 'includes_sections' | 'gifts_items' | 'sort_order' | 'is_active' | 'catalog_segment' | 'display_badge' | 'credential_line_override'>
       const mapped: PublicIntakePlanDetail[] = ((data as Row[]) ?? []).map((row) => {
-        const rawSeg = String(row.catalog_segment ?? 'solo')
-        const segment: WebPlanCatalogSegment =
-          rawSeg === 'with_nutritionist' || rawSeg === 'with_cris' ? 'with_nutritionist'
-          : rawSeg === 'full' ? 'full' : 'solo'
+        const segment = normalizeWebPlanCatalogSegment(String(row.catalog_segment ?? 'solo'))
         const id = row.slug
         const badge = row.display_badge?.trim() || (id === 'plan-nutricion' ? 'Nutrición' : id === 'plan-full' ? 'Full' : 'Plan')
         return {
@@ -206,9 +204,10 @@ export function PublicIntakeFormPageV2() {
 
   /* ─────────────── Derivados ─────────────── */
   const plansVisible = useMemo(() => {
-    if (catalogSegment === 'psychologist') return []
     return plans.filter((p) => {
-      if (p.catalogSegment !== (catalogSegment as WebPlanCatalogSegment)) return false
+      if (catalogSegment === 'psychologist') {
+        if (p.catalogSegment !== 'psychologist') return false
+      } else if (p.catalogSegment !== catalogSegment) return false
       const bundle = inferWebPlanBundleCommitment(p.id, p.name)
       return planVisibleForIntakeBilling(bundle, planBilling)
     })
@@ -449,7 +448,12 @@ export function PublicIntakeFormPageV2() {
                   'dark:bg-zinc-900 dark:ring-white/[0.06] dark:shadow-[0_18px_50px_-14px_rgba(0,0,0,0.6)]',
                 )}
               >
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Modalidad</p>
+                <div className="mb-4 text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1</p>
+                  <h3 className="mt-1 text-lg font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
+                    Seleccioná una modalidad y elegí tu plan
+                  </h3>
+                </div>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                     {MODALITY_OPTIONS.map((m) => {
                       const active = catalogSegment === m.id
@@ -504,12 +508,12 @@ export function PublicIntakeFormPageV2() {
                         .filter(({ subPlans }) => subPlans.length > 0)
                         .map(({ sub, subPlans }, idx) => (
                           <div key={sub.key}>
-                            <div className="mb-3 flex items-center gap-3">
-                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
-                              <span className="rounded-full border border-zinc-300/70 bg-zinc-100 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                            <div className="mb-4 flex items-center gap-3">
+                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
+                              <span className="shrink-0 rounded-lg border border-orange-500/40 bg-orange-500/[0.06] px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-500 dark:border-orange-400/30 dark:bg-orange-400/[0.07] dark:text-orange-400">
                                 {sub.label}
                               </span>
-                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
+                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
                             </div>
                             <div className="-mx-1">
                               <IntakeChangeablePlansSection
@@ -781,8 +785,8 @@ const TEAM: ProfessionalDef[] = [
   {
     name: 'Santiago Rodríguez',
     role: 'Psicólogo',
-    credential: 'Acompañamiento mental · Hábitos y motivación',
-    tagline: 'Trabaja la cabeza y la adherencia al proceso.',
+    credential: 'Lic. en Psicología UBA · Especialización deportiva',
+    tagline: 'Mejora y supervisa tu factor psicológico deportivo.',
     key: 'psychologist',
     hoverRingClass: 'group-hover:ring-violet-300/70 dark:group-hover:ring-violet-500/30',
     photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
@@ -800,9 +804,17 @@ function MeetTheTeam({
 }) {
   return (
     <section>
-      <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-        Nuestro equipo
-      </p>
+      <div className="mb-5 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">
+          Conocé a
+        </p>
+        <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-zinc-900 sm:text-3xl dark:text-white">
+          Nuestro equipo
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Profesionales especializados en rendimiento deportivo
+        </p>
+      </div>
 
       <div className="mx-auto grid w-full max-w-5xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
         {TEAM.map((p) => {

@@ -265,9 +265,10 @@ export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]):
   const fullIntegral = mergeCanonicalIntakeOffers(INTAKE_FULL_INTEGRAL_OFFERS, dbById)
   const extraFull = dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id))
   const extraWithNutritionist = dbPlans.filter((p) => p.catalogSegment === 'with_nutritionist')
+  const extraPsychologist = dbPlans.filter((p) => p.catalogSegment === 'psychologist')
   const nutrition =
     extraWithNutritionist.length > 0
       ? extraWithNutritionist
       : [overlayIntakeOfferFromDb(INTAKE_NUTRITION_OFFER, dbById)]
-  return [...ferster, ...extraSolo, ...fullIntegral, ...extraFull, ...nutrition]
+  return [...ferster, ...extraSolo, ...fullIntegral, ...extraFull, ...nutrition, ...extraPsychologist]
 }

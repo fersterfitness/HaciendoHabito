@@ -68,7 +68,7 @@ function cornerBadgeClass(planBadge: string | undefined | null, variant: 'green'
   if (/popular|recomendado|destacado/i.test(raw)) {
     return 'bg-emerald-400 text-zinc-900'
   }
-  if (variant === 'amber') return 'bg-amber-400 text-zinc-900'
+  if (variant === 'amber') return 'bg-orange-500 text-white'
   return 'bg-emerald-400 text-zinc-900'
 }
 
@@ -295,19 +295,19 @@ export function IntakeChangeablePlansSection({
                 }}
                 className={cn(
                   'relative cursor-pointer rounded-2xl border outline-none transition-all duration-300 ease-out',
-                  'will-change-transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-amber-400/40',
+                  'will-change-transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-orange-500/40',
                   darkChrome
                     ? isSelected
-                      ? 'border-amber-400/55 bg-zinc-900 ring-1 ring-amber-400/25 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.75)] hover:shadow-[0_28px_60px_-12px_rgba(0,0,0,0.85)]'
+                      ? 'border-orange-500/55 bg-zinc-900 ring-1 ring-orange-500/25 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.75)] hover:shadow-[0_28px_60px_-12px_rgba(0,0,0,0.85)]'
                       : 'border-zinc-800 bg-zinc-900/50 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.6)] hover:border-zinc-700 hover:bg-zinc-900/70 hover:shadow-[0_24px_50px_-14px_rgba(0,0,0,0.7)]'
                     : isSelected
-                      ? 'border-amber-400/70 bg-white ring-1 ring-amber-400/25 shadow-[0_22px_50px_-16px_rgba(15,23,42,0.30)] hover:shadow-[0_30px_60px_-16px_rgba(15,23,42,0.36)]'
+                      ? 'border-orange-500/70 bg-white ring-1 ring-orange-500/25 shadow-[0_22px_50px_-16px_rgba(15,23,42,0.30)] hover:shadow-[0_30px_60px_-16px_rgba(15,23,42,0.36)]'
                       : 'border-zinc-200 bg-white shadow-[0_12px_30px_-16px_rgba(15,23,42,0.14)] hover:border-zinc-300 hover:shadow-[0_24px_48px_-18px_rgba(15,23,42,0.22)]',
                 )}
               >
                 {/* Badge ámbar — esquina superior derecha, montado sobre el borde */}
                 {plan.badge?.trim() ? (
-                  <span className="absolute -top-2.5 right-5 z-10 rounded-full bg-amber-400 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-zinc-900 shadow-sm">
+                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-white shadow-sm">
                     {plan.badge.trim()}
                   </span>
                 ) : null}
@@ -339,12 +339,12 @@ export function IntakeChangeablePlansSection({
                         else onSelectPlan(plan.id)
                       }}
                       className={cn(
-                        'mt-4 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors',
+                        'mt-4 inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-[13px] font-semibold tracking-tight transition-colors',
                         isSelected
-                          ? 'bg-amber-400 text-zinc-900 hover:bg-amber-300'
+                          ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-[0_2px_12px_-4px_rgba(249,115,22,0.45)]'
                           : darkChrome
-                            ? 'bg-white text-zinc-900 hover:bg-white/90'
-                            : 'bg-zinc-900 text-white hover:bg-zinc-800',
+                            ? 'border border-white/20 text-white hover:bg-white/10'
+                            : 'border border-zinc-300 text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50',
                       )}
                     >
                       {isSelected ? buttonText : 'Elegir plan'}
@@ -376,7 +376,7 @@ export function IntakeChangeablePlansSection({
                             <li key={idx} className="flex items-start gap-2">
                               <span
                                 aria-hidden
-                                className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', darkChrome ? 'bg-amber-400/70' : 'bg-amber-500')}
+                                className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', darkChrome ? 'bg-orange-500/70' : 'bg-orange-500')}
                               />
                               <span className={cn('text-[13px] font-medium leading-snug', darkChrome ? 'text-white/78' : 'text-neutral-600')}>
                                 {feature.text}
@@ -423,7 +423,7 @@ export function IntakeChangeablePlansSection({
               {plan.badge?.trim() ? (
                 <span
                   className={cn(
-                    'absolute right-3 top-3 z-10 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.07em]',
+                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-[0.07em]',
                     cornerBadgeClass(plan.badge, badgeVariant),
                   )}
                 >

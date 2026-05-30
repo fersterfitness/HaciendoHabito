@@ -20,6 +20,7 @@ import {
 } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { ChartSizedContainer } from '@/components/charts/ChartSizedContainer'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { NutritionResumenKpi } from './NutritionResumenKpi'
@@ -161,8 +162,9 @@ export function NutritionResumenDashboard({
                 Primer control con peso. La curva de evolución aparece cuando cargues una segunda medición.
               </p>
             ) : null}
-            <div className="h-[220px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartSizedContainer className="h-[220px] w-full" minHeight={220}>
+            {({ width, height }) => (
+            <ResponsiveContainer width={width} height={height}>
               <AreaChart data={heroData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="resumen-peso-fill" x1="0" y1="0" x2="0" y2="1">
@@ -200,7 +202,8 @@ export function NutritionResumenDashboard({
                 />
               </AreaChart>
             </ResponsiveContainer>
-            </div>
+            )}
+            </ChartSizedContainer>
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-surface-border/80 px-4 py-8 text-center">

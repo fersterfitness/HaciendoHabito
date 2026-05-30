@@ -191,7 +191,7 @@ export function SettingsPage() {
               ofertas y textos sin tocar código.
             </p>
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
-              <Link to="/settings/web-plans">Abrir Planes Web</Link>
+              <Link to="/settings/web-plans">Gestionar Planes Web</Link>
             </Button>
           </FormSection>
         </Card>

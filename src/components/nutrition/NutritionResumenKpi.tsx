@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo } from 'react'
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, YAxis } from 'recharts'
+import { ChartSizedContainer } from '@/components/charts/ChartSizedContainer'
 import { cn } from '@/lib/utils'
 
 export interface NutritionKpiProps {
@@ -96,22 +97,24 @@ export function NutritionResumenKpi({
         </div>
 
         {sparkData ? (
-          <div className="w-20 h-8 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sparkData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-                <YAxis hide domain={['auto', 'auto']} />
-                <Line
-                  type="monotone"
-                  dataKey="v"
-                  stroke={sparkStroke}
-                  strokeWidth={1.75}
-                  dot={false}
-                  isAnimationActive={false}
-                  connectNulls
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartSizedContainer className="w-20 h-8 shrink-0" minHeight={32}>
+            {({ width, height }) => (
+              <ResponsiveContainer width={width} height={height}>
+                <LineChart data={sparkData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+                  <YAxis hide domain={['auto', 'auto']} />
+                  <Line
+                    type="monotone"
+                    dataKey="v"
+                    stroke={sparkStroke}
+                    strokeWidth={1.75}
+                    dot={false}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </ChartSizedContainer>
         ) : null}
       </div>
     </div>

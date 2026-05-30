@@ -35,6 +35,7 @@ import {
 import type { IntakeCatalogSegmentImages } from '@/lib/intake/intakeProfessionals'
 import { WebPlanIncludesSectionsDisplay } from '@/components/webPlans/WebPlanIncludesSectionsDisplay'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
+import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 import {
   intakePanelGroupLabelClass,
   intakePanelSegmentIdleClass,
@@ -1166,11 +1167,7 @@ export function PublicIntakeFormPage({ loginHref = '/login' }: { loginHref?: str
       >
       const mapped: PlanDetail[] = ((data as Row[]) ?? []).map((row) => {
         const id = row.slug
-        const rawSeg = String(row.catalog_segment ?? 'solo')
-        const segment: WebPlanCatalogSegment =
-          rawSeg === 'with_nutritionist' || rawSeg === 'with_cris' ? 'with_nutritionist'
-          : rawSeg === 'full' ? 'full'
-          : 'solo'
+        const segment = normalizeWebPlanCatalogSegment(String(row.catalog_segment ?? 'solo'))
         const displayBadge = row.display_badge ?? null
         const credentialLineOverride = row.credential_line_override ?? null
         return {
