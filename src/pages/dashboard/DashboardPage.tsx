@@ -1016,7 +1016,7 @@ export function DashboardPage() {
 
         const [quickSends, missing] = await Promise.all([
           loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
-          loadStudentsMissingCheckIn(user!.id, 7),
+          loadStudentsMissingCheckIn(user!.id),
         ])
         setCheckInQuickSends(quickSends.checkInSends)
         setResourceQuickSends(quickSends.resourceSends)

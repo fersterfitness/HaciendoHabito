@@ -84,8 +84,8 @@ function ScalePicker({
 }) {
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm font-medium text-ink-primary leading-snug">{label}</legend>
-      <div className="flex gap-2" role="group" aria-label={label}>
+      <legend className="text-[15px] font-medium text-ink-primary leading-snug">{label}</legend>
+      <div className="flex gap-2.5" role="group" aria-label={label}>
         {SCALE_VALUES.map((num) => {
           const selected = value > 0 && value === num
           return (
@@ -95,11 +95,11 @@ function ScalePicker({
               onClick={() => onChange(num)}
               aria-pressed={selected}
               className={cn(
-                'flex-1 h-11 rounded-xl text-sm font-semibold transition-all duration-150',
+                'h-12 w-12 rounded-xl text-base font-bold transition-all duration-150 sm:h-14 sm:w-14',
                 'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40',
                 selected
-                  ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
-                  : 'border-surface-border bg-surface-card/80 text-ink-secondary hover:border-brand-primary/30 hover:text-ink-primary',
+                  ? 'border-brand-primary bg-brand-primary text-white shadow-[0_8px_18px_-6px_rgba(255,72,0,0.55)] scale-[1.05]'
+                  : 'border-surface-border bg-surface-card/80 text-ink-secondary hover:-translate-y-0.5 hover:border-brand-primary/40 hover:text-ink-primary',
               )}
             >
               {num}
@@ -225,7 +225,9 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
     }
     const res = data as { ok?: boolean; error?: string }
     if (!res?.ok) {
-      if (res?.error === 'already_submitted') toast.error('Ya enviaste este formulario.')
+      if (res?.error === 'already_submitted') {
+        toast.error('Ya enviaste el check-in de esta semana. Podés volver a completarlo la semana que viene.')
+      }
       else if (res?.error === 'rate_limited') toast.error('Demasiados intentos. Probá de nuevo en un rato.')
       else if (res?.error === 'answer_too_long') toast.error('Alguna respuesta es demasiado larga.')
       else if (res?.error === 'email_required') toast.error('Ingresá tu correo.')
@@ -296,31 +298,39 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
 
   return (
     <PageFrame innerClassName="justify-start sm:justify-center">
-      <div className="w-full max-w-lg space-y-8">
-        <header className="text-center space-y-3 pt-2">
-          <BrandLogo size="sm" decorative className="mx-auto" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-primary">
-            Ferster Fitness · Haciéndolo hábito
-          </p>
-          {firstName ? (
-            <p className="text-xs font-medium uppercase tracking-widest text-ink-muted">Hola, {firstName}</p>
-          ) : null}
-          <h1 className="text-2xl sm:text-[1.65rem] font-semibold tracking-tight text-ink-primary text-balance">
-            {payload.title}
-          </h1>
+      <div className="w-full max-w-2xl space-y-8">
+        <header className="space-y-5 pt-2">
+          <div className="flex flex-col items-center space-y-2.5 text-center">
+            <BrandLogo size="sm" decorative />
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-primary">
+              Ferster Fitness · Haciéndolo hábito
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-ink-primary text-balance sm:text-[1.65rem]">
+              {payload.title}
+            </h1>
+            {firstName ? (
+              <p className="text-sm text-ink-secondary">Hola, {firstName} 👋</p>
+            ) : null}
+          </div>
           {payload.intro ? (
-            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap max-w-prose mx-auto">
+            <p className="whitespace-pre-wrap text-left text-[13px] leading-relaxed text-ink-muted">
               {payload.intro}
             </p>
           ) : null}
         </header>
 
-        <form
-          className="rounded-2xl border border-surface-border/80 bg-surface-card/90 backdrop-blur-sm shadow-sm dark:shadow-none p-5 sm:p-7 space-y-7"
-          onSubmit={onFormSubmit}
-        >
+        {questions.length > 0 ? (
+          <div className="h-1 w-full overflow-hidden rounded-full bg-surface-border/50">
+            <div
+              className="h-full rounded-full bg-brand-primary transition-all duration-300 ease-out"
+              style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+            />
+          </div>
+        ) : null}
+
+        <form className="space-y-10" onSubmit={onFormSubmit}>
           {questions.map((q, idx) => (
-            <div key={q.id} className={cn('space-y-2', idx > 0 && 'pt-7 border-t border-surface-border/60')}>
+            <div key={q.id} className="space-y-3">
               {q.type === 'scale' ? (
                 <ScalePicker
                   label={q.label}
@@ -329,7 +339,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
                 />
               ) : (
                 <div className="space-y-2">
-                  <label htmlFor={`q-${q.id}`} className="block text-sm font-medium text-ink-primary leading-snug">
+                  <label htmlFor={`q-${q.id}`} className="block text-[15px] font-medium text-ink-primary leading-snug">
                     {q.label}
                   </label>
                   <textarea

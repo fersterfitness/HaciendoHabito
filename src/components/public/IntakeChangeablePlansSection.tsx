@@ -55,6 +55,8 @@ export interface IntakeChangeablePlansSectionProps {
    * Sin acordeón. Sólo lo usa el form V2.
    */
   cardLayout?: boolean
+  /** Mostrar el toggle de plazo de pago (Mensual/x3/x6/Anual). Permite renderizarlo una sola vez cuando hay varias secciones. */
+  showBillingToggle?: boolean
 }
 
 /**
@@ -88,6 +90,7 @@ export function IntakeChangeablePlansSection({
   includeSectionAvatars = {},
   showFooter = true,
   cardLayout = false,
+  showBillingToggle = true,
 }: IntakeChangeablePlansSectionProps) {
   const heroTone = tone === 'hero'
   const lightChrome = tone === 'card' && uiTheme === 'light'
@@ -147,6 +150,7 @@ export function IntakeChangeablePlansSection({
           'max-w-[460px] rounded-[24px] border border-neutral-700/75 bg-neutral-950/85 p-1.5 shadow-lg ring-1 ring-neutral-700/65 backdrop-blur-md',
       )}
     >
+      {showBillingToggle && (
       <div
         className={cn(
           // Embebido en /form: siempre columna para que el toggle use todo el ancho y no lo corte overflow del padre.
@@ -244,6 +248,7 @@ export function IntakeChangeablePlansSection({
           </button>
         </div>
       </div>
+      )}
 
       <div
         className={cn(
@@ -359,6 +364,7 @@ export function IntakeChangeablePlansSection({
                         listTitle={plan.featuresLabel ?? 'Incluye'}
                         showProfessionalAvatars
                         marker="dot"
+                        sectionDivider="subtle"
                       />
                     ) : plan.features.length > 0 ? (
                       <>

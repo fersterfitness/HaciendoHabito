@@ -37,6 +37,7 @@ import {
   mergePublicIntakePlansFromDb,
   type PublicIntakePlanDetail,
 } from '@/lib/publicIntakeCatalogOffers'
+import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 
 type ModalityId = WebPlanCatalogSegment | 'psychologist'
@@ -154,13 +155,13 @@ export function PublicIntakeFormPageV2() {
       const { data, error } = await supabase
         .from('web_plans')
         .select(
-          'slug, title, price_label, price_yearly_label, price_3m_label, price_6m_label, short_description, intro_text, includes_items, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
+          'slug, title, price_label, price_yearly_label, price_3m_label, price_6m_label, short_description, intro_text, includes_items, includes_sections, gifts_items, sort_order, is_active, show_in_public_intake, catalog_segment, display_badge, credential_line_override',
         )
         .eq('is_active', true)
         .eq('show_in_public_intake', true)
         .order('sort_order')
       if (!mounted || error) return
-      type Row = Pick<WebPlan, 'slug' | 'title' | 'price_label' | 'price_yearly_label' | 'price_3m_label' | 'price_6m_label' | 'short_description' | 'intro_text' | 'includes_items' | 'gifts_items' | 'sort_order' | 'is_active' | 'catalog_segment' | 'display_badge' | 'credential_line_override'>
+      type Row = Pick<WebPlan, 'slug' | 'title' | 'price_label' | 'price_yearly_label' | 'price_3m_label' | 'price_6m_label' | 'short_description' | 'intro_text' | 'includes_items' | 'includes_sections' | 'gifts_items' | 'sort_order' | 'is_active' | 'catalog_segment' | 'display_badge' | 'credential_line_override'>
       const mapped: PublicIntakePlanDetail[] = ((data as Row[]) ?? []).map((row) => {
         const rawSeg = String(row.catalog_segment ?? 'solo')
         const segment: WebPlanCatalogSegment =
@@ -181,6 +182,11 @@ export function PublicIntakeFormPageV2() {
           shortDescription: row.short_description,
           intro: row.intro_text,
           info: row.includes_items ?? [],
+          includeSections: normalizeIncludeSections(
+            row.includes_sections,
+            row.includes_items ?? [],
+            segment,
+          ),
           gifts: row.gifts_items ?? [],
         }
       })
@@ -395,7 +401,7 @@ export function PublicIntakeFormPageV2() {
         {/* ═══════════ Hero compacto ═══════════ */}
         <div className="v2f-drop v2f-d1 mb-6 text-center sm:mb-7">
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl md:text-[34px]">
-            Empezá tu transformación
+            Empezá tu <span className="bg-gradient-to-r from-brand-primary to-amber-500 bg-clip-text text-transparent">transformación</span>
           </h1>
         </div>
 
@@ -493,10 +499,10 @@ export function PublicIntakeFormPageV2() {
                   ) : catalogSegment === 'full' && plansVisible.length > 0 ? (
                     /* ── Subcategorías para "Planes Más Completos" ── */
                     <div className="space-y-6">
-                      {FULL_SUBCATEGORIES.map((sub) => {
-                        const subPlans = plansVisible.filter((p) => sub.matchFn(p.name))
-                        if (subPlans.length === 0) return null
-                        return (
+                      {FULL_SUBCATEGORIES
+                        .map((sub) => ({ sub, subPlans: plansVisible.filter((p) => sub.matchFn(p.name)) }))
+                        .filter(({ subPlans }) => subPlans.length > 0)
+                        .map(({ sub, subPlans }, idx) => (
                           <div key={sub.key}>
                             <div className="mb-3 flex items-center gap-3">
                               <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
@@ -516,6 +522,7 @@ export function PublicIntakeFormPageV2() {
                                 onContinue={() => { if (selectedPlanId) setStep('form') }}
                                 billing={planBilling}
                                 onBillingChange={setPlanBilling}
+                                showBillingToggle={idx === 0}
                                 badgeVariant="amber"
                                 tone="card"
                                 embedded
@@ -531,8 +538,7 @@ export function PublicIntakeFormPageV2() {
                               />
                             </div>
                           </div>
-                        )
-                      })}
+                        ))}
                       {/* CTA vive dentro de cada card (cardLayout); aquí solo la nota */}
                       <p className="border-t border-zinc-200 pt-4 text-center text-[10px] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
                         Cancelás cuando quieras.

@@ -572,7 +572,12 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
   const responseByInvite = useMemo(() => {
     const m = new Map<string, ResponseRow>()
-    for (const r of responses) m.set(r.invite_id, r)
+    for (const r of responses) {
+      const prev = m.get(r.invite_id)
+      if (!prev || new Date(r.submitted_at) > new Date(prev.submitted_at)) {
+        m.set(r.invite_id, r)
+      }
+    }
     return m
   }, [responses])
 

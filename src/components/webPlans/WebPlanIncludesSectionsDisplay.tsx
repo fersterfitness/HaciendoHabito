@@ -20,6 +20,8 @@ type Props = {
   giftsLabel?: string
   /** Marcador de cada ítem: tilde (default) o viñeta minimal estilo pricing. */
   marker?: 'check' | 'dot'
+  /** Separación entre secciones: barra de acento lateral (default) o hairline sutil. */
+  sectionDivider?: 'accent' | 'subtle'
 }
 
 function giftLineText(g: WebPlanGiftLine): string {
@@ -72,6 +74,7 @@ export function WebPlanIncludesSectionsDisplay({
   gifts,
   giftsLabel = 'De regalo',
   marker = 'check',
+  sectionDivider = 'accent',
 }: Props) {
   const giftItems = (gifts ?? []).map(giftLineText).filter(Boolean)
   if (!sections.length && !giftItems.length) return null
@@ -98,11 +101,16 @@ export function WebPlanIncludesSectionsDisplay({
       {sections.length > 0 ? (
         <div className="space-y-4">
           {listTitle ? <p className={eyebrowClass}>{listTitle}</p> : null}
-          <div className="flex flex-col gap-5">
-            {sections.map((sec) => (
+          <div className={cn('flex flex-col', sectionDivider === 'subtle' ? 'gap-3.5' : 'gap-5')}>
+            {sections.map((sec, idx) => (
               <section
                 key={sec.professional}
-                className={cn('space-y-2.5 border-l-2 pl-2.5', sectionAccentClass(sec))}
+                className={cn(
+                  'space-y-2.5',
+                  sectionDivider === 'subtle'
+                    ? idx > 0 && cn('border-t pt-3.5', dividerClass)
+                    : cn('border-l-2 pl-2.5', sectionAccentClass(sec)),
+                )}
               >
                 {showProfessionalAvatars ? (
                   <div className="flex items-center gap-3">

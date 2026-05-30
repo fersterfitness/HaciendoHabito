@@ -1,3 +1,4 @@
+import { checkInWeekStartUtc } from '@/lib/checkInWeek'
 import { supabase } from '@/lib/supabase'
 import {
   buildResourceShareMessage,
@@ -77,13 +78,9 @@ export function openMissingStudentCheckInReminder(params: {
   return true
 }
 
-/** Alumnos activos sin respuesta de check-in en los últimos `days` días (cualquier formulario del owner). */
-export async function loadStudentsMissingCheckIn(
-  ownerId: string,
-  days = 7,
-): Promise<DashboardMissingCheckInStudent[]> {
-  const since = new Date()
-  since.setDate(since.getDate() - days)
+/** Alumnos activos sin respuesta de check-in en la semana actual (lun–dom, Argentina). */
+export async function loadStudentsMissingCheckIn(ownerId: string): Promise<DashboardMissingCheckInStudent[]> {
+  const since = checkInWeekStartUtc()
 
   const [stuRes, formsRes] = await Promise.all([
     supabase
