@@ -29,7 +29,7 @@ export function NutritionResumenKpi({
   value,
   previous,
   unit,
-  desiredDirection: _desiredDirection = 'neutral',
+  desiredDirection = 'neutral',
   series,
   precision = 1,
 }: NutritionKpiProps) {
@@ -44,9 +44,33 @@ export function NutritionResumenKpi({
     return cleaned
   }, [series])
 
-  const tone = 'text-ink-muted'
+  /**
+   * ¿La variación es una mejora? Para métricas con dirección deseada (grasa↓,
+   * músculo↑, cintura↓) usamos esa semántica; para "neutral" (peso) coloreamos
+   * por signo (sube = verde, baja = rojo) para dar el toque de color.
+   */
+  const improving =
+    delta == null || delta === 0
+      ? null
+      : desiredDirection === 'down'
+        ? delta < 0
+        : desiredDirection === 'up'
+          ? delta > 0
+          : delta > 0
 
-  const sparkStroke = 'rgb(var(--ink-muted) / 0.55)'
+  const tone =
+    improving == null
+      ? 'text-ink-muted'
+      : improving
+        ? 'text-status-generated'
+        : 'text-status-expired'
+
+  const sparkStroke =
+    improving == null
+      ? 'rgb(var(--ink-muted) / 0.55)'
+      : improving
+        ? 'rgb(var(--status-generated) / 0.7)'
+        : 'rgb(var(--status-expired) / 0.7)'
 
   return (
     <div className="rounded-2xl border border-surface-border/80 bg-surface-card p-4 flex flex-col gap-3 min-h-[150px]">

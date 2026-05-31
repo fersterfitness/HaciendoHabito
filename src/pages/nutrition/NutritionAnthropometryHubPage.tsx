@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   AlertCircle,
   ArrowRight,
   CalendarDays,
+  History,
   Loader2,
+  RotateCcw,
   Scale,
   Search,
   Sparkles,
+  Trash2,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react'
@@ -26,8 +29,17 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { nutritionInputClass, nutritionSectionTitleClass } from '@/lib/nutrition/nutritionAreaUi'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
 import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
+import {
+  deleteMeasurement,
+  fetchMeasurementDeletionLog,
+  restoreDeletedMeasurement,
+} from '@/lib/nutrition/measurementDeletionAccess'
 import { cn, formatDate } from '@/lib/utils'
-import type { NutritionMeasurement, Student } from '@/types/database'
+import type {
+  NutritionMeasurement,
+  NutritionMeasurementDeletionLogEntry,
+  Student,
+} from '@/types/database'
 import toast from 'react-hot-toast'
 
 type MetricKey = 'weight_kg' | 'body_fat_pct' | 'bmi' | 'muscle_mass_kg'
@@ -175,6 +187,12 @@ export function NutritionAnthropometryHubPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | null>(null)
   const [aiError, setAiError] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [deletionLog, setDeletionLog] = useState<NutritionMeasurementDeletionLogEntry[]>([])
+  const [loadingDeleted, setLoadingDeleted] = useState(false)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -191,34 +209,83 @@ export function NutritionAnthropometryHubPage() {
     }
   }, [])
 
-  useEffect(() => {
-    // Reset del análisis IA al cambiar de paciente.
-    setAiResult(null)
-    setAiError(null)
-    setAiLoading(false)
+  const loadMeasurements = useCallback(async () => {
     if (!user || !selectedId) {
       setMeasurements([])
       return
     }
-    let alive = true
-    ;(async () => {
-      setLoadingMeasurements(true)
-      const { data, error } = await supabase
-        .from('nutrition_measurements')
-        .select('*')
-        .eq('owner_id', user.id)
-        .eq('student_id', selectedId)
-        .order('measured_at', { ascending: false })
-        .limit(40)
-      if (!alive) return
-      if (error) toast.error(error.message)
-      setMeasurements((data as NutritionMeasurement[]) ?? [])
-      setLoadingMeasurements(false)
-    })()
-    return () => {
-      alive = false
-    }
+    setLoadingMeasurements(true)
+    const { data, error } = await supabase
+      .from('nutrition_measurements')
+      .select('*')
+      .eq('owner_id', user.id)
+      .eq('student_id', selectedId)
+      .order('measured_at', { ascending: false })
+      .limit(40)
+    if (error) toast.error(error.message)
+    setMeasurements((data as NutritionMeasurement[]) ?? [])
+    setLoadingMeasurements(false)
   }, [user, selectedId])
+
+  const loadDeletionLog = useCallback(async () => {
+    if (!selectedId) {
+      setDeletionLog([])
+      return
+    }
+    setLoadingDeleted(true)
+    const { data, error } = await fetchMeasurementDeletionLog(selectedId)
+    setLoadingDeleted(false)
+    if (error) {
+      toast.error(error)
+      return
+    }
+    setDeletionLog(data)
+  }, [selectedId])
+
+  useEffect(() => {
+    // Reset de análisis IA e historial al cambiar de paciente.
+    setAiResult(null)
+    setAiError(null)
+    setAiLoading(false)
+    setConfirmDeleteId(null)
+    setShowDeleted(false)
+    setDeletionLog([])
+    void loadMeasurements()
+  }, [loadMeasurements])
+
+  function toggleDeleted() {
+    const next = !showDeleted
+    setShowDeleted(next)
+    if (next) void loadDeletionLog()
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    const { error } = await deleteMeasurement(id)
+    setDeletingId(null)
+    setConfirmDeleteId(null)
+    if (error) {
+      toast.error(error)
+      return
+    }
+    toast.success('Antropometría eliminada')
+    setAiResult(null)
+    await loadMeasurements()
+    if (showDeleted) await loadDeletionLog()
+  }
+
+  async function handleRestore(logId: string) {
+    setRestoringId(logId)
+    const { error } = await restoreDeletedMeasurement(logId)
+    setRestoringId(null)
+    if (error) {
+      toast.error(error)
+      return
+    }
+    toast.success('Antropometría restaurada')
+    setAiResult(null)
+    await Promise.all([loadMeasurements(), loadDeletionLog()])
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -313,7 +380,7 @@ export function NutritionAnthropometryHubPage() {
                 />
               </div>
 
-              <div className="max-h-[60vh] space-y-1 overflow-y-auto pr-0.5">
+              <div className="max-h-[60vh] space-y-1 overflow-y-auto px-1 py-1">
                 {loadingStudents ? (
                   <div className="flex justify-center py-8">
                     <Spinner />
@@ -331,7 +398,7 @@ export function NutritionAnthropometryHubPage() {
                         className={cn(
                           'flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors',
                           active
-                            ? 'bg-brand-secondary/12 ring-1 ring-brand-secondary/40'
+                            ? 'bg-surface-elevated shadow-sm ring-1 ring-inset ring-surface-border'
                             : 'hover:bg-surface-elevated/50',
                         )}
                       >
@@ -345,8 +412,8 @@ export function NutritionAnthropometryHubPage() {
                         />
                         <span
                           className={cn(
-                            'min-w-0 flex-1 truncate text-sm font-medium',
-                            active ? 'text-brand-secondary' : 'text-ink-primary',
+                            'min-w-0 flex-1 truncate text-sm',
+                            active ? 'font-semibold text-ink-primary' : 'font-medium text-ink-primary',
                           )}
                         >
                           {s.full_name}
@@ -431,8 +498,87 @@ export function NutritionAnthropometryHubPage() {
                       )}
                       {aiLoading ? 'Analizando…' : aiResult ? 'Re-analizar' : 'Análisis IA'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={toggleDeleted}
+                      aria-pressed={showDeleted}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors',
+                        showDeleted
+                          ? 'border-surface-border bg-surface-elevated text-ink-primary'
+                          : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
+                      )}
+                    >
+                      <History className="h-4 w-4" aria-hidden />
+                      {showDeleted ? 'Ocultar eliminadas' : 'Eliminadas'}
+                    </button>
                   </div>
                 </div>
+
+                {/* Historial de antropometrías eliminadas */}
+                {showDeleted && (
+                  <div className="rounded-2xl border border-surface-border/80 bg-surface-card p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <History className="h-4 w-4 text-ink-muted" aria-hidden />
+                      <h2 className="text-sm font-semibold text-ink-primary">
+                        Antropometrías eliminadas
+                      </h2>
+                    </div>
+                    {loadingDeleted ? (
+                      <div className="flex justify-center py-6">
+                        <Spinner />
+                      </div>
+                    ) : deletionLog.length === 0 ? (
+                      <p className="py-2 text-sm text-ink-muted">
+                        No hay antropometrías eliminadas de este paciente.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {deletionLog.map((d) => (
+                          <li
+                            key={d.id}
+                            className="flex items-center gap-3 rounded-xl border border-surface-border/60 bg-surface-elevated/30 px-3 py-2"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-ink-primary">
+                                {d.measurement_number
+                                  ? `Control N° ${d.measurement_number}`
+                                  : 'Control'}
+                                {d.measured_at ? (
+                                  <span className="ml-2 text-xs font-normal text-ink-muted">
+                                    {formatDate(d.measured_at)}
+                                  </span>
+                                ) : null}
+                              </p>
+                              <p className="truncate text-xs text-ink-muted">
+                                Eliminada {formatDate(d.deleted_at)}
+                                {d.deleted_by_name ? ` · ${d.deleted_by_name}` : ''}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(d.id)}
+                              disabled={restoringId === d.id || d.can_restore === false}
+                              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-surface-border px-2.5 py-1.5 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                              title={
+                                d.can_restore === false
+                                  ? 'No se puede restaurar (ya existe o falta el paciente)'
+                                  : 'Restaurar antropometría'
+                              }
+                            >
+                              {restoringId === d.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                              ) : (
+                                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                              )}
+                              Restaurar
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
                 {loadingMeasurements ? (
                   <div className="flex justify-center py-12">
@@ -465,6 +611,78 @@ export function NutritionAnthropometryHubPage() {
                           betterWhenLower={m.betterWhenLower}
                         />
                       ))}
+                    </div>
+
+                    {/* Controles cargados (con eliminación) */}
+                    <div className="rounded-2xl border border-surface-border/80 bg-surface-card p-4">
+                      <h2 className={cn(nutritionSectionTitleClass, 'mb-3')}>
+                        Controles cargados
+                      </h2>
+                      <ul className="space-y-1.5">
+                        {measurements.map((m) => {
+                          const summary = [
+                            m.weight_kg != null ? `${m.weight_kg} kg` : null,
+                            m.body_fat_pct != null ? `${m.body_fat_pct}% graso` : null,
+                            m.muscle_mass_kg != null ? `${m.muscle_mass_kg} kg músculo` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')
+                          return (
+                            <li
+                              key={m.id}
+                              className="flex items-center gap-3 rounded-xl border border-surface-border/60 bg-surface-elevated/20 px-3 py-2"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-ink-primary">
+                                  {m.measurement_number
+                                    ? `Control N° ${m.measurement_number}`
+                                    : 'Control'}
+                                  <span className="ml-2 text-xs font-normal text-ink-muted">
+                                    {formatDate(m.measured_at)}
+                                  </span>
+                                </p>
+                                <p className="truncate text-xs text-ink-muted">
+                                  {summary || 'Sin métricas generales'}
+                                </p>
+                              </div>
+                              {confirmDeleteId === m.id ? (
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                  <span className="text-xs text-ink-muted">¿Eliminar?</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(m.id)}
+                                    disabled={deletingId === m.id}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-status-expired px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-status-expired/90 disabled:opacity-50"
+                                  >
+                                    {deletingId === m.id ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                                    ) : null}
+                                    Sí, eliminar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    disabled={deletingId === m.id}
+                                    className="rounded-lg border border-surface-border px-2.5 py-1.5 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-elevated disabled:opacity-50"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(m.id)}
+                                  className="inline-flex shrink-0 items-center justify-center rounded-lg border border-surface-border p-1.5 text-ink-muted transition-colors hover:border-status-expired/40 hover:bg-status-expired/10 hover:text-status-expired"
+                                  title="Eliminar control"
+                                  aria-label="Eliminar control"
+                                >
+                                  <Trash2 className="h-4 w-4" aria-hidden />
+                                </button>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
                     </div>
 
                     {/* Análisis IA */}

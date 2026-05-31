@@ -27,7 +27,7 @@ import {
   WEB_INTAKE_CATALOG_IMAGE_MAX_BYTES,
   webIntakeImageExt,
 } from '@/lib/webIntakeCatalogAssets'
-import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
+import { webPlansFormCheckboxAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import {
@@ -37,6 +37,11 @@ import {
   type CanonicalEditableWebPlan,
 } from '@/lib/webPlansCanonicalCatalog'
 import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
+import {
+  applyPlanSortOrderBySegment,
+  segmentRankInVisibleList,
+  slugOrdersEqual,
+} from '@/lib/webPlansSortOrder'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -104,35 +109,60 @@ function isDurationVariantWebOffer(plan: EditableWebPlan): boolean {
   return false
 }
 
-/** Borde y leve tinte para distinguir segmentos al editar muchas ofertas. */
-function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
+function sortedPlansList(plans: EditableWebPlan[]): EditableWebPlan[] {
+  return [...plans].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
+}
+
+function visibleOfferSlugs(plans: EditableWebPlan[], showDurationVariantRows: boolean): string[] {
+  const sorted = sortedPlansList(plans)
+  const visible = showDurationVariantRows ? sorted : sorted.filter((p) => !isDurationVariantWebOffer(p))
+  return visible.map((p) => p.slug)
+}
+
+/**
+ * Acento por segmento (sólido, sin opacidad). Un color distinto por tipo para
+ * poder distinguirlos de un vistazo. La paleta de marca solo aporta dos tonos
+ * realmente diferenciables (naranja y rosa), así que esos dos van a Entreno y
+ * Trío, y los otros tres usan hues sólidos (verde nutrición, violeta psico,
+ * celeste plan full). El borde izquierdo y el badge del segmento comparten color.
+ */
+function segmentBrandBorderClass(seg: WebPlanCatalogSegment): string {
   switch (seg) {
     case 'solo':
-      return 'border-l-[5px] border-l-amber-500 ring-1 ring-amber-500/12 dark:ring-amber-400/10'
+      return 'border-l-brand-secondary'
     case 'with_nutritionist':
-      return 'border-l-[5px] border-l-sky-500 ring-1 ring-sky-500/12 dark:ring-sky-400/10'
-    case 'full':
-      return 'border-l-[5px] border-l-emerald-500 ring-1 ring-emerald-500/12 dark:ring-emerald-400/10'
+      return 'border-l-emerald-500'
     case 'psychologist':
-      return 'border-l-[5px] border-l-violet-500 ring-1 ring-violet-500/12 dark:ring-violet-400/10'
+      return 'border-l-violet-500'
+    case 'full_trio':
+      return 'border-l-brand-tertiary'
+    case 'full':
+      return 'border-l-sky-500'
     default:
-      return ''
+      return 'border-l-brand-secondary'
   }
 }
 
-function segmentOfferHeaderTintClass(seg: WebPlanCatalogSegment): string {
+function segmentBrandBadgeClass(seg: WebPlanCatalogSegment): string {
   switch (seg) {
     case 'solo':
-      return 'bg-amber-500/[0.07] dark:bg-amber-500/10'
+      return 'bg-brand-secondary text-white'
     case 'with_nutritionist':
-      return 'bg-sky-500/[0.07] dark:bg-sky-500/10'
-    case 'full':
-      return 'bg-emerald-500/[0.07] dark:bg-emerald-500/10'
+      return 'bg-emerald-500 text-white'
     case 'psychologist':
-      return 'bg-violet-500/[0.07] dark:bg-violet-500/10'
+      return 'bg-violet-500 text-white'
+    case 'full_trio':
+      return 'bg-brand-tertiary text-white'
+    case 'full':
+      return 'bg-sky-500 text-white'
     default:
-      return 'bg-surface-elevated/45'
+      return 'bg-brand-secondary text-white'
   }
+}
+
+/** Borde de marca sólido (sin halo translúcido), uniforme para todas las cards. */
+function segmentOfferCardClass(seg: WebPlanCatalogSegment): string {
+  return cn('border-l-[5px]', segmentBrandBorderClass(seg))
 }
 
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
@@ -214,7 +244,12 @@ export function WebPlansSettingsPage() {
   const [modalityLabelWithNutritionist, setModalityLabelWithNutritionist] = useState('')
   const [modalityLabelFull, setModalityLabelFull] = useState('')
   const [modalityLabelPsychologist, setModalityLabelPsychologist] = useState('')
+  const [modalityLabelFullTrio, setModalityLabelFullTrio] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
+  const [sortOrderSaving, setSortOrderSaving] = useState(false)
+  const sortPersistTimer = useRef<number | null>(null)
+  const plansForSortPersistRef = useRef(plans)
+  plansForSortPersistRef.current = plans
   const soloFileRef = useRef<HTMLInputElement>(null)
   const nutritionSegmentFileRef = useRef<HTMLInputElement>(null)
   const fullFileRef = useRef<HTMLInputElement>(null)
@@ -247,6 +282,7 @@ export function WebPlansSettingsPage() {
       setModalityLabelWithNutritionist(row.modality_label_with_nutritionist ?? '')
       setModalityLabelFull(row.modality_label_full ?? '')
       setModalityLabelPsychologist(row.modality_label_psychologist ?? '')
+      setModalityLabelFullTrio(row.modality_label_full_trio ?? '')
     })()
   }, [canManage])
 
@@ -311,7 +347,8 @@ export function WebPlansSettingsPage() {
     const b = modalityLabelWithNutritionist.trim()
     const c = modalityLabelFull.trim()
     const d = modalityLabelPsychologist.trim()
-    if ([a, b, c, d].some((t) => t.length > LIMITS.modalityLabel)) {
+    const e = modalityLabelFullTrio.trim()
+    if ([a, b, c, d, e].some((t) => t.length > LIMITS.modalityLabel)) {
       toast.error(`Cada etiqueta admite hasta ${LIMITS.modalityLabel} caracteres.`)
       return
     }
@@ -323,6 +360,7 @@ export function WebPlansSettingsPage() {
         modality_label_with_nutritionist: b || null,
         modality_label_full: c || null,
         modality_label_psychologist: d || null,
+        modality_label_full_trio: e || null,
       })
       if (error) {
         toast.error(
@@ -497,44 +535,94 @@ export function WebPlansSettingsPage() {
     return sortedPlans.filter((p) => !isDurationVariantWebOffer(p))
   }, [sortedPlans, showDurationVariantRows])
 
+  const visibleSlugOrder = useMemo(
+    () => visibleOfferSlugs(plans, showDurationVariantRows),
+    [plans, showDurationVariantRows],
+  )
+
+  const plansBySlug = useMemo(() => new Map(plans.map((p) => [p.slug, p])), [plans])
+
+  /** Orden 1, 2, 3… dentro de cada modalidad (lo que ve /form en esa pestaña). */
+  const segmentRankBySlug = useMemo(() => {
+    const ranks = new Map<string, number>()
+    for (const slug of visibleSlugOrder) {
+      const rank = segmentRankInVisibleList(visibleSlugOrder, plansBySlug, slug)
+      if (rank > 0) ranks.set(slug, rank)
+    }
+    return ranks
+  }, [visibleSlugOrder, plansBySlug])
+
   const hiddenVariantCount = useMemo(
     () => sortedPlans.filter((p) => isDurationVariantWebOffer(p)).length,
     [sortedPlans],
   )
 
-  /** Orden de la lista = orden en /form (sort_order). Subir/bajar reordena y renumera; guardá ofertas para persistir. */
-  function moveSortedPlan(slug: string, delta: -1 | 1) {
+  async function persistSortOrder() {
+    const nextPlans = plansForSortPersistRef.current
+    const toSave = nextPlans.filter((p) => !draftSlugs.includes(p.slug))
+    if (toSave.length === 0) {
+      toast.error('Guardá primero las ofertas nuevas antes de reordenarlas.')
+      return
+    }
+    setSortOrderSaving(true)
+    try {
+      const results = await Promise.all(
+        toSave.map((plan) =>
+          supabase.from('web_plans').update({ sort_order: plan.sort_order }).eq('slug', plan.slug),
+        ),
+      )
+      const failed = results.find((r) => r.error)
+      if (failed?.error) {
+        toast.error(failed.error.message)
+        return
+      }
+      toast.success('Orden guardado')
+    } finally {
+      setSortOrderSaving(false)
+    }
+  }
+
+  function schedulePersistSortOrder() {
+    if (sortPersistTimer.current) window.clearTimeout(sortPersistTimer.current)
+    sortPersistTimer.current = window.setTimeout(() => {
+      void persistSortOrder()
+    }, 500)
+  }
+
+  function commitVisibleOrder(mutateVisibleSlugs: (visibleSlugs: string[]) => string[]) {
     setPlans((prev) => {
-      const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
-      const visible = showDurationVariantRows ? sorted : sorted.filter((p) => !isDurationVariantWebOffer(p))
-      const i = visible.findIndex((p) => p.slug === slug)
+      const visible = visibleOfferSlugs(prev, showDurationVariantRows)
+      const orderedVisible = mutateVisibleSlugs(visible)
+      if (slugOrdersEqual(orderedVisible, visible)) return prev
+      const next = applyPlanSortOrderBySegment(prev, orderedVisible)
+      plansForSortPersistRef.current = next
+      schedulePersistSortOrder()
+      return next
+    })
+  }
+
+  /** Orden en lista → sort_order global (1, 2, 3…); en /form cada modalidad respeta ese orden relativo. */
+  function moveSortedPlan(slug: string, delta: -1 | 1) {
+    commitVisibleOrder((slugs) => {
+      const i = slugs.indexOf(slug)
       const j = i + delta
-      if (i < 0 || j < 0 || j >= visible.length) return prev
-      const a = visible[i]!
-      const b = visible[j]!
-      const oa = a.sort_order
-      const ob = b.sort_order
-      return prev.map((p) => {
-        if (p.slug === a.slug) return { ...p, sort_order: ob }
-        if (p.slug === b.slug) return { ...p, sort_order: oa }
-        return p
-      })
+      if (i < 0 || j < 0 || j >= slugs.length) return slugs
+      const nextSlugs = [...slugs]
+      const [item] = nextSlugs.splice(i, 1)
+      nextSlugs.splice(j, 0, item!)
+      return nextSlugs
     })
   }
 
   function reorderPlanDrop(draggedSlug: string, targetSlug: string, insertBefore: boolean) {
     if (draggedSlug === targetSlug) return
-    setPlans((prev) => {
-      const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
-      const dragged = sorted.find((p) => p.slug === draggedSlug)
-      if (!dragged) return prev
-      const rest = sorted.filter((p) => p.slug !== draggedSlug)
-      let insertIdx = rest.findIndex((p) => p.slug === targetSlug)
-      if (insertIdx < 0) return prev
+    commitVisibleOrder((slugs) => {
+      const rest = slugs.filter((s) => s !== draggedSlug)
+      let insertIdx = rest.indexOf(targetSlug)
+      if (insertIdx < 0) return slugs
       if (!insertBefore) insertIdx += 1
-      rest.splice(insertIdx, 0, dragged)
-      const orderBySlug = new Map(rest.map((p, i) => [p.slug, i + 1]))
-      return prev.map((p) => (orderBySlug.has(p.slug) ? { ...p, sort_order: orderBySlug.get(p.slug)! } : p))
+      rest.splice(insertIdx, 0, draggedSlug)
+      return rest
     })
   }
 
@@ -767,10 +855,13 @@ export function WebPlansSettingsPage() {
             <p className="text-sm font-semibold text-ink-primary">Cómo se arma el formulario público (/form)</p>
             <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-ink-secondary marker:text-ink-muted">
               <li>
-                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo (entrenador, nutricionista, psicólogo) y las 4 modalidades: Planes Más Completos, Entrenamiento, Nutrición y Psicólogo Deportivo.
+                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo y 5 modalidades en este orden: Entrenamiento, Nutrición, Psicólogo Deportivo, Trío completo y Planes Más Completos.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Planes Más Completos (full):</span> las ofertas salen de la base con segmento <code className="font-mono text-[10px]">full</code>, activas y con «Mostrar en /form». Se agrupan en subcategorías automáticas: Entreno + Nutrición, Entreno + Psicólogo, Entreno + Nutrición + Psicólogo.
+                <span className="font-medium text-ink-primary">Trío completo (full_trio):</span> entreno + nutrición + psicólogo en una sola modalidad. Asigná segmento <code className="font-mono text-[10px]">full_trio</code> a esas ofertas.
+              </li>
+              <li>
+                <span className="font-medium text-ink-primary">Planes Más Completos (full):</span> ofertas con segmento <code className="font-mono text-[10px]">full</code> (entreno + nutrición o entreno + psicólogo, sin los tres juntos).
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Entrenamiento Individual (solo):</span> ofertas con segmento <code className="font-mono text-[10px]">solo</code>, activas y con «Mostrar en /form».
@@ -921,32 +1012,39 @@ export function WebPlansSettingsPage() {
                 Si dejás un campo vacío, el /form usa el texto por defecto de cada modalidad.
               </p>
               <Input
-                label="Opción 1 — Entrenamiento (segmento solo)"
+                label="1 · Entrenamiento (segmento solo)"
                 placeholder="Ej. ENTRENAMIENTO"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelSolo}
                 onChange={(e) => setModalityLabelSolo(e.target.value)}
               />
               <Input
-                label="Opción 2 — Nutrición (segmento with_nutritionist)"
+                label="2 · Nutrición (segmento with_nutritionist)"
                 placeholder="Ej. NUTRICIÓN"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelWithNutritionist}
                 onChange={(e) => setModalityLabelWithNutritionist(e.target.value)}
               />
               <Input
-                label="Opción 3 — Planes Más Completos (segmento full)"
-                placeholder="Ej. PLANES MÁS COMPLETOS"
-                maxLength={LIMITS.modalityLabel}
-                value={modalityLabelFull}
-                onChange={(e) => setModalityLabelFull(e.target.value)}
-              />
-              <Input
-                label="Opción 4 — Psicólogo Deportivo (segmento psychologist)"
+                label="3 · Psicólogo Deportivo (segmento psychologist)"
                 placeholder="Ej. PSICÓLOGO DEPORTIVO"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelPsychologist}
                 onChange={(e) => setModalityLabelPsychologist(e.target.value)}
+              />
+              <Input
+                label="4 · Trío completo (segmento full_trio)"
+                placeholder="Ej. ENTRENO + NUTRICIÓN + PSICÓLOGO"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelFullTrio}
+                onChange={(e) => setModalityLabelFullTrio(e.target.value)}
+              />
+              <Input
+                label="5 · Planes Más Completos (segmento full)"
+                placeholder="Ej. PLANES MÁS COMPLETOS"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelFull}
+                onChange={(e) => setModalityLabelFull(e.target.value)}
               />
               <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
                 Guardar etiquetas
@@ -965,7 +1063,7 @@ export function WebPlansSettingsPage() {
               <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
                 <input
                   type="checkbox"
-                  className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
+                  className={cn('h-4 w-4 rounded border-surface-border', webPlansFormCheckboxAccentClassName)}
                   checked={intakeSlotsOpen}
                   onChange={(e) => setIntakeSlotsOpen(e.target.checked)}
                 />
@@ -1015,8 +1113,8 @@ export function WebPlansSettingsPage() {
             Catálogo de ofertas ({CANONICAL_WEB_PLAN_SLUGS.length} planes base + extras)
           </h2>
           <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
-            Todas las ofertas activas y con «Mostrar en /form» aparecen en el formulario público, agrupadas por segmento y modalidad. Editá y pulsá{' '}
-            <strong className="text-ink-primary">Guardar ofertas</strong> para persistir en{' '}
+            El badge <strong className="text-ink-primary">Orden</strong> es por modalidad (p. ej. los dos de Entrenamiento pueden ser Orden 1 y Orden 2 aunque en la lista global estén en la posición 3 y 4). Esa lista global define el orden relativo en /form. Arrastrá o Subir/Bajar y se guarda solo. También podés usar{' '}
+            <strong className="text-ink-primary">Guardar ofertas</strong> para el resto de campos en{' '}
             <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Las filas marcadas «Catálogo /form» no se pueden
             borrar.
             {hiddenVariantCount > 0 ? (
@@ -1029,27 +1127,29 @@ export function WebPlansSettingsPage() {
           </p>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-secondary">
             <span className="font-medium text-ink-primary">Leyenda de color:</span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-950 dark:text-amber-100">
-              <span className="h-2 w-2 rounded-sm bg-amber-500" aria-hidden />
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
+              <span className="h-2 w-2 rounded-sm bg-brand-secondary" aria-hidden />
               Entrenamiento (solo)
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-950 dark:text-sky-100">
-              <span className="h-2 w-2 rounded-sm bg-sky-500" aria-hidden />
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
+              <span className="h-2 w-2 rounded-sm bg-emerald-500" aria-hidden />
               Nutrición
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-950 dark:text-emerald-100">
-              <span className="h-2 w-2 rounded-sm bg-emerald-500" aria-hidden />
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
+              <span className="h-2 w-2 rounded-sm bg-violet-500" aria-hidden />
+              Psicólogo
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
+              <span className="h-2 w-2 rounded-sm bg-brand-tertiary" aria-hidden />
+              Trío (full_trio)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
+              <span className="h-2 w-2 rounded-sm bg-sky-500" aria-hidden />
               Plan full
             </span>
             <span className="text-ink-muted basis-full sm:basis-auto">
-              · Por defecto las cards van <strong className="text-ink-secondary">contraídas</strong> para reordenar rápido. Tocá «Detalle» para
-              editar. Arrastrá el asa <span className="font-medium text-ink-secondary">⋮⋮</span> o usá Subir/Bajar; después Guardar ofertas.
-              {hiddenVariantCount > 0 ? (
-                <>
-                  {' '}
-                  Con las variantes de duración ocultas, el arrastre está desactivado; activá «Mostrar variantes de duración» abajo para reordenar todo.
-                </>
-              ) : null}
+              · Por defecto las cards van <strong className="text-ink-secondary">contraídas</strong> para reordenar rápido. Arrastrá{' '}
+              <span className="font-medium text-ink-secondary">⋮⋮</span> o Subir/Bajar: el orden se guarda solo (toast «Orden guardado»). «Guardar ofertas» sigue siendo para textos y precios.
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -1057,7 +1157,7 @@ export function WebPlansSettingsPage() {
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border bg-surface-base/50 px-3 py-2 text-xs text-ink-secondary hover:bg-surface-elevated/60">
                 <input
                   type="checkbox"
-                  className="rounded border-surface-border text-brand-primary focus:ring-brand-primary"
+                  className={cn('h-4 w-4 rounded border-surface-border', webPlansFormCheckboxAccentClassName)}
                   checked={showDurationVariantRows}
                   onChange={(e) => setShowDurationVariantRows(e.target.checked)}
                 />
@@ -1104,6 +1204,8 @@ export function WebPlansSettingsPage() {
           <Card className="p-6 text-sm text-ink-secondary">Cargando ofertas…</Card>
         ) : (
           settingsPlansList.map((plan, idx) => {
+            const segmentRank = segmentRankBySlug.get(plan.slug) ?? 0
+            const listPosition = visibleSlugOrder.indexOf(plan.slug) + 1
             const isExpanded = expandedOfferSlugs.has(plan.slug)
             return (
             <div
@@ -1154,7 +1256,6 @@ export function WebPlansSettingsPage() {
                 className={cn(
                   'flex flex-wrap items-start gap-2 sm:gap-3 justify-between px-4 sm:px-5',
                   isExpanded ? 'border-b border-surface-border py-3' : 'py-2.5',
-                  segmentOfferHeaderTintClass(plan.catalog_segment),
                 )}
               >
                 <div
@@ -1173,7 +1274,7 @@ export function WebPlansSettingsPage() {
                     'cursor-grab touch-none hover:bg-surface-elevated hover:text-ink-secondary active:cursor-grabbing',
                     appFocusRingClassName,
                   )}
-                  title="Arrastrá y soltá sobre otra oferta para reordenar (mitad superior = antes, mitad inferior = después). Guardá ofertas para persistir."
+                  title="Arrastrá y soltá sobre otra oferta para reordenar (mitad superior = antes, mitad inferior = después). El orden se guarda automáticamente."
                   aria-label="Arrastrar para reordenar ofertas"
                 >
                   <GripVertical className="h-4 w-4" aria-hidden />
@@ -1186,9 +1287,24 @@ export function WebPlansSettingsPage() {
                     </h2>
                     <span
                       className="shrink-0 rounded-md border border-surface-border/80 bg-surface-base/70 px-2 py-0.5 font-mono text-[10px] font-medium text-ink-muted"
-                      title="Orden en lista y en /form (sort_order)"
+                      title={
+                        segmentRank > 0
+                          ? `Posición ${segmentRank} en su modalidad en /form · fila ${listPosition > 0 ? listPosition : plan.sort_order} en esta lista`
+                          : `Lista global posición ${plan.sort_order}`
+                      }
                     >
-                      Orden {plan.sort_order}
+                      Orden {segmentRank > 0 ? segmentRank : '—'}
+                      <span className="ml-1 font-sans normal-case tracking-normal text-ink-muted">
+                        · {plan.catalog_segment === 'solo'
+                          ? 'Entreno'
+                          : plan.catalog_segment === 'with_nutritionist'
+                            ? 'Nutri'
+                            : plan.catalog_segment === 'psychologist'
+                              ? 'Psico'
+                              : plan.catalog_segment === 'full_trio'
+                                ? 'Trío'
+                                : 'Full'}
+                      </span>
                     </span>
                     {plan.isCatalogCanonical ? (
                       <span className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary">
@@ -1197,14 +1313,8 @@ export function WebPlansSettingsPage() {
                     ) : null}
                     <span
                       className={cn(
-                        'shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                        plan.catalog_segment === 'full'
-                          ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
-                          : plan.catalog_segment === 'with_nutritionist'
-                            ? 'border-sky-500/35 bg-sky-500/10 text-sky-900 dark:text-sky-200'
-                            : plan.catalog_segment === 'psychologist'
-                              ? 'border-violet-500/35 bg-violet-500/10 text-violet-900 dark:text-violet-200'
-                              : 'border-surface-border bg-surface-elevated/80 text-ink-muted',
+                        'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                        segmentBrandBadgeClass(plan.catalog_segment),
                       )}
                     >
                       {plan.catalog_segment === 'solo'
@@ -1213,10 +1323,11 @@ export function WebPlansSettingsPage() {
                           ? 'Nutrición'
                           : plan.catalog_segment === 'psychologist'
                             ? 'Psicólogo'
-                            : 'Plan full'}
+                            : plan.catalog_segment === 'full_trio'
+                              ? 'Trío completo'
+                              : 'Plan full'}
                     </span>
                   </div>
-                  <p className={cn('mt-0.5 font-mono text-ink-muted', isExpanded ? 'text-xs' : 'text-[11px] leading-tight')}>{plan.slug}</p>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
                   <Button
@@ -1270,14 +1381,14 @@ export function WebPlansSettingsPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="shrink-0 border-status-expired/40 text-status-expired"
+                      className="h-8 w-8 shrink-0 border-status-expired/40 p-0 text-status-expired"
                       icon={<Trash2 className="h-4 w-4" />}
                       loading={deletingSlug === plan.slug}
                       disabled={deletingSlug !== null && deletingSlug !== plan.slug}
                       onClick={() => void handleDeletePlan(plan.slug)}
-                    >
-                      Eliminar de la base
-                    </Button>
+                      title="Eliminar de la base"
+                      aria-label="Eliminar de la base"
+                    />
                   )}
                 </div>
               </div>
@@ -1303,7 +1414,7 @@ export function WebPlansSettingsPage() {
                   <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
                     <input
                       type="checkbox"
-                      className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
+                      className={cn('h-4 w-4 rounded border-surface-border', webPlansFormCheckboxAccentClassName)}
                       checked={plan.is_active}
                       onChange={(e) => updatePlan(plan.slug, { is_active: e.target.checked })}
                     />
@@ -1312,7 +1423,7 @@ export function WebPlansSettingsPage() {
                   <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
                     <input
                       type="checkbox"
-                      className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
+                      className={cn('h-4 w-4 rounded border-surface-border', webPlansFormCheckboxAccentClassName)}
                       checked={plan.show_in_public_intake !== false}
                       onChange={(e) => updatePlan(plan.slug, { show_in_public_intake: e.target.checked })}
                     />
@@ -1330,16 +1441,16 @@ export function WebPlansSettingsPage() {
                       }
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
+                      <option value="full_trio">TRÍO COMPLETO — Entreno + Nutrición + Psicólogo (full_trio)</option>
+                      <option value="full">PLANES MÁS COMPLETOS (full)</option>
                       <option value="solo">ENTRENAMIENTO INDIVIDUAL (solo)</option>
                       <option value="with_nutritionist">NUTRICIÓN (with_nutritionist)</option>
-                      <option value="full">PLANES MÁS COMPLETOS (full)</option>
                       <option value="psychologist">PSICÓLOGO DEPORTIVO (psychologist)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      <strong className="text-ink-secondary">Planes Más Completos (full)</strong>: aparece en la modalidad "full" del /form, agrupado por subcategorías.{' '}
-                      <strong className="text-ink-secondary">Entrenamiento (solo)</strong>: planes individuales de entrenamiento.{' '}
-                      <strong className="text-ink-secondary">Nutrición</strong>: planes individuales de nutrición.{' '}
-                      <strong className="text-ink-secondary">Psicólogo Deportivo</strong>: planes de psicología (próximamente visible en el /form).
+                      <strong className="text-ink-secondary">Trío (full_trio)</strong>: modalidad propia con los tres profesionales.{' '}
+                      <strong className="text-ink-secondary">Planes Más Completos (full)</strong>: entreno + nutrición o entreno + psicólogo.{' '}
+                      <strong className="text-ink-secondary">Entrenamiento / Nutrición / Psicólogo</strong>: modalidades individuales.
                     </p>
                   </div>
                 </FieldGroup>

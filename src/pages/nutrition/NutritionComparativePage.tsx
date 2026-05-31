@@ -699,14 +699,16 @@ function WorkflowProgress({ steps }: { steps: { label: string; done: boolean }[]
           className={cn(
             'flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors',
             step.done
-              ? 'border-brand-secondary/35 bg-brand-secondary/10'
+              ? 'border-surface-border bg-surface-elevated'
               : 'border-surface-border/80 bg-surface-card/50',
           )}
         >
           <span
             className={cn(
               'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-              step.done ? 'bg-brand-secondary text-white' : 'border border-surface-border text-ink-muted',
+              step.done
+                ? 'bg-status-generated text-white'
+                : 'border border-surface-border text-ink-muted',
             )}
             aria-hidden
           >
@@ -715,7 +717,7 @@ function WorkflowProgress({ steps }: { steps: { label: string; done: boolean }[]
           <span
             className={cn(
               'text-xs font-semibold truncate',
-              step.done ? 'text-brand-secondary' : 'text-ink-muted',
+              step.done ? 'text-ink-primary' : 'text-ink-muted',
             )}
           >
             {step.label}

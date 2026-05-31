@@ -195,7 +195,7 @@ function VariableChip({
       onClick={onSelect}
       aria-pressed={active}
       className={cn(
-        'group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
+        'group flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-colors',
         active
           ? 'border-transparent text-white shadow-sm'
           : 'border-surface-border/70 bg-surface-card text-ink-secondary hover:border-surface-border hover:text-ink-primary',
@@ -207,9 +207,9 @@ function VariableChip({
         style={{ backgroundColor: active ? 'rgba(255,255,255,0.85)' : meta.stroke }}
         aria-hidden
       />
-      <span className="font-medium">{meta.label}</span>
+      <span className="min-w-0 flex-1 truncate text-left font-medium">{meta.label}</span>
       {meta.latest != null ? (
-        <span className={cn('tabular-nums', active ? 'text-white/80' : 'text-ink-muted')}>
+        <span className={cn('shrink-0 tabular-nums', active ? 'text-white/80' : 'text-ink-muted')}>
           {meta.latest}
           {meta.unit}
         </span>
@@ -366,7 +366,7 @@ function ChipGroup({
         </p>
         <span className="text-[11px] font-normal text-ink-muted">· {variables.length}</span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {variables.map((meta) => (
           <VariableChip
             key={meta.key}
@@ -422,7 +422,7 @@ export function NutritionMeasurementCharts({ measurements }: { measurements: Nut
         </p>
       ) : null}
 
-      <div className="grid gap-4 rounded-2xl border border-surface-border/60 bg-surface-elevated/20 p-4 sm:grid-cols-2">
+      <div className="space-y-4 rounded-2xl border border-surface-border/60 bg-surface-elevated/20 p-4">
         <ChipGroup
           title="Perímetros"
           accent={CHART_STROKE_SECONDARY}

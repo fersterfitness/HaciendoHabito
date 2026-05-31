@@ -4,6 +4,7 @@ const VALID_SEGMENTS = new Set<WebPlanCatalogSegment>([
   'solo',
   'with_nutritionist',
   'full',
+  'full_trio',
   'psychologist',
 ])
 

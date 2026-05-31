@@ -1,4 +1,5 @@
 import type { WebPlanCatalogSegment, WebPlanIncludeSection } from '@/types/database'
+import { sortIntakePlansBySegmentSortOrder } from '@/lib/webPlansSortOrder'
 
 /** Fila de oferta del intake público (alineada con `web_plans` + defaults de la app). */
 export type PublicIntakePlanDetail = {
@@ -19,6 +20,8 @@ export type PublicIntakePlanDetail = {
   /** Secciones por profesional (Entrenador / Psicólogo / Nutricionista) con colores en el form. */
   includeSections?: WebPlanIncludeSection[]
   gifts: string[]
+  /** Orden en /form (`web_plans.sort_order`). */
+  sortOrder?: number
 }
 
 const GIFTS_STANDARD: string[] = [
@@ -242,6 +245,7 @@ function overlayIntakeOfferFromDb(
     ...db,
     id: base.id,
     catalogSegment: base.catalogSegment,
+    sortOrder: db.sortOrder ?? base.sortOrder,
   }
 }
 
@@ -249,7 +253,9 @@ function mergeCanonicalIntakeOffers(
   offers: PublicIntakePlanDetail[],
   dbById: Map<string, PublicIntakePlanDetail>,
 ): PublicIntakePlanDetail[] {
-  return offers.map((base) => overlayIntakeOfferFromDb(base, dbById.get(base.id)))
+  return sortIntakePlansBySegmentSortOrder(
+    offers.map((base) => overlayIntakeOfferFromDb(base, dbById.get(base.id))),
+  )
 }
 
 /**
@@ -261,14 +267,35 @@ function mergeCanonicalIntakeOffers(
 export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]): PublicIntakePlanDetail[] {
   const dbById = new Map(dbPlans.map((p) => [p.id, p]))
   const ferster = mergeCanonicalIntakeOffers(INTAKE_FERSTER_OFFERS, dbById)
-  const extraSolo = dbPlans.filter((p) => p.catalogSegment === 'solo' && !INTAKE_FERSTER_SLUGS.has(p.id))
-  const fullIntegral = mergeCanonicalIntakeOffers(INTAKE_FULL_INTEGRAL_OFFERS, dbById)
-  const extraFull = dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id))
-  const extraWithNutritionist = dbPlans.filter((p) => p.catalogSegment === 'with_nutritionist')
-  const extraPsychologist = dbPlans.filter((p) => p.catalogSegment === 'psychologist')
+  const extraSolo = sortIntakePlansBySegmentSortOrder(
+    dbPlans.filter((p) => p.catalogSegment === 'solo' && !INTAKE_FERSTER_SLUGS.has(p.id)),
+  )
+  const fullIntegral = sortIntakePlansBySegmentSortOrder(
+    mergeCanonicalIntakeOffers(INTAKE_FULL_INTEGRAL_OFFERS, dbById),
+  )
+  const extraFull = sortIntakePlansBySegmentSortOrder(
+    dbPlans.filter((p) => p.catalogSegment === 'full' && !HIDE_DB_FULL_SLUGS.has(p.id)),
+  )
+  const extraWithNutritionist = sortIntakePlansBySegmentSortOrder(
+    dbPlans.filter((p) => p.catalogSegment === 'with_nutritionist'),
+  )
+  const extraPsychologist = sortIntakePlansBySegmentSortOrder(
+    dbPlans.filter((p) => p.catalogSegment === 'psychologist'),
+  )
+  const extraFullTrio = sortIntakePlansBySegmentSortOrder(
+    dbPlans.filter((p) => p.catalogSegment === 'full_trio'),
+  )
   const nutrition =
     extraWithNutritionist.length > 0
       ? extraWithNutritionist
       : [overlayIntakeOfferFromDb(INTAKE_NUTRITION_OFFER, dbById)]
-  return [...ferster, ...extraSolo, ...fullIntegral, ...extraFull, ...nutrition, ...extraPsychologist]
+  return [
+    ...ferster,
+    ...extraSolo,
+    ...fullIntegral,
+    ...extraFull,
+    ...extraFullTrio,
+    ...nutrition,
+    ...extraPsychologist,
+  ]
 }

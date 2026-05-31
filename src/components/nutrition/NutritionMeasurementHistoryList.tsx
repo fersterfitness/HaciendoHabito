@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { Activity, Copy, Pencil } from 'lucide-react'
+import { Activity, Copy, Loader2, Pencil, Trash2 } from 'lucide-react'
 import type { NutritionMeasurement } from '@/types/database'
 import { mergedMediansForPresentation } from '@/lib/nutrition/anthropometryPresentation'
 import { weightOf } from '@/lib/nutrition/measurementDerivatives'
@@ -28,13 +29,19 @@ export function NutritionMeasurementHistoryList({
   onSelect,
   onEdit,
   onClone,
+  onDelete,
+  deletingId = null,
 }: {
   measurements: NutritionMeasurement[]
   selectedId: string | null
   onSelect: (id: string) => void
   onEdit: (id: string) => void
   onClone: (id: string) => void
+  onDelete?: (id: string) => void
+  deletingId?: string | null
 }) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+
   if (measurements.length === 0) {
     return (
       <p className="text-sm text-ink-muted py-2">
@@ -126,30 +133,75 @@ export function NutritionMeasurementHistoryList({
                     {heightLabel(m)}
                   </td>
                   <td className="px-2 py-2 sm:px-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 sm:px-2.5"
-                        icon={<Pencil className="h-3.5 w-3.5" />}
-                        onClick={() => onEdit(m.id)}
-                        title="Editar en el programa"
-                      >
-                        <span className="hidden sm:inline">Editar</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 px-2 sm:px-2.5"
-                        icon={<Copy className="h-3.5 w-3.5" />}
-                        onClick={() => onClone(m.id)}
-                        title="Clonar como nuevo control"
-                      >
-                        <span className="hidden sm:inline">Clonar</span>
-                      </Button>
-                    </div>
+                    {confirmId === m.id ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="hidden text-xs text-ink-muted sm:inline">¿Eliminar?</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          className="h-8 px-2 sm:px-2.5"
+                          icon={
+                            deletingId === m.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : undefined
+                          }
+                          disabled={deletingId === m.id}
+                          onClick={() => onDelete?.(m.id)}
+                          title="Confirmar eliminación"
+                        >
+                          Sí
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 sm:px-2.5"
+                          disabled={deletingId === m.id}
+                          onClick={() => setConfirmId(null)}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 sm:px-2.5"
+                          icon={<Pencil className="h-3.5 w-3.5" />}
+                          onClick={() => onEdit(m.id)}
+                          title="Editar en el programa"
+                        >
+                          <span className="hidden sm:inline">Editar</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 px-2 sm:px-2.5"
+                          icon={<Copy className="h-3.5 w-3.5" />}
+                          onClick={() => onClone(m.id)}
+                          title="Clonar como nuevo control"
+                        >
+                          <span className="hidden sm:inline">Clonar</span>
+                        </Button>
+                        {onDelete ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-ink-muted hover:text-status-expired sm:px-2.5"
+                            icon={<Trash2 className="h-3.5 w-3.5" />}
+                            onClick={() => setConfirmId(m.id)}
+                            title="Eliminar control"
+                          >
+                            <span className="sr-only">Eliminar</span>
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
                   </td>
                 </tr>
               )

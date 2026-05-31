@@ -10,6 +10,10 @@ export const trainerCtaSolidBgClassName = 'bg-brand-primary dark:bg-brand-hover'
 export const trainerCtaFormAccentClassName =
   'accent-[#ff5508] dark:accent-[#ffa065]'
 
+/** Checkboxes en Gestionar Planes Web (verde, no naranja CTA). */
+export const webPlansFormCheckboxAccentClassName =
+  'accent-green-600 dark:accent-green-500 focus:ring-green-500/35'
+
 /** Borde de foco en inputs “crudos” alineado al CTA naranja. */
 export const trainerCtaFocusBorderClassName =
   'focus:border-[#ff5508] dark:focus:border-[#ffa065]'

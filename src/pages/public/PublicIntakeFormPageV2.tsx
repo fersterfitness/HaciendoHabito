@@ -40,21 +40,23 @@ import {
 import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
+import { compareBySegmentSortOrder } from '@/lib/webPlansSortOrder'
 
 type ModalityId = WebPlanCatalogSegment | 'psychologist'
 
+/** Orden fijo en pantalla: individual → trío → planes más completos. */
 const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: string }[] = [
-  { id: 'full',              short: 'Más Completos',  label: 'Planes Más Completos',           desc: 'Nuestros mejores planes personalizados y en conjunto.' },
-  { id: 'solo',              short: 'Entrenamiento',  label: 'Entrenamiento',                   desc: 'Planes individuales de entrenamiento' },
-  { id: 'with_nutritionist', short: 'Nutrición',      label: 'Nutrición',                      desc: 'Planes individuales de nutrición' },
-  { id: 'psychologist',      short: 'Psicología',     label: 'Psicólogo Deportivo',             desc: 'Planes individuales Psicología deportiva' },
+  { id: 'solo',              short: 'Entrenamiento',  label: 'Entrenamiento',                    desc: 'Planes individuales de entrenamiento' },
+  { id: 'with_nutritionist', short: 'Nutrición',      label: 'Nutrición',                       desc: 'Planes individuales de nutrición' },
+  { id: 'psychologist',      short: 'Psicología',     label: 'Psicólogo Deportivo',              desc: 'Planes individuales Psicología deportiva' },
+  { id: 'full_trio',         short: 'Trío completo',  label: 'Entreno + Nutrición + Psicólogo', desc: 'Los tres profesionales en un solo plan.' },
+  { id: 'full',              short: 'Más Completos',  label: 'Planes Más Completos',            desc: 'Entreno con nutrición o con psicólogo (sin los tres juntos).' },
 ]
 
-/** Subcategorías visuales dentro del segmento "full". */
+/** Subcategorías dentro del segmento "full" (sin trío; el trío usa segmento full_trio). */
 const FULL_SUBCATEGORIES = [
-  { key: 'entreno_nutricion_psicologo',  label: 'Entreno + Nutrición + Psicólogo Deportivo',  matchFn: (name: string) => /psic/i.test(name) && /nutri/i.test(name) },
-  { key: 'entreno_nutricion',            label: 'Entreno + Nutrición',                        matchFn: (name: string) => !/psic/i.test(name) },
-  { key: 'entreno_psicologo',            label: 'Entreno + Psicólogo Deportivo',               matchFn: (name: string) => /psic/i.test(name) && !/nutri/i.test(name) },
+  { key: 'entreno_nutricion', label: 'Entreno + Nutrición', matchFn: (name: string) => /nutri/i.test(name) && !/psic/i.test(name) },
+  { key: 'entreno_psicologo', label: 'Entreno + Psicólogo Deportivo', matchFn: (name: string) => /psic/i.test(name) && !/nutri/i.test(name) },
 ]
 
 const STEPS = [
@@ -114,7 +116,7 @@ export function PublicIntakeFormPageV2() {
   const [plans, setPlans] = useState<PublicIntakePlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
-  const [catalogSegment, setCatalogSegment] = useState<ModalityId>('full')
+  const [catalogSegment, setCatalogSegment] = useState<ModalityId>('solo')
   const [step, setStep] = useState<StepId>('plan')
   const [catalogImages, setCatalogImages] = useState<{
     trainer: string | null
@@ -186,13 +188,8 @@ export function PublicIntakeFormPageV2() {
             segment,
           ),
           gifts: row.gifts_items ?? [],
+          sortOrder: row.sort_order ?? 9999,
         }
-      })
-      mapped.sort((a, b) => {
-        const da = numericFromPriceLabel(a.price)
-        const db = numericFromPriceLabel(b.price)
-        if (da !== db) return da - db
-        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
       })
       if (mounted) {
         setPlans(mergePublicIntakePlansFromDb(mapped))
@@ -204,13 +201,15 @@ export function PublicIntakeFormPageV2() {
 
   /* ─────────────── Derivados ─────────────── */
   const plansVisible = useMemo(() => {
-    return plans.filter((p) => {
-      if (catalogSegment === 'psychologist') {
-        if (p.catalogSegment !== 'psychologist') return false
-      } else if (p.catalogSegment !== catalogSegment) return false
-      const bundle = inferWebPlanBundleCommitment(p.id, p.name)
-      return planVisibleForIntakeBilling(bundle, planBilling)
-    })
+    return plans
+      .filter((p) => {
+        if (catalogSegment === 'psychologist') {
+          if (p.catalogSegment !== 'psychologist') return false
+        } else if (p.catalogSegment !== catalogSegment) return false
+        const bundle = inferWebPlanBundleCommitment(p.id, p.name)
+        return planVisibleForIntakeBilling(bundle, planBilling)
+      })
+      .sort(compareBySegmentSortOrder)
   }, [plans, catalogSegment, planBilling])
 
   useEffect(() => {
@@ -223,7 +222,12 @@ export function PublicIntakeFormPageV2() {
     () => (selectedPlanId ? plans.find((p) => p.id === selectedPlanId) ?? null : null),
     [plans, selectedPlanId],
   )
-  const intakeKind = catalogSegment === 'with_nutritionist' ? 'nutricion' : catalogSegment === 'full' ? 'full' : catalogSegment === 'psychologist' ? 'entrenamiento' : 'entrenamiento'
+  const intakeKind =
+    catalogSegment === 'with_nutritionist'
+      ? 'nutricion'
+      : catalogSegment === 'full' || catalogSegment === 'full_trio'
+        ? 'full'
+        : 'entrenamiento'
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
   function scrollFormTop() {
@@ -454,7 +458,7 @@ export function PublicIntakeFormPageV2() {
                     Seleccioná una modalidad y elegí tu plan
                   </h3>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
                     {MODALITY_OPTIONS.map((m) => {
                       const active = catalogSegment === m.id
                       return (
@@ -494,11 +498,34 @@ export function PublicIntakeFormPageV2() {
                 <div>
                   <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
 
-                  {catalogSegment === 'psychologist' ? (
-                    <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
-                      <Sparkles className="mx-auto mb-3 h-6 w-6 text-brand-primary/60" aria-hidden />
-                      <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Próximamente</p>
-                      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Estamos preparando los planes de Psicología Deportiva.</p>
+                  {catalogSegment === 'full_trio' && plansVisible.length > 0 ? (
+                    <div className="-mx-1">
+                      <IntakeChangeablePlansSection
+                        title=""
+                        footerText=""
+                        buttonText={selectedPlanId ? 'Continuar' : 'Elegí un plan'}
+                        plans={intakePlansToPricingPlans(plansVisible)}
+                        selectedPlanId={selectedPlanId}
+                        onSelectPlan={(id) => setSelectedPlanId(id)}
+                        onContinue={() => {
+                          if (selectedPlanId) setStep('form')
+                        }}
+                        billing={planBilling}
+                        onBillingChange={setPlanBilling}
+                        showBillingToggle
+                        badgeVariant="amber"
+                        tone="card"
+                        embedded
+                        flush
+                        cardLayout
+                        showFooter={false}
+                        uiTheme={theme}
+                        includeSectionAvatars={{
+                          trainer: { avatarUrl: catalogImages.trainer, subtitle: 'Tomás Ferster' },
+                          nutritionist: { avatarUrl: catalogImages.nutritionist, subtitle: 'Cristian Crossetto' },
+                          psychologist: { avatarUrl: catalogImages.psychologist, subtitle: 'Santiago Rodríguez' },
+                        }}
+                      />
                     </div>
                   ) : catalogSegment === 'full' && plansVisible.length > 0 ? (
                     /* ── Subcategorías para "Planes Más Completos" ── */

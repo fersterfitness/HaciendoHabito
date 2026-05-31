@@ -67,7 +67,7 @@ export function isWebPlanIncludeProfessional(v: string): v is WebPlanIncludeProf
 export function defaultProfessionalForSegment(segment: WebPlanCatalogSegment): WebPlanIncludeProfessional {
   if (segment === 'with_nutritionist') return 'nutritionist'
   if (segment === 'psychologist') return 'psychologist'
-  if (segment === 'full') return 'trainer'
+  if (segment === 'full' || segment === 'full_trio') return 'trainer'
   return 'trainer'
 }
 

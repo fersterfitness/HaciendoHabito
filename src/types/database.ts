@@ -637,7 +637,12 @@ export interface RoutineBlueprint {
   updated_at: string
 }
 
-export type WebPlanCatalogSegment = 'solo' | 'with_nutritionist' | 'full' | 'psychologist'
+export type WebPlanCatalogSegment =
+  | 'solo'
+  | 'with_nutritionist'
+  | 'full'
+  | 'full_trio'
+  | 'psychologist'
 
 /** Profesional asociado a una sección de «Incluye» en `web_plans`. */
 export type WebPlanIncludeProfessional = 'trainer' | 'psychologist' | 'nutritionist'
@@ -697,6 +702,7 @@ export interface WebIntakeCatalogSettings {
   modality_label_with_nutritionist?: string | null
   modality_label_full?: string | null
   modality_label_psychologist?: string | null
+  modality_label_full_trio?: string | null
   updated_at: string
 }
 
@@ -1167,6 +1173,24 @@ export interface RoutineDeletionLogEntry {
   status: string | null
   start_date: string | null
   end_date: string | null
+  deleted_at: string
+  deleted_by: string | null
+  deleted_by_name: string | null
+  can_restore?: boolean
+}
+
+/** Fila del historial de antropometrías eliminadas (RPC list_my_nutrition_measurement_deletions). */
+export interface NutritionMeasurementDeletionLogEntry {
+  id: string
+  measurement_id: string
+  student_id: string
+  student_name: string | null
+  measured_at: string | null
+  measurement_number: number | null
+  weight_kg: number | null
+  bmi: number | null
+  body_fat_pct: number | null
+  muscle_mass_kg: number | null
   deleted_at: string
   deleted_by: string | null
   deleted_by_name: string | null

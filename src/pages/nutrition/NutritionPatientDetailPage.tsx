@@ -39,6 +39,7 @@ import {
   NutritionMeasurementHistoryListTitle,
 } from '@/components/nutrition/NutritionMeasurementHistoryList'
 import { sortMeasurementsDesc } from '@/lib/nutrition/anthropometryPresentation'
+import { deleteMeasurement } from '@/lib/nutrition/measurementDeletionAccess'
 import { NutritionMeasurementCharts } from '@/components/nutrition/NutritionMeasurementCharts'
 import { NutritionClinicalNotesSection } from '@/components/nutrition/NutritionClinicalNotesSection'
 import { NutritionSymptomCheckinsSection } from '@/components/nutrition/NutritionSymptomCheckinsSection'
@@ -165,6 +166,7 @@ export function NutritionPatientDetailView({
   const [savingPlan, setSavingPlan] = useState(false)
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null)
   const [savingMeasurement, setSavingMeasurement] = useState(false)
+  const [deletingMeasurementId, setDeletingMeasurementId] = useState<string | null>(null)
   const [student, setStudent] = useState<Student | null>(null)
   const [documents, setDocuments] = useState<NutritionPatientDocument[]>([])
   const [measurements, setMeasurements] = useState<NutritionMeasurement[]>([])
@@ -240,6 +242,25 @@ export function NutritionPatientDetailView({
     }
     setMeasurements((data as NutritionMeasurement[]) ?? [])
   }, [id, user])
+
+  const handleDeleteMeasurement = useCallback(
+    async (measurementId: string) => {
+      setDeletingMeasurementId(measurementId)
+      const { error } = await deleteMeasurement(measurementId)
+      setDeletingMeasurementId(null)
+      if (error) {
+        toast.error(error)
+        return
+      }
+      toast.success('Antropometría eliminada')
+      setSelectedMeasurementId((prev) => (prev === measurementId ? null : prev))
+      setProgramDraft((prev) =>
+        prev && prev.measurementId === measurementId ? null : prev,
+      )
+      await refreshMeasurements()
+    },
+    [refreshMeasurements],
+  )
 
   useEffect(() => {
     if (!user || !id) return
@@ -748,6 +769,8 @@ export function NutritionPatientDetailView({
                 onSelect={setSelectedMeasurementId}
                 onEdit={handleEditMeasurement}
                 onClone={handleCloneMeasurement}
+                onDelete={handleDeleteMeasurement}
+                deletingId={deletingMeasurementId}
               />
             </Card>
 

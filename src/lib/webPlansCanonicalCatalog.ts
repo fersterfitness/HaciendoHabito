@@ -103,11 +103,12 @@ export function mergeWebPlansForManagement(dbRows: DbRow[]): CanonicalEditableWe
   const extras = dbRows
     .filter((r) => !isCanonicalWebPlanSlug(r.slug))
     .sort((a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug))
-    .map((r, i) => ({
+    .map((r) => ({
       ...r,
       isCatalogCanonical: false,
-      sort_order: mergedCanonical.length + i + 1,
     }))
 
-  return [...mergedCanonical, ...extras]
+  return [...mergedCanonical, ...extras].sort(
+    (a, b) => a.sort_order - b.sort_order || a.slug.localeCompare(b.slug),
+  )
 }
