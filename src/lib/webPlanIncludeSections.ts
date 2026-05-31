@@ -71,6 +71,30 @@ export function defaultProfessionalForSegment(segment: WebPlanCatalogSegment): W
   return 'trainer'
 }
 
+const SINGLE_PROFESSIONAL_MODALITIES: WebPlanCatalogSegment[] = [
+  'solo',
+  'with_nutritionist',
+  'psychologist',
+]
+
+/**
+ * En modalidades de un solo rol, la sección «Incluye» debe mostrar ese profesional
+ * (p. ej. psicólogo + foto de Santiago, no entrenador por defecto del borrador).
+ */
+export function alignIncludeSectionsToCatalogSegment(
+  sections: WebPlanIncludeSection[],
+  catalogSegment: WebPlanCatalogSegment,
+): WebPlanIncludeSection[] {
+  if (!sections.length || !SINGLE_PROFESSIONAL_MODALITIES.includes(catalogSegment)) return sections
+  const defaultPro = defaultProfessionalForSegment(catalogSegment)
+  if (sections.length === 1) {
+    const only = sections[0]!
+    if (only.professional === defaultPro) return sections
+    return [{ ...only, professional: defaultPro }]
+  }
+  return sections
+}
+
 export function parseItemsMultiline(text: string): string[] {
   return text
     .split('\n')
@@ -105,9 +129,11 @@ export function normalizeIncludeSections(
   catalogSegment: WebPlanCatalogSegment = 'solo',
 ): WebPlanIncludeSection[] {
   const parsed = parseIncludeSectionsJson(sectionsRaw)
-  if (parsed.length > 0) return parsed
-  const flat = flatItems ?? []
-  return sectionsFromFlatItems(flat, defaultProfessionalForSegment(catalogSegment))
+  const base =
+    parsed.length > 0
+      ? parsed
+      : sectionsFromFlatItems(flatItems ?? [], defaultProfessionalForSegment(catalogSegment))
+  return alignIncludeSectionsToCatalogSegment(base, catalogSegment)
 }
 
 export function parseIncludeSectionsJson(raw: unknown): WebPlanIncludeSection[] {

@@ -16,6 +16,7 @@ import type {
 } from '@/types/database'
 import { WebPlanIncludesSectionsEditor } from '@/components/webPlans/WebPlanIncludesSectionsEditor'
 import {
+  defaultProfessionalForSegment,
   flattenIncludeSections,
   normalizeIncludeSections,
   parseIncludeSectionsJson,
@@ -1436,9 +1437,21 @@ export function WebPlansSettingsPage() {
                     <label className="mb-1.5 block text-xs font-medium text-ink-secondary">Segmento (modalidad de la oferta)</label>
                     <select
                       value={plan.catalog_segment}
-                      onChange={(e) =>
-                        updatePlan(plan.slug, { catalog_segment: e.target.value as WebPlanCatalogSegment })
-                      }
+                      onChange={(e) => {
+                        const catalog_segment = normalizeWebPlanCatalogSegment(
+                          e.target.value,
+                        ) as WebPlanCatalogSegment
+                        const defaultPro = defaultProfessionalForSegment(catalog_segment)
+                        const includes_sections =
+                          plan.includes_sections.length === 1
+                            ? [{ ...plan.includes_sections[0]!, professional: defaultPro }]
+                            : plan.includes_sections
+                        updatePlan(plan.slug, {
+                          catalog_segment,
+                          includes_sections,
+                          includes_items: flattenIncludeSections(includes_sections),
+                        })
+                      }}
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
                       <option value="full_trio">TRÍO COMPLETO — Entreno + Nutrición + Psicólogo (full_trio)</option>
