@@ -17,6 +17,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { accessibleStudentsSelect } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
+import { brandRgb } from '@/theme/brandColors'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -174,8 +175,8 @@ interface DashboardIncomeScopeRow {
 /** Paleta derivada de brand.secondary ↔ brand.tertiary (violetero → magenta). */
 function expenseChartStroke(index: number): string {
   const PALETTE = [
-    'rgba(169, 121, 255, 0.94)',
-    'rgba(255, 79, 234, 0.92)',
+    brandRgb('secondary', 0.94),
+    brandRgb('tertiary', 0.92),
     'rgba(206, 102, 255, 0.92)',
     'rgba(238, 96, 232, 0.90)',
     'rgba(144, 88, 255, 0.92)',

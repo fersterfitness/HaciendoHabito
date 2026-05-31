@@ -1,11 +1,10 @@
 import { cn } from '@/lib/utils'
 
-/** Texto/icono alineado al CTA naranja (entrenador); no usa `--brand-primary` del rol nutricionista. */
-export const trainerCtaAccentTextClassName =
-  'text-[#ff5508] dark:text-[#ffa065]'
+/** Texto/icono CTA entrenador (derivado de brand primary). */
+export const trainerCtaAccentTextClassName = 'text-brand-primary dark:text-brand-primary/80'
 
 /** Badge / pastilla sólida tipo marca naranja (p. ej. contador en campana). */
-export const trainerCtaSolidBgClassName = 'bg-[#ff4800] dark:bg-[#f04a00]'
+export const trainerCtaSolidBgClassName = 'bg-brand-primary dark:bg-brand-hover'
 
 /** `accent-color` en checkboxes/radios alineado al CTA entrenador. */
 export const trainerCtaFormAccentClassName =
@@ -18,7 +17,7 @@ export const trainerCtaFocusBorderClassName =
 /** Borde + anillo focus en selects/textarea (sin `--brand-primary` verde). */
 export const trainerCtaFocusInputChromeClassName = cn(
   trainerCtaFocusBorderClassName,
-  'focus:ring-2 focus:ring-[#ff4800]/25 dark:focus:ring-[#ffa065]/28',
+  'focus:ring-2 focus:ring-brand-primary/25 dark:focus:ring-brand-primary/28',
 )
 
 /** Fondo suave tipo item activo (nav móvil, etc.). */
@@ -39,7 +38,7 @@ export const primaryGradientCtaClassName = cn(
   'active:brightness-[0.97]',
   'dark:from-[#ff9050] dark:via-[#f04a00] dark:to-[#9c2200] dark:shadow-black/50',
   'dark:hover:from-[#ffa065] dark:hover:via-[#ff5c14] dark:hover:to-[#af2800]',
-  'focus-visible:ring-2 focus-visible:ring-[#ff4800]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
+  'focus-visible:ring-2 focus-visible:ring-brand-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--surface-base))]',
   'dark:focus-visible:ring-offset-zinc-900',
 )
 

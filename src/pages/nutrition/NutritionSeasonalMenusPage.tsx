@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Search, Snowflake, Sun, Calendar, Flame, Wheat, Copy, ChevronRight } from 'lucide-react'
+import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
+import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -76,7 +78,7 @@ export function NutritionSeasonalMenusPage() {
   return (
     <div>
       <Header title="Biblioteca" />
-      <div className="px-4 lg:px-6 py-6 space-y-5">
+      <DirectoryPageShell className={nutritionShellClass}>
         <NutritionLibraryTabs />
         <Card>
           <CardTitle className="mb-2">Biblioteca de menús</CardTitle>
@@ -233,7 +235,7 @@ export function NutritionSeasonalMenusPage() {
         {opened ? (
           <MenuDetailModal template={opened} onClose={() => setOpenId(null)} onCopy={copyToClipboard} />
         ) : null}
-      </div>
+      </DirectoryPageShell>
     </div>
   )
 }

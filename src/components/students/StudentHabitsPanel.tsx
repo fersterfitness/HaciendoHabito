@@ -51,7 +51,10 @@ import { Spinner } from '@/components/ui/Spinner'
 import { cn, formatDate } from '@/lib/utils'
 import { buildMonthlyEvolutionPayload } from '@/lib/habits/habitSelectionHistory'
 import type { Habit, HabitLog, StudentHabitSelectionEvent } from '@/types/database'
+import { brandHex } from '@/theme/brandColors'
 import toast from 'react-hot-toast'
+
+const HABIT_CHART_STROKE = brandHex('secondary')
 
 /** Mapa ícono-name → componente Lucide */
 const HABIT_ICON_MAP: Record<string, LucideIcon> = {
@@ -422,7 +425,7 @@ export function StudentHabitsPanel({
                         tickLine={false}
                       />
                       <Tooltip
-                        cursor={{ stroke: '#A979FF', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        cursor={{ stroke: HABIT_CHART_STROKE, strokeWidth: 1, strokeDasharray: '4 4' }}
                         content={({ active, payload }) => {
                           if (!active || !payload?.length) return null
                           const p = payload[0].payload as (typeof evolutionMonthly)[number]
@@ -445,10 +448,10 @@ export function StudentHabitsPanel({
                       <Line
                         type="monotone"
                         dataKey="lineValue"
-                        stroke="#A979FF"
+                        stroke={HABIT_CHART_STROKE}
                         strokeWidth={1.5}
                         dot={false}
-                        activeDot={{ r: 3, fill: '#A979FF', strokeWidth: 0 }}
+                        activeDot={{ r: 3, fill: HABIT_CHART_STROKE, strokeWidth: 0 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>

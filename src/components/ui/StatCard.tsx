@@ -19,11 +19,29 @@ export interface StatCardAction {
 
 export type StatCardTone = 'neutral' | 'success' | 'warning' | 'info'
 
+/** Títulos KPI con degradado (Resumen del mes, Inicio). */
+export const statCardGradientTitleClass =
+  'font-semibold uppercase tracking-wider leading-snug text-ink-muted'
+
+/** Borde suave + sombra flotante (KPI / resumen del mes). */
+const statCardFloatClass = cn(
+  'border-surface-border/40 bg-surface-card',
+  'shadow-[0_2px_8px_-2px_rgba(15,15,35,0.07),0_10px_28px_-8px_rgba(15,15,35,0.11)]',
+  'dark:border-white/[0.07]',
+  'dark:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.42),0_12px_36px_-10px_rgba(0,0,0,0.55)]',
+)
+
 const TONE_CARD: Record<StatCardTone, string> = {
-  neutral: 'border-surface-border/80 bg-surface-card',
-  success: 'border-status-generated/25 bg-status-generated/5',
-  warning: 'border-status-expiring/30 bg-status-expiring/5',
-  info: 'border-status-sent/25 bg-status-sent/5',
+  neutral: statCardFloatClass,
+  success: cn(
+    statCardFloatClass,
+    'border-status-generated/20 bg-status-generated/5',
+  ),
+  warning: cn(
+    statCardFloatClass,
+    'border-status-expiring/25 bg-status-expiring/5',
+  ),
+  info: cn(statCardFloatClass, 'border-status-sent/20 bg-status-sent/5'),
 }
 
 const TONE_TO_ICON: Record<StatCardTone, StatIconTone> = {
@@ -59,6 +77,28 @@ interface StatCardProps {
   heroAvatarSrc?: string
 }
 
+/** Altura fija del footer de comparación (evita saltos entre cards). */
+const GRADIENT_FOOTER_MIN_H = 'min-h-[1.125rem]'
+
+/** Popover “vs mes anterior” arriba de la métrica; no altera el layout de la card. */
+function VsMesAnteriorHint() {
+  return (
+    <span
+      role="note"
+      aria-hidden
+      className={cn(
+        'pointer-events-none absolute bottom-full left-0 z-20 mb-0.5 whitespace-nowrap',
+        'rounded border border-surface-border/70 bg-surface-card px-1.5 py-px',
+        'text-[9px] font-medium leading-none text-ink-muted shadow-sm',
+        'opacity-0 transition-opacity duration-150',
+        'group-hover:opacity-100 group-focus-within:opacity-100',
+      )}
+    >
+      vs mes anterior
+    </span>
+  )
+}
+
 function ComparisonFooter({
   comparison,
   monthOverMonth,
@@ -66,75 +106,76 @@ function ComparisonFooter({
   comparison: { delta: number; pct: number | null; scopeLabel?: string }
   monthOverMonth: { thisMonth: number; prevMonth: number; scopeLabel?: string }
 }) {
-  // Single line: "↗ +2 vs mes anterior". El scopeLabel se omite a propósito —
-  // el título de la card ya da contexto y mantener todo en una línea unifica
-  // la altura de todas las cards del grid.
   return (
-    <div
-      className={cn(
-        'flex items-baseline gap-1.5 min-w-0 leading-snug',
-        'text-[10px] sm:text-[11px] font-medium tabular-nums',
-      )}
-    >
-      <span
+    <div className="relative min-w-0">
+      <VsMesAnteriorHint />
+      <div
         className={cn(
-          'inline-flex items-center gap-0.5 font-semibold shrink-0',
-          comparison.delta > 0 && 'text-status-generated',
-          comparison.delta < 0 && 'text-status-expired',
-          comparison.delta === 0 && 'text-ink-muted',
+          'flex min-w-0 items-baseline leading-snug',
+          'text-[10px] sm:text-[11px] font-medium tabular-nums',
         )}
       >
-        {comparison.delta > 0 ? (
-          <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden />
-        ) : comparison.delta < 0 ? (
-          <ArrowDownRight className="h-3 w-3 shrink-0" aria-hidden />
-        ) : null}
-        {comparison.delta === 0
-          ? '0'
-          : `${comparison.delta > 0 ? '+' : ''}${comparison.delta}`}
-        {comparison.pct === null &&
-          comparison.delta > 0 &&
-          monthOverMonth.prevMonth === 0 && <span className="opacity-90"> (nuevo)</span>}
-      </span>
-      <span className="text-ink-muted truncate">vs mes anterior</span>
+        <span
+          className={cn(
+            'inline-flex items-center gap-0.5 font-semibold shrink-0',
+            comparison.delta > 0 && 'text-status-generated',
+            comparison.delta < 0 && 'text-status-expired',
+            comparison.delta === 0 && 'text-ink-muted',
+          )}
+        >
+          {comparison.delta > 0 ? (
+            <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden />
+          ) : comparison.delta < 0 ? (
+            <ArrowDownRight className="h-3 w-3 shrink-0" aria-hidden />
+          ) : null}
+          {comparison.delta === 0
+            ? '0'
+            : `${comparison.delta > 0 ? '+' : ''}${comparison.delta}`}
+          {comparison.pct === null &&
+            comparison.delta > 0 &&
+            monthOverMonth.prevMonth === 0 && <span className="opacity-90"> (nuevo)</span>}
+        </span>
+      </div>
     </div>
   )
 }
 
-function PercentComparisonFooter({ percent }: { percent: number }) {
+function PercentComparisonFooter({ percent, featured = false }: { percent: number; featured?: boolean }) {
   return (
-    <div
-      className={cn(
-        'flex items-baseline gap-1.5 min-w-0 leading-snug',
-        'text-[10px] sm:text-[11px] font-medium tabular-nums',
-      )}
-    >
-      <span
+    <div className="relative min-w-0">
+      <VsMesAnteriorHint />
+      <div
         className={cn(
-          'inline-flex items-center gap-0.5 font-semibold shrink-0',
-          percent > 0 && 'text-status-generated',
-          percent < 0 && 'text-status-expired',
-          percent === 0 && 'text-ink-muted',
+          'flex min-w-0 items-baseline leading-snug',
+          'text-[10px] sm:text-[11px] font-medium tabular-nums',
         )}
       >
-        {percent > 0 ? (
-          <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden />
-        ) : percent < 0 ? (
-          <ArrowDownRight className="h-3 w-3 shrink-0" aria-hidden />
-        ) : null}
-        {percent === 0 ? '0%' : `${percent > 0 ? '+' : ''}${percent}%`}
-      </span>
-      <span className="text-ink-muted truncate">vs mes anterior</span>
+        <span
+          className={cn(
+            'inline-flex items-center gap-0.5 font-semibold shrink-0',
+            featured
+              ? 'text-white/90'
+              : cn(
+                  percent > 0 && 'text-status-generated',
+                  percent < 0 && 'text-status-expired',
+                  percent === 0 && 'text-ink-muted',
+                ),
+          )}
+        >
+          {percent > 0 ? (
+            <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden />
+          ) : percent < 0 ? (
+            <ArrowDownRight className="h-3 w-3 shrink-0" aria-hidden />
+          ) : null}
+          {percent === 0 ? '0%' : `${percent > 0 ? '+' : ''}${percent}%`}
+        </span>
+      </div>
     </div>
   )
 }
 
-/** Altura fija del bloque de título (2 líneas máx.) para alinear cards del grid. */
-const GRADIENT_TITLE_MIN_H = 'min-h-[2.5rem]'
 /** Altura fija del valor principal (evita saltos entre número corto y monto largo). */
 const GRADIENT_VALUE_MIN_H = 'min-h-[1.75rem]'
-/** Altura fija del footer de comparación. */
-const GRADIENT_FOOTER_MIN_H = 'min-h-[1.125rem]'
 
 function GradientIconPod({
   kpiId,
@@ -276,22 +317,25 @@ function StatCardGradient({
           : undefined
       }
       className={cn(
-        'relative rounded-2xl border flex h-full flex-col',
-        showHero ? 'overflow-visible' : 'overflow-hidden',
+        'group relative flex h-full flex-col rounded-2xl border',
+        statCardFloatClass,
+        showHero || footerLine ? 'overflow-visible' : 'overflow-hidden',
         compact ? 'min-h-0 p-2.5' : 'min-h-0 p-3',
         showHero && !compact && 'pr-[36%] sm:pr-[32%]',
         featured
-          ? 'border-brand-secondary/35 bg-gradient-to-br from-brand-secondary/22 via-surface-card to-surface-card shadow-[0_8px_28px_rgba(169,121,255,0.08)]'
-          : 'border-brand-secondary/25 bg-gradient-to-br from-brand-secondary/14 via-surface-card to-surface-card',
+          ? 'border-orange-500 bg-gradient-to-br from-orange-500 via-orange-500 to-fuchsia-500'
+          : 'bg-gradient-to-br from-brand-secondary/9 via-surface-card to-surface-card',
         onClick &&
-          'cursor-pointer hover:border-brand-secondary/45 hover:shadow-md hover:shadow-brand-secondary/10 transition-all duration-200',
+          'cursor-pointer transition-all duration-200 hover:border-surface-border/55 hover:shadow-[0_4px_14px_-2px_rgba(15,15,35,0.1),0_14px_32px_-8px_rgba(15,15,35,0.14)] dark:hover:border-white/[0.1]',
         className,
       )}
     >
       <div
         className={cn(
-          'pointer-events-none absolute rounded-full bg-brand-secondary/20 blur-2xl',
-          featured ? '-right-5 -top-5 h-20 w-20' : '-right-6 -top-6 h-16 w-16 opacity-80',
+          'pointer-events-none absolute rounded-full blur-2xl',
+          featured
+            ? 'bg-white/25 -right-5 -top-5 h-24 w-24'
+            : 'bg-brand-secondary/20 -right-6 -top-6 h-16 w-16 opacity-80',
         )}
         aria-hidden
       />
@@ -308,9 +352,10 @@ function StatCardGradient({
         ) : null}
         <p
           className={cn(
-            'min-w-0 flex-1 font-semibold uppercase tracking-wider leading-snug',
-            'text-brand-secondary/90 dark:text-brand-secondary/95',
-            compact ? 'text-[9px] line-clamp-2' : 'text-[10px] sm:text-label line-clamp-2',
+            'min-w-0 flex-1 line-clamp-2',
+            statCardGradientTitleClass,
+            compact ? 'text-[9px]' : 'text-[10px] sm:text-[0.6875rem]',
+            featured && 'text-white/90',
           )}
         >
           {title}
@@ -332,7 +377,8 @@ function StatCardGradient({
 
       <p
         className={cn(
-          'relative mt-1.5 font-semibold text-ink-primary tabular-nums leading-none tracking-tight',
+          'relative mt-1.5 font-semibold tabular-nums leading-none tracking-tight',
+          featured ? 'text-white' : 'text-ink-primary',
           compact ? 'text-lg' : 'text-[22px] sm:text-2xl',
           !compact && GRADIENT_VALUE_MIN_H,
           !compact &&
@@ -343,16 +389,11 @@ function StatCardGradient({
         {displayValue}
       </p>
 
-      <div
-        className={cn(
-          'relative mt-auto pt-1.5',
-          !compact && GRADIENT_FOOTER_MIN_H,
-          !footerLine && !compact && 'invisible',
-        )}
-        aria-hidden={!footerLine}
-      >
-        {footerLine ?? <span className="text-[10px] sm:text-[11px]">vs mes anterior</span>}
-      </div>
+      {footerLine ? (
+        <div className={cn('relative mt-auto pt-1.5', !compact && GRADIENT_FOOTER_MIN_H)}>
+          {footerLine}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -395,7 +436,7 @@ export function StatCard({
 
   const footerLine =
     comparisonPercent !== undefined ? (
-      <PercentComparisonFooter percent={comparisonPercent} />
+      <PercentComparisonFooter percent={comparisonPercent} featured={featured} />
     ) : comparison != null && monthOverMonth ? (
       <ComparisonFooter comparison={comparison} monthOverMonth={monthOverMonth} />
     ) : subtitle ? (
@@ -426,7 +467,7 @@ export function StatCard({
     )
     if (heroSrc) {
       return (
-        <div className="relative z-[1] h-full overflow-visible hover:z-[2]">
+        <div className="group relative z-[1] h-full overflow-visible hover:z-[2]">
           <StatCardHeroFrame heroAvatarSrc={heroSrc}>{gradientCard}</StatCardHeroFrame>
         </div>
       )
@@ -450,11 +491,11 @@ export function StatCard({
           : undefined
       }
       className={cn(
-        'rounded-2xl border shadow-card flex flex-col gap-2',
+        'flex flex-col gap-2 rounded-2xl border',
         compact ? 'min-h-0 p-2.5' : 'min-h-0 p-3',
         TONE_CARD[tone],
         onClick &&
-          'cursor-pointer hover:border-surface-border hover:bg-surface-elevated/35 transition-colors duration-200',
+          'cursor-pointer transition-all duration-200 hover:border-surface-border/55 hover:bg-surface-elevated/30',
         className,
       )}
     >

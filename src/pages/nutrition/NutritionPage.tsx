@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   AlarmClock,
@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { labelForSelectedWebPlanSlug } from '@/lib/selectedWebPlanLabel'
 import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -27,11 +28,14 @@ import { directoryToolbarBtnClassName } from '@/lib/primaryGradientCtaClasses'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
+import { NutritionPatientAreaHeader } from '@/components/nutrition/NutritionPatientAreaHeader'
+import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import {
   formatNextConsult,
   NutritionPatientCards,
   type NutritionFollowupRow,
 } from '@/components/nutrition/NutritionPatientDirectory'
+import { NutritionPatientDetailView } from '@/pages/nutrition/NutritionPatientDetailPage'
 import { cn } from '@/lib/utils'
 import type { NutritionPatientFollowup } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -67,7 +71,7 @@ function FilterChip({
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors',
         active
-          ? 'border-brand-secondary bg-brand-secondary/10 text-brand-secondary'
+          ? 'border-brand-tertiary bg-brand-tertiary/10 text-brand-tertiary'
           : 'border-surface-border/70 text-ink-muted hover:border-surface-border hover:text-ink-secondary',
       )}
     >
@@ -76,7 +80,7 @@ function FilterChip({
       <span
         className={cn(
           'ml-0.5 rounded-full px-1.5 text-[10px] tabular-nums',
-          active ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-elevated text-ink-muted',
+          active ? 'bg-brand-tertiary/15 text-brand-tertiary' : 'bg-surface-elevated text-ink-muted',
         )}
       >
         {count}
@@ -94,27 +98,39 @@ export function NutritionPage() {
   const [rows, setRows] = useState<NutritionFollowupRow[]>([])
   const [newPatientOpen, setNewPatientOpen] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+  const patientPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!user) return
     ;(async () => {
       setLoading(true)
-      const [{ data: students, error: studentsError }, { data: followups, error: followupsError }] =
-        await Promise.all([
-          fetchAccessibleStudents(),
-          supabase.from('nutrition_patient_followups').select('*').eq('owner_id', user.id),
-        ])
+      const [
+        { data: students, error: studentsError },
+        { data: followups, error: followupsError },
+        { data: webPlans, error: webPlansError },
+      ] = await Promise.all([
+        fetchAccessibleStudents(),
+        supabase.from('nutrition_patient_followups').select('*').eq('owner_id', user.id),
+        supabase.from('web_plans').select('slug, title'),
+      ])
 
-      if (studentsError || followupsError) {
-        toast.error(studentsError ?? followupsError?.message ?? 'No se pudieron cargar pacientes')
+      if (studentsError || followupsError || webPlansError) {
+        toast.error(
+          studentsError ?? followupsError?.message ?? webPlansError?.message ?? 'No se pudieron cargar pacientes',
+        )
         setLoading(false)
         return
       }
 
       const followupsByStudent = new Map((followups ?? []).map((f) => [f.student_id, f]))
+      const webPlanTitlesBySlug = new Map(
+        (webPlans ?? []).map((p) => [p.slug as string, (p.title as string)?.trim() || '']),
+      )
       const merged = (students ?? []).map((s) => ({
         ...s,
         followup: followupsByStudent.get(s.id),
+        selectedWebPlanLabel: labelForSelectedWebPlanSlug(s.selected_web_plan_slug, webPlanTitlesBySlug),
       }))
       setRows(merged)
       setLoading(false)
@@ -199,10 +215,33 @@ export function NutritionPage() {
     setRows((prev) => prev.map((r) => (r.id === studentId ? { ...r, avatar_path: avatarPath } : r)))
   }
 
+  useEffect(() => {
+    if (!selectedPatientId) return
+    const frame = window.requestAnimationFrame(() => {
+      patientPanelRef.current?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [selectedPatientId])
+
+  useEffect(() => {
+    if (!selectedPatientId) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedPatientId(null)
+    }
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [selectedPatientId])
+
   return (
     <div>
       <Header title="Nutrición · Pacientes" />
-      <DirectoryPageShell>
+      <DirectoryPageShell className={nutritionShellClass}>
+        <NutritionPatientAreaHeader />
         <PageToolbar>
           <div className="flex flex-col lg:flex-row gap-4 w-full lg:items-center lg:justify-between">
             <div className="w-full max-w-lg">
@@ -298,8 +337,9 @@ export function NutritionPage() {
             </div>
             <NutritionPatientCards
               rows={filteredRows}
+              selectedPatientId={selectedPatientId}
               nextConsultLabel={formatNextConsult}
-              onOpen={(id) => navigate(`/nutrition/${id}`)}
+              onOpen={setSelectedPatientId}
               onUpdateFollowup={updateFollowup}
               onAvatarChange={handleAvatarChange}
             />
@@ -307,11 +347,51 @@ export function NutritionPage() {
         )}
       </DirectoryPageShell>
 
+      {selectedPatientId ? (
+        <>
+          <button
+            type="button"
+            aria-label="Cerrar carpeta del paciente"
+            className={cn(
+              'fixed inset-0 z-[9990] bg-black/30 backdrop-blur-[3px] dark:bg-black/55',
+              'motion-reduce:animate-none motion-safe:animate-backdrop-soft',
+            )}
+            onClick={() => setSelectedPatientId(null)}
+          />
+          <div
+            ref={patientPanelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal
+            aria-labelledby="nutrition-patient-sheet-title"
+            className={cn(
+              'fixed z-[9991] flex flex-col overflow-hidden border border-surface-border/85 bg-surface-panel shadow-lg dark:bg-surface-panel dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]',
+              'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-none motion-safe:sm:animate-panel-slide-in',
+              'inset-2 h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-auto',
+              'sm:inset-3 sm:h-[calc(100dvh-1.5rem)]',
+              'md:inset-4 md:h-[calc(100dvh-2rem)]',
+              'lg:inset-5 lg:h-[calc(100dvh-2.5rem)]',
+              'xl:inset-6 xl:h-[calc(100dvh-3rem)]',
+            )}
+          >
+            <NutritionPatientDetailView
+              key={selectedPatientId}
+              patientId={selectedPatientId}
+              variant="panel"
+              onClosePanel={() => setSelectedPatientId(null)}
+            />
+          </div>
+        </>
+      ) : null}
+
       <NewStudentModal
         open={newPatientOpen}
         title="Nuevo paciente"
         onClose={() => setNewPatientOpen(false)}
-        onCreated={(id) => navigate(`/nutrition/${id}`)}
+        onCreated={(id) => {
+          setNewPatientOpen(false)
+          setSelectedPatientId(id)
+        }}
       />
     </div>
   )

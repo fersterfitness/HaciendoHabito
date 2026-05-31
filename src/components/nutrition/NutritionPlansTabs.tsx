@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useAuthStore } from '@/stores/authStore'
 import { canSeeNutrition } from '@/config/navigation'
+import { NutritionAreaTabsStrip } from '@/components/nutrition/NutritionAreaTabsStrip'
 import { Tabs, type TabItem } from '@/components/ui/Tabs'
 
 const PLANS_PATH = '/nutrition/plans'
@@ -32,14 +33,15 @@ export function NutritionPlansTabs({ className }: { className?: string }) {
   if (tabs.length < 2) return null
 
   return (
-    <Tabs
-      tabs={tabs}
-      active={active}
-      onChange={(id) => {
-        if (id !== active) navigate(id)
-      }}
-      ariaLabel="Planes"
-      className={className}
-    />
+    <NutritionAreaTabsStrip className={className}>
+      <Tabs
+        tabs={tabs}
+        active={active}
+        onChange={(id) => {
+          if (id !== active) navigate(id)
+        }}
+        ariaLabel="Planes"
+      />
+    </NutritionAreaTabsStrip>
   )
 }

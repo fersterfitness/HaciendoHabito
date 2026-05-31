@@ -333,22 +333,31 @@ export function NutritionAnthropometryProgramForm({
               className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
             />
           </label>
-          <label className="text-[11px] text-ink-secondary">
+          <label className="text-[11px] text-ink-secondary lg:col-span-2">
             % error técnico TE (diámetros/pliegues)
-            <input
-              type="number"
-              min={0}
-              max={15}
-              step={0.5}
-              value={meta.measurement_error_pct_default ?? 2}
-              onChange={(e) => {
-                const raw = Number.parseFloat(e.target.value)
-                const n = Number.isFinite(raw) ? Math.min(15, Math.max(0, raw)) : 2
-                setMeta((m) => ({ ...m, measurement_error_pct_default: n }))
-              }}
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
-            />
-            <span className="block text-[10px] text-ink-muted mt-0.5">Por defecto 2% (como en el Excel). Usado en valor ajustado y PDF.</span>
+            <div className="mt-1 flex items-center gap-2.5">
+              <div className="relative w-[5.5rem] shrink-0">
+                <input
+                  type="number"
+                  min={0}
+                  max={15}
+                  step={0.5}
+                  value={meta.measurement_error_pct_default ?? 2}
+                  onChange={(e) => {
+                    const raw = Number.parseFloat(e.target.value)
+                    const n = Number.isFinite(raw) ? Math.min(15, Math.max(0, raw)) : 2
+                    setMeta((m) => ({ ...m, measurement_error_pct_default: n }))
+                  }}
+                  className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 pr-7 text-sm tabular-nums outline-none transition-colors focus:border-brand-secondary/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                  %
+                </span>
+              </div>
+              <span className="text-[10px] leading-snug text-ink-muted">
+                Por defecto 2% (como en el Excel). Usado en valor ajustado y PDF.
+              </span>
+            </div>
           </label>
         </div>
       </div>

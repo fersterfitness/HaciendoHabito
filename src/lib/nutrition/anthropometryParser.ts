@@ -219,11 +219,23 @@ export function compareManualMeasurements(
   }
 }
 
-function describeDirection(delta: number | undefined, positiveText: string, negativeText: string): string | null {
+/**
+ * Frase natural para una métrica general. Devuelve `null` si no hay variación
+ * comparable (así la omitimos en lugar de escribir "no se pudo identificar…").
+ */
+function metricPhrase(delta: number | undefined, subject: string, unit: string): string | null {
   if (delta === undefined) return null
-  if (delta > 0) return positiveText
-  if (delta < 0) return negativeText
-  return 'se mantuvo estable'
+  if (delta === 0) return `${subject} se mantuvo estable`
+  const verb = delta > 0 ? 'aumentó' : 'descendió'
+  const amount = `${Math.abs(delta).toFixed(2)} ${unit}`.trim()
+  return `${subject} ${verb} ${amount}`
+}
+
+/** Une frases con comas y "y" antes de la última, para que lea como prosa. */
+function joinPhrases(items: string[]): string {
+  if (items.length === 0) return ''
+  if (items.length === 1) return items[0]!
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]!}`
 }
 
 function formatDelta(delta: number | undefined, unit: string): string {
@@ -236,53 +248,63 @@ function topChanges(items: Array<{ label: string; delta: number }>, limit = 4) {
   return items.filter((i) => i.delta !== 0).slice(0, limit)
 }
 
+/**
+ * Devolución clínica redactada a partir de la comparación. Solo menciona las
+ * métricas con variación comparable: las que faltan se omiten (en vez de llenar
+ * el texto con "no se pudo identificar…"). Si no hay nada comparable, lo dice de
+ * forma clara y accionable.
+ */
 export function buildComparativeNarrative(
   patientName: string,
   comparison: AnthropometryComparison
 ): string {
   const { general, perimeters, skinfolds } = comparison
+  const firstName = patientName.trim().split(/\s+/)[0] || patientName.trim() || 'el paciente'
 
-  const weightSentence = describeDirection(
-    general.weightKg.delta,
-    `el peso mostró un aumento de ${formatDelta(general.weightKg.delta, 'kg')}`,
-    `el peso mostró una disminución de ${formatDelta(general.weightKg.delta, 'kg')}`
-  ) ?? 'no se pudo identificar peso en ambos estudios'
-
-  const bmiSentence = describeDirection(
-    general.bmi.delta,
-    `el IMC subió ${formatDelta(general.bmi.delta, 'puntos')}`,
-    `el IMC bajó ${formatDelta(general.bmi.delta, 'puntos')}`
-  ) ?? 'no se pudo calcular variación de IMC'
-
-  const fatSentence = describeDirection(
-    general.bodyFatPct.delta,
-    `el porcentaje graso aumentó ${formatDelta(general.bodyFatPct.delta, '%')}`,
-    `el porcentaje graso descendió ${formatDelta(general.bodyFatPct.delta, '%')}`
-  ) ?? 'no se pudo identificar el porcentaje graso en ambos controles'
-
-  const muscleSentence = describeDirection(
-    general.muscleMassKg.delta,
-    `la masa muscular aumentó ${formatDelta(general.muscleMassKg.delta, 'kg')}`,
-    `la masa muscular disminuyó ${formatDelta(general.muscleMassKg.delta, 'kg')}`
-  ) ?? 'no se pudo identificar la masa muscular en ambos controles'
+  const generalPhrases = [
+    metricPhrase(general.weightKg.delta, 'el peso', 'kg'),
+    metricPhrase(general.bmi.delta, 'el IMC', 'puntos'),
+    metricPhrase(general.bodyFatPct.delta, 'el porcentaje graso', '%'),
+    metricPhrase(general.muscleMassKg.delta, 'la masa muscular', 'kg'),
+  ].filter((s): s is string => s !== null)
 
   const periTop = topChanges(perimeters.map((p) => ({ label: p.label, delta: p.delta })))
   const skinTop = topChanges(skinfolds.map((p) => ({ label: p.label, delta: p.delta })))
 
-  const perimetersText = periTop.length
-    ? `En perímetros, los cambios más relevantes se observaron en ${periTop
-        .map((p) => `${p.label} (${formatDelta(p.delta, 'cm')})`)
-        .join(', ')}.`
-    : 'No se detectaron variaciones comparables de perímetros en los dos archivos o el PDF no trae ese detalle.'
-
-  const skinfoldsText = skinTop.length
-    ? `En pliegues, se destacaron ${skinTop
-        .map((p) => `${p.label} (${formatDelta(p.delta, 'mm')})`)
-        .join(', ')}.`
-    : 'No se detectaron variaciones comparables de pliegues en los dos archivos o el PDF no trae ese detalle.'
-
   const supportiveClosure =
-    'La interpretación se orienta a acompañar el proceso con objetivos realistas, reforzando adherencia y ajustes graduales sin emitir juicios, priorizando salud y continuidad.'
+    'La lectura busca acompañar el proceso con objetivos realistas, reforzando adherencia y ajustes graduales, y debe interpretarse junto con la adherencia, los síntomas y el contexto del paciente.'
 
-  return `Para ${patientName}, al comparar ambos controles se observa que ${weightSentence}; además, ${bmiSentence}. En composición corporal, ${fatSentence} y ${muscleSentence}. ${perimetersText} ${skinfoldsText} ${supportiveClosure}`
+  // Sin ninguna métrica comparable: mensaje claro y accionable, sin relleno.
+  if (generalPhrases.length === 0 && periTop.length === 0 && skinTop.length === 0) {
+    return `No se pudieron extraer métricas comparables entre ambos controles de ${firstName}. Verificá que los dos PDF correspondan al mismo tipo de estudio antropométrico (o cargá los valores como medición manual) y volvé a generar el análisis.`
+  }
+
+  const sentences: string[] = []
+
+  if (generalPhrases.length > 0) {
+    sentences.push(`Al comparar ambos controles de ${firstName}, ${joinPhrases(generalPhrases)}.`)
+  } else {
+    sentences.push(
+      `En los controles de ${firstName} no se identificaron variaciones de peso, IMC, % graso ni masa muscular, pero sí cambios en las mediciones segmentarias.`,
+    )
+  }
+
+  if (periTop.length > 0) {
+    sentences.push(
+      `En perímetros, los cambios más marcados fueron ${periTop
+        .map((p) => `${p.label} (${formatDelta(p.delta, 'cm')})`)
+        .join(', ')}.`,
+    )
+  }
+
+  if (skinTop.length > 0) {
+    sentences.push(
+      `En pliegues, se destacaron ${skinTop
+        .map((p) => `${p.label} (${formatDelta(p.delta, 'mm')})`)
+        .join(', ')}.`,
+    )
+  }
+
+  sentences.push(supportiveClosure)
+  return sentences.join(' ')
 }

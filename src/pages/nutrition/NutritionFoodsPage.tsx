@@ -20,6 +20,18 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageSectionTitle } from '@/components/ui/PageSectionTitle'
 import { supabase } from '@/lib/supabase'
+import {
+  nutritionHintClass,
+  nutritionKickerClass,
+  nutritionInputClass,
+  nutritionLabelClass,
+  nutritionListRowClass,
+  nutritionListRowHoverClass,
+  nutritionMetaClass,
+  nutritionPanelClass,
+  nutritionSectionTitleClass,
+  nutritionShellClass,
+} from '@/lib/nutrition/nutritionAreaUi'
 import { cn } from '@/lib/utils'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
 import { filterFoodCatalogEs, type FoodCatalogItemEs } from '@/lib/nutrition/foodCatalogEs'
@@ -49,31 +61,18 @@ const MACRO_QTY_OPTS: { v: NutritionFoodMacroQtyPresentation; label: string }[] 
 const CATALOGO_LABEL = 'Catálogo guía (español)'
 const CATEGORY_MAX = 80
 
-/** UI monocromática; secondary/tertiary solo en acentos mínimos. */
-const foodsPanelClass = 'rounded-2xl border border-surface-border/80 bg-surface-card shadow-card'
-
-const foodsSectionTitleClass =
-  'text-label font-semibold uppercase tracking-wider text-ink-muted'
-
-const foodsMetaClass = 'text-[11px] leading-snug text-ink-muted'
-
-const foodsHintClass = 'text-[10px] leading-snug text-ink-muted'
-
-const foodsInputClass =
-  'rounded-xl border border-surface-border/80 bg-surface-input outline-none transition-colors focus:border-surface-border focus:ring-2 focus:ring-brand-secondary/12'
-
-const foodsLabelClass = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-ink-muted'
-
 const foodsChipActiveClass =
   'border-surface-border bg-surface-elevated font-medium text-ink-primary shadow-[inset_2px_0_0_0_rgb(var(--brand-secondary)/0.55)]'
 
 const foodsChipIdleClass =
   'border-surface-border/70 bg-transparent text-ink-muted hover:border-surface-border hover:bg-surface-elevated/50 hover:text-ink-secondary'
 
-const foodsListItemClass =
-  'group flex flex-wrap items-center justify-between gap-2 rounded-xl border border-surface-border/70 bg-surface-elevated/10 px-3 py-2 transition-colors hover:border-surface-border hover:bg-surface-elevated/35'
+const foodsListItemClass = cn(
+  'group flex flex-wrap items-center justify-between gap-2 px-3 py-2',
+  nutritionListRowClass,
+  nutritionListRowHoverClass,
+)
 
-/** Acentos puntuales (opacidad baja). */
 /** Detalles mínimos en color (baja opacidad). */
 const foodsDetailTertiary = 'text-brand-tertiary/50'
 
@@ -454,7 +453,7 @@ export function NutritionFoodsPage() {
     <div className="min-h-0">
       <Header title="Biblioteca" />
 
-      <DirectoryPageShell className="max-w-[1600px] space-y-4 pb-24">
+      <DirectoryPageShell className={cn('max-w-[1600px]', nutritionShellClass)}>
         <NutritionLibraryTabs />
         <PageSectionTitle
           title="Biblioteca y carga"
@@ -463,19 +462,24 @@ export function NutritionFoodsPage() {
 
         <div className="grid gap-4 xl:grid-cols-12 xl:items-start xl:gap-5">
           <div className="space-y-4 xl:col-span-8 2xl:col-span-9">
-        <section className={cn('p-3.5 sm:p-4', foodsPanelClass)}>
+        <section className={cn('p-3.5 sm:p-4', nutritionPanelClass)}>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className={cn('inline-flex items-center gap-2', foodsSectionTitleClass)}>
+            <h2 className={cn('inline-flex items-center gap-2', nutritionSectionTitleClass)}>
               <Wheat className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
               Mi lista
             </h2>
             {!loading && rows.length > 0 ? (
-              <span className="rounded-md border border-surface-border/80 bg-surface-elevated/40 px-2 py-0.5 text-[10px] font-medium tabular-nums text-ink-muted">
+              <span
+                className={cn(
+                  'rounded-md border border-surface-border/80 bg-surface-elevated/40 px-2 py-0.5 font-medium tabular-nums text-ink-muted',
+                  nutritionMetaClass,
+                )}
+              >
                 <span className={foodsDetailTertiary}>{rows.length}</span>
               </span>
             ) : null}
           </div>
-          <p className={cn('mb-3', foodsHintClass)}>Tu biblioteca personal, agrupada por categoría.</p>
+          <p className={cn('mb-3', nutritionHintClass)}>Tu biblioteca personal, agrupada por categoría.</p>
           {loading ? (
             <div className="flex justify-center py-10">
               <Spinner size="md" className="text-ink-muted" variant="spin" />
@@ -489,7 +493,7 @@ export function NutritionFoodsPage() {
             <div className="space-y-4">
               {groupedSavedFoods.map(([catLabel, items]) => (
                 <div key={catLabel}>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  <p className={cn('mb-1.5', nutritionSectionTitleClass)}>
                     {catLabel}
                   </p>
                   <ul className="space-y-1.5">
@@ -497,12 +501,12 @@ export function NutritionFoodsPage() {
                       <li key={r.id} className={foodsListItemClass}>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-ink-primary">{r.display_name}</p>
-                          <p className={cn('mt-0.5 tabular-nums', foodsMetaClass)}>
+                          <p className={cn('mt-0.5 tabular-nums', nutritionMetaClass)}>
                             P {r.protein_g_per_100g ?? '—'} · G {r.fat_g_per_100g ?? '—'} · HC {r.carbs_g_per_100g ?? '—'} ·
                             Fib {r.fiber_g_per_100g ?? '—'} · {r.energy_kcal_per_100g ?? '—'} kcal
                             <span className={foodsDetailTertiary}> {macroQtyMiListaSuffix(r)}</span>
                           </p>
-                          <p className={cn('mt-0.5', foodsHintClass)}>
+                          <p className={cn('mt-0.5', nutritionHintClass)}>
                             {r.portion_basis === 'cocido'
                               ? 'Cocido'
                               : r.portion_basis === 'crudo'
@@ -546,15 +550,15 @@ export function NutritionFoodsPage() {
         <section
           className={cn(
             'space-y-2.5 p-3.5 sm:p-4',
-            foodsPanelClass,
+            nutritionPanelClass,
             showCatalogDropdown && 'relative z-[100]',
           )}
         >
-          <h2 className={cn('inline-flex items-center gap-2', foodsSectionTitleClass)}>
+          <h2 className={cn('inline-flex items-center gap-2', nutritionSectionTitleClass)}>
             <BookOpen className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
             Catálogo en español
           </h2>
-          <p className={foodsHintClass}>
+          <p className={nutritionHintClass}>
             Buscá por nombre. Carnes/guarniciones en <span className={foodsDetailTertiary}>cocido</span>; cereales/lácteos según
             uso. Nuevos: <span className={foodsDetailTertiary}>USDA FDC</span> en el panel derecho.
           </p>
@@ -574,14 +578,14 @@ export function NutritionFoodsPage() {
               aria-controls="nutrition-catalog-results"
               aria-autocomplete="list"
               autoComplete="off"
-              className={foodsInputClass}
+              className={nutritionInputClass}
             />
             {catalogQuery.trim().length === 0 ? (
-              <p className={foodsHintClass} id="nutrition-catalog-results" role="status">
+              <p className={nutritionHintClass} id="nutrition-catalog-results" role="status">
                 La lista aparece cuando escribís al menos un carácter.
               </p>
             ) : !catalogPanelOpen ? (
-              <p className={foodsHintClass} id="nutrition-catalog-results" role="status">
+              <p className={nutritionHintClass} id="nutrition-catalog-results" role="status">
                 Tocá de nuevo el buscador para abrir los resultados, o borrá el texto.
               </p>
             ) : (
@@ -599,7 +603,13 @@ export function NutritionFoodsPage() {
                 ) : (
                   groupedCatalog.map(([grupo, items]) => (
                     <div key={grupo}>
-                      <div className="sticky top-0 z-[1] border-b border-surface-border/80 bg-surface-elevated/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      <div
+                        className={cn(
+                          'sticky top-0 z-[1] border-b border-surface-border/80 bg-surface-elevated/60 px-3 py-1',
+                          nutritionKickerClass,
+                          'text-ink-muted',
+                        )}
+                      >
                         {grupo}
                       </div>
                       <ul className="divide-y divide-surface-border/60" role="group" aria-label={grupo}>
@@ -612,7 +622,7 @@ export function NutritionFoodsPage() {
                             >
                               <span className="min-w-0 text-sm font-medium text-ink-primary">{item.nombre}</span>
                               <div className="flex shrink-0 flex-col items-end gap-0.5 sm:ml-2">
-                                <span className={cn('text-[10px] tabular-nums', foodsDetailTertiary)}>
+                                <span className={cn(nutritionMetaClass, 'tabular-nums', foodsDetailTertiary)}>
                                   {item.portion_basis === 'cocido'
                                     ? 'cocido'
                                     : item.portion_basis === 'crudo'
@@ -620,7 +630,7 @@ export function NutritionFoodsPage() {
                                       : '—'}
                                 </span>
                                 {item.serving_examples ? (
-                                  <span className="max-w-[14rem] text-right text-[9px] leading-snug text-ink-muted">
+                                  <span className={cn('max-w-[14rem] text-right', nutritionHintClass)}>
                                     {item.serving_examples}
                                   </span>
                                 ) : null}
@@ -639,10 +649,10 @@ export function NutritionFoodsPage() {
           </div>
 
           <div className="xl:sticky xl:top-16 xl:col-span-4 2xl:col-span-3 xl:self-start">
-        <section className={cn('overflow-hidden', foodsPanelClass)}>
+        <section className={cn('overflow-hidden', nutritionPanelClass)}>
           <div className="border-b border-surface-border/80 bg-surface-elevated/25 px-3.5 py-2.5 sm:px-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className={cn('inline-flex items-center gap-2', foodsSectionTitleClass)}>
+              <h2 className={cn('inline-flex items-center gap-2', nutritionSectionTitleClass)}>
                 <Plus className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
                 {editingId ? 'Editar alimento' : 'Agregar o ajustar'}
               </h2>
@@ -650,7 +660,10 @@ export function NutritionFoodsPage() {
                 <button
                   type="button"
                   onClick={() => resetForm()}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-ink-muted hover:text-ink-secondary"
+                  className={cn(
+                    'inline-flex items-center gap-1 font-medium text-ink-muted hover:text-ink-secondary',
+                    nutritionHintClass,
+                  )}
                 >
                   <XCircle className="h-3 w-3" aria-hidden /> Limpiar
                 </button>
@@ -668,16 +681,16 @@ export function NutritionFoodsPage() {
           <form onSubmit={handleSave} className="space-y-3">
             <div className="grid gap-2.5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className={foodsLabelClass}>Nombre del alimento *</label>
+                <label className={nutritionLabelClass}>Nombre del alimento *</label>
                 <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
-                  className={foodsInputClass}
+                  className={nutritionInputClass}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="nutrition-food-category-field" className={foodsLabelClass}>
+                <label htmlFor="nutrition-food-category-field" className={nutritionLabelClass}>
                   Categoría
                 </label>
                 <input
@@ -689,15 +702,15 @@ export function NutritionFoodsPage() {
                   placeholder="Ej. Lácteos, Verduras…"
                   className={cn(
                     'w-full px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted',
-                    foodsInputClass,
+                    nutritionInputClass,
                   )}
                 />
-                <p className={cn('mt-1', foodsHintClass)}>
+                <p className={cn('mt-1', nutritionHintClass)}>
                   Texto libre · vacío = General · máx. {CATEGORY_MAX} caracteres
                 </p>
               </div>
               <div className="sm:col-span-2">
-                <p id="portion-basis-label" className={foodsLabelClass}>
+                <p id="portion-basis-label" className={nutritionLabelClass}>
                   Peso crudo o cocido
                 </p>
                 <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="portion-basis-label">
@@ -717,7 +730,7 @@ export function NutritionFoodsPage() {
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <label className={foodsLabelClass}>Nota (opcional)</label>
+                <label className={nutritionLabelClass}>Nota (opcional)</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -725,13 +738,13 @@ export function NutritionFoodsPage() {
                   placeholder="Marca, preparación…"
                   className={cn(
                     'min-h-[2.5rem] w-full resize-y px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted',
-                    foodsInputClass,
+                    nutritionInputClass,
                   )}
                 />
               </div>
               <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2.5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-                  <p className={cn('min-w-0 flex-1', foodsHintClass)}>
+                  <p className={cn('min-w-0 flex-1', nutritionHintClass)}>
                     {macroQtyPresentation === 'volume' ? (
                       <>Base <span className={foodsDetailTertiary}>100 ml</span> en los campos numéricos.</>
                     ) : macroQtyPresentation === 'units' ? (
@@ -747,14 +760,14 @@ export function NutritionFoodsPage() {
                     )}
                   </p>
                   <div className="w-full shrink-0 sm:w-[10.5rem]">
-                    <label htmlFor="nutrition-food-macro-qty" className={foodsLabelClass}>
+                    <label htmlFor="nutrition-food-macro-qty" className={nutritionLabelClass}>
                       Al planificar
                     </label>
                     <select
                       id="nutrition-food-macro-qty"
                       value={macroQtyPresentation}
                       onChange={(e) => setMacroQtyPresentation(e.target.value as NutritionFoodMacroQtyPresentation)}
-                      className={cn('w-full px-2.5 py-1.5 text-sm text-ink-primary', foodsInputClass)}
+                      className={cn('w-full px-2.5 py-1.5 text-sm text-ink-primary', nutritionInputClass)}
                     >
                       {MACRO_QTY_OPTS.map((o) => (
                         <option key={o.v} value={o.v}>
@@ -767,7 +780,7 @@ export function NutritionFoodsPage() {
                 {macroQtyPresentation === 'grams' ? (
                   <div className="flex flex-col gap-2 border-t border-surface-border/70 pt-2 sm:flex-row sm:items-end sm:gap-3">
                     <div className="w-full max-w-[9rem]">
-                      <label htmlFor="nutrition-macro-ref-basis-g" className={foodsLabelClass}>
+                      <label htmlFor="nutrition-macro-ref-basis-g" className={nutritionLabelClass}>
                         Gramos ref.
                       </label>
                       <Input
@@ -776,10 +789,10 @@ export function NutritionFoodsPage() {
                         onChange={(e) => setMacroRefBasisG(e.target.value)}
                         inputMode="decimal"
                         placeholder="100"
-                        className={foodsInputClass}
+                        className={nutritionInputClass}
                       />
                     </div>
-                    <p className={cn('flex-1 pb-0.5', foodsHintClass)}>
+                    <p className={cn('flex-1 pb-0.5', nutritionHintClass)}>
                       Define la base al cargar gramos en el plan.
                     </p>
                   </div>
@@ -787,48 +800,48 @@ export function NutritionFoodsPage() {
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
                 <div>
-                  <label className={foodsLabelClass}>Prot. (g)</label>
-                  <Input value={protein} onChange={(e) => setProtein(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                  <label className={nutritionLabelClass}>Prot. (g)</label>
+                  <Input value={protein} onChange={(e) => setProtein(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
                 </div>
                 <div>
-                  <label className={foodsLabelClass}>Grasas (g)</label>
-                  <Input value={fat} onChange={(e) => setFat(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                  <label className={nutritionLabelClass}>Grasas (g)</label>
+                  <Input value={fat} onChange={(e) => setFat(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
                 </div>
                 <div>
-                  <label className={foodsLabelClass}>HC (g)</label>
-                  <Input value={carbs} onChange={(e) => setCarbs(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                  <label className={nutritionLabelClass}>HC (g)</label>
+                  <Input value={carbs} onChange={(e) => setCarbs(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
                 </div>
                 <div>
-                  <label className={foodsLabelClass}>Fibra (g)</label>
-                  <Input value={fiber} onChange={(e) => setFiber(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                  <label className={nutritionLabelClass}>Fibra (g)</label>
+                  <Input value={fiber} onChange={(e) => setFiber(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <label className={foodsLabelClass}>kcal</label>
-                  <Input value={kcal} onChange={(e) => setKcal(e.target.value)} inputMode="decimal" className={foodsInputClass} />
+                  <label className={nutritionLabelClass}>kcal</label>
+                  <Input value={kcal} onChange={(e) => setKcal(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
                 </div>
               </div>
             </div>
 
             {isUsda && (
               <div className="space-y-2 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2.5 text-sm">
-                <p className={cn('text-[10px] font-semibold uppercase tracking-wide', foodsDetailTertiary)}>
+                <p className={cn(nutritionKickerClass, foodsDetailTertiary)}>
                   Importación internacional
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div>
-                    <label className={foodsLabelClass}>ID técnico</label>
-                    <Input value={externalFdcId} onChange={(e) => setExternalFdcId(e.target.value)} inputMode="numeric" className={foodsInputClass} />
+                    <label className={nutritionLabelClass}>ID técnico</label>
+                    <Input value={externalFdcId} onChange={(e) => setExternalFdcId(e.target.value)} inputMode="numeric" className={nutritionInputClass} />
                   </div>
                   <div>
-                    <label className={foodsLabelClass}>Referencia</label>
-                    <Input value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} className={foodsInputClass} />
+                    <label className={nutritionLabelClass}>Referencia</label>
+                    <Input value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} className={nutritionInputClass} />
                   </div>
                 </div>
               </div>
             )}
 
             {!isUsda && sourceLabel && (
-              <p className={foodsHintClass}>
+              <p className={nutritionHintClass}>
                 Origen: <span className={foodsDetailTertiary}>{sourceLabel}</span>
               </p>
             )}
@@ -838,7 +851,7 @@ export function NutritionFoodsPage() {
                 USDA FDC (inglés) — opcional
               </summary>
               <div className="space-y-2 border-t border-surface-border/70 px-3 pb-3 pt-0">
-                <p className={cn('pt-2', foodsHintClass)}>Resultados en inglés; traducí el nombre antes de guardar.</p>
+                <p className={cn('pt-2', nutritionHintClass)}>Resultados en inglés; traducí el nombre antes de guardar.</p>
                 <div className="flex flex-wrap gap-2">
                   <div className="min-w-0 flex-1">
                     <Input
@@ -846,7 +859,7 @@ export function NutritionFoodsPage() {
                       onChange={(e) => setFdcQuery(e.target.value)}
                       placeholder="Ej. oats, chicken breast…"
                       aria-label="Búsqueda internacional"
-                      className={foodsInputClass}
+                      className={nutritionInputClass}
                     />
                   </div>
                   <Button

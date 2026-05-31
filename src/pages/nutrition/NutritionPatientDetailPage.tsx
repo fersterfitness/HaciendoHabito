@@ -9,11 +9,13 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  Maximize2,
   Sparkles,
   Trash2,
   Upload,
   UserRound,
   Utensils,
+  X,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -54,7 +56,7 @@ import {
   TONE_LABELS,
   type InterpretationTone,
 } from '@/lib/nutrition/nutritionEvolutionInterpretation'
-import { slugify } from '@/lib/utils'
+import { cn, slugify } from '@/lib/utils'
 import type {
   Student,
   NutritionPatientDocument,
@@ -133,12 +135,31 @@ function toNullableNumber(value: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-export function NutritionPatientDetailPage() {
+export interface NutritionPatientDetailViewProps {
+  patientId: string
+  variant?: 'page' | 'panel'
+  onClosePanel?: () => void
+}
+
+export function NutritionPatientDetailView({
+  patientId: id,
+  variant = 'page',
+  onClosePanel,
+}: NutritionPatientDetailViewProps) {
   const navigate = useAppNavigate()
-  const { id } = useParams<{ id: string }>()
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab: TabId = isValidTab(searchParams.get('tab')) ? (searchParams.get('tab') as TabId) : 'resumen'
+  const [panelTab, setPanelTab] = useState<TabId>('resumen')
+  const activeTab: TabId =
+    variant === 'panel'
+      ? panelTab
+      : isValidTab(searchParams.get('tab'))
+        ? (searchParams.get('tab') as TabId)
+        : 'resumen'
+
+  useEffect(() => {
+    if (variant === 'panel') setPanelTab('resumen')
+  }, [id, variant])
   const [fileFilter, setFileFilter] = useState<'all' | NutritionDocumentCategory>('all')
   const [loading, setLoading] = useState(true)
   const [savingPlan, setSavingPlan] = useState(false)
@@ -191,13 +212,17 @@ export function NutritionPatientDetailPage() {
 
   const handleTabChange = useCallback(
     (next: string) => {
+      if (variant === 'panel') {
+        setPanelTab(next as TabId)
+        return
+      }
       setSearchParams((prev) => {
         const params = new URLSearchParams(prev)
         params.set('tab', next)
         return params
       }, { replace: true })
     },
-    [setSearchParams],
+    [setSearchParams, variant],
   )
 
   const refreshMeasurements = useCallback(async () => {
@@ -528,9 +553,13 @@ export function NutritionPatientDetailPage() {
 
   if (loading) {
     return (
-      <div>
-        <Header title="Carpeta nutricional" showBack />
-        <div className="flex justify-center py-16">
+      <div
+        className={cn(
+          variant === 'panel' && 'flex h-full min-h-0 flex-col items-center justify-center bg-surface-base',
+        )}
+      >
+        {variant === 'page' ? <Header title="Carpeta nutricional" showBack /> : null}
+        <div className={cn('flex justify-center', variant === 'page' ? 'py-16' : 'py-8')}>
           <Spinner size="lg" accent="trainerCta" />
         </div>
       </div>
@@ -539,72 +568,121 @@ export function NutritionPatientDetailPage() {
 
   if (!student?.id) {
     return (
-      <div>
-        <Header title="Carpeta nutricional" showBack />
-        <p className="px-6 py-8 text-ink-muted">Paciente no encontrado.</p>
+      <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-surface-base px-4 py-6')}>
+        {variant === 'page' ? <Header title="Carpeta nutricional" showBack /> : null}
+        <p className="text-ink-muted">Paciente no encontrado.</p>
       </div>
     )
   }
 
-  return (
-    <div>
-      <Header
-        title={`Carpeta · ${student.full_name}`}
-        showBack
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className="inline-flex items-center gap-1.5 text-xs text-ink-secondary">
-              <span className="hidden md:inline">Tono:</span>
-              <select
-                value={pdfTone}
-                onChange={(e) => setPdfTone(e.target.value as InterpretationTone)}
-                className="rounded-lg bg-surface-card border border-surface-border/80 text-ink-primary px-2 py-1.5 text-xs focus:outline-none focus:border-brand-primary"
-                title="Tono del texto de devolución en el PDF"
-              >
-                {(Object.keys(TONE_LABELS) as InterpretationTone[]).map((t) => (
-                  <option key={t} value={t}>
-                    {TONE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Download className="h-4 w-4" />}
-              loading={pdfExporting}
-              disabled={measurements.length < 2}
-              title={
-                measurements.length < 2
-                  ? 'Necesitás al menos dos mediciones guardadas para comparar evolución en el PDF'
-                  : 'Descargar PDF de evolución entre los dos últimos controles'
-              }
-              onClick={() => void handleExportEvolutionPdf()}
-            >
-              PDF evolución
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Sparkles className="h-4 w-4" />}
-              onClick={() => navigate('/nutrition-pdfs')}
-            >
-              Comparar 2 PDFs
-            </Button>
-          </div>
+  const headerActions = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <label className="inline-flex items-center gap-1.5 text-xs text-ink-secondary">
+        <span className="hidden md:inline">Tono:</span>
+        <select
+          value={pdfTone}
+          onChange={(e) => setPdfTone(e.target.value as InterpretationTone)}
+          className="rounded-lg bg-surface-card border border-surface-border/80 text-ink-primary px-2 py-1.5 text-xs focus:outline-none focus:border-brand-primary"
+          title="Tono del texto de devolución en el PDF"
+        >
+          {(Object.keys(TONE_LABELS) as InterpretationTone[]).map((t) => (
+            <option key={t} value={t}>
+              {TONE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Button
+        size="sm"
+        variant="secondary"
+        icon={<Download className="h-4 w-4" />}
+        loading={pdfExporting}
+        disabled={measurements.length < 2}
+        title={
+          measurements.length < 2
+            ? 'Necesitás al menos dos mediciones guardadas para comparar evolución en el PDF'
+            : 'Descargar PDF de evolución entre los dos últimos controles'
         }
-      />
+        onClick={() => void handleExportEvolutionPdf()}
+      >
+        PDF evolución
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary"
+        icon={<Sparkles className="h-4 w-4" />}
+        onClick={() => navigate('/nutrition-pdfs')}
+      >
+        Comparar 2 PDFs
+      </Button>
+    </div>
+  )
 
-      <div className="page-shell-x sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm">
-        <Tabs
-          tabs={tabs}
-          active={activeTab}
-          onChange={handleTabChange}
-          ariaLabel="Secciones de la carpeta nutricional"
-        />
-      </div>
+  return (
+    <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-surface-base')}>
+      {variant === 'page' ? (
+        <Header title={`Carpeta · ${student.full_name}`} showBack actions={headerActions} />
+      ) : (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-surface-border/80 bg-surface-card/90 px-4 py-3 sm:px-6">
+          <div className="min-w-0 flex-1">
+            <p
+              id="nutrition-patient-sheet-title"
+              className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted"
+            >
+              Carpeta nutricional
+            </p>
+            <p className="truncate text-base font-semibold text-ink-primary sm:text-lg">{student.full_name}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {headerActions}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Abrir en página completa"
+              onClick={() => navigate(`/nutrition/${id}`)}
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+            {onClosePanel ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                title="Cerrar"
+                onClick={onClosePanel}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      )}
 
-      <div className="page-shell-x page-shell-y pb-8 space-y-6">
+      <div
+        className={cn(
+          variant === 'panel' ? 'min-h-0 flex-1 overflow-y-auto' : 'page-shell-x page-shell-y pb-8',
+          'space-y-6',
+        )}
+      >
+        <div
+          className={cn(
+            variant === 'page'
+              ? 'sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm'
+              : 'sticky top-0 z-20 -mx-4 border-b border-surface-border/60 bg-surface-base/90 px-4 pb-0 pt-2 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
+          )}
+        >
+          <Tabs
+            tabs={tabs}
+            active={activeTab}
+            onChange={handleTabChange}
+            ariaLabel="Secciones de la carpeta nutricional"
+          />
+        </div>
+
+        <div className={cn(variant === 'panel' && 'px-4 pb-8 sm:px-6 lg:px-8')}>
         {/* ───────────── RESUMEN ───────────── */}
         <TabPanel id="resumen" active={activeTab}>
           <NutritionResumenDashboard
@@ -633,36 +711,34 @@ export function NutritionPatientDetailPage() {
         {/* ───────────── ANTROPOMETRÍA ───────────── */}
         <TabPanel id="antropometria" active={activeTab}>
           <div className="space-y-6">
-            <div className="grid xl:grid-cols-2 gap-6">
-              <Card ref={programFormRef}>
-                <CardTitle className="mb-1">Programa de antropometría</CardTitle>
-                <p className="text-sm text-ink-muted mb-4">
-                  Cargá las 5 mediciones por variable; la app calcula la mediana y el % error técnico (TE).
-                </p>
-                {user ? (
-                  <NutritionAnthropometryProgramForm
-                    ownerId={user.id}
-                    student={student}
-                    measurements={measurements}
-                    draft={programDraft}
-                    onDraftClear={() => setProgramDraft(null)}
-                    onSaved={() => {
-                      setProgramDraft(null)
-                      void refreshMeasurements()
-                    }}
-                  />
-                ) : null}
-              </Card>
+            <Card ref={programFormRef}>
+              <CardTitle className="mb-1">Programa de antropometría</CardTitle>
+              <p className="text-sm text-ink-muted mb-4">
+                Cargá las 5 mediciones por variable; la app calcula la mediana y el % error técnico (TE).
+              </p>
+              {user ? (
+                <NutritionAnthropometryProgramForm
+                  ownerId={user.id}
+                  student={student}
+                  measurements={measurements}
+                  draft={programDraft}
+                  onDraftClear={() => setProgramDraft(null)}
+                  onSaved={() => {
+                    setProgramDraft(null)
+                    void refreshMeasurements()
+                  }}
+                />
+              ) : null}
+            </Card>
 
-              <Card>
-                <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
-                <p className="text-sm text-ink-muted mb-4">
-                  Medianas de perímetros (cm) y pliegues (mm) del programa Holway por fecha. Solo se grafican las
-                  variables que cargaste en cada control.
-                </p>
-                <NutritionMeasurementCharts measurements={measurements} />
-              </Card>
-            </div>
+            <Card>
+              <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
+              <p className="text-sm text-ink-muted mb-4">
+                Medianas de perímetros (cm) y pliegues (mm) del programa Holway por fecha. Solo se grafican las
+                variables que cargaste en cada control.
+              </p>
+              <NutritionMeasurementCharts measurements={measurements} />
+            </Card>
 
             <Card>
               <NutritionMeasurementHistoryListTitle />
@@ -987,7 +1063,22 @@ export function NutritionPatientDetailPage() {
             </div>
           </Card>
         </TabPanel>
+        </div>
       </div>
     </div>
   )
+}
+
+/** Ruta `/nutrition/:id` — mismo contenido que el panel lateral en Pacientes. */
+export function NutritionPatientDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  if (!id) {
+    return (
+      <div>
+        <Header title="Carpeta nutricional" showBack />
+        <p className="page-shell-x py-8 text-ink-muted">Identificador no válido.</p>
+      </div>
+    )
+  }
+  return <NutritionPatientDetailView patientId={id} variant="page" />
 }

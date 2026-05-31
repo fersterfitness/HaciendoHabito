@@ -12,6 +12,7 @@ import {
   Apple,
   ClipboardList,
   UtensilsCrossed,
+  Ruler,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -83,6 +84,7 @@ export const NAV_MEAL_PLANS_TRAINER: NavItem = {
  */
 export const NAV_NUTRITION_PATIENT_ANTHRO: NavItem[] = [
   { label: 'Pacientes', href: '/nutrition', icon: Users, exactMatch: true },
+  { label: 'Antropometría', href: '/nutrition/anthropometry', icon: Ruler },
 ]
 
 /**
@@ -195,7 +197,12 @@ export function getMobileNavPrimaryItems(role: AppRole | undefined): NavItem[] {
     return [NAV_HOME, NAV_STUDENT_MEAL_PLANS, NAV_APPOINTMENTS].slice(0, MAX_MOBILE_PRIMARY)
   }
   if (role === 'nutritionist') {
-    return [NAV_HOME, NAV_APPOINTMENTS, NAV_NUTRITION_PATIENT_ANTHRO[0]!, NAV_NUTRITION_FOOD[0]!]
+    return [
+      NAV_HOME,
+      NAV_APPOINTMENTS,
+      NAV_NUTRITION_PATIENT_ANTHRO[0]!,
+      NAV_NUTRITION_FOOD[1]!,
+    ]
   }
   if (role === 'admin') {
     return [NAV_HOME, NAV_APPOINTMENTS, NAV_TRAINING_CORE[0]!, NAV_NUTRITION_PATIENT_ANTHRO[0]!]
@@ -211,4 +218,15 @@ export function getMobileNavPrimaryItems(role: AppRole | undefined): NavItem[] {
 /** Lista plana; orden = secciones de `getNavSections`. */
 export function getMobileNavItems(role: AppRole | undefined): NavItem[] {
   return flattenSections(getNavSections(role))
+}
+
+/** Secciones del drawer «Más» (excluye ítems ya visibles en la barra inferior). */
+export function getMobileNavDrawerSections(role: AppRole | undefined): NavSection[] {
+  const primaryKeys = new Set(getMobileNavPrimaryItems(role).map(navItemKey))
+  return getNavSections(role)
+    .map((section) => ({
+      title: section.title,
+      items: section.items.filter((item) => !primaryKeys.has(navItemKey(item))),
+    }))
+    .filter((section) => section.items.length > 0)
 }

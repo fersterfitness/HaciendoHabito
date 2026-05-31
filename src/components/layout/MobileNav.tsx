@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { useAuthStore } from '@/stores/authStore'
 import {
-  getMobileNavItems,
+  getMobileNavDrawerSections,
   getMobileNavPrimaryItems,
   navItemKey,
 } from '@/config/navigation'
@@ -81,10 +81,9 @@ export function MobileNav() {
   const reduceMotion = useReducedMotion()
 
   const primaryItems = getMobileNavPrimaryItems(role)
-  const primaryKeys = new Set(primaryItems.map(navItemKey))
-  const drawerItems = getMobileNavItems(role).filter((item) => !primaryKeys.has(navItemKey(item)))
-  const drawerRouteActive = drawerItems.some((item) =>
-    isMobileItemActive(pathname, item.href, item.exactMatch),
+  const drawerSections = getMobileNavDrawerSections(role)
+  const drawerRouteActive = drawerSections.some((section) =>
+    section.items.some((item) => isMobileItemActive(pathname, item.href, item.exactMatch)),
   )
   const moreActive = drawerOpen || drawerRouteActive
 
@@ -209,21 +208,26 @@ export function MobileNav() {
             </div>
 
             {/* Scrollable nav list */}
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-0.5">
-              {drawerItems.length > 0 ? (
-                <Fragment>
-                  {drawerItems.map((item: NavItem) => (
-                    <DrawerNavItem
-                      key={navItemKey(item)}
-                      to={item.href}
-                      label={item.label}
-                      icon={item.icon}
-                      exactMatch={item.exactMatch}
-                      onClose={() => setDrawerOpen(false)}
-                    />
-                  ))}
-                </Fragment>
-              ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-3">
+              {drawerSections.map((section) => (
+                <section key={section.title} aria-label={section.title}>
+                  <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+                    {section.title}
+                  </p>
+                  <div className="space-y-0.5">
+                    {section.items.map((item: NavItem) => (
+                      <DrawerNavItem
+                        key={navItemKey(item)}
+                        to={item.href}
+                        label={item.label}
+                        icon={item.icon}
+                        exactMatch={item.exactMatch}
+                        onClose={() => setDrawerOpen(false)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
 
               {/* Settings + Profile always visible */}
               <div className="mt-2 border-t border-surface-border/60 pt-2 space-y-0.5">

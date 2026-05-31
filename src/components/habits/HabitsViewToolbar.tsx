@@ -13,7 +13,7 @@ export function HabitsViewToolbar({ studentId }: { studentId: string }) {
       className={pillClass}
       onClick={() => navigate(`/habits?student=${encodeURIComponent(studentId)}`)}
     >
-      <Expand className="h-3.5 w-3.5 shrink-0 text-[#ff4800]" aria-hidden />
+      <Expand className="h-3.5 w-3.5 shrink-0 text-brand-primary" aria-hidden />
       Vista amplia
     </button>
   )

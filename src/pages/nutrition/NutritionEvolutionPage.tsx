@@ -2,6 +2,12 @@ import { ArrowRight, Users } from 'lucide-react'
 import type { Kpi3dIconId } from '@/components/icons/kpi3dIcons'
 import { Header } from '@/components/layout/Header'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
+import { NutritionPatientAreaHeader } from '@/components/nutrition/NutritionPatientAreaHeader'
+import {
+  nutritionKickerClass,
+  nutritionSectionTitleClass,
+  nutritionShellClass,
+} from '@/lib/nutrition/nutritionAreaUi'
 import { Button } from '@/components/ui/Button'
 import { StatIcon } from '@/components/ui/StatIcon'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -52,7 +58,8 @@ export function NutritionEvolutionPage() {
     <div>
       <Header title="Evolución nutricional" showBack />
 
-      <DirectoryPageShell className="max-w-4xl space-y-6">
+      <DirectoryPageShell className={cn('max-w-4xl', nutritionShellClass)}>
+        <NutritionPatientAreaHeader />
         <section
           className={cn(
             'relative overflow-hidden rounded-2xl border border-brand-secondary/25',
@@ -66,7 +73,7 @@ export function NutritionEvolutionPage() {
           />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-secondary">
+              <p className={nutritionKickerClass}>
                 Seguimiento clínico
               </p>
               <h2 className="text-xl font-semibold tracking-tight text-ink-primary sm:text-2xl">
@@ -114,7 +121,7 @@ export function NutritionEvolutionPage() {
         <section aria-labelledby="evolution-features-heading">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
-              <h2 id="evolution-features-heading" className="text-sm font-semibold text-ink-primary">
+              <h2 id="evolution-features-heading" className={nutritionSectionTitleClass}>
                 Qué encontrás en cada pestaña
               </h2>
               <p className="mt-0.5 text-xs text-ink-muted">Herramientas ya integradas en la carpeta nutricional.</p>

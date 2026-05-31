@@ -1,4 +1,7 @@
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
+import { brandCssVariables } from './src/theme/brandColors'
+import { appFontFamilyStack } from './src/theme/typography'
 
 const config: Config = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -41,7 +44,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: [...appFontFamilyStack],
       },
       fontSize: {
         caption: ['0.625rem', { lineHeight: '0.875rem' }],
@@ -95,7 +98,13 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addBase }) => {
+      addBase({
+        ':root': brandCssVariables,
+      })
+    }),
+  ],
 }
 
 export default config

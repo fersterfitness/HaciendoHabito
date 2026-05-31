@@ -6,10 +6,15 @@ import {
   HH_PATIENT_CARD_PATH,
   HH_PATIENT_CARD_PATH_NORMALIZED,
 } from '@/lib/patientCardShape'
+import { nutritionInputClass } from '@/lib/nutrition/nutritionAreaUi'
 import { cn } from '@/lib/utils'
 import type { NutritionAttendanceStatus, NutritionPatientFollowup, Student } from '@/types/database'
 
-export type NutritionFollowupRow = Student & { followup?: NutritionPatientFollowup }
+export type NutritionFollowupRow = Student & {
+  followup?: NutritionPatientFollowup
+  /** Plan de entrenamiento elegido en /form (`students.selected_web_plan_slug`). */
+  selectedWebPlanLabel?: string | null
+}
 
 export const ATTENDANCE_LABELS: Record<NutritionAttendanceStatus, string> = {
   P: 'Asistió',
@@ -25,18 +30,19 @@ export const ATTENDANCE_PILLS: Record<NutritionAttendanceStatus, string> = {
 
 interface NutritionPatientCardsProps {
   rows: NutritionFollowupRow[]
+  selectedPatientId?: string | null
   nextConsultLabel: (value: string | null) => { label: string; sub: string; tone: 'soon' | 'past' | 'far' | 'none' }
   onOpen: (id: string) => void
   onUpdateFollowup: (studentId: string, patch: Partial<NutritionPatientFollowup>) => void
   onAvatarChange: (studentId: string, avatarPath: string | null) => void
 }
 
-const cardDateInputClass =
-  'h-9 w-full rounded-xl border border-surface-border/80 bg-surface-input px-2.5 text-[12px] text-ink-primary outline-none transition-colors focus:border-brand-secondary/50'
+const cardDateInputClass = cn(nutritionInputClass, 'h-9 px-2.5 text-xs')
 
 /** Grilla de tarjetas de pacientes (responsive: 1 / 2 / 3 columnas). */
 export function NutritionPatientCards({
   rows,
+  selectedPatientId = null,
   nextConsultLabel,
   onOpen,
   onUpdateFollowup,
@@ -55,16 +61,21 @@ export function NutritionPatientCards({
       {rows.map((row) => {
         const next = nextConsultLabel(row.followup?.next_consultation_date ?? null)
         const hasAppointment = next.tone === 'soon' || next.tone === 'far'
+        const isSelected = selectedPatientId === row.id
         return (
           <div
             key={row.id}
             role="button"
             tabIndex={0}
+            aria-pressed={isSelected}
             onClick={() => onOpen(row.id)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') onOpen(row.id)
             }}
-            className="hh-row-drop-in hh-patient-card group cursor-pointer transition-all duration-200 hover:-translate-y-0.5"
+            className={cn(
+              'hh-row-drop-in hh-patient-card group cursor-pointer transition-all duration-200 hover:-translate-y-0.5',
+              isSelected && 'ring-2 ring-brand-tertiary/55 ring-offset-2 ring-offset-surface-base',
+            )}
           >
             <svg
               className="hh-patient-card__outline"
@@ -86,8 +97,11 @@ export function NutritionPatientCards({
               />
 
               <div className="min-w-0 pr-8">
-                <p className="truncate text-xl font-light leading-tight tracking-tight text-ink-primary transition-colors group-hover:text-brand-secondary">
+                <p className="truncate text-xl font-semibold leading-tight tracking-tight text-ink-primary transition-colors group-hover:text-brand-tertiary">
                   {row.full_name}
+                </p>
+                <p className="mt-1 truncate text-[11px] font-light leading-snug text-ink-muted">
+                  {row.selectedWebPlanLabel ?? '—'}
                 </p>
               </div>
 
@@ -143,7 +157,7 @@ export function NutritionPatientCards({
             <span
               className={cn(
                 'hh-patient-card__action flex items-center justify-center bg-surface-elevated text-ink-muted',
-                'transition-colors group-hover:text-brand-secondary',
+                'transition-colors group-hover:text-brand-tertiary',
               )}
               aria-hidden
             >

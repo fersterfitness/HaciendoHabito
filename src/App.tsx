@@ -12,6 +12,7 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/students/StudentsPage'
 import type { AppRole } from '@/types/database'
+import { brandHex } from '@/theme/brandColors'
 
 const StudentFormPage = lazy(() => import('@/pages/students/StudentFormPage').then((m) => ({ default: m.StudentFormPage })))
 const StudentDetailPage = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })))
@@ -48,6 +49,9 @@ const NutritionComparativePage = lazy(() =>
   import('@/pages/nutrition/NutritionComparativePage').then((m) => ({ default: m.NutritionComparativePage })),
 )
 const NutritionEvolutionPage = lazy(() => import('@/pages/nutrition/NutritionEvolutionPage').then((m) => ({ default: m.NutritionEvolutionPage })))
+const NutritionAnthropometryHubPage = lazy(() =>
+  import('@/pages/nutrition/NutritionAnthropometryHubPage').then((m) => ({ default: m.NutritionAnthropometryHubPage })),
+)
 const NutritionAppointmentsPage = lazy(() =>
   import('@/pages/nutrition/NutritionAppointmentsPage').then((m) => ({ default: m.NutritionAppointmentsPage })),
 )
@@ -185,6 +189,7 @@ function renderLoggedInRoutes({
 
       <Route path="nutrition" element={canSeeNutrition ? withPageSuspense(<NutritionPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="nutrition/evolution" element={canSeeNutrition ? withPageSuspense(<NutritionEvolutionPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition/anthropometry" element={canSeeNutrition ? withPageSuspense(<NutritionAnthropometryHubPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="nutrition/appointments" element={<Navigate to="/appointments" replace />} />
       <Route path="nutrition/plans" element={canSeeNutrition ? withPageSuspense(<NutritionTemplatesPage />) : <Navigate to="/dashboard" replace />} />
       <Route
@@ -284,7 +289,7 @@ function AppRoutes() {
 /** Verde éxito (toasts success). */
 const TOAST_SUCCESS_ICON = '#16a34a'
 /** Marca (toasts loading / spinner); alineado a --brand-primary. */
-const TOAST_LOADING_ICON = '#ff4800'
+const TOAST_LOADING_ICON = brandHex('primary')
 
 function ThemedToaster() {
   const { theme } = useTheme()

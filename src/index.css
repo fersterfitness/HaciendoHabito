@@ -17,12 +17,12 @@
     --density-page-x: 1rem;
     --density-page-x-lg: 1.5rem;
 
-    /* Brand - fixed across themes (single source of truth) */
-    --brand-primary: 255 72 0; /* #ff4800 */
-    --brand-hover: 224 65 0; /* #e04100 */
-    --brand-secondary: 169 121 255; /* #A979FF */
-    --brand-tertiary: 255 79 234; /* #FF4FEA */
-    --brand-warm: 255 229 219; /* soft tint for primary */
+    /* Brand — sincronizar con src/theme/brandColors.ts */
+    --brand-primary: 255 72 0;
+    --brand-hover: 224 65 0;
+    --brand-secondary: 255 106 0;
+    --brand-tertiary: 255 45 149;
+    --brand-warm: 255 229 219;
 
     /* Light mode — base blanca; cards/paneles con gris muy suave para separar del lienzo */
     --surface-base: 255 255 255;
@@ -57,26 +57,25 @@
   }
 
   .dark {
-    /* Dark mode — zinc neutro (gris equilibrado, sin tirón azul) */
-    --surface-sidebar: 19 19 21;
+    /* Dark mode — gris neutro (R=G=B, estilo zinc; sin tirón azul/violeta en superficies) */
+    --surface-sidebar: 10 10 10;
     --sidebar-border: 255 255 255;
     --sidebar-icon-idle: 255 255 255;
     --sidebar-icon-hover: 255 255 255;
+    --shadow-panel: 0 1px 3px 0 rgb(0 0 0 / 0.28), 0 1px 2px -1px rgb(0 0 0 / 0.22);
 
-    --surface-base: 24 24 27;
-    --surface-card: 32 32 37;
-    --surface-elevated: 43 43 48;
-    /* Panel (sheet) un poco más claro para legibilidad */
-    --surface-panel: 52 52 58;
-    --surface-input: 32 32 37;
-    /* Bordes un poco más suaves en UI densa (tablas / planificación) */
-    --surface-border: 58 58 65;
-    --surface-input-border: 72 72 80;
+    --surface-base: 10 10 10;
+    --surface-card: 18 18 18;
+    --surface-elevated: 26 26 26;
+    --surface-panel: 34 34 34;
+    --surface-input: 18 18 18;
+    --surface-border: 40 40 40;
+    --surface-input-border: 52 52 52;
 
     --ink-primary: 250 250 250;
-    --ink-secondary: 175 175 184;
-    --ink-warm: 228 228 231;
-    --ink-muted: 132 132 142;
+    --ink-secondary: 180 180 180;
+    --ink-warm: 228 228 228;
+    --ink-muted: 140 140 140;
 
     /* Status — en dark, más “luminosos” */
     --status-active: 255 160 0;
@@ -94,7 +93,8 @@
   }
 
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    letter-spacing: 0.015em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

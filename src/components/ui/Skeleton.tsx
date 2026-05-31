@@ -54,7 +54,7 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
 /** Skeleton de stat card */
 export function StatCardSkeleton() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-brand-secondary/20 bg-gradient-to-br from-brand-secondary/10 via-surface-card to-surface-card p-3 flex flex-col gap-1.5">
+    <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-surface-border/40 bg-gradient-to-br from-brand-secondary/9 via-surface-card to-surface-card p-3 shadow-[0_2px_8px_-2px_rgba(15,15,35,0.07),0_10px_28px_-8px_rgba(15,15,35,0.11)] dark:border-white/[0.07]">
       <div className="flex items-center gap-2">
         <Skeleton className="h-10 w-10 rounded-2xl shrink-0" />
         <Skeleton className="h-3 w-28 rounded" />

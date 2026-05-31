@@ -1,6 +1,14 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
+import { motion, useReducedMotion } from 'motion/react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { BrandLogo } from '@/components/branding/BrandLogo'
 import { Settings, LogOut, type LucideIcon } from 'lucide-react'
@@ -9,31 +17,44 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
+import { getSidebarBlocks, type NavItem } from '@/config/navigation'
 import type { AppRole } from '@/types/database'
-import { getSidebarBlocks } from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
-import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 
 const RAIL_W = 'w-[52px]'
 const RAIL_ITEM = 'size-[32px] rounded-lg'
+
+/** Contenedor flotante: margen + sombra (el rail va dentro). */
+const railShellClass = cn(
+  'hidden lg:flex shrink-0 sticky top-0 z-30 h-screen flex-col py-3 pl-3 print:hidden',
+)
+
+const railPanelClass = cn(
+  RAIL_W,
+  'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl',
+  'border border-surface-border/75 bg-[rgb(var(--surface-sidebar))]',
+  'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06),0_8px_28px_-6px_rgba(0,0,0,0.1)]',
+  'dark:border-white/[0.07]',
+  'dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.45),0_12px_40px_-8px_rgba(0,0,0,0.65)]',
+)
+
+/** Pastilla activa: negro + ícono blanco en light; blanco + ícono oscuro en dark. */
+const railActivePillClass = 'rounded-lg bg-zinc-900 shadow-sm dark:bg-zinc-100 dark:shadow-none'
+
+const railNavActiveClassName = 'text-white dark:text-zinc-900'
+
+/** Rebote suave tipo gelatina al cambiar de ítem. */
+const railSpring = { type: 'spring' as const, stiffness: 360, damping: 26, mass: 0.82 }
 
 const railFocusRing = cn(
   'focus-visible:ring-2 focus-visible:ring-brand-secondary/35 focus-visible:ring-offset-2',
   'focus-visible:ring-offset-[rgb(var(--surface-sidebar))]',
 )
 
-/** Activo: acento secondary sutil en ambos temas. */
-const railNavActiveClassName = cn(
-  'bg-brand-secondary/12 text-brand-secondary shadow-[inset_0_0_0_1px_rgb(var(--brand-secondary)/0.22)]',
-  'dark:bg-brand-secondary/16 dark:shadow-[inset_0_0_0_1px_rgb(var(--brand-secondary)/0.28)]',
-)
-
 const railNavIdleClassName = cn(
-  'text-zinc-500 hover:bg-zinc-200/70 hover:text-zinc-900',
-  'dark:text-white/40 dark:hover:bg-brand-secondary/10 dark:hover:text-white/90',
+  'text-zinc-500 hover:text-zinc-900',
+  'dark:text-white/40 dark:hover:text-white/90',
 )
-
-const railNavBaseTransition = 'transition-[color,background-color,box-shadow] duration-150 ease-out'
 
 /** Tooltip compacto alineado al acento secondary. */
 function RailTooltipBubble({ label }: { label: string }) {
@@ -43,7 +64,7 @@ function RailTooltipBubble({ label }: { label: string }) {
         'inline-block max-w-[min(14rem,calc(100vw-4.5rem))] truncate rounded-md px-2.5 py-1',
         'border border-surface-border/90 bg-surface-card text-[11px] font-medium leading-snug tracking-tight text-ink-primary',
         'shadow-card-md',
-        'dark:border-brand-secondary/25 dark:bg-zinc-950/95 dark:text-white/90 dark:shadow-[0_6px_20px_rgba(0,0,0,0.4)]',
+        'dark:border-white/10 dark:bg-zinc-900/95 dark:text-white/90 dark:shadow-[0_6px_20px_rgba(0,0,0,0.4)]',
       )}
     >
       {label}
@@ -51,10 +72,6 @@ function RailTooltipBubble({ label }: { label: string }) {
   )
 }
 
-/**
- * El nav del rail usa overflow-y-auto: en CSS eso fuerza recorte horizontal y los tooltips
- * `absolute` quedan invisibles. Renderizamos en body con position fixed (como Gray con Portal).
- */
 function SidebarRailTooltip({ label, children }: { label: string; children: ReactNode }) {
   const triggerRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
@@ -92,7 +109,7 @@ function SidebarRailTooltip({ label, children }: { label: string; children: Reac
     <>
       <div
         ref={triggerRef}
-        className="relative flex w-full justify-center px-1 py-px"
+        className="relative z-[1] flex w-full justify-center px-1 py-px"
         onMouseEnter={show}
         onMouseLeave={hide}
         onFocusCapture={() => {
@@ -123,14 +140,6 @@ function SidebarRailTooltip({ label, children }: { label: string; children: Reac
   )
 }
 
-function roleLabel(role: AppRole | undefined) {
-  if (role === 'nutritionist') return 'Nutricionista'
-  if (role === 'trainer') return 'Entrenador'
-  if (role === 'admin') return 'Admin'
-  if (role === 'student') return 'Alumno'
-  return 'Sin perfil'
-}
-
 function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
   if (exactMatch) return pathname === href
   const homeHref = href === '/dashboard'
@@ -139,12 +148,92 @@ function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function RailActiveIndicator() {
+function navItemKey(item: NavItem) {
+  return `${item.href}::${item.label}`
+}
+
+type PillRect = { top: number; height: number; opacity: number }
+
+const HIDDEN_PILL: PillRect = { top: 0, height: 32, opacity: 0 }
+
+function useActivePill(navRef: React.RefObject<HTMLElement | null>, activeKey: string | null) {
+  const [pill, setPill] = useState<PillRect>(HIDDEN_PILL)
+
+  const measure = useCallback(() => {
+    const nav = navRef.current
+    if (!nav || !activeKey) {
+      setPill(HIDDEN_PILL)
+      return
+    }
+    const activeEl = nav.querySelector<HTMLElement>(`[data-rail-key="${activeKey}"]`)
+    if (!activeEl) {
+      setPill(HIDDEN_PILL)
+      return
+    }
+    const navRect = nav.getBoundingClientRect()
+    const elRect = activeEl.getBoundingClientRect()
+    setPill({
+      top: elRect.top - navRect.top + nav.scrollTop,
+      height: elRect.height,
+      opacity: 1,
+    })
+  }, [navRef, activeKey])
+
+  useLayoutEffect(() => {
+    measure()
+  }, [measure])
+
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    const ro = new ResizeObserver(() => measure())
+    ro.observe(nav)
+    nav.addEventListener('scroll', measure, { passive: true })
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      nav.removeEventListener('scroll', measure)
+      window.removeEventListener('resize', measure)
+    }
+  }, [navRef, measure])
+
+  return pill
+}
+
+function SidebarNavGroup({ items, className }: { items: NavItem[]; className?: string }) {
+  const { pathname } = useLocation()
+  const navRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
+
+  const activeItem = items.find((item) => isPathActive(pathname, item.href, item.exactMatch))
+  const activeKey = activeItem ? navItemKey(activeItem) : null
+  const pill = useActivePill(navRef, activeKey)
+
   return (
-    <span
-      aria-hidden
-      className="pointer-events-none absolute left-0 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-secondary"
-    />
+    <div ref={navRef} className={cn('relative flex flex-col gap-px', className)}>
+      <motion.div
+        aria-hidden
+        className={cn('pointer-events-none absolute left-1 right-1 z-0', railActivePillClass)}
+        initial={false}
+        animate={{
+          top: pill.top,
+          height: pill.height,
+          opacity: pill.opacity,
+        }}
+        transition={reduceMotion ? { duration: 0.12 } : railSpring}
+      />
+      {items.map((item) => (
+        <RailNavLink
+          key={navItemKey(item)}
+          railKey={navItemKey(item)}
+          to={item.href}
+          label={item.label}
+          icon={item.icon}
+          exactMatch={item.exactMatch}
+          isActive={navItemKey(item) === activeKey}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -153,20 +242,23 @@ function RailNavLink({
   label,
   icon: Icon,
   exactMatch,
+  isActive,
+  railKey,
 }: {
   to: string
   label: string
   icon: LucideIcon
   exactMatch?: boolean
+  isActive: boolean
+  railKey: string
 }) {
-  const { pathname } = useLocation()
-  const isActive = isPathActive(pathname, to, exactMatch)
   const [hovered, setHovered] = useState(false)
 
   return (
     <SidebarRailTooltip label={label}>
       <NavLink
         to={to}
+        data-rail-key={railKey}
         onMouseEnter={() => {
           setHovered(true)
           prefetchRouteChunkByHref(to)
@@ -174,23 +266,21 @@ function RailNavLink({
         onMouseLeave={() => setHovered(false)}
         onFocus={() => prefetchRouteChunkByHref(to)}
         className={cn(
-          'relative flex shrink-0 items-center justify-center outline-none',
+          'relative z-[1] flex shrink-0 items-center justify-center outline-none',
           RAIL_ITEM,
-          railNavBaseTransition,
           railFocusRing,
           isActive ? railNavActiveClassName : railNavIdleClassName,
         )}
         aria-current={isActive ? 'page' : undefined}
         aria-label={label}
       >
-        {isActive ? <RailActiveIndicator /> : null}
         <span className="flex size-full items-center justify-center" aria-hidden>
           <SidebarAnimateIcon
             href={to}
             fallback={Icon}
             isActive={isActive}
             parentHovered={hovered}
-            className={isActive ? 'text-brand-secondary' : undefined}
+            className={isActive ? railNavActiveClassName : undefined}
           />
         </span>
       </NavLink>
@@ -218,7 +308,7 @@ function RailIconButton({
         onMouseLeave={() => setHovered(false)}
         aria-label={label}
         className={cn(
-          'relative flex shrink-0 items-center justify-center outline-none',
+          'relative z-[1] flex shrink-0 items-center justify-center outline-none',
           RAIL_ITEM,
           'transition-colors duration-150',
           railFocusRing,
@@ -233,13 +323,24 @@ function RailIconButton({
   )
 }
 
+function flattenSidebarNavItems(role: AppRole | undefined) {
+  const blocks = getSidebarBlocks(role)
+  const items: NavItem[] = []
+  for (const block of blocks) {
+    if (block.kind === 'divider') continue
+    if (block.kind === 'items' || block.kind === 'section') {
+      items.push(...block.items)
+    }
+  }
+  return items
+}
+
 export function Sidebar() {
   const { profile, reset } = useAuthStore()
   const navigate = useAppNavigate()
-  const { pathname } = useLocation()
   const role = profile?.role
-  const sidebarBlocks = getSidebarBlocks(role)
-  const profilePathActive = isPathActive(pathname, '/profile', true)
+  const mainNavItems = flattenSidebarNavItems(role)
+  const footerNavItems: NavItem[] = [{ label: 'Configuración', href: '/settings', icon: Settings }]
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -248,27 +349,16 @@ export function Sidebar() {
     toast.success('Sesión cerrada', { position: 'bottom-center' })
   }
 
-  const profileTip = profile
-    ? `Perfil · ${profile.full_name} (${roleLabel(profile.role)})`
-    : 'Perfil'
-
   return (
-    <aside
-      className={cn(
-        RAIL_W,
-        'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 overflow-visible',
-        'border-r border-[rgb(var(--sidebar-border)/0.14)] bg-[rgb(var(--surface-sidebar))]',
-        'dark:border-[rgb(var(--sidebar-border)/0.06)]',
-        'print:border-0 print:hidden',
-      )}
-    >
+    <div className={railShellClass}>
+      <aside className={railPanelClass}>
       <div className="flex h-12 shrink-0 items-center justify-center border-b border-[rgb(var(--sidebar-border)/0.12)] dark:border-[rgb(var(--sidebar-border)/0.06)]">
         <SidebarRailTooltip label="Inicio · panel">
           <NavLink
             to="/dashboard"
             className={cn(
-              'flex size-9 shrink-0 items-center justify-center rounded-lg outline-none transition-colors',
-              'hover:bg-zinc-200/80 dark:hover:bg-brand-secondary/12',
+              'relative z-[1] flex size-9 shrink-0 items-center justify-center rounded-lg outline-none transition-colors',
+              'hover:bg-zinc-200/80 dark:hover:bg-white/8',
               railFocusRing,
             )}
             aria-label="Inicio"
@@ -278,57 +368,15 @@ export function Sidebar() {
         </SidebarRailTooltip>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto overflow-x-hidden py-1.5 scrollbar-hide">
-        {sidebarBlocks.map((block, blockIndex) => {
-          if (block.kind === 'divider') {
-            return (
-              <div
-                key={`divider-${blockIndex}`}
-                className="mx-2.5 my-1.5 h-px shrink-0 bg-zinc-300/80 dark:bg-brand-secondary/12"
-                role="separator"
-              />
-            )
-          }
-
-          if (block.kind === 'items') {
-            return (
-              <Fragment key={`items-${blockIndex}`}>
-                {block.items.map((item) => (
-                  <RailNavLink
-                    key={`${item.href}-${item.label}`}
-                    to={item.href}
-                    label={item.label}
-                    icon={item.icon}
-                    exactMatch={item.exactMatch}
-                  />
-                ))}
-              </Fragment>
-            )
-          }
-
-          return (
-            <Fragment key={`section-${block.title}-${blockIndex}`}>
-              <div className="mt-1 border-t border-[rgb(var(--sidebar-border)/0.12)] pt-1 dark:border-[rgb(var(--sidebar-border)/0.06)]">
-                {block.items.map((item) => (
-                  <RailNavLink
-                    key={`${item.href}-${item.label}`}
-                    to={item.href}
-                    label={item.label}
-                    icon={item.icon}
-                    exactMatch={item.exactMatch}
-                  />
-                ))}
-              </div>
-            </Fragment>
-          )
-        })}
+      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide">
+        <SidebarNavGroup items={mainNavItems} className="py-1.5" />
       </nav>
 
-      <div className="shrink-0 space-y-px border-t border-[rgb(var(--sidebar-border)/0.12)] py-1.5 dark:border-[rgb(var(--sidebar-border)/0.06)]">
-        <RailNavLink to="/settings" label="Configuración" icon={Settings} />
-
+      <div className="shrink-0 border-t border-[rgb(var(--sidebar-border)/0.12)] dark:border-[rgb(var(--sidebar-border)/0.06)]">
+        <SidebarNavGroup items={footerNavItems} className="py-1.5" />
         <RailIconButton label="Cerrar sesión" danger onClick={() => void handleLogout()} />
       </div>
-    </aside>
+      </aside>
+    </div>
   )
 }

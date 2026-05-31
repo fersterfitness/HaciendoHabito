@@ -21,6 +21,10 @@ export async function formatFunctionsInvokeError(err: unknown): Promise<string> 
         if (j.error === 'usda_api_key_invalida' && j.hint) return j.hint
         if (j.error === 'falta_USDA_FDC_API_KEY')
           return 'Falta la clave USDA en Supabase Secrets (USDA_FDC_API_KEY). Pedile eso quien gestione el proyecto.'
+        if (j.error === 'falta_OPENAI_API_KEY')
+          return 'Falta la clave de OpenAI en Supabase Secrets (OPENAI_API_KEY). Pedile eso a quien gestione el proyecto.'
+        if (j.error === 'openai_api_key_invalida' && j.hint) return j.hint
+        if (j.error === 'sin_datos' && j.hint) return j.hint
         if (j.error === 'configuracion_incompleta')
           return 'La función Edge no tiene URL o anon key de Supabase. Contactá soporte técnico.'
         if (j.error === 'no_autenticado') return 'Sesión vencida o no iniciada: cerrá sesión y volvé a entrar.'
