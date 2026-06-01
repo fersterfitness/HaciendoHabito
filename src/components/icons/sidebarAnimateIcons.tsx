@@ -44,6 +44,7 @@ export const SIDEBAR_ANIMATED_ICON_BY_HREF: Record<string, SidebarAnimatedIcon> 
   '/dashboard': LayoutDashboard,
   '/appointments': Clock,
   '/students': Users,
+  '/appointments': Clock,
   '/feedback': MessageSquare,
   '/resources': SendHorizontal,
   '/check-ins': ClipboardCheck,

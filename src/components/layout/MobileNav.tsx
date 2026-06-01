@@ -33,6 +33,7 @@ function isMobileItemActive(pathname: string, href: string, exactMatch?: boolean
 
 function roleLabel(role: AppRole | undefined) {
   if (role === 'nutritionist') return 'Nutricionista'
+  if (role === 'psychologist') return 'Psicólogo'
   if (role === 'trainer') return 'Entrenador'
   if (role === 'admin') return 'Admin'
   if (role === 'student') return 'Alumno'

@@ -31,6 +31,7 @@ import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { FINANCE_SCOPES } from '@/lib/constants'
 import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
+import { canSeePsychologistWorkspace } from '@/config/navigation'
 import { scheduleMatchesToday } from '@/lib/checkInSchedule'
 import { notificationHref } from '@/lib/notifications'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
@@ -480,10 +481,12 @@ export function DashboardPage() {
   const { user, profile } = useAuthStore()
   const navigate = useAppNavigate()
   const role = profile?.role
-  const activePeopleLabel = role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'
-  const canSeeTraining = role === 'admin' || role === 'trainer' || !role
+  const isPsychologist = canSeePsychologistWorkspace(role)
+  const activePeopleLabel = role === 'nutritionist' || isPsychologist ? 'Pacientes activos' : 'Alumnos activos'
+  const canSeeTraining = (role === 'admin' || role === 'trainer' || !role) && !isPsychologist
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
-  const canSeeFinances = role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
+  const canSeeFinances =
+    (role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role) && !isPsychologist
   const peopleHubPath = role === 'nutritionist' ? '/nutrition' : '/students'
   const peopleDetailPath = (studentId: string) =>
     role === 'nutritionist' ? `/nutrition/${studentId}` : `/students/${studentId}`
@@ -1077,6 +1080,20 @@ export function DashboardPage() {
 
       <div className="page-shell-x page-shell-y space-y-6">
 
+        {isPsychologist ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={() => navigate('/students')}>
+              Ver pacientes
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/appointments')}>
+              Turnos
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>
+              Notificaciones
+            </Button>
+          </div>
+        ) : null}
+
         {canSeeTraining ? (
           <DashboardTrainerOpsPanel
             dueCheckInSchedules={dueCheckInSchedules}
@@ -1141,6 +1158,33 @@ export function DashboardPage() {
                 heroAvatarSrc="/avatars/dashboard-students-money.png?v=5"
                 comparisonPercent={incomeDelta}
                 onClick={() => navigate('/finances')}
+              />
+            </>
+          ) : isPsychologist ? (
+            <>
+              <StatCard
+                title="Turnos pendientes"
+                value={stats.pendingAppointments}
+                countUp
+                surface="gradient"
+                kpiFigmaIcon="patients"
+                iconVariant="3d"
+                heroAvatarSrc="/avatars/gorilla.png?v=1"
+                monthOverMonth={{
+                  thisMonth: stats.momAppointmentsThis,
+                  prevMonth: stats.momAppointmentsPrev,
+                  scopeLabel: 'Turnos',
+                }}
+                onClick={() => navigate('/appointments')}
+              />
+              <StatCard
+                title="Notificaciones"
+                value={notifications.filter((n) => !n.is_read).length}
+                surface="gradient"
+                kpiFigmaIcon="routines"
+                iconVariant="3d"
+                subtitle="Sin leer"
+                onClick={() => navigate('/notifications')}
               />
             </>
           ) : (

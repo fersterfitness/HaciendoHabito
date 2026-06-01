@@ -188,8 +188,9 @@ export function StudentDetailView({
   const navigate = useAppNavigate()
   const { deleteStudent } = useStudents()
   const { user, profile }   = useAuthStore()
-  const entitySingularCapitalized = profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno'
-  const entitySingular = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
+  const isPsychologist = profile?.role === 'psychologist'
+  const entitySingularCapitalized = profile?.role === 'nutritionist' || isPsychologist ? 'Paciente' : 'Alumno'
+  const entitySingular = profile?.role === 'nutritionist' || isPsychologist ? 'paciente' : 'alumno'
 
   const [student,    setStudent]    = useState<Student | null>(null)
   const [routines,   setRoutines]   = useState<Routine[]>([])
@@ -765,7 +766,10 @@ export function StudentDetailView({
             !!(user &&
               student.owner_id === user.id &&
               profile &&
-              (profile.role === 'trainer' || profile.role === 'admin' || profile.role === 'nutritionist'))
+              (profile.role === 'trainer' ||
+                profile.role === 'admin' ||
+                profile.role === 'nutritionist' ||
+                profile.role === 'psychologist'))
           }
         />
 

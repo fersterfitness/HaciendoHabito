@@ -11,6 +11,7 @@ import { LoginPageV2 as LoginPage } from '@/pages/auth/LoginPageV2'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/students/StudentsPage'
+import { canSeePsychologistWorkspace } from '@/config/navigation'
 import type { AppRole } from '@/types/database'
 import { brandHex } from '@/theme/brandColors'
 
@@ -253,7 +254,9 @@ function AppRoutes() {
   const canSeeNutritionFoodsGuide =
     profilePending ? false : role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const canSeeAppointments =
-    profilePending ? false : role === 'admin' || role === 'trainer' || role === 'nutritionist'
+    profilePending
+      ? false
+      : role === 'admin' || role === 'trainer' || role === 'nutritionist' || canSeePsychologistWorkspace(role)
 
   const canSeeTrainerAssignedMealPlansPage =
     !profilePending &&

@@ -1,6 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type AppRole = 'admin' | 'trainer' | 'nutritionist' | 'student'
+export type AppRole = 'admin' | 'trainer' | 'nutritionist' | 'psychologist' | 'student'
 export type PlanBillingPeriod = 'monthly' | 'months3' | 'months6' | 'annual'
 export type PlanAssignmentPaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled'
 export type PlanPaymentMethod = 'cash' | 'mercadopago' | 'transfer' | 'other'

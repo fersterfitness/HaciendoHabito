@@ -112,6 +112,10 @@ export function canSeeNutrition(role: AppRole | undefined): boolean {
   return role === 'admin' || role === 'nutritionist'
 }
 
+export function canSeePsychologistWorkspace(role: AppRole | undefined): boolean {
+  return role === 'psychologist'
+}
+
 export function navItemKey(item: NavItem): string {
   return `${item.href}::${item.label}`
 }
@@ -128,6 +132,13 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
     return [
       { title: 'Gestión', items: [NAV_HOME, NAV_APPOINTMENTS] },
       { title: 'Alimentación', items: [NAV_STUDENT_MEAL_PLANS] },
+    ]
+  }
+
+  if (canSeePsychologistWorkspace(role)) {
+    return [
+      { title: 'Gestión', items: [NAV_HOME, NAV_APPOINTMENTS] },
+      { title: 'Pacientes', items: [{ label: 'Alumnos', href: '/students', icon: Users }] },
     ]
   }
 
@@ -203,6 +214,9 @@ export function getMobileNavPrimaryItems(role: AppRole | undefined): NavItem[] {
       NAV_NUTRITION_PATIENT_ANTHRO[0]!,
       NAV_NUTRITION_FOOD[1]!,
     ]
+  }
+  if (role === 'psychologist') {
+    return [NAV_HOME, NAV_APPOINTMENTS, { label: 'Alumnos', href: '/students', icon: Users }]
   }
   if (role === 'admin') {
     return [NAV_HOME, NAV_APPOINTMENTS, NAV_TRAINING_CORE[0]!, NAV_NUTRITION_PATIENT_ANTHRO[0]!]

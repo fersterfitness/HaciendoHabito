@@ -460,8 +460,9 @@ export function StudentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const role = useAuthStore((state) => state.profile?.role)
   const user = useAuthStore((state) => state.user)
-  const entityLabel = role === 'nutritionist' ? 'Pacientes' : 'Alumnos'
-  const entityLabelSingular = role === 'nutritionist' ? 'paciente' : 'alumno'
+  const isPsychologist = role === 'psychologist'
+  const entityLabel = role === 'nutritionist' || isPsychologist ? 'Pacientes' : 'Alumnos'
+  const entityLabelSingular = role === 'nutritionist' || isPsychologist ? 'paciente' : 'alumno'
   const showNewStudentModal = searchParams.get('create') === '1'
 
   const openNewStudentModal = useCallback(() => {
