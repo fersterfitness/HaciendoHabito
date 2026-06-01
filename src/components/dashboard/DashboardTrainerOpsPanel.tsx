@@ -17,6 +17,7 @@ import {
   type DashboardMissingCheckInStudent,
   type DashboardResourceQuickSend,
 } from '@/lib/dashboard/dashboardTrainerOps'
+import { sanitizeMessageForWhatsApp } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
 
 type DueCheckInSchedule = {
@@ -192,7 +193,7 @@ export function DashboardTrainerOpsPanel({
               <button
                 type="button"
                 onClick={() => {
-                  void navigator.clipboard.writeText(primaryResource.message).then(
+                  void navigator.clipboard.writeText(sanitizeMessageForWhatsApp(primaryResource.message)).then(
                     () => toast.success('Mensaje copiado'),
                     () => toast.error('No se pudo copiar'),
                   )

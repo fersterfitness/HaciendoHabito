@@ -856,13 +856,13 @@ export function WebPlansSettingsPage() {
             <p className="text-sm font-semibold text-ink-primary">Cómo se arma el formulario público (/form)</p>
             <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-ink-secondary marker:text-ink-muted">
               <li>
-                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo y 5 modalidades en este orden: Entrenamiento, Nutrición, Psicólogo Deportivo, Trío completo y Planes Más Completos.
+                <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo y 5 modalidades en este orden: TODO en un plan, Servicio Dual, Entrenamiento, Nutrición y Psicólogo Deportivo.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Trío completo (full_trio):</span> entreno + nutrición + psicólogo en una sola modalidad. Asigná segmento <code className="font-mono text-[10px]">full_trio</code> a esas ofertas.
+                <span className="font-medium text-ink-primary">Servicio integral (full_trio):</span> entreno + nutrición + psicólogo en una sola modalidad. Asigná segmento <code className="font-mono text-[10px]">full_trio</code> a esas ofertas.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Planes Más Completos (full):</span> ofertas con segmento <code className="font-mono text-[10px]">full</code> (entreno + nutrición o entreno + psicólogo, sin los tres juntos).
+                <span className="font-medium text-ink-primary">Par profesional / Servicio Dual (full):</span> ofertas con segmento <code className="font-mono text-[10px]">full</code> (entreno + nutrición o entreno + psicólogo, sin los tres juntos).
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Entrenamiento Individual (solo):</span> ofertas con segmento <code className="font-mono text-[10px]">solo</code>, activas y con «Mostrar en /form».
@@ -1013,39 +1013,39 @@ export function WebPlansSettingsPage() {
                 Si dejás un campo vacío, el /form usa el texto por defecto de cada modalidad.
               </p>
               <Input
-                label="1 · Entrenamiento (segmento solo)"
+                label="1 · Servicio integral (segmento full_trio)"
+                placeholder="Ej. SERVICIO INTEGRAL"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelFullTrio}
+                onChange={(e) => setModalityLabelFullTrio(e.target.value)}
+              />
+              <Input
+                label="2 · Par profesional (segmento full)"
+                placeholder="Ej. PAR PROFESIONAL"
+                maxLength={LIMITS.modalityLabel}
+                value={modalityLabelFull}
+                onChange={(e) => setModalityLabelFull(e.target.value)}
+              />
+              <Input
+                label="3 · Entrenamiento (segmento solo)"
                 placeholder="Ej. ENTRENAMIENTO"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelSolo}
                 onChange={(e) => setModalityLabelSolo(e.target.value)}
               />
               <Input
-                label="2 · Nutrición (segmento with_nutritionist)"
+                label="4 · Nutrición (segmento with_nutritionist)"
                 placeholder="Ej. NUTRICIÓN"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelWithNutritionist}
                 onChange={(e) => setModalityLabelWithNutritionist(e.target.value)}
               />
               <Input
-                label="3 · Psicólogo Deportivo (segmento psychologist)"
+                label="5 · Psicólogo Deportivo (segmento psychologist)"
                 placeholder="Ej. PSICÓLOGO DEPORTIVO"
                 maxLength={LIMITS.modalityLabel}
                 value={modalityLabelPsychologist}
                 onChange={(e) => setModalityLabelPsychologist(e.target.value)}
-              />
-              <Input
-                label="4 · Trío completo (segmento full_trio)"
-                placeholder="Ej. ENTRENO + NUTRICIÓN + PSICÓLOGO"
-                maxLength={LIMITS.modalityLabel}
-                value={modalityLabelFullTrio}
-                onChange={(e) => setModalityLabelFullTrio(e.target.value)}
-              />
-              <Input
-                label="5 · Planes Más Completos (segmento full)"
-                placeholder="Ej. PLANES MÁS COMPLETOS"
-                maxLength={LIMITS.modalityLabel}
-                value={modalityLabelFull}
-                onChange={(e) => setModalityLabelFull(e.target.value)}
               />
               <Button type="button" size="sm" variant="gradientSecondary" onClick={() => void handleSaveModalityLabels()} loading={assetsSaving}>
                 Guardar etiquetas
@@ -1142,11 +1142,11 @@ export function WebPlansSettingsPage() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
               <span className="h-2 w-2 rounded-sm bg-brand-tertiary" aria-hidden />
-              Trío (full_trio)
+              Servicio integral (full_trio)
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
               <span className="h-2 w-2 rounded-sm bg-sky-500" aria-hidden />
-              Plan full
+              Servicio dual (full)
             </span>
             <span className="text-ink-muted basis-full sm:basis-auto">
               · Por defecto las cards van <strong className="text-ink-secondary">contraídas</strong> para reordenar rápido. Arrastrá{' '}
@@ -1303,7 +1303,7 @@ export function WebPlansSettingsPage() {
                             : plan.catalog_segment === 'psychologist'
                               ? 'Psico'
                               : plan.catalog_segment === 'full_trio'
-                                ? 'Trío'
+                                ? 'Integral'
                                 : 'Full'}
                       </span>
                     </span>
@@ -1325,7 +1325,7 @@ export function WebPlansSettingsPage() {
                           : plan.catalog_segment === 'psychologist'
                             ? 'Psicólogo'
                             : plan.catalog_segment === 'full_trio'
-                              ? 'Trío completo'
+                              ? 'Servicio integral'
                               : 'Plan full'}
                     </span>
                   </div>
@@ -1454,15 +1454,15 @@ export function WebPlansSettingsPage() {
                       }}
                       className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
                     >
-                      <option value="full_trio">TRÍO COMPLETO — Entreno + Nutrición + Psicólogo (full_trio)</option>
-                      <option value="full">PLANES MÁS COMPLETOS (full)</option>
+                      <option value="full_trio">SERVICIO INTEGRAL — TODO en un plan (full_trio)</option>
+                      <option value="full">PAR PROFESIONAL — Servicio Dual (full)</option>
                       <option value="solo">ENTRENAMIENTO INDIVIDUAL (solo)</option>
                       <option value="with_nutritionist">NUTRICIÓN (with_nutritionist)</option>
                       <option value="psychologist">PSICÓLOGO DEPORTIVO (psychologist)</option>
                     </select>
                     <p className="mt-1.5 text-[11px] text-ink-muted">
-                      <strong className="text-ink-secondary">Trío (full_trio)</strong>: modalidad propia con los tres profesionales.{' '}
-                      <strong className="text-ink-secondary">Planes Más Completos (full)</strong>: entreno + nutrición o entreno + psicólogo.{' '}
+                      <strong className="text-ink-secondary">Servicio integral (full_trio)</strong>: modalidad propia con los tres profesionales.{' '}
+                      <strong className="text-ink-secondary">Par profesional (full)</strong>: entreno + nutrición o entreno + psicólogo.{' '}
                       <strong className="text-ink-secondary">Entrenamiento / Nutrición / Psicólogo</strong>: modalidades individuales.
                     </p>
                   </div>

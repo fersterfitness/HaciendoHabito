@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
+import { IntakePsychologistForm } from '@/pages/public/IntakePsychologistForm'
 import { IntakeChangeablePlansSection } from '@/components/public/IntakeChangeablePlansSection'
 import {
   type PlanBilling,
@@ -41,16 +42,17 @@ import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 import { compareBySegmentSortOrder } from '@/lib/webPlansSortOrder'
+import { IntakeModalityProfessionIcons } from '@/components/public/intake/IntakeModalityProfessionIcons'
 
 type ModalityId = WebPlanCatalogSegment | 'psychologist'
 
-/** Orden fijo en pantalla: individual → trío → planes más completos. */
+/** Orden fijo en pantalla: integral → dual → individuales. */
 const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: string }[] = [
-  { id: 'solo',              short: 'Entrenamiento',  label: 'Entrenamiento',                    desc: 'Planes individuales de entrenamiento' },
-  { id: 'with_nutritionist', short: 'Nutrición',      label: 'Nutrición',                       desc: 'Planes individuales de nutrición' },
-  { id: 'psychologist',      short: 'Psicología',     label: 'Psicólogo Deportivo',              desc: 'Planes individuales Psicología deportiva' },
-  { id: 'full_trio',         short: 'Trío completo',  label: 'Entreno + Nutrición + Psicólogo', desc: 'Los tres profesionales en un solo plan.' },
-  { id: 'full',              short: 'Más Completos',  label: 'Planes Más Completos',            desc: 'Entreno con nutrición o con psicólogo (sin los tres juntos).' },
+  { id: 'full_trio',         short: 'SERVICIO INTEGRAL', label: 'TODO en un plan',     desc: 'Los tres profesionales en un solo plan' },
+  { id: 'full',              short: 'PAR PROFESIONAL',   label: 'Servicio Dual',       desc: 'Dos profesionales en un mismo plan' },
+  { id: 'solo',              short: 'ENTRENAMIENTO',     label: 'Entrenamiento',       desc: 'Planes individuales de entrenamiento' },
+  { id: 'with_nutritionist', short: 'NUTRICIÓN',         label: 'Nutrición',           desc: 'Planes individuales de nutrición' },
+  { id: 'psychologist',      short: 'PSICOLOGÍA',        label: 'Psicólogo Deportivo', desc: 'Planes individuales Psicología deportiva' },
 ]
 
 /** Subcategorías dentro del segmento "full" (sin trío; el trío usa segmento full_trio). */
@@ -116,7 +118,7 @@ export function PublicIntakeFormPageV2() {
   const [plans, setPlans] = useState<PublicIntakePlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
-  const [catalogSegment, setCatalogSegment] = useState<ModalityId>('solo')
+  const [catalogSegment, setCatalogSegment] = useState<ModalityId>('full_trio')
   const [step, setStep] = useState<StepId>('plan')
   const [catalogImages, setCatalogImages] = useState<{
     trainer: string | null
@@ -223,11 +225,13 @@ export function PublicIntakeFormPageV2() {
     [plans, selectedPlanId],
   )
   const intakeKind =
-    catalogSegment === 'with_nutritionist'
-      ? 'nutricion'
-      : catalogSegment === 'full' || catalogSegment === 'full_trio'
-        ? 'full'
-        : 'entrenamiento'
+    catalogSegment === 'psychologist'
+      ? 'psychologist'
+      : catalogSegment === 'with_nutritionist'
+        ? 'nutricion'
+        : catalogSegment === 'full' || catalogSegment === 'full_trio'
+          ? 'full'
+          : 'entrenamiento'
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
   function scrollFormTop() {
@@ -477,6 +481,10 @@ export function PublicIntakeFormPageV2() {
                           {active && (
                             <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-zinc-400/20 blur-2xl dark:bg-white/10" aria-hidden />
                           )}
+                          <IntakeModalityProfessionIcons
+                            modalityId={m.id}
+                            className="relative mb-2 min-h-6 pr-6"
+                          />
                           <span className={cn(
                             'relative text-[10px] font-bold uppercase tracking-wider',
                             active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
@@ -528,7 +536,7 @@ export function PublicIntakeFormPageV2() {
                       />
                     </div>
                   ) : catalogSegment === 'full' && plansVisible.length > 0 ? (
-                    /* ── Subcategorías para "Planes Más Completos" ── */
+                    /* ── Subcategorías para Servicio Dual (segmento full) ── */
                     <div className="space-y-6">
                       {FULL_SUBCATEGORIES
                         .map((sub) => ({ sub, subPlans: plansVisible.filter((p) => sub.matchFn(p.name)) }))
@@ -660,6 +668,14 @@ export function PublicIntakeFormPageV2() {
                     />
                   ) : intakeKind === 'full' ? (
                     <IntakeFullForm
+                      selectedPlanSlug={selectedPlanId}
+                      selectedPlanLabel={selectedPlan?.name ?? null}
+                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+                      onSuccess={() => setStep('confirmation')}
+                      compact
+                    />
+                  ) : intakeKind === 'psychologist' ? (
+                    <IntakePsychologistForm
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
@@ -812,8 +828,8 @@ const TEAM: ProfessionalDef[] = [
   {
     name: 'Santiago Rodríguez',
     role: 'Psicólogo',
-    credential: 'Lic. en Psicología UBA · Especialización deportiva',
-    tagline: 'Mejora y supervisa tu factor psicológico deportivo.',
+    credential: 'LIC.EN Psicología UBA- Especialización deportiva',
+    tagline: 'Acompañamiento en salud mental y entrenamiento psicológico',
     key: 'psychologist',
     hoverRingClass: 'group-hover:ring-violet-300/70 dark:group-hover:ring-violet-500/30',
     photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',

@@ -2,11 +2,11 @@ import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 import type { WebPlanCatalogSegment } from '@/types/database'
 
 const SEGMENT_SEQUENCE: WebPlanCatalogSegment[] = [
+  'full_trio',
+  'full',
   'solo',
   'with_nutritionist',
   'psychologist',
-  'full_trio',
-  'full',
 ]
 
 export function compareBySegmentSortOrder(

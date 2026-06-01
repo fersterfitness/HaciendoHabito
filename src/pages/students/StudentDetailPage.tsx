@@ -22,6 +22,7 @@ import { CicloTab } from './CicloTab'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
+import { PsychologistStudentIntakePanel } from '@/components/students/PsychologistStudentIntakePanel'
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
 import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
@@ -749,6 +750,7 @@ export function StudentDetailView({
         </section>
 
         <FersterStudentIntakePanel student={student} />
+        <PsychologistStudentIntakePanel student={student} />
 
         <StudentProgressPhotosSection
           studentId={student.id}

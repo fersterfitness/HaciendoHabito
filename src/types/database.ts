@@ -445,6 +445,19 @@ export type FersterIntakeStored = {
   payment_notes?: string | null
 }
 
+/** Cuestionario web psicología deportiva (/form). */
+export type PsychologistIntakeStored = {
+  version?: number
+  form_type?: 'psychologist'
+  residence?: string
+  sport_practiced?: string
+  emergency_contact?: string
+  selected_plan_slug?: string | null
+  submitted_at?: string
+  payment_preference?: 'cash' | 'mercadopago'
+  payment_notes?: string | null
+}
+
 export interface Student {
   id: string
   owner_id: string
@@ -465,6 +478,8 @@ export interface Student {
   intake_ferster: FersterIntakeStored | null
   /** Cuestionario nutricional web. */
   intake_nutrition: NutritionIntakeStored | null
+  /** Cuestionario psicología deportiva web. */
+  intake_psychologist: PsychologistIntakeStored | null
   /** Ruta dentro del bucket `student-avatars` (p. ej. `{uuid}/avatar.jpg`). */
   avatar_path: string | null
   /** Fecha de vencimiento del plan activo (ISO date YYYY-MM-DD). */

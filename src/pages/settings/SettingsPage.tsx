@@ -187,7 +187,7 @@ export function SettingsPage() {
         <Card>
           <FormSection title="Planes Web">
             <p className="text-sm text-ink-secondary">
-              Catálogo del formulario público: Planes Más Completos, Entrenamiento Individual, Nutrición y Psicólogo Deportivo. Fotos del equipo,
+              Catálogo del formulario público: Servicio integral, Servicio Dual, Entrenamiento, Nutrición y Psicólogo Deportivo. Fotos del equipo,
               ofertas y textos sin tocar código.
             </p>
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>

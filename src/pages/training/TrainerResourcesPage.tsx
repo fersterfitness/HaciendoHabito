@@ -16,6 +16,7 @@ import {
   buildWhatsAppGroupPickUrl,
   buildWhatsAppUrl,
   normalizePhoneForWhatsApp,
+  sanitizeMessageForWhatsApp,
 } from '@/lib/whatsapp'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES, scheduleMatchesToday } from '@/lib/checkInSchedule'
@@ -348,7 +349,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
       toast.error('Seleccioná un recurso')
       return
     }
-    const msg = fullOutboundMessage(selectedResource)
+    const msg = sanitizeMessageForWhatsApp(fullOutboundMessage(selectedResource))
     try {
       await navigator.clipboard.writeText(msg)
       toast.success('Mensaje copiado (pegalo en WhatsApp u otro canal)')
@@ -652,7 +653,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               (() => {
                 const tpl = templates.find((t) => t.id === selectedTemplateId)
                 if (!tpl) return null
-                const tplMsg = tpl.body?.trim() ?? ''
+                const tplMsg = sanitizeMessageForWhatsApp(tpl.body?.trim() ?? '')
                 function openGroupWaTemplate() {
                   window.open(buildWhatsAppGroupPickUrl(tplMsg), '_blank', 'noopener,noreferrer')
                 }

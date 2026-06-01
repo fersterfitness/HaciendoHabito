@@ -13,19 +13,27 @@ export function normalizePhoneForWhatsApp(raw: string | null | undefined): strin
 }
 
 export function buildWhatsAppUrl(phoneDigits: string, message: string): string {
-  const text = normalizeMessageForWaLink(message)
+  const text = sanitizeMessageForWhatsApp(message)
   return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(text)}`
 }
 
 /** Abre WhatsApp para elegir chat o grupo y pegar el mensaje (sin número fijo). */
 export function buildWhatsAppGroupPickUrl(message: string): string {
-  const text = normalizeMessageForWaLink(message)
+  const text = sanitizeMessageForWhatsApp(message)
   return `https://wa.me/?text=${encodeURIComponent(text)}`
 }
 
-/** Evita BMP raro en algunos previews; preserva español típido. */
-function normalizeMessageForWaLink(text: string): string {
-  return text.replace(/\r\n/g, '\n').trimEnd()
+/** Quita emojis y secuencias que en WhatsApp suelen verse como ◇. */
+export function sanitizeMessageForWhatsApp(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .replace(/\uFE0F/g, '')
+    .replace(/[\u200D\u2060\uFEFF]/g, '')
+    .replace(/\uFFFD/g, '')
+    .replace(/[ \t]+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd()
 }
 
 export function confirmationMessage(params: {
@@ -99,11 +107,11 @@ export function buildAppointmentFeedbackWaUrl(params: {
 /** Mensaje sugerido al marcar el turno como confirmado (preparación para la videollamada). */
 export function confirmedVideocallPrepMessage(): string {
   return [
-    'Perfecto!🫡‼️',
+    'Perfecto!',
     '',
-    'Ahora que ya tenemos nuestra videollamada pactada. Necesito que vayas pensando algunas cosas para ese día!📲',
+    'Ahora que ya tenemos nuestra videollamada pactada. Necesito que vayas pensando algunas cosas para ese día.',
     '',
-    '‼️Temas a conversar:',
+    'Temas a conversar:',
     '',
     '1-¿Como es un dia habitual tuyo? O generalemnte en la semana.',
     '',
@@ -117,7 +125,7 @@ export function confirmedVideocallPrepMessage(): string {
     '',
     '6-En caso de tener ciclo menstrual. ¿Que dias normalmente menstruas?¿Que tipo de periodo tenes?¿Notas molestias/Dolor/incomodidad en algun momento?',
     '',
-    '‼️*Temas secundarios: (Para hablar en videollamada)*‼️',
+    '*Temas secundarios: (Para hablar en videollamada)*',
     '',
     '-Tema grabacion de videos en gym ',
     '',
