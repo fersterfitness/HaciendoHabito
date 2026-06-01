@@ -19,6 +19,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
+import { fetchCurrentAssignmentsForStudents, PAYMENT_STATUS_LABELS, effectivePaymentStatus } from '@/lib/studentPlanAssignments'
+import type { StudentPlanAssignment } from '@/types/database'
 import { StudentTagChips } from '@/components/students/StudentTagChips'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { Header } from '@/components/layout/Header'
@@ -499,6 +501,7 @@ export function StudentsPage() {
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
   const [routineExpiryMap, setRoutineExpiryMap] = useState<Map<string, string>>(new Map())
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
+  const [currentPlanByStudent, setCurrentPlanByStudent] = useState<Record<string, import('@/types/database').StudentPlanAssignment>>({})
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const studentPanelRef = useRef<HTMLDivElement>(null)
@@ -524,6 +527,19 @@ export function StudentsPage() {
         setRoutineExpiryMap(expMap)
       })
   }, [fetchStudents, user])
+
+  useEffect(() => {
+    if (students.length === 0) {
+      setCurrentPlanByStudent({})
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const map = await fetchCurrentAssignmentsForStudents(students.map((s) => s.id))
+      if (!cancelled) setCurrentPlanByStudent(map)
+    })()
+    return () => { cancelled = true }
+  }, [students])
 
   useEffect(() => {
     if (!user?.id) return
@@ -786,6 +802,7 @@ export function StudentsPage() {
               activeRoutineStudentIds={activeRoutineStudentIds}
               routineExpiryMap={routineExpiryMap}
               hasMealPlanStudentIds={hasMealPlanStudentIds}
+              currentPlanByStudent={currentPlanByStudent}
               onRowClick={(studentId) => setSelectedStudentId(studentId)}
               onEdit={(id) => navigate(`/students/${id}/edit`)}
               onDelete={(s) => setDeleteTarget(s)}
@@ -879,6 +896,7 @@ function StudentDirectoryTable({
   activeRoutineStudentIds,
   routineExpiryMap: _routineExpiryMap,
   hasMealPlanStudentIds,
+  currentPlanByStudent,
 }: {
   entityLabel: string
   entityLabelColumn: string
@@ -894,6 +912,7 @@ function StudentDirectoryTable({
   activeRoutineStudentIds: Set<string>
   routineExpiryMap: Map<string, string>
   hasMealPlanStudentIds: Set<string>
+  currentPlanByStudent: Record<string, StudentPlanAssignment>
 }) {
   const iconWrapBase =
     'relative inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-surface-elevated/25'
@@ -953,6 +972,23 @@ function StudentDirectoryTable({
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <StatusToggle student={student} onChanged={onStatusChanged} />
                   {student.plan_end_date && <PlanDaysChip date={student.plan_end_date} />}
+                  {currentPlanByStudent[student.id] ? (() => {
+                    const a = currentPlanByStudent[student.id]
+                    const eff = effectivePaymentStatus(a)
+                    const cls =
+                      eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
+                      eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
+                      eff === 'cancelled' ? 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 ring-zinc-500/25' :
+                      'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25'
+                    return (
+                      <span
+                        title={`${a.plan_name_snapshot} · ${PAYMENT_STATUS_LABELS[eff]}`}
+                        className={cn('inline-flex max-w-[140px] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1', cls)}
+                      >
+                        <span className="truncate">{a.plan_name_snapshot}</span>
+                      </span>
+                    )
+                  })() : null}
                   <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
                     <span className="text-[11px] text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
                     <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
@@ -1081,11 +1117,30 @@ function StudentDirectoryTable({
                     <StatusToggle student={student} onChanged={onStatusChanged} />
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
-                    {student.plan_end_date ? (
-                      <PlanDaysChip date={student.plan_end_date} />
-                    ) : (
-                      <span className="text-[11px] text-ink-muted/50">—</span>
-                    )}
+                    <div className="flex flex-col items-start gap-1">
+                      {student.plan_end_date ? (
+                        <PlanDaysChip date={student.plan_end_date} />
+                      ) : (
+                        <span className="text-[11px] text-ink-muted/50">—</span>
+                      )}
+                      {currentPlanByStudent[student.id] ? (() => {
+                        const a = currentPlanByStudent[student.id]
+                        const eff = effectivePaymentStatus(a)
+                        const cls =
+                          eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
+                          eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
+                          eff === 'cancelled' ? 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-300 ring-zinc-500/25' :
+                          'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25'
+                        return (
+                          <span
+                            title={`${a.plan_name_snapshot} · ${PAYMENT_STATUS_LABELS[eff]}`}
+                            className={cn('inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1', cls)}
+                          >
+                            <span className="truncate">{a.plan_name_snapshot}</span>
+                          </span>
+                        )
+                      })() : null}
+                    </div>
                   </td>
                   <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
                     <span className="text-[12px]">{student.email ?? '—'}</span>

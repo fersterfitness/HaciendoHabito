@@ -206,6 +206,7 @@ export function StudentDetailView({
   const [savingTags, setSavingTags] = useState(false)
 
   const [assignPlanOpen, setAssignPlanOpen] = useState(false)
+  const [editPlanAssignment, setEditPlanAssignment] = useState<import('@/types/database').StudentPlanAssignment | null>(null)
   const [planRefreshKey, setPlanRefreshKey] = useState(0)
 
   async function persistTags(next: string[], rollback: string[]) {
@@ -869,7 +870,8 @@ export function StudentDetailView({
               <StudentPlanCard
                 studentId={id}
                 refreshKey={planRefreshKey}
-                onRequestAssign={() => setAssignPlanOpen(true)}
+                onRequestAssign={() => { setEditPlanAssignment(null); setAssignPlanOpen(true) }}
+                onRequestEdit={(a) => { setEditPlanAssignment(a); setAssignPlanOpen(true) }}
               />
             ) : null}
 
@@ -1217,7 +1219,8 @@ export function StudentDetailView({
         <AssignPlanModal
           open={assignPlanOpen}
           studentId={id}
-          onClose={() => setAssignPlanOpen(false)}
+          editAssignment={editPlanAssignment}
+          onClose={() => { setAssignPlanOpen(false); setEditPlanAssignment(null) }}
           onAssigned={() => setPlanRefreshKey((k) => k + 1)}
         />
       ) : null}

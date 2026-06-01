@@ -90,6 +90,7 @@ export function DashboardTrainerOpsPanel({
   const navigate = useAppNavigate()
   const [guideOpen, setGuideOpen] = useState(false)
   const [missingOpen, setMissingOpen] = useState(false)
+
   const fridayHighlight = TRAINER_WEEKLY_REMINDERS.some((r) => isTrainerReminderHighlightedToday(r))
 
   const dueCheckInFormIds = new Set(dueCheckInSchedules.map((s) => s.form_id))

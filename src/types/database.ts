@@ -2,7 +2,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type AppRole = 'admin' | 'trainer' | 'nutritionist' | 'student'
 export type PlanBillingPeriod = 'monthly' | 'months3' | 'months6' | 'annual'
-export type PlanAssignmentPaymentStatus = 'pending' | 'paid' | 'overdue'
+export type PlanAssignmentPaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled'
+export type PlanPaymentMethod = 'cash' | 'mercadopago' | 'transfer' | 'other'
 
 export interface StudentPlanAssignment {
   id: string
@@ -13,6 +14,8 @@ export interface StudentPlanAssignment {
   start_date: string
   end_date: string
   payment_status: PlanAssignmentPaymentStatus
+  payment_method: PlanPaymentMethod | null
+  amount: number | null
   assigned_by: string | null
   notes: string | null
   created_at: string

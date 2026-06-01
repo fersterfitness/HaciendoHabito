@@ -707,6 +707,7 @@ export function NutritionPatientDetailView({
         {/* ───────────── RESUMEN ───────────── */}
         <TabPanel id="resumen" active={activeTab}>
           <NutritionResumenDashboard
+            student={student}
             measurements={measurements}
             followup={followup}
             onGoToTab={handleTabChange}

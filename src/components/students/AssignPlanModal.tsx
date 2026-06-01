@@ -8,33 +8,38 @@ import { cn } from '@/lib/utils'
 import {
   BILLING_PERIOD_LABELS,
   BILLING_PERIOD_MONTHS,
+  PAYMENT_METHOD_LABELS,
   addMonthsToISODate,
   createAssignment,
   todayISO,
+  updateAssignment,
 } from '@/lib/studentPlanAssignments'
-import type { PlanBillingPeriod } from '@/types/database'
+import type { PlanBillingPeriod, PlanPaymentMethod, StudentPlanAssignment } from '@/types/database'
 
-type WebPlanOption = {
-  slug: string
-  name: string
-}
+type WebPlanOption = { slug: string; name: string }
 
 type Props = {
   open: boolean
   studentId: string
+  /** Si se pasa, modo edición. */
+  editAssignment?: StudentPlanAssignment | null
   onClose: () => void
   onAssigned: () => void
 }
 
 const BILLING_OPTIONS: PlanBillingPeriod[] = ['monthly', 'months3', 'months6', 'annual']
+const PAYMENT_METHODS: PlanPaymentMethod[] = ['cash', 'mercadopago', 'transfer', 'other']
 
-export function AssignPlanModal({ open, studentId, onClose, onAssigned }: Props) {
+export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAssigned }: Props) {
+  const isEdit = !!editAssignment
   const [plans, setPlans] = useState<WebPlanOption[]>([])
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [planSlug, setPlanSlug] = useState<string>('')
   const [planNameCustom, setPlanNameCustom] = useState<string>('')
   const [billing, setBilling] = useState<PlanBillingPeriod>('monthly')
   const [startDate, setStartDate] = useState<string>(() => todayISO())
+  const [amount, setAmount] = useState<string>('')
+  const [paymentMethod, setPaymentMethod] = useState<PlanPaymentMethod | ''>('')
   const [notes, setNotes] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -74,21 +79,34 @@ export function AssignPlanModal({ open, studentId, onClose, onAssigned }: Props)
     })()
   }, [open])
 
+  // Inicializar / resetear campos cuando se abre o cambia editAssignment
   useEffect(() => {
-    if (!open) {
+    if (!open) return
+    if (editAssignment) {
+      setPlanSlug(editAssignment.web_plan_slug ?? '')
+      setPlanNameCustom(editAssignment.web_plan_slug ? '' : editAssignment.plan_name_snapshot)
+      setBilling(editAssignment.billing_period)
+      setStartDate(editAssignment.start_date)
+      setAmount(editAssignment.amount != null ? String(editAssignment.amount) : '')
+      setPaymentMethod(editAssignment.payment_method ?? '')
+      setNotes(editAssignment.notes ?? '')
+    } else {
       setPlanSlug('')
       setPlanNameCustom('')
       setBilling('monthly')
       setStartDate(todayISO())
+      setAmount('')
+      setPaymentMethod('')
       setNotes('')
     }
-  }, [open])
+  }, [open, editAssignment])
 
   if (!open) return null
 
   const selectedPlan = plans.find((p) => p.slug === planSlug) ?? null
   const computedName = selectedPlan?.name?.trim() || planNameCustom.trim()
   const endDate = addMonthsToISODate(startDate, BILLING_PERIOD_MONTHS[billing])
+  const amountNumber = amount.trim() === '' ? null : Number(amount.replace(',', '.'))
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -96,21 +114,42 @@ export function AssignPlanModal({ open, studentId, onClose, onAssigned }: Props)
       toast.error('Elegí un plan o escribí un nombre.')
       return
     }
+    if (amount.trim() !== '' && (amountNumber == null || Number.isNaN(amountNumber) || amountNumber < 0)) {
+      toast.error('El monto no es válido.')
+      return
+    }
     setSubmitting(true)
-    const res = await createAssignment({
-      studentId,
-      webPlanSlug: planSlug || null,
-      planNameSnapshot: computedName,
-      billingPeriod: billing,
-      startDate,
-      notes: notes.trim() || null,
-    })
+
+    let res
+    if (isEdit && editAssignment) {
+      res = await updateAssignment(editAssignment.id, {
+        web_plan_slug: planSlug || null,
+        plan_name_snapshot: computedName,
+        billing_period: billing,
+        start_date: startDate,
+        end_date: endDate,
+        payment_method: paymentMethod || null,
+        amount: amountNumber,
+        notes: notes.trim() || null,
+      })
+    } else {
+      res = await createAssignment({
+        studentId,
+        webPlanSlug: planSlug || null,
+        planNameSnapshot: computedName,
+        billingPeriod: billing,
+        startDate,
+        paymentMethod: paymentMethod || null,
+        amount: amountNumber,
+        notes: notes.trim() || null,
+      })
+    }
     setSubmitting(false)
     if (!res.ok) {
       toast.error(res.error)
       return
     }
-    toast.success('Plan asignado')
+    toast.success(isEdit ? 'Plan actualizado' : 'Plan asignado')
     onAssigned()
     onClose()
   }
@@ -127,13 +166,18 @@ export function AssignPlanModal({ open, studentId, onClose, onAssigned }: Props)
         aria-modal
         className={cn(
           'fixed left-1/2 top-1/2 z-[10061] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
+          'max-h-[90vh] overflow-y-auto',
           'rounded-2xl border border-surface-border bg-surface-card shadow-2xl',
         )}
       >
         <div className="flex items-start justify-between border-b border-surface-border px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold text-ink-primary">Asignar plan</h2>
-            <p className="text-xs text-ink-muted">Crea una asignación nueva con fechas y método de pago.</p>
+            <h2 className="text-base font-semibold text-ink-primary">
+              {isEdit ? 'Editar asignación' : 'Asignar plan'}
+            </h2>
+            <p className="text-xs text-ink-muted">
+              {isEdit ? 'Modificá los datos de esta asignación.' : 'Crea una asignación nueva con fechas y método de pago.'}
+            </p>
           </div>
           <button
             type="button"
@@ -218,6 +262,34 @@ export function AssignPlanModal({ open, studentId, onClose, onAssigned }: Props)
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink-secondary">Monto (opcional)</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Ej: 50000"
+                className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink-secondary">Método de pago</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as PlanPaymentMethod | '')}
+                className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+              >
+                <option value="">— Sin especificar —</option>
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="mb-1 block text-xs font-semibold text-ink-secondary">Notas (opcional)</label>
             <textarea
@@ -235,7 +307,7 @@ export function AssignPlanModal({ open, studentId, onClose, onAssigned }: Props)
               Cancelar
             </Button>
             <Button type="submit" variant="primary" size="sm" disabled={submitting}>
-              {submitting ? 'Asignando…' : 'Asignar plan'}
+              {submitting ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Asignar plan'}
             </Button>
           </div>
         </form>

@@ -34,6 +34,7 @@ import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { scheduleMatchesToday } from '@/lib/checkInSchedule'
 import { notificationHref } from '@/lib/notifications'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
+import { DashboardExpiringPlansAlert } from '@/components/dashboard/DashboardExpiringPlansAlert'
 import {
   loadDashboardQuickSends,
   loadStudentsMissingCheckIn,
@@ -1085,6 +1086,10 @@ export function DashboardPage() {
             missingCheckInStudents={missingCheckInStudents}
           />
         ) : null}
+
+        <DashboardExpiringPlansAlert
+          studentPathBase={role === 'nutritionist' ? '/nutrition' : '/students'}
+        />
 
         <section className="space-y-2">
           <PageSectionTitle title="Resumen del mes" />

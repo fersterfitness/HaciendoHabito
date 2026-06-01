@@ -16,6 +16,7 @@ import { brandHex } from '@/theme/brandColors'
 
 const StudentFormPage = lazy(() => import('@/pages/students/StudentFormPage').then((m) => ({ default: m.StudentFormPage })))
 const StudentDetailPage = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })))
+const PlansOverviewPage = lazy(() => import('@/pages/plans/PlansOverviewPage').then((m) => ({ default: m.PlansOverviewPage })))
 const TrainerStudentMealPlanPage = lazy(() =>
   import('@/pages/students/TrainerStudentMealPlanPage').then((m) => ({ default: m.TrainerStudentMealPlanPage })),
 )
@@ -129,6 +130,9 @@ function renderLoggedInRoutes({
         }
       />
       <Route path="students/:id" element={withPageSuspense(<StudentDetailPage />)} />
+
+      {/* Planes (vista global) */}
+      <Route path="plans" element={withPageSuspense(<PlansOverviewPage />)} />
       <Route path="students/:id/edit" element={withPageSuspense(<StudentFormPage />)} />
 
       {/* Alumno */}

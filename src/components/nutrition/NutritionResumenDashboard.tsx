@@ -30,23 +30,47 @@ import {
   waistOf,
   weightOf,
 } from '@/lib/nutrition/measurementDerivatives'
-import type { NutritionMeasurement, NutritionPatientFollowup } from '@/types/database'
+import type { NutritionMeasurement, NutritionPatientFollowup, Student } from '@/types/database'
+import { differenceInYears } from 'date-fns'
 
 interface Props {
+  student?: Student | null
   measurements: NutritionMeasurement[]
   followup: NutritionPatientFollowup | null
   onGoToTab: (tabId: string) => void
   onManageAppointments: () => void
 }
 
+function ageFromBirth(birth: string | null | undefined): number | null {
+  if (!birth) return null
+  try {
+    const years = differenceInYears(new Date(), new Date(birth))
+    return Number.isFinite(years) && years >= 0 && years < 130 ? years : null
+  } catch { return null }
+}
+
+function bmi(weightKg: number | null | undefined, heightCm: number | null | undefined): number | null {
+  if (!weightKg || !heightCm) return null
+  const h = heightCm / 100
+  if (h <= 0) return null
+  return Math.round((weightKg / (h * h)) * 10) / 10
+}
+
 const SPARK_SIZE = 6
 
 export function NutritionResumenDashboard({
+  student,
   measurements,
   followup,
   onGoToTab,
   onManageAppointments,
 }: Props) {
+  const regWeight = student?.weight_kg ?? null
+  const regHeight = student?.height_cm ?? null
+  const regAge = ageFromBirth(student?.birth_date ?? null)
+  const regBmi = bmi(regWeight, regHeight)
+  const hasRegistrationData = regWeight != null || regHeight != null || regAge != null
+
   /** Oldest-first, for time-series. */
   const ordered = useMemo(
     () =>
@@ -96,6 +120,59 @@ export function NutritionResumenDashboard({
         followup={followup}
         onManageAppointments={onManageAppointments}
       />
+
+      {hasRegistrationData ? (
+        <Card padding="md">
+          <div className="mb-3 flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-ink-secondary" />
+              Datos del registro
+            </CardTitle>
+            {measurements.length === 0 ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => onGoToTab('antropometria')}>
+                Cargar primera medición
+              </Button>
+            ) : null}
+          </div>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+            {regWeight != null ? (
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Peso inicial</dt>
+                <dd className="text-base font-semibold text-ink-primary">{regWeight} <span className="text-xs font-normal text-ink-muted">kg</span></dd>
+              </div>
+            ) : null}
+            {regHeight != null ? (
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Altura</dt>
+                <dd className="text-base font-semibold text-ink-primary">{regHeight} <span className="text-xs font-normal text-ink-muted">cm</span></dd>
+              </div>
+            ) : null}
+            {regBmi != null ? (
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">IMC</dt>
+                <dd className="text-base font-semibold text-ink-primary">{regBmi}</dd>
+              </div>
+            ) : null}
+            {regAge != null ? (
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Edad</dt>
+                <dd className="text-base font-semibold text-ink-primary">{regAge} <span className="text-xs font-normal text-ink-muted">años</span></dd>
+              </div>
+            ) : null}
+            {student?.gender ? (
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Género</dt>
+                <dd className="text-base font-semibold text-ink-primary">{student.gender === 'M' ? 'Masculino' : student.gender === 'F' ? 'Femenino' : 'Otro'}</dd>
+              </div>
+            ) : null}
+          </dl>
+          {measurements.length === 0 ? (
+            <p className="mt-3 text-[11px] text-ink-muted">
+              Datos auto-cargados desde el formulario web. Cargá una medición para empezar a ver evolución.
+            </p>
+          ) : null}
+        </Card>
+      ) : null}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <NutritionResumenKpi
