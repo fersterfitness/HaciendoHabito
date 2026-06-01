@@ -1,6 +1,23 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type AppRole = 'admin' | 'trainer' | 'nutritionist' | 'student'
+export type PlanBillingPeriod = 'monthly' | 'months3' | 'months6' | 'annual'
+export type PlanAssignmentPaymentStatus = 'pending' | 'paid' | 'overdue'
+
+export interface StudentPlanAssignment {
+  id: string
+  student_id: string
+  web_plan_slug: string | null
+  plan_name_snapshot: string
+  billing_period: PlanBillingPeriod
+  start_date: string
+  end_date: string
+  payment_status: PlanAssignmentPaymentStatus
+  assigned_by: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
 export type StudentLevel = 'inicial' | 'intermedio' | 'avanzado'
 export type StudentStatus = 'activo' | 'inactivo' | 'pausado' | 'baja'
 export type RoutineStatus = 'activa' | 'por_vencer' | 'vencida' | 'pausada' | 'cancelada'

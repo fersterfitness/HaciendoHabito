@@ -89,7 +89,7 @@ export function DashboardTrainerOpsPanel({
 }: Props) {
   const navigate = useAppNavigate()
   const [guideOpen, setGuideOpen] = useState(false)
-  const [missingOpen, setMissingOpen] = useState(missingCheckInStudents.length > 0)
+  const [missingOpen, setMissingOpen] = useState(false)
   const fridayHighlight = TRAINER_WEEKLY_REMINDERS.some((r) => isTrainerReminderHighlightedToday(r))
 
   const dueCheckInFormIds = new Set(dueCheckInSchedules.map((s) => s.form_id))
@@ -231,28 +231,28 @@ export function DashboardTrainerOpsPanel({
       </div>
 
       {missingCheckInStudents.length > 0 ? (
-        <div className="rounded-xl border border-amber-500/35 bg-amber-500/5">
+        <div className="rounded-xl border border-surface-border bg-surface-card">
           <button
             type="button"
             onClick={() => setMissingOpen((v) => !v)}
             className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
             aria-expanded={missingOpen}
           >
-            <CalendarClock className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-            <span className="flex-1 text-[11px] font-semibold text-amber-900 dark:text-amber-200">
+            <CalendarClock className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+            <span className="flex-1 text-[11px] font-semibold text-ink-primary">
               Sin check-in esta semana ({missingCheckInStudents.length}) — recordales por WhatsApp
             </span>
             <ChevronDown
-              className={cn('h-3.5 w-3.5 text-amber-700 transition-transform dark:text-amber-300', missingOpen && 'rotate-180')}
+              className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', missingOpen && 'rotate-180')}
               aria-hidden
             />
           </button>
           {missingOpen ? (
-            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-amber-500/20 px-2 py-2">
+            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-surface-border px-2 py-2">
               {missingCheckInStudents.map((st) => (
                 <li
                   key={st.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-amber-500/8"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-surface-elevated"
                 >
                   <span className="min-w-0 truncate font-medium text-ink-primary">{st.full_name}</span>
                   <button

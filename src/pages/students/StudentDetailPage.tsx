@@ -21,6 +21,8 @@ import { cn, formatDate, daysUntil, formatCurrency } from '@/lib/utils'
 import { CicloTab } from './CicloTab'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
+import { StudentPlanCard } from '@/components/students/StudentPlanCard'
+import { AssignPlanModal } from '@/components/students/AssignPlanModal'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
 import { PsychologistStudentIntakePanel } from '@/components/students/PsychologistStudentIntakePanel'
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
@@ -202,6 +204,9 @@ export function StudentDetailView({
   const [tagInput, setTagInput] = useState('')
   const [editingTags, setEditingTags] = useState(false)
   const [savingTags, setSavingTags] = useState(false)
+
+  const [assignPlanOpen, setAssignPlanOpen] = useState(false)
+  const [planRefreshKey, setPlanRefreshKey] = useState(0)
 
   async function persistTags(next: string[], rollback: string[]) {
     if (!id) return
@@ -859,6 +864,15 @@ export function StudentDetailView({
           return (
           <div className="space-y-8">
 
+            {/* ── Plan vigente ── */}
+            {id ? (
+              <StudentPlanCard
+                studentId={id}
+                refreshKey={planRefreshKey}
+                onRequestAssign={() => setAssignPlanOpen(true)}
+              />
+            ) : null}
+
             {/* ── Rutina activa ── */}
             {activeRoutine ? (
               <section className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 dark:border-zinc-700/60 dark:bg-zinc-900/40 overflow-hidden">
@@ -1198,6 +1212,15 @@ export function StudentDetailView({
           onClose={() => setShowPayModal(false)}
         />
       )}
+
+      {id ? (
+        <AssignPlanModal
+          open={assignPlanOpen}
+          studentId={id}
+          onClose={() => setAssignPlanOpen(false)}
+          onAssigned={() => setPlanRefreshKey((k) => k + 1)}
+        />
+      ) : null}
     </div>
   )
 }

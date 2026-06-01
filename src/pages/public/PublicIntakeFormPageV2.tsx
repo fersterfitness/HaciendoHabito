@@ -663,6 +663,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+                      selectedPlanBilling={planBilling}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />
@@ -671,6 +672,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+                      selectedPlanBilling={planBilling}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />
@@ -679,6 +681,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+                      selectedPlanBilling={planBilling}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />
@@ -687,6 +690,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanSlug={selectedPlanId}
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
+                      selectedPlanBilling={planBilling}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />

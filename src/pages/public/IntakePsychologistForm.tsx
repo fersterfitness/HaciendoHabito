@@ -34,6 +34,7 @@ type Props = {
   selectedPlanSlug?: string | null
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
+  selectedPlanBilling?: 'monthly' | 'months3' | 'months6' | 'annual' | null
   compact?: boolean
 }
 
@@ -42,6 +43,7 @@ export function IntakePsychologistForm({
   selectedPlanSlug = null,
   selectedPlanLabel = null,
   selectedPlanPrice = null,
+  selectedPlanBilling = null,
   compact = false,
 }: Props) {
   const {
@@ -62,6 +64,7 @@ export function IntakePsychologistForm({
       phone,
       form_type: 'psychologist',
       selected_plan_slug: selectedPlanSlug,
+      selected_plan_billing: selectedPlanBilling,
       website: '',
     })
 

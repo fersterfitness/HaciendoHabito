@@ -3,6 +3,7 @@
  * `tone="card"`: en `uiTheme="light"` usa cromado claro embebido; en `uiTheme="dark"` mismo layout con superficies oscuras.
  */
 import { useMemo } from 'react'
+import { AuroraButton } from '@/components/ui/aurora-button'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -331,25 +332,19 @@ export function IntakeChangeablePlansSection({
                         {plan.description.trim()}
                       </p>
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (isSelected) onContinue?.()
-                        else onSelectPlan(plan.id)
-                      }}
-                      className={cn(
-                        'mt-4 inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-[13px] font-semibold tracking-tight transition-colors',
-                        isSelected
-                          ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-[0_2px_12px_-4px_rgba(249,115,22,0.45)]'
-                          : darkChrome
-                            ? 'border border-white/20 text-white hover:bg-white/10'
-                            : 'border border-zinc-300 text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50',
-                      )}
-                    >
-                      {isSelected ? buttonText : 'Elegir plan'}
-                      <span aria-hidden>→</span>
-                    </button>
+                    <div className="mt-8">
+                      <AuroraButton
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (isSelected) onContinue?.()
+                          else onSelectPlan(plan.id)
+                        }}
+                        className="text-[13px] font-semibold tracking-tight px-5 py-2"
+                      >
+                        {isSelected ? buttonText : 'Elegir plan'} <span aria-hidden>→</span>
+                      </AuroraButton>
+                    </div>
                   </div>
 
                   {/* Divisor vertical */}
