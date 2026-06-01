@@ -15,7 +15,9 @@ import {
   navItemKey,
 } from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
-import { Settings, LogOut, X, Menu, UserCircle, type LucideIcon } from 'lucide-react'
+import { Bell, Settings, LogOut, X, Menu, UserCircle, type LucideIcon } from 'lucide-react'
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
+import { NotificationBellBadge } from '@/components/notifications/NotificationBellBadge'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
@@ -43,12 +45,14 @@ function DrawerNavItem({
   icon: Icon,
   exactMatch,
   onClose,
+  badge,
 }: {
   to: string
   label: string
   icon: LucideIcon
   exactMatch?: boolean
   onClose: () => void
+  badge?: React.ReactNode
 }) {
   const { pathname } = useLocation()
   const active = isMobileItemActive(pathname, to, exactMatch)
@@ -66,8 +70,11 @@ function DrawerNavItem({
           : 'text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
       )}
     >
-      <Icon className={cn('h-4 w-4 shrink-0', active && mobileNavActiveTextClassName)} />
-      {label}
+      <span className="relative shrink-0">
+        <Icon className={cn('h-4 w-4', active && mobileNavActiveTextClassName)} />
+        {badge}
+      </span>
+      <span className="flex-1">{label}</span>
     </NavLink>
   )
 }
@@ -80,6 +87,7 @@ export function MobileNav() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const reduceMotion = useReducedMotion()
 
+  const unreadCount = useUnreadNotificationCount()
   const primaryItems = getMobileNavPrimaryItems(role)
   const drawerSections = getMobileNavDrawerSections(role)
   const drawerRouteActive = drawerSections.some((section) =>
@@ -234,6 +242,17 @@ export function MobileNav() {
                 <p className="px-4 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
                   Cuenta
                 </p>
+                <DrawerNavItem
+                  to="/notifications"
+                  label={
+                    unreadCount > 0
+                      ? `Notificaciones (${unreadCount} sin leer)`
+                      : 'Notificaciones'
+                  }
+                  icon={Bell}
+                  onClose={() => setDrawerOpen(false)}
+                  badge={<NotificationBellBadge count={unreadCount} className="-top-1 -right-1.5" />}
+                />
                 <DrawerNavItem
                   to="/settings"
                   label="Configuración"

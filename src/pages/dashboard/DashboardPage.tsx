@@ -32,6 +32,7 @@ import { FINANCE_SCOPES } from '@/lib/constants'
 import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { scheduleMatchesToday } from '@/lib/checkInSchedule'
+import { notificationHref } from '@/lib/notifications'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
 import {
   loadDashboardQuickSends,
@@ -1598,15 +1599,25 @@ export function DashboardPage() {
               <Button variant="ghost" size="sm" onClick={() => navigate('/notifications')}>Ver todas</Button>
             </CardHeader>
             <div className="space-y-1.5">
-              {notifications.map((n) => (
-                <div key={n.id} className="flex gap-3 px-3 py-2.5 rounded-xl border border-surface-border/70 bg-surface-elevated/25">
-                  <div className="w-1.5 h-1.5 rounded-full bg-ink-muted mt-1.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-primary">{n.title}</p>
-                    <p className="text-xs text-ink-secondary leading-snug">{n.body}</p>
-                  </div>
-                </div>
-              ))}
+              {notifications.map((n) => {
+                const href = notificationHref(n)
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => { if (href) navigate(href) }}
+                    className={`w-full text-left flex gap-3 px-3 py-2.5 rounded-xl border border-surface-border/70 bg-surface-elevated/25 transition-colors ${
+                      href ? 'hover:bg-surface-elevated/60 cursor-pointer' : 'cursor-default'
+                    }`}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-ink-muted mt-1.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-primary">{n.title}</p>
+                      <p className="text-xs text-ink-secondary leading-snug">{n.body}</p>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </Card>
         )}

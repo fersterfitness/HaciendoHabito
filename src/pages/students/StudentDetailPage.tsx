@@ -38,6 +38,7 @@ import {
 import { PagosTab } from '@/pages/students/studentDetail/PagosTab'
 import { PesoTab } from '@/pages/students/studentDetail/PesoTab'
 import { buildPersonalFullMirrorIncomeRow, buildPersonalHalfIncomeRow } from '@/lib/financePersonalSplit'
+import { notifyPaymentRegistered } from '@/lib/notifications'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
 import toast from 'react-hot-toast'
 import {
@@ -1637,12 +1638,20 @@ function QuickPayModal({
       notes: notes.trim() ? notes.trim() : null,
       scope: 'business' as const,
     }
-    const { error } = await supabase.from('income').insert(mainRow)
+    const { data: inserted, error } = await supabase.from('income').insert(mainRow).select('id').single()
     if (error) {
       setSaving(false)
       toast.error(error.message)
       return
     }
+    void notifyPaymentRegistered({
+      userId: user.id,
+      amount: amt,
+      studentName,
+      studentId,
+      incomeId: inserted?.id ?? null,
+      paymentMethod: method,
+    })
     const split = buildPersonalHalfIncomeRow(mainRow)
     if (split) {
       const { error: splitErr } = await supabase.from('income').insert(split)

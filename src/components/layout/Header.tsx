@@ -1,11 +1,10 @@
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ChevronLeft } from 'lucide-react'
 import { openGlobalSearch } from '@/lib/globalSearch'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
-import { trainerCtaSolidBgClassName } from '@/lib/primaryGradientCtaClasses'
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
+import { NotificationBellBadge } from '@/components/notifications/NotificationBellBadge'
 import {
   HeaderActionButton,
   HeaderBellIcon,
@@ -26,37 +25,9 @@ interface HeaderProps {
 
 export function Header({ title, showBack = false, actions, className }: HeaderProps) {
   const navigate = useAppNavigate()
-  const { profile, user } = useAuthStore()
+  const { profile } = useAuthStore()
   const { theme, toggleTheme } = useTheme()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    if (!user) return
-    supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false)
-      .then(({ count }) => setUnreadCount(count ?? 0))
-
-    const channel = supabase
-      .channel('notifications-count')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => {
-          supabase
-            .from('notifications')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('is_read', false)
-            .then(({ count }) => setUnreadCount(count ?? 0))
-        }
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [user])
+  const unreadCount = useUnreadNotificationCount()
 
   return (
     <header
@@ -109,20 +80,9 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         <HeaderActionButton
           onClick={() => navigate('/notifications')}
           aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'}
-          className="relative"
+          className="relative overflow-visible"
           renderIcon={(hovered) => <HeaderBellIcon animate={hovered} />}
-          badge={
-            unreadCount > 0 ? (
-              <span
-                className={cn(
-                  'absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white pointer-events-none',
-                  trainerCtaSolidBgClassName,
-                )}
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            ) : undefined
-          }
+          badge={<NotificationBellBadge count={unreadCount} className="-top-1 -right-1" />}
         />
 
         <button

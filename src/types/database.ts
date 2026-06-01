@@ -35,6 +35,7 @@ export type NotificationType =
   | 'consulta_recibida'
   | 'feedback_enviado'
   | 'pago_pendiente'
+  | 'pago_registrado'
   | 'sistema'
 
 export interface Database {
@@ -352,6 +353,17 @@ export interface Database {
       register_trainer_resource_sends: {
         Args: { p_resource_id: string; p_student_ids: string[] }
         Returns: Json
+      }
+      notify_user: {
+        Args: {
+          p_user_id: string
+          p_type: NotificationType
+          p_title: string
+          p_body: string
+          p_linked_table?: string | null
+          p_linked_id?: string | null
+        }
+        Returns: string
       }
     }
   }

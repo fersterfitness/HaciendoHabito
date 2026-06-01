@@ -11,7 +11,9 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { BrandLogo } from '@/components/branding/BrandLogo'
-import { Settings, LogOut, type LucideIcon } from 'lucide-react'
+import { Bell, Settings, LogOut, type LucideIcon } from 'lucide-react'
+import { NotificationBellBadge } from '@/components/notifications/NotificationBellBadge'
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
 import { SidebarAnimateIcon, SidebarLogOutIcon } from '@/components/icons/sidebarAnimateIcons'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -288,6 +290,42 @@ function RailNavLink({
   )
 }
 
+function RailNotificationsLink() {
+  const { pathname } = useLocation()
+  const unreadCount = useUnreadNotificationCount()
+  const isActive = pathname === '/notifications' || pathname.startsWith('/notifications/')
+  const [hovered, setHovered] = useState(false)
+  const label = unreadCount > 0 ? `Notificaciones (${unreadCount} sin leer)` : 'Notificaciones'
+
+  return (
+    <SidebarRailTooltip label={label}>
+      <NavLink
+        to="/notifications"
+        onMouseEnter={() => {
+          setHovered(true)
+          prefetchRouteChunkByHref('/notifications')
+        }}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => prefetchRouteChunkByHref('/notifications')}
+        className={cn(
+          'relative z-[1] mx-auto flex shrink-0 items-center justify-center overflow-visible outline-none',
+          RAIL_ITEM,
+          railFocusRing,
+          isActive ? railNavActiveClassName : railNavIdleClassName,
+        )}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={label}
+      >
+        <Bell
+          className={cn('h-4 w-4 transition-transform', hovered && !isActive && 'scale-110')}
+          strokeWidth={isActive ? 2.25 : 2}
+        />
+        <NotificationBellBadge count={unreadCount} className="-top-0.5 -right-0.5" />
+      </NavLink>
+    </SidebarRailTooltip>
+  )
+}
+
 function RailIconButton({
   label,
   onClick,
@@ -373,6 +411,9 @@ export function Sidebar() {
       </nav>
 
       <div className="shrink-0 border-t border-[rgb(var(--sidebar-border)/0.12)] dark:border-[rgb(var(--sidebar-border)/0.06)]">
+        <div className="flex flex-col items-center gap-px py-1.5">
+          <RailNotificationsLink />
+        </div>
         <SidebarNavGroup items={footerNavItems} className="py-1.5" />
         <RailIconButton label="Cerrar sesión" danger onClick={() => void handleLogout()} />
       </div>

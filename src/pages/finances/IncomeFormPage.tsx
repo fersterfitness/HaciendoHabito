@@ -20,6 +20,7 @@ import {
   buildPersonalHalfIncomeRow,
   personalHalfAmount,
 } from '@/lib/financePersonalSplit'
+import { notifyPaymentRegistered } from '@/lib/notifications'
 import type { Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -125,8 +126,22 @@ export function IncomeFormPage() {
       if (error) { toast.error(error.message); return }
       toast.success('Ingreso actualizado')
     } else {
-      const { error } = await supabase.from('income').insert(payload)
+      const { data: inserted, error } = await supabase.from('income').insert(payload).select('id').single()
       if (error) { toast.error(error.message); return }
+
+      if (values.status === 'cobrado') {
+        const studentName = values.student_id
+          ? students.find((s) => s.id === values.student_id)?.full_name
+          : null
+        void notifyPaymentRegistered({
+          userId: user.id,
+          amount: values.amount,
+          studentName,
+          studentId: values.student_id || null,
+          incomeId: inserted?.id ?? null,
+          paymentMethod: values.payment_method,
+        })
+      }
 
       const splitRow = buildPersonalHalfIncomeRow(payload)
       if (splitRow) {
