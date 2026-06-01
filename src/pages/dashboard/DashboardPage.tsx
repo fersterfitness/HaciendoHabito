@@ -9,6 +9,7 @@ import {
   ChevronRight,
   AlertTriangle,
   ClipboardCheck,
+  Wallet,
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
