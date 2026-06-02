@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { Tabs, TabPanel, type TabItem } from '@/components/ui/Tabs'
 import { NutritionAnamnesisSection } from '@/components/nutrition/NutritionAnamnesisSection'
+import { NutritionAnamnesisPublicLinkCard } from '@/components/nutrition/NutritionAnamnesisPublicLinkCard'
 import { NutritionWeeklyPlanSection } from '@/components/nutrition/NutritionWeeklyPlanSection'
 import {
   NutritionAnthropometryProgramForm,
@@ -140,6 +141,51 @@ export interface NutritionPatientDetailViewProps {
   patientId: string
   variant?: 'page' | 'panel'
   onClosePanel?: () => void
+}
+
+function HistoriaAnamnesisBlock({ studentId, studentName }: { studentId: string; studentName: string }) {
+  const [anamnesisReloadKey, setAnamnesisReloadKey] = useState(0)
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardTitle className="mb-1">Anamnesis alimentaria</CardTitle>
+        <p className="text-sm text-ink-muted mb-4">Formulario digital de la primera consulta.</p>
+        <div className="space-y-4 mb-6">
+          <NutritionAnamnesisPublicLinkCard
+            studentId={studentId}
+            studentName={studentName}
+            onRedoComplete={() => setAnamnesisReloadKey((n) => n + 1)}
+          />
+        </div>
+        <NutritionAnamnesisSection studentId={studentId} reloadKey={anamnesisReloadKey} />
+      </Card>
+
+      <Card>
+        <CardTitle className="mb-1">Historial clínico</CardTitle>
+        <p className="text-sm text-ink-muted mb-4">Notas fechadas por consulta.</p>
+        <HistoriaClinicalNotes studentId={studentId} />
+      </Card>
+
+      <Card>
+        <CardTitle className="mb-1">Síntomas digestivos y adherencia</CardTitle>
+        <p className="text-sm text-ink-muted mb-4">Registro breve entre consultas.</p>
+        <HistoriaSymptomCheckins studentId={studentId} />
+      </Card>
+    </div>
+  )
+}
+
+function HistoriaClinicalNotes({ studentId }: { studentId: string }) {
+  const { user } = useAuthStore()
+  if (!user) return null
+  return <NutritionClinicalNotesSection ownerId={user.id} studentId={studentId} />
+}
+
+function HistoriaSymptomCheckins({ studentId }: { studentId: string }) {
+  const { user } = useAuthStore()
+  if (!user) return null
+  return <NutritionSymptomCheckinsSection ownerId={user.id} studentId={studentId} />
 }
 
 export function NutritionPatientDetailView({
@@ -957,25 +1003,7 @@ export function NutritionPatientDetailView({
 
         {/* ───────────── HISTORIA ───────────── */}
         <TabPanel id="historia" active={activeTab}>
-          <div className="space-y-6">
-            <Card>
-              <CardTitle className="mb-1">Anamnesis alimentaria</CardTitle>
-              <p className="text-sm text-ink-muted mb-4">Formulario digital de la primera consulta.</p>
-              <NutritionAnamnesisSection studentId={student.id} />
-            </Card>
-
-            <Card>
-              <CardTitle className="mb-1">Historial clínico</CardTitle>
-              <p className="text-sm text-ink-muted mb-4">Notas fechadas por consulta.</p>
-              {user ? <NutritionClinicalNotesSection ownerId={user.id} studentId={student.id} /> : null}
-            </Card>
-
-            <Card>
-              <CardTitle className="mb-1">Síntomas digestivos y adherencia</CardTitle>
-              <p className="text-sm text-ink-muted mb-4">Registro breve entre consultas.</p>
-              {user ? <NutritionSymptomCheckinsSection ownerId={user.id} studentId={student.id} /> : null}
-            </Card>
-          </div>
+          <HistoriaAnamnesisBlock studentId={student.id} studentName={student.full_name} />
         </TabPanel>
 
         {/* ───────────── ARCHIVOS ───────────── */}

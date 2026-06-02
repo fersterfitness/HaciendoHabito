@@ -878,6 +878,8 @@ export interface NutritionAnamnesis {
   student_id: string
   payload: Json
   schema_version: number
+  public_link_issued_at: string | null
+  public_submitted_at: string | null
   created_at: string
   updated_at: string
 }

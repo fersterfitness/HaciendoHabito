@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anamnesis nutricional · Haciendo Hábito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* Neutros */
+      --bg: #f4f4f5;
+      --sidebar: #fafafa;
+      --card: #ffffff;
+      --ink: #18181b;
+      --ink-secondary: #52525b;
+      --muted: #a1a1aa;
+      --border: #e4e4e7;
+      --btn: #3f3f46;
+      --btn-hover: #27272a;
+      --accent: #52525b;
+      --accent-hover: #3f3f46;
+      --accent-soft: #f4f4f5;
+      --accent-ring: #d4d4d8;
+      --radius: 12px;
+      --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04), 0 6px 20px rgba(24, 24, 27, 0.05);
+      --shadow-float: 0 4px 16px rgba(24, 24, 27, 0.06);
+      --sidebar-w: 220px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--ink);
+      background: #fafafa;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Progreso del formulario (mobile + desktop sutil) */
+    .form-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 95;
+      padding: 8px 14px 10px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .form-progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .form-progress-meta strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .form-progress-track {
+      height: 4px;
+      border-radius: 999px;
+      background: #e4e4e7;
+      overflow: hidden;
+    }
+    .form-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.35s ease;
+    }
+    .progress-desktop {
+      display: none;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+    }
+    @media (min-width: 901px) {
+      .form-progress { display: none; }
+      .progress-desktop { display: block; }
+      .app { padding-top: 0; }
+    }
+    @media (max-width: 900px) {
+      .app { padding-top: 52px; }
+      .card { scroll-margin-top: 64px; }
+    }
+
+    /* ── Shell ── */
+    .app {
+      display: flex;
+      min-height: 100vh;
+      padding-top: 0;
+    }
+
+  .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 14px 12px;
+      overflow-y: auto;
+    }
+    .brand {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 14px 10px 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .brand-logo {
+      display: block;
+      width: auto;
+      height: 88px;
+      max-width: 100%;
+      object-fit: contain;
+      object-position: center;
+    }
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 6px 8px 4px;
+    }
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+    .nav a:hover { background: #f3f4f6; color: var(--ink); }
+    .nav a.active {
+      background: #f4f4f5;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .nav a.active .nav-dot { background: var(--accent); }
+
+    .main {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      padding: 18px 24px 48px;
+      max-width: none;
+      width: 100%;
+    }
+    body.form-blocked .main {
+      margin-left: 0;
+      padding: 24px 20px 48px;
+    }
+    body.form-blocked .sidebar,
+    body.form-blocked #form-progress-mobile,
+    body.form-blocked #menu-btn {
+      display: none !important;
+    }
+    .page-head { margin-bottom: 16px; }
+    .page-head h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .page-head p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--ink-secondary);
+      max-width: 54ch;
+    }
+    /* Banner negro (dato importante) */
+    .alert-dark {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px 18px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      border-radius: var(--radius);
+      background: #18181b;
+      color: #fafafa;
+      box-shadow: var(--shadow-float);
+    }
+    .alert-dark-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+    .alert-dark-body { flex: 1; min-width: 180px; }
+    .alert-dark h2 {
+      margin: 0 0 2px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .alert-dark p {
+      margin: 0;
+      font-size: 12px;
+      color: rgba(250, 250, 250, 0.72);
+      line-height: 1.45;
+    }
+    .btn-pill-light {
+      flex-shrink: 0;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #fff;
+      color: #18181b;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-pill-light:hover { background: #f4f4f5; }
+
+    /* Mini cards + barras (estilo referencia) */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 720px) {
+      .stats-row { grid-template-columns: 1fr; }
+    }
+    .mini-card {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 11px 12px;
+      background: var(--card);
+      border: 1px solid rgba(228, 228, 231, 0.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+    }
+    .icon-3d {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #f4f4f5;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+    .icon-3d img {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+    }
+    .mini-card-body { flex: 1; min-width: 0; }
+    .mini-card-label {
+      margin: 0 0 1px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .mini-card-value {
+      margin: 0 0 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .mini-bar {
+      height: 3px;
+      border-radius: 999px;
+      background: #e4e4e7;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .mini-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.35s ease;
+    }
+    .mini-card-hint {
+      margin: 0;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      scroll-margin-top: 88px;
+    }
+    .card-head {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-head-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .step-label {
+      margin: 0;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .card-head h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .card-desc {
+      margin: 4px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-body.salud-layout {
+      display: grid;
+      gap: 12px 14px;
+    }
+    .card-body .field + .field { margin-top: 0; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px 12px;
+    }
+    .span-2 { grid-column: 1 / -1; }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .span-2 { grid-column: auto; }
+    }
+
+    .form-hint {
+      margin: 0;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .form-hint strong {
+      font-weight: 600;
+      color: var(--ink-secondary);
+    }
+
+    .card-body.salud-layout {
+      grid-template-columns: minmax(0, 1fr) minmax(168px, 220px);
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .card-body.salud-layout { grid-template-columns: 1fr; }
+    }
+    .salud-main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+    .grid-metrics {
+      max-width: 260px;
+    }
+    .measure-aside {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fafafa;
+      font-size: 11px;
+      align-self: start;
+    }
+    .measure-aside summary {
+      padding: 7px 10px;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      list-style: none;
+      user-select: none;
+    }
+    .measure-aside summary::-webkit-details-marker { display: none; }
+    .measure-aside[open] summary {
+      border-bottom: 1px solid var(--border);
+    }
+    .measure-aside .measure-guide {
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+    }
+    .measure-aside .measure-guide img {
+      max-width: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 6px 8px 0;
+    }
+    .measure-aside .measure-guide figcaption {
+      padding: 4px 8px 8px;
+      font-size: 9px;
+      line-height: 1.35;
+      border: none;
+    }
+
+
+    .field { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      margin-bottom: 4px;
+    }
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      padding: 6px 9px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.35;
+      font-family: inherit;
+      color: var(--ink);
+      background: #fafafa;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .field input[type="number"],
+    .field input[type="date"],
+    .field input:not([type]),
+    .field input[type="text"],
+    .field input[type="email"],
+    .field input[type="tel"] {
+      min-height: 32px;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      outline: none;
+      border-color: var(--accent-ring);
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.06);
+    }
+    .field textarea { resize: vertical; min-height: 0; }
+    .field textarea[rows="2"] { min-height: 40px; }
+    .field textarea[rows="3"] { min-height: 52px; }
+    .field textarea[rows="4"] { min-height: 64px; }
+    .field + .field { margin-top: 8px; }
+    .grid-2 .field + .field,
+    .grid-3 .field + .field,
+    .card-body .field + .field { margin-top: 0; }
+
+    .measure-guide {
+      margin: 0;
+      overflow: hidden;
+    }
+    .measure-guide img {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: auto;
+    }
+    .measure-guide figcaption {
+      color: var(--muted);
+    }
+
+    .radio-group {
+      display: inline-flex;
+      align-items: stretch;
+      margin-top: 2px;
+      padding: 3px;
+      gap: 2px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f4f4f5;
+    }
+    .radio-option {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 52px;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .radio-option input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      pointer-events: none;
+    }
+    .radio-option:has(input:checked) {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
+    }
+    .radio-option:has(input:focus-visible) {
+      outline: 2px solid var(--accent-ring);
+      outline-offset: 1px;
+    }
+
+    table.freq {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    table.freq th {
+      text-align: left;
+      padding: 7px 10px;
+      background: #f9fafb;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    table.freq td {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.freq tr:last-child td { border-bottom: none; }
+    table.freq tr:nth-child(even) td { background: #fcfcfd; }
+    table.freq td:first-child { font-weight: 500; color: var(--ink); }
+    table.freq input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font: inherit;
+      padding: 4px 2px;
+    }
+    table.freq input:focus {
+      outline: 2px solid #e4e4e7;
+      border-radius: 4px;
+    }
+
+    .habits {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 640px) { .habits { grid-template-columns: 1fr; } }
+    .habits-box {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fafafa;
+    }
+    .habits-box h4 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-secondary);
+    }
+
+    .form-submit-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      margin: 4px 0 28px;
+      scroll-margin-top: 88px;
+    }
+    .submit-feedback {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ink-secondary);
+      text-align: left;
+      max-width: 48ch;
+      width: 100%;
+    }
+    .submit-feedback.ok {
+      color: #15803d;
+      font-weight: 500;
+      text-align: right;
+      max-width: 36ch;
+      margin-left: auto;
+    }
+    .submit-feedback.err {
+      color: #7f1d1d;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .submit-feedback.err strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: #991b1b;
+    }
+    .submit-feedback.err span {
+      display: block;
+      font-size: 12px;
+      color: #b91c1c;
+    }
+    .btn-send {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #16a34a;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(22, 163, 74, 0.2);
+      transition: background 0.15s ease;
+    }
+    .btn-send:hover { background: #15803d; }
+    .btn-send:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn-send-icon {
+      flex-shrink: 0;
+    }
+
+    .success-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(24, 24, 27, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.28s ease, visibility 0.28s ease;
+    }
+    .success-overlay.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-modal {
+      width: 100%;
+      max-width: 400px;
+      padding: 28px 24px 22px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 48px rgba(24, 24, 27, 0.18), 0 8px 16px rgba(24, 24, 27, 0.08);
+      text-align: center;
+      transform: translateY(12px) scale(0.97);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .success-overlay.is-open .success-modal {
+      transform: translateY(0) scale(1);
+    }
+    .success-modal-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #dcfce7 0%, #bbf7d0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #16a34a;
+    }
+    .success-modal-icon svg {
+      width: 28px;
+      height: 28px;
+    }
+    .success-modal h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .success-modal p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--ink-secondary);
+    }
+    .success-modal-actions {
+      margin-top: 22px;
+    }
+    .success-modal-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 140px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      background: #16a34a;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .success-modal-btn:hover {
+      background: #15803d;
+    }
+    body.success-modal-open {
+      overflow: hidden;
+    }
+
+    .form-gate-loading {
+      display: none;
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--ink-secondary);
+      font-size: 14px;
+    }
+    body.form-gate-pending .form-gate-loading {
+      display: block;
+    }
+    body.form-gate-pending .form-gate-blocked {
+      display: none !important;
+    }
+    .form-gate-loading::after {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 28px;
+      margin: 16px auto 0;
+      border: 2px solid var(--border);
+      border-top-color: var(--btn);
+      border-radius: 50%;
+      animation: gate-spin 0.7s linear infinite;
+    }
+    @keyframes gate-spin { to { transform: rotate(360deg); } }
+
+    .form-gate-blocked {
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 50vh;
+      padding: 24px 0 48px;
+    }
+    .form-gate-blocked[hidden] {
+      display: none !important;
+    }
+    body.form-blocked .form-gate-blocked {
+      display: flex !important;
+    }
+    body.form-blocked #form-gate-content {
+      display: none !important;
+    }
+    body.form-ready .form-gate-blocked,
+    body.form-ready .form-gate-loading {
+      display: none !important;
+    }
+    #form-gate-content[hidden] {
+      display: none !important;
+    }
+    .form-gate-card {
+      max-width: 420px;
+      width: 100%;
+      padding: 28px 24px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      text-align: center;
+    }
+    .form-gate-card .brand-logo {
+      width: 52px;
+      height: auto;
+      margin: 0 auto 16px;
+      display: block;
+      opacity: 0.9;
+    }
+    .form-gate-card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .form-gate-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--ink-secondary);
+    }
+    .form-gate-card .form-gate-hint {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--ink-secondary);
+    }
+
+    .form-locked-banner {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f4f4f5;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--ink-secondary);
+    }
+    .form-locked-banner strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    #anamnesis-form.form-locked input,
+    #anamnesis-form.form-locked textarea,
+    #anamnesis-form.form-locked select,
+    #anamnesis-form.form-locked button,
+    #anamnesis-form.form-locked .radio-option {
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    .mobile-nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 90;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--btn);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 16px rgba(24, 24, 27, 0.2);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        top: 52px;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+        z-index: 80;
+        box-shadow: 8px 0 32px rgba(0,0,0,.12);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; padding: 16px 16px 88px; }
+      .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; }
+    }
+
+    @media print {
+      .sidebar, .mobile-nav-toggle, .form-progress, .progress-desktop, .alert-dark .btn-pill-light, .form-submit-bar { display: none !important; }
+      .app { padding-top: 0; }
+      .main { margin-left: 0; max-width: none; padding: 0; }
+      .card { break-inside: avoid; box-shadow: none; page-break-inside: avoid; }
+      .field input, .field textarea { background: transparent; border: none; border-bottom: 1px solid #ccc; border-radius: 0; }
+    }
+  </style>
+</head>
+<body class="form-blocked form-gate-pending">
+  <div class="form-progress" id="form-progress-mobile" aria-hidden="false" hidden>
+    <div class="form-progress-meta">
+      <span><strong id="progress-step-label">Motivo</strong> · <span id="progress-step-num">1</span> de <span id="progress-total">9</span></span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="form-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar">
+      <div class="form-progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" hidden>
+      <div class="brand">
+        <img class="brand-logo" src="/logo-brand.png" alt="Haciendo Hábito" width="66" height="88" />
+      </div>
+      <nav class="nav" id="nav">
+        <p class="nav-label">Secciones</p>
+        <a href="#s-motivo" class="active"><span class="nav-dot"></span> Motivo</a>
+        <a href="#s-datos"><span class="nav-dot"></span> Datos personales</a>
+        <a href="#s-salud"><span class="nav-dot"></span> Salud y medidas</a>
+        <a href="#s-actividad"><span class="nav-dot"></span> Actividad física</a>
+        <a href="#s-habitos"><span class="nav-dot"></span> Hábitos alimentarios</a>
+        <a href="#s-registro"><span class="nav-dot"></span> Registro 24 h</a>
+        <a href="#s-frecuencia"><span class="nav-dot"></span> Frecuencia</a>
+        <a href="#s-vida"><span class="nav-dot"></span> Hábitos de vida</a>
+        <a href="#s-enviar"><span class="nav-dot"></span> Enviar</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="form-gate-loading" id="form-gate-loading" aria-live="polite" hidden>
+        Verificando tu enlace…
+      </div>
+
+      <div class="form-gate-blocked" id="form-gate-blocked" hidden>
+        <div class="form-gate-card" role="alert">
+          <img class="brand-logo" src="/logo-brand.png" alt="Haciendo Hábito" width="52" height="69" />
+          <h2>Formulario no disponible</h2>
+          <p>Contactese con el nutricionista y pidale un nuevo formulario.</p>
+        </div>
+      </div>
+
+      <div id="form-gate-content" hidden>
+      <header class="page-head">
+        <h1>Planificación nutricional</h1>
+        <p>Cuestionario inicial para conocer tus hábitos y armar un plan a tu medida. No hay respuestas correctas o incorrectas.</p>
+      </header>
+
+      <div class="progress-desktop" id="progress-desktop">
+        <div class="form-progress-meta">
+          <span>Progreso del cuestionario</span>
+          <span id="progress-pct-desktop">0%</span>
+        </div>
+        <div class="form-progress-track">
+          <div class="form-progress-fill" id="progress-fill-desktop"></div>
+        </div>
+      </div>
+
+      <div class="alert-dark">
+        <span class="alert-dark-icon" aria-hidden="true">ℹ</span>
+        <div class="alert-dark-body">
+          <h2>Completalo con calma</h2>
+          <p>Podés guardar el link y seguir después. Al terminar, usá el botón <strong>Enviar anamnesis</strong> al final del cuestionario.</p>
+        </div>
+        <button type="button" class="btn-pill-light" onclick="document.getElementById('s-motivo').scrollIntoView({behavior:'smooth'})">Comenzar</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="mini-card">
+          <div class="icon-3d"><img src="/icons/3dicons/kpi/clock.png" alt="" width="26" height="26" /></div>
+          <div class="mini-card-body">
+            <p class="mini-card-label">Tiempo estimado</p>
+            <p class="mini-card-value">25–35 minutos</p>
+            <div class="mini-bar"><div class="mini-bar-fill" style="width:35%"></div></div>
+            <p class="mini-card-hint">Sin apuro</p>
+          </div>
+        </div>
+        <div class="mini-card">
+          <div class="icon-3d"><img src="/icons/3dicons/kpi/notebook.png" alt="" width="26" height="26" /></div>
+          <div class="mini-card-body">
+            <p class="mini-card-label">Secciones</p>
+            <p class="mini-card-value">9 pasos</p>
+            <div class="mini-bar"><div class="mini-bar-fill" id="mini-bar-sections" style="width:12%"></div></div>
+            <p class="mini-card-hint" id="mini-hint-sections">Motivo</p>
+          </div>
+        </div>
+        <div class="mini-card">
+          <div class="icon-3d"><img src="/icons/3dicons/kpi/shield.png" alt="" width="26" height="26" /></div>
+          <div class="mini-card-body">
+            <p class="mini-card-label">Tu avance</p>
+            <p class="mini-card-value" id="mini-card-pct-label">0% completado</p>
+            <div class="mini-bar"><div class="mini-bar-fill" id="mini-bar-progress" style="width:0%"></div></div>
+            <p class="mini-card-hint">Se actualiza al completar</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="anamnesis-form" onsubmit="return false;">
+        <section class="card" id="s-motivo" data-step="1" data-step-title="Motivo">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 1</span>
+              <h3>Motivo de consulta</h3>
+            </div>
+            <p class="card-desc">¿Qué te gustaría lograr con el acompañamiento?</p>
+          </div>
+          <div class="card-body">
+            <div class="field">
+              <label for="motivo">Contanos tu objetivo</label>
+              <textarea id="motivo" name="motivo" rows="3" placeholder="Ej.: mejorar composición corporal, rendimiento deportivo, hábitos, digestión…"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-datos" data-step="2" data-step-title="Datos personales">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 2</span>
+              <h3>Datos personales</h3>
+            </div>
+            <p class="card-desc">Información de contacto y contexto de vida</p>
+          </div>
+          <div class="card-body">
+            <div class="grid-2">
+              <div class="field span-2"><label for="nombre">Nombre y apellido</label><input type="text" id="nombre" name="nombre" autocomplete="name" /></div>
+              <div class="field"><label for="nacimiento">Fecha de nacimiento</label><input type="date" id="nacimiento" name="nacimiento" /></div>
+              <div class="field"><label for="telefono">Teléfono / WhatsApp</label><input type="tel" id="telefono" name="telefono" autocomplete="tel" /></div>
+              <div class="field"><label for="email">Correo electrónico</label><input type="email" id="email" name="email" autocomplete="email" /></div>
+              <div class="field"><label for="profesion">Profesión / ocupación</label><input type="text" id="profesion" name="profesion" /></div>
+              <div class="field"><label for="horario">Horario de trabajo</label><input type="text" id="horario" name="horario" placeholder="Ej.: 9 a 18 h" /></div>
+              <div class="field"><label for="estado_civil">Estado civil</label><input type="text" id="estado_civil" name="estado_civil" /></div>
+              <div class="field"><label for="familia">Con quiénes convivís</label><input type="text" id="familia" name="familia" /></div>
+              <div class="field span-2"><label for="hobbies">Hobbies e intereses</label><input type="text" id="hobbies" name="hobbies" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-salud" data-step="3" data-step-title="Salud y medidas">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 3</span>
+              <h3>Salud y antropometría</h3>
+            </div>
+            <p class="card-desc">Antecedentes clínicos y medidas básicas</p>
+          </div>
+          <div class="card-body salud-layout">
+            <div class="salud-main">
+              <div class="grid-2 grid-metrics">
+                <div class="field"><label for="peso">Peso (kg)</label><input type="number" id="peso" name="peso" step="0.1" min="0" /></div>
+                <div class="field"><label for="altura">Altura (cm)</label><input type="number" id="altura" name="altura" step="1" min="0" /></div>
+              </div>
+              <p class="form-hint"><strong>Peso y altura</strong> los completás vos. <strong>Cintura, cadera y brazo</strong> los mide tu nutricionista en consulta.</p>
+              <div class="grid-2">
+                <div class="field"><label for="patologias">Patologías actuales</label><textarea id="patologias" name="patologias" rows="2" placeholder="Ninguna, si corresponde"></textarea></div>
+                <div class="field"><label for="medicacion">Medicación</label><textarea id="medicacion" name="medicacion" rows="2"></textarea></div>
+                <div class="field"><label for="suplementacion">Suplementación</label><textarea id="suplementacion" name="suplementacion" rows="2"></textarea></div>
+                <div class="field"><label for="sintomas">Sintomatología</label><textarea id="sintomas" name="sintomas" rows="2" placeholder="Digestiva u otra"></textarea></div>
+                <div class="field span-2"><label for="antecedentes">Antecedentes familiares</label><textarea id="antecedentes" name="antecedentes" rows="2"></textarea></div>
+                <div class="field">
+                  <label>Tabaquismo</label>
+                  <div class="radio-group" role="radiogroup" aria-label="Tabaquismo">
+                    <label class="radio-option"><input type="radio" name="tabaco" value="no" /> No</label>
+                    <label class="radio-option"><input type="radio" name="tabaco" value="si" /> Sí</label>
+                  </div>
+                </div>
+                <div class="field"><label for="laboratorio">Análisis de laboratorio (hasta 2 años)</label><textarea id="laboratorio" name="laboratorio" rows="2" placeholder="Adjuntos por mail o WhatsApp"></textarea></div>
+              </div>
+            </div>
+            <details class="measure-aside">
+              <summary>Guía medición de brazo</summary>
+              <figure class="measure-guide">
+                <img src="/forms/assets/anamnesis/arm-measure-guide.png" alt="Medición de circunferencia de brazo en tres pasos" width="301" height="167" loading="lazy" decoding="async" />
+                <figcaption>Largo hasta el codo, punto medio y circunferencia con cinta métrica.</figcaption>
+              </figure>
+            </details>
+          </div>
+        </section>
+
+        <section class="card" id="s-actividad" data-step="4" data-step-title="Actividad física">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 4</span>
+              <h3>Actividad física</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field">
+              <label>¿Practicás actividad física?</label>
+              <div class="radio-group" role="radiogroup" aria-label="Actividad física">
+                <label class="radio-option"><input type="radio" name="actividad" value="no" /> No</label>
+                <label class="radio-option"><input type="radio" name="actividad" value="si" /> Sí</label>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label for="actividad_tipo">Tipo</label><input type="text" id="actividad_tipo" name="actividad_tipo" /></div>
+              <div class="field"><label for="actividad_desde">¿Desde cuándo?</label><input type="text" id="actividad_desde" name="actividad_desde" /></div>
+              <div class="field"><label for="actividad_frecuencia">Frecuencia</label><input type="text" id="actividad_frecuencia" name="actividad_frecuencia" /></div>
+              <div class="field"><label for="actividad_duracion">Duración</label><input type="text" id="actividad_duracion" name="actividad_duracion" /></div>
+              <div class="field span-2"><label for="actividad_intensidad">Intensidad</label><input type="text" id="actividad_intensidad" name="actividad_intensidad" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-habitos" data-step="5" data-step-title="Hábitos alimentarios">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 5</span>
+              <h3>Hábitos alimentarios</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="grid-2">
+              <div class="field"><label for="primera_comida">Primera ingesta</label><input type="text" id="primera_comida" name="primera_comida" /></div>
+              <div class="field"><label for="comidas_dia">Comidas por día</label><input type="text" id="comidas_dia" name="comidas_dia" /></div>
+              <div class="field"><label for="comida_saltada">Comida que saltás</label><input type="text" id="comida_saltada" name="comida_saltada" /></div>
+              <div class="field"><label for="ultima_comida">Última ingesta</label><input type="text" id="ultima_comida" name="ultima_comida" /></div>
+              <div class="field"><label for="intolerancias">Intolerancias digestivas</label><textarea id="intolerancias" name="intolerancias" rows="2"></textarea></div>
+              <div class="field"><label for="preparaciones">7 preparaciones más frecuentes</label><textarea id="preparaciones" name="preparaciones" rows="2"></textarea></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-registro" data-step="6" data-step-title="Registro 24 h">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 6</span>
+              <h3>Registro alimentario (24 h)</h3>
+            </div>
+            <p class="card-desc">Todo lo que comiste ayer, con cantidades aproximadas</p>
+          </div>
+          <div class="card-body">
+            <div class="grid-2">
+              <div class="field"><label for="desayuno">Desayuno</label><textarea id="desayuno" name="desayuno" rows="2"></textarea></div>
+              <div class="field"><label for="almuerzo">Almuerzo</label><textarea id="almuerzo" name="almuerzo" rows="2"></textarea></div>
+              <div class="field"><label for="merienda">Merienda</label><textarea id="merienda" name="merienda" rows="2"></textarea></div>
+              <div class="field"><label for="cena">Cena</label><textarea id="cena" name="cena" rows="2"></textarea></div>
+              <div class="field span-2"><label for="colaciones">Colaciones</label><textarea id="colaciones" name="colaciones" rows="2"></textarea></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-frecuencia" data-step="7" data-step-title="Frecuencia alimentaria">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 7</span>
+              <h3>Frecuencia alimentaria</h3>
+            </div>
+            <p class="card-desc">Tipo · Frecuencia · Cantidad · X si no consumís</p>
+          </div>
+          <div class="card-body">
+          <div style="overflow-x:auto">
+            <table class="freq">
+              <thead>
+                <tr>
+                  <th style="width:26%">Alimento</th>
+                  <th style="width:30%">Tipo</th>
+                  <th style="width:22%">Frecuencia</th>
+                  <th style="width:22%">Cantidad</th>
+                </tr>
+              </thead>
+              <tbody id="freq-body"></tbody>
+            </table>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label for="verduras">Verduras frecuentes</label><textarea id="verduras" name="verduras" rows="2"></textarea></div>
+            <div class="field"><label for="frutas">Frutas frecuentes</label><textarea id="frutas" name="frutas" rows="2"></textarea></div>
+            <div class="field span-2"><label for="otros_alimentos">Otros alimentos relevantes</label><textarea id="otros_alimentos" name="otros_alimentos" rows="2"></textarea></div>
+          </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-vida" data-step="8" data-step-title="Hábitos de vida">
+          <div class="card-head">
+            <div class="card-head-line">
+              <span class="step-label">Paso 8</span>
+              <h3>Hábitos de vida</h3>
+            </div>
+            <p class="card-desc">Tres buenos y tres malos (no solo alimentación)</p>
+          </div>
+          <div class="card-body">
+          <div class="habits">
+            <div class="habits-box">
+              <h4>Buenos hábitos</h4>
+              <div class="field"><input type="text" name="bueno_1" placeholder="1" /></div>
+              <div class="field"><input type="text" name="bueno_2" placeholder="2" /></div>
+              <div class="field"><input type="text" name="bueno_3" placeholder="3" /></div>
+            </div>
+            <div class="habits-box">
+              <h4>Malos hábitos</h4>
+              <div class="field"><input type="text" name="malo_1" placeholder="1" /></div>
+              <div class="field"><input type="text" name="malo_2" placeholder="2" /></div>
+              <div class="field"><input type="text" name="malo_3" placeholder="3" /></div>
+            </div>
+          </div>
+          <div class="field"><label for="otras">Otras dudas o aclaraciones</label><textarea id="otras" name="otras" rows="2"></textarea></div>
+          </div>
+        </section>
+
+        <div class="form-submit-bar" id="s-enviar" data-step="9" data-step-title="Enviar">
+          <p class="submit-feedback" id="submit-feedback" hidden></p>
+          <button type="button" class="btn-send" id="btn-submit-anamnesis">
+            <svg class="btn-send-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22,2 15,22 11,13 2,9 22,2" />
+            </svg>
+            Enviar anamnesis
+          </button>
+        </div>
+      </form>
+      </div><!-- /form-gate-content -->
+    </main>
+  </div>
+
+  <button type="button" class="mobile-nav-toggle" id="menu-btn" aria-label="Menú" hidden>☰</button>
+
+  <div class="success-overlay" id="success-overlay" role="dialog" aria-modal="true" aria-labelledby="success-modal-title" hidden>
+    <div class="success-modal">
+      <div class="success-modal-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      </div>
+      <h2 id="success-modal-title">¡Anamnesis enviada!</h2>
+      <p>Tu nutricionista ya la recibió en la app y la va a revisar para armar tu plan.</p>
+      <div class="success-modal-actions">
+        <button type="button" class="success-modal-btn" id="success-modal-close">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/forms/anamnesis-public-config.js"></script>
+  <script>
+    const FOODS = [
+      'Leche de vaca', 'Yogur', 'Quesos', 'Infusiones (café, té, mate)',
+      'Azúcar', 'Miel', 'Edulcorante', 'Pan y panificados', 'Facturas o tortas', 'Galletas',
+      'Cereales (pastas, arroz, pizza…)', 'Frutas', 'Vegetales', 'Margarina', 'Manteca',
+      'Dulce de leche', 'Mermelada', 'Avena molida', 'Aceites', 'Pollo', 'Cerdo', 'Pescados',
+      'Carne de vaca', 'Huevo', 'Legumbres', 'Semillas', 'Frutos secos', 'Palta', 'Pasta de maní',
+      'Alcohol', 'Bebidas azucaradas', 'Golosinas',
+    ];
+    const tbody = document.getElementById('freq-body');
+    FOODS.forEach((name, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${name}</td>
+        <td><input type="text" name="freq_tipo_${i}" aria-label="Tipo ${name}" /></td>
+        <td><input type="text" name="freq_frec_${i}" aria-label="Frecuencia ${name}" placeholder="diario / X" /></td>
+        <td><input type="text" name="freq_cant_${i}" aria-label="Cantidad ${name}" /></td>`;
+      tbody.appendChild(tr);
+    });
+
+    const linkParams = new URLSearchParams(window.location.search);
+    const LINK_STUDENT_ID = (linkParams.get('student') || '').trim();
+    const LINK_TOKEN = (linkParams.get('token') || '').trim();
+    let FORM_GATE_OPEN = false;
+
+    function showFormGateLoading(show) {
+      document.getElementById('form-gate-loading').hidden = !show;
+      document.body.classList.toggle('form-gate-pending', show);
+    }
+
+    function showFormContent(show) {
+      document.getElementById('form-gate-content').hidden = !show;
+      document.getElementById('form-progress-mobile').hidden = !show;
+      document.getElementById('sidebar').hidden = !show;
+      document.getElementById('menu-btn').hidden = !show;
+      document.body.classList.toggle('form-blocked', !show);
+      document.body.classList.toggle('form-ready', show);
+      FORM_GATE_OPEN = show;
+      if (show && typeof setProgressUI === 'function') setProgressUI();
+    }
+
+    function blockFormAccess() {
+      showFormGateLoading(false);
+      showFormContent(false);
+      document.getElementById('form-gate-blocked').hidden = false;
+      document.body.classList.remove('form-gate-pending');
+      document.title = 'Enlace no disponible · Haciendo Hábito';
+    }
+
+    function openFormAccess() {
+      showFormGateLoading(false);
+      document.getElementById('form-gate-blocked').hidden = true;
+      document.body.classList.remove('form-gate-pending');
+      showFormContent(true);
+    }
+
+    function readInlineGateConfig() {
+      const c = window.HH_ANAMNESIS_PUBLIC;
+      if (c && c.supabaseUrl && c.anonKey) return c;
+      return null;
+    }
+
+    async function fetchGateConfig() {
+      const inline = readInlineGateConfig();
+      if (inline) return inline;
+      try {
+        const res = await fetch('/api/anamnesis-config');
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.supabaseUrl || !data.anonKey) return null;
+        return data;
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchStatusFromApi(qs) {
+      const res = await fetch(`/api/anamnesis-status?${qs.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    }
+
+    async function fetchStatusFromEdge(qs, cfg) {
+      const url = `${cfg.supabaseUrl}/functions/v1/anamnesis-public-status?${qs.toString()}`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: cfg.anonKey,
+          Authorization: `Bearer ${cfg.anonKey}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    }
+
+    async function resolveLinkAccess() {
+      const qs = new URLSearchParams({ student: LINK_STUDENT_ID });
+      if (LINK_TOKEN) qs.set('token', LINK_TOKEN);
+
+      const cfg = await fetchGateConfig();
+      if (cfg) {
+        const edge = await fetchStatusFromEdge(qs, cfg);
+        if (edge.data.accessible === true) return { accessible: true };
+        if (edge.data.accessible === false) return { accessible: false };
+      }
+
+      const api = await fetchStatusFromApi(qs);
+      if (api.data.accessible === true) return { accessible: true };
+      if (api.data.accessible === false) return { accessible: false };
+      if (api.data.submitted) return { accessible: false };
+      if (api.res.status === 403 && api.data.error === 'token_invalido') return { accessible: false };
+
+      return { accessible: false };
+    }
+
+    async function submitViaEdge(payload, cfg) {
+      const res = await fetch(`${cfg.supabaseUrl}/functions/v1/submit-public-anamnesis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: cfg.anonKey,
+          Authorization: `Bearer ${cfg.anonKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const rawText = await res.text().catch(() => '');
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
+      return { res, data, rawText };
+    }
+
+    async function initFormGate() {
+      showFormGateLoading(true);
+      showFormContent(false);
+      document.getElementById('form-gate-blocked').hidden = true;
+
+      if (!LINK_STUDENT_ID) {
+        blockFormAccess();
+        return;
+      }
+
+      try {
+        const gate = await resolveLinkAccess();
+        if (gate.accessible) {
+          openFormAccess();
+          return;
+        }
+        blockFormAccess();
+      } catch {
+        blockFormAccess();
+      }
+    }
+
+    void initFormGate();
+
+    function val(name) {
+      const el = document.querySelector(`[name="${name}"]`);
+      if (!el) return '';
+      if (el.type === 'radio') {
+        const checked = document.querySelector(`[name="${name}"]:checked`);
+        return checked ? checked.value : '';
+      }
+      return (el.value || '').trim();
+    }
+
+    function buildPayload() {
+      const foodFrequency = FOODS.map((food, i) => ({
+        food,
+        tipo: val(`freq_tipo_${i}`),
+        frecuencia: val(`freq_frec_${i}`),
+        cantidad: val(`freq_cant_${i}`),
+      }));
+      const verduras = val('verduras');
+      const frutas = val('frutas');
+      const frutasVerduras = [verduras, frutas].filter(Boolean).join('\n');
+
+      return {
+        schemaVersion: 1,
+        motivoConsulta: val('motivo'),
+        profesionOcupacion: val('profesion'),
+        horarioTrabajo: val('horario'),
+        estadoCivil: val('estado_civil'),
+        composicionFamiliar: val('familia'),
+        hobbies: val('hobbies'),
+        pesoKg: val('peso'),
+        alturaCm: val('altura'),
+        patologias: val('patologias'),
+        medicacion: val('medicacion'),
+        suplementacion: val('suplementacion'),
+        sintomatologia: val('sintomas'),
+        antecedentesFamiliares: val('antecedentes'),
+        tabaquismoSiNo: val('tabaco'),
+        otrosEstudios: val('laboratorio'),
+        actividadFisicaAfirmativo: val('actividad'),
+        actividadFisicaCual: val('actividad_tipo'),
+        actividadHaceCuanto: val('actividad_desde'),
+        actividadFrecuencia: val('actividad_frecuencia'),
+        actividadDuracion: val('actividad_duracion'),
+        actividadIntensidad: val('actividad_intensidad'),
+        horarioPrimeraIngesta: val('primera_comida'),
+        comidasAlDia: val('comidas_dia'),
+        comidasQueSaltea: val('comida_saltada'),
+        horarioUltimaIngesta: val('ultima_comida'),
+        intolerancias: val('intolerancias'),
+        sietePreparacionesMasComunes: val('preparaciones'),
+        registro24hDesayuno: val('desayuno'),
+        registro24hAlmuerzo: val('almuerzo'),
+        registro24hMerienda: val('merienda'),
+        registro24hCena: val('cena'),
+        registro24hColaciones: val('colaciones'),
+        foodFrequency,
+        frutasVerdurasPreferidas: frutasVerduras,
+        otrosAlimentosRelevantes: val('otros_alimentos'),
+        habitosBuenos: [val('bueno_1'), val('bueno_2'), val('bueno_3')],
+        habitosMalos: [val('malo_1'), val('malo_2'), val('malo_3')],
+        aclaracionesFinales: val('otras'),
+      };
+    }
+
+    const SUBMIT_ERROR_LABELS = {
+      token_requerido: 'Falta el enlace personalizado',
+      token_invalido: 'Enlace no válido',
+      vinculo_requerido: 'Falta identificar tu ficha',
+      alumno_no_encontrado: 'No encontramos tu ficha',
+      anamnesis_ya_enviada: 'Ya enviaste este formulario',
+      sin_nutricionista: 'No hay nutricionista asignado',
+      configuracion_incompleta: 'Envío no configurado',
+      no_guardado: 'No se pudo guardar',
+      respuesta_invalida: 'Error del servidor',
+      error_conexion: 'Sin conexión',
+      payload_requerido: 'Datos incompletos',
+    };
+
+    const SUBMIT_ERROR_HINTS = {
+      token_requerido:
+        'Abrí el formulario desde el link completo que te envió tu nutricionista (WhatsApp o mail), no solo la página del sitio.',
+      token_invalido:
+        'Pedile a tu nutricionista que genere un link nuevo: Nutrición → tu ficha → Historia → Copiar link de anamnesis.',
+      vinculo_requerido:
+        'Completá tu correo en Datos personales o usá el link personalizado que te envió tu nutricionista.',
+      alumno_no_encontrado:
+        'El email no coincide con nuestra base o el link es incorrecto. Pedile a tu nutricionista el link actualizado.',
+      sin_nutricionista:
+        'Tu nutricionista debe contactar soporte técnico para habilitar el envío.',
+      configuracion_incompleta:
+        'El equipo técnico debe revisar la configuración del formulario en el servidor.',
+      no_guardado: 'Probá de nuevo en unos minutos. Si sigue fallando, avisale a tu nutricionista.',
+      respuesta_invalida:
+        'Abrí el formulario desde el dominio de Haciendo Hábito con el link que te enviaron, no una copia guardada en el celular.',
+      error_conexion: 'Verificá Wi‑Fi o datos móviles e intentá otra vez.',
+    };
+
+    function humanizeSubmitError(res, data, rawText) {
+      const code = data && data.error ? String(data.error) : '';
+      const serverMessage = data && data.message ? String(data.message).trim() : '';
+      if (serverMessage && !serverMessage.includes('column') && !serverMessage.includes('PGRST')) {
+        return {
+          title: (code && SUBMIT_ERROR_LABELS[code]) || 'No se pudo enviar',
+          detail: serverMessage,
+        };
+      }
+      if (code && SUBMIT_ERROR_HINTS[code]) {
+        return {
+          title: SUBMIT_ERROR_LABELS[code] || 'No se pudo enviar',
+          detail: SUBMIT_ERROR_HINTS[code],
+        };
+      }
+      if (rawText && /^\s*</.test(rawText)) {
+        return {
+          title: 'No se pudo enviar',
+          detail:
+            'El servidor no respondió bien. Usá el link completo que te envió tu nutricionista (desde WhatsApp o mail).',
+        };
+      }
+      if (res.status === 404) {
+        return {
+          title: 'Servicio no disponible',
+          detail:
+            'El envío del formulario no está activo en esta dirección. Pedile a tu nutricionista el link desde la app.',
+        };
+      }
+      if (res.status === 403) {
+        return {
+          title: 'No autorizado',
+          detail: 'El link puede estar incompleto. Pedile a tu nutricionista que te reenvíe el link.',
+        };
+      }
+      if (res.status >= 500) {
+        return {
+          title: 'Error del servidor',
+          detail: 'Probá de nuevo en unos minutos o escribile a tu nutricionista.',
+        };
+      }
+      return {
+        title: 'No se pudo enviar',
+        detail: code ? `Código: ${code}. Probá de nuevo o contactá a tu nutricionista.` : 'Probá de nuevo en unos minutos.',
+      };
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showSubmitFeedback(text, type, detail) {
+      const el = document.getElementById('submit-feedback');
+      el.hidden = false;
+      el.className = 'submit-feedback ' + (type || '');
+      if (type === 'err' && detail) {
+        el.innerHTML =
+          '<strong>' + escHtml(text) + '</strong><span>' + escHtml(detail) + '</span>';
+      } else {
+        el.textContent = text;
+      }
+    }
+
+    function showSuccessModal() {
+      const overlay = document.getElementById('success-overlay');
+      overlay.hidden = false;
+      requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
+      document.body.classList.add('success-modal-open');
+      document.getElementById('success-modal-close').focus();
+    }
+
+    function hideSuccessModal() {
+      const overlay = document.getElementById('success-overlay');
+      overlay.classList.remove('is-open');
+      document.body.classList.remove('success-modal-open');
+      window.setTimeout(() => {
+        overlay.hidden = true;
+      }, 280);
+    }
+
+    document.getElementById('success-modal-close').addEventListener('click', hideSuccessModal);
+    document.getElementById('success-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'success-overlay') hideSuccessModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('success-overlay').classList.contains('is-open')) {
+        hideSuccessModal();
+      }
+    });
+
+    async function submitAnamnesis() {
+      if (!FORM_GATE_OPEN) return;
+
+      const btn = document.getElementById('btn-submit-anamnesis');
+      const email = val('email');
+      const nombre = val('nombre');
+
+      if (!LINK_STUDENT_ID) {
+        blockFormAccess();
+        return;
+      }
+
+      btn.disabled = true;
+      showSubmitFeedback('Enviando…', '');
+
+      const submitBody = {
+        studentId: LINK_STUDENT_ID || undefined,
+        token: LINK_TOKEN || undefined,
+        fullName: nombre,
+        email,
+        phone: val('telefono'),
+        payload: buildPayload(),
+      };
+
+      try {
+        let res;
+        let data = {};
+        let rawText = '';
+
+        const cfg = await fetchGateConfig();
+        if (cfg) {
+          const edge = await submitViaEdge(submitBody, cfg);
+          res = edge.res;
+          data = edge.data;
+          rawText = edge.rawText;
+        }
+
+        if (!cfg || (!res.ok && !data.ok)) {
+          const apiRes = await fetch('/api/anamnesis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submitBody),
+          });
+          rawText = await apiRes.text().catch(() => '');
+          res = apiRes;
+          try {
+            data = rawText ? JSON.parse(rawText) : {};
+          } catch {
+            data = {};
+          }
+        }
+
+        if (!res.ok || !data.ok) {
+          if (data.error === 'anamnesis_ya_enviada' || res.status === 409) {
+            blockFormAccess();
+            return;
+          }
+          const err = humanizeSubmitError(res, data, rawText);
+          showSubmitFeedback(err.title, 'err', err.detail);
+          btn.disabled = false;
+          return;
+        }
+        document.getElementById('submit-feedback').hidden = true;
+        btn.textContent = 'Enviado';
+        btn.disabled = true;
+        document.getElementById('anamnesis-form').querySelectorAll('input, textarea, select').forEach((el) => {
+          el.disabled = true;
+        });
+        showSuccessModal();
+      } catch {
+        showSubmitFeedback(
+          'Sin conexión',
+          'err',
+          'No llegamos al servidor. Verificá internet o probá desde el link que te envió tu nutricionista.',
+        );
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-submit-anamnesis').addEventListener('click', submitAnamnesis);
+
+    const sidebar = document.getElementById('sidebar');
+    document.getElementById('menu-btn').addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    const navLinks = document.querySelectorAll('.nav a');
+    const stepCards = [...document.querySelectorAll('#anamnesis-form [data-step]')];
+    const TOTAL_STEPS = stepCards.length;
+    const progressBar = document.getElementById('progress-bar');
+    const fillEls = {
+      mobile: document.getElementById('progress-fill'),
+      desktop: document.getElementById('progress-fill-desktop'),
+      mini: document.getElementById('mini-bar-progress'),
+      miniSections: document.getElementById('mini-bar-sections'),
+    };
+
+    function fieldFillPct() {
+      const form = document.getElementById('anamnesis-form');
+      const radioGroupsDone = new Set();
+      let filled = 0;
+      let total = 0;
+      form.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach((f) => {
+        if (f.disabled) return;
+        if (f.type === 'radio') {
+          const name = f.name;
+          if (!name || radioGroupsDone.has(name)) return;
+          radioGroupsDone.add(name);
+          total += 1;
+          if (form.querySelector(`input[name="${CSS.escape(name)}"]:checked`)) filled += 1;
+          return;
+        }
+        total += 1;
+        const v = (f.value || '').trim();
+        if (f.type === 'checkbox') {
+          if (f.checked) filled += 1;
+        } else if (v) {
+          filled += 1;
+        }
+      });
+      return total ? (filled / total) * 100 : 0;
+    }
+
+    function sectionProgressPct() {
+      return Math.round(((activeIndex + 1) / TOTAL_STEPS) * 100);
+    }
+
+    let activeIndex = 0;
+
+    function setProgressUI() {
+      if (!FORM_GATE_OPEN) return;
+
+      const stepPct = sectionProgressPct();
+      const fieldsPct = Math.min(100, Math.round(fieldFillPct()));
+      const stepW = stepPct + '%';
+      const fieldsW = fieldsPct + '%';
+      const title = stepCards[activeIndex]?.dataset.stepTitle || '';
+
+      fillEls.mobile.style.width = stepW;
+      fillEls.desktop.style.width = stepW;
+      fillEls.mini.style.width = fieldsW;
+      fillEls.miniSections.style.width = stepW;
+
+      document.getElementById('progress-pct').textContent = stepW;
+      document.getElementById('progress-pct-desktop').textContent = stepW;
+      document.getElementById('progress-step-num').textContent = String(activeIndex + 1);
+      document.getElementById('progress-step-label').textContent = title;
+      document.getElementById('mini-hint-sections').textContent = title;
+      document.getElementById('mini-card-pct-label').textContent = fieldsPct + '% completado';
+      progressBar.setAttribute('aria-valuenow', String(stepPct));
+      progressBar.setAttribute('aria-valuetext', `Paso ${activeIndex + 1} de ${TOTAL_STEPS}, ${fieldsPct}% de campos`);
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.id;
+          const idx = stepCards.findIndex((c) => c.id === id);
+          if (idx >= 0) activeIndex = idx;
+          navLinks.forEach((a) => {
+            a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+          });
+          setProgressUI();
+        });
+      },
+      { rootMargin: '-28% 0px -52% 0px', threshold: 0 },
+    );
+    stepCards.forEach((s) => io.observe(s));
+
+    document.getElementById('anamnesis-form').addEventListener('input', setProgressUI);
+    document.getElementById('anamnesis-form').addEventListener('change', setProgressUI);
+
+    navLinks.forEach((a) => {
+      a.addEventListener('click', () => {
+        if (window.innerWidth <= 900) sidebar.classList.remove('open');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -10,9 +10,11 @@ import toast from 'react-hot-toast'
 
 interface Props {
   studentId: string
+  /** Incrementar tras «Rehacer anamnesis» para recargar el formulario vacío. */
+  reloadKey?: number
 }
 
-export function NutritionAnamnesisSection({ studentId }: Props) {
+export function NutritionAnamnesisSection({ studentId, reloadKey = 0 }: Props) {
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -22,6 +24,7 @@ export function NutritionAnamnesisSection({ studentId }: Props) {
 
   useEffect(() => {
     if (!user || !studentId) return
+    if (debounced.current) window.clearTimeout(debounced.current)
     ;(async () => {
       setLoading(true)
       const { data, error } = await supabase
@@ -38,7 +41,7 @@ export function NutritionAnamnesisSection({ studentId }: Props) {
       setPayload(mergeAnamnesisPayload(row?.payload))
       setLoading(false)
     })()
-  }, [user, studentId])
+  }, [user, studentId, reloadKey])
 
   useEffect(() => {
     persistRef.current = (next: NutritionAnamnesisPayloadV1) => {

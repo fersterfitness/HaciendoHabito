@@ -36,6 +36,10 @@ export async function formatFunctionsInvokeError(err: unknown): Promise<string> 
         }
         if (j.error === 'perfil_no_legible' && j.message)
           return `No se pudo leer tu perfil: ${j.message}`
+        if (j.error === 'anamnesis_ya_recibida' && j.message) return j.message
+        if (j.error === 'alumno_no_encontrado' && j.message) return j.message
+        if (j.error === 'no_guardado' && j.message) return j.message
+        if (j.error === 'sin_permiso' && j.message) return j.message
         if (j.message) return j.message
         if (j.error === 'fdc_error' && typeof j.message === 'string') return `USDA no respondió: ${j.message}`
         if (j.error) return j.error
@@ -44,7 +48,7 @@ export async function formatFunctionsInvokeError(err: unknown): Promise<string> 
       /* usar fallback abajo */
     }
     if (res.status === 404)
-      return 'La función food-nutrition-lookup no está desplegada en este proyecto. Deploy con: supabase functions deploy food-nutrition-lookup'
+      return 'La función no está desplegada en este proyecto. Pedí deploy de la Edge Function en Supabase.'
     return `Error del servicio (${res.status}). Si acabás de subir la función, esperá unos segundos y reintentá.`
   }
   if (err instanceof FunctionsFetchError) {
