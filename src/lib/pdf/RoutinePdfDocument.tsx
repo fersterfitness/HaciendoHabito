@@ -9,6 +9,7 @@ import {
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
 import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
+import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -677,7 +678,8 @@ const s = StyleSheet.create({
     padding: 8,
     marginBottom: 6,
   },
-  warmupText: { fontSize: 7.5, color: C.body, lineHeight: 1.5 },
+  warmupTitle: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.heading, marginBottom: 3 },
+  warmupLine: { fontSize: 7.5, color: C.body, lineHeight: 1.45, marginBottom: 2 },
 
   // ── Tabla ejercicios ──
   table: { width: '100%' },
@@ -963,7 +965,12 @@ function DaySection({
       </View>
       {day.warmup_notes ? (
         <View style={s.warmupBox}>
-          <Text style={s.warmupText}>Entrada en calor: {clampPdfLine(day.warmup_notes, 800)}</Text>
+          <Text style={s.warmupTitle}>Entrada en calor</Text>
+          {formatWarmupDisplayLines(day.warmup_notes).map((line, li) => (
+            <Text key={li} style={s.warmupLine}>
+              {clampPdfLine(line, 200)}
+            </Text>
+          ))}
         </View>
       ) : null}
       <ExerciseTable exercises={day.exercises} rmByExerciseId={rmByExerciseId} />

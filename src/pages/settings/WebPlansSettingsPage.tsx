@@ -43,6 +43,10 @@ import {
   segmentRankInVisibleList,
   slugOrdersEqual,
 } from '@/lib/webPlansSortOrder'
+import {
+  webPlanFullSubcategoryLabel,
+  webPlanSegmentMismatchHint,
+} from '@/lib/webPlanFullSubcategory'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -1116,8 +1120,7 @@ export function WebPlansSettingsPage() {
           <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
             El badge <strong className="text-ink-primary">Orden</strong> es por modalidad (p. ej. los dos de Entrenamiento pueden ser Orden 1 y Orden 2 aunque en la lista global estén en la posición 3 y 4). Esa lista global define el orden relativo en /form. Arrastrá o Subir/Bajar y se guarda solo. También podés usar{' '}
             <strong className="text-ink-primary">Guardar ofertas</strong> para el resto de campos en{' '}
-            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. Las filas marcadas «Catálogo /form» no se pueden
-            borrar.
+            <code className="rounded bg-surface-elevated px-1 py-0.5 font-mono text-xs">web_plans</code>. «Catálogo /form» indica que la oferta está visible en el formulario (checkbox «Mostrar en /form»). Las 7 ofertas base del código no se pueden borrar.
             {hiddenVariantCount > 0 ? (
               <>
                 {' '}
@@ -1307,11 +1310,25 @@ export function WebPlansSettingsPage() {
                                 : 'Full'}
                       </span>
                     </span>
-                    {plan.isCatalogCanonical ? (
-                      <span className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary">
+                    {plan.show_in_public_intake ? (
+                      <span
+                        className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary"
+                        title={
+                          plan.isCatalogCanonical
+                            ? 'Oferta base del catálogo (también tiene defaults en código)'
+                            : 'Oferta en web_plans visible en /form'
+                        }
+                      >
                         Catálogo /form
                       </span>
-                    ) : null}
+                    ) : (
+                      <span
+                        className="shrink-0 rounded-md border border-surface-border px-2 py-0.5 text-[10px] font-medium text-ink-muted"
+                        title="Activá «Mostrar en /form» para publicarla"
+                      >
+                        Oculta en /form
+                      </span>
+                    )}
                     <span
                       className={cn(
                         'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
@@ -1326,8 +1343,18 @@ export function WebPlansSettingsPage() {
                             ? 'Psicólogo'
                             : plan.catalog_segment === 'full_trio'
                               ? 'Servicio integral'
-                              : 'Plan full'}
+                              : 'Servicio dual'}
                     </span>
+                    {plan.catalog_segment === 'full' ? (
+                      (() => {
+                        const sub = webPlanFullSubcategoryLabel(plan.slug, plan.title)
+                        return sub ? (
+                          <span className="shrink-0 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300">
+                            {sub}
+                          </span>
+                        ) : null
+                      })()
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
@@ -1465,6 +1492,14 @@ export function WebPlansSettingsPage() {
                       <strong className="text-ink-secondary">Par profesional (full)</strong>: entreno + nutrición o entreno + psicólogo.{' '}
                       <strong className="text-ink-secondary">Entrenamiento / Nutrición / Psicólogo</strong>: modalidades individuales.
                     </p>
+                    {(() => {
+                      const hint = webPlanSegmentMismatchHint(plan.catalog_segment, plan.slug, plan.title)
+                      return hint ? (
+                        <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
+                          {hint}
+                        </p>
+                      ) : null
+                    })()}
                   </div>
                 </FieldGroup>
 

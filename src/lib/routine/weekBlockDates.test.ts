@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cascadeWeekDatesFromBlock, weekEndFromStart } from './weekBlockDates'
+import { cascadeWeekDatesFromBlock, initialDatesForNewBlock, weekEndFromStart } from './weekBlockDates'
 
 describe('weekBlockDates', () => {
   it('weekEndFromStart adds 6 days', () => {
@@ -18,5 +18,18 @@ describe('weekBlockDates', () => {
     expect(patches[1].start_date).toBe('2024-09-23')
     expect(patches[1].end_date).toBe('2024-09-29')
     expect(patches[2].start_date).toBe('2024-09-30')
+  })
+
+  it('initialDatesForNewBlock uses routine start for first week', () => {
+    const d = initialDatesForNewBlock([], '2024-09-16')
+    expect(d).toEqual({ start_date: '2024-09-16', end_date: '2024-09-22' })
+  })
+
+  it('initialDatesForNewBlock chains after last block end', () => {
+    const d = initialDatesForNewBlock(
+      [{ sort_order: 0, end_date: '2024-09-22' }],
+      '2024-09-16',
+    )
+    expect(d).toEqual({ start_date: '2024-09-23', end_date: '2024-09-29' })
   })
 })

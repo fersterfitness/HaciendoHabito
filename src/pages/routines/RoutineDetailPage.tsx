@@ -4,6 +4,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
+  Table2, Droplets,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -38,12 +39,14 @@ import {
   type StudentRmLookup,
 } from '@/lib/routine/studentRmLookup'
 import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
-import { cascadeWeekDatesFromBlock } from '@/lib/routine/weekBlockDates'
+import { cascadeWeekDatesFromBlock, initialDatesForNewBlock } from '@/lib/routine/weekBlockDates'
 import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
+import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
+import { coachMessageForWeekBlock } from '@/lib/routine/menstrualCyclePlanning'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
-import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup } from '@/types/database'
+import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle } from '@/types/database'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -167,6 +170,8 @@ export function RoutineDetailPage() {
   const loadRmLookup = useCallback(async (studentId: string) => {
     setRmLookup(await fetchStudentRmLookup(studentId))
   }, [])
+  const [showProgressionGuide, setShowProgressionGuide] = useState(false)
+  const [lastMenstrualCycle, setLastMenstrualCycle] = useState<MenstrualCycle | null>(null)
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
   const [blueprintName, setBlueprintName] = useState('')
   const [blueprintDesc, setBlueprintDesc] = useState('')
@@ -190,8 +195,22 @@ export function RoutineDetailPage() {
       const routineData = routineRes.data as unknown as RoutineFull | null
       if (routineData?.student_id) {
         await loadRmLookup(routineData.student_id)
+        const student = routineData.student as Student | undefined
+        if (student?.gender === 'F') {
+          const { data: cycleRow } = await supabase
+            .from('menstrual_cycles')
+            .select('*')
+            .eq('student_id', routineData.student_id)
+            .order('cycle_start_date', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          setLastMenstrualCycle((cycleRow as MenstrualCycle) ?? null)
+        } else {
+          setLastMenstrualCycle(null)
+        }
       } else {
         setRmLookup(emptyRmLookup())
+        setLastMenstrualCycle(null)
       }
       if (blocksRes.data) {
         const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
@@ -335,14 +354,23 @@ export function RoutineDetailPage() {
 
   async function addBlock() {
     if (!id) return
+    const dates = initialDatesForNewBlock(blocks, routine?.start_date)
     const { data, error } = await supabase
       .from('routine_blocks')
-      .insert({ routine_id: id, name: `Semana ${blocks.length + 1}`, sort_order: blocks.length })
+      .insert({
+        routine_id: id,
+        name: `Semana ${blocks.length + 1}`,
+        sort_order: blocks.length,
+        ...(dates ?? {}),
+      })
       .select().single()
     if (error) { toast.error(error.message); return }
     const newBlock = { ...data, days: [] } as BlockWithDays
     setBlocks((prev) => [...prev, newBlock])
     setExpandedBlocks((prev) => new Set([...prev, data.id]))
+    if (dates) {
+      toast.success('Fechas de la semana calculadas según el inicio de la rutina', { duration: 2500 })
+    }
   }
 
   async function updateBlock(blockId: string, patch: Partial<RoutineBlock>) {
@@ -858,6 +886,16 @@ export function RoutineDetailPage() {
         actions={
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
+              onClick={() => setShowProgressionGuide(true)}
+              disabled={blocks.length === 0}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
+              title="Guía de progresión semanal (solo vos)"
+            >
+              <Table2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Guía</span>
+            </button>
+            <button
               onClick={() => navigate(`/routines/${id}/edit`)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
               title="Editar datos de la rutina"
@@ -1012,12 +1050,28 @@ export function RoutineDetailPage() {
         </div>
 
         {/* Editor de bloques */}
+        {lastMenstrualCycle && routine.student?.gender === 'F' ? (
+          <p className="text-[11px] text-ink-muted">
+            Ciclo menstrual: último inicio {formatDate(lastMenstrualCycle.cycle_start_date)} · {lastMenstrualCycle.cycle_length} días. Los avisos por semana usan esas fechas y las del bloque.
+          </p>
+        ) : null}
+
         {blocks.map((block, blockStripeIndex) => (
           <BlockCard
             key={block.id}
             stripeIndex={blockStripeIndex}
             block={block}
             allBlocks={blocks}
+            cycleCoachMessage={
+              lastMenstrualCycle && routine.student?.gender === 'F'
+                ? coachMessageForWeekBlock(
+                    lastMenstrualCycle.cycle_start_date,
+                    lastMenstrualCycle.cycle_length,
+                    block.start_date,
+                    block.end_date,
+                  )
+                : null
+            }
             expanded={expandedBlocks.has(block.id)}
             expandedDays={expandedDays}
             showCopyMenu={copyMenuBlock === block.id}
@@ -1135,6 +1189,13 @@ export function RoutineDetailPage() {
         </div>
       )}
 
+      <RoutineProgressionGuidePanel
+        open={showProgressionGuide}
+        onClose={() => setShowProgressionGuide(false)}
+        routineName={routine.name}
+        blocks={blocks}
+      />
+
       <ConfirmDialog
         open={showDelete}
         onClose={() => setShowDelete(false)}
@@ -1151,7 +1212,7 @@ export function RoutineDetailPage() {
 // ─── BlockCard ────────────────────────────────────────────────────────────────
 
 function BlockCard({
-  block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0,
+  block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0, cycleCoachMessage = null,
   onToggle, onToggleDay, onUpdateBlock, onCascadeWeekStart, onDeleteBlock, onMoveBlock, onAddDay,
   onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
@@ -1159,6 +1220,8 @@ function BlockCard({
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   /** Color de fondo alternado por semana (0 = gris, 1 = naranja suave). */
   stripeIndex?: number
+  /** Aviso de fase menstrual para esta semana (solo entrenador). */
+  cycleCoachMessage?: string | null
   expandedDays: Set<string>; showCopyMenu: boolean
   onToggle: () => void; onToggleDay: (id: string) => void
   onUpdateBlock: (patch: Partial<RoutineBlock>) => void
@@ -1177,7 +1240,13 @@ function BlockCard({
   const [showDelete, setShowDelete] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [name, setName] = useState(block.name)
+  const [blockNotes, setBlockNotes] = useState(block.notes ?? '')
+  const saveBlockNotes = useDebounce(onUpdateBlock, 600)
   const otherBlocks = allBlocks.filter((b) => b.id !== block.id)
+
+  useEffect(() => {
+    setBlockNotes(block.notes ?? '')
+  }, [block.id, block.notes])
 
   return (
     <div
@@ -1222,6 +1291,11 @@ function BlockCard({
                 {block.end_date ? new Date(block.end_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
               </p>
             )}
+            {cycleCoachMessage ? (
+              <p className="text-[10px] font-medium text-violet-700 dark:text-violet-300 mt-0.5 line-clamp-2">
+                {cycleCoachMessage}
+              </p>
+            ) : null}
           </div>
         )}
 
@@ -1274,6 +1348,15 @@ function BlockCard({
 
       {expanded && (
         <div className="px-4 pb-4 space-y-3">
+          {cycleCoachMessage ? (
+            <div
+              className="flex gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-2.5 text-xs text-violet-900 dark:text-violet-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Droplets className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+              <p className="font-medium leading-snug">{cycleCoachMessage}</p>
+            </div>
+          ) : null}
           {/* Fechas del bloque */}
           <div className="grid grid-cols-2 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
             <div>
@@ -1314,8 +1397,12 @@ function BlockCard({
             <Textarea
               placeholder="Ej: Intermitente HIIT corto 20x20'' x 4 vueltas. Descanso entre vueltas: 3'."
               rows={5}
-              value={block.notes ?? ''}
-              onChange={(e) => onUpdateBlock({ notes: e.target.value || null })}
+              value={blockNotes}
+              onChange={(e) => {
+                const v = e.target.value
+                setBlockNotes(v)
+                saveBlockNotes({ notes: v || null })
+              }}
               className="min-h-[6.5rem] resize-y text-xs leading-relaxed whitespace-pre-wrap"
             />
           </div>
@@ -1793,7 +1880,12 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
   // Debounced save — fires 600ms after last keystroke
   const save = useDebounce(onUpdate, 600)
   const hasPercent = percent1rm.trim().length > 0
-  const suggestedWeight = rmKg && hasPercent ? Math.round((rmKg * Number(percent1rm) / 100) * 10) / 10 : null
+  const pctNum = hasPercent ? Number(percent1rm) : NaN
+  const suggestedWeight =
+    rmKg && hasPercent && !Number.isNaN(pctNum)
+      ? Math.round(rmKg * (pctNum / 100) * 10) / 10
+      : null
+  const isMultiarticular = isMultiarticularExercise(exercise.exercise)
 
   /** Meta persistida en `technical_notes` (incl. circuitNote del circuito); no usar solo `initialMeta` del primer render. */
   function saveMeta(nextMeta: ExerciseMeta, overrides?: Partial<RoutineExercise>) {
@@ -1976,41 +2068,55 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
             onChange={(e) => {
               const v = e.target.value
               setPercent1rm(v)
-              const pctNum = Number(v)
+              const n = Number(v)
               const suggested =
-                rmKg &&
-                v.trim().length > 0 &&
-                !Number.isNaN(pctNum)
-                  ? Math.round(rmKg * (pctNum / 100) * 10) / 10
+                rmKg && v.trim().length > 0 && !Number.isNaN(n)
+                  ? Math.round(rmKg * (n / 100) * 10) / 10
                   : null
-              saveMeta(
-                {
+              if (isMultiarticular && suggested !== null) {
+                setWeight(suggested)
+                saveMeta(
+                  {
+                    restText: restText || undefined,
+                    rpeText: rpeText || undefined,
+                    percent1rm: v || undefined,
+                  },
+                  { weight_kg: suggested },
+                )
+              } else {
+                saveMeta({
                   restText: restText || undefined,
                   rpeText: rpeText || undefined,
                   percent1rm: v || undefined,
-                },
-                suggested !== null && weight === null ? { weight_kg: suggested } : {},
-              )
-              if (suggested !== null && weight === null) setWeight(suggested)
+                })
+              }
             }}
           />
         </div>
-        <button
-          type="button"
-          disabled={!suggestedWeight}
-          onClick={() => {
-            if (!suggestedWeight) return
-            setWeight(suggestedWeight)
-            save({ weight_kg: suggestedWeight })
-          }}
-          className="h-8 px-2.5 rounded-lg border border-surface-border text-[11px] text-ink-secondary hover:text-ink-primary disabled:opacity-40"
-        >
-          {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : rmKg ? 'Ingresá %' : 'Sin 1RM en ficha'}
-        </button>
+        {!isMultiarticular ? (
+          <button
+            type="button"
+            disabled={!suggestedWeight}
+            onClick={() => {
+              if (!suggestedWeight) return
+              setWeight(suggestedWeight)
+              save({ weight_kg: suggestedWeight })
+            }}
+            className="h-8 px-2.5 rounded-lg border border-surface-border text-[11px] text-ink-secondary hover:text-ink-primary disabled:opacity-40"
+          >
+            {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : rmKg ? 'Ingresá %' : 'Sin 1RM en ficha'}
+          </button>
+        ) : (
+          <p className="h-8 flex items-center text-[10px] text-ink-muted px-1">
+            {suggestedWeight != null ? `${suggestedWeight} kg` : rmKg ? 'Ingresá %' : '—'}
+          </p>
+        )}
       </div>
       {rmKg != null && hasPercent && suggestedWeight != null ? (
         <p className="text-[10px] text-ink-muted -mt-1">
-          {percent1rm}% de {rmKg} kg → {suggestedWeight} kg
+          {isMultiarticular
+            ? `${percent1rm}% de ${rmKg} kg → ${suggestedWeight} kg (carga automática)`
+            : `${percent1rm}% de ${rmKg} kg → ${suggestedWeight} kg`}
         </p>
       ) : null}
 

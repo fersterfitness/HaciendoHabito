@@ -43,6 +43,11 @@ import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
 import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 import { compareBySegmentSortOrder } from '@/lib/webPlansSortOrder'
 import { IntakeModalityProfessionIcons } from '@/components/public/intake/IntakeModalityProfessionIcons'
+import {
+  isCanonicalEntrenoNutricionPlan,
+  isEntrenoPsicologoPlanTitle,
+  WEB_PLAN_FULL_SUBCATEGORIES,
+} from '@/lib/webPlanFullSubcategory'
 
 type ModalityId = WebPlanCatalogSegment | 'psychologist'
 
@@ -53,12 +58,6 @@ const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: st
   { id: 'solo',              short: 'ENTRENAMIENTO',     label: 'Entrenamiento',       desc: 'Planes individuales de entrenamiento' },
   { id: 'with_nutritionist', short: 'NUTRICIÓN',         label: 'Nutrición',           desc: 'Planes individuales de nutrición' },
   { id: 'psychologist',      short: 'PSICOLOGÍA',        label: 'Psicólogo Deportivo', desc: 'Planes individuales Psicología deportiva' },
-]
-
-/** Subcategorías dentro del segmento "full" (sin trío; el trío usa segmento full_trio). */
-const FULL_SUBCATEGORIES = [
-  { key: 'entreno_nutricion', label: 'Entreno + Nutrición', matchFn: (name: string) => /nutri/i.test(name) && !/psic/i.test(name) },
-  { key: 'entreno_psicologo', label: 'Entreno + Psicólogo Deportivo', matchFn: (name: string) => /psic/i.test(name) && !/nutri/i.test(name) },
 ]
 
 const STEPS = [
@@ -538,8 +537,14 @@ export function PublicIntakeFormPageV2() {
                   ) : catalogSegment === 'full' && plansVisible.length > 0 ? (
                     /* ── Subcategorías para Servicio Dual (segmento full) ── */
                     <div className="space-y-6">
-                      {FULL_SUBCATEGORIES
-                        .map((sub) => ({ sub, subPlans: plansVisible.filter((p) => sub.matchFn(p.name)) }))
+                      {WEB_PLAN_FULL_SUBCATEGORIES.map((sub) => ({
+                        sub,
+                        subPlans: plansVisible.filter((p) =>
+                          sub.key === 'entreno_nutricion'
+                            ? isCanonicalEntrenoNutricionPlan(p.id, p.name)
+                            : isEntrenoPsicologoPlanTitle(p.name),
+                        ),
+                      }))
                         .filter(({ subPlans }) => subPlans.length > 0)
                         .map(({ sub, subPlans }, idx) => (
                           <div key={sub.key}>
