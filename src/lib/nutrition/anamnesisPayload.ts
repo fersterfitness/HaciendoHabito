@@ -40,6 +40,9 @@ export interface FoodFreqRow {
   tipo: string
   frecuencia: string
   cantidad: string
+  /** Marcá si no consumís este alimento. */
+  noConsume: boolean
+  motivo: string
 }
 
 export interface NutritionAnamnesisPayloadV1 {
@@ -97,7 +100,14 @@ export interface NutritionAnamnesisPayloadV1 {
 }
 
 export function emptyFoodFreqRows(): FoodFreqRow[] {
-  return FOOD_FREQUENCY_ITEMS.map((food) => ({ food, tipo: '', frecuencia: '', cantidad: '' }))
+  return FOOD_FREQUENCY_ITEMS.map((food) => ({
+    food,
+    tipo: '',
+    frecuencia: '',
+    cantidad: '',
+    noConsume: false,
+    motivo: '',
+  }))
 }
 
 export function createEmptyAnamnesisPayload(): NutritionAnamnesisPayloadV1 {
@@ -224,13 +234,23 @@ export function mergeAnamnesisPayload(stored: unknown): NutritionAnamnesisPayloa
             tipo: String(merge.tipo ?? ''),
             frecuencia: String(merge.frecuencia ?? ''),
             cantidad: String(merge.cantidad ?? ''),
+            noConsume: Boolean(merge.noConsume),
+            motivo: String(merge.motivo ?? ''),
           }
-        : { food, tipo: '', frecuencia: '', cantidad: '' }
+        : { food, tipo: '', frecuencia: '', cantidad: '', noConsume: false, motivo: '' }
     })
     const extra = (s.foodFrequency as unknown[]).filter((r) => r && typeof r === 'object' && FOOD_FREQUENCY_ITEMS.every((n) => n !== (r as FoodFreqRow).food))
     for (const row of extra) {
       const r = row as FoodFreqRow
-      if ((r?.food as string)?.length) base.foodFrequency.push({ food: String(r.food), tipo: String(r.tipo ?? ''), frecuencia: String(r.frecuencia ?? ''), cantidad: String(r.cantidad ?? '') })
+      if ((r?.food as string)?.length)
+        base.foodFrequency.push({
+          food: String(r.food),
+          tipo: String(r.tipo ?? ''),
+          frecuencia: String(r.frecuencia ?? ''),
+          cantidad: String(r.cantidad ?? ''),
+          noConsume: Boolean(r.noConsume),
+          motivo: String(r.motivo ?? ''),
+        })
     }
   }
 

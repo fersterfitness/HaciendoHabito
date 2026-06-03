@@ -587,6 +587,13 @@
       font: inherit;
       padding: 4px 2px;
     }
+    table.freq input[type="checkbox"] {
+      width: auto;
+      margin: 0 auto;
+      display: block;
+      accent-color: var(--brand);
+    }
+    table.freq td.freq-check { text-align: center; vertical-align: middle; }
     table.freq input:focus {
       outline: 2px solid #e4e4e7;
       border-radius: 4px;
@@ -1163,17 +1170,19 @@
               <span class="step-label">Paso 7</span>
               <h3>Frecuencia alimentaria</h3>
             </div>
-            <p class="card-desc">Tipo · Frecuencia · Cantidad · X si no consumís</p>
+            <p class="card-desc">Tipo · Frecuencia · Cantidad · No consumo · Motivo. Si no consumís un alimento, marcá la casilla e indicá el motivo (gusto, alergia, intolerancia, etc.).</p>
           </div>
           <div class="card-body">
           <div style="overflow-x:auto">
             <table class="freq">
               <thead>
                 <tr>
-                  <th style="width:26%">Alimento</th>
-                  <th style="width:30%">Tipo</th>
-                  <th style="width:22%">Frecuencia</th>
-                  <th style="width:22%">Cantidad</th>
+                  <th style="width:22%">Alimento</th>
+                  <th style="width:20%">Tipo</th>
+                  <th style="width:16%">Frecuencia</th>
+                  <th style="width:16%">Cantidad</th>
+                  <th style="width:12%">No consume</th>
+                  <th style="width:14%">Motivo</th>
                 </tr>
               </thead>
               <tbody id="freq-body"></tbody>
@@ -1262,8 +1271,10 @@
       tr.innerHTML = `
         <td>${name}</td>
         <td><input type="text" name="freq_tipo_${i}" aria-label="Tipo ${name}" /></td>
-        <td><input type="text" name="freq_frec_${i}" aria-label="Frecuencia ${name}" placeholder="diario / X" /></td>
-        <td><input type="text" name="freq_cant_${i}" aria-label="Cantidad ${name}" /></td>`;
+        <td><input type="text" name="freq_frec_${i}" aria-label="Frecuencia ${name}" /></td>
+        <td><input type="text" name="freq_cant_${i}" aria-label="Cantidad ${name}" /></td>
+        <td class="freq-check"><input type="checkbox" name="freq_noconsume_${i}" value="si" aria-label="No consume ${name}" /></td>
+        <td><input type="text" name="freq_motivo_${i}" aria-label="Motivo si no consume ${name}" /></td>`;
       tbody.appendChild(tr);
     });
 
@@ -1421,6 +1432,8 @@
         tipo: val(`freq_tipo_${i}`),
         frecuencia: val(`freq_frec_${i}`),
         cantidad: val(`freq_cant_${i}`),
+        noConsume: !!document.querySelector(`[name="freq_noconsume_${i}"]:checked`),
+        motivo: val(`freq_motivo_${i}`),
       }));
       const verduras = val('verduras');
       const frutas = val('frutas');

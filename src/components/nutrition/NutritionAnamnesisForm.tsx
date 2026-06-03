@@ -43,13 +43,22 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
 
   const setFoodFreq = (
     food: string,
-    key: 'tipo' | 'frecuencia' | 'cantidad',
-    v: string
+    key: 'tipo' | 'frecuencia' | 'cantidad' | 'motivo',
+    v: string,
   ) => {
     onChange((prev) => ({
       ...prev,
       foodFrequency: prev.foodFrequency.map((row) =>
-        row.food === food ? { ...row, [key]: v } : row
+        row.food === food ? { ...row, [key]: v } : row,
+      ),
+    }))
+  }
+
+  const setFoodNoConsume = (food: string, checked: boolean) => {
+    onChange((prev) => ({
+      ...prev,
+      foodFrequency: prev.foodFrequency.map((row) =>
+        row.food === food ? { ...row, noConsume: checked } : row,
       ),
     }))
   }
@@ -281,15 +290,20 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
       </div>
 
       <div>
-        <SectionTitle>Frecuencia alimentaria (tipo · frecuencia · cantidad · X si no consumes)</SectionTitle>
+        <SectionTitle>Frecuencia alimentaria (tipo · frecuencia · cantidad · no consume · motivo)</SectionTitle>
+        <p className="mb-2 text-[11px] text-ink-muted">
+          Si marcás «No consume», completá el motivo en esa fila (gusto, alergia, intolerancia, etc.).
+        </p>
         <div className="overflow-auto max-h-[22rem] rounded-xl border border-surface-border shadow-sm">
           <table className="min-w-full text-xs">
             <thead className="bg-surface-elevated sticky top-0 z-10 shadow-sm">
               <tr className="text-left text-ink-secondary">
-                <th className="px-3 py-2 border-b border-surface-border w-[28%]">Alimento</th>
-                <th className="px-3 py-2 border-b border-surface-border w-[22%]">Tipo</th>
-                <th className="px-3 py-2 border-b border-surface-border w-[22%]">Frecuencia</th>
-                <th className="px-3 py-2 border-b border-surface-border w-[22%]">Cantidad</th>
+                <th className="px-3 py-2 border-b border-surface-border w-[24%]">Alimento</th>
+                <th className="px-3 py-2 border-b border-surface-border w-[18%]">Tipo</th>
+                <th className="px-3 py-2 border-b border-surface-border w-[16%]">Frecuencia</th>
+                <th className="px-3 py-2 border-b border-surface-border w-[16%]">Cantidad</th>
+                <th className="px-3 py-2 border-b border-surface-border w-[10%] text-center">No consume</th>
+                <th className="px-3 py-2 border-b border-surface-border w-[16%]">Motivo</th>
               </tr>
             </thead>
             <tbody>
@@ -299,6 +313,8 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
                   tipo: '',
                   frecuencia: '',
                   cantidad: '',
+                  noConsume: false,
+                  motivo: '',
                 }
                 return (
                   <tr key={food} className="border-b border-surface-border/70 hover:bg-surface-elevated/50">
@@ -321,6 +337,23 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
                       <input
                         value={row.cantidad}
                         onChange={(e) => setFoodFreq(food, 'cantidad', e.target.value)}
+                        className="w-full bg-transparent border-none focus:ring-0 px-1 py-0.5 rounded max-w-none"
+                      />
+                    </td>
+                    <td className="px-3 py-1 text-center align-middle">
+                      <input
+                        type="checkbox"
+                        checked={row.noConsume}
+                        onChange={(e) => setFoodNoConsume(food, e.target.checked)}
+                        className={cn('h-4 w-4 rounded border-surface-border', trainerCtaFormAccentClassName)}
+                        aria-label={`No consume ${food}`}
+                      />
+                    </td>
+                    <td className="px-3 py-1">
+                      <input
+                        value={row.motivo}
+                        onChange={(e) => setFoodFreq(food, 'motivo', e.target.value)}
+                        aria-label={`Motivo si no consume ${food}`}
                         className="w-full bg-transparent border-none focus:ring-0 px-1 py-0.5 rounded max-w-none"
                       />
                     </td>
@@ -350,6 +383,21 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
                       <input
                         value={row.cantidad}
                         onChange={(e) => setFoodFreq(row.food, 'cantidad', e.target.value)}
+                        className="w-full bg-transparent border-none px-1"
+                      />
+                    </td>
+                    <td className="px-3 py-1 text-center">
+                      <input
+                        type="checkbox"
+                        checked={row.noConsume}
+                        onChange={(e) => setFoodNoConsume(row.food, e.target.checked)}
+                        className={cn('h-4 w-4', trainerCtaFormAccentClassName)}
+                      />
+                    </td>
+                    <td className="px-3 py-1">
+                      <input
+                        value={row.motivo}
+                        onChange={(e) => setFoodFreq(row.food, 'motivo', e.target.value)}
                         className="w-full bg-transparent border-none px-1"
                       />
                     </td>
