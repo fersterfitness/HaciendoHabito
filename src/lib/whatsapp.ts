@@ -12,25 +12,118 @@ export function normalizePhoneForWhatsApp(raw: string | null | undefined): strin
   return studentPhoneDigitsForWhatsApp(raw)
 }
 
+/** WhatsApp (sobre todo escritorio) suele mostrar ◇ si el mensaje va en `?text=` con emojis. */
+const WA_URL_TEXT_MAX_LENGTH = 1500
+
+export function normalizeWhatsAppMessage(text: string): string {
+  return sanitizeMessageForWhatsApp(text.normalize('NFC'))
+}
+
+export function whatsAppMessageHasEmoji(text: string): boolean {
+  return /\p{Extended_Pictographic}/u.test(text)
+}
+
+/** Grupo / «elegir chat» sin número: en escritorio `?text=` con emojis suele fallar. */
+export function shouldUseClipboardForWhatsAppGroup(text: string): boolean {
+  const msg = normalizeWhatsAppMessage(text)
+  if (whatsAppMessageHasEmoji(msg)) return true
+  if (msg.length > WA_URL_TEXT_MAX_LENGTH) return true
+  if (/\uFFFD/.test(msg)) return true
+  return false
+}
+
+/**
+ * Chat directo con alumno: en WhatsApp escritorio `?text=` rompe emojis (◇).
+ * En ese caso solo copiamos y abrimos el chat vacío para pegar.
+ */
+export function shouldUseClipboardForWhatsAppDirect(text: string): boolean {
+  const msg = normalizeWhatsAppMessage(text)
+  return whatsAppMessageHasEmoji(msg) || /\uFFFD/.test(msg)
+}
+
+/** @deprecated Usar shouldUseClipboardForWhatsAppDirect */
+export const shouldBackupCopyForWhatsAppDirect = shouldUseClipboardForWhatsAppDirect
+
+export function buildWhatsAppDirectUrl(phoneDigits: string): string {
+  return `https://wa.me/${phoneDigits}`
+}
+
 export function buildWhatsAppUrl(phoneDigits: string, message: string): string {
-  const text = sanitizeMessageForWhatsApp(message)
-  return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(text)}`
+  const text = normalizeWhatsAppMessage(message)
+  return `${buildWhatsAppDirectUrl(phoneDigits)}?text=${encodeURIComponent(text)}`
 }
 
 /** Abre WhatsApp para elegir chat o grupo y pegar el mensaje (sin número fijo). */
 export function buildWhatsAppGroupPickUrl(message: string): string {
-  const text = sanitizeMessageForWhatsApp(message)
+  const text = normalizeWhatsAppMessage(message)
   return `https://wa.me/?text=${encodeURIComponent(text)}`
 }
 
-/** Quita emojis y secuencias que en WhatsApp suelen verse como ◇. */
+export const WHATSAPP_CLIPBOARD_PASTE_HINT =
+  'Mensaje copiado. En WhatsApp elegí el chat o grupo y pegá (Ctrl+V en PC, mantener pulsado en el celular).'
+
+export const WHATSAPP_DIRECT_PASTE_HINT =
+  'Mensaje copiado. En el chat del alumno pegá con Ctrl+V (en PC WhatsApp no admite emojis precargados desde el link).'
+
+export type WhatsAppShareResult = {
+  mode: 'url' | 'clipboard'
+  copied: boolean
+  /** El mensaje fue en el link `?text=` (chat directo o grupo sin modo portapapeles). */
+  prefilled?: boolean
+}
+
+/** Copia UTF-8 al portapapeles (emojis intactos). */
+export async function copyWhatsAppMessage(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(normalizeWhatsAppMessage(text))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * - Chat con alumno + emojis: copiar y abrir chat sin `?text=` (único modo fiable en escritorio).
+ * - Chat con alumno sin emojis: mensaje precargado en el link.
+ * - Grupo: igual que antes (portapapeles si hay emojis).
+ */
+export async function shareToWhatsApp(opts: {
+  message: string
+  phoneDigits?: string | null
+}): Promise<WhatsAppShareResult> {
+  const msg = normalizeWhatsAppMessage(opts.message)
+
+  if (opts.phoneDigits) {
+    if (shouldUseClipboardForWhatsAppDirect(msg)) {
+      const copied = await copyWhatsAppMessage(msg)
+      window.open(buildWhatsAppDirectUrl(opts.phoneDigits), '_blank', 'noopener,noreferrer')
+      return { mode: 'clipboard', copied, prefilled: false }
+    }
+    window.open(buildWhatsAppUrl(opts.phoneDigits, msg), '_blank', 'noopener,noreferrer')
+    return { mode: 'url', copied: false, prefilled: true }
+  }
+
+  if (shouldUseClipboardForWhatsAppGroup(msg)) {
+    const copied = await copyWhatsAppMessage(msg)
+    window.open('https://wa.me/', '_blank', 'noopener,noreferrer')
+    return { mode: 'clipboard', copied, prefilled: false }
+  }
+
+  window.open(buildWhatsAppGroupPickUrl(msg), '_blank', 'noopener,noreferrer')
+  return { mode: 'url', copied: false, prefilled: true }
+}
+
+/**
+ * Normaliza el texto para WhatsApp / portapapeles (UTF-8).
+ * Conserva emojis; solo quita caracteres de reemplazo y espacios raros que suelen verse como ◇.
+ */
 export function sanitizeMessageForWhatsApp(text: string): string {
-  return text
-    .replace(/\r\n/g, '\n')
-    .replace(/\p{Extended_Pictographic}/gu, '')
-    .replace(/\uFE0F/g, '')
-    .replace(/[\u200D\u2060\uFEFF]/g, '')
-    .replace(/\uFFFD/g, '')
+  let out = String(text).replace(/\r\n/g, '\n').replace(/\uFFFD/g, '')
+  // Surrogates huérfanos (p. ej. tras un corte o copia corrupta)
+  out = out.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
+  out = out.replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '')
+  return out
+    .replace(/\uFEFF/g, '')
     .replace(/[ \t]+$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trimEnd()

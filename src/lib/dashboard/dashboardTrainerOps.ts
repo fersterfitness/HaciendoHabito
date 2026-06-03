@@ -6,6 +6,8 @@ import {
   buildWhatsAppGroupPickUrl,
   buildWhatsAppUrl,
   normalizePhoneForWhatsApp,
+  shareToWhatsApp,
+  type WhatsAppShareResult,
 } from '@/lib/whatsapp'
 import type { CheckInSendSchedule, TrainerResourceSendSchedule } from '@/types/database'
 
@@ -48,8 +50,8 @@ export function openCheckInGroupWhatsApp(send: DashboardCheckInQuickSend): void 
   window.open(buildWhatsAppGroupPickUrl(msg), '_blank', 'noopener,noreferrer')
 }
 
-export function openResourceGroupWhatsApp(send: DashboardResourceQuickSend): void {
-  window.open(buildWhatsAppGroupPickUrl(send.message), '_blank', 'noopener,noreferrer')
+export function openResourceGroupWhatsApp(send: DashboardResourceQuickSend): Promise<WhatsAppShareResult> {
+  return shareToWhatsApp({ message: send.message })
 }
 
 export function openMissingStudentCheckInReminder(params: {

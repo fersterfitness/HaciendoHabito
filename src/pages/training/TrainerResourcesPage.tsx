@@ -13,15 +13,32 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
 import {
   buildResourceShareMessage,
-  buildWhatsAppGroupPickUrl,
-  buildWhatsAppUrl,
   normalizePhoneForWhatsApp,
-  sanitizeMessageForWhatsApp,
+  shareToWhatsApp,
+  copyWhatsAppMessage,
+  shouldUseClipboardForWhatsAppDirect,
+  WHATSAPP_CLIPBOARD_PASTE_HINT,
+  WHATSAPP_DIRECT_PASTE_HINT,
+  buildWhatsAppDirectUrl,
+  buildWhatsAppUrl,
+  type WhatsAppShareResult,
 } from '@/lib/whatsapp'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES, scheduleMatchesToday } from '@/lib/checkInSchedule'
 import type { Student, TrainerMessageTemplate, TrainerResource, TrainerResourceSendSchedule } from '@/types/database'
 import toast from 'react-hot-toast'
+
+function toastAfterWhatsAppShare(result: WhatsAppShareResult, directStudent?: boolean) {
+  if (result.mode === 'clipboard') {
+    const hint = directStudent ? WHATSAPP_DIRECT_PASTE_HINT : WHATSAPP_CLIPBOARD_PASTE_HINT
+    toast.success(
+      result.copied ? hint : 'No se pudo copiar. Usá «Copiar mensaje» y pegá en WhatsApp.',
+      { duration: 8000 },
+    )
+    return
+  }
+  toast.success('WhatsApp abierto con el mensaje precargado')
+}
 
 /** Tabla aún no migrada o cache de PostgREST sin la relación. */
 function isMissingRelationError(err: { message?: string } | null | undefined): boolean {
@@ -332,15 +349,14 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
     toast.success('Plantilla eliminada')
   }
 
-  function openWaForStudent(student: Student, r: TrainerResource) {
+  async function openWaForStudent(student: Student, r: TrainerResource) {
     const digits = normalizePhoneForWhatsApp(student.phone)
     if (!digits) {
       toast.error(`Sin teléfono válido para ${student.full_name} (${STUDENT_PHONE_FORMAT_HINT} en la ficha)`)
       return
     }
-    const msg = fullOutboundMessage(r)
-    const url = buildWhatsAppUrl(digits, msg)
-    window.open(url, '_blank', 'noopener,noreferrer')
+    const result = await shareToWhatsApp({ message: fullOutboundMessage(r), phoneDigits: digits })
+    toastAfterWhatsAppShare(result, true)
     if (autoLogOnWaOpen) void logSends(r.id, [student.id], { silent: true })
   }
 
@@ -349,23 +365,18 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
       toast.error('Seleccioná un recurso')
       return
     }
-    const msg = sanitizeMessageForWhatsApp(fullOutboundMessage(selectedResource))
-    try {
-      await navigator.clipboard.writeText(msg)
-      toast.success('Mensaje copiado (pegalo en WhatsApp u otro canal)')
-    } catch {
-      toast.error('No se pudo copiar al portapapeles')
-    }
+    const copied = await copyWhatsAppMessage(fullOutboundMessage(selectedResource))
+    if (copied) toast.success('Mensaje copiado (pegalo en WhatsApp u otro canal)')
+    else toast.error('No se pudo copiar al portapapeles')
   }
 
-  function openGroupWhatsApp() {
+  async function openGroupWhatsApp() {
     if (!selectedResource) {
       toast.error('Seleccioná un recurso de la lista')
       return
     }
-    const msg = fullOutboundMessage(selectedResource)
-    window.open(buildWhatsAppGroupPickUrl(msg), '_blank', 'noopener,noreferrer')
-    toast.success('Elegí el grupo (o chat) en WhatsApp y enviá el mensaje')
+    const result = await shareToWhatsApp({ message: fullOutboundMessage(selectedResource) })
+    toastAfterWhatsAppShare(result)
   }
 
   async function addResourceSchedule() {
@@ -427,7 +438,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
     }
   }
 
-  function openAllWhatsApp() {
+  async function openAllWhatsApp() {
     if (!selectedResource) {
       toast.error('Seleccioná un recurso de la lista')
       return
@@ -438,6 +449,13 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
       return
     }
     const msg = fullOutboundMessage(selectedResource)
+    const pasteMode = shouldUseClipboardForWhatsAppDirect(msg)
+    if (pasteMode) {
+      const copied = await copyWhatsAppMessage(msg)
+      if (copied) {
+        toast.success(WHATSAPP_DIRECT_PASTE_HINT, { duration: 8000 })
+      }
+    }
     const toLog: string[] = []
     let delay = 0
     let opened = 0
@@ -446,8 +464,8 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
       if (!st) continue
       const digits = normalizePhoneForWhatsApp(st.phone)
       if (!digits) continue
-      const url = buildWhatsAppUrl(digits, msg)
       window.setTimeout(() => {
+        const url = pasteMode ? buildWhatsAppDirectUrl(digits) : buildWhatsAppUrl(digits, msg)
         window.open(url, '_blank', 'noopener,noreferrer')
       }, delay)
       delay += 900
@@ -464,6 +482,8 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
     toast.success(
       opened
         ? `Se abrirán ${opened} pestañas de WhatsApp (con pausa entre cada una).${
+            pasteMode ? ' El mensaje está copiado: pegá (Ctrl+V) en cada chat.' : ''
+          }${
             autoLogOnWaOpen ? ' El historial suma filas solo si son envíos nuevos (ventana 60 min).' : ''
           }`
         : 'Ningún alumno marcado tiene teléfono válido para WhatsApp.',
@@ -653,20 +673,25 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               (() => {
                 const tpl = templates.find((t) => t.id === selectedTemplateId)
                 if (!tpl) return null
-                const tplMsg = sanitizeMessageForWhatsApp(tpl.body?.trim() ?? '')
-                function openGroupWaTemplate() {
-                  window.open(buildWhatsAppGroupPickUrl(tplMsg), '_blank', 'noopener,noreferrer')
+                const tplMsg = tpl.body?.trim() ?? ''
+                async function openGroupWaTemplate() {
+                  toastAfterWhatsAppShare(await shareToWhatsApp({ message: tplMsg }))
                 }
-                function openWaStudentTemplate(student: Student) {
+                async function openWaStudentTemplate(student: Student) {
                   const digits = normalizePhoneForWhatsApp(student.phone)
                   if (!digits) { toast.error(`Sin teléfono válido para ${student.full_name}`); return }
-                  window.open(buildWhatsAppUrl(digits, tplMsg), '_blank', 'noopener,noreferrer')
+                  toastAfterWhatsAppShare(await shareToWhatsApp({ message: tplMsg, phoneDigits: digits }), true)
                 }
                 return (
                   <div className="space-y-4">
                     <div className="rounded-lg border border-surface-border bg-surface-elevated/30 px-3 py-2 text-xs space-y-1">
                       <p className="font-semibold text-ink-primary">{tpl.title}</p>
                       <p className="text-ink-muted whitespace-pre-wrap line-clamp-4">{tpl.body}</p>
+                      {/\uFFFD/.test(tpl.body ?? '') ? (
+                        <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                          Hay caracteres dañados (◇). Editá la plantilla y volvé a poner los emojis desde el teclado.
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -675,8 +700,9 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                         size="sm"
                         icon={<Copy className="h-4 w-4" />}
                         onClick={async () => {
-                          try { await navigator.clipboard.writeText(tplMsg); toast.success('Mensaje copiado') }
-                          catch { toast.error('No se pudo copiar') }
+                          const copied = await copyWhatsAppMessage(tplMsg)
+                          if (copied) toast.success('Mensaje copiado')
+                          else toast.error('No se pudo copiar')
                         }}
                       >
                         Copiar mensaje
@@ -687,7 +713,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                         size="sm"
                         className="border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12"
                         icon={<WhatsAppIcon className="h-4 w-4" />}
-                        onClick={openGroupWaTemplate}
+                        onClick={() => void openGroupWaTemplate()}
                       >
                         Compartir en grupo
                       </Button>
@@ -701,7 +727,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                             <Button
                               type="button" size="sm" variant="outline"
                               className="shrink-0 text-[11px] h-7"
-                              onClick={() => openWaStudentTemplate(s)}
+                              onClick={() => void openWaStudentTemplate(s)}
                             >
                               WhatsApp
                             </Button>
@@ -806,7 +832,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     size="sm"
                     className="border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12"
                     icon={<WhatsAppIcon className="h-4 w-4" />}
-                    onClick={() => openGroupWhatsApp()}
+                    onClick={() => void openGroupWhatsApp()}
                   >
                     Compartir en grupo
                   </Button>
@@ -815,7 +841,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     variant="gradientSecondary"
                     size="sm"
                     icon={<MessageCircle className="h-4 w-4" />}
-                    onClick={() => openAllWhatsApp()}
+                    onClick={() => void openAllWhatsApp()}
                   >
                     Abrir WhatsApp (todos los marcados)
                   </Button>
@@ -846,7 +872,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                           size="sm"
                           variant="outline"
                           className="shrink-0 text-[11px] h-7"
-                          onClick={() => openWaForStudent(st, selectedResource)}
+                          onClick={() => void openWaForStudent(st, selectedResource)}
                         >
                           WhatsApp
                         </Button>

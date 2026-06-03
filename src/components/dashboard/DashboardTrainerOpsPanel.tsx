@@ -17,7 +17,7 @@ import {
   type DashboardMissingCheckInStudent,
   type DashboardResourceQuickSend,
 } from '@/lib/dashboard/dashboardTrainerOps'
-import { sanitizeMessageForWhatsApp } from '@/lib/whatsapp'
+import { copyWhatsAppMessage, WHATSAPP_CLIPBOARD_PASTE_HINT } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
 
 type DueCheckInSchedule = {
@@ -194,9 +194,8 @@ export function DashboardTrainerOpsPanel({
               <button
                 type="button"
                 onClick={() => {
-                  void navigator.clipboard.writeText(sanitizeMessageForWhatsApp(primaryResource.message)).then(
-                    () => toast.success('Mensaje copiado'),
-                    () => toast.error('No se pudo copiar'),
+                  void copyWhatsAppMessage(primaryResource.message).then((ok) =>
+                    ok ? toast.success('Mensaje copiado') : toast.error('No se pudo copiar'),
                   )
                 }}
                 className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-[10px] font-medium text-ink-primary hover:bg-surface-card transition-colors"
@@ -207,8 +206,13 @@ export function DashboardTrainerOpsPanel({
               <button
                 type="button"
                 onClick={() => {
-                  openResourceGroupWhatsApp(primaryResource)
-                  toast.success('Elegí el grupo en WhatsApp')
+                  void openResourceGroupWhatsApp(primaryResource).then((r) => {
+                    if (r.mode === 'clipboard') {
+                      toast.success(r.copied ? WHATSAPP_CLIPBOARD_PASTE_HINT : 'Abrí WhatsApp y pegá el mensaje')
+                    } else {
+                      toast.success('Elegí el grupo en WhatsApp')
+                    }
+                  })
                 }}
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 dark:text-emerald-300"
               >
