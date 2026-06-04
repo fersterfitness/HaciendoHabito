@@ -23,6 +23,16 @@ import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
 import { IntakePsychologistForm } from '@/pages/public/IntakePsychologistForm'
 import { IntakeChangeablePlansSection } from '@/components/public/IntakeChangeablePlansSection'
+import { IntakePermissionsStep } from '@/components/public/IntakePermissionsStep'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
+import {
+  buildTrainerContactWhatsAppUrl,
+  TRAINER_CONTACT_WHATSAPP_DISPLAY,
+} from '@/lib/trainerContact'
+import {
+  checkWebIntakeAccessStatus,
+  readIntakeAccessSession,
+} from '@/lib/intake/webIntakeAccess'
 import {
   type PlanBilling,
   bundlePrice3Months,
@@ -40,6 +50,7 @@ import {
 } from '@/lib/publicIntakeCatalogOffers'
 import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
+import toast from 'react-hot-toast'
 import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 import { compareBySegmentSortOrder } from '@/lib/webPlansSortOrder'
 import { IntakeModalityProfessionIcons } from '@/components/public/intake/IntakeModalityProfessionIcons'
@@ -62,6 +73,7 @@ const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: st
 
 const STEPS = [
   { id: 'plan',         label: 'Plan',         icon3d: '/icons/3dicons/kpi/routines.png' },
+  { id: 'permissions',  label: 'Permisos',     icon3d: '/icons/3dicons/kpi/notebook.png' },
   { id: 'form',         label: 'Datos',        icon3d: '/icons/3dicons/kpi/anthropometry-pdf.png' },
   { id: 'confirmation', label: 'Confirmación', icon3d: '/icons/3dicons/kpi/patients.png' },
 ] as const
@@ -242,15 +254,47 @@ export function PublicIntakeFormPageV2() {
     scrollFormTop()
   }
 
-  function goToDatos() {
+  function goToPermisos() {
     if (!selectedPlanId) {
       setStep('plan')
+      scrollFormTop()
+      return
+    }
+    setStep('permissions')
+    scrollFormTop()
+  }
+
+  async function goToDatos() {
+    if (!selectedPlanId) {
+      setStep('plan')
+      scrollFormTop()
+      return
+    }
+    const session = readIntakeAccessSession()
+    if (!session?.token || session.planSlug !== selectedPlanId) {
+      setStep('permissions')
+      scrollFormTop()
+      return
+    }
+    const check = await checkWebIntakeAccessStatus(session.token)
+    if (!check.ok || check.status !== 'approved') {
+      toast.error(
+        check.ok && check.status === 'pending'
+          ? 'Tu acceso aún no fue aprobado. Coordiná el pago por WhatsApp.'
+          : check.ok
+            ? 'El acceso no fue aprobado.'
+            : check.error,
+      )
+      setStep('permissions')
       scrollFormTop()
       return
     }
     setStep('form')
     scrollFormTop()
   }
+
+  const intakeAccessToken = readIntakeAccessSession()?.token ?? null
+  const trainerWaUrl = buildTrainerContactWhatsAppUrl()
 
   if (!isReady) {
     return (
@@ -371,7 +415,19 @@ export function PublicIntakeFormPageV2() {
             </button>
             <button
               type="button"
-              onClick={goToDatos}
+              onClick={goToPermisos}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                step === 'permissions'
+                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white'
+                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+              )}
+            >
+              Permisos
+            </button>
+            <button
+              type="button"
+              onClick={() => void goToDatos()}
               className={cn(
                 'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                 step === 'form'
@@ -381,6 +437,16 @@ export function PublicIntakeFormPageV2() {
             >
               Datos
             </button>
+            <a
+              href={trainerWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden items-center gap-1 rounded-lg border border-emerald-600/30 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-500/10 sm:inline-flex dark:text-emerald-300"
+              title={TRAINER_CONTACT_WHATSAPP_DISPLAY}
+            >
+              <WhatsAppIcon className="h-3.5 w-3.5" />
+              WhatsApp
+            </a>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
@@ -515,7 +581,7 @@ export function PublicIntakeFormPageV2() {
                         selectedPlanId={selectedPlanId}
                         onSelectPlan={(id) => setSelectedPlanId(id)}
                         onContinue={() => {
-                          if (selectedPlanId) setStep('form')
+                          if (selectedPlanId) goToPermisos()
                         }}
                         billing={planBilling}
                         onBillingChange={setPlanBilling}
@@ -563,7 +629,7 @@ export function PublicIntakeFormPageV2() {
                                 plans={intakePlansToPricingPlans(subPlans)}
                                 selectedPlanId={selectedPlanId}
                                 onSelectPlan={(id) => setSelectedPlanId(id)}
-                                onContinue={() => { if (selectedPlanId) setStep('form') }}
+                                onContinue={() => { if (selectedPlanId) goToPermisos() }}
                                 billing={planBilling}
                                 onBillingChange={setPlanBilling}
                                 showBillingToggle={idx === 0}
@@ -597,7 +663,7 @@ export function PublicIntakeFormPageV2() {
                         plans={intakePlansToPricingPlans(plansVisible)}
                         selectedPlanId={selectedPlanId}
                         onSelectPlan={(id) => setSelectedPlanId(id)}
-                        onContinue={() => { if (selectedPlanId) setStep('form') }}
+                        onContinue={() => { if (selectedPlanId) goToPermisos() }}
                         billing={planBilling}
                         onBillingChange={setPlanBilling}
                         badgeVariant="amber"
@@ -623,6 +689,27 @@ export function PublicIntakeFormPageV2() {
               </div>
           )}
 
+          {/* ─────────── Paso Permisos ─────────── */}
+          {step === 'permissions' && selectedPlan && (
+            <section
+              className={cn(
+                'v2f-drop v2f-d3 v2f-card rounded-3xl border bg-white p-5 sm:p-7',
+                'border-zinc-200/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.10)]',
+                'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_18px_50px_-16px_rgba(0,0,0,0.55)]',
+              )}
+            >
+              <IntakePermissionsStep
+                planSlug={selectedPlanId!}
+                planName={selectedPlan.name}
+                onBack={() => setStep('plan')}
+                onApproved={() => {
+                  setStep('form')
+                  scrollFormTop()
+                }}
+              />
+            </section>
+          )}
+
           {/* ─────────── Pasos "form" / "confirmation": card contenedora ─────────── */}
           {(step === 'form' || step === 'confirmation') && (
             <section
@@ -646,18 +733,18 @@ export function PublicIntakeFormPageV2() {
                       <ArrowLeft className="h-4 w-4" />
                     </button>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 2</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 3</p>
                       <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">Contanos un poco de vos</h2>
                       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">100% confidencial — solo lo ve el profesional asignado.</p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setStep('plan')}
+                    onClick={() => setStep('permissions')}
                     className="hidden items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-white sm:inline-flex"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
-                    Cambiar plan
+                    Volver a permisos
                   </button>
                 </header>
 
@@ -669,6 +756,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       selectedPlanBilling={planBilling}
+                      intakeAccessToken={intakeAccessToken}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />
@@ -678,6 +766,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       selectedPlanBilling={planBilling}
+                      intakeAccessToken={intakeAccessToken}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />
@@ -687,6 +776,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       selectedPlanBilling={planBilling}
+                      intakeAccessToken={intakeAccessToken}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />
@@ -696,6 +786,7 @@ export function PublicIntakeFormPageV2() {
                       selectedPlanLabel={selectedPlan?.name ?? null}
                       selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
                       selectedPlanBilling={planBilling}
+                      intakeAccessToken={intakeAccessToken}
                       onSuccess={() => setStep('confirmation')}
                       compact
                     />

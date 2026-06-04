@@ -56,6 +56,7 @@ export type NotificationType =
   | 'feedback_enviado'
   | 'pago_pendiente'
   | 'pago_registrado'
+  | 'intake_acceso_solicitado'
   | 'sistema'
 
 export interface Database {

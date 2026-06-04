@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
 import type { RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
@@ -14,6 +14,11 @@ type Props = {
   routineName: string
   blocks: Block[]
 }
+
+const KIND_LABEL = {
+  circuit: 'CIRCUITO',
+  individual: 'INDIVIDUAL',
+} as const
 
 export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks }: Props) {
   const sections = useMemo(() => buildRoutineProgressionGuide(blocks), [blocks])
@@ -43,7 +48,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
               Guía de progresión — {routineName}
             </h2>
             <p className="mt-0.5 text-xs text-ink-muted">
-              Series y reps planificadas por semana. Los KG/reps del alumno no se muestran acá.
+              Series, reps y peso planificados por semana (SIN KG si no hay peso cargado).
             </p>
           </div>
           <button
@@ -66,17 +71,17 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                   {section.dayTitle}
                 </h3>
                 <div className="overflow-x-auto rounded-xl border border-surface-border">
-                  <table className="w-full min-w-[640px] border-collapse text-xs">
+                  <table className="w-full min-w-[720px] border-collapse text-xs">
                     <thead>
                       <tr className="bg-surface-elevated">
-                        <th className="sticky left-0 z-10 min-w-[140px] border-b border-r border-surface-border bg-surface-elevated px-2 py-2 text-left font-semibold text-ink-primary">
+                        <th className="sticky left-0 z-10 min-w-[160px] border-b border-r border-surface-border bg-surface-elevated px-2 py-2 text-left font-semibold text-ink-primary">
                           Ejercicio / bloque
                         </th>
                         {weekLabels.map((w, i) => (
                           <th
                             key={i}
                             className={cn(
-                              'min-w-[88px] border-b border-surface-border px-2 py-2 text-center font-semibold',
+                              'min-w-[100px] border-b border-surface-border px-2 py-2 text-center font-semibold',
                               i % 2 === 0 ? 'bg-brand-primary/15 text-brand-primary' : 'bg-surface-card text-ink-primary',
                             )}
                           >
@@ -87,62 +92,50 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                       </tr>
                     </thead>
                     <tbody>
-                      {section.blockNotesByWeek.some(Boolean) ? (
-                        <tr className="bg-amber-500/5">
-                          <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-amber-500/10 px-2 py-2 align-top font-medium text-amber-800 dark:text-amber-200">
-                            Aclaración del bloque
-                          </td>
-                          {section.blockNotesByWeek.map((note, i) => (
-                            <td
-                              key={i}
-                              className={cn(
-                                'border-b border-surface-border px-2 py-2 align-top whitespace-pre-wrap text-ink-secondary',
-                                i % 2 === 0 ? 'bg-brand-primary/5' : '',
-                              )}
-                            >
-                              {note || '—'}
+                      {section.blocks.map((block) => (
+                        <Fragment key={block.key}>
+                          <tr className="bg-zinc-900/90 dark:bg-zinc-950">
+                            <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-zinc-900 px-2 py-2 align-top font-bold uppercase tracking-wide text-white dark:bg-zinc-950">
+                              {KIND_LABEL[block.kind]}
                             </td>
+                            {block.headerNotesByWeek.map((note, i) => (
+                              <td
+                                key={i}
+                                className={cn(
+                                  'border-b border-surface-border px-2 py-2 align-top whitespace-pre-wrap text-[10px] font-medium text-ink-secondary',
+                                  i % 2 === 0 ? 'bg-brand-primary/5' : 'bg-surface-card/50',
+                                )}
+                              >
+                                {note?.trim() || ''}
+                              </td>
+                            ))}
+                          </tr>
+                          {block.exercises.map((row, exIdx) => (
+                            <tr key={row.key} className="hover:bg-surface-elevated/40">
+                              <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-surface-base px-2 py-2 align-top">
+                                <div className="font-semibold text-ink-primary">{row.exerciseName}</div>
+                              </td>
+                              {row.weeks.map((cell, i) => (
+                                <td
+                                  key={i}
+                                  className={cn(
+                                    'border-b border-surface-border px-2 py-2 align-top text-center',
+                                    i % 2 === 0 ? 'bg-brand-primary/5' : '',
+                                  )}
+                                >
+                                  {exIdx === 0 ? (
+                                    <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-ink-muted">
+                                      Series/reps / peso
+                                    </p>
+                                  ) : null}
+                                  <p className="font-medium tabular-nums text-ink-primary whitespace-pre-wrap">
+                                    {cell ?? ''}
+                                  </p>
+                                </td>
+                              ))}
+                            </tr>
                           ))}
-                        </tr>
-                      ) : null}
-                      {section.warmupByWeek.some(Boolean) ? (
-                        <tr>
-                          <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-surface-elevated px-2 py-2 align-top font-medium text-ink-muted">
-                            Entrada en calor
-                          </td>
-                          {section.warmupByWeek.map((w, i) => (
-                            <td
-                              key={i}
-                              className={cn(
-                                'border-b border-surface-border px-2 py-2 align-top whitespace-pre-wrap text-[10px] text-ink-secondary',
-                                i % 2 === 0 ? 'bg-brand-primary/5' : '',
-                              )}
-                            >
-                              {w || '—'}
-                            </td>
-                          ))}
-                        </tr>
-                      ) : null}
-                      {section.rows.map((row) => (
-                        <tr key={row.key} className="hover:bg-surface-elevated/40">
-                          <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-surface-base px-2 py-2 align-top">
-                            <div className="font-semibold text-ink-primary">{row.label}</div>
-                            {row.clarifications ? (
-                              <p className="mt-1 whitespace-pre-wrap text-[10px] text-ink-muted">{row.clarifications}</p>
-                            ) : null}
-                          </td>
-                          {row.weeks.map((cell, i) => (
-                            <td
-                              key={i}
-                              className={cn(
-                                'border-b border-surface-border px-2 py-2 text-center align-top font-medium tabular-nums text-ink-primary',
-                                i % 2 === 0 ? 'bg-brand-primary/5' : '',
-                              )}
-                            >
-                              {cell || '—'}
-                            </td>
-                          ))}
-                        </tr>
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>

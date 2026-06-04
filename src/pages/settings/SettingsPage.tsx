@@ -193,6 +193,10 @@ export function SettingsPage() {
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
               <Link to="/settings/web-plans">Gestionar Planes Web</Link>
             </Button>
+            <p className="text-[11px] text-ink-muted mt-2">
+              Solicitudes de acceso al formulario público: en Planes Web, sección «Accesos al formulario web» (o tocá la
+              notificación en Inicio).
+            </p>
           </FormSection>
         </Card>
 

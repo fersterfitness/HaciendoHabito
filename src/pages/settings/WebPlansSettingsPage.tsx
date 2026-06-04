@@ -47,6 +47,7 @@ import {
   webPlanFullSubcategoryLabel,
   webPlanSegmentMismatchHint,
 } from '@/lib/webPlanFullSubcategory'
+import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -474,6 +475,16 @@ export function WebPlansSettingsPage() {
       else if (field === 'full' && fullFileRef.current) fullFileRef.current.value = ''
     }
   }
+
+  useEffect(() => {
+    if (loading) return
+    if (window.location.hash !== '#accesos-inscripcion') return
+    const el = document.getElementById('accesos-inscripcion')
+    if (!el) return
+    window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [loading])
 
   useEffect(() => {
     if (!canManage) return
@@ -1621,6 +1632,8 @@ export function WebPlansSettingsPage() {
             )
           })
         )}
+
+        {(role === 'admin' || role === 'trainer') ? <WebIntakeAccessRequestsPanel /> : null}
 
         <div className="border-t border-surface-border pt-2">
           <Button

@@ -45,6 +45,9 @@ export function notificationHref(n: Pick<Notification, 'type' | 'linked_table' |
   if (n.type === 'form_recibido') {
     return '/students'
   }
+  if (n.type === 'intake_acceso_solicitado' || n.linked_table === 'web_intake_access_requests') {
+    return '/settings/web-plans#accesos-inscripcion'
+  }
   return null
 }
 

@@ -8,5 +8,6 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   feedback_enviado: 'Feedback enviado',
   pago_pendiente: 'Pago pendiente',
   pago_registrado: 'Pago registrado',
+  intake_acceso_solicitado: 'Acceso inscripción web',
   sistema: 'Sistema',
 }

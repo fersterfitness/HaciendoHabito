@@ -142,6 +142,7 @@ type Props = {
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
   selectedPlanBilling?: 'monthly' | 'months3' | 'months6' | 'annual' | null
+  intakeAccessToken?: string | null
   selectedTrainer?: IntakeProfessional | null
   selectedNutritionist?: IntakeProfessional | null
   compact?: boolean
@@ -156,6 +157,7 @@ export function IntakeFullForm({
   selectedPlanLabel = null,
   selectedPlanPrice = null,
   selectedPlanBilling = null,
+  intakeAccessToken = null,
   selectedTrainer = null,
   selectedNutritionist = null,
   compact = false,
@@ -294,6 +296,7 @@ export function IntakeFullForm({
       form_type: 'full',
       selected_plan_slug: selectedPlanSlug,
       selected_plan_billing: selectedPlanBilling,
+      intake_access_token: intakeAccessToken,
       intake_trainer_slug: selectedTrainer?.slug ?? '',
       intake_nutritionist_slug: selectedNutritionist?.slug ?? '',
     }

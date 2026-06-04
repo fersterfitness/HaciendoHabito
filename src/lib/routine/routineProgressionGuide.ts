@@ -1,54 +1,71 @@
-import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
+import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
 import type { Exercise, RoutineBlock, RoutineDay, RoutineExercise } from '@/types/database'
+
+export type GuideBlockKind = 'circuit' | 'individual'
 
 export type GuideExerciseRow = {
   key: string
-  label: string
-  /** Aclaración de bloque / circuito (solo lectura en guía). */
-  clarifications: string | null
-  /** series → texto reps por semana (índice = semana). */
+  exerciseName: string
+  /** series/reps/peso por semana (vacío si no hay series). */
   weeks: (string | null)[]
+}
+
+export type GuideBlock = {
+  key: string
+  kind: GuideBlockKind
+  /** Circuito: aclaración de bloque; individual: descanso del ejercicio. */
+  headerNotesByWeek: (string | null)[]
+  exercises: GuideExerciseRow[]
 }
 
 export type GuideDaySection = {
   dayKey: string
   dayTitle: string
-  warmupByWeek: (string | null)[]
-  blockNotesByWeek: (string | null)[]
-  rows: GuideExerciseRow[]
+  blocks: GuideBlock[]
 }
 
 type Ex = RoutineExercise & { exercise?: Exercise }
 type Day = RoutineDay & { exercises: Ex[] }
 type Block = RoutineBlock & { days: Day[] }
 
-function formatSetsReps(ex: Ex): string | null {
-  const sets = ex.sets
+function fmtKg(n: number): string {
+  const r = Math.round(n * 10) / 10
+  if (Math.abs(r - Math.round(r)) < 1e-9) return String(Math.round(r))
+  return String(r)
+}
+
+/** Formato guía: `3x12 / 10 KG` o `3x12 / SIN KG`; sin series → vacío. */
+export function formatGuidePrescriptionCell(ex: Ex): string {
+  if (ex.sets == null) return ''
+
   const scheme = ex.reps_scheme?.trim()
-  if (sets != null && scheme) return `${sets} × ${scheme}`
-  if (sets != null) return `${sets} series`
-  if (scheme) return scheme
-  if (ex.reps_min != null && ex.reps_max != null) {
-    return ex.reps_min === ex.reps_max ? `${ex.reps_min} reps` : `${ex.reps_min}–${ex.reps_max} reps`
+  let repsPart = ''
+  if (scheme) repsPart = scheme
+  else if (ex.reps_min != null && ex.reps_max != null) {
+    repsPart =
+      ex.reps_min === ex.reps_max ? String(ex.reps_min) : `${ex.reps_min}–${ex.reps_max}`
   }
-  return null
+
+  const setsPart = repsPart ? `${ex.sets}x${repsPart}` : String(ex.sets)
+  const weight =
+    ex.weight_kg != null && ex.weight_kg > 0 ? `${fmtKg(ex.weight_kg)} KG` : 'SIN KG'
+  return `${setsPart} / ${weight}`
 }
 
 function exerciseLabel(ex: Ex): string {
   return ex.exercise?.name?.trim() || 'Ejercicio'
 }
 
-function rowKeyForExercise(ex: Ex, groupIndex: number): string {
-  if (ex.is_superset && ex.superset_group != null) {
-    return `ss-${ex.superset_group}-${groupIndex}`
+function blockKeyForGroup(group: Ex[]): string {
+  const lead = group[0]!
+  if (group.length > 1 && lead.is_superset && lead.superset_group != null) {
+    return `ss-${lead.superset_group}`
   }
-  return `ex-${ex.exercise_id}-${groupIndex}`
+  return `ex-${lead.exercise_id}`
 }
 
-function buildRowLabel(group: Ex[], dayName: string): string {
-  if (group.length === 1) return exerciseLabel(group[0]!)
-  const names = group.map(exerciseLabel).join(' + ')
-  return `${names} (circuito)`
+function exerciseRowKey(blockKey: string, ex: Ex): string {
+  return `${blockKey}-${ex.exercise_id}`
 }
 
 function circuitClarification(group: Ex[]): string | null {
@@ -58,6 +75,12 @@ function circuitClarification(group: Ex[]): string | null {
     if (note) return note
   }
   return null
+}
+
+function individualRestNote(ex: Ex): string | null {
+  const display = pdfExerciseDisplay(ex).restDisplay
+  if (!display || display === '—') return null
+  return display
 }
 
 function orderedGroups(day: Day): Ex[][] {
@@ -80,7 +103,7 @@ function orderedGroups(day: Day): Ex[][] {
 }
 
 /**
- * Agrupa por nombre de día y alinea filas entre semanas (solo planificación: series/reps, aclaraciones).
+ * Guía por día: bloques CIRCUITO / INDIVIDUAL, un ejercicio por fila, sin calentamiento.
  */
 export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[] {
   const sortedBlocks = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
@@ -99,40 +122,73 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
   const sections: GuideDaySection[] = []
 
   for (const [dayKey, meta] of [...dayKeys.entries()].sort((a, b) => a[1].order - b[1].order)) {
-    const rowMap = new Map<string, GuideExerciseRow>()
-    const warmupByWeek: (string | null)[] = Array(weekCount).fill(null)
-    const blockNotesByWeek: (string | null)[] = Array(weekCount).fill(null)
+    const blockMap = new Map<string, GuideBlock>()
+    const blockOrder: string[] = []
+
+    const templateBlock = sortedBlocks
+      .map((b) => b.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey))
+      .find(Boolean)
+
+    if (templateBlock) {
+      for (const group of orderedGroups(templateBlock)) {
+        const bKey = blockKeyForGroup(group)
+        if (blockMap.has(bKey)) continue
+        blockOrder.push(bKey)
+        const isCircuit = group.length > 1
+        blockMap.set(bKey, {
+          key: bKey,
+          kind: isCircuit ? 'circuit' : 'individual',
+          headerNotesByWeek: Array(weekCount).fill(null),
+          exercises: group.map((ex) => ({
+            key: exerciseRowKey(bKey, ex),
+            exerciseName: exerciseLabel(ex),
+            weeks: Array(weekCount).fill(null),
+          })),
+        })
+      }
+    }
 
     sortedBlocks.forEach((block, weekIdx) => {
       const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
-      blockNotesByWeek[weekIdx] = block.notes?.trim() || null
       if (!day) return
-      warmupByWeek[weekIdx] = day.warmup_notes?.trim() || null
 
-      const groups = orderedGroups(day)
-      groups.forEach((group, groupIndex) => {
-        const key = rowKeyForExercise(group[0]!, groupIndex)
-        const label = buildRowLabel(group, day.day_name)
-        const clarifications = circuitClarification(group)
-        const cell = formatSetsReps(group[0]!)
-        const existing = rowMap.get(key)
-        if (existing) {
-          existing.weeks[weekIdx] = cell
-          if (!existing.clarifications && clarifications) existing.clarifications = clarifications
-        } else {
-          const weeks: (string | null)[] = Array(weekCount).fill(null)
-          weeks[weekIdx] = cell
-          rowMap.set(key, { key, label, clarifications, weeks })
+      for (const group of orderedGroups(day)) {
+        const bKey = blockKeyForGroup(group)
+        let guideBlock = blockMap.get(bKey)
+        if (!guideBlock) {
+          blockOrder.push(bKey)
+          const isCircuit = group.length > 1
+          guideBlock = {
+            key: bKey,
+            kind: isCircuit ? 'circuit' : 'individual',
+            headerNotesByWeek: Array(weekCount).fill(null),
+            exercises: [],
+          }
+          blockMap.set(bKey, guideBlock)
         }
-      })
+
+        if (guideBlock.kind === 'circuit') {
+          guideBlock.headerNotesByWeek[weekIdx] = circuitClarification(group)
+        } else {
+          guideBlock.headerNotesByWeek[weekIdx] = individualRestNote(group[0]!)
+        }
+
+        for (const ex of group) {
+          const rowKey = exerciseRowKey(bKey, ex)
+          let row = guideBlock.exercises.find((r) => r.key === rowKey)
+          if (!row) {
+            row = { key: rowKey, exerciseName: exerciseLabel(ex), weeks: Array(weekCount).fill(null) }
+            guideBlock.exercises.push(row)
+          }
+          row.weeks[weekIdx] = formatGuidePrescriptionCell(ex)
+        }
+      }
     })
 
     sections.push({
       dayKey,
       dayTitle: meta.title,
-      warmupByWeek,
-      blockNotesByWeek,
-      rows: [...rowMap.values()],
+      blocks: blockOrder.map((k) => blockMap.get(k)!).filter(Boolean),
     })
   }
 

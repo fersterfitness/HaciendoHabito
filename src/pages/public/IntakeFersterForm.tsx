@@ -130,6 +130,7 @@ type Props = {
   selectedPlanLabel?: string | null
   selectedPlanPrice?: string | null
   selectedPlanBilling?: 'monthly' | 'months3' | 'months6' | 'annual' | null
+  intakeAccessToken?: string | null
   selectedTrainer?: IntakeProfessional | null
   /** Mobile: plan visible en pill del padre. */
   compact?: boolean
@@ -142,6 +143,7 @@ export function IntakeFersterForm({
   selectedPlanLabel = null,
   selectedPlanPrice = null,
   selectedPlanBilling = null,
+  intakeAccessToken = null,
   selectedTrainer = null,
   compact = false,
   onRequestChangePlan,
@@ -261,6 +263,7 @@ export function IntakeFersterForm({
       phone,
       selected_plan_slug: selectedPlanSlug,
       selected_plan_billing: selectedPlanBilling,
+      intake_access_token: intakeAccessToken,
       intake_trainer_slug: selectedTrainer?.slug ?? '',
       website: '',
     }
