@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Check, ChevronRight } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { notificationHref } from '@/lib/notifications'
+import { Bell, Check, CheckCircle2, ChevronRight, Trash2 } from 'lucide-react'
+import { deleteNotification, notificationHref } from '@/lib/notifications'
 import { subscribeNotificationChanges } from '@/lib/notificationsRealtime'
 import { NOTIFICATION_TYPE_LABELS } from '@/lib/notificationLabels'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn, formatDate } from '@/lib/utils'
 import type { Notification } from '@/types/database'
 import toast from 'react-hot-toast'
+import { supabase } from '@/lib/supabase'
 
 const HISTORY_LIMIT = 100
 
@@ -22,6 +21,7 @@ export function NotificationsPage() {
   const { user } = useAuthStore()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadNotifications = useCallback(async () => {
     if (!user) return
@@ -69,6 +69,18 @@ export function NotificationsPage() {
     if (href) navigate(href)
   }
 
+  async function removeNotification(id: string) {
+    setDeletingId(id)
+    const ok = await deleteNotification(id)
+    setDeletingId(null)
+    if (!ok) {
+      toast.error('No se pudo eliminar la notificación')
+      return
+    }
+    setNotifications((prev) => prev.filter((n) => n.id !== id))
+    toast.success('Notificación eliminada')
+  }
+
   return (
     <div>
       <Header
@@ -92,80 +104,103 @@ export function NotificationsPage() {
             description="Cuando llegue un formulario o un pago, lo vas a ver acá."
           />
         ) : (
-          <Card className="overflow-hidden p-0">
-            <div className="flex items-center justify-between gap-3 border-b border-surface-border/70 px-4 py-3 bg-surface-elevated/20">
-              <p className="text-sm text-ink-secondary">
-                <span className="font-medium text-ink-primary">{notifications.length}</span>
-                {' '}en el historial
-                {unreadCount > 0 && (
-                  <>
-                    {' · '}
-                    <span className="font-medium text-brand-primary">{unreadCount}</span>
-                    {' '}sin leer
-                  </>
-                )}
+          <div className="overflow-hidden rounded-xl border border-surface-border/60 bg-surface-card">
+            <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 px-3 py-2">
+              <p className="text-xs text-ink-muted">
+                {notifications.length} en el historial
+                {unreadCount > 0 ? ` · ${unreadCount} sin leer` : ''}
               </p>
-              <p className="text-xs text-ink-muted shrink-0">Más recientes primero</p>
+              <p className="text-[11px] text-ink-muted/80 shrink-0">Más recientes primero</p>
             </div>
 
-            <ul className="divide-y divide-surface-border/70" role="list">
+            <ul className="divide-y divide-surface-border/40" role="list">
               {notifications.map((n) => {
                 const href = notificationHref(n)
                 const typeLabel = NOTIFICATION_TYPE_LABELS[n.type as keyof typeof NOTIFICATION_TYPE_LABELS] ?? n.type
+                const isDeleting = deletingId === n.id
 
                 return (
-                  <li key={n.id}>
+                  <li
+                    key={n.id}
+                    className={cn(
+                      'group flex items-center gap-2 px-2.5 py-2 transition-colors',
+                      'hover:bg-surface-elevated/30',
+                      isDeleting && 'opacity-50 pointer-events-none',
+                    )}
+                  >
+                    <span className="flex w-4 shrink-0 justify-center" aria-hidden>
+                      {n.is_read ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.25} />
+                      ) : (
+                        <span
+                          className="size-2 rounded-full bg-ink-muted/50 ring-2 ring-ink-muted/15"
+                          title="Sin leer"
+                        />
+                      )}
+                    </span>
+
                     <button
                       type="button"
                       onClick={() => void openNotification(n)}
                       className={cn(
-                        'flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors',
-                        'hover:bg-surface-elevated/45 focus-visible:bg-surface-elevated/45 outline-none',
-                        n.is_read ? 'opacity-75' : 'bg-brand-primary/[0.03]',
+                        'min-w-0 flex-1 text-left outline-none',
+                        'focus-visible:ring-1 focus-visible:ring-surface-border rounded-sm',
                       )}
                     >
-                      <span className="flex w-2 shrink-0 justify-center" aria-hidden>
-                        {!n.is_read ? (
-                          <span className="size-2 rounded-full bg-brand-primary" title="Sin leer" />
-                        ) : (
-                          <span className="size-2 rounded-full bg-transparent" />
-                        )}
-                      </span>
-
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-                          {typeLabel}
-                        </span>
-                        <span className="mt-0.5 block text-sm font-semibold text-ink-primary leading-snug">
+                      <span className="flex items-baseline gap-2 min-w-0">
+                        <span
+                          className={cn(
+                            'truncate text-[13px] leading-tight',
+                            n.is_read ? 'font-normal text-ink-secondary' : 'font-medium text-ink-primary',
+                          )}
+                        >
                           {n.title}
                         </span>
-                        {n.body ? (
-                          <span className="mt-0.5 block text-xs text-ink-secondary line-clamp-2">
-                            {n.body}
-                          </span>
-                        ) : null}
-                      </span>
-
-                      <span className="shrink-0 text-right">
-                        <span className="block text-xs tabular-nums text-ink-muted whitespace-nowrap">
-                          {formatDate(n.created_at, 'dd/MM/yy')}
-                        </span>
-                        <span className="block text-[11px] tabular-nums text-ink-muted/80">
-                          {formatDate(n.created_at, 'HH:mm')}
+                        <span className="shrink-0 text-[11px] tabular-nums text-ink-muted/70">
+                          {formatDate(n.created_at, 'dd/MM HH:mm')}
                         </span>
                       </span>
-
-                      {href ? (
-                        <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
-                      ) : (
-                        <span className="w-4 shrink-0" aria-hidden />
-                      )}
+                      <span className="mt-0.5 block truncate text-[11px] text-ink-muted leading-tight">
+                        {typeLabel}
+                        {n.body ? ` · ${n.body}` : ''}
+                      </span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void removeNotification(n.id)
+                      }}
+                      disabled={isDeleting}
+                      aria-label="Eliminar notificación"
+                      className={cn(
+                        'shrink-0 rounded-md p-1.5 text-ink-muted/35 transition-colors',
+                        'hover:bg-surface-elevated/60 hover:text-ink-secondary',
+                        'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
+                        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-surface-border',
+                      )}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+
+                    {href ? (
+                      <button
+                        type="button"
+                        onClick={() => void openNotification(n)}
+                        aria-label="Abrir"
+                        className="shrink-0 rounded-md p-1 text-ink-muted/40 hover:text-ink-muted transition-colors"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    ) : (
+                      <span className="w-[22px] shrink-0" aria-hidden />
+                    )}
                   </li>
                 )
               })}
             </ul>
-          </Card>
+          </div>
         )}
       </div>
     </div>

@@ -51,6 +51,16 @@ export function notificationHref(n: Pick<Notification, 'type' | 'linked_table' |
   return null
 }
 
+/** Elimina una notificación del historial del usuario actual. */
+export async function deleteNotification(id: string): Promise<boolean> {
+  const { error } = await supabase.from('notifications').delete().eq('id', id)
+  if (error) {
+    console.error('[deleteNotification]', error.message)
+    return false
+  }
+  return true
+}
+
 export async function notifyPaymentRegistered(params: {
   userId: string
   amount: number

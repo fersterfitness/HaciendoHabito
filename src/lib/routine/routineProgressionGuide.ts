@@ -6,13 +6,14 @@ export type GuideBlockKind = 'circuit' | 'individual'
 export type GuideExerciseRow = {
   key: string
   exerciseName: string
-  /** series/reps/peso por semana (vacío si no hay series). */
+  /** series/reps/peso por semana; vacío si no hay series. */
   weeks: (string | null)[]
 }
 
 export type GuideBlock = {
   key: string
   kind: GuideBlockKind
+  sortOrder: number
   /** Circuito: aclaración de bloque; individual: descanso del ejercicio. */
   headerNotesByWeek: (string | null)[]
   exercises: GuideExerciseRow[]
@@ -56,12 +57,11 @@ function exerciseLabel(ex: Ex): string {
   return ex.exercise?.name?.trim() || 'Ejercicio'
 }
 
+/** Clave estable entre semanas aunque cambie superset_group. */
 function blockKeyForGroup(group: Ex[]): string {
-  const lead = group[0]!
-  if (group.length > 1 && lead.is_superset && lead.superset_group != null) {
-    return `ss-${lead.superset_group}`
-  }
-  return `ex-${lead.exercise_id}`
+  const ids = [...group].sort((a, b) => a.sort_order - b.sort_order).map((e) => e.exercise_id)
+  if (group.length > 1) return `circuit-${ids.join('-')}`
+  return `ex-${ids[0]!}`
 }
 
 function exerciseRowKey(blockKey: string, ex: Ex): string {
@@ -83,23 +83,29 @@ function individualRestNote(ex: Ex): string | null {
   return display
 }
 
-function orderedGroups(day: Day): Ex[][] {
-  const groups: Ex[][] = []
+function orderedGroups(day: Day): { group: Ex[]; sortOrder: number }[] {
+  const sorted = [...day.exercises].sort((a, b) => a.sort_order - b.sort_order)
+  const result: { group: Ex[]; sortOrder: number }[] = []
   const seenCircuit = new Set<number>()
-  for (const ex of [...day.exercises].sort((a, b) => a.sort_order - b.sort_order)) {
+
+  for (const ex of sorted) {
     if (ex.is_superset && ex.superset_group != null) {
       if (seenCircuit.has(ex.superset_group)) continue
       seenCircuit.add(ex.superset_group)
-      groups.push(
-        day.exercises
-          .filter((e) => e.superset_group === ex.superset_group)
-          .sort((a, b) => a.sort_order - b.sort_order),
-      )
-    } else if (!ex.is_superset) {
-      groups.push([ex])
+      const group = sorted
+        .filter((e) => e.is_superset && e.superset_group === ex.superset_group)
+        .sort((a, b) => a.sort_order - b.sort_order)
+      result.push({ group, sortOrder: group[0]!.sort_order })
+    } else {
+      result.push({ group: [ex], sortOrder: ex.sort_order })
     }
   }
-  return groups
+
+  return result.sort((a, b) => a.sortOrder - b.sortOrder)
+}
+
+function isCircuitGroup(group: Ex[]): boolean {
+  return group.length > 1
 }
 
 /**
@@ -125,25 +131,27 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
     const blockMap = new Map<string, GuideBlock>()
     const blockOrder: string[] = []
 
-    const templateBlock = sortedBlocks
+    const templateDay = sortedBlocks
       .map((b) => b.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey))
       .find(Boolean)
 
-    if (templateBlock) {
-      for (const group of orderedGroups(templateBlock)) {
+    if (templateDay) {
+      for (const { group, sortOrder } of orderedGroups(templateDay)) {
         const bKey = blockKeyForGroup(group)
         if (blockMap.has(bKey)) continue
         blockOrder.push(bKey)
-        const isCircuit = group.length > 1
         blockMap.set(bKey, {
           key: bKey,
-          kind: isCircuit ? 'circuit' : 'individual',
+          kind: isCircuitGroup(group) ? 'circuit' : 'individual',
+          sortOrder,
           headerNotesByWeek: Array(weekCount).fill(null),
-          exercises: group.map((ex) => ({
-            key: exerciseRowKey(bKey, ex),
-            exerciseName: exerciseLabel(ex),
-            weeks: Array(weekCount).fill(null),
-          })),
+          exercises: [...group]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((ex) => ({
+              key: exerciseRowKey(bKey, ex),
+              exerciseName: exerciseLabel(ex),
+              weeks: Array(weekCount).fill(null),
+            })),
         })
       }
     }
@@ -152,15 +160,15 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
       const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
       if (!day) return
 
-      for (const group of orderedGroups(day)) {
+      for (const { group, sortOrder } of orderedGroups(day)) {
         const bKey = blockKeyForGroup(group)
         let guideBlock = blockMap.get(bKey)
         if (!guideBlock) {
           blockOrder.push(bKey)
-          const isCircuit = group.length > 1
           guideBlock = {
             key: bKey,
-            kind: isCircuit ? 'circuit' : 'individual',
+            kind: isCircuitGroup(group) ? 'circuit' : 'individual',
+            sortOrder,
             headerNotesByWeek: Array(weekCount).fill(null),
             exercises: [],
           }
@@ -185,10 +193,15 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
       }
     })
 
+    const blocksOut = blockOrder
+      .map((k) => blockMap.get(k)!)
+      .filter(Boolean)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+
     sections.push({
       dayKey,
       dayTitle: meta.title,
-      blocks: blockOrder.map((k) => blockMap.get(k)!).filter(Boolean),
+      blocks: blocksOut,
     })
   }
 

@@ -15,9 +15,7 @@ import {
   navItemKey,
 } from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
-import { Bell, Settings, LogOut, X, Menu, UserCircle, type LucideIcon } from 'lucide-react'
-import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
-import { NotificationBellBadge } from '@/components/notifications/NotificationBellBadge'
+import { Settings, LogOut, X, Menu, UserCircle, type LucideIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
@@ -88,7 +86,6 @@ export function MobileNav() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const reduceMotion = useReducedMotion()
 
-  const unreadCount = useUnreadNotificationCount()
   const primaryItems = getMobileNavPrimaryItems(role)
   const drawerSections = getMobileNavDrawerSections(role)
   const drawerRouteActive = drawerSections.some((section) =>
@@ -243,17 +240,6 @@ export function MobileNav() {
                 <p className="px-4 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
                   Cuenta
                 </p>
-                <DrawerNavItem
-                  to="/notifications"
-                  label={
-                    unreadCount > 0
-                      ? `Notificaciones (${unreadCount} sin leer)`
-                      : 'Notificaciones'
-                  }
-                  icon={Bell}
-                  onClose={() => setDrawerOpen(false)}
-                  badge={<NotificationBellBadge count={unreadCount} className="-top-1 -right-1.5" />}
-                />
                 <DrawerNavItem
                   to="/settings"
                   label="Configuración"

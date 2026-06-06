@@ -1,6 +1,7 @@
 import { Fragment, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
+import type { GuideBlock } from '@/lib/routine/routineProgressionGuide'
 import type { RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +20,48 @@ const KIND_LABEL = {
   circuit: 'CIRCUITO',
   individual: 'INDIVIDUAL',
 } as const
+
+const DATA_LABEL = 'SERIES/REPS /PESO KG'
+
+function weekCellBg(i: number): string {
+  return i % 2 === 0
+    ? 'bg-zinc-300/90 dark:bg-zinc-700/55'
+    : 'bg-brand-primary/30 dark:bg-brand-primary/25'
+}
+
+function weekHeaderBg(i: number): string {
+  return i % 2 === 0 ? 'bg-zinc-600' : 'bg-brand-primary/85'
+}
+
+function BlockExerciseRows({ block }: { block: GuideBlock }) {
+  const labelCol = (
+    <div className="flex w-[4.75rem] shrink-0 items-center justify-center border-r border-black/15 px-0.5 text-center text-[7px] font-bold uppercase leading-tight text-zinc-600 dark:border-white/15 dark:text-zinc-300">
+      {DATA_LABEL}
+    </div>
+  )
+
+  return (
+    <>
+      {block.exercises.map((row, exIdx) => (
+        <tr key={row.key} className="bg-zinc-100 dark:bg-zinc-900">
+          <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 align-middle text-[11px] font-semibold uppercase leading-tight text-white">
+            {row.exerciseName}
+          </td>
+          {row.weeks.map((cell, i) => (
+            <td key={i} className={cn('border-b border-zinc-700 p-0 align-middle', weekCellBg(i))}>
+              <div className="flex min-h-[2.35rem]">
+                {exIdx === 0 ? labelCol : <div className="w-[4.75rem] shrink-0 border-r border-black/15 dark:border-white/15" aria-hidden />}
+                <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                  {cell?.trim() || ''}
+                </div>
+              </div>
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  )
+}
 
 export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks }: Props) {
   const sections = useMemo(() => buildRoutineProgressionGuide(blocks), [blocks])
@@ -39,102 +82,95 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/70 p-2 sm:p-4" role="dialog" aria-modal aria-labelledby="progression-guide-title">
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-base shadow-2xl">
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-surface-border bg-brand-primary/10 px-4 py-3">
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/75 p-1 sm:p-3"
+      role="dialog"
+      aria-modal
+      aria-labelledby="progression-guide-title"
+    >
+      <div className="mx-auto flex h-full w-full max-w-[92rem] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">Solo entrenador · no PDF ni alumno</p>
-            <h2 id="progression-guide-title" className="truncate text-base font-bold text-ink-primary">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
+              Solo entrenador · no PDF ni alumno
+            </p>
+            <h2 id="progression-guide-title" className="truncate text-base font-bold text-white">
               Guía de progresión — {routineName}
             </h2>
-            <p className="mt-0.5 text-xs text-ink-muted">
-              Series, reps y peso planificados por semana (SIN KG si no hay peso cargado).
+            <p className="mt-0.5 text-xs text-zinc-400">
+              Días y semanas · CIRCUITO o INDIVIDUAL · aclaración/descanso · series/reps/peso.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-xl border border-surface-border p-2 text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
+            className="shrink-0 rounded-lg border border-zinc-700 p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
             aria-label="Cerrar guía"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4 space-y-6">
+        <div className="min-h-0 flex-1 overflow-auto p-2 sm:p-4 space-y-8">
           {sections.length === 0 ? (
-            <p className="text-sm text-ink-muted">Agregá semanas y días para ver la guía.</p>
+            <p className="text-sm text-zinc-400">Agregá semanas y días para ver la guía.</p>
           ) : (
             sections.map((section) => (
-              <section key={section.dayKey} className="space-y-2">
-                <h3 className="sticky top-0 z-10 rounded-lg bg-brand-primary px-3 py-2 text-sm font-bold uppercase tracking-wide text-white">
+              <section key={section.dayKey} className="overflow-hidden rounded-lg border border-zinc-800">
+                <div className="bg-brand-primary px-3 py-2 text-sm font-extrabold uppercase tracking-widest text-white">
                   {section.dayTitle}
-                </h3>
-                <div className="overflow-x-auto rounded-xl border border-surface-border">
-                  <table className="w-full min-w-[720px] border-collapse text-xs">
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px] border-collapse text-xs">
                     <thead>
-                      <tr className="bg-surface-elevated">
-                        <th className="sticky left-0 z-10 min-w-[160px] border-b border-r border-surface-border bg-surface-elevated px-2 py-2 text-left font-semibold text-ink-primary">
+                      <tr>
+                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                           Ejercicio / bloque
                         </th>
                         {weekLabels.map((w, i) => (
                           <th
                             key={i}
                             className={cn(
-                              'min-w-[100px] border-b border-surface-border px-2 py-2 text-center font-semibold',
-                              i % 2 === 0 ? 'bg-brand-primary/15 text-brand-primary' : 'bg-surface-card text-ink-primary',
+                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-white',
+                              weekHeaderBg(i),
                             )}
                           >
                             <div>{w.label}</div>
-                            {w.dates ? <div className="mt-0.5 font-normal text-[10px] text-ink-muted">{w.dates}</div> : null}
+                            {w.dates ? (
+                              <div className="mt-0.5 text-[9px] font-normal normal-case text-white/80">{w.dates}</div>
+                            ) : null}
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {section.blocks.map((block) => (
+                      {section.blocks.map((block, blockIdx) => (
                         <Fragment key={block.key}>
-                          <tr className="bg-zinc-900/90 dark:bg-zinc-950">
-                            <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-zinc-900 px-2 py-2 align-top font-bold uppercase tracking-wide text-white dark:bg-zinc-950">
+                          {blockIdx > 0 ? (
+                            <tr aria-hidden>
+                              <td colSpan={1 + weekLabels.length} className="h-1.5 bg-red-600 p-0" />
+                            </tr>
+                          ) : null}
+
+                          <tr className="bg-black">
+                            <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 text-center text-[11px] font-extrabold uppercase tracking-wider text-white">
                               {KIND_LABEL[block.kind]}
                             </td>
                             {block.headerNotesByWeek.map((note, i) => (
                               <td
                                 key={i}
                                 className={cn(
-                                  'border-b border-surface-border px-2 py-2 align-top whitespace-pre-wrap text-[10px] font-medium text-ink-secondary',
-                                  i % 2 === 0 ? 'bg-brand-primary/5' : 'bg-surface-card/50',
+                                  'border-b border-zinc-700 px-2 py-2 text-center text-[10px] font-semibold uppercase leading-snug',
+                                  i % 2 === 0 ? 'bg-zinc-400 text-zinc-900' : 'bg-brand-primary/75 text-white',
                                 )}
                               >
                                 {note?.trim() || ''}
                               </td>
                             ))}
                           </tr>
-                          {block.exercises.map((row, exIdx) => (
-                            <tr key={row.key} className="hover:bg-surface-elevated/40">
-                              <td className="sticky left-0 z-10 border-b border-r border-surface-border bg-surface-base px-2 py-2 align-top">
-                                <div className="font-semibold text-ink-primary">{row.exerciseName}</div>
-                              </td>
-                              {row.weeks.map((cell, i) => (
-                                <td
-                                  key={i}
-                                  className={cn(
-                                    'border-b border-surface-border px-2 py-2 align-top text-center',
-                                    i % 2 === 0 ? 'bg-brand-primary/5' : '',
-                                  )}
-                                >
-                                  {exIdx === 0 ? (
-                                    <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-ink-muted">
-                                      Series/reps / peso
-                                    </p>
-                                  ) : null}
-                                  <p className="font-medium tabular-nums text-ink-primary whitespace-pre-wrap">
-                                    {cell ?? ''}
-                                  </p>
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
+
+                          <BlockExerciseRows block={block} />
                         </Fragment>
                       ))}
                     </tbody>

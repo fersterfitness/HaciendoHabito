@@ -45,7 +45,7 @@ import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { coachMessageForWeekBlock } from '@/lib/routine/menstrualCyclePlanning'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
-import { TRAINER_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
+import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -928,7 +928,7 @@ export function RoutineDetailPage() {
                 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50',
                 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400',
               )}
-              title={`Enviar rutina por WhatsApp (${TRAINER_WHATSAPP_DISPLAY})`}
+              title={`Enviar rutina por WhatsApp (${TRAINER_CONTACT_WHATSAPP_DISPLAY})`}
             >
               {sendingWa ? <Spinner className="h-3.5 w-3.5" /> : <WhatsAppIcon className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">{sendingWa ? 'Enviando…' : 'WhatsApp'}</span>

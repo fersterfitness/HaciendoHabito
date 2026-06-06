@@ -73,7 +73,7 @@ const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: st
 
 const STEPS = [
   { id: 'plan',         label: 'Plan',         icon3d: '/icons/3dicons/kpi/routines.png' },
-  { id: 'permissions',  label: 'Permisos',     icon3d: '/icons/3dicons/kpi/notebook.png' },
+  { id: 'permissions',  label: 'Permisos',     icon3d: '/icons/3dicons/kpi/shield.png' },
   { id: 'form',         label: 'Datos',        icon3d: '/icons/3dicons/kpi/anthropometry-pdf.png' },
   { id: 'confirmation', label: 'Confirmación', icon3d: '/icons/3dicons/kpi/patients.png' },
 ] as const
@@ -295,6 +295,25 @@ export function PublicIntakeFormPageV2() {
 
   const intakeAccessToken = readIntakeAccessSession()?.token ?? null
   const trainerWaUrl = buildTrainerContactWhatsAppUrl()
+
+  /** Sin permiso aprobado no puede quedar en paso Datos (ni saltarse Permisos). */
+  useEffect(() => {
+    if (step !== 'form' || !selectedPlanId) return
+    let cancelled = false
+    ;(async () => {
+      const session = readIntakeAccessSession()
+      if (!session?.token || session.planSlug !== selectedPlanId) {
+        if (!cancelled) setStep('permissions')
+        return
+      }
+      const check = await checkWebIntakeAccessStatus(session.token)
+      if (cancelled) return
+      if (!check.ok || check.status !== 'approved') setStep('permissions')
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [step, selectedPlanId])
 
   if (!isReady) {
     return (
@@ -522,7 +541,7 @@ export function PublicIntakeFormPageV2() {
                 )}
               >
                 <div className="mb-4 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1 de 4</p>
                   <h3 className="mt-1 text-lg font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
                     Seleccioná una modalidad y elegí tu plan
                   </h3>
@@ -733,7 +752,7 @@ export function PublicIntakeFormPageV2() {
                       <ArrowLeft className="h-4 w-4" />
                     </button>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 3</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 3 de 4</p>
                       <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">Contanos un poco de vos</h2>
                       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">100% confidencial — solo lo ve el profesional asignado.</p>
                     </div>
@@ -860,7 +879,7 @@ function Stepper({
               >
                 {/* Círculo con número o check */}
                 <span className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-all',
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all sm:h-9 sm:w-9 sm:text-sm',
                   completed && 'border-green-500 bg-green-500 text-white',
                   active && 'border-brand-primary bg-white text-brand-primary shadow-[0_0_0_4px_rgba(255,72,0,0.12)] dark:bg-zinc-900',
                   !completed && !active && 'border-zinc-300 bg-white text-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-500',
@@ -872,7 +891,7 @@ function Stepper({
                 </span>
                 {/* Label debajo */}
                 <span className={cn(
-                  'hidden text-xs font-medium sm:block',
+                  'max-w-[4.5rem] text-center text-[10px] font-medium leading-tight sm:max-w-none sm:text-xs',
                   active ? 'text-zinc-900 dark:text-white' : completed ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-500',
                 )}>{s.label}</span>
               </NodeTag>
@@ -880,7 +899,7 @@ function Stepper({
               {/* Línea conectora */}
               {i < steps.length - 1 && (
                 <span className={cn(
-                  'mx-3 h-0.5 flex-1 rounded-full transition-colors',
+                  'mx-1 h-0.5 flex-1 rounded-full transition-colors sm:mx-3',
                   i < currentIndex ? 'bg-green-500' : 'bg-zinc-200 dark:bg-zinc-700',
                 )} aria-hidden />
               )}
@@ -1112,6 +1131,7 @@ function ConfirmationView({ planName, onAgain }: { planName: string | null; onAg
         <Check className="h-3 w-3" aria-hidden />
         Inscripción confirmada
       </span>
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 4 de 4</p>
       <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
         ¡Recibimos tus datos!
       </h2>
