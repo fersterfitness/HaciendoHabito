@@ -33,7 +33,7 @@ function IconRow({ children, className }: { children: ReactNode; className?: str
   return (
     <div
       className={cn(
-        'pointer-events-none inline-flex h-6 min-w-0 max-w-full flex-nowrap items-center gap-0.5',
+        'pointer-events-none inline-flex h-6 w-max max-w-full shrink-0 flex-nowrap items-center gap-0.5',
         className,
       )}
       aria-hidden

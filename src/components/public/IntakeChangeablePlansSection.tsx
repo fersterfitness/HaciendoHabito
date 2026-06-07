@@ -255,7 +255,7 @@ export function IntakeChangeablePlansSection({
         className={cn(
           'flex flex-col',
           cardLayout
-            ? 'mt-4 gap-4'
+            ? 'mt-3 gap-2 sm:mt-4 sm:gap-4'
             : flushEmbed ? 'mt-2 gap-2.5' : lightChrome ? 'mt-1.5 gap-2 sm:gap-2' : 'gap-2',
           darkInsetChrome && !cardLayout && 'mt-2.5',
         )}
@@ -282,9 +282,130 @@ export function IntakeChangeablePlansSection({
           /* ═══ Layout estilo referencia (pricing card minimal) ═══ */
           if (cardLayout) {
             const hasSections = Boolean(plan.featureSections && plan.featureSections.length > 0)
+            const featuresPanel = (
+              <>
+                {hasSections ? (
+                  <WebPlanIncludesSectionsDisplay
+                    sections={attachAvatarsToIncludeSectionViews(plan.featureSections!, includeSectionAvatars)}
+                    darkChrome={darkChrome}
+                    listTitle={plan.featuresLabel ?? 'Incluye'}
+                    showProfessionalAvatars
+                    marker="dot"
+                    sectionDivider="subtle"
+                  />
+                ) : plan.features.length > 0 ? (
+                  <>
+                    <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
+                      {plan.featuresLabel ?? 'Incluye'}
+                    </p>
+                    <ul className="flex flex-col gap-1.5">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span
+                            aria-hidden
+                            className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', darkChrome ? 'bg-orange-500/70' : 'bg-orange-500')}
+                          />
+                          <span className={cn('text-[13px] font-medium leading-snug', darkChrome ? 'text-white/78' : 'text-neutral-600')}>
+                            {feature.text}
+                          </span>
+                          {feature.hasInfo ? (
+                            <Info size={13} className={cn('ml-0.5 shrink-0', darkChrome ? 'text-white/35' : 'text-neutral-300')} />
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </>
+            )
+
             return (
-              <div
-                key={plan.id}
+              <div key={plan.id} className="flex flex-col gap-2">
+                {/* Móvil: fila compacta alineada al equipo / modalidades */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelectPlan(plan.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onSelectPlan(plan.id)
+                    }
+                  }}
+                  className={cn(
+                    'sm:hidden cursor-pointer rounded-2xl outline-none transition-colors',
+                    'ring-1 focus-visible:ring-2 focus-visible:ring-orange-500/40',
+                    darkChrome
+                      ? isSelected
+                        ? 'bg-zinc-900 ring-zinc-500/70'
+                        : 'bg-zinc-900/90 ring-white/[0.07] hover:bg-zinc-800/90'
+                      : isSelected
+                        ? 'bg-white ring-zinc-400/80'
+                        : 'bg-white ring-black/[0.05] hover:bg-zinc-50',
+                  )}
+                >
+                  <div className="flex items-center gap-3 p-3">
+                    <div
+                      className={cn(
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors',
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                          : darkChrome
+                            ? 'border-white/25 bg-transparent'
+                            : 'border-zinc-300 bg-white',
+                      )}
+                      aria-hidden
+                    >
+                      {isSelected ? <Check size={9} strokeWidth={3} /> : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {plan.badge?.trim() ? (
+                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-orange-500">{plan.badge.trim()}</p>
+                      ) : null}
+                      <p className={cn('truncate text-sm font-semibold', darkChrome ? 'text-white' : 'text-zinc-900')}>
+                        {plan.name}
+                      </p>
+                      {plan.description?.trim() ? (
+                        <p className={cn('truncate text-[11px]', darkChrome ? 'text-white/50' : 'text-zinc-500')}>
+                          {plan.description.trim()}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={cn('text-sm font-bold tabular-nums leading-none', darkChrome ? 'text-white' : 'text-zinc-900')}>
+                        {priceMain}
+                      </p>
+                      <p className={cn('mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]', darkChrome ? 'text-white/40' : 'text-zinc-400')}>
+                        {priceSub}
+                      </p>
+                    </div>
+                  </div>
+                  {isSelected ? (
+                    <div
+                      className={cn(
+                        'border-t px-3 pb-3 pt-3',
+                        darkChrome ? 'border-white/[0.08]' : 'border-zinc-200/80',
+                      )}
+                    >
+                      {featuresPanel}
+                      <div className="mt-4">
+                        <AuroraButton
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onContinue?.()
+                          }}
+                          className="w-full text-[13px] font-semibold tracking-tight px-5 py-2"
+                        >
+                          {buttonText} <span aria-hidden>→</span>
+                        </AuroraButton>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Tablet+: card completa */}
+                <div
                 role="button"
                 tabIndex={0}
                 onClick={() => onSelectPlan(plan.id)}
@@ -295,7 +416,7 @@ export function IntakeChangeablePlansSection({
                   }
                 }}
                 className={cn(
-                  'relative cursor-pointer rounded-2xl border outline-none transition-all duration-300 ease-out',
+                  'relative hidden cursor-pointer rounded-2xl border outline-none transition-all duration-300 ease-out sm:block',
                   'will-change-transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-orange-500/40',
                   darkChrome
                     ? isSelected
@@ -352,40 +473,10 @@ export function IntakeChangeablePlansSection({
 
                   {/* DERECHA: features */}
                   <div className="border-t pt-4 sm:border-t-0 sm:pl-6 sm:pt-0" style={{ borderColor: darkChrome ? 'rgba(255,255,255,0.1)' : 'rgb(229 229 229)' }}>
-                    {hasSections ? (
-                      <WebPlanIncludesSectionsDisplay
-                        sections={attachAvatarsToIncludeSectionViews(plan.featureSections!, includeSectionAvatars)}
-                        darkChrome={darkChrome}
-                        listTitle={plan.featuresLabel ?? 'Incluye'}
-                        showProfessionalAvatars
-                        marker="dot"
-                        sectionDivider="subtle"
-                      />
-                    ) : plan.features.length > 0 ? (
-                      <>
-                        <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
-                          {plan.featuresLabel ?? 'Incluye'}
-                        </p>
-                        <ul className="flex flex-col gap-1.5">
-                          {plan.features.map((feature, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span
-                                aria-hidden
-                                className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', darkChrome ? 'bg-orange-500/70' : 'bg-orange-500')}
-                              />
-                              <span className={cn('text-[13px] font-medium leading-snug', darkChrome ? 'text-white/78' : 'text-neutral-600')}>
-                                {feature.text}
-                              </span>
-                              {feature.hasInfo ? (
-                                <Info size={13} className={cn('ml-0.5 shrink-0', darkChrome ? 'text-white/35' : 'text-neutral-300')} />
-                              ) : null}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    ) : null}
+                    {featuresPanel}
                   </div>
                 </div>
+              </div>
               </div>
             )
           }

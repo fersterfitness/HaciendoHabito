@@ -518,7 +518,7 @@ export function PublicIntakeFormPageV2() {
 
           {/* ─────────── Paso "plan": cards independientes (sin contenedor monolítico) ─────────── */}
           {step === 'plan' && (
-            <div key="step-plan" className="v2f-drop v2f-d3 v2f-slide space-y-8">
+            <div key="step-plan" className="v2f-drop v2f-d3 v2f-slide space-y-5 sm:space-y-8">
               <header className="text-center">
                 <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
                   Elegí tu plan
@@ -535,59 +535,21 @@ export function PublicIntakeFormPageV2() {
               {/* Modalidad — card independiente */}
               <div
                 className={cn(
-                  'rounded-3xl p-5 sm:p-6',
+                  'rounded-2xl p-4 sm:rounded-3xl sm:p-6',
                   'bg-white ring-1 ring-black/[0.04] shadow-[0_18px_50px_-18px_rgba(15,23,42,0.12)]',
                   'dark:bg-zinc-900 dark:ring-white/[0.06] dark:shadow-[0_18px_50px_-14px_rgba(0,0,0,0.6)]',
                 )}
               >
-                <div className="mb-4 text-center">
+                <div className="mb-3 text-center sm:mb-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1 de 4</p>
-                  <h3 className="mt-1 text-lg font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
+                  <h3 className="mt-1 text-base font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
                     Seleccioná una modalidad y elegí tu plan
                   </h3>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-                    {MODALITY_OPTIONS.map((m) => {
-                      const active = catalogSegment === m.id
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setCatalogSegment(m.id)}
-                          className={cn(
-                            'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-2xl border p-3.5 text-left',
-                            active
-                              ? 'border-zinc-400 bg-gradient-to-br from-zinc-100 via-zinc-50 to-transparent ring-2 ring-zinc-300/60 shadow-[0_8px_28px_-12px_rgba(15,23,42,0.25)] dark:border-zinc-500 dark:from-white/[0.10] dark:via-white/[0.04] dark:to-transparent dark:ring-white/15 dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.6)]'
-                              : 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800',
-                          )}
-                        >
-                          {/* Glow neutro en active */}
-                          {active && (
-                            <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-zinc-400/20 blur-2xl dark:bg-white/10" aria-hidden />
-                          )}
-                          <IntakeModalityProfessionIcons
-                            modalityId={m.id}
-                            className="relative mb-2 min-h-6 pr-6"
-                          />
-                          <span className={cn(
-                            'relative text-[10px] font-bold uppercase tracking-wider',
-                            active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
-                          )}>{m.short}</span>
-                          <span className="relative text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</span>
-                          <span className="relative text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</span>
-                          {active && (
-                            <span className="absolute right-3 top-3 inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white shadow-sm">
-                              <Check className="h-3 w-3" aria-hidden />
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
 
-                {/* Plans section — cards independientes */}
-                <div>
+                <ModalityPicker value={catalogSegment} onChange={setCatalogSegment} />
+
+                <div className="mt-5 border-t border-zinc-200/80 pt-4 dark:border-zinc-800/80 sm:mt-6 sm:pt-5">
                   <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
 
                   {catalogSegment === 'full_trio' && plansVisible.length > 0 ? (
@@ -706,6 +668,7 @@ export function PublicIntakeFormPageV2() {
                   )}
                 </div>
               </div>
+            </div>
           )}
 
           {/* ─────────── Paso Permisos ─────────── */}
@@ -955,6 +918,101 @@ const TEAM: ProfessionalDef[] = [
   },
 ]
 
+function ModalityPicker({
+  value,
+  onChange,
+}: {
+  value: ModalityId
+  onChange: (id: ModalityId) => void
+}) {
+  const rowShell = cn(
+    'flex w-full flex-col gap-2 rounded-2xl p-3 text-left transition-colors',
+    'ring-1 ring-black/[0.05] dark:ring-white/[0.07]',
+  )
+
+  return (
+    <>
+      <ul className="flex flex-col gap-2 sm:hidden" role="list">
+        {MODALITY_OPTIONS.map((m) => {
+          const active = value === m.id
+          return (
+            <li key={m.id}>
+              <button
+                type="button"
+                onClick={() => onChange(m.id)}
+                className={cn(
+                  rowShell,
+                  active
+                    ? 'bg-zinc-50 ring-2 ring-zinc-400/80 dark:bg-zinc-800/70 dark:ring-zinc-500'
+                    : 'bg-white hover:bg-zinc-50 dark:bg-zinc-900/90 dark:hover:bg-zinc-800/50',
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch] scrollbar-hide">
+                    <IntakeModalityProfessionIcons modalityId={m.id} />
+                  </div>
+                  {active ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" strokeWidth={2.25} aria-hidden />
+                  ) : null}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-500">{m.short}</p>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</p>
+                  <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</p>
+                </div>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="hidden gap-2.5 sm:grid sm:grid-cols-3 lg:grid-cols-5 lg:gap-3">
+        {MODALITY_OPTIONS.map((m) => {
+          const active = value === m.id
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onChange(m.id)}
+              className={cn(
+                'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-2xl border p-3.5 text-left',
+                active
+                  ? 'border-zinc-400 bg-gradient-to-br from-zinc-100 via-zinc-50 to-transparent ring-2 ring-zinc-300/60 shadow-[0_8px_28px_-12px_rgba(15,23,42,0.25)] dark:border-zinc-500 dark:from-white/[0.10] dark:via-white/[0.04] dark:to-transparent dark:ring-white/15 dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.6)]'
+                  : 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800',
+              )}
+            >
+              {active ? (
+                <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-zinc-400/20 blur-2xl dark:bg-white/10" aria-hidden />
+              ) : null}
+              <IntakeModalityProfessionIcons modalityId={m.id} className="relative mb-2 min-h-6 pr-6" />
+              <span className={cn(
+                'relative text-[10px] font-bold uppercase tracking-wider',
+                active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
+              )}>{m.short}</span>
+              <span className="relative text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</span>
+              <span className="relative text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</span>
+              {active ? (
+                <span className="absolute right-3 top-3 inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white shadow-sm">
+                  <Check className="h-3 w-3" aria-hidden />
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+function teamMemberImage(
+  p: ProfessionalDef,
+  images: { trainer: string | null; nutritionist: string | null; psychologist: string | null },
+): string | null {
+  if (p.key === 'trainer') return images.trainer
+  if (p.key === 'nutritionist') return images.nutritionist
+  return images.psychologist
+}
+
 function MeetTheTeam({
   trainerImage,
   nutritionistImage,
@@ -964,26 +1022,74 @@ function MeetTheTeam({
   nutritionistImage: string | null
   psychologistImage: string | null
 }) {
+  const images = { trainer: trainerImage, nutritionist: nutritionistImage, psychologist: psychologistImage }
+
   return (
     <section>
-      <div className="mb-5 text-center">
+      <div className="mb-3 text-center sm:mb-5">
         <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">
           Conocé a
         </p>
-        <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-zinc-900 sm:text-3xl dark:text-white">
+        <h2 className="mt-1 text-xl font-extrabold tracking-tight text-zinc-900 sm:text-3xl dark:text-white">
           Nuestro equipo
         </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
           Profesionales especializados en rendimiento deportivo
         </p>
       </div>
 
-      <div className="mx-auto grid w-full max-w-5xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
+      {/* Móvil: filas compactas (sin retratos a pantalla completa) */}
+      <ul className="flex flex-col gap-2 sm:hidden" role="list">
         {TEAM.map((p) => {
-          const img =
-            p.key === 'trainer'      ? trainerImage :
-            p.key === 'nutritionist' ? nutritionistImage :
-            psychologistImage
+          const img = teamMemberImage(p, images)
+          const initials = p.name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
+          return (
+            <li key={p.key}>
+              <article
+                className={cn(
+                  'flex items-center gap-3 rounded-2xl p-3',
+                  'bg-white ring-1 ring-black/[0.05] shadow-sm',
+                  'dark:bg-zinc-900/90 dark:ring-white/[0.07]',
+                )}
+              >
+                <div
+                  className={cn(
+                    'relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-black/[0.06] dark:ring-white/[0.08]',
+                    p.photoGradientClass,
+                  )}
+                >
+                  {img ? (
+                    <img
+                      src={img}
+                      alt=""
+                      className="h-full w-full object-cover object-top"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-sm font-bold text-white/85">
+                      {initials}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-500">{p.role}</p>
+                  <div className="mt-0.5 flex items-center gap-1">
+                    <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{p.name}</p>
+                    <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-hidden />
+                  </div>
+                  <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{p.tagline}</p>
+                </div>
+              </article>
+            </li>
+          )
+        })}
+      </ul>
+
+      {/* Tablet+: cards portrait */}
+      <div className="mx-auto hidden w-full max-w-5xl grid-cols-3 gap-3 sm:grid sm:gap-4">
+        {TEAM.map((p) => {
+          const img = teamMemberImage(p, images)
           const initials = p.name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
           return (
             <article
@@ -998,10 +1104,8 @@ function MeetTheTeam({
                 p.hoverRingClass,
               )}
             >
-              {/* Glow de acento detrás de la cabeza */}
               <div className="pointer-events-none absolute left-1/2 top-6 h-32 w-32 -translate-x-1/2 rounded-full bg-white/30 blur-3xl dark:bg-white/10" aria-hidden />
 
-              {/* Foto recortada (PNG sin fondo) que llena la card */}
               {img ? (
                 <img
                   src={img}
@@ -1016,22 +1120,17 @@ function MeetTheTeam({
                 </span>
               )}
 
-              {/* Scrim inferior para legibilidad del texto */}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
 
-              {/* Texto overlay */}
-              <div className="relative p-2.5 sm:p-4">
-                <span className="inline-flex items-center rounded-full bg-white/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/25 backdrop-blur-sm sm:px-2 sm:text-[9px]">
+              <div className="relative p-3 sm:p-4">
+                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/25 backdrop-blur-sm">
                   {p.role}
                 </span>
-                <div className="mt-1.5 flex items-center gap-1 sm:mt-2 sm:gap-1.5">
-                  <p className="text-sm font-semibold leading-tight text-white drop-shadow-sm sm:text-lg">{p.name}</p>
-                  <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-400 sm:h-[18px] sm:w-[18px]" aria-hidden />
+                <div className="mt-2 flex items-center gap-1.5">
+                  <p className="text-base font-semibold leading-tight text-white drop-shadow-sm sm:text-lg">{p.name}</p>
+                  <BadgeCheck className="h-[18px] w-[18px] shrink-0 text-emerald-400" aria-hidden />
                 </div>
-                <p className="mt-0.5 text-[11px] leading-snug text-white/75 sm:mt-1 sm:text-[13px]">
-                  {p.tagline}
-                </p>
-                {/* Credencial — se despliega en hover */}
+                <p className="mt-1 text-[13px] leading-snug text-white/75">{p.tagline}</p>
                 <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-out group-hover:grid-rows-[1fr]">
                   <div className="overflow-hidden">
                     <p className="pt-1.5 text-[11px] leading-snug text-white/55">{p.credential}</p>

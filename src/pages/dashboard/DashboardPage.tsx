@@ -36,6 +36,7 @@ import { scheduleMatchesToday } from '@/lib/checkInSchedule'
 import { notificationHref } from '@/lib/notifications'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
 import { DashboardExpiringPlansAlert } from '@/components/dashboard/DashboardExpiringPlansAlert'
+import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import {
   loadDashboardQuickSends,
   loadStudentsMissingCheckIn,
@@ -484,6 +485,7 @@ export function DashboardPage() {
   const isPsychologist = canSeePsychologistWorkspace(role)
   const activePeopleLabel = role === 'nutritionist' || isPsychologist ? 'Pacientes activos' : 'Alumnos activos'
   const canSeeTraining = (role === 'admin' || role === 'trainer' || !role) && !isPsychologist
+  const canManageWebIntakeAccess = role === 'admin' || role === 'trainer'
   const canSeeNutrition = role === 'admin' || role === 'nutritionist'
   const canSeeFinances =
     (role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role) && !isPsychologist
@@ -578,6 +580,16 @@ export function DashboardPage() {
     if (!user) return
     void loadDashboard()
   }, [user])
+
+  useEffect(() => {
+    if (loading) return
+    if (window.location.hash !== '#accesos-inscripcion') return
+    const el = document.getElementById('accesos-inscripcion')
+    if (!el) return
+    window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [loading])
 
   async function loadDashboard() {
     setLoading(true)
@@ -1107,6 +1119,8 @@ export function DashboardPage() {
         <DashboardExpiringPlansAlert
           studentPathBase={role === 'nutritionist' ? '/nutrition' : '/students'}
         />
+
+        {canManageWebIntakeAccess ? <WebIntakeAccessRequestsPanel variant="dashboard" /> : null}
 
         <section className="space-y-2">
           <PageSectionTitle title="Resumen del mes" />

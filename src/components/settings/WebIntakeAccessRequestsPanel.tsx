@@ -19,7 +19,12 @@ type AccessRow = {
   created_at: string
 }
 
-export function WebIntakeAccessRequestsPanel() {
+type Props = {
+  /** En Inicio: estilo compacto alineado con otros avisos del tablero. */
+  variant?: 'settings' | 'dashboard'
+}
+
+export function WebIntakeAccessRequestsPanel({ variant = 'settings' }: Props) {
   const userId = useAuthStore((s) => s.user?.id)
   const [rows, setRows] = useState<AccessRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,14 +73,27 @@ export function WebIntakeAccessRequestsPanel() {
   }
 
   const pending = rows.filter((r) => r.status === 'pending')
+  const isDashboard = variant === 'dashboard'
+
+  if (isDashboard && !loading && pending.length === 0) {
+    return null
+  }
 
   return (
     <section
       id="accesos-inscripcion"
-      className="mt-8 scroll-mt-24 space-y-3 rounded-2xl border border-surface-border bg-surface-card p-4 sm:p-5"
+      className={cn(
+        'scroll-mt-24 space-y-3 border border-surface-border bg-surface-card',
+        isDashboard ? 'rounded-xl p-3 sm:p-4' : 'mt-8 rounded-2xl p-4 sm:p-5',
+      )}
     >
       <div>
-        <h2 className="text-sm font-semibold text-ink-primary">Accesos al formulario web (/form)</h2>
+        <h2 className={cn('font-semibold text-ink-primary', isDashboard ? 'text-[13px]' : 'text-sm')}>
+          Accesos al formulario web (/form)
+          {isDashboard && pending.length > 0 ? (
+            <span className="ml-1.5 font-medium text-ink-muted">({pending.length})</span>
+          ) : null}
+        </h2>
         <p className="mt-1 text-xs text-ink-muted">
           Cuando alguien toca «Pedir acceso al paso 3» en inscripción, aparece acá. Aprobá después de confirmar el
           pago para que pueda completar Datos.
@@ -93,7 +111,10 @@ export function WebIntakeAccessRequestsPanel() {
           {pending.map((r) => (
             <li
               key={r.id}
-              className="flex flex-col gap-2 rounded-xl border border-surface-border bg-surface-elevated/40 p-3 sm:flex-row sm:items-center sm:justify-between"
+              className={cn(
+                'flex flex-col gap-2 border border-surface-border bg-surface-elevated/40 sm:flex-row sm:items-center sm:justify-between',
+                isDashboard ? 'rounded-lg p-2.5' : 'rounded-xl p-3',
+              )}
             >
               <div className="min-w-0 text-sm">
                 <p className="font-semibold text-ink-primary">
