@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarClock, Check, ClipboardCheck, Clock, Copy, Plus, Save, Trash2, Download, Users } from 'lucide-react'
+import {
+  CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Save, Trash2, Download, Users,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -124,6 +126,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   /** Vista principal: por formulario (edición) o historial cronológico agrupado por alumno. */
   const [checkInView, setCheckInView] = useState<'form' | 'student'>(embedded ? 'student' : 'form')
   const [studentHistoryLoading, setStudentHistoryLoading] = useState(false)
+  /** Drill-down: alumno → respuesta por fecha. */
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null)
 
   type StudentHistoryRow = ResponseRow & {
     formId: string
@@ -230,8 +235,28 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       g.rows.push(row)
       map.set(row.studentId, g)
     }
+    for (const g of map.values()) {
+      g.rows.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+    }
     return [...map.entries()].sort((a, b) => a[1].studentName.localeCompare(b[1].studentName, 'es'))
   }, [studentHistory])
+
+  const selectedStudentGroup = useMemo(() => {
+    if (!selectedStudentId) return null
+    return historyByStudent.find(([id]) => id === selectedStudentId)?.[1] ?? null
+  }, [historyByStudent, selectedStudentId])
+
+  const selectedHistoryResponse = useMemo(() => {
+    if (!selectedResponseId || !selectedStudentGroup) return null
+    return selectedStudentGroup.rows.find((r) => r.id === selectedResponseId) ?? null
+  }, [selectedStudentGroup, selectedResponseId])
+
+  useEffect(() => {
+    if (checkInView !== 'student') {
+      setSelectedStudentId(null)
+      setSelectedResponseId(null)
+    }
+  }, [checkInView])
 
   const questionLabelsByFormId = useMemo(() => {
     const out = new Map<string, Map<string, string>>()
@@ -759,7 +784,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
         {checkInView === 'student' ? (
           <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
             <p className="text-xs text-ink-secondary max-w-prose">
-              Todas las respuestas guardadas, agrupadas por alumno y ordenadas de la más reciente a la más antigua. No se borran al enviar nuevos check-ins.
+              Elegí un alumno y después una fecha para ver cada respuesta. Así el listado escala cuando haya muchos registros.
             </p>
             {studentHistoryLoading ? (
               <p className="text-sm text-ink-muted py-8 text-center">Cargando historial…</p>
@@ -768,88 +793,188 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 title="Sin respuestas todavía"
                 description="Cuando los alumnos completen un formulario, aparecerán acá agrupados por nombre."
               />
-            ) : (
-              <ul className="space-y-4">
-                {historyByStudent.map(([studentId, group]) => {
-                  const pending = group.rows.filter((r) => !r.trainer_replied_at).length
+            ) : selectedHistoryResponse && selectedStudentGroup ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedResponseId(null)}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-secondary hover:text-ink-primary"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  Volver a fechas de {selectedStudentGroup.studentName}
+                </button>
+                {(() => {
+                  const row = selectedHistoryResponse
+                  const obj =
+                    row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
+                      ? (row.responses as Record<string, unknown>)
+                      : {}
+                  const isReplied = !!row.trainer_replied_at
+                  const isSaving = savingResponseIds.has(row.id)
                   return (
-                    <li
-                      key={studentId}
-                      className="rounded-xl border border-surface-border/80 bg-surface-elevated/15 overflow-hidden"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border/60 bg-surface-elevated/30 px-4 py-2.5">
-                        <p className="font-semibold text-ink-primary">{group.studentName}</p>
-                        <span className="text-[11px] text-ink-muted tabular-nums">
-                          {group.rows.length} respuesta{group.rows.length !== 1 ? 's' : ''}
-                          {pending > 0 ? (
-                            <span className="ml-2 font-medium text-amber-700 dark:text-amber-300">
-                              · {pending} pendiente{pending !== 1 ? 's' : ''}
-                            </span>
-                          ) : null}
-                        </span>
+                    <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-4 space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
+                          <p className="text-xs text-ink-secondary">{row.formTitle}</p>
+                          <p className="text-[11px] text-ink-muted tabular-nums">
+                            {new Date(row.submitted_at).toLocaleString('es-AR', {
+                              weekday: 'short',
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void setResponseTrainerStatus(row, !isReplied)}
+                          disabled={isSaving}
+                          aria-pressed={isReplied}
+                          className={cn(
+                            'inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium disabled:opacity-50',
+                            isReplied
+                              ? 'border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                              : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                          )}
+                        >
+                          {isReplied ? (
+                            <>
+                              <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                              Respondido
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3 w-3" aria-hidden />
+                              Pendiente
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <ul className="divide-y divide-surface-border/60">
-                        {group.rows.map((row) => {
-                          const obj =
-                            row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
-                              ? (row.responses as Record<string, unknown>)
-                              : {}
-                          const isReplied = !!row.trainer_replied_at
-                          const isSaving = savingResponseIds.has(row.id)
+                      <ul className="text-sm space-y-1.5 border-t border-surface-border/60 pt-3">
+                        {Object.entries(obj).map(([k, v]) => {
+                          const label = questionLabelsByFormId.get(row.formId)?.get(k) ?? k
                           return (
-                            <li key={row.id} className="px-4 py-3 space-y-2">
-                              <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-ink-primary">{row.formTitle}</p>
-                                  <p className="text-[10px] text-ink-muted">
-                                    {new Date(row.submitted_at).toLocaleString('es-AR')}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => void setResponseTrainerStatus(row, !isReplied)}
-                                  disabled={isSaving}
-                                  aria-pressed={isReplied}
-                                  className={cn(
-                                    'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium disabled:opacity-50',
-                                    isReplied
-                                      ? 'border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                      : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-                                  )}
-                                >
-                                  {isReplied ? (
-                                    <>
-                                      <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-                                      Respondido
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Clock className="h-3 w-3" aria-hidden />
-                                      Pendiente
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                              <ul className="text-xs space-y-0.5">
-                                {Object.entries(obj).map(([k, v]) => {
-                                  const label = questionLabelsByFormId.get(row.formId)?.get(k) ?? k
-                                  return (
-                                    <li key={k}>
-                                      <span className="text-ink-muted">{label}: </span>
-                                      <span className="text-ink-primary">{String(v ?? '—')}</span>
-                                    </li>
-                                  )
-                                })}
-                              </ul>
-                              {row.trainer_note ? (
-                                <p className="text-[11px] text-ink-secondary italic border-l-2 border-brand-secondary/30 pl-2">
-                                  Nota: {row.trainer_note}
-                                </p>
-                              ) : null}
+                            <li key={k}>
+                              <span className="text-ink-muted">{label}: </span>
+                              <span className="text-ink-primary">{String(v ?? '—')}</span>
                             </li>
                           )
                         })}
                       </ul>
+                      {row.trainer_note ? (
+                        <p className="text-[11px] text-ink-secondary italic border-l-2 border-brand-secondary/30 pl-2">
+                          Nota: {row.trainer_note}
+                        </p>
+                      ) : null}
+                    </div>
+                  )
+                })()}
+              </div>
+            ) : selectedStudentGroup ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStudentId(null)
+                    setSelectedResponseId(null)
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-secondary hover:text-ink-primary"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  Todos los alumnos
+                </button>
+                <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-4 py-2.5">
+                  <p className="font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
+                  <p className="text-[11px] text-ink-muted">
+                    {selectedStudentGroup.rows.length} respuesta{selectedStudentGroup.rows.length !== 1 ? 's' : ''} · más reciente primero
+                  </p>
+                </div>
+                <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
+                  {selectedStudentGroup.rows.map((row) => {
+                    const isReplied = !!row.trainer_replied_at
+                    const submitted = new Date(row.submitted_at)
+                    return (
+                      <li key={row.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedResponseId(row.id)}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-elevated/40"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-ink-primary tabular-nums">
+                              {submitted.toLocaleDateString('es-AR', {
+                                weekday: 'short',
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                              <span className="ml-2 font-normal text-ink-muted">
+                                {submitted.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </p>
+                            <p className="truncate text-xs text-ink-secondary">{row.formTitle}</p>
+                          </div>
+                          <span
+                            className={cn(
+                              'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                              isReplied
+                                ? 'border-emerald-600/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                : 'border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                            )}
+                          >
+                            {isReplied ? 'Respondido' : 'Pendiente'}
+                          </span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ) : (
+              <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
+                {historyByStudent.map(([studentId, group]) => {
+                  const pending = group.rows.filter((r) => !r.trainer_replied_at).length
+                  const latest = group.rows[0]
+                  return (
+                    <li key={studentId}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStudentId(studentId)
+                          setSelectedResponseId(null)
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-elevated/40"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-ink-primary">{group.studentName}</p>
+                          <p className="text-[11px] text-ink-muted">
+                            {group.rows.length} respuesta{group.rows.length !== 1 ? 's' : ''}
+                            {latest ? (
+                              <>
+                                {' · última '}
+                                {new Date(latest.submitted_at).toLocaleDateString('es-AR', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                })}
+                              </>
+                            ) : null}
+                          </p>
+                        </div>
+                        {pending > 0 ? (
+                          <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                            {pending} pend.
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full border border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                            Al día
+                          </span>
+                        )}
+                        <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                      </button>
                     </li>
                   )
                 })}

@@ -171,4 +171,80 @@ describe('buildRoutineProgressionGuide', () => {
     expect(block.exercises).toHaveLength(2)
     expect(block.exercises[0]!.exerciseName).toBe('Sentadilla goblet')
   })
+
+  it('propaga circuitNote a todas las semanas si solo está en una', () => {
+    const circuitMeta = '[[META]]\n{"circuitNote":"CIRCUITO DE 3 VUELTAS"}\n[[/META]]'
+    const mk = (weekIdx: number, withMeta: boolean) => ({
+      id: 'b1',
+      routine_id: 'r1',
+      name: `Semana ${weekIdx + 1}`,
+      sort_order: weekIdx,
+      notes: null,
+      start_date: null,
+      end_date: null,
+      days: [
+        {
+          id: `d${weekIdx}`,
+          block_id: 'b1',
+          day_name: 'Día 1',
+          day_of_week: null,
+          muscle_focus: null,
+          warmup_notes: null,
+          sort_order: 0,
+          exercises: [
+            {
+              id: `e${weekIdx}a`,
+              day_id: `d${weekIdx}`,
+              exercise_id: 'ex1',
+              sort_order: 0,
+              sets: 2,
+              reps_min: null,
+              reps_max: null,
+              reps_scheme: '8',
+              weight_kg: null,
+              rir: null,
+              rpe: null,
+              rest_seconds: null,
+              tempo: null,
+              video_url: null,
+              technical_notes: withMeta ? circuitMeta : null,
+              is_superset: true,
+              superset_group: 1,
+              training_method_id: null,
+              method_coach_notes: null,
+              exercise: { id: 'ex1', name: 'Press banca' } as never,
+            },
+            {
+              id: `e${weekIdx}b`,
+              day_id: `d${weekIdx}`,
+              exercise_id: 'ex2',
+              sort_order: 1,
+              sets: 2,
+              reps_min: null,
+              reps_max: null,
+              reps_scheme: '10',
+              weight_kg: null,
+              rir: null,
+              rpe: null,
+              rest_seconds: null,
+              tempo: null,
+              video_url: null,
+              technical_notes: null,
+              is_superset: true,
+              superset_group: 1,
+              training_method_id: null,
+              method_coach_notes: null,
+              exercise: { id: 'ex2', name: 'Remo' } as never,
+            },
+          ],
+        },
+      ],
+    })
+
+    const blocks = [mk(0, true), mk(1, false), mk(2, false), mk(3, false)]
+    const guide = buildRoutineProgressionGuide(blocks as never)
+    const block = guide[0]!.blocks[0]!
+    expect(block.kind).toBe('circuit')
+    expect(block.headerNotesByWeek.every((n) => n?.includes('3 VUELTAS'))).toBe(true)
+  })
 })

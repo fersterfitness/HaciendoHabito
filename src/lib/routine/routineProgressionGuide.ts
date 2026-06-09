@@ -5,6 +5,7 @@ export type GuideBlockKind = 'circuit' | 'individual'
 
 export type GuideExerciseRow = {
   key: string
+  exerciseId: string
   exerciseName: string
   /** series/reps/peso por semana; vacío si no hay series. */
   weeks: (string | null)[]
@@ -108,6 +109,14 @@ function isCircuitGroup(group: Ex[]): boolean {
   return group.length > 1
 }
 
+/** Si el circuitNote solo está en una semana, mostrarlo en todas. */
+function propagateCircuitHeaderNotes(block: GuideBlock): void {
+  if (block.kind !== 'circuit') return
+  const note = block.headerNotesByWeek.find((n) => n?.trim())?.trim() ?? null
+  if (!note) return
+  block.headerNotesByWeek = block.headerNotesByWeek.map((n) => (n?.trim() ? n : note))
+}
+
 /**
  * Guía por día: bloques CIRCUITO / INDIVIDUAL, un ejercicio por fila, sin calentamiento.
  */
@@ -149,6 +158,7 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((ex) => ({
               key: exerciseRowKey(bKey, ex),
+              exerciseId: ex.exercise_id,
               exerciseName: exerciseLabel(ex),
               weeks: Array(weekCount).fill(null),
             })),
@@ -185,10 +195,29 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
           const rowKey = exerciseRowKey(bKey, ex)
           let row = guideBlock.exercises.find((r) => r.key === rowKey)
           if (!row) {
-            row = { key: rowKey, exerciseName: exerciseLabel(ex), weeks: Array(weekCount).fill(null) }
+            row = {
+              key: rowKey,
+              exerciseId: ex.exercise_id,
+              exerciseName: exerciseLabel(ex),
+              weeks: Array(weekCount).fill(null),
+            }
             guideBlock.exercises.push(row)
           }
           row.weeks[weekIdx] = formatGuidePrescriptionCell(ex)
+        }
+      }
+    })
+
+    // Si un ejercicio cambió de bloque entre semanas, igual mostrar series/reps/peso.
+    sortedBlocks.forEach((block, weekIdx) => {
+      const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
+      if (!day) return
+      const byExerciseId = new Map(day.exercises.map((ex) => [ex.exercise_id, ex]))
+      for (const guideBlock of blockMap.values()) {
+        for (const row of guideBlock.exercises) {
+          if (row.weeks[weekIdx]?.trim()) continue
+          const ex = byExerciseId.get(row.exerciseId)
+          if (ex) row.weeks[weekIdx] = formatGuidePrescriptionCell(ex)
         }
       }
     })
@@ -197,6 +226,8 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
       .map((k) => blockMap.get(k)!)
       .filter(Boolean)
       .sort((a, b) => a.sortOrder - b.sortOrder)
+
+    for (const b of blocksOut) propagateCircuitHeaderNotes(b)
 
     sections.push({
       dayKey,
