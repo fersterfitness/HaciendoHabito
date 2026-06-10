@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { pdf } from '@react-pdf/renderer'
 import {
   Trash2,
   Pencil,
@@ -12,9 +13,12 @@ import {
   Search,
   BookOpen,
   FileText,
+  FileDown,
   Layers,
   X,
 } from 'lucide-react'
+import { colorBrandLogoSrc, socialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
+import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import { Header } from '@/components/layout/Header'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { DirectoryTableShell } from '@/components/directory/DirectoryTableShell'
@@ -66,7 +70,7 @@ const planEditorPanelBg: CSSProperties = {
 }
 
 export function NutritionTemplatesPage() {
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<NutritionPlanLibrary[]>([])
   const [search, setSearch] = useState('')
@@ -78,6 +82,7 @@ export function NutritionTemplatesPage() {
   const [grid, setGrid] = useState<WeeklyPlanGridJson>(() => createEmptyWeeklyGrid(true))
   const saveTimer = useRef<number | null>(null)
   const reduceMotion = useReducedMotion()
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -224,6 +229,45 @@ export function NutritionTemplatesPage() {
     const cloned = data as NutritionPlanLibrary
     setPlans((prev) => [cloned, ...prev])
     openEditor(cloned)
+  }
+
+  async function downloadPlanPdf() {
+    setExportingPdf(true)
+    try {
+      const planName = draftName.trim() || 'Plan sin nombre'
+      const doc = (
+        <NutritionMealPlanPdfDocument
+          patientName={planName}
+          genderLabel="Plantilla"
+          ageText={null}
+          weightKgText={null}
+          totalKcalLabel={null}
+          nextConsultLabel={null}
+          mergeWeekends={mergeWeekends}
+          grid={normalizeWeeklyGrid(grid, mergeWeekends)}
+          variant="detailed"
+          layoutMode="template"
+          objective={draftObjective}
+          generalNotes={draftNotes}
+          professionalName={profile?.full_name ?? 'Nutricionista'}
+          professionalContact={{
+            phone: '1155082465',
+            email: 'cris.crossetto@gmail.com',
+            instagram: '@c.vazqueznutricion',
+          }}
+          appLogoUrl={colorBrandLogoSrc()}
+          socialIcons={socialIconUrls()}
+          footerSourceLabel="Plan nutricional · Generado desde biblioteca de planes"
+        />
+      )
+      const blob = await pdf(doc).toBlob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      toast.success('PDF generado')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al generar PDF')
+    }
+    setExportingPdf(false)
   }
 
   async function renameNow() {
@@ -547,36 +591,46 @@ export function NutritionTemplatesPage() {
                           Autoguardado en grilla
                         </span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <input
-                          id="plan-library-editor-title"
-                          value={draftName}
-                          onChange={(e) => setDraftName(e.target.value)}
-                          className={cn(
-                            'min-w-0 flex-1 rounded-xl border border-surface-border/80 bg-surface-card px-3 py-2',
-                            'text-base font-semibold text-ink-primary outline-none sm:min-w-[14rem] sm:text-lg',
-                            'focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20',
-                          )}
-                          aria-label="Nombre del plan"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void renameNow()}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border/80 text-ink-secondary transition-colors hover:border-brand-secondary/40 hover:text-brand-secondary"
-                          title="Guardar nombre y metadatos"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <input
+                        id="plan-library-editor-title"
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        className={cn(
+                          'w-full rounded-xl border border-surface-border/80 bg-surface-card px-3 py-2',
+                          'text-base font-semibold text-ink-primary outline-none sm:text-lg',
+                          'focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20',
+                        )}
+                        aria-label="Nombre del plan"
+                      />
                     </div>
-                    <button
-                      type="button"
-                      onClick={closeEditor}
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-surface-border/80 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-                      aria-label="Cerrar editor"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void renameNow()}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border/80 text-ink-secondary transition-colors hover:border-brand-secondary/40 hover:text-brand-secondary"
+                        title="Guardar nombre y metadatos"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void downloadPlanPdf()}
+                        disabled={exportingPdf}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border/80 text-ink-secondary transition-colors hover:border-brand-secondary/40 hover:text-brand-secondary disabled:opacity-50"
+                        title="Imprimir plan en PDF"
+                        aria-label="Imprimir plan en PDF"
+                      >
+                        <FileDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeEditor}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border/80 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                        aria-label="Cerrar editor"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 

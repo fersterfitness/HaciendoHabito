@@ -13,6 +13,7 @@ import {
 } from '@react-pdf/renderer'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import { columnLabels } from '@/lib/nutrition/weeklyPlanGrid'
+import { parsePlanGeneralNotes } from '@/lib/nutrition/planGeneralNotes'
 import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
 import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
 import { InstagramIcon, WhatsAppIcon } from '@/lib/pdf/pdfBrandIcons'
@@ -348,6 +349,98 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     letterSpacing: 0.4,
   },
+  metaBlock: {
+    marginTop: 4,
+    marginBottom: 8,
+    borderWidth: 0.6,
+    borderColor: PDF_BRAND.border,
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    backgroundColor: PDF_BRAND.white,
+  },
+  metaLabel: {
+    fontSize: 6.4,
+    color: PDF_BRAND.muted,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontFamily: 'Helvetica-Bold',
+  },
+  metaBody: {
+    fontSize: 8,
+    color: PDF_BRAND.body,
+    lineHeight: 1.35,
+  },
+  notesList: {
+    marginTop: 4,
+    gap: 3,
+  },
+  notesItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
+  },
+  notesBullet: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 3,
+    backgroundColor: PDF_BRAND.secondary,
+  },
+  notesItemText: {
+    flex: 1,
+    fontSize: 7.6,
+    color: PDF_BRAND.body,
+    lineHeight: 1.35,
+  },
+  /** Biblioteca de planes: cabecera más baja para no “quemar” la primera hoja. */
+  heroCardCompact: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginBottom: 3,
+  },
+  heroLogoImgCompact: {
+    width: 42,
+    height: 42,
+    objectFit: 'cover',
+  },
+  heroTitleCompact: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: PDF_BRAND.heading,
+  },
+  heroSubtitleCompact: {
+    fontSize: 7.2,
+    color: PDF_BRAND.muted,
+    marginTop: 1,
+  },
+  templateInfoStrip: {
+    marginBottom: 4,
+    borderWidth: 0.6,
+    borderColor: PDF_BRAND.border,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: PDF_BRAND.white,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  templateInfoCol: {
+    flexGrow: 1,
+    flexBasis: 0,
+  },
+  templateInfoColWide: {
+    flexGrow: 1.6,
+    flexBasis: 0,
+  },
+  metaBlockCompact: {
+    marginTop: 0,
+    marginBottom: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+  },
 })
 
 export interface NutritionMealPlanPdfDocumentProps {
@@ -365,6 +458,14 @@ export interface NutritionMealPlanPdfDocumentProps {
   appLogoUrl?: string | null
   /** Iconos PNG oficiales (WhatsApp/Instagram/Gmail) servidos desde `public/`. */
   socialIcons?: SocialIconUrls
+  /** Objetivo del plan (biblioteca / plantilla). */
+  objective?: string | null
+  /** Notas generales serializadas (preámbulo + aclaraciones). */
+  generalNotes?: string | null
+  /** Pie de página contextual. */
+  footerSourceLabel?: string
+  /** `template`: biblioteca sin datos clínicos; cabecera compacta y grilla desde la 1ª hoja. */
+  layoutMode?: 'patient' | 'template'
 }
 
 export function NutritionMealPlanPdfDocument({
@@ -379,23 +480,38 @@ export function NutritionMealPlanPdfDocument({
   professionalContact,
   appLogoUrl,
   socialIcons,
+  objective,
+  generalNotes,
+  footerSourceLabel = 'Plan nutricional personalizado · Generado desde la ficha del paciente',
+  layoutMode = 'patient',
 }: NutritionMealPlanPdfDocumentProps) {
   const days = columnLabels(mergeWeekends)
   const isCompact = variant === 'compact'
+  const isTemplate = layoutMode === 'template'
+  const parsedNotes = parsePlanGeneralNotes(generalNotes)
+  const objectiveText = objective?.trim() ?? ''
+  const mealHeaderMinAhead = isTemplate ? 28 : 60
 
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
-        <View style={styles.heroCard}>
+        <View style={isTemplate ? [styles.heroCard, styles.heroCardCompact] : styles.heroCard}>
           <View style={styles.heroLeft}>
             {appLogoUrl ? (
-              <Image src={appLogoUrl} style={styles.heroLogoImg} />
+              <Image
+                src={appLogoUrl}
+                style={isTemplate ? styles.heroLogoImgCompact : styles.heroLogoImg}
+              />
             ) : (
               <Text style={styles.heroLogoMonogram}>H</Text>
             )}
             <View>
-              <Text style={styles.heroTitle}>Plan de alimentación</Text>
-              <Text style={styles.heroSubtitle}>Distribución semanal personalizada</Text>
+              <Text style={isTemplate ? styles.heroTitleCompact : styles.heroTitle}>
+                Plan de alimentación
+              </Text>
+              <Text style={isTemplate ? styles.heroSubtitleCompact : styles.heroSubtitle}>
+                {isTemplate ? patientName : 'Distribución semanal personalizada'}
+              </Text>
             </View>
           </View>
 
@@ -439,30 +555,91 @@ export function NutritionMealPlanPdfDocument({
           </View>
         </View>
 
-        <View style={styles.headerGrid}>
-          <View style={styles.headerRow}>
-            <View style={[styles.headerItem, styles.headerItemFirst, styles.headerItemWide]}>
-              <Text style={styles.headerLabel}>Nombre</Text>
-              <Text style={styles.headerValue}>{patientName}</Text>
+        {isTemplate ? (
+          <>
+            {(objectiveText || parsedNotes.preamble || parsedNotes.aclaraciones.length > 0) ? (
+              <View style={styles.templateInfoStrip}>
+                {objectiveText ? (
+                  <View style={styles.templateInfoColWide}>
+                    <Text style={styles.metaLabel}>Objetivo del plan</Text>
+                    <Text style={styles.metaBody}>{objectiveText}</Text>
+                  </View>
+                ) : null}
+                {parsedNotes.preamble ? (
+                  <View style={styles.templateInfoCol}>
+                    <Text style={styles.metaLabel}>Notas</Text>
+                    <Text style={styles.metaBody}>{parsedNotes.preamble}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+            {parsedNotes.aclaraciones.length > 0 ? (
+              <View style={[styles.metaBlock, styles.metaBlockCompact]}>
+                <Text style={styles.metaLabel}>Aclaraciones</Text>
+                <View style={styles.notesList}>
+                  {parsedNotes.aclaraciones.map((item, i) => (
+                    <View key={i} style={styles.notesItem}>
+                      <View style={styles.notesBullet} />
+                      <Text style={styles.notesItemText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <View style={styles.headerGrid}>
+              <View style={styles.headerRow}>
+                <View style={[styles.headerItem, styles.headerItemFirst, styles.headerItemWide]}>
+                  <Text style={styles.headerLabel}>Nombre</Text>
+                  <Text style={styles.headerValue}>{patientName}</Text>
+                </View>
+                <View style={styles.headerItem}>
+                  <Text style={styles.headerLabel}>Sexo</Text>
+                  <Text style={styles.headerValue}>{genderLabel}</Text>
+                </View>
+                <View style={[styles.headerItem, styles.headerItemNarrow]}>
+                  <Text style={styles.headerLabel}>Edad</Text>
+                  <Text style={styles.headerValue}>{ageText ?? '—'}</Text>
+                </View>
+                <View style={styles.headerItem}>
+                  <Text style={styles.headerLabel}>Peso actual</Text>
+                  <Text style={styles.headerValue}>{weightKgText ?? '—'}</Text>
+                </View>
+                <View style={styles.headerItem}>
+                  <Text style={styles.headerLabel}>Valor calórico</Text>
+                  <Text style={styles.headerValue}>{totalKcalLabel ?? 'Consensuado'}</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.headerItem}>
-              <Text style={styles.headerLabel}>Sexo</Text>
-              <Text style={styles.headerValue}>{genderLabel}</Text>
-            </View>
-            <View style={[styles.headerItem, styles.headerItemNarrow]}>
-              <Text style={styles.headerLabel}>Edad</Text>
-              <Text style={styles.headerValue}>{ageText ?? '—'}</Text>
-            </View>
-            <View style={styles.headerItem}>
-              <Text style={styles.headerLabel}>Peso actual</Text>
-              <Text style={styles.headerValue}>{weightKgText ?? '—'}</Text>
-            </View>
-            <View style={styles.headerItem}>
-              <Text style={styles.headerLabel}>Valor calórico</Text>
-              <Text style={styles.headerValue}>{totalKcalLabel ?? 'Consensuado'}</Text>
-            </View>
-          </View>
-        </View>
+
+            {objectiveText ? (
+              <View style={styles.metaBlock}>
+                <Text style={styles.metaLabel}>Objetivo del plan</Text>
+                <Text style={styles.metaBody}>{objectiveText}</Text>
+              </View>
+            ) : null}
+
+            {parsedNotes.preamble || parsedNotes.aclaraciones.length > 0 ? (
+              <View style={styles.metaBlock}>
+                <Text style={styles.metaLabel}>Notas generales</Text>
+                {parsedNotes.preamble ? <Text style={styles.metaBody}>{parsedNotes.preamble}</Text> : null}
+                {parsedNotes.aclaraciones.length > 0 ? (
+                  <View style={styles.notesList}>
+                    <Text style={[styles.metaLabel, { marginTop: parsedNotes.preamble ? 4 : 0 }]}>Aclaraciones</Text>
+                    {parsedNotes.aclaraciones.map((item, i) => (
+                      <View key={i} style={styles.notesItem}>
+                        <View style={styles.notesBullet} />
+                        <Text style={styles.notesItemText}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        )}
 
         {grid.mealRows.map((meal, idx) => {
           const time = meal.approxTime?.trim()
@@ -477,7 +654,7 @@ export function NutritionMealPlanPdfDocument({
                 de celdas de abajo SÍ puede partirse entre páginas, así un menú
                 con mucho texto fluye a la página siguiente en vez de cortarse.
               */}
-              <View wrap={false} minPresenceAhead={60}>
+              <View wrap={false} minPresenceAhead={mealHeaderMinAhead}>
                 <View style={isAlt ? [styles.mealHeader, styles.mealHeaderAlt] : styles.mealHeader}>
                   <Text style={styles.mealTitleText}>{meal.label}</Text>
                   {time ? (
@@ -569,9 +746,7 @@ export function NutritionMealPlanPdfDocument({
         </View>
 
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>
-            Plan nutricional personalizado · Generado desde la ficha del paciente
-          </Text>
+          <Text style={styles.footerText}>{footerSourceLabel}</Text>
           <Text
             style={styles.footerText}
             render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
