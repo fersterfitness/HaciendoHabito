@@ -6,7 +6,9 @@ import { FileDown, Sparkles } from 'lucide-react'
 import { colorBrandLogoSrc, socialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
+import { patientGenderLabel, patientWeightKgLabel } from '@/lib/nutrition/patientGenderLabel'
 import { createEmptyWeeklyGrid, normalizeWeeklyGrid, reshapeGrid } from '@/lib/nutrition/weeklyPlanGrid'
+import { fetchAccessibleStudentById } from '@/lib/students/studentAccess'
 import type {
   NutritionMeasurement,
   NutritionPatientPlanVersion,
@@ -25,17 +27,6 @@ interface Props {
   measurements: NutritionMeasurement[]
 }
 
-function genderEs(g: Student['gender']): string {
-  switch (g) {
-    case 'M':
-      return 'Masculino'
-    case 'F':
-      return 'Femenino'
-    default:
-      return 'Sin indicar'
-  }
-}
-
 function ageFromStudent(student: Student): string | null {
   if (!student.birth_date) return null
   try {
@@ -43,16 +34,6 @@ function ageFromStudent(student: Student): string | null {
   } catch {
     return null
   }
-}
-
-function latestWeightKg(measurements: NutritionMeasurement[]): string | null {
-  const sorted = [...measurements].sort((a, b) =>
-    new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime()
-  )
-  const w = sorted[0]?.weight_kg
-  if (w == null || Number.isNaN(Number(w))) return null
-  const n = typeof w === 'number' ? w : Number(w)
-  return `${String(n.toFixed(3)).replace(/\.?0+$/, '')} kg`
 }
 
 export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
@@ -229,12 +210,14 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
   async function downloadPdf() {
     setExportingPdf(true)
     try {
+      const { data: freshStudent } = await fetchAccessibleStudentById(sid)
+      const studentForPdf = freshStudent ?? student
       const doc = (
         <NutritionMealPlanPdfDocument
-          patientName={student.full_name}
-          genderLabel={genderEs(student.gender)}
-          ageText={ageFromStudent(student)}
-          weightKgText={latestWeightKg(measurements)}
+          patientName={studentForPdf.full_name}
+          genderLabel={patientGenderLabel(studentForPdf, measurements)}
+          ageText={ageFromStudent(studentForPdf)}
+          weightKgText={patientWeightKgLabel(studentForPdf, measurements)}
           totalKcalLabel={kcalPhrase}
           nextConsultLabel={nextConsultDate.trim() !== '' ? new Date(nextConsultDate + 'T12:00:00').toLocaleDateString('es-AR') : null}
           mergeWeekends={mergeWeekends}

@@ -4,7 +4,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
-  Table2, Droplets,
+  Table2, Droplets, ClipboardList,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -41,6 +41,7 @@ import {
 import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
 import { cascadeWeekDatesFromBlock, initialDatesForNewBlock } from '@/lib/routine/weekBlockDates'
 import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
+import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProgressLogPdf'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { coachMessageForWeekBlock } from '@/lib/routine/menstrualCyclePlanning'
@@ -153,6 +154,7 @@ export function RoutineDetailPage() {
   const [showDelete, setShowDelete]   = useState(false)
   const [deleting, setDeleting]       = useState(false)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [exportingProgressLog, setExportingProgressLog] = useState(false)
   const [sendingWa, setSendingWa] = useState(false)
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set())
   const [expandedDays, setExpandedDays]     = useState<Set<string>>(new Set())
@@ -347,6 +349,24 @@ export function RoutineDetailPage() {
       toast.error(err instanceof Error ? err.message : 'Error generando PDF', { id: toastId })
     } finally {
       setGeneratingPdf(false)
+    }
+  }
+
+  async function handleDownloadProgressLog() {
+    if (!routine || blocks.length === 0) return
+    setExportingProgressLog(true)
+    const toastId = toast.loading('Generando registro de progreso…')
+    try {
+      await downloadRoutineProgressLogPdf({
+        routineName: routine.name,
+        studentName: routine.student?.full_name,
+        blocks,
+      })
+      toast.success('Registro de progreso listo para imprimir', { id: toastId })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo generar el PDF', { id: toastId })
+    } finally {
+      setExportingProgressLog(false)
     }
   }
 
@@ -890,10 +910,26 @@ export function RoutineDetailPage() {
               onClick={() => setShowProgressionGuide(true)}
               disabled={blocks.length === 0}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
-              title="Guía de progresión semanal (solo vos)"
+              title="Guía semanal de progresión (solo entrenador)"
             >
               <Table2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Guía</span>
+              <span className="hidden sm:inline">Guía semanal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDownloadProgressLog()}
+              disabled={exportingProgressLog || blocks.length === 0}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
+              title="PDF imprimible para que el alumno registre pesos y sensaciones"
+            >
+              {exportingProgressLog ? (
+                <Spinner className="h-3.5 w-3.5" />
+              ) : (
+                <ClipboardList className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {exportingProgressLog ? 'Generando…' : 'Registro de progreso'}
+              </span>
             </button>
             <button
               onClick={() => navigate(`/routines/${id}/edit`)}

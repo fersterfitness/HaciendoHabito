@@ -28,7 +28,39 @@ export type GuideDaySection = {
 
 type Ex = RoutineExercise & { exercise?: Exercise }
 type Day = RoutineDay & { exercises: Ex[] }
-type Block = RoutineBlock & { days: Day[] }
+export type ProgressGuideBlock = RoutineBlock & { days: Day[] }
+
+export function buildGuideWeekLabels(blocks: ProgressGuideBlock[]): { label: string; dates: string | null }[] {
+  return [...blocks]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((b, i) => ({
+      label: b.name?.trim() || `Semana ${i + 1}`,
+      dates:
+        b.start_date || b.end_date
+          ? `${b.start_date ? new Date(b.start_date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'} – ${b.end_date ? new Date(b.end_date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}`
+          : null,
+    }))
+}
+
+/** Cantidad de series a filas de registro (1–5; default 3). */
+export function exerciseSetsForWeek(
+  blocks: ProgressGuideBlock[],
+  dayKey: string,
+  exerciseId: string,
+  weekIdx: number,
+): number {
+  const sorted = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
+  const block = sorted[weekIdx]
+  if (!block) return 3
+  const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
+  if (!day) return 3
+  const ex = day.exercises.find((e) => e.exercise_id === exerciseId)
+  const sets = ex?.sets
+  if (sets != null && sets > 0) return Math.min(Math.max(sets, 1), 5)
+  return 3
+}
+
+type Block = ProgressGuideBlock
 
 function fmtKg(n: number): string {
   const r = Math.round(n * 10) / 10

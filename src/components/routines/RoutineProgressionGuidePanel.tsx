@@ -1,6 +1,6 @@
 import { Fragment, useMemo } from 'react'
 import { X } from 'lucide-react'
-import { buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
+import { buildGuideWeekLabels, buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
 import type { GuideBlock } from '@/lib/routine/routineProgressionGuide'
 import type { RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -65,19 +65,7 @@ function BlockExerciseRows({ block }: { block: GuideBlock }) {
 
 export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks }: Props) {
   const sections = useMemo(() => buildRoutineProgressionGuide(blocks), [blocks])
-  const weekLabels = useMemo(
-    () =>
-      [...blocks]
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map((b, i) => ({
-          label: b.name?.trim() || `Semana ${i + 1}`,
-          dates:
-            b.start_date || b.end_date
-              ? `${b.start_date ? new Date(b.start_date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'} – ${b.end_date ? new Date(b.end_date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}`
-              : null,
-        })),
-    [blocks],
-  )
+  const weekLabels = useMemo(() => buildGuideWeekLabels(blocks), [blocks])
 
   if (!open) return null
 
@@ -95,7 +83,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
               Solo entrenador · no PDF ni alumno
             </p>
             <h2 id="progression-guide-title" className="truncate text-base font-bold text-white">
-              Guía de progresión — {routineName}
+              Guía semanal — {routineName}
             </h2>
             <p className="mt-0.5 text-xs text-zinc-400">
               Días y semanas · CIRCUITO o INDIVIDUAL · aclaración/descanso · series/reps/peso.
