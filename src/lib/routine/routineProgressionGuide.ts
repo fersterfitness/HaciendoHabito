@@ -42,22 +42,81 @@ export function buildGuideWeekLabels(blocks: ProgressGuideBlock[]): { label: str
     }))
 }
 
-/** Cantidad de series a filas de registro (1–5; default 3). */
+/** Cantidad de series en filas del registro de progreso (1–8). */
+export function parseVueltasFromNote(note: string | null | undefined): number | null {
+  if (!note?.trim()) return null
+  const m = note.match(/(\d+)\s*vueltas?/i)
+  if (!m) return null
+  const n = parseInt(m[1]!, 10)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/** Extrae N de prescripciones tipo `3x12 / …` o `2 / SIN KG`. */
+export function parseSetsFromPrescription(prescription: string | null | undefined): number | null {
+  if (!prescription?.trim()) return null
+  const t = prescription.trim()
+  const mx = t.match(/^(\d+)\s*x/i)
+  if (mx) {
+    const n = parseInt(mx[1]!, 10)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+  const mSlash = t.match(/^(\d+)\s*\//)
+  if (mSlash) {
+    const n = parseInt(mSlash[1]!, 10)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+  return null
+}
+
+function setsFromExerciseInWeek(
+  blocks: ProgressGuideBlock[],
+  dayKey: string,
+  exerciseId: string,
+  weekIdx: number,
+): number | null {
+  const sorted = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
+  const block = sorted[weekIdx]
+  if (!block) return null
+  const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
+  if (!day) return null
+  const ex = day.exercises.find((e) => e.exercise_id === exerciseId)
+  if (ex?.sets != null && ex.sets > 0) return ex.sets
+  return null
+}
+
+/** Filas de serie del registro: vueltas (circuito) → sets del ejercicio → prescripción → 2. */
+export function exerciseLogSeriesCount(opts: {
+  blocks: ProgressGuideBlock[]
+  dayKey: string
+  exerciseId: string
+  weekIdx: number
+  guideBlock: GuideBlock
+  prescription: string | null
+}): number {
+  const { blocks, dayKey, exerciseId, weekIdx, guideBlock, prescription } = opts
+
+  if (guideBlock.kind === 'circuit') {
+    const vueltas = parseVueltasFromNote(guideBlock.headerNotesByWeek[weekIdx])
+    if (vueltas != null) return Math.min(Math.max(vueltas, 1), 8)
+  }
+
+  const fromExercise = setsFromExerciseInWeek(blocks, dayKey, exerciseId, weekIdx)
+  if (fromExercise != null) return Math.min(Math.max(fromExercise, 1), 8)
+
+  const fromRx = parseSetsFromPrescription(prescription)
+  if (fromRx != null) return Math.min(Math.max(fromRx, 1), 8)
+
+  return 2
+}
+
+/** @deprecated Usar exerciseLogSeriesCount */
 export function exerciseSetsForWeek(
   blocks: ProgressGuideBlock[],
   dayKey: string,
   exerciseId: string,
   weekIdx: number,
 ): number {
-  const sorted = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
-  const block = sorted[weekIdx]
-  if (!block) return 3
-  const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
-  if (!day) return 3
-  const ex = day.exercises.find((e) => e.exercise_id === exerciseId)
-  const sets = ex?.sets
-  if (sets != null && sets > 0) return Math.min(Math.max(sets, 1), 5)
-  return 3
+  return setsFromExerciseInWeek(blocks, dayKey, exerciseId, weekIdx) ?? 3
 }
 
 type Block = ProgressGuideBlock

@@ -1,5 +1,81 @@
 import { describe, expect, it } from 'vitest'
-import { buildRoutineProgressionGuide, formatGuidePrescriptionCell } from './routineProgressionGuide'
+import {
+  buildRoutineProgressionGuide,
+  exerciseLogSeriesCount,
+  formatGuidePrescriptionCell,
+  parseSetsFromPrescription,
+  parseVueltasFromNote,
+} from './routineProgressionGuide'
+
+describe('parseVueltasFromNote', () => {
+  it('detecta vueltas en texto de circuito', () => {
+    expect(parseVueltasFromNote('CIRCUITO DE 3 VUELTAS X PAUSA DE 1\'')).toBe(3)
+    expect(parseVueltasFromNote('2 vueltas con 30s')).toBe(2)
+    expect(parseVueltasFromNote('5 VUELTAS')).toBe(5)
+  })
+
+  it('devuelve null si no hay vueltas', () => {
+    expect(parseVueltasFromNote('2-3\' DE PAUSA')).toBeNull()
+    expect(parseVueltasFromNote(null)).toBeNull()
+  })
+})
+
+describe('parseSetsFromPrescription', () => {
+  it('lee sets de prescripción', () => {
+    expect(parseSetsFromPrescription('3x8,8,8 / SIN KG')).toBe(3)
+    expect(parseSetsFromPrescription('2x10 / SIN KG')).toBe(2)
+    expect(parseSetsFromPrescription('3 / SIN KG')).toBe(3)
+  })
+})
+
+describe('exerciseLogSeriesCount', () => {
+  const circuitBlock = {
+    key: 'c1',
+    kind: 'circuit' as const,
+    sortOrder: 0,
+    headerNotesByWeek: ['CIRCUITO DE 3 VUELTAS X 40X20', null, null, null],
+    exercises: [],
+  }
+
+  it('usa vueltas del circuito', () => {
+    expect(
+      exerciseLogSeriesCount({
+        blocks: [],
+        dayKey: 'Día 1',
+        exerciseId: 'ex1',
+        weekIdx: 0,
+        guideBlock: circuitBlock,
+        prescription: '2x10 / SIN KG',
+      }),
+    ).toBe(3)
+  })
+
+  it('usa sets del ejercicio en bloque individual', () => {
+    const blocks = [
+      {
+        id: 'b1',
+        sort_order: 0,
+        days: [
+          {
+            day_name: 'Día 1',
+            sort_order: 0,
+            exercises: [{ exercise_id: 'ex1', sets: 2, reps_scheme: '10' }],
+          },
+        ],
+      },
+    ]
+    expect(
+      exerciseLogSeriesCount({
+        blocks: blocks as never,
+        dayKey: 'Día 1',
+        exerciseId: 'ex1',
+        weekIdx: 0,
+        guideBlock: { ...circuitBlock, kind: 'individual', headerNotesByWeek: [null] },
+        prescription: '2x10 / SIN KG',
+      }),
+    ).toBe(2)
+  })
+})
 
 describe('formatGuidePrescriptionCell', () => {
   it('sin series devuelve vacío', () => {

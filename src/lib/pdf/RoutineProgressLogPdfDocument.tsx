@@ -9,7 +9,7 @@ import {
 import {
   buildGuideWeekLabels,
   buildRoutineProgressionGuide,
-  exerciseSetsForWeek,
+  exerciseLogSeriesCount,
   type GuideBlock,
   type GuideDaySection,
   type ProgressGuideBlock,
@@ -63,13 +63,32 @@ const styles = StyleSheet.create({
     color: C.greyDark,
     marginTop: 2,
   },
+  heroCompact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingBottom: 4,
+    borderBottomWidth: 0.8,
+    borderBottomColor: C.greyMid,
+  },
+  heroCompactTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.ink,
+  },
+  heroCompactMeta: {
+    fontSize: 6.5,
+    color: C.greyDark,
+    textAlign: 'right',
+  },
   heroMeta: {
     fontSize: 7,
     color: C.greyDark,
     textAlign: 'right',
   },
   daySection: {
-    marginBottom: 10,
+    flex: 1,
   },
   dayBanner: {
     backgroundColor: C.brand,
@@ -396,7 +415,14 @@ function BlockRows({
             <Text style={styles.exerciseNameText}>{row.exerciseName}</Text>
           </View>
           {row.weeks.map((cell, weekIdx) => {
-            const seriesCount = exerciseSetsForWeek(blocks, section.dayKey, row.exerciseId, weekIdx)
+            const seriesCount = exerciseLogSeriesCount({
+              blocks,
+              dayKey: section.dayKey,
+              exerciseId: row.exerciseId,
+              weekIdx,
+              guideBlock: block,
+              prescription: cell,
+            })
             return (
               <ExerciseWeekCell
                 key={weekIdx}
@@ -473,6 +499,90 @@ function DayTable({
   )
 }
 
+function PageHeader({
+  routineName,
+  studentName,
+  dateStr,
+  brandLogoSrc,
+  compact,
+}: {
+  routineName: string
+  studentName?: string | null
+  dateStr: string
+  brandLogoSrc?: string | null
+  compact?: boolean
+}) {
+  if (compact) {
+    return (
+      <View style={styles.heroCompact} fixed>
+        <Text style={styles.heroCompactTitle}>
+          Registro de progreso · {routineName}
+          {studentName?.trim() ? ` · ${studentName.trim()}` : ''}
+        </Text>
+        <Text style={styles.heroCompactMeta}>{dateStr}</Text>
+      </View>
+    )
+  }
+
+  return (
+    <View style={styles.hero}>
+      <View style={{ flex: 1 }}>
+        {brandLogoSrc ? <Image src={brandLogoSrc} style={styles.logo} /> : null}
+        <Text style={styles.heroTitle}>Registro de progreso</Text>
+        <Text style={styles.heroSubtitle}>{routineName}</Text>
+        {studentName?.trim() ? (
+          <Text style={[styles.heroSubtitle, { marginTop: 3, fontFamily: 'Helvetica-Bold', color: C.ink }]}>
+            {studentName.trim()}
+          </Text>
+        ) : null}
+      </View>
+      <View>
+        <Text style={styles.heroMeta}>Para imprimir y completar a mano</Text>
+        <Text style={styles.heroMeta}>Objetivo · series/reps/peso · registro Kg/Rep · sensaciones</Text>
+        <Text style={[styles.heroMeta, { marginTop: 4 }]}>{dateStr}</Text>
+      </View>
+    </View>
+  )
+}
+
+function DayPage({
+  section,
+  weekLabels,
+  blocks,
+  routineName,
+  studentName,
+  dateStr,
+  brandLogoSrc,
+  dayIndex,
+  totalDays,
+}: {
+  section: GuideDaySection
+  weekLabels: { label: string; dates: string | null }[]
+  blocks: ProgressGuideBlock[]
+  routineName: string
+  studentName?: string | null
+  dateStr: string
+  brandLogoSrc?: string | null
+  dayIndex: number
+  totalDays: number
+}) {
+  return (
+    <Page size="A4" orientation="landscape" style={styles.page}>
+      <PageHeader
+        routineName={routineName}
+        studentName={studentName}
+        dateStr={dateStr}
+        brandLogoSrc={brandLogoSrc}
+        compact={dayIndex > 0}
+      />
+      <DayTable section={section} weekLabels={weekLabels} blocks={blocks} />
+      <Text style={styles.footer} fixed>
+        {section.dayTitle} · {dayIndex + 1}/{totalDays} · Registro de progreso · {routineName}
+      </Text>
+    </Page>
+  )
+}
+
 export type RoutineProgressLogPdfProps = {
   routineName: string
   studentName?: string | null
@@ -499,37 +609,32 @@ export function RoutineProgressLogPdfDocument({
 
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={styles.page}>
-        <View style={styles.hero} fixed>
-          <View style={{ flex: 1 }}>
-            {brandLogoSrc ? <Image src={brandLogoSrc} style={styles.logo} /> : null}
-            <Text style={styles.heroTitle}>Registro de progreso</Text>
-            <Text style={styles.heroSubtitle}>{routineName}</Text>
-            {studentName?.trim() ? (
-              <Text style={[styles.heroSubtitle, { marginTop: 3, fontFamily: 'Helvetica-Bold', color: C.ink }]}>
-                {studentName.trim()}
-              </Text>
-            ) : null}
-          </View>
-          <View>
-            <Text style={styles.heroMeta}>Para imprimir y completar a mano</Text>
-            <Text style={styles.heroMeta}>Objetivo · series/reps/peso · registro Kg/Rep · sensaciones</Text>
-            <Text style={[styles.heroMeta, { marginTop: 4 }]}>{dateStr}</Text>
-          </View>
-        </View>
-
-        {sections.length === 0 ? (
+      {sections.length === 0 ? (
+        <Page size="A4" orientation="landscape" style={styles.page}>
+          <PageHeader
+            routineName={routineName}
+            studentName={studentName}
+            dateStr={dateStr}
+            brandLogoSrc={brandLogoSrc}
+          />
           <Text style={{ fontSize: 9, color: C.greyDark }}>Sin semanas cargadas en la rutina.</Text>
-        ) : (
-          sections.map((section) => (
-            <DayTable key={section.dayKey} section={section} weekLabels={weekLabels} blocks={blocks} />
-          ))
-        )}
-
-        <Text style={styles.footer} fixed>
-          Registro de progreso · {routineName} · Completá Kg, repeticiones y sensaciones en cada semana
-        </Text>
-      </Page>
+        </Page>
+      ) : (
+        sections.map((section, dayIndex) => (
+          <DayPage
+            key={section.dayKey}
+            section={section}
+            weekLabels={weekLabels}
+            blocks={blocks}
+            routineName={routineName}
+            studentName={studentName}
+            dateStr={dateStr}
+            brandLogoSrc={brandLogoSrc}
+            dayIndex={dayIndex}
+            totalDays={sections.length}
+          />
+        ))
+      )}
     </Document>
   )
 }
