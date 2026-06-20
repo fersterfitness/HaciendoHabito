@@ -18,6 +18,7 @@ export const ROUTINE_STATUSES = [
   { value: 'activa', label: 'Activa' },
   { value: 'por_vencer', label: 'Por vencer' },
   { value: 'vencida', label: 'Vencida' },
+  { value: 'completada', label: 'Completada' },
   { value: 'pausada', label: 'Pausada' },
   { value: 'cancelada', label: 'Cancelada' },
 ] as const

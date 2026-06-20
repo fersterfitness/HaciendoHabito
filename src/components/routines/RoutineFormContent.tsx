@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
 import { STUDENT_LEVELS } from '@/lib/constants'
-import type { Student } from '@/types/database'
+import type { Student, StudentRoutineNote } from '@/types/database'
+import { AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
@@ -77,6 +78,7 @@ export function RoutineFormContent({
 
   const watchStart = watch('start_date')
   const watchDuration = watch('duration_days')
+  const watchStudentId = watch('student_id')
 
   useEffect(() => {
     if (watchStart && watchDuration) {
@@ -298,6 +300,7 @@ export function RoutineFormContent({
             error={errors.student_id?.message}
             {...register('student_id')}
           />
+          <PendingRoutineNotesBanner studentId={watchStudentId} />
           <Input
             label="Nombre de la Rutina"
             required
@@ -447,6 +450,52 @@ export function RoutineFormContent({
           </Button>
         </div>
       </form>
+    </div>
+  )
+}
+
+/** Muestra las notas pendientes del alumno seleccionado al armar la rutina. */
+function PendingRoutineNotesBanner({ studentId }: { studentId?: string }) {
+  const [notes, setNotes] = useState<StudentRoutineNote[]>([])
+
+  useEffect(() => {
+    if (!studentId) {
+      setNotes([])
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('student_routine_notes')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('is_done', false)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (!cancelled) setNotes((data as StudentRoutineNote[]) ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [studentId])
+
+  if (notes.length === 0) return null
+
+  return (
+    <div className="rounded-2xl border border-amber-400/60 bg-amber-50 p-3.5 dark:border-amber-600/50 dark:bg-amber-950/25">
+      <div className="mb-2 flex items-center gap-2">
+        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+          Notas a tener en cuenta ({notes.length})
+        </span>
+      </div>
+      <ul className="space-y-1">
+        {notes.map((n) => (
+          <li key={n.id} className="flex gap-2 text-[13px] text-zinc-800 dark:text-zinc-100">
+            <span className="text-amber-500">•</span>
+            <span>{n.content}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
-  Table2, Droplets, ClipboardList,
+  Table2, Droplets, ClipboardList, CheckCircle2,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -44,10 +44,10 @@ import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
 import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProgressLogPdf'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
-import { coachMessageForWeekBlock } from '@/lib/routine/menstrualCyclePlanning'
+import { cyclePhasesForWeekBlock, type CyclePhaseInfo, type CyclePhaseColor } from '@/lib/routine/menstrualCyclePlanning'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
-import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle } from '@/types/database'
+import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod } from '@/types/database'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -177,6 +177,8 @@ export function RoutineDetailPage() {
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
   const [blueprintName, setBlueprintName] = useState('')
   const [blueprintDesc, setBlueprintDesc] = useState('')
+  const [blueprintCategory, setBlueprintCategory] = useState('')
+  const [blueprintSubcategory, setBlueprintSubcategory] = useState('')
   const [savingBlueprint, setSavingBlueprint] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -243,8 +245,15 @@ export function RoutineDetailPage() {
 
   async function handleStatusChange(newStatus: string) {
     if (!id) return
-    await updateRoutine(id, { status: newStatus as Routine['status'], last_status_change: new Date().toISOString() })
-    setRoutine((prev) => prev ? { ...prev, status: newStatus as Routine['status'] } : prev)
+    const status = newStatus as Routine['status']
+    const completed_at =
+      status === 'completada' ? new Date().toISOString() : status === 'activa' ? null : undefined
+    const patch: Partial<Routine> = { status, last_status_change: new Date().toISOString() }
+    if (completed_at !== undefined) patch.completed_at = completed_at
+    await updateRoutine(id, patch)
+    setRoutine((prev) =>
+      prev ? { ...prev, status, ...(completed_at !== undefined ? { completed_at } : {}) } : prev,
+    )
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -707,6 +716,58 @@ export function RoutineDetailPage() {
     })))
   }
 
+  /**
+   * Aplica el plan por semana de un método al mismo ejercicio en TODAS las semanas:
+   * copia reps/serie y % por semana; si el alumno tiene RM, calcula el peso.
+   */
+  async function applyMethodWeekPlan(sourceEx: RoutineExercise, method: TrainingMethod) {
+    const plan = method.week_plan
+    if (!plan || plan.length === 0) return
+
+    let srcDayName: string | null = null
+    for (const b of blocks) {
+      const d = b.days.find((x) => x.id === sourceEx.day_id)
+      if (d) { srcDayName = d.day_name; break }
+    }
+
+    const sortedBlocks = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
+    const updates: Promise<void>[] = []
+    let appliedWeeks = 0
+
+    sortedBlocks.forEach((block, weekIdx) => {
+      const wk = plan[weekIdx]
+      if (!wk) return
+      const day = block.days.find((d) => d.day_name === srcDayName)
+      if (!day) return
+      const ex = day.exercises.find((e) => e.exercise_id === sourceEx.exercise_id)
+      if (!ex) return
+
+      const patch: Partial<RoutineExercise> = { training_method_id: method.id }
+      if (wk.reps_scheme?.trim()) patch.reps_scheme = wk.reps_scheme.trim()
+      if (method.default_sets != null) patch.sets = method.default_sets
+
+      const pct = wk.percent_rm ?? null
+      patch.percent_rm = pct
+      if (pct != null) {
+        const { userNotes, meta } = parseExerciseMeta(ex.technical_notes)
+        meta.percent1rm = String(pct)
+        patch.technical_notes = buildExerciseTechnicalNotes(userNotes, meta) || null
+        const rmKg = resolveRmKgForExercise(rmLookup, ex.exercise_id, ex.exercise?.name)
+        if (rmKg) patch.weight_kg = Math.round(rmKg * (pct / 100) * 10) / 10
+      }
+
+      updates.push(updateExercise(day.id, ex.id, patch))
+      appliedWeeks += 1
+    })
+
+    if (updates.length === 0) {
+      toast.error('No se encontró el ejercicio en las semanas para aplicar el plan')
+      return
+    }
+    await Promise.all(updates)
+    toast.success(`Método aplicado a ${appliedWeeks} semana${appliedWeeks > 1 ? 's' : ''}`)
+  }
+
   const blocksRef = useRef(blocks)
   useEffect(() => { blocksRef.current = blocks }, [blocks])
 
@@ -866,6 +927,8 @@ export function RoutineDetailPage() {
       owner_id: user.id,
       name: blueprintName.trim(),
       description: blueprintDesc.trim() || null,
+      category: blueprintCategory.trim() || null,
+      subcategory: blueprintSubcategory.trim() || null,
       payload: JSON.parse(JSON.stringify(payload)),
     })
     setSavingBlueprint(false)
@@ -877,6 +940,8 @@ export function RoutineDetailPage() {
     setBlueprintModalOpen(false)
     setBlueprintName('')
     setBlueprintDesc('')
+    setBlueprintCategory('')
+    setBlueprintSubcategory('')
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -931,6 +996,27 @@ export function RoutineDetailPage() {
                 {exportingProgressLog ? 'Generando…' : 'Registro de progreso'}
               </span>
             </button>
+            {routine.status !== 'completada' ? (
+              <button
+                type="button"
+                onClick={() => void handleStatusChange('completada')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
+                title="Marcar como realizada y mover al historial del alumno"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Rutina realizada</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleStatusChange('activa')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors bg-surface-elevated text-ink-secondary hover:text-ink-primary"
+                title="Reactivar: volver a rutinas activas"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Reactivar</span>
+              </button>
+            )}
             <button
               onClick={() => navigate(`/routines/${id}/edit`)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
@@ -1098,15 +1184,15 @@ export function RoutineDetailPage() {
             stripeIndex={blockStripeIndex}
             block={block}
             allBlocks={blocks}
-            cycleCoachMessage={
+            cyclePhases={
               lastMenstrualCycle && routine.student?.gender === 'F'
-                ? coachMessageForWeekBlock(
+                ? cyclePhasesForWeekBlock(
                     lastMenstrualCycle.cycle_start_date,
                     lastMenstrualCycle.cycle_length,
                     block.start_date,
                     block.end_date,
                   )
-                : null
+                : []
             }
             expanded={expandedBlocks.has(block.id)}
             expandedDays={expandedDays}
@@ -1136,6 +1222,7 @@ export function RoutineDetailPage() {
             onReplaceExercise={(dayId, routineExerciseId) =>
               setShowExercisePicker({ dayId, replaceRoutineExerciseId: routineExerciseId })}
             onUpdateExercise={updateExercise}
+            onApplyMethodWeekPlan={applyMethodWeekPlan}
             onCircuitNoteChange={handleCircuitNoteChange}
             onDeleteExercise={deleteExercise}
             onMoveExercise={moveExercise}
@@ -1201,6 +1288,22 @@ export function RoutineDetailPage() {
                 onChange={(e) => setBlueprintName(e.target.value)}
                 className="text-sm"
               />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  label="Categoría"
+                  placeholder="Ej: Fase de intensificación"
+                  value={blueprintCategory}
+                  onChange={(e) => setBlueprintCategory(e.target.value)}
+                  className="text-sm"
+                />
+                <Input
+                  label="Subcategoría"
+                  placeholder="Ej: Principiantes"
+                  value={blueprintSubcategory}
+                  onChange={(e) => setBlueprintSubcategory(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
               <Textarea
                 label="Nota (opcional)"
                 placeholder="Cuándo usarla, recordatorios…"
@@ -1230,6 +1333,17 @@ export function RoutineDetailPage() {
         onClose={() => setShowProgressionGuide(false)}
         routineName={routine.name}
         blocks={blocks}
+        onJumpToWeek={(blockId, dayId) => {
+          setShowProgressionGuide(false)
+          setExpandedBlocks((prev) => new Set([...prev, blockId]))
+          if (dayId) setExpandedDays((prev) => new Set([...prev, dayId]))
+          // Esperar a que se monte/expanda antes de hacer scroll.
+          setTimeout(() => {
+            document
+              .getElementById(`routine-week-${blockId}`)
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 80)
+        }}
       />
 
       <ConfirmDialog
@@ -1247,17 +1361,37 @@ export function RoutineDetailPage() {
 
 // ─── BlockCard ────────────────────────────────────────────────────────────────
 
+/** Clases por fase del ciclo (chips de aviso al entrenador). */
+const CYCLE_PHASE_CLASSES: Record<CyclePhaseColor, { chip: string; panel: string }> = {
+  red: {
+    chip: 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300',
+    panel: 'border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-100',
+  },
+  amber: {
+    chip: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    panel: 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100',
+  },
+  violet: {
+    chip: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+    panel: 'border-violet-500/30 bg-violet-500/10 text-violet-900 dark:text-violet-100',
+  },
+  sky: {
+    chip: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    panel: 'border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-100',
+  },
+}
+
 function BlockCard({
-  block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0, cycleCoachMessage = null,
+  block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0, cyclePhases = [],
   onToggle, onToggleDay, onUpdateBlock, onCascadeWeekStart, onDeleteBlock, onMoveBlock, onAddDay,
-  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
+  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onApplyMethodWeekPlan, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   /** Color de fondo alternado por semana (0 = gris, 1 = naranja suave). */
   stripeIndex?: number
-  /** Aviso de fase menstrual para esta semana (solo entrenador). */
-  cycleCoachMessage?: string | null
+  /** Fases del ciclo menstrual que abarca esta semana (solo entrenador). */
+  cyclePhases?: CyclePhaseInfo[]
   expandedDays: Set<string>; showCopyMenu: boolean
   onToggle: () => void; onToggleDay: (id: string) => void
   onUpdateBlock: (patch: Partial<RoutineBlock>) => void
@@ -1267,6 +1401,7 @@ function BlockCard({
   onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void;   onAddExercise: (dayId: string) => void
   onReplaceExercise: (dayId: string, routineExerciseId: string) => void
   onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
+  onApplyMethodWeekPlan: (sourceEx: RoutineExercise, method: TrainingMethod) => void | Promise<void>
   onCircuitNoteChange: (dayId: string, groupId: number, value: string) => void
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
@@ -1286,8 +1421,9 @@ function BlockCard({
 
   return (
     <div
+      id={`routine-week-${block.id}`}
       className={cn(
-        'rounded-2xl border overflow-hidden shadow-sm',
+        'scroll-mt-20 rounded-2xl border overflow-hidden shadow-sm',
         stripeIndex % 2 === 0
           ? 'border-slate-200/95 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40'
           : 'border-emerald-200/85 bg-emerald-50/60 dark:border-emerald-900/45 dark:bg-emerald-950/30',
@@ -1327,10 +1463,20 @@ function BlockCard({
                 {block.end_date ? new Date(block.end_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
               </p>
             )}
-            {cycleCoachMessage ? (
-              <p className="text-[10px] font-medium text-violet-700 dark:text-violet-300 mt-0.5 line-clamp-2">
-                {cycleCoachMessage}
-              </p>
+            {cyclePhases.length > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {cyclePhases.map((p) => (
+                  <span
+                    key={p.phase}
+                    className={cn(
+                      'rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                      CYCLE_PHASE_CLASSES[p.color].chip,
+                    )}
+                  >
+                    {p.label}
+                  </span>
+                ))}
+              </div>
             ) : null}
           </div>
         )}
@@ -1384,13 +1530,24 @@ function BlockCard({
 
       {expanded && (
         <div className="px-4 pb-4 space-y-3">
-          {cycleCoachMessage ? (
-            <div
-              className="flex gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-2.5 text-xs text-violet-900 dark:text-violet-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Droplets className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
-              <p className="font-medium leading-snug">{cycleCoachMessage}</p>
+          {cyclePhases.length > 0 ? (
+            <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+              {cyclePhases.map((p) => (
+                <div
+                  key={p.phase}
+                  className={cn(
+                    'flex gap-2 rounded-xl border px-3 py-2.5 text-xs',
+                    CYCLE_PHASE_CLASSES[p.color].panel,
+                  )}
+                >
+                  <Droplets className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+                  <p className="leading-snug">
+                    <span className="font-semibold uppercase tracking-wide">{p.label}</span>
+                    {' · '}
+                    {p.description}
+                  </p>
+                </div>
+              ))}
             </div>
           ) : null}
           {/* Fechas del bloque */}
@@ -1456,6 +1613,7 @@ function BlockCard({
               onAddExercise={() => onAddExercise(day.id)}
               onReplaceExercise={(routineExerciseId) => onReplaceExercise(day.id, routineExerciseId)}
               onUpdateExercise={(exId, patch) => onUpdateExercise(day.id, exId, patch)}
+              onApplyMethodWeekPlan={onApplyMethodWeekPlan}
               onCircuitNoteChange={(groupId, value) => onCircuitNoteChange(day.id, groupId, value)}
               onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
               onMoveExercise={(exId, direction) => onMoveExercise(day.id, exId, direction)}
@@ -1522,6 +1680,7 @@ function DayCard({
   onAddExercise,
   onReplaceExercise,
   onUpdateExercise,
+  onApplyMethodWeekPlan,
   onCircuitNoteChange,
   onDeleteExercise,
   onMoveExercise,
@@ -1538,6 +1697,7 @@ function DayCard({
   onAddExercise: () => void
   onReplaceExercise: (routineExerciseId: string) => void
   onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
+  onApplyMethodWeekPlan: (sourceEx: RoutineExercise, method: TrainingMethod) => void | Promise<void>
   onCircuitNoteChange: (groupId: number, value: string) => void
   onDeleteExercise: (exId: string) => void
   onMoveExercise: (exId: string, direction: 'up' | 'down') => void
@@ -1720,6 +1880,7 @@ function DayCard({
                   key={group.exercise.id}
                   exercise={group.exercise}
                   onUpdate={(patch) => onUpdateExercise(group.exercise.id, patch)}
+                  onApplyMethodWeekPlan={(method) => onApplyMethodWeekPlan(group.exercise, method)}
                   onDelete={() => onDeleteExercise(group.exercise.id)}
                   onMoveUp={() => onMoveExercise(group.exercise.id, 'up')}
                   onMoveDown={() => onMoveExercise(group.exercise.id, 'down')}
@@ -1766,6 +1927,7 @@ function DayCard({
                     <ExerciseRow
                       exercise={ex}
                       onUpdate={(patch) => onUpdateExercise(ex.id, patch)}
+                      onApplyMethodWeekPlan={(method) => onApplyMethodWeekPlan(ex, method)}
                       onDelete={() => onDeleteExercise(ex.id)}
                       onMoveUp={() => onMoveExercise(ex.id, 'up')}
                       onMoveDown={() => onMoveExercise(ex.id, 'down')}
@@ -1880,9 +2042,11 @@ function DayCard({
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
+function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
   onUpdate: (patch: Partial<RoutineExercise>) => void
+  /** Aplica el plan por semana del método al mismo ejercicio en todas las semanas. */
+  onApplyMethodWeekPlan?: (method: TrainingMethod) => void
   onDelete: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
@@ -2014,6 +2178,7 @@ function ExerciseRow({ exercise, onUpdate, onDelete, onMoveUp, onMoveDown, onRep
           if (patch.sets != null) setSets(patch.sets)
           save(patch)
         }}
+        onApplyWeekPlan={onApplyMethodWeekPlan}
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">

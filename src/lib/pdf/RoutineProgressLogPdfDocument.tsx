@@ -300,17 +300,74 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     borderTopWidth: 0.5,
     borderTopColor: C.greyMid,
-    minHeight: 12,
   },
   sensationsLabel: {
-    fontSize: 5.5,
+    fontSize: 5,
     fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
+    color: C.greyDark,
     marginBottom: 1,
   },
-  sensationsLine: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: C.greyDark,
-    minHeight: 8,
+  scaleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  scaleDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    borderWidth: 0.5,
+    borderColor: C.greyDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scaleDotText: {
+    fontSize: 4.5,
+    fontFamily: 'Helvetica-Bold',
+    color: C.greyDark,
+  },
+  finalSensation: {
+    marginTop: 8,
+    borderWidth: 0.8,
+    borderColor: C.black,
+    padding: 6,
+  },
+  finalSensationLabel: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: C.ink,
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  finalScaleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  finalScaleDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 0.8,
+    borderColor: C.black,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  finalScaleDotText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: C.ink,
+  },
+  finalAnchor: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
+    color: C.greyDark,
+    width: 48,
   },
   blockSpacer: {
     height: 3,
@@ -345,6 +402,40 @@ function blockNoteBg(i: number) {
   return i % 2 === 0 ? C.greyMid : '#FFB74D'
 }
 
+const SCALE_VALUES = Array.from({ length: 10 }, (_, i) => i + 1)
+
+function SensationScale() {
+  return (
+    <View style={styles.sensationsRow}>
+      <Text style={styles.sensationsLabel}>Sensación (marcá del 1 al 10)</Text>
+      <View style={styles.scaleRow}>
+        {SCALE_VALUES.map((n) => (
+          <View key={n} style={styles.scaleDot}>
+            <Text style={styles.scaleDotText}>{n}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+function FinalSensationBlock() {
+  return (
+    <View style={styles.finalSensation} wrap={false}>
+      <Text style={styles.finalSensationLabel}>Sensación final de la rutina · marcá del 1 al 10</Text>
+      <View style={styles.finalScaleRow}>
+        <Text style={styles.finalAnchor}>Muy suave</Text>
+        {SCALE_VALUES.map((n) => (
+          <View key={n} style={styles.finalScaleDot}>
+            <Text style={styles.finalScaleDotText}>{n}</Text>
+          </View>
+        ))}
+        <Text style={[styles.finalAnchor, { textAlign: 'right' }]}>Máximo esfuerzo</Text>
+      </View>
+    </View>
+  )
+}
+
 function LogGrid({ seriesCount }: { seriesCount: number }) {
   const rows = ['Warm Up', ...Array.from({ length: seriesCount }, (_, i) => `${i + 1}° Serie`)]
 
@@ -362,10 +453,7 @@ function LogGrid({ seriesCount }: { seriesCount: number }) {
           <View style={styles.logFieldLast} />
         </View>
       ))}
-      <View style={styles.sensationsRow}>
-        <Text style={styles.sensationsLabel}>Sensaciones</Text>
-        <View style={styles.sensationsLine} />
-      </View>
+      <SensationScale />
     </View>
   )
 }
@@ -495,6 +583,7 @@ function DayTable({
           </View>
         ))}
       </View>
+      <FinalSensationBlock />
     </View>
   )
 }

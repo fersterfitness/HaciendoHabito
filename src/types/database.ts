@@ -23,7 +23,7 @@ export interface StudentPlanAssignment {
 }
 export type StudentLevel = 'inicial' | 'intermedio' | 'avanzado'
 export type StudentStatus = 'activo' | 'inactivo' | 'pausado' | 'baja'
-export type RoutineStatus = 'activa' | 'por_vencer' | 'vencida' | 'pausada' | 'cancelada'
+export type RoutineStatus = 'activa' | 'por_vencer' | 'vencida' | 'pausada' | 'cancelada' | 'completada'
 export type PdfStatus = 'pendiente' | 'en_proceso' | 'generado' | 'enviado' | 'error'
 export type QuestionStatus = 'recibida' | 'en_revision' | 'devuelta' | 'cerrada'
 export type PaymentStatus = 'pendiente' | 'cobrado' | 'cancelado' | 'reembolsado'
@@ -575,6 +575,7 @@ export interface Routine {
   status: RoutineStatus
   notes: string | null
   last_status_change: string | null
+  completed_at: string | null
   created_at: string
   updated_at: string
   student?: Student
@@ -609,6 +610,14 @@ export interface TrainingMethodCategory {
   updated_at: string
 }
 
+/** Plan por semana de un método (cargas ondulatorias, etc.). Index del array = semana 1..N. */
+export interface TrainingMethodWeek {
+  /** Reps por serie de esa semana, ej. "6,6,6". */
+  reps_scheme: string | null
+  /** % de RM opcional para esa semana. */
+  percent_rm: number | null
+}
+
 export interface TrainingMethod {
   id: string
   owner_id: string
@@ -618,6 +627,8 @@ export interface TrainingMethod {
   default_sets: number | null
   /** Guía privada del entrenador; no se muestra en PDF ni al alumno. */
   coach_guide: string | null
+  /** Planificación por semana (reps/serie + % por semana). null = sin plan semanal. */
+  week_plan: TrainingMethodWeek[] | null
   sort_order: number
   created_at: string
   updated_at: string
@@ -643,6 +654,8 @@ export interface RoutineExercise {
   is_superset: boolean
   superset_group: number | null
   training_method_id: string | null
+  /** % de RM planificado para esta serie/semana (si el alumno tiene RM, sugiere el peso). */
+  percent_rm: number | null
   /** Notas privadas al aplicar un método en esta rutina (no PDF). */
   method_coach_notes: string | null
   exercise?: Exercise
@@ -680,7 +693,21 @@ export interface RoutineBlueprint {
   owner_id: string
   name: string
   description: string | null
+  category: string | null
+  subcategory: string | null
+  sort_order: number
   payload: Json
+  created_at: string
+  updated_at: string
+}
+
+export interface StudentRoutineNote {
+  id: string
+  owner_id: string
+  student_id: string
+  content: string
+  is_done: boolean
+  done_at: string | null
   created_at: string
   updated_at: string
 }

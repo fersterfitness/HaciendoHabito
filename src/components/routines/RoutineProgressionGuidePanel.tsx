@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react'
+import { Fragment, useMemo, type KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { buildGuideWeekLabels, buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
 import type { GuideBlock } from '@/lib/routine/routineProgressionGuide'
@@ -14,6 +14,12 @@ type Props = {
   onClose: () => void
   routineName: string
   blocks: Block[]
+  /** Acceso directo: saltar a esa semana/día en el editor para corregir. */
+  onJumpToWeek?: (blockId: string, dayId: string | null) => void
+}
+
+function dayKeyOf(d: Day): string {
+  return d.day_name.trim() || `dia-${d.sort_order}`
 }
 
 const KIND_LABEL = {
@@ -33,7 +39,13 @@ function weekHeaderBg(i: number): string {
   return i % 2 === 0 ? 'bg-zinc-600' : 'bg-brand-primary/85'
 }
 
-function BlockExerciseRows({ block }: { block: GuideBlock }) {
+function BlockExerciseRows({
+  block,
+  onJumpWeek,
+}: {
+  block: GuideBlock
+  onJumpWeek?: (weekIdx: number) => void
+}) {
   const labelCol = (
     <div className="flex w-[4.75rem] shrink-0 items-center justify-center border-r border-black/15 px-0.5 text-center text-[7px] font-bold uppercase leading-tight text-zinc-600 dark:border-white/15 dark:text-zinc-300">
       {DATA_LABEL}
@@ -47,25 +59,48 @@ function BlockExerciseRows({ block }: { block: GuideBlock }) {
           <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 align-middle text-[11px] font-semibold uppercase leading-tight text-white">
             {row.exerciseName}
           </td>
-          {row.weeks.map((cell, i) => (
-            <td key={i} className={cn('border-b border-zinc-700 p-0 align-middle', weekCellBg(i))}>
-              <div className="flex min-h-[2.35rem]">
-                {exIdx === 0 ? labelCol : <div className="w-[4.75rem] shrink-0 border-r border-black/15 dark:border-white/15" aria-hidden />}
-                <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                  {cell?.trim() || ''}
+          {row.weeks.map((cell, i) => {
+            const clickable = !!onJumpWeek
+            return (
+              <td key={i} className={cn('border-b border-zinc-700 p-0 align-middle', weekCellBg(i))}>
+                <div
+                  className={cn(
+                    'flex min-h-[2.35rem]',
+                    clickable && 'cursor-pointer transition-colors hover:bg-brand-primary/30',
+                  )}
+                  {...(clickable
+                    ? {
+                        role: 'button',
+                        tabIndex: 0,
+                        title: 'Editar esta semana en la rutina',
+                        onClick: () => onJumpWeek?.(i),
+                        onKeyDown: (e: KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            onJumpWeek?.(i)
+                          }
+                        },
+                      }
+                    : {})}
+                >
+                  {exIdx === 0 ? labelCol : <div className="w-[4.75rem] shrink-0 border-r border-black/15 dark:border-white/15" aria-hidden />}
+                  <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {cell?.trim() || ''}
+                  </div>
                 </div>
-              </div>
-            </td>
-          ))}
+              </td>
+            )
+          })}
         </tr>
       ))}
     </>
   )
 }
 
-export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks }: Props) {
+export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks, onJumpToWeek }: Props) {
   const sections = useMemo(() => buildRoutineProgressionGuide(blocks), [blocks])
   const weekLabels = useMemo(() => buildGuideWeekLabels(blocks), [blocks])
+  const sortedBlocks = useMemo(() => [...blocks].sort((a, b) => a.sort_order - b.sort_order), [blocks])
 
   if (!open) return null
 
@@ -87,6 +122,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
             </h2>
             <p className="mt-0.5 text-xs text-zinc-400">
               Días y semanas · CIRCUITO o INDIVIDUAL · aclaración/descanso · series/reps/peso.
+              {onJumpToWeek ? ' Tocá una celda para corregir esa semana en la rutina.' : ''}
             </p>
           </div>
           <button
@@ -103,7 +139,16 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
           {sections.length === 0 ? (
             <p className="text-sm text-zinc-400">Agregá semanas y días para ver la guía.</p>
           ) : (
-            sections.map((section) => (
+            sections.map((section) => {
+              const jumpWeek = onJumpToWeek
+                ? (weekIdx: number) => {
+                    const blk = sortedBlocks[weekIdx]
+                    if (!blk) return
+                    const day = blk.days.find((d) => dayKeyOf(d) === section.dayKey) ?? null
+                    onJumpToWeek(blk.id, day?.id ?? null)
+                  }
+                : undefined
+              return (
               <section key={section.dayKey} className="overflow-hidden rounded-lg border border-zinc-800">
                 <div className="bg-brand-primary px-3 py-2 text-sm font-extrabold uppercase tracking-widest text-white">
                   {section.dayTitle}
@@ -158,14 +203,15 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                             ))}
                           </tr>
 
-                          <BlockExerciseRows block={block} />
+                          <BlockExerciseRows block={block} onJumpWeek={jumpWeek} />
                         </Fragment>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </section>
-            ))
+              )
+            })
           )}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Layers } from 'lucide-react'
+import { Plus, Pencil, Trash2, Layers, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
@@ -9,7 +9,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import type { TrainingMethod, TrainingMethodCategory } from '@/types/database'
+import type { TrainingMethod, TrainingMethodCategory, TrainingMethodWeek } from '@/types/database'
 import toast from 'react-hot-toast'
 
 type MethodRow = TrainingMethod & { category?: TrainingMethodCategory | null }
@@ -28,6 +28,7 @@ export function TrainingMethodsPage() {
   const [methodReps, setMethodReps] = useState('')
   const [methodSets, setMethodSets] = useState('')
   const [methodGuide, setMethodGuide] = useState('')
+  const [methodWeekPlan, setMethodWeekPlan] = useState<TrainingMethodWeek[]>([])
   const [saving, setSaving] = useState(false)
   const [deleteMethod, setDeleteMethod] = useState<MethodRow | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -83,6 +84,7 @@ export function TrainingMethodsPage() {
     setMethodReps('')
     setMethodSets('')
     setMethodGuide('')
+    setMethodWeekPlan([])
   }
 
   function openEditMethod(m: MethodRow) {
@@ -93,6 +95,7 @@ export function TrainingMethodsPage() {
     setMethodReps(m.default_reps_scheme ?? '')
     setMethodSets(m.default_sets != null ? String(m.default_sets) : '')
     setMethodGuide(m.coach_guide ?? '')
+    setMethodWeekPlan(Array.isArray(m.week_plan) ? m.week_plan : [])
   }
 
   async function addCategory() {
@@ -124,6 +127,12 @@ export function TrainingMethodsPage() {
       default_reps_scheme: methodReps.trim() || null,
       default_sets: setsN && setsN > 0 ? setsN : null,
       coach_guide: methodGuide.trim() || null,
+      week_plan: methodWeekPlan.length
+        ? methodWeekPlan.map((w) => ({
+            reps_scheme: w.reps_scheme?.trim() || null,
+            percent_rm: w.percent_rm ?? null,
+          }))
+        : null,
     }
     if (editingMethod) {
       const { error } = await supabase.from('training_methods').update(payload).eq('id', editingMethod.id)
@@ -263,6 +272,70 @@ export function TrainingMethodsPage() {
                 onChange={(e) => setMethodSets(e.target.value)}
               />
             </div>
+            {/* Planificación por semana (cargas ondulatorias, etc.) */}
+            <div className="rounded-xl border border-dashed border-brand-secondary/30 bg-brand-secondary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-ink-primary">Plan por semana (opcional)</p>
+                  <p className="text-[10px] text-ink-muted">
+                    Reps por serie + % por semana. Al aplicar el método, cada semana copia su valor.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMethodWeekPlan((p) => [...p, { reps_scheme: '', percent_rm: null }])}
+                >
+                  + Semana
+                </Button>
+              </div>
+              {methodWeekPlan.length === 0 ? (
+                <p className="text-[11px] text-ink-muted">Sin plan semanal. Se usan las "reps sugeridas" para todas las semanas.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {methodWeekPlan.map((w, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-14 shrink-0 text-[11px] font-semibold text-ink-secondary">Sem. {i + 1}</span>
+                      <input
+                        value={w.reps_scheme ?? ''}
+                        onChange={(e) =>
+                          setMethodWeekPlan((p) => p.map((x, j) => (j === i ? { ...x, reps_scheme: e.target.value } : x)))
+                        }
+                        placeholder="reps, ej: 6,6,6"
+                        className="flex-1 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          max={200}
+                          value={w.percent_rm ?? ''}
+                          onChange={(e) =>
+                            setMethodWeekPlan((p) =>
+                              p.map((x, j) =>
+                                j === i ? { ...x, percent_rm: e.target.value === '' ? null : Number(e.target.value) } : x,
+                              ),
+                            )
+                          }
+                          placeholder="%RM"
+                          className="w-16 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+                        />
+                        <span className="text-[10px] text-ink-muted">%</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMethodWeekPlan((p) => p.filter((_, j) => j !== i))}
+                        className="shrink-0 text-ink-muted hover:text-status-expired"
+                        title="Quitar semana"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <Textarea
               label="Guía del coach (privada, no va al PDF)"
               rows={6}
@@ -285,6 +358,7 @@ export function TrainingMethodsPage() {
                   setMethodReps('')
                   setMethodSets('')
                   setMethodGuide('')
+                  setMethodWeekPlan([])
                 }}
               >
                 Cancelar

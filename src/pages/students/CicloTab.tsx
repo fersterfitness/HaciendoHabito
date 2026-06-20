@@ -61,18 +61,26 @@ type Phase = 'menstruacion' | 'folicular' | 'ovulacion' | 'lutea' | 'nuevo_ciclo
 function getPhase(day: number, cycleLen: number): Phase {
   if (day > cycleLen) return 'nuevo_ciclo'
   if (day <= 5)   return 'menstruacion'
-  if (day <= 13)  return 'folicular'
-  if (day <= 16)  return 'ovulacion'
+  if (day <= 14)  return 'folicular'
+  if (day <= 19)  return 'ovulacion'
   return 'lutea'
 }
 
 const PHASE_META: Record<Phase, { label: string; desc: string }> = {
-  menstruacion:   { label: 'Menstruación', desc: 'Puede haber más fatiga. Entrenar suave, priorizá movilidad y recuperación.' },
-  folicular:      { label: 'Fase folicular', desc: 'Energía en alza, estrógenos subiendo. Buena etapa para cargas altas y PR.' },
-  ovulacion:      { label: 'Ovulación', desc: 'Pico de energía y fuerza. Ideal para entrenamientos de máxima intensidad.' },
-  lutea:          { label: 'Fase lútea', desc: 'Progesterona alta, puede haber retención y menor tolerancia al esfuerzo. Moderá la intensidad.' },
+  menstruacion:   { label: 'Menstruando', desc: 'Síntomas como cansancio, menos ganas de entrenar y dolores (puede variar).' },
+  folicular:      { label: 'Fase folicular', desc: 'Más fuerza, más tolerancia y ganas de entrenar. Predominancia de estrógenos.' },
+  ovulacion:      { label: 'Ovulación', desc: 'Síntomas de mayor fuerza, ganas de entrenar y mejor tolerancia.' },
+  lutea:          { label: 'Fase lútea', desc: 'La fuerza decae, menores ganas de entrenar y presencia de cansancio. Progesterona predominante.' },
   nuevo_ciclo:    { label: 'Ciclo completado', desc: 'El ciclo estimado terminó. Registrá el nuevo período cuando inicie.' },
 }
+
+// ─── Colores por fase (compartidos entre gráfico y rueda) ──────────────────────
+const PHASE_COLORS = {
+  menstruacion: '#ef4444', // rojo
+  folicular:    '#f59e0b', // amarillo/naranja
+  ovulacion:    '#8b5cf6', // violeta
+  lutea:        '#0ea5e9', // celeste/azul
+} as const
 
 /** Pista rápida para mensajes seguimiento (WhatsApp): alinea ciclo menstrual con la planificación semanal de la rutina. */
 function formatRoutineCycleCoachLine(
@@ -267,6 +275,9 @@ export function CicloTab({ studentId }: { studentId: string }) {
 
           {/* Gráfico hormonal */}
           <CycleGraph dayInCycle={cycleInfo.dayInCycle} cycleLen={cycleInfo.cycleLen} isDark={theme === 'dark'} />
+
+          {/* Rueda del ciclo */}
+          <CycleWheel dayInCycle={cycleInfo.dayInCycle} cycleLen={cycleInfo.cycleLen} isDark={theme === 'dark'} />
         </>
       ) : (
         <EmptyState
@@ -356,24 +367,24 @@ function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
   const data = useMemo(() => buildChartData(cycleLen), [cycleLen])
   const todayDay = Math.min(Math.max(dayInCycle, 1), cycleLen)
 
-  // Phase boundary days
+  // Phase boundary days (1–5 menstr · 6–14 folicular · 15–19 ovulación · 20+ lútea)
   const menEnd = Math.round(5 / 28 * cycleLen)
-  const folEnd = Math.round(13 / 28 * cycleLen)
-  const ovEnd  = Math.round(16 / 28 * cycleLen)
+  const folEnd = Math.round(14 / 28 * cycleLen)
+  const ovEnd  = Math.round(19 / 28 * cycleLen)
 
   const tick = isDark ? '#cbd5e1' : '#57534e'
   const rail = isDark ? 'rgba(148,163,184,0.25)' : 'rgba(120,113,108,0.35)'
   const zoneLabelColor = isDark ? '#cbd5e1' : '#44403c'
-  const estrogenStroke = '#d97706'
-  const lhStroke = '#e11d48'
-  const fshStroke = '#0284c7'
-  const progStroke = '#7c3aed'
+  const estrogenStroke = '#f59e0b' // amarillo/naranja (fase folicular)
+  const lhStroke = '#8b5cf6'       // violeta
+  const fshStroke = '#10b981'      // verde esmeralda (distinto del resto)
+  const progStroke = '#0ea5e9'     // celeste/azul (fase lútea)
   const hoyStroke = isDark ? '#fbbf24' : '#b45309'
 
-  const zMen = isDark ? 'rgba(251,113,133,0.09)' : 'rgba(244,114,182,0.12)'
-  const zFol = isDark ? 'rgba(251,191,36,0.08)' : 'rgba(250,204,21,0.14)'
-  const zOv = isDark ? 'rgba(74,222,128,0.07)' : 'rgba(74,222,128,0.12)'
-  const zLut = isDark ? 'rgba(167,139,250,0.08)' : 'rgba(196,181,253,0.2)'
+  const zMen = isDark ? 'rgba(239,68,68,0.12)'  : 'rgba(239,68,68,0.14)'   // rojo
+  const zFol = isDark ? 'rgba(245,158,11,0.08)' : 'rgba(250,204,21,0.14)'  // amarillo
+  const zOv  = isDark ? 'rgba(139,92,246,0.10)' : 'rgba(167,139,250,0.18)' // violeta
+  const zLut = isDark ? 'rgba(14,165,233,0.09)' : 'rgba(56,189,248,0.16)'  // celeste/azul
 
   return (
     <div className="border-b border-zinc-200/55 pb-4 dark:border-zinc-800/55">
@@ -429,6 +440,107 @@ function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
           <Line dataKey="progesterona" name="Progesterona" stroke={progStroke} strokeWidth={1.75} strokeDasharray="6 4" dot={false} type="monotone" />
         </LineChart>
       </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ─── CycleWheel ─────────────────────────────────────────────────────────────────
+
+function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycleLen: number; isDark: boolean }) {
+  const size = 240
+  const cx = size / 2
+  const cy = size / 2
+  const rOuter = 104
+  const rInner = 66
+  const today = Math.min(Math.max(dayInCycle, 1), cycleLen)
+  const seg = 360 / cycleLen
+  const days = Array.from({ length: cycleLen }, (_, i) => i + 1)
+  const phase = getPhase(today, cycleLen) as keyof typeof PHASE_COLORS
+
+  const polar = (r: number, angleDeg: number) => {
+    const a = ((angleDeg - 90) * Math.PI) / 180
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const
+  }
+  const annular = (rO: number, rI: number, a0: number, a1: number) => {
+    const [x1, y1] = polar(rO, a0)
+    const [x2, y2] = polar(rO, a1)
+    const [x3, y3] = polar(rI, a1)
+    const [x4, y4] = polar(rI, a0)
+    const large = a1 - a0 <= 180 ? 0 : 1
+    return `M${x1} ${y1} A${rO} ${rO} 0 ${large} 1 ${x2} ${y2} L${x3} ${y3} A${rI} ${rI} 0 ${large} 0 ${x4} ${y4} Z`
+  }
+  const arrowAngle = (today - 0.5) * seg
+
+  return (
+    <div className="border-b border-zinc-200/55 pb-4 dark:border-zinc-800/55">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+        Rueda del ciclo · seguimiento por día
+      </p>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+          {days.map((d) => {
+            const a0 = (d - 1) * seg + 0.6
+            const a1 = d * seg - 0.6
+            const ph = getPhase(d, cycleLen) as keyof typeof PHASE_COLORS
+            const isToday = d === today
+            const [tx, ty] = polar((rOuter + rInner) / 2, (d - 0.5) * seg)
+            return (
+              <g key={d}>
+                <path
+                  d={annular(rOuter, rInner, a0, a1)}
+                  fill={PHASE_COLORS[ph] ?? '#a1a1aa'}
+                  fillOpacity={isToday ? 1 : 0.3}
+                  stroke={isToday ? (isDark ? '#fafafa' : '#18181b') : 'transparent'}
+                  strokeWidth={isToday ? 1.5 : 0}
+                />
+                <text
+                  x={tx}
+                  y={ty}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={isToday ? 9 : 7}
+                  fontWeight={isToday ? 700 : 500}
+                  fill={isToday ? '#ffffff' : isDark ? '#a1a1aa' : '#52525b'}
+                >
+                  {d}
+                </text>
+              </g>
+            )
+          })}
+
+          {/* Flecha que marca el día actual */}
+          <g transform={`rotate(${arrowAngle} ${cx} ${cy})`}>
+            <path d={`M${cx} ${cy - rOuter - 3} l5 12 l-10 0 z`} fill={isDark ? '#fbbf24' : '#b45309'} />
+          </g>
+
+          {/* Centro */}
+          <text x={cx} y={cy - 14} textAnchor="middle" fontSize={8} fontWeight={600} fill={isDark ? '#71717a' : '#a1a1aa'}>
+            DÍA
+          </text>
+          <text x={cx} y={cy + 8} textAnchor="middle" fontSize={28} fontWeight={800} fill={isDark ? '#fafafa' : '#18181b'}>
+            {today}
+          </text>
+          <text x={cx} y={cy + 26} textAnchor="middle" fontSize={8} fontWeight={700} fill={PHASE_COLORS[phase] ?? '#a1a1aa'}>
+            {(PHASE_META[phase as Phase]?.label ?? '').toUpperCase()}
+          </text>
+        </svg>
+
+        <ul className="grid w-full max-w-[220px] grid-cols-2 gap-x-4 gap-y-2 sm:w-auto sm:grid-cols-1">
+          {(
+            [
+              ['menstruacion', 'Menstruación · 1–5'],
+              ['folicular', 'Folicular · 6–14'],
+              ['ovulacion', 'Ovulación · 15–19'],
+              ['lutea', 'Lútea · 20+'],
+            ] as const
+          ).map(([k, label]) => (
+            <li key={k} className="flex items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-300">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: PHASE_COLORS[k] }} />
+              {label}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }

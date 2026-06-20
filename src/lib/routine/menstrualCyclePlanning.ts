@@ -3,15 +3,51 @@ export type RoutineMenstrualPhase =
   | 'menstruacion'
   | 'folicular'
   | 'ovulacion'
-  | 'lutea_temprana'
-  | 'lutea_tardia'
+  | 'lutea'
 
+/** Clave de color semántico por fase (se mapea a clases/strokes en la UI). */
+export type CyclePhaseColor = 'red' | 'amber' | 'violet' | 'sky'
+
+export type CyclePhaseInfo = {
+  phase: RoutineMenstrualPhase
+  label: string
+  description: string
+  color: CyclePhaseColor
+}
+
+export const ROUTINE_CYCLE_PHASE_META: Record<RoutineMenstrualPhase, CyclePhaseInfo> = {
+  menstruacion: {
+    phase: 'menstruacion',
+    label: 'Menstruando',
+    description: 'Síntomas como cansancio, menos ganas de entrenar y dolores (puede variar).',
+    color: 'red',
+  },
+  folicular: {
+    phase: 'folicular',
+    label: 'Fase folicular',
+    description: 'Más fuerza, más tolerancia y ganas de entrenar. Predominancia de estrógenos.',
+    color: 'amber',
+  },
+  ovulacion: {
+    phase: 'ovulacion',
+    label: 'Ovulación',
+    description: 'Síntomas de mayor fuerza, ganas de entrenar y mejor tolerancia.',
+    color: 'violet',
+  },
+  lutea: {
+    phase: 'lutea',
+    label: 'Fase lútea',
+    description: 'La fuerza decae, menores ganas de entrenar y presencia de cansancio. Progesterona predominante.',
+    color: 'sky',
+  },
+}
+
+/** Mensaje corto por fase (retrocompat para avisos en texto). */
 export const ROUTINE_CYCLE_COACH_MESSAGES: Record<RoutineMenstrualPhase, string> = {
-  menstruacion: 'Semana Menstruando',
-  folicular: 'En etapa folicular, + fuerza',
-  ovulacion: 'Etapa de ovulación, + Fuerza',
-  lutea_temprana: 'Etapa lútea, cansancio + presente',
-  lutea_tardia: 'Etapa lútea, mayor cansancio',
+  menstruacion: ROUTINE_CYCLE_PHASE_META.menstruacion.label,
+  folicular: ROUTINE_CYCLE_PHASE_META.folicular.label,
+  ovulacion: ROUTINE_CYCLE_PHASE_META.ovulacion.label,
+  lutea: ROUTINE_CYCLE_PHASE_META.lutea.label,
 }
 
 function parseLocalDate(iso: string): Date {
@@ -33,16 +69,58 @@ export function cycleDayOnDate(cycleStartIso: string, dateIso: string): number {
 }
 
 /**
- * Ventanas aproximadas respecto al inicio del ciclo (como pediste: 1–7, 7–14, día 14, 14–21, 21–28).
- * El día 7 puede figurar en menstruación; el 14 en ovulación.
+ * Ventanas por día de ciclo:
+ *   1–5   menstruación
+ *   6–14  folicular
+ *   15–19 ovulación
+ *   20–28 lútea
  */
 export function routinePhaseForCycleDay(day: number, cycleLength: number): RoutineMenstrualPhase | null {
   if (day < 1 || day > cycleLength) return null
-  if (day <= 7) return 'menstruacion'
-  if (day < 14) return 'folicular'
-  if (day === 14) return 'ovulacion'
-  if (day <= 21) return 'lutea_temprana'
-  return 'lutea_tardia'
+  if (day <= 5) return 'menstruacion'
+  if (day <= 14) return 'folicular'
+  if (day <= 19) return 'ovulacion'
+  return 'lutea'
+}
+
+/** Fases distintas (con metadata) que abarca un rango de fechas, en orden de aparición. */
+export function cyclePhasesForDateRange(
+  cycleStartIso: string,
+  cycleLength: number,
+  rangeStartIso: string,
+  rangeEndIso: string,
+): CyclePhaseInfo[] {
+  const start = parseLocalDate(rangeStartIso)
+  const end = parseLocalDate(rangeEndIso)
+  if (end < start) return []
+
+  const seen = new Set<RoutineMenstrualPhase>()
+  const ordered: CyclePhaseInfo[] = []
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    const iso = toIsoDate(cursor)
+    const day = cycleDayOnDate(cycleStartIso, iso)
+    const phase = routinePhaseForCycleDay(day, cycleLength)
+    if (phase && !seen.has(phase)) {
+      seen.add(phase)
+      ordered.push(ROUTINE_CYCLE_PHASE_META[phase])
+    }
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return ordered
+}
+
+/** Fases (con metadata) que abarca la semana/bloque de la rutina. */
+export function cyclePhasesForWeekBlock(
+  cycleStartIso: string,
+  cycleLength: number,
+  blockStartIso: string | null,
+  blockEndIso: string | null,
+): CyclePhaseInfo[] {
+  if (!blockStartIso) return []
+  const end = blockEndIso ?? blockStartIso
+  return cyclePhasesForDateRange(cycleStartIso, cycleLength, blockStartIso, end)
 }
 
 export function coachMessagesForDateRange(
@@ -51,25 +129,9 @@ export function coachMessagesForDateRange(
   rangeStartIso: string,
   rangeEndIso: string,
 ): string[] {
-  const start = parseLocalDate(rangeStartIso)
-  const end = parseLocalDate(rangeEndIso)
-  if (end < start) return []
-
-  const seen = new Set<RoutineMenstrualPhase>()
-  const ordered: RoutineMenstrualPhase[] = []
-  const cursor = new Date(start)
-  while (cursor <= end) {
-    const iso = toIsoDate(cursor)
-    const day = cycleDayOnDate(cycleStartIso, iso)
-    const phase = routinePhaseForCycleDay(day, cycleLength)
-    if (phase && !seen.has(phase)) {
-      seen.add(phase)
-      ordered.push(phase)
-    }
-    cursor.setDate(cursor.getDate() + 1)
-  }
-
-  return ordered.map((p) => ROUTINE_CYCLE_COACH_MESSAGES[p])
+  return cyclePhasesForDateRange(cycleStartIso, cycleLength, rangeStartIso, rangeEndIso).map(
+    (p) => p.label,
+  )
 }
 
 export function coachMessageForWeekBlock(
@@ -78,9 +140,7 @@ export function coachMessageForWeekBlock(
   blockStartIso: string | null,
   blockEndIso: string | null,
 ): string | null {
-  if (!blockStartIso) return null
-  const end = blockEndIso ?? blockStartIso
-  const lines = coachMessagesForDateRange(cycleStartIso, cycleLength, blockStartIso, end)
-  if (lines.length === 0) return null
-  return lines.join(' · ')
+  const phases = cyclePhasesForWeekBlock(cycleStartIso, cycleLength, blockStartIso, blockEndIso)
+  if (phases.length === 0) return null
+  return phases.map((p) => p.label).join(' · ')
 }

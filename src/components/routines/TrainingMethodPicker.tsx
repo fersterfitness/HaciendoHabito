@@ -15,9 +15,11 @@ type Props = {
     'training_method_id' | 'method_coach_notes' | 'reps_scheme' | 'sets'
   >
   onApply: (patch: Partial<RoutineExercise>) => void
+  /** Aplica el plan por semana del método al mismo ejercicio en todas las semanas. */
+  onApplyWeekPlan?: (method: TrainingMethod) => void
 }
 
-export function TrainingMethodPicker({ exercise, onApply }: Props) {
+export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan }: Props) {
   const { user } = useAuthStore()
   const [open, setOpen] = useState(false)
   const [methods, setMethods] = useState<MethodRow[]>([])
@@ -132,12 +134,27 @@ export function TrainingMethodPicker({ exercise, onApply }: Props) {
                     {m.default_reps_scheme ? (
                       <span className="text-[10px] text-ink-muted">Reps: {m.default_reps_scheme}</span>
                     ) : null}
+                    {Array.isArray(m.week_plan) && m.week_plan.length > 0 ? (
+                      <span className="text-[10px] font-medium text-brand-secondary">
+                        Plan por semana ({m.week_plan.length})
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>
             ))
           )}
         </Popover>
+        {selected && Array.isArray(selected.week_plan) && selected.week_plan.length > 0 && onApplyWeekPlan ? (
+          <button
+            type="button"
+            onClick={() => onApplyWeekPlan(selected)}
+            className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2 text-[10px] font-semibold text-brand-secondary hover:bg-brand-secondary/20"
+            title="Copiar reps/serie y % de cada semana del método a todas las semanas de la rutina"
+          >
+            Aplicar a todas las semanas ({selected.week_plan.length})
+          </button>
+        ) : null}
         {selected ? (
           <button
             type="button"

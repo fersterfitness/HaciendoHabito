@@ -4,6 +4,7 @@ type BadgeStatus =
   | 'activa'
   | 'por_vencer'
   | 'vencida'
+  | 'completada'
   | 'pausada'
   | 'cancelada'
   | 'pendiente'
@@ -42,6 +43,10 @@ const BADGE_CONFIG: Record<string, { label: string; className: string }> = {
   vencida: {
     label: 'Vencida',
     className: 'bg-status-expired/20 text-status-expired border border-status-expired/50',
+  },
+  completada: {
+    label: 'Completada',
+    className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40',
   },
   pausada: {
     label: 'Pausada',

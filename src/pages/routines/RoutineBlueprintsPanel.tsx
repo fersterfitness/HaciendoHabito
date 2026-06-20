@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { ArrowRight, Library, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, FolderOpen, Library, Plus, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
@@ -39,6 +39,64 @@ export function RoutineBlueprintsPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  /** Agrupado: categoría → subcategoría → plantillas. */
+  const grouped = useMemo(() => {
+    const SIN_CAT = 'Sin categoría'
+    const cats = new Map<string, Map<string, RoutineBlueprint[]>>()
+    const sorted = [...items].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name),
+    )
+    for (const bp of sorted) {
+      const cat = bp.category?.trim() || SIN_CAT
+      const sub = bp.subcategory?.trim() || ''
+      if (!cats.has(cat)) cats.set(cat, new Map())
+      const subs = cats.get(cat)!
+      if (!subs.has(sub)) subs.set(sub, [])
+      subs.get(sub)!.push(bp)
+    }
+    // "Sin categoría" siempre al final.
+    return [...cats.entries()].sort((a, b) =>
+      a[0] === SIN_CAT ? 1 : b[0] === SIN_CAT ? -1 : a[0].localeCompare(b[0]),
+    )
+  }, [items])
+
+  function renderBlueprint(bp: RoutineBlueprint) {
+    return (
+      <li
+        key={bp.id}
+        className="flex items-start gap-3 rounded-xl border border-surface-border bg-surface-card px-4 py-3"
+      >
+        <Library className="h-4 w-4 text-brand-primary shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-ink-primary">{bp.name}</p>
+          {bp.description && (
+            <p className="text-xs text-ink-secondary mt-1 whitespace-pre-wrap">{bp.description}</p>
+          )}
+          <p className="text-[10px] text-ink-muted mt-2">
+            Actualizada {new Date(bp.updated_at).toLocaleString('es-AR')}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Link
+            to={`/routines?create=1&blueprint=${bp.id}`}
+            className="p-2 rounded-lg text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
+            title="Crear rutina con esta plantilla"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setDeleteId(bp.id)}
+            className="p-2 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
+            title="Eliminar plantilla"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </li>
+    )
+  }
 
   async function handleDelete() {
     if (!deleteId) return
@@ -91,42 +149,33 @@ export function RoutineBlueprintsPanel() {
           }}
         />
       ) : (
-        <ul className="space-y-2">
-          {items.map((bp) => (
-            <li
-              key={bp.id}
-              className="flex items-start gap-3 rounded-xl border border-surface-border bg-surface-card px-4 py-3"
-            >
-              <Library className="h-4 w-4 text-brand-primary shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink-primary">{bp.name}</p>
-                {bp.description && (
-                  <p className="text-xs text-ink-secondary mt-1 whitespace-pre-wrap">{bp.description}</p>
-                )}
-                <p className="text-[10px] text-ink-muted mt-2">
-                  Actualizada {new Date(bp.updated_at).toLocaleString('es-AR')}
-                </p>
+        <div className="space-y-6">
+          {grouped.map(([cat, subs]) => (
+            <section key={cat}>
+              <div className="mb-2 flex items-center gap-2 border-b border-surface-border pb-1.5">
+                <FolderOpen className="h-4 w-4 text-brand-secondary shrink-0" />
+                <h3 className="text-sm font-bold uppercase tracking-wide text-ink-primary">{cat}</h3>
+                <span className="text-[11px] text-ink-muted">
+                  {[...subs.values()].reduce((n, arr) => n + arr.length, 0)}
+                </span>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Link
-                  to={`/routines?create=1&blueprint=${bp.id}`}
-                  className="p-2 rounded-lg text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
-                  title="Crear rutina con esta plantilla"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setDeleteId(bp.id)}
-                  className="p-2 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
-                  title="Eliminar plantilla"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              <div className="space-y-4 pl-1">
+                {[...subs.entries()]
+                  .sort((a, b) => (a[0] === '' ? 1 : b[0] === '' ? -1 : a[0].localeCompare(b[0])))
+                  .map(([sub, bps]) => (
+                    <div key={sub || '__none__'}>
+                      {sub ? (
+                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                          {sub}
+                        </p>
+                      ) : null}
+                      <ul className="space-y-2">{bps.map(renderBlueprint)}</ul>
+                    </div>
+                  ))}
               </div>
-            </li>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
 
       <ConfirmDialog

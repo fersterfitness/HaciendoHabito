@@ -66,6 +66,7 @@ const ROUTINE_STATUS_OPTIONS: { value: RoutineStatus; label: string }[] = [
   { value: 'activa', label: 'Activa' },
   { value: 'por_vencer', label: 'Por vencer' },
   { value: 'vencida', label: 'Vencida' },
+  { value: 'completada', label: 'Completada' },
   { value: 'pausada', label: 'Pausada' },
   { value: 'cancelada', label: 'Cancelada' },
 ]
@@ -559,6 +560,8 @@ export function RoutinesPage() {
       const nm = r.student?.full_name?.toLowerCase() ?? ''
       const rn = r.name.toLowerCase()
       if (q && !nm.includes(q) && !rn.includes(q)) return false
+      // Las completadas viven en el historial: no se mezclan con activas salvo que se filtre por ese estado.
+      if (filterStatus !== 'completada' && r.status === 'completada') return false
       if (filterLevel && r.level !== filterLevel) return false
       if (filterStatus && r.status !== filterStatus) return false
       if (filterExpiry) {

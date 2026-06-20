@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -6,7 +6,7 @@ import {
   Pencil, Trash2, Dumbbell, FileText, FileDown, Plus,
   Mail, Phone, Calendar, Zap, X, ChevronDown,
   StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag,
-  Maximize2, UserRound, UtensilsCrossed, TrendingUp, Scale,
+  Maximize2, UserRound, UtensilsCrossed, TrendingUp,
   CalendarCheck,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -17,8 +17,9 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, formatDate, daysUntil, formatCurrency } from '@/lib/utils'
+import { cn, formatDate, daysUntil } from '@/lib/utils'
 import { CicloTab } from './CicloTab'
+import { StudentRoutineNotesPanel } from '@/components/students/StudentRoutineNotesPanel'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { StudentPlanCard } from '@/components/students/StudentPlanCard'
@@ -29,7 +30,7 @@ import { StudentProgressPhotosSection } from '@/components/students/StudentProgr
 import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
-import type { Student, Routine, Exercise, StudentRmRecord, StudentWeightLog, TrainerStudentMealPlan, Income } from '@/types/database'
+import type { Student, Routine, Exercise, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
 import { INCOME_TYPES, PAYMENT_METHODS } from '@/lib/constants'
 import { devLog } from '@/lib/devLog'
 import { fetchAccessibleStudentById } from '@/lib/students/studentAccess'
@@ -80,14 +81,6 @@ function intakeRoutinePhrase(status: string): string {
   return m[status] ?? status
 }
 
-function incomeStatusPhrase(status: string): string {
-  const m: Record<string, string> = {
-    cobrado: 'Cobrado',
-    pendiente: 'Pendiente',
-    anulado: 'Anulado',
-  }
-  return m[status] ?? status
-}
 
 /** Píldora de estado de rutina (activa = verde; resto semántico). */
 function routineStatusPillClass(status: string, compact = false): string {
@@ -145,19 +138,6 @@ function studentAccountStatusChipClass(status: string): string {
 }
 
 /** Línea de estado en historial de pagos. */
-function incomeLedgerStatusClass(status: string): string {
-  switch (status) {
-    case 'cobrado':
-      return 'text-emerald-600 dark:text-emerald-400'
-    case 'pendiente':
-      return 'text-status-expiring'
-    case 'anulado':
-      return 'text-zinc-500 line-through dark:text-zinc-500'
-    default:
-      return 'text-zinc-500'
-  }
-}
-
 // ─── Epley formula ────────────────────────────────────────────────────────────
 function epley1RM(weight: number, reps: number): number {
   return Math.round(weight * (1 + reps / 30) * 10) / 10
@@ -825,7 +805,9 @@ export function StudentDetailView({
 
         {/* ── Rutina ── */}
         {sheetTab === 'rutina' && (() => {
-          const rutinaHistorialVacío = routines.length === 0
+          const completedRoutines = routines.filter((r) => r.status === 'completada')
+          const historialRoutines = routines.filter((r) => r.status !== 'completada')
+          const rutinaHistorialVacío = historialRoutines.length === 0
           const fi = student.intake_ferster as Record<string, unknown> | null
 
           // Labels para chips de perfil de entrenamiento
@@ -868,6 +850,9 @@ export function StudentDetailView({
 
           return (
           <div className="space-y-8">
+
+            {/* ── Notas para la próxima rutina ── */}
+            {id ? <StudentRoutineNotesPanel studentId={id} /> : null}
 
             {/* ── Plan vigente ── */}
             {id ? (
@@ -1030,11 +1015,11 @@ export function StudentDetailView({
 
               {rutinaHistorialVacío ? (
                 <p className="py-6 text-center text-[13px] text-zinc-400 dark:text-zinc-500">
-                  Todavía no hay rutinas registradas.
+                  Todavía no hay rutinas activas.
                 </p>
               ) : (
                 <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
-                  {routines.map((r) => {
+                  {historialRoutines.map((r) => {
                     const weeks = routineWeeks(r)
                     return (
                       <li key={r.id}>
@@ -1065,6 +1050,48 @@ export function StudentDetailView({
                 </ul>
               )}
             </section>
+
+            {/* ── Rutinas completadas (historial) ── */}
+            {completedRoutines.length > 0 && (
+              <section>
+                <div className="border-b border-zinc-200/55 pb-3 dark:border-zinc-800/55">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">Historial</p>
+                  <h3 className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                    Rutinas completadas ({completedRoutines.length})
+                  </h3>
+                </div>
+                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                  {completedRoutines.map((r) => {
+                    const weeks = routineWeeks(r)
+                    return (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/routines/${r.id}`)}
+                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-50">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-zinc-500">
+                              <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
+                              {r.completed_at && (
+                                <span className="rounded bg-emerald-100 px-1.5 py-px font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                  ✓ {formatDate(r.completed_at.slice(0, 10))}
+                                </span>
+                              )}
+                              {weeks != null && (
+                                <span className="rounded bg-zinc-100 px-1.5 py-px font-medium dark:bg-zinc-800">{weeks} sem.</span>
+                              )}
+                            </p>
+                          </div>
+                          <span className="text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-700 dark:group-hover:text-zinc-400">›</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            )}
           </div>
           )
         })()}

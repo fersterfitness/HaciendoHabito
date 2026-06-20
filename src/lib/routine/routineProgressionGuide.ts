@@ -149,11 +149,17 @@ function exerciseLabel(ex: Ex): string {
   return ex.exercise?.name?.trim() || 'Ejercicio'
 }
 
-/** Clave estable entre semanas aunque cambie superset_group. */
+/**
+ * Clave estable entre semanas aunque cambie superset_group o el orden de los
+ * ejercicios dentro del circuito. Los ids se ordenan de forma determinística para
+ * que el mismo conjunto de ejercicios no genere dos bloques (evita circuitos duplicados).
+ */
 function blockKeyForGroup(group: Ex[]): string {
-  const ids = [...group].sort((a, b) => a.sort_order - b.sort_order).map((e) => e.exercise_id)
-  if (group.length > 1) return `circuit-${ids.join('-')}`
-  return `ex-${ids[0]!}`
+  if (group.length > 1) {
+    const ids = group.map((e) => e.exercise_id).sort()
+    return `circuit-${ids.join('-')}`
+  }
+  return `ex-${group[0]!.exercise_id}`
 }
 
 function exerciseRowKey(blockKey: string, ex: Ex): string {
