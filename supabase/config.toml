@@ -1,0 +1,29 @@
+# Configuración local / deploy de Edge Functions.
+# https://supabase.com/docs/guides/functions/function-configuration
+
+[functions.public-intake-form]
+# El formulario /form llama sin usuario logueado (solo anon key). Sin esto, el
+# preflight OPTIONS falla y el navegador muestra error de CORS.
+verify_jwt = false
+
+# La app valida sesión y rol dentro de la función (igual que intake). Así el
+# gateway no devuelve 401 sin CORS y el cliente puede leer el JSON de error.
+[functions.food-nutrition-lookup]
+verify_jwt = false
+
+# Igual criterio: la función valida sesión y rol internamente y devuelve los
+# errores como JSON con CORS (incluido "falta_OPENAI_API_KEY" si no hay secret).
+[functions.anthropometry-ai-analysis]
+verify_jwt = false
+
+[functions.submit-public-anamnesis]
+verify_jwt = false
+
+[functions.generate-anamnesis-link]
+verify_jwt = false
+
+[functions.anamnesis-public-status]
+verify_jwt = false
+
+[functions.web-intake-access]
+verify_jwt = false

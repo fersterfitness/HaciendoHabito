@@ -610,12 +610,73 @@ export interface TrainingMethodCategory {
   updated_at: string
 }
 
+// ─── Circuitos / Preestablecidos ───────────────────────────────────────────────
+
+export interface PresetBlockCategory {
+  id: string
+  owner_id: string
+  name: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+/** Override por semana de un ejercicio del preestablecido (index = semana). */
+export interface PresetBlockExerciseWeek {
+  reps_scheme: string | null
+  percent_rm: number | null
+  sets: number | null
+}
+
+export interface PresetBlockExercise {
+  exercise_id: string | null
+  name: string
+  is_superset: boolean
+  superset_group: number | null
+  sets: number | null
+  reps_scheme: string | null
+  rest_seconds: number | null
+  rpe: number | null
+  rir: number | null
+  percent_rm: number | null
+  /** Plan por semana opcional (reps/% por semana). */
+  weeks?: PresetBlockExerciseWeek[] | null
+}
+
+export interface PresetBlockPayload {
+  exercises: PresetBlockExercise[]
+}
+
+export interface PresetBlock {
+  id: string
+  owner_id: string
+  category_id: string | null
+  name: string
+  description: string | null
+  kind: 'circuit' | 'individual'
+  block_note: string | null
+  weeks_count: number
+  payload: PresetBlockPayload
+  sort_order: number
+  created_at: string
+  updated_at: string
+  category?: PresetBlockCategory | null
+}
+
 /** Plan por semana de un método (cargas ondulatorias, etc.). Index del array = semana 1..N. */
 export interface TrainingMethodWeek {
   /** Reps por serie de esa semana, ej. "6,6,6". */
   reps_scheme: string | null
   /** % de RM opcional para esa semana. */
   percent_rm: number | null
+  /** RPE objetivo de la semana. */
+  rpe: number | null
+  /** RIR objetivo de la semana. */
+  rir: number | null
+  /** Descanso en segundos. */
+  rest_seconds: number | null
+  /** Aclaración del bloque para esa semana (ej. vueltas/pausa del circuito). */
+  block_note: string | null
 }
 
 export interface TrainingMethod {

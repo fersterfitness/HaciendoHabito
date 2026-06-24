@@ -10,6 +10,7 @@ import {
   Salad,
   CalendarClock,
   Apple,
+  Carrot,
   ClipboardList,
   UtensilsCrossed,
   Ruler,
@@ -67,7 +68,7 @@ export const NAV_FINANCE: NavItem[] = [{ label: 'Finanzas', href: '/finances', i
 /** Guía de alimentación que el entrenador ofrece al alumno. */
 export const NAV_TRAINER_NUTRITION_GUIDE: NavItem[] = [
   { label: 'Armar plan de alimentación', href: '/nutrition/planning', icon: ClipboardList },
-  { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Apple },
+  { label: 'Guía de alimentos', href: '/nutrition/foods', icon: Carrot },
 ]
 
 /** Planes de alimentación del entrenador (icono distinto a «Armar plan»). */

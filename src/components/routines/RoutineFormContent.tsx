@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -63,6 +63,7 @@ export function RoutineFormContent({
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -79,6 +80,35 @@ export function RoutineFormContent({
   const watchStart = watch('start_date')
   const watchDuration = watch('duration_days')
   const watchStudentId = watch('student_id')
+  // Recordamos el último nombre autogenerado para no pisar uno escrito a mano.
+  const autoNameRef = useRef('')
+
+  // Nombre por defecto: "Nombre Apellido + N° de rutina" (ej. "Agustín Peluffo 2").
+  useEffect(() => {
+    if (isEditing || !watchStudentId || !user) return
+    const student = students.find((s) => s.id === watchStudentId)
+    if (!student) return
+    let cancelled = false
+    void supabase
+      .from('routines')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id)
+      .eq('student_id', watchStudentId)
+      .then(({ count }) => {
+        if (cancelled) return
+        const next = `${student.full_name} ${(count ?? 0) + 1}`
+        const current = (watch('plan_name') ?? '').trim()
+        // Solo autocompletar si está vacío o si era un autogenerado anterior.
+        if (!current || current === autoNameRef.current) {
+          autoNameRef.current = next
+          setValue('plan_name', next, { shouldValidate: true })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchStudentId, isEditing, students, user])
 
   useEffect(() => {
     if (watchStart && watchDuration) {

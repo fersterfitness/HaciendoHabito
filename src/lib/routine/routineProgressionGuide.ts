@@ -162,10 +162,6 @@ function blockKeyForGroup(group: Ex[]): string {
   return `ex-${group[0]!.exercise_id}`
 }
 
-function exerciseRowKey(blockKey: string, ex: Ex): string {
-  return `${blockKey}-${ex.exercise_id}`
-}
-
 function circuitClarification(group: Ex[]): string | null {
   for (const ex of group) {
     const { meta } = parseExerciseMeta(ex.technical_notes)
@@ -236,39 +232,21 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
   for (const [dayKey, meta] of [...dayKeys.entries()].sort((a, b) => a[1].order - b[1].order)) {
     const blockMap = new Map<string, GuideBlock>()
     const blockOrder: string[] = []
-
-    const templateDay = sortedBlocks
-      .map((b) => b.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey))
-      .find(Boolean)
-
-    if (templateDay) {
-      for (const { group, sortOrder } of orderedGroups(templateDay)) {
-        const bKey = blockKeyForGroup(group)
-        if (blockMap.has(bKey)) continue
-        blockOrder.push(bKey)
-        blockMap.set(bKey, {
-          key: bKey,
-          kind: isCircuitGroup(group) ? 'circuit' : 'individual',
-          sortOrder,
-          headerNotesByWeek: Array(weekCount).fill(null),
-          exercises: [...group]
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((ex) => ({
-              key: exerciseRowKey(bKey, ex),
-              exerciseId: ex.exercise_id,
-              exerciseName: exerciseLabel(ex),
-              weeks: Array(weekCount).fill(null),
-            })),
-        })
-      }
-    }
+    // Cada ejercicio pertenece a UN solo bloque del día (su "hogar"), fijado en su
+    // primera aparición. Las demás semanas vuelcan sus datos en ese mismo bloque,
+    // aunque ahí estén agrupadas distinto (evita ejercicios/circuitos duplicados
+    // cuando se copian semanas o días).
+    const exerciseHome = new Map<string, string>()
 
     sortedBlocks.forEach((block, weekIdx) => {
       const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
       if (!day) return
 
       for (const { group, sortOrder } of orderedGroups(day)) {
-        const bKey = blockKeyForGroup(group)
+        // Si algún ejercicio del grupo ya tiene hogar, reusamos ese bloque.
+        const homedKey = group.map((e) => exerciseHome.get(e.exercise_id)).find(Boolean)
+        const bKey = homedKey ?? blockKeyForGroup(group)
+
         let guideBlock = blockMap.get(bKey)
         if (!guideBlock) {
           blockOrder.push(bKey)
@@ -289,32 +267,21 @@ export function buildRoutineProgressionGuide(blocks: Block[]): GuideDaySection[]
         }
 
         for (const ex of group) {
-          const rowKey = exerciseRowKey(bKey, ex)
-          let row = guideBlock.exercises.find((r) => r.key === rowKey)
+          const existingHome = exerciseHome.get(ex.exercise_id)
+          const target = existingHome ? blockMap.get(existingHome)! : guideBlock
+          if (!existingHome) exerciseHome.set(ex.exercise_id, target.key)
+
+          let row = target.exercises.find((r) => r.exerciseId === ex.exercise_id)
           if (!row) {
             row = {
-              key: rowKey,
+              key: `${target.key}-${ex.exercise_id}`,
               exerciseId: ex.exercise_id,
               exerciseName: exerciseLabel(ex),
               weeks: Array(weekCount).fill(null),
             }
-            guideBlock.exercises.push(row)
+            target.exercises.push(row)
           }
           row.weeks[weekIdx] = formatGuidePrescriptionCell(ex)
-        }
-      }
-    })
-
-    // Si un ejercicio cambió de bloque entre semanas, igual mostrar series/reps/peso.
-    sortedBlocks.forEach((block, weekIdx) => {
-      const day = block.days.find((d) => (d.day_name.trim() || `dia-${d.sort_order}`) === dayKey)
-      if (!day) return
-      const byExerciseId = new Map(day.exercises.map((ex) => [ex.exercise_id, ex]))
-      for (const guideBlock of blockMap.values()) {
-        for (const row of guideBlock.exercises) {
-          if (row.weeks[weekIdx]?.trim()) continue
-          const ex = byExerciseId.get(row.exerciseId)
-          if (ex) row.weeks[weekIdx] = formatGuidePrescriptionCell(ex)
         }
       }
     })

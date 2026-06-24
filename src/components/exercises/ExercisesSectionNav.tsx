@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { BookOpen, Layers } from 'lucide-react'
+import { BookOpen, Layers, Boxes } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
   { to: '/exercises', label: 'Catálogo', icon: BookOpen, end: true },
   { to: '/exercises/methods', label: 'Métodos', icon: Layers, end: false },
+  { to: '/exercises/presets', label: 'Circuitos', icon: Boxes, end: false },
 ] as const
 
 export function ExercisesSectionNav() {

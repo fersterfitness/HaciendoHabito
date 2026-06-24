@@ -1,5 +1,5 @@
-import { Fragment, useMemo, type KeyboardEvent } from 'react'
-import { X } from 'lucide-react'
+import { Fragment, useMemo, useState, type KeyboardEvent } from 'react'
+import { RefreshCw, X } from 'lucide-react'
 import { buildGuideWeekLabels, buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
 import type { GuideBlock } from '@/lib/routine/routineProgressionGuide'
 import type { RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
@@ -16,6 +16,8 @@ type Props = {
   blocks: Block[]
   /** Acceso directo: saltar a esa semana/día en el editor para corregir. */
   onJumpToWeek?: (blockId: string, dayId: string | null) => void
+  /** Recarga los datos de la rutina desde la base (corrige la vista tras copiar semanas/días). */
+  onRefresh?: () => void | Promise<void>
 }
 
 function dayKeyOf(d: Day): string {
@@ -97,10 +99,21 @@ function BlockExerciseRows({
   )
 }
 
-export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks, onJumpToWeek }: Props) {
+export function RoutineProgressionGuidePanel({ open, onClose, routineName, blocks, onJumpToWeek, onRefresh }: Props) {
   const sections = useMemo(() => buildRoutineProgressionGuide(blocks), [blocks])
   const weekLabels = useMemo(() => buildGuideWeekLabels(blocks), [blocks])
   const sortedBlocks = useMemo(() => [...blocks].sort((a, b) => a.sort_order - b.sort_order), [blocks])
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function handleRefresh() {
+    if (!onRefresh || refreshing) return
+    setRefreshing(true)
+    try {
+      await onRefresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   if (!open) return null
 
@@ -125,14 +138,28 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
               {onJumpToWeek ? ' Tocá una celda para corregir esa semana en la rutina.' : ''}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-lg border border-zinc-700 p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
-            aria-label="Cerrar guía"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {onRefresh ? (
+              <button
+                type="button"
+                onClick={() => void handleRefresh()}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-primary/40 bg-brand-primary/10 px-3 py-2 text-xs font-semibold text-brand-primary transition-colors hover:bg-brand-primary/20 disabled:opacity-60"
+                title="Recargar la rutina desde la base (corrige la vista si copiaste semanas o días)"
+              >
+                <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+                {refreshing ? 'Actualizando…' : 'Actualizar'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-700 p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              aria-label="Cerrar guía"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-2 sm:p-4 space-y-8">

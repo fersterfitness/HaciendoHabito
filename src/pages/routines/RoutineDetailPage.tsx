@@ -4,7 +4,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
-  Table2, Droplets, ClipboardList, CheckCircle2,
+  Table2, Droplets, ClipboardList, CheckCircle2, Boxes,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -47,7 +47,7 @@ import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgr
 import { cyclePhasesForWeekBlock, type CyclePhaseInfo, type CyclePhaseColor } from '@/lib/routine/menstrualCyclePlanning'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
-import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod } from '@/types/database'
+import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -163,6 +163,10 @@ export function RoutineDetailPage() {
     replaceRoutineExerciseId?: string
   } | null>(null)
   const [copyMenuBlock, setCopyMenuBlock] = useState<string | null>(null)
+  const [presetPickerDayId, setPresetPickerDayId] = useState<string | null>(null)
+  const [presetList, setPresetList] = useState<PresetBlock[]>([])
+  // Se incrementa al aplicar un método para forzar el re-render de las filas (que muestren los nuevos valores).
+  const [applyNonce, setApplyNonce] = useState(0)
   const emptyRmLookup = (): StudentRmLookup => ({
     byExerciseId: new Map(),
     byExerciseName: new Map(),
@@ -179,6 +183,8 @@ export function RoutineDetailPage() {
   const [blueprintDesc, setBlueprintDesc] = useState('')
   const [blueprintCategory, setBlueprintCategory] = useState('')
   const [blueprintSubcategory, setBlueprintSubcategory] = useState('')
+  const [completionNote, setCompletionNote] = useState('')
+  const [savingCompletionNote, setSavingCompletionNote] = useState(false)
   const [savingBlueprint, setSavingBlueprint] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -233,6 +239,29 @@ export function RoutineDetailPage() {
   }, [id, loadRmLookup])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  /** Recarga solo los bloques/días/ejercicios desde la base (sin recargar toda la página).
+   *  Sirve para que la Guía semanal refleje cambios tras copiar semanas/días. */
+  const refreshBlocks = useCallback(async () => {
+    if (!id) return
+    const { data } = await supabase
+      .from('routine_blocks')
+      .select(
+        '*, days:routine_days(*, exercises:routine_exercises(*, exercise:exercise_library(*, muscle_group:muscle_groups(id, name, slug))))',
+      )
+      .eq('routine_id', id)
+      .order('sort_order')
+    if (data) {
+      const sorted = (data as unknown as BlockWithDays[]).map((b) => ({
+        ...b,
+        days: [...(b.days ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((d) => ({
+          ...d,
+          exercises: [...(d.exercises ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+        })),
+      }))
+      setBlocks(sorted)
+    }
+  }, [id])
 
   useEffect(() => {
     if (!routine?.student_id) return
@@ -705,6 +734,66 @@ export function RoutineDetailPage() {
     setShowExercisePicker(null)
   }
 
+  // Cargar preestablecidos cuando se abre el picker de pegado.
+  useEffect(() => {
+    if (presetPickerDayId == null || !user?.id || presetList.length > 0) return
+    void supabase
+      .from('preset_blocks')
+      .select('*, category:preset_block_categories(*)')
+      .eq('owner_id', user.id)
+      .order('sort_order')
+      .then(({ data }) => setPresetList((data as unknown as PresetBlock[]) ?? []))
+  }, [presetPickerDayId, user?.id, presetList.length])
+
+  /** Pega un preestablecido (circuito/bloque) en un día: inserta sus ejercicios con sus parámetros. */
+  async function applyPresetToDay(dayId: string, preset: PresetBlock) {
+    const day = blocks.find((b) => b.days.some((d) => d.id === dayId))?.days.find((d) => d.id === dayId)
+    if (!day) return
+    const withId = (preset.payload?.exercises ?? []).filter((e) => e.exercise_id)
+    if (withId.length === 0) {
+      toast.error('El preestablecido no tiene ejercicios del catálogo')
+      return
+    }
+    let sortOrder = day.exercises.length
+    const maxGroup = Math.max(0, ...day.exercises.map((e) => e.superset_group ?? 0))
+    const newGroup = preset.kind === 'circuit' ? maxGroup + 1 : null
+
+    const rows = withId.map((e, idx) => {
+      const meta: ExerciseMeta = {}
+      if (e.percent_rm != null) meta.percent1rm = String(e.percent_rm)
+      if (preset.kind === 'circuit' && idx === 0 && preset.block_note) meta.circuitNote = preset.block_note
+      const technical_notes = buildExerciseTechnicalNotes('', meta) || null
+      const rm = e.percent_rm != null ? resolveRmKgForExercise(rmLookup, e.exercise_id!, e.name) : undefined
+      return {
+        day_id: dayId,
+        exercise_id: e.exercise_id!,
+        sort_order: sortOrder++,
+        sets: e.sets ?? 3,
+        reps_scheme: e.reps_scheme || null,
+        reps_min: null,
+        reps_max: null,
+        rest_seconds: e.rest_seconds ?? null,
+        rpe: e.rpe ?? null,
+        rir: e.rir ?? null,
+        percent_rm: e.percent_rm ?? null,
+        weight_kg: rm && e.percent_rm != null ? Math.round(rm * (e.percent_rm / 100) * 10) / 10 : null,
+        technical_notes,
+        is_superset: preset.kind === 'circuit',
+        superset_group: newGroup,
+      }
+    })
+
+    const { error } = await supabase.from('routine_exercises').insert(rows)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    await refreshBlocks()
+    setExpandedDays((prev) => new Set([...prev, dayId]))
+    setPresetPickerDayId(null)
+    toast.success(`"${preset.name}" pegado en ${day.day_name || 'el día'}`)
+  }
+
   async function updateExercise(dayId: string, exId: string, patch: Partial<RoutineExercise>) {
     await supabase.from('routine_exercises').update(patch).eq('id', exId)
     setBlocks((prev) => prev.map((b) => ({
@@ -716,57 +805,70 @@ export function RoutineDetailPage() {
     })))
   }
 
+  /** Arma el patch del ejercicio para una semana del método (reps, %RM→peso, RPE, RIR, descanso, aclaración). */
+  function buildWeekPatch(ex: ExWithExercise, wk: NonNullable<TrainingMethod['week_plan']>[number], method: TrainingMethod): Partial<RoutineExercise> {
+    const { userNotes, meta } = parseExerciseMeta(ex.technical_notes)
+    const patch: Partial<RoutineExercise> = { training_method_id: method.id }
+    if (wk.reps_scheme?.trim()) patch.reps_scheme = wk.reps_scheme.trim()
+    if (method.default_sets != null) patch.sets = method.default_sets
+    if (wk.rir != null) patch.rir = wk.rir
+    if (wk.rpe != null) { patch.rpe = wk.rpe; meta.rpeText = String(wk.rpe) }
+    if (wk.rest_seconds != null) { patch.rest_seconds = wk.rest_seconds; meta.restText = String(wk.rest_seconds) }
+    if (wk.block_note?.trim()) meta.circuitNote = wk.block_note.trim()
+
+    const pct = wk.percent_rm ?? null
+    patch.percent_rm = pct
+    if (pct != null) {
+      meta.percent1rm = String(pct)
+      const rmKg = resolveRmKgForExercise(rmLookup, ex.exercise_id, ex.exercise?.name)
+      if (rmKg) patch.weight_kg = Math.round(rmKg * (pct / 100) * 10) / 10
+    }
+    patch.technical_notes = buildExerciseTechnicalNotes(userNotes, meta) || null
+    return patch
+  }
+
   /**
-   * Aplica el plan por semana de un método al mismo ejercicio en TODAS las semanas:
-   * copia reps/serie y % por semana; si el alumno tiene RM, calcula el peso.
+   * Aplica el plan por semana de un método al mismo ejercicio.
+   * `allDays = false`: solo el día del ejercicio en cada semana.
+   * `allDays = true`: el ejercicio en TODOS los días de TODAS las semanas.
    */
-  async function applyMethodWeekPlan(sourceEx: RoutineExercise, method: TrainingMethod) {
+  async function applyWeekPlanInternal(sourceEx: RoutineExercise, method: TrainingMethod, allDays: boolean) {
     const plan = method.week_plan
     if (!plan || plan.length === 0) return
 
     let srcDayName: string | null = null
-    for (const b of blocks) {
-      const d = b.days.find((x) => x.id === sourceEx.day_id)
-      if (d) { srcDayName = d.day_name; break }
+    if (!allDays) {
+      for (const b of blocks) {
+        const d = b.days.find((x) => x.id === sourceEx.day_id)
+        if (d) { srcDayName = d.day_name; break }
+      }
     }
 
     const sortedBlocks = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
     const updates: Promise<void>[] = []
-    let appliedWeeks = 0
 
     sortedBlocks.forEach((block, weekIdx) => {
       const wk = plan[weekIdx]
       if (!wk) return
-      const day = block.days.find((d) => d.day_name === srcDayName)
-      if (!day) return
-      const ex = day.exercises.find((e) => e.exercise_id === sourceEx.exercise_id)
-      if (!ex) return
-
-      const patch: Partial<RoutineExercise> = { training_method_id: method.id }
-      if (wk.reps_scheme?.trim()) patch.reps_scheme = wk.reps_scheme.trim()
-      if (method.default_sets != null) patch.sets = method.default_sets
-
-      const pct = wk.percent_rm ?? null
-      patch.percent_rm = pct
-      if (pct != null) {
-        const { userNotes, meta } = parseExerciseMeta(ex.technical_notes)
-        meta.percent1rm = String(pct)
-        patch.technical_notes = buildExerciseTechnicalNotes(userNotes, meta) || null
-        const rmKg = resolveRmKgForExercise(rmLookup, ex.exercise_id, ex.exercise?.name)
-        if (rmKg) patch.weight_kg = Math.round(rmKg * (pct / 100) * 10) / 10
+      const days = allDays ? block.days : block.days.filter((d) => d.day_name === srcDayName)
+      for (const day of days) {
+        const ex = day.exercises.find((e) => e.exercise_id === sourceEx.exercise_id)
+        if (!ex) continue
+        updates.push(updateExercise(day.id, ex.id, buildWeekPatch(ex, wk, method)))
       }
-
-      updates.push(updateExercise(day.id, ex.id, patch))
-      appliedWeeks += 1
     })
 
     if (updates.length === 0) {
-      toast.error('No se encontró el ejercicio en las semanas para aplicar el plan')
+      toast.error('No se encontró el ejercicio para aplicar el plan')
       return
     }
     await Promise.all(updates)
-    toast.success(`Método aplicado a ${appliedWeeks} semana${appliedWeeks > 1 ? 's' : ''}`)
+    setApplyNonce((n) => n + 1) // fuerza re-render de las filas para que se vean los valores aplicados
+    toast.success(allDays ? 'Método aplicado a todas las semanas y días' : `Método aplicado a ${updates.length} semana${updates.length > 1 ? 's' : ''}`)
   }
+
+  const applyMethodWeekPlan = (sourceEx: RoutineExercise, method: TrainingMethod) => applyWeekPlanInternal(sourceEx, method, false)
+  const applyMethodWeekPlanAllDays = (sourceEx: RoutineExercise, method: TrainingMethod) => applyWeekPlanInternal(sourceEx, method, true)
 
   const blocksRef = useRef(blocks)
   useEffect(() => { blocksRef.current = blocks }, [blocks])
@@ -917,6 +1019,25 @@ export function RoutineDetailPage() {
       toast.dismiss(loadingId)
       toast.error(err instanceof Error ? err.message : 'Error al copiar')
     }
+  }
+
+  /** Comentario de cierre que salta como nota para la próxima rutina del alumno (privado, no lo ve el alumno). */
+  async function addCompletionNote() {
+    const content = completionNote.trim()
+    if (!user || !routine || !content) return
+    setSavingCompletionNote(true)
+    const { error } = await supabase.from('student_routine_notes').insert({
+      owner_id: user.id,
+      student_id: routine.student_id,
+      content,
+    })
+    setSavingCompletionNote(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setCompletionNote('')
+    toast.success('Nota guardada para la próxima rutina')
   }
 
   async function saveRoutineAsBlueprint() {
@@ -1163,6 +1284,33 @@ export function RoutineDetailPage() {
           </div>
         )}
 
+        {/* Nota de cierre → próxima rutina (solo cuando está completada) */}
+        {routine.status === 'completada' && (
+          <div className="rounded-2xl border border-amber-300/50 bg-amber-50/50 p-4 dark:border-amber-700/40 dark:bg-amber-950/15">
+            <div className="mb-1 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <p className="text-sm font-semibold text-ink-primary">Rutina completada — nota para la próxima</p>
+            </div>
+            <p className="mb-2 text-xs text-ink-secondary">
+              Anotá algo a corregir/trabajar en la próxima rutina de {routine.student?.full_name ?? 'el alumno'} (privado, no lo ve el alumno).
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={completionNote}
+                onChange={(e) => setCompletionNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); void addCompletionNote() }
+                }}
+                placeholder="ej: trabajar movilidad lumbo-pélvica…"
+                className="flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-amber-500 dark:border-amber-700/50 dark:bg-zinc-900"
+              />
+              <Button size="sm" variant="secondary" loading={savingCompletionNote} onClick={() => void addCompletionNote()}>
+                Guardar nota
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Divisor semanas */}
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-ink-muted uppercase tracking-wider">
@@ -1180,7 +1328,7 @@ export function RoutineDetailPage() {
 
         {blocks.map((block, blockStripeIndex) => (
           <BlockCard
-            key={block.id}
+            key={`${block.id}-${applyNonce}`}
             stripeIndex={blockStripeIndex}
             block={block}
             allBlocks={blocks}
@@ -1219,10 +1367,12 @@ export function RoutineDetailPage() {
             onDuplicateDay={(dayId) => duplicateDay(block.id, dayId)}
             onMoveDay={(dayId, direction) => moveDay(block.id, dayId, direction)}
             onAddExercise={(dayId) => setShowExercisePicker({ dayId })}
+            onPastePreset={(dayId) => setPresetPickerDayId(dayId)}
             onReplaceExercise={(dayId, routineExerciseId) =>
               setShowExercisePicker({ dayId, replaceRoutineExerciseId: routineExerciseId })}
             onUpdateExercise={updateExercise}
             onApplyMethodWeekPlan={applyMethodWeekPlan}
+            onApplyMethodWeekPlanAllDays={applyMethodWeekPlanAllDays}
             onCircuitNoteChange={handleCircuitNoteChange}
             onDeleteExercise={deleteExercise}
             onMoveExercise={moveExercise}
@@ -1333,6 +1483,7 @@ export function RoutineDetailPage() {
         onClose={() => setShowProgressionGuide(false)}
         routineName={routine.name}
         blocks={blocks}
+        onRefresh={refreshBlocks}
         onJumpToWeek={(blockId, dayId) => {
           setShowProgressionGuide(false)
           setExpandedBlocks((prev) => new Set([...prev, blockId]))
@@ -1345,6 +1496,44 @@ export function RoutineDetailPage() {
           }, 80)
         }}
       />
+
+      {presetPickerDayId && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPresetPickerDayId(null)} />
+          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg p-4 shadow-lg max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-ink-primary">Pegar circuito / preestablecido</h3>
+              <button type="button" onClick={() => setPresetPickerDayId(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+            </div>
+            {presetList.length === 0 ? (
+              <p className="py-6 text-center text-sm text-ink-muted">
+                No tenés preestablecidos. Crealos en <strong>Ejercicios → Circuitos</strong>.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {presetList.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => void applyPresetToDay(presetPickerDayId, p)}
+                      className="w-full rounded-xl border border-surface-border bg-surface-elevated/40 px-3 py-2.5 text-left hover:border-brand-secondary/40 hover:bg-brand-secondary/5 transition-colors"
+                    >
+                      <p className="text-sm font-semibold text-ink-primary">
+                        {p.name}
+                        <span className="ml-2 rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
+                          {p.kind === 'circuit' ? 'Circuito' : 'Individual'} · {p.payload?.exercises?.length ?? 0} ej.
+                        </span>
+                      </p>
+                      {p.block_note && <p className="mt-0.5 text-[11px] text-ink-muted">{p.block_note}</p>}
+                      {p.category?.name && <p className="mt-0.5 text-[10px] uppercase tracking-wide text-brand-secondary">{p.category.name}</p>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={showDelete}
@@ -1384,7 +1573,7 @@ const CYCLE_PHASE_CLASSES: Record<CyclePhaseColor, { chip: string; panel: string
 function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0, cyclePhases = [],
   onToggle, onToggleDay, onUpdateBlock, onCascadeWeekStart, onDeleteBlock, onMoveBlock, onAddDay,
-  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onReplaceExercise, onUpdateExercise, onApplyMethodWeekPlan, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
+  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onPastePreset, onReplaceExercise, onUpdateExercise, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
@@ -1399,9 +1588,11 @@ function BlockCard({
   onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
   onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
   onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void;   onAddExercise: (dayId: string) => void
+  onPastePreset: (dayId: string) => void
   onReplaceExercise: (dayId: string, routineExerciseId: string) => void
   onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
   onApplyMethodWeekPlan: (sourceEx: RoutineExercise, method: TrainingMethod) => void | Promise<void>
+  onApplyMethodWeekPlanAllDays: (sourceEx: RoutineExercise, method: TrainingMethod) => void | Promise<void>
   onCircuitNoteChange: (dayId: string, groupId: number, value: string) => void
   onDeleteExercise: (dayId: string, exId: string) => void; onMoveExercise: (dayId: string, exId: string, direction: 'up' | 'down') => void
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
@@ -1611,9 +1802,11 @@ function BlockCard({
               onDuplicateDay={() => onDuplicateDay(day.id)}
               onMoveDay={(direction) => onMoveDay(day.id, direction)}
               onAddExercise={() => onAddExercise(day.id)}
+              onPastePreset={() => onPastePreset(day.id)}
               onReplaceExercise={(routineExerciseId) => onReplaceExercise(day.id, routineExerciseId)}
               onUpdateExercise={(exId, patch) => onUpdateExercise(day.id, exId, patch)}
               onApplyMethodWeekPlan={onApplyMethodWeekPlan}
+              onApplyMethodWeekPlanAllDays={onApplyMethodWeekPlanAllDays}
               onCircuitNoteChange={(groupId, value) => onCircuitNoteChange(day.id, groupId, value)}
               onDeleteExercise={(exId) => onDeleteExercise(day.id, exId)}
               onMoveExercise={(exId, direction) => onMoveExercise(day.id, exId, direction)}
@@ -1678,9 +1871,11 @@ function DayCard({
   onDuplicateDay,
   onMoveDay,
   onAddExercise,
+  onPastePreset,
   onReplaceExercise,
   onUpdateExercise,
   onApplyMethodWeekPlan,
+  onApplyMethodWeekPlanAllDays,
   onCircuitNoteChange,
   onDeleteExercise,
   onMoveExercise,
@@ -1695,9 +1890,11 @@ function DayCard({
   onDuplicateDay: () => void
   onMoveDay: (direction: 'up' | 'down') => void
   onAddExercise: () => void
+  onPastePreset: () => void
   onReplaceExercise: (routineExerciseId: string) => void
   onUpdateExercise: (exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
   onApplyMethodWeekPlan: (sourceEx: RoutineExercise, method: TrainingMethod) => void | Promise<void>
+  onApplyMethodWeekPlanAllDays: (sourceEx: RoutineExercise, method: TrainingMethod) => void | Promise<void>
   onCircuitNoteChange: (groupId: number, value: string) => void
   onDeleteExercise: (exId: string) => void
   onMoveExercise: (exId: string, direction: 'up' | 'down') => void
@@ -1881,6 +2078,7 @@ function DayCard({
                   exercise={group.exercise}
                   onUpdate={(patch) => onUpdateExercise(group.exercise.id, patch)}
                   onApplyMethodWeekPlan={(method) => onApplyMethodWeekPlan(group.exercise, method)}
+                  onApplyMethodWeekPlanAllDays={(method) => onApplyMethodWeekPlanAllDays(group.exercise, method)}
                   onDelete={() => onDeleteExercise(group.exercise.id)}
                   onMoveUp={() => onMoveExercise(group.exercise.id, 'up')}
                   onMoveDown={() => onMoveExercise(group.exercise.id, 'down')}
@@ -1928,6 +2126,7 @@ function DayCard({
                       exercise={ex}
                       onUpdate={(patch) => onUpdateExercise(ex.id, patch)}
                       onApplyMethodWeekPlan={(method) => onApplyMethodWeekPlan(ex, method)}
+                      onApplyMethodWeekPlanAllDays={(method) => onApplyMethodWeekPlanAllDays(ex, method)}
                       onDelete={() => onDeleteExercise(ex.id)}
                       onMoveUp={() => onMoveExercise(ex.id, 'up')}
                       onMoveDown={() => onMoveExercise(ex.id, 'down')}
@@ -1947,6 +2146,13 @@ function DayCard({
               className="flex-1 flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-brand-primary py-1.5 border border-dashed border-surface-border rounded-lg hover:border-brand-primary/50 transition-colors"
             >
               <Plus className="h-3 w-3" /> Agregar ejercicio
+            </button>
+            <button
+              onClick={onPastePreset}
+              className="flex-1 flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-brand-secondary py-1.5 border border-dashed border-surface-border rounded-lg hover:border-brand-secondary/50 transition-colors"
+              title="Pegar un circuito/preestablecido"
+            >
+              <Boxes className="h-3 w-3" /> Pegar preestablecido
             </button>
             {freeExercises.length >= 2 && !circuitMode && (
               <button
@@ -2042,11 +2248,13 @@ function DayCard({
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
+function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
   onUpdate: (patch: Partial<RoutineExercise>) => void
   /** Aplica el plan por semana del método al mismo ejercicio en todas las semanas. */
   onApplyMethodWeekPlan?: (method: TrainingMethod) => void
+  /** Aplica el plan por semana a todas las semanas y todos los días. */
+  onApplyMethodWeekPlanAllDays?: (method: TrainingMethod) => void
   onDelete: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
@@ -2179,6 +2387,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onDelete, onMo
           save(patch)
         }}
         onApplyWeekPlan={onApplyMethodWeekPlan}
+        onApplyWeekPlanAllDays={onApplyMethodWeekPlanAllDays}
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">

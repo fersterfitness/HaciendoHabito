@@ -248,6 +248,66 @@ describe('buildRoutineProgressionGuide', () => {
     expect(block.exercises[0]!.exerciseName).toBe('Sentadilla goblet')
   })
 
+  it('no duplica el circuito si una semana copiada lo agrupa distinto', () => {
+    // Reproduce el bug del entrenador: al copiar semanas/días, una semana puede
+    // quedar con el mismo circuito agrupado diferente (otro superset_group, orden
+    // distinto o un ejercicio extra). No debe aparecer el circuito/ejercicio 2 veces.
+    const mk = (
+      id: string,
+      exerciseId: string,
+      dayId: string,
+      group: number,
+      order: number,
+    ) => ({
+      id,
+      day_id: dayId,
+      exercise_id: exerciseId,
+      sort_order: order,
+      sets: 3,
+      reps_min: null,
+      reps_max: null,
+      reps_scheme: '10',
+      weight_kg: null,
+      rir: null,
+      rpe: null,
+      rest_seconds: null,
+      tempo: null,
+      video_url: null,
+      technical_notes: null,
+      is_superset: true,
+      superset_group: group,
+      training_method_id: null,
+      method_coach_notes: null,
+      exercise: { id: exerciseId, name: exerciseId } as never,
+    })
+
+    const blocks = [
+      {
+        id: 'b1', routine_id: 'r1', name: 'Semana 1', sort_order: 0, notes: null, start_date: null, end_date: null,
+        days: [{
+          id: 'd1', block_id: 'b1', day_name: 'Día 2', day_of_week: null, muscle_focus: null, warmup_notes: null, sort_order: 1,
+          exercises: [mk('a1', 'ex1', 'd1', 1, 0), mk('a2', 'ex2', 'd1', 1, 1)],
+        }],
+      },
+      {
+        // Semana copiada: mismo circuito pero otro superset_group, orden invertido y un ejercicio extra.
+        id: 'b2', routine_id: 'r1', name: 'Semana 2', sort_order: 1, notes: null, start_date: null, end_date: null,
+        days: [{
+          id: 'd2', block_id: 'b2', day_name: 'Día 2', day_of_week: null, muscle_focus: null, warmup_notes: null, sort_order: 1,
+          exercises: [mk('b2a', 'ex2', 'd2', 2, 0), mk('b2b', 'ex1', 'd2', 2, 1), mk('b2c', 'ex3', 'd2', 2, 2)],
+        }],
+      },
+    ]
+
+    const guide = buildRoutineProgressionGuide(blocks as never)
+    expect(guide).toHaveLength(1)
+    // Un solo bloque para el día, sin circuito repetido.
+    expect(guide[0]!.blocks).toHaveLength(1)
+    const allRows = guide[0]!.blocks.flatMap((b) => b.exercises.map((e) => e.exerciseId))
+    // Cada ejercicio aparece una sola vez en toda la guía del día.
+    expect(allRows.sort()).toEqual(['ex1', 'ex2', 'ex3'])
+  })
+
   it('propaga circuitNote a todas las semanas si solo está en una', () => {
     const circuitMeta = '[[META]]\n{"circuitNote":"CIRCUITO DE 3 VUELTAS"}\n[[/META]]'
     const mk = (weekIdx: number, withMeta: boolean) => ({

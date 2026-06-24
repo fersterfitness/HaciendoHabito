@@ -17,9 +17,11 @@ type Props = {
   onApply: (patch: Partial<RoutineExercise>) => void
   /** Aplica el plan por semana del método al mismo ejercicio en todas las semanas. */
   onApplyWeekPlan?: (method: TrainingMethod) => void
+  /** Aplica el plan por semana a todas las semanas y todos los días. */
+  onApplyWeekPlanAllDays?: (method: TrainingMethod) => void
 }
 
-export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan }: Props) {
+export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApplyWeekPlanAllDays }: Props) {
   const { user } = useAuthStore()
   const [open, setOpen] = useState(false)
   const [methods, setMethods] = useState<MethodRow[]>([])
@@ -150,9 +152,19 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan }: Pro
             type="button"
             onClick={() => onApplyWeekPlan(selected)}
             className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2 text-[10px] font-semibold text-brand-secondary hover:bg-brand-secondary/20"
-            title="Copiar reps/serie y % de cada semana del método a todas las semanas de la rutina"
+            title="Copiar reps, %, RPE, RIR, descanso y aclaración de cada semana a todas las semanas (este día)"
           >
-            Aplicar a todas las semanas ({selected.week_plan.length})
+            Aplicar a las semanas ({selected.week_plan.length})
+          </button>
+        ) : null}
+        {selected && Array.isArray(selected.week_plan) && selected.week_plan.length > 0 && onApplyWeekPlanAllDays ? (
+          <button
+            type="button"
+            onClick={() => onApplyWeekPlanAllDays(selected)}
+            className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-primary/35 bg-brand-primary/10 px-2 text-[10px] font-semibold text-brand-primary hover:bg-brand-primary/20"
+            title="Aplicar el plan a todas las semanas y todos los días donde esté este ejercicio"
+          >
+            A todas las semanas y días
           </button>
         ) : null}
         {selected ? (

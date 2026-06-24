@@ -131,6 +131,10 @@ export function TrainingMethodsPage() {
         ? methodWeekPlan.map((w) => ({
             reps_scheme: w.reps_scheme?.trim() || null,
             percent_rm: w.percent_rm ?? null,
+            rpe: w.rpe ?? null,
+            rir: w.rir ?? null,
+            rest_seconds: w.rest_seconds ?? null,
+            block_note: w.block_note?.trim() || null,
           }))
         : null,
     }
@@ -278,14 +282,19 @@ export function TrainingMethodsPage() {
                 <div>
                   <p className="text-xs font-semibold text-ink-primary">Plan por semana (opcional)</p>
                   <p className="text-[10px] text-ink-muted">
-                    Reps por serie + % por semana. Al aplicar el método, cada semana copia su valor.
+                    Reps, % RM, RPE, RIR, descanso y aclaración por semana. Al aplicar el método, cada semana copia su valor.
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setMethodWeekPlan((p) => [...p, { reps_scheme: '', percent_rm: null }])}
+                  onClick={() =>
+                    setMethodWeekPlan((p) => [
+                      ...p,
+                      { reps_scheme: '', percent_rm: null, rpe: null, rir: null, rest_seconds: null, block_note: null },
+                    ])
+                  }
                 >
                   + Semana
                 </Button>
@@ -293,46 +302,59 @@ export function TrainingMethodsPage() {
               {methodWeekPlan.length === 0 ? (
                 <p className="text-[11px] text-ink-muted">Sin plan semanal. Se usan las "reps sugeridas" para todas las semanas.</p>
               ) : (
-                <div className="space-y-1.5">
-                  {methodWeekPlan.map((w, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-14 shrink-0 text-[11px] font-semibold text-ink-secondary">Sem. {i + 1}</span>
-                      <input
-                        value={w.reps_scheme ?? ''}
-                        onChange={(e) =>
-                          setMethodWeekPlan((p) => p.map((x, j) => (j === i ? { ...x, reps_scheme: e.target.value } : x)))
-                        }
-                        placeholder="reps, ej: 6,6,6"
-                        className="flex-1 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
-                      />
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min={0}
-                          max={200}
-                          value={w.percent_rm ?? ''}
-                          onChange={(e) =>
-                            setMethodWeekPlan((p) =>
-                              p.map((x, j) =>
-                                j === i ? { ...x, percent_rm: e.target.value === '' ? null : Number(e.target.value) } : x,
-                              ),
-                            )
-                          }
-                          placeholder="%RM"
-                          className="w-16 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
-                        />
-                        <span className="text-[10px] text-ink-muted">%</span>
+                <div className="space-y-2">
+                  {methodWeekPlan.map((w, i) => {
+                    const upd = (patch: Partial<TrainingMethodWeek>) =>
+                      setMethodWeekPlan((p) => p.map((x, j) => (j === i ? { ...x, ...patch } : x)))
+                    const numCls =
+                      'w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary'
+                    return (
+                      <div key={i} className="rounded-lg border border-surface-border/70 bg-surface-elevated/30 p-2">
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-ink-secondary">Semana {i + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setMethodWeekPlan((p) => p.filter((_, j) => j !== i))}
+                            className="text-ink-muted hover:text-status-expired"
+                            title="Quitar semana"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
+                          <label className="col-span-2 text-[10px] text-ink-muted">
+                            Reps
+                            <input
+                              value={w.reps_scheme ?? ''}
+                              onChange={(e) => upd({ reps_scheme: e.target.value })}
+                              placeholder="6,6,6"
+                              className={numCls}
+                            />
+                          </label>
+                          <label className="text-[10px] text-ink-muted">
+                            % RM
+                            <input type="number" value={w.percent_rm ?? ''} onChange={(e) => upd({ percent_rm: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
+                          </label>
+                          <label className="text-[10px] text-ink-muted">
+                            RPE
+                            <input type="number" value={w.rpe ?? ''} onChange={(e) => upd({ rpe: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
+                          </label>
+                          <label className="text-[10px] text-ink-muted">
+                            RIR
+                            <input type="number" value={w.rir ?? ''} onChange={(e) => upd({ rir: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
+                          </label>
+                          <label className="text-[10px] text-ink-muted">
+                            Descanso (s)
+                            <input type="number" value={w.rest_seconds ?? ''} onChange={(e) => upd({ rest_seconds: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
+                          </label>
+                          <label className="col-span-2 sm:col-span-6 text-[10px] text-ink-muted">
+                            Aclaración del bloque
+                            <input value={w.block_note ?? ''} onChange={(e) => upd({ block_note: e.target.value || null })} placeholder="ej: 3 vueltas, 1' pausa" className={numCls} />
+                          </label>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setMethodWeekPlan((p) => p.filter((_, j) => j !== i))}
-                        className="shrink-0 text-ink-muted hover:text-status-expired"
-                        title="Quitar semana"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
