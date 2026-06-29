@@ -295,6 +295,16 @@ export function NutritionPlanningPage() {
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('saved')
   const [resetOpen, setResetOpen] = useState(false)
   const [libraryFoods, setLibraryFoods] = useState<NutritionFoodLibrary[]>([])
+  /** Mi lista agrupada por categoría (para selects con optgroup). */
+  const libraryFoodsByCategory = useMemo(() => {
+    const map = new Map<string, NutritionFoodLibrary[]>()
+    for (const f of libraryFoods) {
+      const cat = (f.category ?? '').trim() || 'General'
+      if (!map.has(cat)) map.set(cat, [])
+      map.get(cat)!.push(f)
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+  }, [libraryFoods])
   const [libraryPicker, setLibraryPicker] = useState<{ secKey: string; rowId: string } | null>(null)
   const [libraryQuery, setLibraryQuery] = useState('')
   const [libraryRefreshing, setLibraryRefreshing] = useState(false)
@@ -302,6 +312,8 @@ export function NutritionPlanningPage() {
   const [assignSaving, setAssignSaving] = useState(false)
   const [assignStudentId, setAssignStudentId] = useState('')
   const [assignTitle, setAssignTitle] = useState('Plan de alimentación')
+  const [assignStartDate, setAssignStartDate] = useState('')
+  const [assignEndDate, setAssignEndDate] = useState('')
   const [assignStudents, setAssignStudents] = useState<Pick<Student, 'id' | 'full_name'>[]>([])
   /** Lista para rellenar «persona» desde ficha (misma fuente que asignar plan). */
   const [referenceStudents, setReferenceStudents] = useState<Pick<Student, 'id' | 'full_name'>[]>([])
@@ -340,7 +352,7 @@ export function NutritionPlanningPage() {
       const { data, error } = await supabase
         .from('nutrition_food_library')
         .select(
-          'id, owner_id, display_name, category, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, portion_basis, macro_qty_presentation, source_label, notes, created_at, updated_at',
+          'id, owner_id, display_name, category, external_source, external_fdc_id, protein_g_per_100g, fat_g_per_100g, carbs_g_per_100g, fiber_g_per_100g, energy_kcal_per_100g, macro_ref_basis_g, portion_basis, macro_qty_presentation, source_label, notes, created_at, updated_at',
         )
         .eq('owner_id', user.id)
         .order('category', { ascending: true })
@@ -1227,6 +1239,8 @@ export function NutritionPlanningPage() {
       student_id: assignStudentId,
       title: assignTitle.trim() || 'Plan de alimentación',
       data: planningDataToJson(wbRef.current) as Json,
+      start_date: assignStartDate || null,
+      end_date: assignEndDate || null,
     })
     setAssignSaving(false)
     if (error) {
@@ -2271,7 +2285,7 @@ export function NutritionPlanningPage() {
                         size="sm"
                         className="shrink-0 h-8 text-xs gap-1 border-surface-border bg-surface-card dark:bg-surface-elevated/90"
                         icon={<Plus className="h-3.5 w-3.5" aria-hidden />}
-                        onClick={() => setMealPickSlot(key)}
+                        onClick={() => { setMealPickSlot(key); setMealPickTab(wb.sections.length === 0 ? 'library' : 'plan') }}
                       >
                         Desde tablas / Mi lista
                       </Button>
@@ -2972,18 +2986,20 @@ export function NutritionPlanningPage() {
               gramos para este momento.
             </p>
             <div className="flex gap-2 mb-4">
-              <button
-                type="button"
-                onClick={() => setMealPickTab('plan')}
-                className={cn(
-                  'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  mealPickTab === 'plan'
-                    ? PLAN_MODAL_TAB_ACTIVE
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800/70 dark:text-zinc-400 dark:hover:bg-zinc-800',
-                )}
-              >
-                Tabla del plan
-              </button>
+              {wb.sections.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setMealPickTab('plan')}
+                  className={cn(
+                    'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    mealPickTab === 'plan'
+                      ? PLAN_MODAL_TAB_ACTIVE
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800/70 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                  )}
+                >
+                  Tabla del plan
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setMealPickTab('library')}
@@ -3053,10 +3069,14 @@ export function NutritionPlanningPage() {
                     setMealPickLibQty((wb.libraryQtyDraft?.[id] ?? '').trim())
                   }}
                 >
-                  {libraryFoods.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.display_name}
-                    </option>
+                  {libraryFoodsByCategory.map(([cat, foods]) => (
+                    <optgroup key={cat} label={cat}>
+                      {foods.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.display_name}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
                 {libraryFoods.length === 0 ? (
@@ -3287,7 +3307,17 @@ export function NutritionPlanningPage() {
               )}
             </select>
             <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Título del plan</label>
-            <Input className="mb-5" value={assignTitle} onChange={(e) => setAssignTitle(e.target.value)} placeholder="Ej. Plan marzo · déficit" />
+            <Input className="mb-4" value={assignTitle} onChange={(e) => setAssignTitle(e.target.value)} placeholder="Ej. Plan marzo · déficit" />
+            <div className="mb-5 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Desde</label>
+                <Input type="date" value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Hasta</label>
+                <Input type="date" value={assignEndDate} onChange={(e) => setAssignEndDate(e.target.value)} />
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2 justify-end">
               <Button variant="secondary" type="button" disabled={assignSaving} onClick={() => setAssignOpen(false)}>
                 Cancelar

@@ -1049,6 +1049,8 @@ export interface TrainerStudentMealPlan {
   title: string
   data: Json
   cloned_from_id: string | null
+  start_date: string | null
+  end_date: string | null
   created_at: string
   updated_at: string
 }

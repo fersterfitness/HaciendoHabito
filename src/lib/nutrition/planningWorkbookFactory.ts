@@ -1,39 +1,8 @@
-import { EXCEL_PLANNING_BLUEPRINT } from '@/lib/nutrition/excelPlanningBlueprint'
-import { resolveRefForPlanningRow } from '@/lib/nutrition/planningRefResolve'
 import {
   DEFAULT_MEAL_DISTRIBUTION,
   DEFAULT_STUDENT_ORIENTATIVE_GUIDE,
   type PlanningWorkbookStateV1,
-  type QtyPresentationMode,
 } from '@/lib/nutrition/planningWorkbookTypes'
-
-function shouldForceUnits(name: string, qtyPresentation?: QtyPresentationMode): boolean {
-  if (qtyPresentation) return false
-  return /\(unidad\)/i.test(name)
-}
-
-/**
- * Default HH: casi todo en cocido cuando aplica (evita variaciones grandes),
- * excepto secos/obvios (avena, huevos, lácteos, quesos, cereales tipo caja, untables, etc.).
- */
-function shouldDefaultCookedReference(sec: { key: string; quantityColumnHint: string }, rowName: string): boolean {
-  const t = `${rowName}`.toLowerCase()
-  const exceptions =
-    /\b(avena|huevo|claras?|yema|leche|yogur|yogurt|queso|ricotta|whey|cereales?\b|dulce de leche|crema de man[ií]|mantequilla de man[ií]|mani\b|miel|az[uú]car|cacao|nutella|ketchup|aceite)\b/i
-  if (exceptions.test(t)) return false
-
-  const cookedBySectionHint = /\bcocid[oa]\b/i.test(sec.quantityColumnHint)
-  const cookedByNameOrHint = /\bcocid[oa]\b/i.test(rowName)
-  return cookedBySectionHint || cookedByNameOrHint
-}
-
-function ensureCookedHint(hint: string | undefined, makeCooked: boolean): string | undefined {
-  if (!makeCooked) return hint
-  const base = hint?.trim() ? hint.trim() : ''
-  const cookedTag = 'Referencia: cocido.'
-  if (base.toLowerCase().includes('referencia:') || /\bcocid[oa]\b/i.test(base)) return hint
-  return base ? `${base} ${cookedTag}` : cookedTag
-}
 
 export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
   return {
@@ -79,28 +48,8 @@ export function createInitialPlanningWorkbook(): PlanningWorkbookStateV1 {
     libraryFoodRefsById: {},
     mealDistribution: { ...DEFAULT_MEAL_DISTRIBUTION },
     studentOrientativeGuide: DEFAULT_STUDENT_ORIENTATIVE_GUIDE,
-    sections: EXCEL_PLANNING_BLUEPRINT.map((sec) => ({
-      key: sec.key,
-      title: sec.title,
-      quantityColumnHint: sec.quantityColumnHint,
-      rows: sec.rows.map((r, ri) => {
-        const ref = resolveRefForPlanningRow(r.name)
-        const qtyPresentation =
-          r.qtyPresentation ?? (shouldForceUnits(r.name, r.qtyPresentation) ? 'units' : undefined)
-        const cookedDefault = shouldDefaultCookedReference(sec, r.name)
-        return {
-          id: `${sec.key}-${ri}`,
-          name: r.name,
-          hint: ensureCookedHint(r.hint, cookedDefault),
-          ...(qtyPresentation ? { qtyPresentation } : {}),
-          ...(r.unitsLabel != null && r.unitsLabel !== '' ? { unitsLabel: r.unitsLabel } : {}),
-          qtyG: '',
-          refCarbs: ref.c.toString(),
-          refProt: ref.p.toString(),
-          refFat: ref.f.toString(),
-          refKcal: ref.k.toString(),
-        }
-      }),
-    })),
+    // Los planes nuevos arrancan sin la tabla fija (desactualizada): la fuente de
+    // alimentos es «Mi lista» (biblioteca), agrupada por categorías.
+    sections: [],
   }
 }

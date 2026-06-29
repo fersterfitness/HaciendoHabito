@@ -85,6 +85,11 @@ export function StudentMealPlansPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-ink-primary truncate">{p.title}</p>
+                    {p.start_date || p.end_date ? (
+                      <p className="text-xs font-medium text-ink-secondary mt-0.5">
+                        {p.start_date ? formatDate(p.start_date) : '—'} → {p.end_date ? formatDate(p.end_date) : '—'}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-ink-muted mt-0.5">
                       Actualizado {formatDate(p.updated_at)}
                     </p>
