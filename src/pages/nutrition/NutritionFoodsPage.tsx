@@ -798,26 +798,26 @@ export function NutritionFoodsPage() {
                   </div>
                 ) : null}
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 <div>
-                  <label className={nutritionLabelClass}>Prot. (g)</label>
-                  <Input value={protein} onChange={(e) => setProtein(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
+                  <label className={nutritionLabelClass}>Proteínas (g)</label>
+                  <Input value={protein} onChange={(e) => setProtein(e.target.value)} inputMode="decimal" className={cn(nutritionInputClass, 'h-10 text-sm')} />
                 </div>
                 <div>
                   <label className={nutritionLabelClass}>Grasas (g)</label>
-                  <Input value={fat} onChange={(e) => setFat(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
+                  <Input value={fat} onChange={(e) => setFat(e.target.value)} inputMode="decimal" className={cn(nutritionInputClass, 'h-10 text-sm')} />
                 </div>
                 <div>
                   <label className={nutritionLabelClass}>HC (g)</label>
-                  <Input value={carbs} onChange={(e) => setCarbs(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
+                  <Input value={carbs} onChange={(e) => setCarbs(e.target.value)} inputMode="decimal" className={cn(nutritionInputClass, 'h-10 text-sm')} />
                 </div>
                 <div>
                   <label className={nutritionLabelClass}>Fibra (g)</label>
-                  <Input value={fiber} onChange={(e) => setFiber(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
+                  <Input value={fiber} onChange={(e) => setFiber(e.target.value)} inputMode="decimal" className={cn(nutritionInputClass, 'h-10 text-sm')} />
                 </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className={nutritionLabelClass}>kcal</label>
-                  <Input value={kcal} onChange={(e) => setKcal(e.target.value)} inputMode="decimal" className={nutritionInputClass} />
+                <div>
+                  <label className={nutritionLabelClass}>Calorías (kcal)</label>
+                  <Input value={kcal} onChange={(e) => setKcal(e.target.value)} inputMode="decimal" className={cn(nutritionInputClass, 'h-10 text-sm')} />
                 </div>
               </div>
             </div>

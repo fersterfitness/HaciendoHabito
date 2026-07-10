@@ -762,6 +762,17 @@ export interface RoutineBlueprint {
   updated_at: string
 }
 
+/** Feedback mensual / testimonio del alumno (para redes). */
+export interface StudentTestimonial {
+  id: string
+  owner_id: string
+  student_id: string
+  period_label: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
 export interface StudentRoutineNote {
   id: string
   owner_id: string
@@ -1051,6 +1062,8 @@ export interface TrainerStudentMealPlan {
   cloned_from_id: string | null
   start_date: string | null
   end_date: string | null
+  /** Marcado como completado por el entrenador (null = vigente). */
+  completed_at: string | null
   created_at: string
   updated_at: string
 }

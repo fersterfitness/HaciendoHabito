@@ -28,6 +28,7 @@ import { FersterStudentIntakePanel } from '@/components/students/FersterStudentI
 import { PsychologistStudentIntakePanel } from '@/components/students/PsychologistStudentIntakePanel'
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
 import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
+import { StudentEngagementStatsPanel } from '@/components/students/StudentEngagementStatsPanel'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, Exercise, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
@@ -340,6 +341,21 @@ export function StudentDetailView({
     } finally {
       setMealPlanPdfBusy(null)
     }
+  }
+
+  /** Marca / desmarca el plan de alimentación como completado (queda en el historial del alumno). */
+  async function toggleMealPlanCompleted(plan: TrainerStudentMealPlan) {
+    const completed_at = plan.completed_at ? null : new Date().toISOString()
+    const { error } = await supabase
+      .from('trainer_student_meal_plans')
+      .update({ completed_at })
+      .eq('id', plan.id)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setMealPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, completed_at } : p)))
+    toast.success(completed_at ? 'Plan marcado como completado' : 'Plan reactivado')
   }
 
   async function cloneMealPlan(plan: TrainerStudentMealPlan) {
@@ -1128,14 +1144,37 @@ export function StudentDetailView({
                 action={{ label: 'Ir a planes de alimentación', onClick: () => navigate('/meal-plans') }}
               />
             ) : (
-              <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
-                {mealPlans.map((p) => (
+              (() => {
+                const vigentes = mealPlans.filter((p) => !p.completed_at)
+                const completados = mealPlans.filter((p) => p.completed_at)
+                const renderPlan = (p: TrainerStudentMealPlan) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{p.title}</p>
-                      <p className="text-[11px] text-zinc-500">Actualizado {formatDate(p.updated_at)}</p>
+                      <p className="text-[11px] text-zinc-500">
+                        {p.start_date || p.end_date ? (
+                          <span className="mr-2 font-medium text-zinc-600 dark:text-zinc-300">
+                            {p.start_date ? formatDate(p.start_date) : '—'} → {p.end_date ? formatDate(p.end_date) : '—'}
+                          </span>
+                        ) : null}
+                        {p.completed_at ? (
+                          <span className="mr-2 rounded bg-emerald-100 px-1.5 py-px font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            ✓ Completado {formatDate(p.completed_at.slice(0, 10))}
+                          </span>
+                        ) : null}
+                        Actualizado {formatDate(p.updated_at)}
+                      </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      <Button
+                        variant={p.completed_at ? 'secondary' : 'outline'}
+                        size="sm"
+                        icon={<Check className="h-3.5 w-3.5" />}
+                        onClick={() => void toggleMealPlanCompleted(p)}
+                        title={p.completed_at ? 'Volver a vigente' : 'Marcar plan de alimentación completado'}
+                      >
+                        {p.completed_at ? 'Reactivar' : 'Completado'}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -1153,8 +1192,21 @@ export function StudentDetailView({
                       </Button>
                     </div>
                   </li>
-                ))}
-              </ul>
+                )
+                return (
+                  <>
+                    <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">{vigentes.map(renderPlan)}</ul>
+                    {completados.length > 0 && (
+                      <div className="mt-6">
+                        <p className="border-b border-zinc-200/55 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:border-zinc-800/55 dark:text-emerald-400">
+                          Planes completados ({completados.length})
+                        </p>
+                        <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">{completados.map(renderPlan)}</ul>
+                      </div>
+                    )}
+                  </>
+                )
+              })()
             )}
           </section>
         )}
@@ -1222,8 +1274,16 @@ export function StudentDetailView({
         )}
 
         {sheetTab === 'habitos' && showHabitsTab && (
-          <div className="min-h-0 rounded-xl bg-zinc-50/80 p-1 dark:bg-zinc-950/25">
-            <StudentHabitsPanel studentId={id!} toolbarLeading={<HabitsViewToolbar studentId={id!} />} />
+          <div className="space-y-4">
+            <StudentEngagementStatsPanel
+              studentId={id!}
+              studentName={student.full_name}
+              studentPhone={student.phone}
+              routines={routines}
+            />
+            <div className="min-h-0 rounded-xl bg-zinc-50/80 p-1 dark:bg-zinc-950/25">
+              <StudentHabitsPanel studentId={id!} toolbarLeading={<HabitsViewToolbar studentId={id!} />} />
+            </div>
           </div>
         )}
       </div>

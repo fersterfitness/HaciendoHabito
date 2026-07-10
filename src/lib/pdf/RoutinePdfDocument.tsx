@@ -874,6 +874,11 @@ function ExerciseTable({
               <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
               <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
               <View style={s.tdNotes}>
+                {pdfRow.seriesPlanLine ? (
+                  <Text style={{ marginBottom: 2, fontFamily: 'Helvetica-Bold' }}>
+                    {clampPdfLine(pdfRow.seriesPlanLine, 220)}
+                  </Text>
+                ) : null}
                 <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                 {videoUrl ? (
                   <Text style={{ marginTop: 3, fontSize: 6.5, color: C.muted }}>

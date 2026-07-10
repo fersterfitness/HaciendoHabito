@@ -821,6 +821,22 @@ export function NutritionPlanningPage() {
     patchMealPick(slot, pickId, { qtyG })
   }
 
+  /**
+   * Gramos equivalentes automáticos para alimentos de Mi lista cargados «por unidad»
+   * (la base de la Guía = gramos de 1 unidad; ej. clara 33 g). Devuelve undefined si
+   * no se puede deducir (ahí queda el campo manual).
+   */
+  function autoEquivGramsForUnits(p: MealSlotPick, unitsStr: string): string | undefined {
+    if (p.kind !== 'library') return undefined
+    const lib = libraryFoods.find((f) => f.id === p.libraryFoodId)
+    if (!lib || (lib.macro_qty_presentation ?? 'grams') !== 'units') return undefined
+    const units = parseLocaleNumber(unitsStr)
+    if (units == null || units <= 0) return undefined
+    const basis = libraryMacroRefBasisG(lib)
+    const g = Math.round(units * basis * 10) / 10
+    return String(g)
+  }
+
   function removeMealPick(slot: MealSlotKey, pickId: string) {
     const list = (mealDistribution.picksByMeal?.[slot] ?? []).filter((p) => p.id !== pickId)
     patchPicksForSlot(slot, list)
@@ -1025,13 +1041,16 @@ export function NutritionPlanningPage() {
         mq === 'volume'
           ? ({ qtyPresentation: 'volume' as const } as const)
           : mq === 'units'
-            ? ({ qtyPresentation: 'units' as const } as const)
+            ? ({ qtyPresentation: 'units' as const, unitsLabel: '1' } as const)
             : ({ qtyPresentation: 'grams' as const } as const)
+      // Alimentos «por unidad»: si no cargaron gramos, 1 unidad = base de la Guía.
+      const autoUnitG =
+        mq === 'units' && !mealPickLibQty.trim() ? String(libraryMacroRefBasisG(lib)) : null
       const pick: MealSlotPick = {
         id: newMealPickId(),
         kind: 'library',
         libraryFoodId: lib.id,
-        qtyG: mealPickLibQty.trim(),
+        qtyG: mealPickLibQty.trim() || autoUnitG || '',
         nameSnapshot: lib.display_name,
         ...(notesSnap ? { hintSnapshot: notesSnap } : {}),
         ...(mealPickPreparation !== 'infer' ? { preparation: mealPickPreparation } : {}),
@@ -2410,7 +2429,8 @@ export function NutritionPlanningPage() {
                                                     p.unitsLabel?.trim() ||
                                                     mq.unitsLabel?.trim() ||
                                                     '1'
-                                                  const nextG = p.qtyG.trim() || planRowG
+                                                  const autoG = autoEquivGramsForUnits(p, fallbackU)
+                                                  const nextG = autoG ?? (p.qtyG.trim() || planRowG)
                                                   patchMealPick(key, p.id, {
                                                     qtyPresentation: 'units',
                                                     unitsLabel: fallbackU,
@@ -2450,9 +2470,15 @@ export function NutritionPlanningPage() {
                                                 inputMode="decimal"
                                                 value={p.unitsLabel ?? ''}
                                                 placeholder={modeSelectValue === 'volume' ? '200' : '1'}
-                                                onChange={(e) =>
-                                                  patchMealPick(key, p.id, { unitsLabel: e.target.value })
-                                                }
+                                                onChange={(e) => {
+                                                  const v = e.target.value
+                                                  const autoG =
+                                                    modeSelectValue === 'units' ? autoEquivGramsForUnits(p, v) : undefined
+                                                  patchMealPick(key, p.id, {
+                                                    unitsLabel: v,
+                                                    ...(autoG != null ? { qtyG: autoG } : {}),
+                                                  })
+                                                }}
                                                 aria-label={
                                                   modeSelectValue === 'volume'
                                                     ? `Mililitros · ${displayNameForMealPick(p)}`

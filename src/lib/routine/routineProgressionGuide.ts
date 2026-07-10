@@ -1,4 +1,4 @@
-import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
+import { formatSeriesPlanLine, parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
 import type { Exercise, RoutineBlock, RoutineDay, RoutineExercise } from '@/types/database'
 
 export type GuideBlockKind = 'circuit' | 'individual'
@@ -129,6 +129,11 @@ function fmtKg(n: number): string {
 
 /** Formato guía: `3x12 / 10 KG` o `3x12 / SIN KG`; sin series → vacío. */
 export function formatGuidePrescriptionCell(ex: Ex): string {
+  // Multiarticulares con plan por serie: mostrar el detalle (kg/%/reps por serie).
+  const { meta } = parseExerciseMeta(ex.technical_notes)
+  const planLine = formatSeriesPlanLine(meta.seriesPlan)
+  if (planLine) return planLine
+
   if (ex.sets == null) return ''
 
   const scheme = ex.reps_scheme?.trim()

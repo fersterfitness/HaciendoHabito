@@ -78,6 +78,13 @@ describe('exerciseLogSeriesCount', () => {
 })
 
 describe('formatGuidePrescriptionCell', () => {
+  it('muestra el plan por serie (multiarticulares) cuando existe', () => {
+    const meta = '[[META]]\n{"seriesPlan":[{"pct":"70","kg":"94.5","reps":"5","rpeRir":"6o7"},{"pct":"80","kg":"108","reps":"3"}]}\n[[/META]]'
+    const cell = formatGuidePrescriptionCell({ sets: 2, reps_scheme: '5,3', weight_kg: null, technical_notes: meta } as never)
+    expect(cell).toContain('S1 94.5 kg (70%) ×5 · 6o7')
+    expect(cell).toContain('S2 108 kg (80%) ×3')
+  })
+
   it('sin series devuelve vacío', () => {
     expect(formatGuidePrescriptionCell({ sets: null, reps_scheme: '12', weight_kg: 10 } as never)).toBe('')
   })

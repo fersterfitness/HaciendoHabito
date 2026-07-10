@@ -24,6 +24,7 @@ import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { ROUTINE_STATUSES } from '@/lib/constants'
 import {
   type ExerciseMeta,
+  type SeriesPlanEntry,
   parseExerciseMeta,
   buildExerciseTechnicalNotes,
 } from '@/lib/routine/exerciseMeta'
@@ -2272,9 +2273,9 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
   const initialMeta = parseExerciseMeta(exercise.technical_notes)
   const [restText, setRestText]   = useState(initialMeta.meta.restText ?? (exercise.rest_seconds !== null ? String(exercise.rest_seconds) : ''))
   const [weight, setWeight]       = useState<number | null>(exercise.weight_kg ?? null)
-  const [rir, setRir]             = useState<number | null>(exercise.rir ?? null)
   const [rpeText, setRpeText]     = useState(initialMeta.meta.rpeText ?? (exercise.rpe !== null ? String(exercise.rpe) : ''))
   const [percent1rm, setPercent1rm] = useState(initialMeta.meta.percent1rm ?? '')
+  const [seriesPlan, setSeriesPlan] = useState<SeriesPlanEntry[]>(initialMeta.meta.seriesPlan ?? [])
   const [notes, setNotes]         = useState(initialMeta.userNotes)
   const [videoUrl, setVideoUrl]   = useState(() => (exercise.video_url ?? '').trim())
 
@@ -2301,6 +2302,33 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
     const merged = { ...base, ...nextMeta }
     const technicalNotes = buildExerciseTechnicalNotes(notes, merged)
     save({ technical_notes: technicalNotes || null, ...overrides })
+  }
+
+  /** Multiarticulares: edita una serie del plan (%, reps o RPE/RIR); el kg sale del 1RM del alumno. */
+  function patchSeriesPlan(idx: number, field: 'pct' | 'reps' | 'rpeRir', value: string) {
+    const count = Math.min(Math.max(sets ?? 0, 0), 8)
+    const next: SeriesPlanEntry[] = Array.from({ length: count }, (_, i) => ({ ...(seriesPlan[i] ?? {}) }))
+    if (!next[idx]) return
+    next[idx] = { ...next[idx], [field]: value }
+    for (const s of next) {
+      const p = Number((s.pct ?? '').replace(',', '.'))
+      s.kg =
+        rmKg && s.pct?.trim() && Number.isFinite(p) && p > 0
+          ? String(Math.round(rmKg * (p / 100) * 10) / 10)
+          : undefined
+    }
+    setSeriesPlan(next)
+    // Sincroniza «Reps por serie» para guía/registro cuando todas las series tienen reps.
+    const patch: Partial<RoutineExercise> = {}
+    if (next.length > 0 && next.every((s) => s.reps?.trim())) {
+      const joined = next.map((s) => s.reps!.trim()).join(',')
+      patch.reps_scheme = joined
+      setReps(joined)
+    }
+    saveMeta(
+      { restText: restText || undefined, rpeText: rpeText || undefined, seriesPlan: next },
+      patch,
+    )
   }
 
   return (
@@ -2390,7 +2418,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
         onApplyWeekPlanAllDays={onApplyMethodWeekPlanAllDays}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         <div>
           <label className="block text-[10px] text-ink-muted mb-0.5">Descanso</label>
           <input
@@ -2437,18 +2465,6 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           </div>
         </div>
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">RIR</label>
-          <input
-            type="number" min={0}
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
-            value={rir ?? ''}
-            onChange={(e) => {
-              const v = e.target.value === '' ? null : Number(e.target.value)
-              setRir(v); save({ rir: v })
-            }}
-          />
-        </div>
-        <div>
           <label className="block text-[10px] text-ink-muted mb-0.5">RPE / RIR</label>
           <input
             type="text"
@@ -2464,6 +2480,82 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           />
         </div>
       </div>
+
+      {/* Multiarticulares: plan serie por serie (%RM → kg desde 1RM, reps, RPE/RIR) */}
+      {isMultiarticular && (sets ?? 0) > 0 ? (
+        <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/5 p-2">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary">
+            Series por porcentaje {rmKg != null ? `· 1RM ${rmKg} kg` : '· sin 1RM en ficha (no calcula kg)'}
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-center text-xs">
+              <thead>
+                <tr>
+                  <th className="w-16 px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">Serie</th>
+                  {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
+                    <th key={i} className="px-1 py-0.5 text-[10px] font-bold text-ink-secondary">{i + 1}°</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">% RM</td>
+                  {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
+                    <td key={i} className="px-0.5 py-0.5">
+                      <input
+                        inputMode="decimal"
+                        placeholder="%"
+                        className="w-full rounded-md border border-surface-border bg-surface-elevated px-1 py-1 text-center text-xs text-ink-primary outline-none focus:border-brand-primary"
+                        value={seriesPlan[i]?.pct ?? ''}
+                        onChange={(e) => patchSeriesPlan(i, 'pct', e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">Kg</td>
+                  {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
+                    <td key={i} className="px-0.5 py-0.5">
+                      <div className="rounded-md border border-brand-primary/25 bg-brand-primary/10 px-1 py-1 text-xs font-semibold tabular-nums text-brand-primary">
+                        {seriesPlan[i]?.kg ?? '—'}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">Reps</td>
+                  {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
+                    <td key={i} className="px-0.5 py-0.5">
+                      <input
+                        inputMode="decimal"
+                        className="w-full rounded-md border border-surface-border bg-surface-elevated px-1 py-1 text-center text-xs text-ink-primary outline-none focus:border-brand-primary"
+                        value={seriesPlan[i]?.reps ?? ''}
+                        onChange={(e) => patchSeriesPlan(i, 'reps', e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">RPE/RIR</td>
+                  {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
+                    <td key={i} className="px-0.5 py-0.5">
+                      <input
+                        placeholder="6o7"
+                        className="w-full rounded-md border border-surface-border bg-surface-elevated px-1 py-1 text-center text-xs text-ink-primary outline-none focus:border-brand-primary"
+                        value={seriesPlan[i]?.rpeRir ?? ''}
+                        onChange={(e) => patchSeriesPlan(i, 'rpeRir', e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-1 text-[9px] text-ink-muted">
+            Si no cargás nada acá, el ejercicio usa los campos comunes (peso / % único).
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <div>

@@ -1,10 +1,40 @@
 /** Structured fields embedded in routine_exercises.technical_notes (hidden from athlete-facing PDF lines). */
 
+/** Prescripción de UNA serie (multiarticulares): % del 1RM, kg calculado, reps y RPE/RIR. */
+export interface SeriesPlanEntry {
+  pct?: string
+  kg?: string
+  reps?: string
+  rpeRir?: string
+}
+
 export interface ExerciseMeta {
   restText?: string
   rpeText?: string
   percent1rm?: string
   circuitNote?: string
+  /** Multiarticulares: plan serie por serie (index = serie 1..N). */
+  seriesPlan?: SeriesPlanEntry[]
+}
+
+export function seriesPlanHasData(plan: SeriesPlanEntry[] | undefined): boolean {
+  return !!plan?.some((s) => s.pct?.trim() || s.reps?.trim() || s.rpeRir?.trim())
+}
+
+/** Línea compacta por serie: `S1 94,5kg (70%) ×5 · RPE 6o7 | S2 …`. */
+export function formatSeriesPlanLine(plan: SeriesPlanEntry[] | undefined): string | null {
+  if (!seriesPlanHasData(plan)) return null
+  const parts = (plan ?? []).map((s, i) => {
+    const bits: string[] = []
+    if (s.kg?.trim()) bits.push(`${s.kg.trim()} kg`)
+    if (s.pct?.trim()) bits.push(`(${s.pct.trim()}%)`)
+    if (s.reps?.trim()) bits.push(`×${s.reps.trim()}`)
+    if (s.rpeRir?.trim()) bits.push(`· ${s.rpeRir.trim()}`)
+    if (bits.length === 0) return null
+    return `S${i + 1} ${bits.join(' ')}`
+  })
+  const clean = parts.filter(Boolean)
+  return clean.length > 0 ? clean.join('  |  ') : null
 }
 
 function normalizeTechnicalNotes(raw: string): string {
@@ -43,7 +73,10 @@ export function parseExerciseMeta(
 }
 
 export function buildExerciseTechnicalNotes(userNotes: string, meta: ExerciseMeta): string {
-  const hasMeta = Boolean(meta.restText || meta.rpeText || meta.percent1rm || meta.circuitNote)
+  if (meta.seriesPlan && !seriesPlanHasData(meta.seriesPlan)) delete meta.seriesPlan
+  const hasMeta = Boolean(
+    meta.restText || meta.rpeText || meta.percent1rm || meta.circuitNote || meta.seriesPlan,
+  )
   const cleanUserNotes = userNotes.trim()
   if (!hasMeta) return cleanUserNotes
   const payload = JSON.stringify(meta)
@@ -71,6 +104,8 @@ export interface PdfExerciseRowDisplay {
   restDisplay: string
   rpeDisplay: string
   rirDisplay: string
+  /** Multiarticulares: detalle serie por serie (kg/%/reps/RPE-RIR); null si no hay plan. */
+  seriesPlanLine: string | null
 }
 
 /** PDF / informes: peso visible en kg; notas sin bloque META. */
@@ -90,10 +125,13 @@ export function pdfExerciseDisplay(
   const rmOk = rmKg != null && rmKg > 0
   const computedKg =
     pct !== null && rmOk ? Math.round(((rmKg as number) * pct) / 100 * 10) / 10 : null
+  const seriesPlanLine = formatSeriesPlanLine(meta.seriesPlan)
 
   let weightCell = '—'
 
-  if (exercise.weight_kg != null) {
+  if (seriesPlanLine) {
+    weightCell = 'Por serie →'
+  } else if (exercise.weight_kg != null) {
     weightCell = `${fmtKg(exercise.weight_kg)} kg`
     if (pct !== null) weightCell += ` (${pct}% 1RM)`
   } else if (computedKg !== null) {
@@ -132,5 +170,6 @@ export function pdfExerciseDisplay(
     restDisplay,
     rpeDisplay,
     rirDisplay,
+    seriesPlanLine,
   }
 }
