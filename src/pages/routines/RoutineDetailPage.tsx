@@ -697,7 +697,7 @@ export function RoutineDetailPage() {
       // Mantener series/reps/etc.; al cambiar el movimiento del catálogo, el video custom del día anterior no aplica.
       .update({ exercise_id: exercise.id, video_url: null })
       .eq('id', routineExerciseId)
-      .select('*, exercise:exercise_library(*)')
+      .select('*, exercise:exercise_library(*, muscle_group:muscle_groups(id, name, slug))')
       .single()
     if (error) {
       toast.error(error.message)
@@ -724,7 +724,7 @@ export function RoutineDetailPage() {
     const { data, error } = await supabase
       .from('routine_exercises')
       .insert({ day_id: dayId, exercise_id: exercise.id, sort_order: sortOrder, sets: 3, reps_scheme: null, reps_min: null, reps_max: null, is_superset: false })
-      .select('*, exercise:exercise_library(*)')
+      .select('*, exercise:exercise_library(*, muscle_group:muscle_groups(id, name, slug))')
       .single()
     if (error) { toast.error(error.message); return }
     const newEx = data as unknown as ExWithExercise
