@@ -307,6 +307,39 @@ export function buildResourceShareMessage(title: string, url: string, note?: str
   return lines.join('\n')
 }
 
+/** Mensaje cuando el alumno marca «Terminé mi mes de rutina» en el check-in. */
+export function routineMonthFinishedWhatsAppMessage(studentName: string): string {
+  const first = studentName.trim().split(/\s+/)[0] || studentName.trim() || 'crack'
+  return [
+    `Hola ${first}! 🙌`,
+    '',
+    'Perfecto, terminaste tu rutina 💪',
+    '',
+    'Para que pueda planificar tu siguiente mesociclo necesito que me envíes la foto de tu REGISTRO DE PROGRESO 📸',
+    '',
+    'Espero tu mensaje y a seguir HACIÉNDOLO HÁBITO 🔥',
+  ].join('\n')
+}
+
+/** Pedido del formulario de feedback mensual (después de cerrar el mes). */
+export function monthlyFeedbackInviteMessage(params: {
+  studentName: string
+  url: string
+}): string {
+  const first = params.studentName.trim().split(/\s+/)[0] || params.studentName.trim()
+  return [
+    `Hola ${first}! 🙌`,
+    '',
+    'Como cerraste el mes de rutina, te dejo el FEEDBACK MENSUAL 📋✨',
+    '',
+    'Completalo cuando puedas, me sirve un montón para armar el próximo mesociclo.',
+    '',
+    params.url.trim(),
+    '',
+    'Gracias y a seguir Haciéndolo Hábito 💪',
+  ].join('\n')
+}
+
 /** Mensaje al enviar rutina (PDF) al alumno por WhatsApp. */
 export function buildRoutinePdfShareMessage(params: {
   studentName: string

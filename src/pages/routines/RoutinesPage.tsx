@@ -30,6 +30,7 @@ import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
 import { RoutineDeletionHistoryPanel } from '@/components/routines/RoutineDeletionHistoryPanel'
+import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
 import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
 
 const RoutinePdfsPanelLazy = lazy(() =>
@@ -646,6 +647,7 @@ export function RoutinesPage() {
           </Suspense>
         ) : (
           <div className="mx-auto max-w-[1600px] space-y-4">
+            <StudentRoutineWeekPanel />
             <RoutineDeletionHistoryPanel onRestored={() => void fetchRoutines()} />
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">

@@ -50,6 +50,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn, formatDate } from '@/lib/utils'
 import { buildMonthlyEvolutionPayload } from '@/lib/habits/habitSelectionHistory'
+import { CheckInHabitsCharts } from '@/components/habits/CheckInHabitsCharts'
 import type { Habit, HabitLog, StudentHabitSelectionEvent } from '@/types/database'
 import { brandHex } from '@/theme/brandColors'
 import toast from 'react-hot-toast'
@@ -368,6 +369,10 @@ export function StudentHabitsPanel({
             >
               <ChevronRight className="h-4 w-4" />
             </button>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200/75 bg-surface-card p-4 dark:border-zinc-700/65">
+            <CheckInHabitsCharts studentId={studentId} />
           </div>
 
           <details

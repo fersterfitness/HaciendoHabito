@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
-  Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
+  Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Check,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
-  Table2, Droplets, ClipboardList, CheckCircle2, Boxes,
+  Table2, Droplets, ClipboardList, CheckCircle2, Boxes, CopyPlus,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -34,6 +34,7 @@ import {
   segmentSourceExercises,
   prescriptionPatchFrom,
 } from '@/lib/routine/copyDayPrescriptions'
+import { dayInsertPayload, exerciseInsertPayload } from '@/lib/routine/copyRoutineDay'
 import {
   fetchStudentRmLookup,
   resolveRmKgForExercise,
@@ -46,6 +47,7 @@ import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProg
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { cyclePhasesForWeekBlock, type CyclePhaseInfo, type CyclePhaseColor } from '@/lib/routine/menstrualCyclePlanning'
+import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
@@ -179,6 +181,11 @@ export function RoutineDetailPage() {
   }, [])
   const [showProgressionGuide, setShowProgressionGuide] = useState(false)
   const [lastMenstrualCycle, setLastMenstrualCycle] = useState<MenstrualCycle | null>(null)
+  const [checkInWeek, setCheckInWeek] = useState<LatestWeekStatus>({
+    finished: false,
+    weekNumber: null,
+    submittedAt: null,
+  })
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
   const [blueprintName, setBlueprintName] = useState('')
   const [blueprintDesc, setBlueprintDesc] = useState('')
@@ -207,6 +214,8 @@ export function RoutineDetailPage() {
       if (routineData?.student_id) {
         await loadRmLookup(routineData.student_id)
         const student = routineData.student as Student | undefined
+        const weekStatus = await loadLatestWeekStatusForStudent(routineData.student_id)
+        setCheckInWeek(weekStatus)
         if (student?.gender === 'F') {
           const { data: cycleRow } = await supabase
             .from('menstrual_cycles')
@@ -222,6 +231,7 @@ export function RoutineDetailPage() {
       } else {
         setRmLookup(emptyRmLookup())
         setLastMenstrualCycle(null)
+        setCheckInWeek({ finished: false, weekNumber: null, submittedAt: null })
       }
       if (blocksRes.data) {
         const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
@@ -507,6 +517,30 @@ export function RoutineDetailPage() {
     } catch {
       toast.dismiss(loadingId)
       toast.error('Error al copiar semana')
+    }
+  }
+
+  async function copyDayToBlock(sourceBlockId: string, dayId: string, targetBlockId: string) {
+    const source = blocks.find((b) => b.id === sourceBlockId)
+    const target = blocks.find((b) => b.id === targetBlockId)
+    const sourceDay = source?.days.find((d) => d.id === dayId)
+    if (!source || !target || !sourceDay) return
+    const loadingId = toast.loading(`Copiando «${sourceDay.day_name}» a ${target.name}...`)
+    try {
+      const { data: newDay, error: dayErr } = await supabase
+        .from('routine_days')
+        .insert(dayInsertPayload(sourceDay, targetBlockId, target.days.length))
+        .select()
+        .single()
+      if (dayErr || !newDay) throw new Error(dayErr?.message ?? 'No se pudo copiar el día')
+      for (const ex of sourceDay.exercises) {
+        const { error: exErr } = await supabase.from('routine_exercises').insert(exerciseInsertPayload(ex, newDay.id))
+        if (exErr) throw new Error(exErr.message)
+      }
+      toast.success(`Día copiado a «${target.name}»`, { id: loadingId })
+      fetchData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo copiar el día', { id: loadingId })
     }
   }
 
@@ -1327,10 +1361,20 @@ export function RoutineDetailPage() {
           </p>
         ) : null}
 
+        {checkInWeek.finished || checkInWeek.weekNumber != null ? (
+          <p className="text-[11px] text-ink-secondary">
+            {checkInWeek.finished
+              ? 'El alumno marcó «Terminé mi mes de rutina» en el check-in. Las semanas quedan marcadas como hechas.'
+              : `Según el último check-in, va por la semana ${checkInWeek.weekNumber}.`}
+          </p>
+        ) : null}
+
         {blocks.map((block, blockStripeIndex) => (
           <BlockCard
             key={`${block.id}-${applyNonce}`}
             stripeIndex={blockStripeIndex}
+            checkInWeekNumber={checkInWeek.weekNumber}
+            checkInFinished={checkInWeek.finished}
             block={block}
             allBlocks={blocks}
             cyclePhases={
@@ -1366,6 +1410,7 @@ export function RoutineDetailPage() {
             onUpdateDay={(dayId, patch) => updateDay(block.id, dayId, patch)}
             onDeleteDay={(dayId) => deleteDay(block.id, dayId)}
             onDuplicateDay={(dayId) => duplicateDay(block.id, dayId)}
+            onCopyDayToWeek={(dayId, targetId) => void copyDayToBlock(block.id, dayId, targetId)}
             onMoveDay={(dayId, direction) => moveDay(block.id, dayId, direction)}
             onAddExercise={(dayId) => setShowExercisePicker({ dayId })}
             onPastePreset={(dayId) => setPresetPickerDayId(dayId)}
@@ -1573,13 +1618,17 @@ const CYCLE_PHASE_CLASSES: Record<CyclePhaseColor, { chip: string; panel: string
 
 function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0, cyclePhases = [],
+  checkInWeekNumber = null, checkInFinished = false,
   onToggle, onToggleDay, onUpdateBlock, onCascadeWeekStart, onDeleteBlock, onMoveBlock, onAddDay,
-  onUpdateDay, onDeleteDay, onDuplicateDay, onMoveDay, onAddExercise, onPastePreset, onReplaceExercise, onUpdateExercise, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
+  onUpdateDay, onDeleteDay, onDuplicateDay, onCopyDayToWeek, onMoveDay, onAddExercise, onPastePreset, onReplaceExercise, onUpdateExercise, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
   onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   /** Color de fondo alternado por semana (0 = gris, 1 = naranja suave). */
   stripeIndex?: number
+  /** Semana marcada en el último check-in semanal del alumno. */
+  checkInWeekNumber?: number | null
+  checkInFinished?: boolean
   /** Fases del ciclo menstrual que abarca esta semana (solo entrenador). */
   cyclePhases?: CyclePhaseInfo[]
   expandedDays: Set<string>; showCopyMenu: boolean
@@ -1588,7 +1637,10 @@ function BlockCard({
   onCascadeWeekStart: (startDate: string) => void
   onDeleteBlock: () => void; onMoveBlock: (direction: 'up' | 'down') => void; onAddDay: () => void
   onUpdateDay: (dayId: string, patch: Partial<RoutineDay>) => void
-  onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void; onMoveDay: (dayId: string, direction: 'up' | 'down') => void;   onAddExercise: (dayId: string) => void
+  onDeleteDay: (dayId: string) => void; onDuplicateDay: (dayId: string) => void
+  onCopyDayToWeek: (dayId: string, targetBlockId: string) => void
+  onMoveDay: (dayId: string, direction: 'up' | 'down') => void
+  onAddExercise: (dayId: string) => void
   onPastePreset: (dayId: string) => void
   onReplaceExercise: (dayId: string, routineExerciseId: string) => void
   onUpdateExercise: (dayId: string, exId: string, patch: Partial<RoutineExercise>) => void | Promise<void>
@@ -1606,6 +1658,9 @@ function BlockCard({
   const [blockNotes, setBlockNotes] = useState(block.notes ?? '')
   const saveBlockNotes = useDebounce(onUpdateBlock, 600)
   const otherBlocks = allBlocks.filter((b) => b.id !== block.id)
+  const weekN = (stripeIndex ?? 0) + 1
+  const weekDone = checkInFinished || (checkInWeekNumber != null && weekN <= checkInWeekNumber)
+  const weekCurrent = !checkInFinished && checkInWeekNumber === weekN
 
   useEffect(() => {
     setBlockNotes(block.notes ?? '')
@@ -1625,8 +1680,16 @@ function BlockCard({
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors"
         onClick={onToggle}
       >
-        <span className="shrink-0 rounded-md bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white tabular-nums">
-          S{(stripeIndex ?? 0) + 1}
+        <span
+          title={weekCurrent ? 'Semana actual según el check-in' : weekDone ? 'Semana ya marcada en el check-in' : `Semana ${weekN}`}
+          className={cn(
+            'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-white',
+            weekDone ? 'bg-emerald-600' : 'bg-brand-primary',
+            weekCurrent && 'ring-2 ring-brand-primary/70 ring-offset-1 ring-offset-surface-card',
+          )}
+        >
+          S{weekN}
+          {weekDone ? <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden /> : null}
         </span>
         <GripVertical className="h-4 w-4 text-ink-muted shrink-0" />
 
@@ -1648,6 +1711,11 @@ function BlockCard({
             >
               {block.name}
             </span>
+            {weekCurrent ? (
+              <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-primary">
+                Semana actual
+              </span>
+            ) : null}
             {(block.start_date || block.end_date) && (
               <p className="text-[10px] text-ink-muted mt-0.5">
                 {block.start_date ? new Date(block.start_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
@@ -1801,6 +1869,8 @@ function BlockCard({
               onUpdateDay={(patch) => onUpdateDay(day.id, patch)}
               onDeleteDay={() => onDeleteDay(day.id)}
               onDuplicateDay={() => onDuplicateDay(day.id)}
+              otherWeeks={otherBlocks.map((b) => ({ id: b.id, name: b.name }))}
+              onCopyDayToWeek={(targetId) => onCopyDayToWeek(day.id, targetId)}
               onMoveDay={(direction) => onMoveDay(day.id, direction)}
               onAddExercise={() => onAddExercise(day.id)}
               onPastePreset={() => onPastePreset(day.id)}
@@ -1870,6 +1940,8 @@ function DayCard({
   onUpdateDay,
   onDeleteDay,
   onDuplicateDay,
+  otherWeeks,
+  onCopyDayToWeek,
   onMoveDay,
   onAddExercise,
   onPastePreset,
@@ -1889,6 +1961,8 @@ function DayCard({
   onUpdateDay: (patch: Partial<RoutineDay>) => void
   onDeleteDay: () => void
   onDuplicateDay: () => void
+  otherWeeks: { id: string; name: string }[]
+  onCopyDayToWeek: (targetBlockId: string) => void
   onMoveDay: (direction: 'up' | 'down') => void
   onAddExercise: () => void
   onPastePreset: () => void
@@ -1909,6 +1983,7 @@ function DayCard({
   const [warmup, setWarmup]             = useState(day.warmup_notes ?? '')
   const [circuitMode, setCircuitMode]   = useState(false)
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
+  const [copyToWeekOpen, setCopyToWeekOpen] = useState(false)
   const [copyPrescriptionOpen, setCopyPrescriptionOpen] = useState(false)
   const [copyTargets, setCopyTargets]     = useState<Set<string>>(new Set())
   const [copyIncludeDayMeta, setCopyIncludeDayMeta] = useState(false)
@@ -1955,9 +2030,41 @@ function DayCard({
         <button onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="text-ink-muted hover:text-ink-primary transition-colors ml-1" title="Mover día abajo">
           <ArrowDown className="h-3 w-3" />
         </button>
-        <button onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="text-ink-muted hover:text-brand-primary transition-colors ml-1" title="Duplicar día">
+        <button onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="text-ink-muted hover:text-brand-primary transition-colors ml-1" title="Duplicar día en esta semana">
           <Copy className="h-3 w-3" />
         </button>
+        <div className="relative ml-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setCopyToWeekOpen((v) => !v)}
+            className="text-ink-muted hover:text-brand-primary transition-colors"
+            title="Duplicar este día a otra semana"
+            disabled={otherWeeks.length === 0}
+          >
+            <CopyPlus className="h-3 w-3" />
+          </button>
+          {copyToWeekOpen ? (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setCopyToWeekOpen(false)} />
+              <div className="absolute right-0 top-6 z-40 min-w-[160px] overflow-hidden rounded-xl border border-surface-border bg-surface-card py-1 shadow-lg">
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Copiar día a…</p>
+                {otherWeeks.map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    className="w-full px-3 py-2 text-left text-xs text-ink-primary hover:bg-surface-elevated"
+                    onClick={() => {
+                      setCopyToWeekOpen(false)
+                      onCopyDayToWeek(w.id)
+                    }}
+                  >
+                    {w.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
         <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors ml-1">
           <Trash2 className="h-3 w-3" />
         </button>

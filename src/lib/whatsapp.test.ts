@@ -6,6 +6,8 @@ import {
   shouldUseClipboardForWhatsAppGroup,
   shouldUseClipboardForWhatsAppDirect,
   buildWhatsAppDirectUrl,
+  monthlyFeedbackInviteMessage,
+  routineMonthFinishedWhatsAppMessage,
 } from '@/lib/whatsapp'
 
 describe('sanitizeMessageForWhatsApp', () => {
@@ -44,6 +46,27 @@ describe('shouldUseClipboardForWhatsAppDirect', () => {
 describe('buildWhatsAppDirectUrl', () => {
   it('no incluye parámetro text', () => {
     expect(buildWhatsAppDirectUrl('5491112345678')).toBe('https://wa.me/5491112345678')
+  })
+})
+
+describe('routineMonthFinishedWhatsAppMessage', () => {
+  it('incluye registro de progreso y el cierre de marca', () => {
+    const msg = routineMonthFinishedWhatsAppMessage('Ana Pérez')
+    expect(msg).toContain('Ana')
+    expect(msg).toContain('REGISTRO DE PROGRESO')
+    expect(msg).toContain('HACIÉNDOLO HÁBITO')
+  })
+})
+
+describe('monthlyFeedbackInviteMessage', () => {
+  it('incluye el link del formulario mensual', () => {
+    const msg = monthlyFeedbackInviteMessage({
+      studentName: 'Ana Pérez',
+      url: 'https://ejemplo.test/form/check-in/compartido/abc',
+    })
+    expect(msg).toContain('Ana')
+    expect(msg).toContain('FEEDBACK MENSUAL')
+    expect(msg).toContain('https://ejemplo.test/form/check-in/compartido/abc')
   })
 })
 

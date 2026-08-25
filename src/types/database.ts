@@ -358,6 +358,14 @@ export interface Database {
         Args: { p_public_token: string }
         Returns: Json
       }
+      lookup_check_in_student_preview: {
+        Args: { p_public_token: string; p_email: string }
+        Returns: Json
+      }
+      lookup_check_in_invite_preview: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       submit_check_in_response: {
         Args: { p_token: string; p_answers: Json; p_testimonial_consent: boolean; p_responder_email: string }
         Returns: Json

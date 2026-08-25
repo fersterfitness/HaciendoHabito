@@ -33,6 +33,9 @@ export async function notifyUser(params: NotifyUserParams): Promise<void> {
 
 /** Ruta al tocar una notificación en la lista. */
 export function notificationHref(n: Pick<Notification, 'type' | 'linked_table' | 'linked_id'>): string | null {
+  if (n.type === 'form_recibido') {
+    return '/feedback?tab=checkins'
+  }
   if (n.linked_table === 'students' && n.linked_id) {
     return `/students/${n.linked_id}`
   }
@@ -41,9 +44,6 @@ export function notificationHref(n: Pick<Notification, 'type' | 'linked_table' |
   }
   if (n.type === 'pago_registrado' || n.type === 'pago_pendiente') {
     return '/finances?tab=income'
-  }
-  if (n.type === 'form_recibido') {
-    return '/students'
   }
   if (n.type === 'intake_acceso_solicitado' || n.linked_table === 'web_intake_access_requests') {
     return '/#accesos-inscripcion'

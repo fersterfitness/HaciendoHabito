@@ -18,34 +18,36 @@ import {
   buildWhatsAppUrl,
   checkInGroupMessage,
   checkInInviteMessage,
+  monthlyFeedbackInviteMessage,
   normalizePhoneForWhatsApp,
+  routineMonthFinishedWhatsAppMessage,
+  shareToWhatsApp,
+  WHATSAPP_DIRECT_PASTE_HINT,
 } from '@/lib/whatsapp'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { cn } from '@/lib/utils'
 import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES } from '@/lib/checkInSchedule'
+import {
+  checkInHistoryMeta,
+  formatStoredAnswer,
+  isMonthlyTemplate,
+  isWeeklyTemplate,
+  monthlyFormDefaults,
+  parseQuestions,
+  weekStatusFromAnswers,
+  weeklyFormDefaults,
+  type CheckInQuestion,
+} from '@/lib/checkIn/questions'
+import { CheckInAnswerList } from '@/components/checkIn/CheckInAnswerList'
+import { CheckInFinishedBanner } from '@/components/checkIn/CheckInFinishedBanner'
+import { CheckInQuestionEditor } from '@/components/checkIn/CheckInQuestionEditor'
+import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
+import { ensureDefaultCheckInForms, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
-type QuestionDef = { id: string; label: string; type: 'text' | 'scale' }
-
-function parseQuestions(raw: Json): QuestionDef[] {
-  if (!Array.isArray(raw)) return []
-  const out: QuestionDef[] = []
-  for (const x of raw) {
-    if (!x || typeof x !== 'object') continue
-    const o = x as Record<string, unknown>
-    if (typeof o.id !== 'string' || typeof o.label !== 'string') continue
-    const t = o.type === 'scale' ? 'scale' : 'text'
-    out.push({ id: o.id, label: o.label, type: t })
-  }
-  return out
-}
-
-function defaultQuestions(): QuestionDef[] {
-  return [
-    { id: crypto.randomUUID(), label: '¿Cómo te sentís esta semana con el entrenamiento?', type: 'text' },
-    { id: crypto.randomUUID(), label: 'Del 1 al 5, ¿cómo calificarías tu descanso?', type: 'scale' },
-  ]
+function defaultQuestions(): CheckInQuestion[] {
+  return weeklyFormDefaults().questions
 }
 
 function csvEscape(value: string): string {
@@ -98,9 +100,6 @@ const checkInCheckboxClass = 'rounded border-surface-border accent-brand-seconda
 const checkInHighlightPanelClass =
   'rounded-xl border border-brand-secondary/25 bg-gradient-to-br from-brand-secondary/12 via-brand-secondary/5 to-transparent p-3 space-y-3'
 
-const checkInQuestionRowClass =
-  'flex flex-col sm:flex-row gap-2 items-start rounded-xl border border-surface-border/80 bg-surface-elevated/20 p-2.5 transition-colors hover:border-brand-secondary/25'
-
 export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -109,9 +108,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFormId, setActiveFormId] = useState<string | null>(null)
-  const [title, setTitle] = useState('')
-  const [intro, setIntro] = useState('')
-  const [questions, setQuestions] = useState<QuestionDef[]>(defaultQuestions)
+  const [title, setTitle] = useState(() => weeklyFormDefaults().title)
+  const [intro, setIntro] = useState(() => weeklyFormDefaults().intro)
+  const [questions, setQuestions] = useState<CheckInQuestion[]>(defaultQuestions)
   const [isActive, setIsActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(() => new Set())
@@ -152,7 +151,12 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     ])
     setLoading(false)
     if (fRes.error) toast.error(fRes.error.message)
-    else setForms((fRes.data as CheckInForm[]) ?? [])
+    else {
+      const raw = (fRes.data as CheckInForm[]) ?? []
+      const ensured = await ensureDefaultCheckInForms(user.id, raw)
+      setForms(ensured.forms)
+      if (ensured.message) toast.success(ensured.message)
+    }
     if (sRes.error) toast.error(sRes.error.message)
     else setStudents((sRes.data as Student[]) ?? [])
     if (schRes.error) toast.error(schRes.error.message)
@@ -252,21 +256,47 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   }, [selectedStudentGroup, selectedResponseId])
 
   useEffect(() => {
+    if (!user || !selectedHistoryResponse || !selectedStudentId) return
+    const qs = parseQuestions(forms.find((f) => f.id === selectedHistoryResponse.formId)?.questions)
+    const obj =
+      selectedHistoryResponse.responses &&
+      typeof selectedHistoryResponse.responses === 'object' &&
+      !Array.isArray(selectedHistoryResponse.responses)
+        ? (selectedHistoryResponse.responses as Record<string, unknown>)
+        : {}
+    void syncCheckInSideEffects({
+      ownerId: user.id,
+      studentId: selectedStudentId,
+      questions: qs,
+      responses: obj,
+    })
+  }, [forms, selectedHistoryResponse, selectedStudentId, user])
+
+  useEffect(() => {
+    if (!user || !invites.length || !responses.length) return
+    const byInvite = new Map(responses.map((r) => [r.invite_id, r]))
+    for (const inv of invites) {
+      const resp = byInvite.get(inv.id)
+      if (!resp) continue
+      const obj =
+        resp.responses && typeof resp.responses === 'object' && !Array.isArray(resp.responses)
+          ? (resp.responses as Record<string, unknown>)
+          : {}
+      void syncCheckInSideEffects({
+        ownerId: user.id,
+        studentId: inv.student_id,
+        questions,
+        responses: obj,
+      })
+    }
+  }, [user, invites, responses, questions])
+
+  useEffect(() => {
     if (checkInView !== 'student') {
       setSelectedStudentId(null)
       setSelectedResponseId(null)
     }
   }, [checkInView])
-
-  const questionLabelsByFormId = useMemo(() => {
-    const out = new Map<string, Map<string, string>>()
-    for (const f of forms) {
-      const labels = new Map<string, string>()
-      for (const q of parseQuestions(f.questions)) labels.set(q.id, q.label)
-      out.set(f.id, labels)
-    }
-    return out
-  }, [forms])
 
   const savedForm = useMemo(() => (activeFormId ? forms.find((f) => f.id === activeFormId) ?? null : null), [forms, activeFormId])
 
@@ -322,10 +352,11 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
   function openForm(f: CheckInForm | null) {
     if (!f) {
+      const weekly = weeklyFormDefaults()
       setActiveFormId(null)
-      setTitle('')
-      setIntro('')
-      setQuestions(defaultQuestions())
+      setTitle(weekly.title)
+      setIntro(weekly.intro)
+      setQuestions(weekly.questions)
       setIsActive(true)
       setSelectedStudentIds(new Set())
       return
@@ -454,12 +485,47 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     setQuestions((q) => [...q, { id: crypto.randomUUID(), label: '', type: 'text' }])
   }
 
-  function updateQuestion(id: string, patch: Partial<QuestionDef>) {
+  function updateQuestion(id: string, patch: Partial<CheckInQuestion>) {
     setQuestions((q) => q.map((x) => (x.id === id ? { ...x, ...patch } : x)))
   }
 
   function removeQuestion(id: string) {
     setQuestions((q) => q.filter((x) => x.id !== id))
+  }
+
+  function moveQuestion(id: string, dir: 'up' | 'down') {
+    setQuestions((q) => {
+      const i = q.findIndex((x) => x.id === id)
+      if (i < 0) return q
+      const j = dir === 'up' ? i - 1 : i + 1
+      if (j < 0 || j >= q.length) return q
+      const next = [...q]
+      const [row] = next.splice(i, 1)
+      next.splice(j, 0, row)
+      return next
+    })
+  }
+
+  function applyWeeklyTemplate() {
+    if (questions.length && !window.confirm('Esto reemplaza las preguntas actuales por la plantilla semanal de Ferster. ¿Seguimos?')) {
+      return
+    }
+    const weekly = weeklyFormDefaults()
+    setTitle((t) => t.trim() || weekly.title)
+    setIntro(weekly.intro)
+    setQuestions(weekly.questions)
+    toast.success('Plantilla semanal aplicada. Guardá el formulario.')
+  }
+
+  function applyMonthlyTemplate() {
+    if (questions.length && !window.confirm('Esto reemplaza las preguntas actuales por el feedback mensual. ¿Seguimos?')) {
+      return
+    }
+    const monthly = monthlyFormDefaults()
+    setTitle(monthly.title)
+    setIntro(monthly.intro)
+    setQuestions(monthly.questions)
+    toast.success('Plantilla de feedback mensual aplicada. Guardá el formulario.')
   }
 
   function toggleStudent(id: string) {
@@ -530,6 +596,31 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   function sharedPublicUrl(publicToken: string | undefined) {
     if (!publicToken) return ''
     return `${window.location.origin}/form/check-in/compartido/${publicToken}`
+  }
+
+  function monthlyFormUrl(): string | null {
+    const monthly = forms.find((f) => isMonthlyTemplate(parseQuestions(f.questions)))
+    const url = monthly?.public_token ? sharedPublicUrl(monthly.public_token) : ''
+    return url || null
+  }
+
+  function sendMonthlyFeedbackWa(studentName: string, phone: string | null | undefined) {
+    const url = monthlyFormUrl()
+    if (!url) {
+      toast.error('Creá un formulario con la plantilla de feedback mensual.')
+      return
+    }
+    const digits = normalizePhoneForWhatsApp(phone)
+    if (!digits) {
+      toast.error('Sin teléfono válido en la ficha')
+      return
+    }
+    void shareToWhatsApp({
+      phoneDigits: digits,
+      message: monthlyFeedbackInviteMessage({ studentName, url }),
+    }).then((res) => {
+      if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
+    })
   }
 
   async function copyLink(token: string) {
@@ -703,7 +794,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
         resp.testimonial_consent ? 'sí' : 'no',
         resp.responder_email ?? '',
         resp.email_verified ? 'sí' : 'no',
-        ...qs.map((q) => String(obj[q.id] ?? '')),
+        ...qs.map((q) => formatStoredAnswer(q, obj[q.id])),
       ]
       rows.push(line)
     }
@@ -782,6 +873,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
         </div>
 
         {checkInView === 'student' ? (
+          <div className="space-y-4">
+            <StudentRoutineWeekPanel />
           <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
             <p className="text-xs text-ink-secondary max-w-prose">
               Elegí un alumno y después una fecha para ver cada respuesta. Así el listado escala cuando haya muchos registros.
@@ -817,15 +910,13 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
                           <p className="text-xs text-ink-secondary">{row.formTitle}</p>
-                          <p className="text-[11px] text-ink-muted tabular-nums">
-                            {new Date(row.submitted_at).toLocaleString('es-AR', {
-                              weekday: 'short',
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          <p className="text-[11px] text-ink-muted">
+                            {checkInHistoryMeta(
+                              parseQuestions(forms.find((f) => f.id === row.formId)?.questions),
+                              obj,
+                              row.submitted_at,
+                              selectedStudentGroup.studentName,
+                            ).filingLabel}
                           </p>
                         </div>
                         <button
@@ -853,17 +944,39 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                           )}
                         </button>
                       </div>
-                      <ul className="text-sm space-y-1.5 border-t border-surface-border/60 pt-3">
-                        {Object.entries(obj).map(([k, v]) => {
-                          const label = questionLabelsByFormId.get(row.formId)?.get(k) ?? k
+                      <div className="border-t border-surface-border/60 pt-3 space-y-3">
+                        <CheckInAnswerList
+                          questions={parseQuestions(forms.find((f) => f.id === row.formId)?.questions)}
+                          responses={obj}
+                        />
+                        {(() => {
+                          const qs = parseQuestions(forms.find((f) => f.id === row.formId)?.questions)
+                          const st = weekStatusFromAnswers(qs, obj)
+                          if (!st.finished) return null
+                          const student = students.find((s) => s.id === selectedStudentId)
                           return (
-                            <li key={k}>
-                              <span className="text-ink-muted">{label}: </span>
-                              <span className="text-ink-primary">{String(v ?? '—')}</span>
-                            </li>
+                            <CheckInFinishedBanner
+                              description="Marcó «Terminé mi mes de rutina». Pedile la foto del registro de progreso y el feedback mensual."
+                              onAskProgress={() => {
+                                const digits = normalizePhoneForWhatsApp(student?.phone)
+                                if (!digits) {
+                                  toast.error('Sin teléfono válido en la ficha')
+                                  return
+                                }
+                                void shareToWhatsApp({
+                                  phoneDigits: digits,
+                                  message: routineMonthFinishedWhatsAppMessage(selectedStudentGroup.studentName),
+                                }).then((res) => {
+                                  if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
+                                })
+                              }}
+                              onAskMonthly={() =>
+                                sendMonthlyFeedbackWa(selectedStudentGroup.studentName, student?.phone)
+                              }
+                            />
                           )
-                        })}
-                      </ul>
+                        })()}
+                      </div>
                       {row.trainer_note ? (
                         <p className="text-[11px] text-ink-secondary italic border-l-2 border-brand-secondary/30 pl-2">
                           Nota: {row.trainer_note}
@@ -896,6 +1009,16 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   {selectedStudentGroup.rows.map((row) => {
                     const isReplied = !!row.trainer_replied_at
                     const submitted = new Date(row.submitted_at)
+                    const obj =
+                      row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
+                        ? (row.responses as Record<string, unknown>)
+                        : {}
+                    const meta = checkInHistoryMeta(
+                      parseQuestions(forms.find((f) => f.id === row.formId)?.questions),
+                      obj,
+                      row.submitted_at,
+                      selectedStudentGroup.studentName,
+                    )
                     return (
                       <li key={row.id}>
                         <button
@@ -915,7 +1038,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                 {submitted.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </p>
-                            <p className="truncate text-xs text-ink-secondary">{row.formTitle}</p>
+                            <p className="truncate text-xs text-ink-secondary">{meta.filingLabel}</p>
+                            <p className="truncate text-[10px] text-ink-muted">{row.formTitle}</p>
                           </div>
                           <span
                             className={cn(
@@ -955,11 +1079,21 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                             {group.rows.length} respuesta{group.rows.length !== 1 ? 's' : ''}
                             {latest ? (
                               <>
-                                {' · última '}
-                                {new Date(latest.submitted_at).toLocaleDateString('es-AR', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                })}
+                                {' · '}
+                                {(() => {
+                                  const obj =
+                                    latest.responses &&
+                                    typeof latest.responses === 'object' &&
+                                    !Array.isArray(latest.responses)
+                                      ? (latest.responses as Record<string, unknown>)
+                                      : {}
+                                  return checkInHistoryMeta(
+                                    parseQuestions(forms.find((f) => f.id === latest.formId)?.questions),
+                                    obj,
+                                    latest.submitted_at,
+                                    group.studentName,
+                                  ).filingLabel
+                                })()}
                               </>
                             ) : null}
                           </p>
@@ -981,6 +1115,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               </ul>
             )}
           </Card>
+          </div>
         ) : null}
 
         {checkInView === 'form' ? (
@@ -1013,9 +1148,14 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       onClick={() => openForm(f)}
                     >
                       <span className="block truncate">{f.title}</span>
-                      {!f.is_active ? (
-                        <span className="text-[10px] font-normal text-ink-muted">Pausado</span>
-                      ) : null}
+                      <span className="text-[10px] font-normal text-ink-muted">
+                        {isMonthlyTemplate(parseQuestions(f.questions))
+                          ? 'Feedback mensual'
+                          : isWeeklyTemplate(parseQuestions(f.questions))
+                            ? 'Check-in semanal'
+                            : null}
+                        {!f.is_active ? `${isMonthlyTemplate(parseQuestions(f.questions)) || isWeeklyTemplate(parseQuestions(f.questions)) ? ' · ' : ''}Pausado` : ''}
+                      </span>
                     </button>
                     <button
                       type="button"
@@ -1047,7 +1187,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               label="Intro (opcional)"
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
-              rows={2}
+              rows={6}
               placeholder="Texto que ve el alumno arriba del formulario…"
             />
             <label className="flex items-center gap-2 text-sm text-ink-secondary cursor-pointer rounded-xl border border-surface-border/60 bg-surface-elevated/20 px-3 py-2">
@@ -1061,45 +1201,39 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             </label>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-label font-semibold uppercase tracking-wider text-brand-secondary/80">Preguntas</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs h-8 text-brand-secondary hover:text-brand-secondary hover:bg-brand-secondary/10"
-                  onClick={addQuestion}
-                >
-                  + Pregunta
-                </Button>
-              </div>
-              {questions.map((q, idx) => (
-                <div key={q.id} className={checkInQuestionRowClass}>
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-secondary/12 text-[10px] font-semibold text-brand-secondary tabular-nums">
-                    {idx + 1}
-                  </span>
-                  <Input
-                    className="flex-1 text-sm"
-                    value={q.label}
-                    onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
-                    placeholder="Texto de la pregunta"
-                  />
-                  <select
-                    className={checkInFieldSelectClass}
-                    value={q.type}
-                    onChange={(e) => updateQuestion(q.id, { type: e.target.value === 'scale' ? 'scale' : 'text' })}
-                  >
-                    <option value="text">Texto libre</option>
-                    <option value="scale">Escala 1–5</option>
-                  </select>
-                  <button
+                <div className="flex flex-wrap gap-1">
+                  <Button type="button" size="sm" variant="outline" className="text-[10px] h-7" onClick={applyWeeklyTemplate}>
+                    Plantilla semanal
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" className="text-[10px] h-7" onClick={applyMonthlyTemplate}>
+                    Feedback mensual
+                  </Button>
+                  <Button
                     type="button"
-                    className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired"
-                    onClick={() => removeQuestion(q.id)}
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-8 text-brand-secondary hover:text-brand-secondary hover:bg-brand-secondary/10"
+                    onClick={addQuestion}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                    + Pregunta
+                  </Button>
                 </div>
+              </div>
+              <p className="text-[11px] text-ink-muted">
+                Podés cambiar el orden, el texto y las opciones. Cada opción admite una aclaración opcional del alumno.
+              </p>
+              {questions.map((q, idx) => (
+                <CheckInQuestionEditor
+                  key={q.id}
+                  question={q}
+                  index={idx}
+                  total={questions.length}
+                  onChange={(patch) => updateQuestion(q.id, patch)}
+                  onRemove={() => removeQuestion(q.id)}
+                  onMove={(dir) => moveQuestion(q.id, dir)}
+                />
               ))}
             </div>
 
@@ -1342,7 +1476,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                             <div className="min-w-0">
                               <p className="font-medium text-ink-primary">{inv.student?.full_name ?? '—'}</p>
                               <p className="text-[10px] text-ink-muted">
-                                Llegó {new Date(resp.submitted_at).toLocaleString('es-AR')}
+                                {checkInHistoryMeta(questions, obj, resp.submitted_at, inv.student?.full_name).filingLabel}
                                 {' · '}
                                 Testimonio: {resp.testimonial_consent ? 'sí' : 'no'}
                                 {' · '}
@@ -1383,14 +1517,30 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                               )}
                             </button>
                           </div>
-                          <ul className="text-xs space-y-1 mt-1">
-                            {questions.map((q) => (
-                              <li key={q.id}>
-                                <span className="text-ink-muted">{q.label}: </span>
-                                <span className="text-ink-primary">{String(obj[q.id] ?? '—')}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          <CheckInAnswerList questions={questions} responses={obj} />
+                          {weekStatusFromAnswers(questions, obj).finished ? (
+                            <CheckInFinishedBanner
+                              description="Pedile la foto del registro de progreso y el feedback mensual para armar el siguiente mesociclo."
+                              onAskProgress={() => {
+                                const st = students.find((s) => s.id === inv.student_id)
+                                const digits = normalizePhoneForWhatsApp(st?.phone)
+                                if (!digits) {
+                                  toast.error('Sin teléfono válido en la ficha')
+                                  return
+                                }
+                                void shareToWhatsApp({
+                                  phoneDigits: digits,
+                                  message: routineMonthFinishedWhatsAppMessage(inv.student?.full_name ?? st?.full_name ?? ''),
+                                }).then((res) => {
+                                  if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
+                                })
+                              }}
+                              onAskMonthly={() => {
+                                const st = students.find((s) => s.id === inv.student_id)
+                                sendMonthlyFeedbackWa(inv.student?.full_name ?? st?.full_name ?? '', st?.phone)
+                              }}
+                            />
+                          ) : null}
                           <div className="pt-1 space-y-1.5">
                             <label
                               htmlFor={`note-${resp.id}`}

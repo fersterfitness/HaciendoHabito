@@ -5,10 +5,25 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/Button'
+import { CheckInAnswerList } from '@/components/checkIn/CheckInAnswerList'
 import { formatDate } from '@/lib/utils'
-import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
-import type { Routine, StudentTestimonial } from '@/types/database'
+import {
+  monthlyFeedbackInviteMessage,
+  normalizePhoneForWhatsApp,
+  shareToWhatsApp,
+  WHATSAPP_DIRECT_PASTE_HINT,
+} from '@/lib/whatsapp'
+import { isMonthlyTemplate, parseQuestions, type CheckInQuestion } from '@/lib/checkIn/questions'
+import type { Json, Routine, StudentTestimonial } from '@/types/database'
 import toast from 'react-hot-toast'
+
+type MonthlyResponseRow = {
+  id: string
+  submittedAt: string
+  formTitle: string
+  questions: CheckInQuestion[]
+  responses: Record<string, unknown>
+}
 
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -37,6 +52,8 @@ export function StudentEngagementStatsPanel({
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const [testimonials, setTestimonials] = useState<StudentTestimonial[]>([])
+  const [monthlyRows, setMonthlyRows] = useState<MonthlyResponseRow[]>([])
+  const [monthlyUrl, setMonthlyUrl] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [draftPeriod, setDraftPeriod] = useState(() => {
     const now = new Date()
@@ -46,18 +63,91 @@ export function StudentEngagementStatsPanel({
 
   useEffect(() => {
     let cancelled = false
-    supabase
-      .from('student_testimonials')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (!cancelled) setTestimonials((data as StudentTestimonial[]) ?? [])
-      })
+    async function load() {
+      const [tRes, fRes] = await Promise.all([
+        supabase
+          .from('student_testimonials')
+          .select('*')
+          .eq('student_id', studentId)
+          .order('created_at', { ascending: false }),
+        user
+          ? supabase
+              .from('check_in_forms')
+              .select('id, title, questions, public_token')
+              .eq('owner_id', user.id)
+          : Promise.resolve({ data: [] as never[] }),
+      ])
+      if (cancelled) return
+      setTestimonials((tRes.data as StudentTestimonial[]) ?? [])
+
+      const forms = (fRes.data ?? []) as {
+        id: string
+        title: string
+        questions: Json
+        public_token?: string
+      }[]
+      const monthlyForms = forms.filter((f) => isMonthlyTemplate(parseQuestions(f.questions)))
+      const monthly = monthlyForms[0]
+      setMonthlyUrl(
+        monthly?.public_token
+          ? `${window.location.origin}/form/check-in/compartido/${monthly.public_token}`
+          : null,
+      )
+      if (!monthlyForms.length) {
+        setMonthlyRows([])
+        return
+      }
+      const { data: invites } = await supabase
+        .from('check_in_invites')
+        .select('id, form_id')
+        .eq('student_id', studentId)
+        .in(
+          'form_id',
+          monthlyForms.map((f) => f.id),
+        )
+      if (cancelled) return
+      const invList = (invites ?? []) as { id: string; form_id: string }[]
+      if (!invList.length) {
+        setMonthlyRows([])
+        return
+      }
+      const formById = new Map(monthlyForms.map((f) => [f.id, f]))
+      const { data: resp } = await supabase
+        .from('check_in_responses')
+        .select('id, invite_id, submitted_at, responses')
+        .in(
+          'invite_id',
+          invList.map((i) => i.id),
+        )
+        .order('submitted_at', { ascending: false })
+      if (cancelled) return
+      const inviteById = new Map(invList.map((i) => [i.id, i]))
+      const next: MonthlyResponseRow[] = []
+      for (const r of resp ?? []) {
+        const row = r as { id: string; invite_id: string; submitted_at: string; responses: Json }
+        const inv = inviteById.get(row.invite_id)
+        if (!inv) continue
+        const form = formById.get(inv.form_id)
+        if (!form) continue
+        const obj =
+          row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
+            ? (row.responses as Record<string, unknown>)
+            : {}
+        next.push({
+          id: row.id,
+          submittedAt: row.submitted_at,
+          formTitle: form.title,
+          questions: parseQuestions(form.questions),
+          responses: obj,
+        })
+      }
+      setMonthlyRows(next)
+    }
+    void load()
     return () => {
       cancelled = true
     }
-  }, [studentId])
+  }, [studentId, user])
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -111,18 +201,25 @@ export function StudentEngagementStatsPanel({
     }
   }
 
-  function requestFeedbackWhatsApp() {
-    const msg =
-      `¡Hola ${studentName.split(' ')[0]}! Para que me sirva de ayuda, ¿me hacés un feedback de este mes de rutina? ` +
-      `Contame libremente cómo te sentiste, qué mejoraste y qué opinás del servicio. ` +
-      `Esto lo voy a subir a mis redes para que la gente vea tu experiencia. ¡Gracias!`
+  async function requestFeedbackWhatsApp() {
+    const url = monthlyUrl
+    const msg = url
+      ? monthlyFeedbackInviteMessage({ studentName, url })
+      : `¡Hola ${studentName.split(' ')[0]}! Para que me sirva de ayuda, ¿me hacés un feedback de este mes de rutina? ` +
+        `Contame libremente cómo te sentiste, qué mejoraste y qué opinás del servicio. ` +
+        `Esto lo voy a subir a mis redes para que la gente vea tu experiencia. ¡Gracias!`
     const phone = normalizePhoneForWhatsApp(studentPhone)
-    if (phone) {
-      window.open(buildWhatsAppUrl(phone, msg), '_blank', 'noopener')
-    } else {
+    if (!phone) {
       void navigator.clipboard.writeText(msg)
-      toast.success('Sin teléfono cargado: mensaje copiado al portapapeles')
+      toast.success(
+        url
+          ? 'Sin teléfono cargado: mensaje con el link copiado al portapapeles'
+          : 'Sin teléfono cargado: mensaje copiado al portapapeles',
+      )
+      return
     }
+    const res = await shareToWhatsApp({ phoneDigits: phone, message: msg })
+    if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
   }
 
   const tick = isDark ? '#a1a1aa' : '#52525b'
@@ -173,10 +270,35 @@ export function StudentEngagementStatsPanel({
             <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <h3 className="text-sm font-semibold text-ink-primary">Feedback mensual · testimonios</h3>
           </div>
-          <Button size="sm" variant="secondary" onClick={requestFeedbackWhatsApp}>
+          <Button size="sm" variant="secondary" onClick={() => void requestFeedbackWhatsApp()}>
             Pedir feedback por WhatsApp
           </Button>
         </div>
+        {monthlyRows.length > 0 ? (
+          <ul className="mb-4 space-y-2">
+            {monthlyRows.map((row) => (
+              <li key={row.id} className="rounded-xl border border-emerald-600/25 bg-emerald-500/5 px-3 py-2.5">
+                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                    {row.formTitle}
+                  </span>
+                  <span className="text-[10px] text-ink-muted">
+                    {new Date(row.submittedAt).toLocaleDateString('es-AR', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+                <CheckInAnswerList questions={row.questions} responses={row.responses} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-3 text-[11px] text-ink-muted">
+            Cuando el alumno complete el formulario de feedback mensual, las respuestas aparecen acá.
+          </p>
+        )}
         <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[10rem_1fr_auto]">
           <input
             value={draftPeriod}
