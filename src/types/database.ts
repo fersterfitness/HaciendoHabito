@@ -383,6 +383,10 @@ export interface Database {
         Args: { p_resource_id: string; p_student_ids: string[] }
         Returns: Json
       }
+      issue_staff_intake_access_token: {
+        Args: { p_plan_slug: string; p_plan_title: string }
+        Returns: Json
+      }
       notify_user: {
         Args: {
           p_user_id: string
@@ -580,6 +584,7 @@ export interface Routine {
   end_date: string
   duration_days: number
   price: number | null
+  is_paid?: boolean
   status: RoutineStatus
   notes: string | null
   last_status_change: string | null

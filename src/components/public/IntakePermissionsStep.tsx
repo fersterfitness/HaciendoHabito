@@ -10,6 +10,8 @@ import {
 } from '@/lib/trainerContact'
 import {
   checkWebIntakeAccessStatus,
+  isDevIntakeAccessBypass,
+  issueDevApprovedIntakeAccess,
   readIntakeAccessSession,
   requestWebIntakeAccess,
 } from '@/lib/intake/webIntakeAccess'
@@ -25,6 +27,7 @@ type Props = {
 export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }: Props) {
   const [checking, setChecking] = useState(false)
   const [requesting, setRequesting] = useState(false)
+  const [skipping, setSkipping] = useState(false)
   const [hasToken, setHasToken] = useState(false)
 
   const waUrl = buildTrainerContactWhatsAppUrl(whatsAppInterestMessage(planName))
@@ -155,6 +158,33 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
         <Button type="button" className="w-full" loading={checking} onClick={() => void handleCheckAccess()}>
           Ya tengo permiso — continuar a Datos
         </Button>
+        {isDevIntakeAccessBypass() ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-dashed"
+            loading={skipping}
+            onClick={() => {
+              void (async () => {
+                setSkipping(true)
+                const result = await issueDevApprovedIntakeAccess({
+                  planSlug,
+                  planTitle: planName,
+                })
+                setSkipping(false)
+                if (!result.ok) {
+                  toast.error(result.error, { duration: 9000 })
+                  return
+                }
+                refreshTokenState()
+                toast.success('Permiso de desarrollo listo. Ya podés completar y enviar.')
+                onApproved()
+              })()
+            }}
+          >
+            Saltar permiso (solo desarrollo)
+          </Button>
+        ) : null}
       </div>
     </div>
   )

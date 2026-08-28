@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase'
+
 const STORAGE_TOKEN = 'hh_intake_access_token'
 const STORAGE_PLAN = 'hh_intake_access_plan'
 
@@ -18,6 +20,11 @@ export function readIntakeAccessSession(): { token: string; planSlug: string } |
 export function clearIntakeAccessSession(): void {
   sessionStorage.removeItem(STORAGE_TOKEN)
   sessionStorage.removeItem(STORAGE_PLAN)
+}
+
+/** Solo `npm run dev`. El build de producción sigue exigiendo el OK de Tomás. */
+export function isDevIntakeAccessBypass(): boolean {
+  return import.meta.env.DEV
 }
 
 function intakeFunctionUrl(): string | null {
@@ -95,4 +102,63 @@ export async function checkWebIntakeAccessStatus(
   } catch {
     return { ok: false, error: 'Error de conexión' }
   }
+}
+
+/**
+ * Solo `npm run dev`. Crea un token aprobado con la sesión de staff
+ * para que el envío de /form no falle con 401.
+ */
+export async function issueDevApprovedIntakeAccess(params: {
+  planSlug: string
+  planTitle: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!import.meta.env.DEV) {
+    return { ok: false, error: 'Solo disponible en desarrollo' }
+  }
+
+  const { data, error } = await supabase.rpc('issue_staff_intake_access_token', {
+    p_plan_slug: params.planSlug,
+    p_plan_title: params.planTitle,
+  })
+
+  if (error) {
+    const m = error.message.toLowerCase()
+    if (m.includes('does not exist') || m.includes('schema cache') || m.includes('42883')) {
+      return {
+        ok: false,
+        error:
+          'Falta aplicar en el SQL Editor de Supabase el archivo 20260825170000_issue_staff_intake_access_token.sql',
+      }
+    }
+    if (m.includes('jwt') || m.includes('not authenticated') || m.includes('unauthorized')) {
+      return {
+        ok: false,
+        error: 'Iniciá sesión en /login como entrenador, recargá /form y volvé a tocar Saltar permiso.',
+      }
+    }
+    return { ok: false, error: error.message }
+  }
+
+  const row = data as { ok?: boolean; error?: string; request_token?: string } | null
+  if (row?.error === 'not_authenticated') {
+    return {
+      ok: false,
+      error: 'Iniciá sesión en /login como entrenador, recargá /form y volvé a tocar Saltar permiso.',
+    }
+  }
+  if (row?.error === 'not_staff') {
+    return {
+      ok: false,
+      error: 'Tu usuario no es staff. Entrá con una cuenta de entrenador para saltar el permiso.',
+    }
+  }
+  if (row?.error === 'rate_limited') {
+    return { ok: false, error: 'Demasiados permisos de prueba. Esperá un rato.' }
+  }
+  if (!row?.ok || !row.request_token) {
+    return { ok: false, error: 'No se pudo generar el permiso de desarrollo.' }
+  }
+
+  saveIntakeAccessSession(String(row.request_token), params.planSlug)
+  return { ok: true }
 }

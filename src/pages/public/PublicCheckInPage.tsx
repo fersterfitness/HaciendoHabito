@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { Check, Loader2 } from 'lucide-react'
+import { supabasePublic } from '@/lib/supabasePublic'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import { BrandLogo } from '@/components/branding/BrandLogo'
 import { Button } from '@/components/ui/Button'
 import { CheckInQuestionFields } from '@/components/checkIn/CheckInQuestionFields'
@@ -47,6 +49,21 @@ function isValidEmail(raw: string): boolean {
   return SIMPLE_EMAIL_RE.test(s)
 }
 
+function friendlyCheckInError(message: string): string {
+  const m = message.toLowerCase()
+  if (
+    m.includes('jwt') ||
+    m.includes('unauthorized') ||
+    m.includes('not authorized') ||
+    m.includes('no autorizado') ||
+    m.includes('permission denied') ||
+    m.includes('42501')
+  ) {
+    return 'No autorizado: abrí el link en una ventana de incógnito (sin estar logueado) y usá el mail de un alumno de esta cuenta.'
+  }
+  return message
+}
+
 function PageFrame({ children, innerClassName }: { children: ReactNode; innerClassName?: string }) {
   return (
     <div className="min-h-[100dvh] bg-surface-base flex flex-col">
@@ -68,12 +85,15 @@ function PageFrame({ children, innerClassName }: { children: ReactNode; innerCla
 
 export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
   const { token: tokenParam } = useParams<{ token: string }>()
+  const [searchParams] = useSearchParams()
   const token = normalizeToken(tokenParam)
+  const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [payload, setPayload] = useState<FormPayload | null>(null)
   const [drafts, setDrafts] = useState<Record<string, CheckInAnswerDraft>>({})
   const [consent, setConsent] = useState(false)
   const [responderEmail, setResponderEmail] = useState('')
+  const [devStudents, setDevStudents] = useState<{ email: string; full_name: string; gender: string | null }[]>([])
   const [gender, setGender] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -112,8 +132,8 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
         return
       }
       const { data, error } = shared
-        ? await supabase.rpc('get_check_in_form_by_public_token', { p_public_token: token })
-        : await supabase.rpc('get_check_in_form_by_token', { p_token: token })
+        ? await supabasePublic.rpc('get_check_in_form_by_public_token', { p_public_token: token })
+        : await supabasePublic.rpc('get_check_in_form_by_token', { p_token: token })
       if (cancelled) return
       setLoading(false)
       if (error) {
@@ -133,7 +153,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
         setDrafts(init)
       }
       if (!shared && token) {
-        const preview = await supabase.rpc('lookup_check_in_invite_preview', { p_token: token })
+        const preview = await supabasePublic.rpc('lookup_check_in_invite_preview', { p_token: token })
         if (!cancelled && preview.data && (preview.data as { ok?: boolean }).ok) {
           const g = (preview.data as { gender?: string | null }).gender
           if (g) setGender(g)
@@ -148,13 +168,41 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
 
   async function lookupSharedGender(email: string) {
     if (!shared || !token || !isValidEmail(email)) return
-    const { data } = await supabase.rpc('lookup_check_in_student_preview', {
+    const { data } = await supabasePublic.rpc('lookup_check_in_student_preview', {
       p_public_token: token,
       p_email: email.trim(),
     })
     const row = data as { ok?: boolean; gender?: string | null }
     if (row?.ok && row.gender) setGender(row.gender)
   }
+
+  useEffect(() => {
+    const fromQuery = searchParams.get('email')?.trim() ?? ''
+    if (!fromQuery || !isValidEmail(fromQuery)) return
+    setResponderEmail(fromQuery)
+    void lookupSharedGender(fromQuery)
+  }, [searchParams, shared, token])
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !user) return
+    let cancelled = false
+    supabase
+      .from('students')
+      .select('full_name, email, gender')
+      .eq('owner_id', user.id)
+      .eq('status', 'activo')
+      .order('full_name')
+      .then(({ data }) => {
+        if (cancelled) return
+        const rows = ((data ?? []) as { full_name: string; email: string | null; gender: string | null }[])
+          .filter((s) => s.email && isValidEmail(s.email))
+          .map((s) => ({ full_name: s.full_name, email: s.email!.trim(), gender: s.gender }))
+        setDevStudents(rows)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   async function submit() {
     if (!token || !payload?.ok) return
@@ -167,13 +215,13 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
     setSubmitError(null)
     setSubmitting(true)
     const { data, error } = shared
-      ? await supabase.rpc('submit_check_in_shared_response', {
+      ? await supabasePublic.rpc('submit_check_in_shared_response', {
           p_public_token: token,
           p_answers: jsonAnswers as unknown as Json,
           p_testimonial_consent: consent,
           p_responder_email: responderEmail.trim(),
         })
-      : await supabase.rpc('submit_check_in_response', {
+      : await supabasePublic.rpc('submit_check_in_response', {
           p_token: token,
           p_answers: jsonAnswers as unknown as Json,
           p_testimonial_consent: consent,
@@ -181,7 +229,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
         })
     setSubmitting(false)
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyCheckInError(error.message))
       return
     }
     const res = data as { ok?: boolean; error?: string }
@@ -302,6 +350,41 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
 
         <form className="space-y-4" onSubmit={onFormSubmit}>
           <div className="rounded-3xl border border-surface-border/70 bg-surface-card/80 p-4 shadow-card sm:p-5">
+            {import.meta.env.DEV ? (
+              <div className="mb-3 rounded-2xl border border-dashed border-brand-secondary/40 bg-brand-secondary/8 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-secondary">Modo desarrollo</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">
+                  El mail tiene que ser de un alumno de la cuenta dueña de este formulario. No hace falta pedirle permiso a Tomás: usá un alumno tuyo o el link personal (Abrir) desde Consulta semanal.
+                </p>
+                {devStudents.length > 0 ? (
+                  <label className="mt-2 block text-[11px] font-medium text-ink-muted">
+                    Probar como
+                    <select
+                      className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-2.5 py-2 text-sm text-ink-primary"
+                      value={responderEmail}
+                      onChange={(e) => {
+                        const email = e.target.value
+                        setResponderEmail(email)
+                        const st = devStudents.find((s) => s.email === email)
+                        if (st?.gender) setGender(st.gender)
+                        void lookupSharedGender(email)
+                      }}
+                    >
+                      <option value="">Elegí un alumno…</option>
+                      {devStudents.map((s) => (
+                        <option key={s.email} value={s.email}>
+                          {s.full_name} · {s.email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-ink-muted">
+                    Creá un alumno de prueba con tu mail en Alumnos, o abrí el link personal de uno existente.
+                  </p>
+                )}
+              </div>
+            ) : null}
             <label htmlFor="checkin-email" className="block text-sm font-semibold text-ink-primary leading-snug">
               Mail con el que te registraste
             </label>

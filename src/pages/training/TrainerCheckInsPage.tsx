@@ -24,7 +24,7 @@ import {
   shareToWhatsApp,
   WHATSAPP_DIRECT_PASTE_HINT,
 } from '@/lib/whatsapp'
-import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import { groupByYearMonth, monthLabelEs } from '@/lib/checkIn/historyGroups'
 import { cn } from '@/lib/utils'
 import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES } from '@/lib/checkInSchedule'
 import {
@@ -32,6 +32,7 @@ import {
   formatStoredAnswer,
   isMonthlyTemplate,
   isWeeklyTemplate,
+  mergeCheckInTemplate,
   monthlyFormDefaults,
   parseQuestions,
   weekStatusFromAnswers,
@@ -39,10 +40,10 @@ import {
   type CheckInQuestion,
 } from '@/lib/checkIn/questions'
 import { CheckInAnswerList } from '@/components/checkIn/CheckInAnswerList'
-import { CheckInFinishedBanner } from '@/components/checkIn/CheckInFinishedBanner'
+import { CheckInFinishedBanner, CheckInLastWeekBanner } from '@/components/checkIn/CheckInFinishedBanner'
 import { CheckInQuestionEditor } from '@/components/checkIn/CheckInQuestionEditor'
 import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
-import { ensureDefaultCheckInForms, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
+import { ensureDefaultCheckInForms, remapCheckInResponsesForForm, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -60,7 +61,7 @@ type InviteRow = {
   id: string
   token: string
   student_id: string
-  student: { full_name: string } | null
+  student: { full_name: string; email: string | null } | null
 }
 
 type ResponseRow = {
@@ -125,8 +126,10 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   /** Vista principal: por formulario (edición) o historial cronológico agrupado por alumno. */
   const [checkInView, setCheckInView] = useState<'form' | 'student'>(embedded ? 'student' : 'form')
   const [studentHistoryLoading, setStudentHistoryLoading] = useState(false)
-  /** Drill-down: alumno → respuesta por fecha. */
+  /** Drill-down: alumno → año → mes → respuesta. */
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedHistoryYear, setSelectedHistoryYear] = useState<number | null>(null)
+  const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<number | null>(null)
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null)
 
   type StudentHistoryRow = ResponseRow & {
@@ -188,7 +191,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       id: string
       form_id: string
       student_id: string
-      student: { full_name: string } | null
+      student: { full_name: string; email: string | null } | null
       form: { title: string } | null
     }>
     const inviteIds = invites.map((i) => i.id)
@@ -250,6 +253,30 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     return historyByStudent.find(([id]) => id === selectedStudentId)?.[1] ?? null
   }, [historyByStudent, selectedStudentId])
 
+  const historyYears = useMemo(() => {
+    if (!selectedStudentGroup) return new Map<number, Map<number, StudentHistoryRow[]>>()
+    return groupByYearMonth(selectedStudentGroup.rows, (r) => r.submitted_at)
+  }, [selectedStudentGroup])
+
+  const historyYearList = useMemo(
+    () => [...historyYears.keys()].sort((a, b) => b - a),
+    [historyYears],
+  )
+
+  const historyMonthsOfYear = useMemo(() => {
+    if (selectedHistoryYear == null) return [] as { month: number; rows: StudentHistoryRow[] }[]
+    const months = historyYears.get(selectedHistoryYear)
+    if (!months) return []
+    return [...months.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([month, rows]) => ({ month, rows }))
+  }, [historyYears, selectedHistoryYear])
+
+  const historyRowsOfMonth = useMemo(() => {
+    if (selectedHistoryYear == null || selectedHistoryMonth == null) return [] as StudentHistoryRow[]
+    return historyYears.get(selectedHistoryYear)?.get(selectedHistoryMonth) ?? []
+  }, [historyYears, selectedHistoryYear, selectedHistoryMonth])
+
   const selectedHistoryResponse = useMemo(() => {
     if (!selectedResponseId || !selectedStudentGroup) return null
     return selectedStudentGroup.rows.find((r) => r.id === selectedResponseId) ?? null
@@ -294,6 +321,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   useEffect(() => {
     if (checkInView !== 'student') {
       setSelectedStudentId(null)
+      setSelectedHistoryYear(null)
+      setSelectedHistoryMonth(null)
       setSelectedResponseId(null)
     }
   }, [checkInView])
@@ -303,7 +332,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const loadInvitesAndResponses = useCallback(async (formId: string) => {
     const { data: invData, error: invErr } = await supabase
       .from('check_in_invites')
-      .select('id, token, student_id, student:students(full_name)')
+      .select('id, token, student_id, student:students(full_name, email)')
       .eq('form_id', formId)
     if (invErr) {
       toast.error(invErr.message)
@@ -445,14 +474,22 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       is_active: isActive,
     }
     if (activeFormId) {
+      const oldQuestions = parseQuestions(forms.find((f) => f.id === activeFormId)?.questions)
       const { error } = await supabase.from('check_in_forms').update(payload).eq('id', activeFormId).eq('owner_id', user.id)
-      setSaving(false)
       if (error) {
+        setSaving(false)
         toast.error(error.message)
         return
       }
+      const remapped = await remapCheckInResponsesForForm({
+        formId: activeFormId,
+        oldQuestions,
+        newQuestions: questions,
+      })
+      setSaving(false)
       setForms((prev) => prev.map((x) => (x.id === activeFormId ? { ...x, ...payload, updated_at: new Date().toISOString() } : x)))
-      toast.success('Formulario actualizado')
+      toast.success(remapped > 0 ? 'Formulario actualizado. Se conservaron las respuestas ya cargadas.' : 'Formulario actualizado')
+      if (remapped > 0) void loadInvitesAndResponses(activeFormId)
     } else {
       const { data, error } = await supabase.from('check_in_forms').insert(payload).select('*').single()
       setSaving(false)
@@ -513,7 +550,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     const weekly = weeklyFormDefaults()
     setTitle((t) => t.trim() || weekly.title)
     setIntro(weekly.intro)
-    setQuestions(weekly.questions)
+    setQuestions(mergeCheckInTemplate(questions, weekly.questions))
     toast.success('Plantilla semanal aplicada. Guardá el formulario.')
   }
 
@@ -524,7 +561,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     const monthly = monthlyFormDefaults()
     setTitle(monthly.title)
     setIntro(monthly.intro)
-    setQuestions(monthly.questions)
+    setQuestions(mergeCheckInTemplate(questions, monthly.questions))
     toast.success('Plantilla de feedback mensual aplicada. Guardá el formulario.')
   }
 
@@ -589,8 +626,10 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     void loadInvitesAndResponses(activeFormId)
   }
 
-  function publicUrl(token: string) {
-    return `${window.location.origin}/form/check-in/${token}`
+  function publicUrl(token: string, email?: string | null) {
+    const base = `${window.location.origin}/form/check-in/${token}`
+    const e = email?.trim()
+    return e ? `${base}?email=${encodeURIComponent(e)}` : base
   }
 
   function sharedPublicUrl(publicToken: string | undefined) {
@@ -623,13 +662,17 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     })
   }
 
-  async function copyLink(token: string) {
+  async function copyLink(token: string, email?: string | null) {
     try {
-      await navigator.clipboard.writeText(publicUrl(token))
+      await navigator.clipboard.writeText(publicUrl(token, email))
       toast.success('Link copiado')
     } catch {
       toast.error('No se pudo copiar')
     }
+  }
+
+  function inviteEmail(inv: InviteRow): string | null {
+    return inv.student?.email ?? students.find((s) => s.id === inv.student_id)?.email ?? null
   }
 
   function openCheckInWhatsApp(inv: InviteRow) {
@@ -647,7 +690,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     const msg = checkInInviteMessage({
       studentName: st.full_name,
       formTitle,
-      url: publicUrl(inv.token),
+      url: publicUrl(inv.token, inviteEmail(inv)),
       intro: savedForm?.intro,
     })
     window.open(buildWhatsAppUrl(digits, msg), '_blank', 'noopener,noreferrer')
@@ -877,7 +920,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             <StudentRoutineWeekPanel />
           <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
             <p className="text-xs text-ink-secondary max-w-prose">
-              Elegí un alumno y después una fecha para ver cada respuesta. Así el listado escala cuando haya muchos registros.
+              Elegí un alumno, después el año y el mes, y por último la respuesta. Así el listado escala si el alumno está años con vos.
             </p>
             {studentHistoryLoading ? (
               <p className="text-sm text-ink-muted py-8 text-center">Cargando historial…</p>
@@ -894,7 +937,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-secondary hover:text-ink-primary"
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
-                  Volver a fechas de {selectedStudentGroup.studentName}
+                  Volver a {selectedHistoryYear != null && selectedHistoryMonth != null
+                    ? monthLabelEs(selectedHistoryYear, selectedHistoryMonth)
+                    : `fechas de ${selectedStudentGroup.studentName}`}
                 </button>
                 {(() => {
                   const row = selectedHistoryResponse
@@ -952,6 +997,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         {(() => {
                           const qs = parseQuestions(forms.find((f) => f.id === row.formId)?.questions)
                           const st = weekStatusFromAnswers(qs, obj)
+                          if (st.lastWeek) return <CheckInLastWeekBanner />
                           if (!st.finished) return null
                           const student = students.find((s) => s.id === selectedStudentId)
                           return (
@@ -986,27 +1032,29 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   )
                 })()}
               </div>
-            ) : selectedStudentGroup ? (
+            ) : selectedStudentGroup && selectedHistoryYear != null && selectedHistoryMonth != null ? (
               <div className="space-y-3">
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedStudentId(null)
+                    setSelectedHistoryMonth(null)
                     setSelectedResponseId(null)
                   }}
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-secondary hover:text-ink-primary"
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
-                  Todos los alumnos
+                  Meses de {selectedHistoryYear}
                 </button>
                 <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-4 py-2.5">
-                  <p className="font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
+                  <p className="font-semibold capitalize text-ink-primary">
+                    {monthLabelEs(selectedHistoryYear, selectedHistoryMonth)}
+                  </p>
                   <p className="text-[11px] text-ink-muted">
-                    {selectedStudentGroup.rows.length} respuesta{selectedStudentGroup.rows.length !== 1 ? 's' : ''} · más reciente primero
+                    {historyRowsOfMonth.length} respuesta{historyRowsOfMonth.length !== 1 ? 's' : ''} · {selectedStudentGroup.studentName}
                   </p>
                 </div>
                 <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
-                  {selectedStudentGroup.rows.map((row) => {
+                  {historyRowsOfMonth.map((row) => {
                     const isReplied = !!row.trainer_replied_at
                     const submitted = new Date(row.submitted_at)
                     const obj =
@@ -1032,13 +1080,12 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                 weekday: 'short',
                                 day: '2-digit',
                                 month: 'short',
-                                year: 'numeric',
                               })}
                               <span className="ml-2 font-normal text-ink-muted">
                                 {submitted.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </p>
-                            <p className="truncate text-xs text-ink-secondary">{meta.filingLabel}</p>
+                            <p className="truncate text-xs text-ink-secondary">{meta.weekLabel}</p>
                             <p className="truncate text-[10px] text-ink-muted">{row.formTitle}</p>
                           </div>
                           <span
@@ -1058,6 +1105,104 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   })}
                 </ul>
               </div>
+            ) : selectedStudentGroup && selectedHistoryYear != null ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedHistoryYear(null)
+                    setSelectedHistoryMonth(null)
+                    setSelectedResponseId(null)
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-secondary hover:text-ink-primary"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  Años de {selectedStudentGroup.studentName}
+                </button>
+                <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-4 py-2.5">
+                  <p className="font-semibold text-ink-primary">{selectedHistoryYear}</p>
+                  <p className="text-[11px] text-ink-muted">{selectedStudentGroup.studentName}</p>
+                </div>
+                <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
+                  {historyMonthsOfYear.map(({ month, rows }) => {
+                    const pending = rows.filter((r) => !r.trainer_replied_at).length
+                    return (
+                      <li key={month}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedHistoryMonth(month)
+                            setSelectedResponseId(null)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left capitalize transition-colors hover:bg-surface-elevated/40"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-ink-primary">{monthLabelEs(selectedHistoryYear, month)}</p>
+                            <p className="text-[11px] text-ink-muted">
+                              {rows.length} respuesta{rows.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          {pending > 0 ? (
+                            <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                              {pending} pend.
+                            </span>
+                          ) : null}
+                          <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ) : selectedStudentGroup ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStudentId(null)
+                    setSelectedHistoryYear(null)
+                    setSelectedHistoryMonth(null)
+                    setSelectedResponseId(null)
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-secondary hover:text-ink-primary"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  Todos los alumnos
+                </button>
+                <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-4 py-2.5">
+                  <p className="font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
+                  <p className="text-[11px] text-ink-muted">
+                    {selectedStudentGroup.rows.length} respuesta{selectedStudentGroup.rows.length !== 1 ? 's' : ''} · elegí el año
+                  </p>
+                </div>
+                <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
+                  {historyYearList.map((year) => {
+                    const months = historyYears.get(year)
+                    const count = months ? [...months.values()].reduce((n, rows) => n + rows.length, 0) : 0
+                    return (
+                      <li key={year}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedHistoryYear(year)
+                            setSelectedHistoryMonth(null)
+                            setSelectedResponseId(null)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-elevated/40"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold tabular-nums text-ink-primary">{year}</p>
+                            <p className="text-[11px] text-ink-muted">
+                              {count} respuesta{count !== 1 ? 's' : ''} · {months?.size ?? 0} mes{(months?.size ?? 0) !== 1 ? 'es' : ''}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
             ) : (
               <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
                 {historyByStudent.map(([studentId, group]) => {
@@ -1069,6 +1214,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         type="button"
                         onClick={() => {
                           setSelectedStudentId(studentId)
+                          setSelectedHistoryYear(null)
+                          setSelectedHistoryMonth(null)
                           setSelectedResponseId(null)
                         }}
                         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-elevated/40"
@@ -1405,7 +1552,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                       variant="outline"
                                       className={cn(inviteTableActionBtnClass, 'min-w-7 px-0')}
                                       aria-label={`Copiar link de check-in para ${inv.student?.full_name ?? 'alumno'}`}
-                                      onClick={() => void copyLink(inv.token)}
+                                      onClick={() => void copyLink(inv.token, inviteEmail(inv))}
                                     >
                                       <Copy className="h-3 w-3" />
                                     </Button>
@@ -1416,7 +1563,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                       className={inviteTableActionBtnClass}
                                     >
                                       <a
-                                        href={publicUrl(inv.token)}
+                                        href={publicUrl(inv.token, inviteEmail(inv))}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                       >
@@ -1518,6 +1665,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                             </button>
                           </div>
                           <CheckInAnswerList questions={questions} responses={obj} />
+                          {weekStatusFromAnswers(questions, obj).lastWeek ? <CheckInLastWeekBanner /> : null}
                           {weekStatusFromAnswers(questions, obj).finished ? (
                             <CheckInFinishedBanner
                               description="Pedile la foto del registro de progreso y el feedback mensual para armar el siguiente mesociclo."

@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PlanGeneralNotesFields } from '@/components/nutrition/PlanGeneralNotesFields'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
+import { WeeklyMealPlanBoard } from '@/components/nutrition/WeeklyMealPlanBoard'
 import { NutritionPlansTabs } from '@/components/nutrition/NutritionPlansTabs'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -674,6 +675,13 @@ export function NutritionTemplatesPage() {
                       persistDraft({ name: draftName, mergeWeekends, grid: normalized })
                     }}
                   />
+
+                  <div className="rounded-2xl border border-surface-border bg-slate-50/80 p-3 dark:bg-zinc-950/30">
+                    <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                      Vista del paciente
+                    </p>
+                    <WeeklyMealPlanBoard mergeWeekends={mergeWeekends} grid={normalizeWeeklyGrid(grid, mergeWeekends)} />
+                  </div>
 
                   <p className="text-xs leading-relaxed text-ink-muted rounded-xl border border-surface-border/60 bg-surface-elevated/30 px-3 py-2.5">
                     Los cambios de la grilla se guardan solos al dejar de editar. Después importá este plan en la

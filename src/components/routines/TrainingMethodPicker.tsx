@@ -117,7 +117,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
             <p className="px-2 py-3 text-xs text-ink-muted">Cargando…</p>
           ) : methods.length === 0 ? (
             <p className="px-2 py-3 text-xs text-ink-muted leading-relaxed">
-              No hay métodos. Cargalos en Ejercicios → Métodos.
+              No hay métodos. Cargalos en Base de datos → Métodos.
             </p>
           ) : (
             grouped.map((g) => (

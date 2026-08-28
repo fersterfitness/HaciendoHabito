@@ -46,7 +46,7 @@ export function RoutineBlueprintsPanel() {
 
   /** Agrupado: categoría → subcategoría → plantillas. */
   const grouped = useMemo(() => {
-    const SIN_CAT = 'Sin categoría'
+    const SIN_CAT = 'Sin macrociclo'
     const cats = new Map<string, Map<string, RoutineBlueprint[]>>()
     const sorted = [...items].sort(
       (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name),
@@ -106,7 +106,7 @@ export function RoutineBlueprintsPanel() {
     matchCategory?: string,
   ) {
     const next = window.prompt(
-      field === 'category' ? 'Nuevo nombre de la categoría' : 'Nuevo nombre de la subcategoría',
+      field === 'category' ? 'Nuevo nombre del macrociclo' : 'Nuevo nombre del mesociclo',
       current,
     )
     if (next == null) return
@@ -146,14 +146,14 @@ export function RoutineBlueprintsPanel() {
               type="button"
               onClick={() => (editing ? setEditId(null) : startEdit(bp))}
               className="p-2 rounded-lg text-ink-muted hover:text-brand-secondary hover:bg-brand-secondary/10 transition-colors"
-              title="Mover a categoría / subcategoría"
+              title="Mover a macrociclo / mesociclo"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <Link
               to={`/routines?create=1&blueprint=${bp.id}`}
               className="p-2 rounded-lg text-ink-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
-              title="Crear rutina con esta plantilla"
+              title="Asignar esta variante a un alumno"
             >
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -161,7 +161,7 @@ export function RoutineBlueprintsPanel() {
               type="button"
               onClick={() => setDeleteId(bp.id)}
               className="p-2 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
-              title="Eliminar plantilla"
+              title="Eliminar variante"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -171,22 +171,22 @@ export function RoutineBlueprintsPanel() {
         {editing && (
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 border-t border-surface-border pt-3">
             <label className="text-[11px] font-medium text-ink-secondary">
-              Categoría
+              Macrociclo
               <input
                 list="bp-categories"
                 value={editCat}
                 onChange={(e) => setEditCat(e.target.value)}
-                placeholder="Ej: Fase de intensificación"
+                placeholder="Ej: Hipertrofia 12 semanas"
                 className="mt-1 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
               />
             </label>
             <label className="text-[11px] font-medium text-ink-secondary">
-              Subcategoría
+              Mesociclo
               <input
                 list="bp-subcategories"
                 value={editSub}
                 onChange={(e) => setEditSub(e.target.value)}
-                placeholder="Ej: Principiantes"
+                placeholder="Ej: Acumulación"
                 className="mt-1 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
               />
             </label>
@@ -222,7 +222,7 @@ export function RoutineBlueprintsPanel() {
       toast.error(error.message)
       return
     }
-    toast.success('Plantilla eliminada')
+    toast.success('Variante eliminada')
     setDeleteId(null)
     void load()
   }
@@ -231,13 +231,9 @@ export function RoutineBlueprintsPanel() {
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <p className="text-sm text-ink-secondary leading-relaxed max-w-[52rem]">
-          Guardá plantillas desde el detalle de una rutina (botón <strong className="text-ink-primary">Plantilla</strong>) y
-          organizalas en <strong className="text-ink-primary">categorías y subcategorías</strong> (como carpetas): tocá el
-          lápiz de cada plantilla para moverla, o el lápiz de una carpeta para renombrarla. Al{' '}
-          <Link to="/routines?create=1" className="text-brand-primary font-medium hover:underline">
-            crear una rutina nueva
-          </Link>
-          , elegí una entrada del <strong className="text-ink-primary">diccionario</strong> para copiar bloques, días y ejercicios.
+          Guardá variantes desde el detalle de una rutina (botón <strong className="text-ink-primary">Guardar variante</strong>) y
+          organizalas en <strong className="text-ink-primary">macrociclo → mesociclo → variante</strong> (nombres libres).
+          Desde la ficha del alumno podés asignar una variante y después editarla.
         </p>
         <Button
           size="sm"
@@ -246,7 +242,7 @@ export function RoutineBlueprintsPanel() {
           icon={<Plus className="h-4 w-4" />}
           onClick={() => navigate('/routines?create=1')}
         >
-          Nueva rutina con plantilla
+          Nueva rutina
         </Button>
       </div>
 
@@ -257,8 +253,8 @@ export function RoutineBlueprintsPanel() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Library className="h-8 w-8" />}
-          title="Sin plantillas guardadas"
-          description='Creá una rutina, cargá ejercicios y tocá "Plantilla" en la barra superior para guardarla acá.'
+          title="Sin variantes todavía"
+          description='Creá una rutina, cargá ejercicios y tocá "Guardar variante" para archivarla acá como macrociclo / mesociclo / variante.'
           action={{
             label: 'Ir a mis rutinas',
             onClick: () => navigate('/routines'),
@@ -268,7 +264,7 @@ export function RoutineBlueprintsPanel() {
       ) : (
         <div className="space-y-6">
           {grouped.map(([cat, subs]) => {
-            const isReal = cat !== 'Sin categoría'
+            const isReal = cat !== 'Sin macrociclo'
             return (
             <section key={cat}>
               <div className="mb-2 flex items-center gap-2 border-b border-surface-border pb-1.5">
@@ -282,7 +278,7 @@ export function RoutineBlueprintsPanel() {
                     type="button"
                     onClick={() => void renameGroup('category', cat)}
                     className="ml-1 rounded p-1 text-ink-muted hover:text-brand-secondary"
-                    title="Renombrar categoría"
+                    title="Renombrar macrociclo"
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
@@ -302,7 +298,7 @@ export function RoutineBlueprintsPanel() {
                             type="button"
                             onClick={() => void renameGroup('subcategory', sub, isReal ? cat : undefined)}
                             className="rounded p-0.5 text-ink-muted hover:text-brand-secondary"
-                            title="Renombrar subcategoría"
+                            title="Renombrar mesociclo"
                           >
                             <Pencil className="h-2.5 w-2.5" />
                           </button>
@@ -333,8 +329,8 @@ export function RoutineBlueprintsPanel() {
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="¿Eliminar plantilla?"
-        description="No afecta rutinas ya creadas. Solo se borra esta entrada del diccionario."
+        title="¿Eliminar variante?"
+        description="No afecta rutinas ya asignadas a alumnos. Solo se borra esta variante."
         confirmLabel="Eliminar"
         loading={deleting}
       />

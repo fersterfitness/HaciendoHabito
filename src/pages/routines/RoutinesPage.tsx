@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Navigate } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus,
@@ -9,7 +9,6 @@ import {
   Pencil,
   Trash2,
   Copy,
-  LayoutTemplate,
   FileText,
   ChevronDown,
   Filter,
@@ -25,10 +24,12 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Popover } from '@/components/ui/Popover'
-import { cn, formatDate, daysUntil } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
+import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
+import { loadBlockCountsByRoutine, loadWeekStatusByOwner, weekStatusOrEmpty } from '@/lib/checkIn/routineWeekProgress'
+import type { LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { StudentAvatarThumb } from '@/lib/studentAvatar'
-import { RoutineBlueprintsPanel } from '@/pages/routines/RoutineBlueprintsPanel'
 import { RoutineDeletionHistoryPanel } from '@/components/routines/RoutineDeletionHistoryPanel'
 import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
 import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
@@ -76,40 +77,8 @@ function phraseRoutineStatus(status: RoutineStatus): string {
   return ROUTINE_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
 }
 
-function RoutineDaysChip({ endDate }: { endDate: string }) {
-  const days = daysUntil(endDate)
-  if (days < 0) {
-    return (
-      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-status-expired/25 bg-status-expired/10 px-2 py-0.5 text-xs font-semibold text-status-expired">
-        Vencida
-      </span>
-    )
-  }
-  if (days === 0) {
-    return (
-      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-status-expired/25 bg-status-expired/10 px-2 py-0.5 text-xs font-semibold text-status-expired">
-        Hoy
-      </span>
-    )
-  }
-  if (days <= 7) {
-    return (
-      <span className="inline-flex items-center whitespace-nowrap rounded-md border border-status-expiring/30 bg-status-expiring/10 px-2 py-0.5 text-xs font-semibold text-status-expiring">
-        {days}d
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center whitespace-nowrap rounded-md border border-emerald-500/25 bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
-      {days}d
-    </span>
-  )
-}
-
 type RoutineLevelFilter = '' | 'inicial' | 'intermedio' | 'avanzado'
 type RoutineStatusFilter = '' | RoutineStatus
-/** Filtro por fecha de fin de período */
-type RoutineExpiryFilter = '' | 'pronto' | 'vencido'
 
 type RoutineTableSort =
   | 'recommended'
@@ -121,7 +90,7 @@ type RoutineTableSort =
   | 'name_desc'
 
 const ROUTINE_SORT_OPTS: { value: RoutineTableSort; label: string }[] = [
-  { value: 'recommended', label: 'Activas primero · vencimiento' },
+  { value: 'recommended', label: 'Activas primero · alumno' },
   { value: 'student_asc', label: 'Alumno · A→Z' },
   { value: 'student_desc', label: 'Alumno · Z→A' },
   { value: 'name_asc', label: 'Rutina · A→Z' },
@@ -131,7 +100,7 @@ const ROUTINE_SORT_OPTS: { value: RoutineTableSort; label: string }[] = [
 ]
 
 const ROUTINE_SORT_SUBTITLE: Record<RoutineTableSort, string> = {
-  recommended: 'Activas primero · vencimiento ↑',
+  recommended: 'Activas primero · alumno',
   student_asc: 'Alumno · A→Z',
   student_desc: 'Alumno · Z→A',
   name_asc: 'Nombre rutina · A→Z',
@@ -180,18 +149,14 @@ function RoutinesFiltersDropdown({
   setFilterLevel,
   filterStatus,
   setFilterStatus,
-  filterExpiry,
-  setFilterExpiry,
 }: {
   filterLevel: RoutineLevelFilter
   setFilterLevel: (v: RoutineLevelFilter) => void
   filterStatus: RoutineStatusFilter
   setFilterStatus: (v: RoutineStatusFilter) => void
-  filterExpiry: RoutineExpiryFilter
-  setFilterExpiry: (v: RoutineExpiryFilter) => void
 }) {
   const [open, setOpen] = useState(false)
-  const activeCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0)
+  const activeCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0)
 
   return (
     <div className="relative inline-flex shrink-0">
@@ -263,36 +228,12 @@ function RoutinesFiltersDropdown({
             )}
           </div>
 
-          <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Período</p>
-            {([
-              { value: '' as RoutineExpiryFilter, label: 'Todos' },
-              { value: 'pronto' as RoutineExpiryFilter, label: 'Vence en ≤14 días' },
-              { value: 'vencido' as RoutineExpiryFilter, label: 'Período ya vencido' },
-            ]).map((opt) => (
-              <button
-                key={opt.value || 'all-exp'}
-                type="button"
-                onClick={() => setFilterExpiry(opt.value)}
-                className={cn(
-                  'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
-                  filterExpiry === opt.value
-                    ? 'bg-slate-500/12 font-medium text-zinc-900 dark:bg-slate-400/14 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
           {activeCount > 0 && (
             <button
               type="button"
               onClick={() => {
                 setFilterLevel('')
                 setFilterStatus('')
-                setFilterExpiry('')
                 setOpen(false)
               }}
               className="flex w-full items-center justify-center gap-1 border-t border-zinc-200/65 pt-2 text-xs text-zinc-500 transition-colors hover:text-rose-600 dark:border-zinc-800/80 dark:hover:text-rose-400"
@@ -391,11 +332,10 @@ export function RoutinesPage() {
     )
   }, [setSearchParams])
   const { user } = useAuthStore()
-  const { routines, loading, fetchRoutines, deleteRoutine } = useRoutines()
+  const { routines, loading, fetchRoutines, deleteRoutine, updateRoutine } = useRoutines()
   const [search, setSearch] = useState('')
   const [filterLevel, setFilterLevel] = useState<RoutineLevelFilter>('')
   const [filterStatus, setFilterStatus] = useState<RoutineStatusFilter>('')
-  const [filterExpiry, setFilterExpiry] = useState<RoutineExpiryFilter>('')
   const [tableSort, setTableSort] = useState<RoutineTableSort>('recommended')
   const searchRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoutineWithStudent | null>(null)
@@ -403,6 +343,8 @@ export function RoutinesPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
+  const [weekByStudent, setWeekByStudent] = useState<Map<string, LatestWeekStatus>>(() => new Map())
+  const [blocksByRoutine, setBlocksByRoutine] = useState<Map<string, number>>(() => new Map())
 
   const [duplicateTarget, setDuplicateTarget] = useState<RoutineWithStudent | null>(null)
   const [students, setStudents] = useState<Student[]>([])
@@ -526,6 +468,32 @@ export function RoutinesPage() {
     fetchRoutines()
   }, [fetchRoutines])
 
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    void loadWeekStatusByOwner(user.id).then((map) => {
+      if (!cancelled) setWeekByStudent(map)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user, routines])
+
+  useEffect(() => {
+    const ids = routines.map((r) => r.id)
+    if (!ids.length) {
+      setBlocksByRoutine(new Map())
+      return
+    }
+    let cancelled = false
+    void loadBlockCountsByRoutine(ids).then((map) => {
+      if (!cancelled) setBlocksByRoutine(map)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [routines])
+
   useSlashSearchFocus(searchRef, !tabPlantillas && !tabPdfs)
 
   function startRename(r: RoutineWithStudent, e: React.MouseEvent) {
@@ -565,18 +533,17 @@ export function RoutinesPage() {
       if (filterStatus !== 'completada' && r.status === 'completada') return false
       if (filterLevel && r.level !== filterLevel) return false
       if (filterStatus && r.status !== filterStatus) return false
-      if (filterExpiry) {
-        const dLeft = daysUntil(r.end_date)
-        if (filterExpiry === 'vencido' && dLeft >= 0) return false
-        if (filterExpiry === 'pronto' && !(dLeft >= 0 && dLeft <= 14)) return false
-      }
       return true
     })
-  }, [list, search, filterLevel, filterStatus, filterExpiry])
+  }, [list, search, filterLevel, filterStatus])
 
   const filteredSorted = useMemo(() => sortRoutinesList(filtered, tableSort), [filtered, tableSort])
 
-  const filterActiveCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0)
+  const filterActiveCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0)
+
+  if (tabPlantillas) {
+    return <Navigate to="/exercises/blueprints" replace />
+  }
 
   return (
     <div>
@@ -597,25 +564,12 @@ export function RoutinesPage() {
           }
           className={cn(
             '-mb-px rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
-            !tabPlantillas && !tabPdfs
+            !tabPdfs
               ? 'border-surface-border bg-surface-card text-ink-primary'
               : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
           )}
         >
           Mis rutinas
-        </button>
-        <button
-          type="button"
-          onClick={() => setSearchParams({ tab: 'plantillas' }, { replace: true })}
-          className={cn(
-            'flex items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors -mb-px',
-            tabPlantillas
-              ? 'border-surface-border bg-surface-card text-ink-primary'
-              : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
-          )}
-        >
-          <LayoutTemplate className="h-4 w-4 shrink-0" aria-hidden />
-          Plantillas
         </button>
         <button
           type="button"
@@ -633,9 +587,7 @@ export function RoutinesPage() {
       </div>
 
       <div className="space-y-4 px-4 py-6 lg:px-6 lg:py-8">
-        {tabPlantillas ? (
-          <RoutineBlueprintsPanel />
-        ) : tabPdfs ? (
+        {tabPdfs ? (
           <Suspense
             fallback={
               <div className="flex justify-center py-16">
@@ -680,8 +632,6 @@ export function RoutinesPage() {
                   setFilterLevel={setFilterLevel}
                   filterStatus={filterStatus}
                   setFilterStatus={setFilterStatus}
-                  filterExpiry={filterExpiry}
-                  setFilterExpiry={setFilterExpiry}
                 />
                 <RoutinesSortDropdown value={tableSort} onChange={setTableSort} />
 
@@ -706,19 +656,6 @@ export function RoutinesPage() {
                       className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
                       aria-label="Quitar filtro estado"
                       onClick={() => setFilterStatus('')}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                )}
-                {filterExpiry && (
-                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-status-expiring/35 bg-status-expiring/8 px-2.5 text-xs font-medium text-status-expiring">
-                    {filterExpiry === 'pronto' ? 'Vence ≤14 días' : 'Período vencido'}
-                    <button
-                      type="button"
-                      className="opacity-80 hover:opacity-100"
-                      aria-label="Quitar filtro período"
-                      onClick={() => setFilterExpiry('')}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -778,7 +715,6 @@ export function RoutinesPage() {
                         onClick={() => {
                           setFilterLevel('')
                           setFilterStatus('')
-                          setFilterExpiry('')
                         }}
                         className="text-[11px] font-medium text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline"
                       >
@@ -797,7 +733,7 @@ export function RoutinesPage() {
                         <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Período</th>
                         <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Nivel</th>
                         <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Vence</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
                         <th className="whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
                           Acciones
                         </th>
@@ -883,8 +819,18 @@ export function RoutinesPage() {
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <Badge status={r.status} />
                           </td>
-                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
-                            <RoutineDaysChip endDate={r.end_date} />
+                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')} onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const st = weekStatusOrEmpty(weekByStudent, r.student_id)
+                              return (
+                                <RoutineWeekSquares
+                                  totalWeeks={blocksByRoutine.get(r.id) ?? 0}
+                                  currentWeek={st.weekNumber}
+                                  finished={st.finished}
+                                  lastWeek={st.lastWeek}
+                                />
+                              )
+                            })()}
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <div className="flex items-center justify-end gap-1.5">

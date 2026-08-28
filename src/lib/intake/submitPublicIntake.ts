@@ -111,7 +111,22 @@ export async function submitPublicIntake(
   }
 
   if (!res.ok || body.error) {
-    return { ok: false, error: body.error || 'Error al enviar', status: res.status }
+    const raw = body.error || 'Error al enviar'
+    if (
+      import.meta.env.DEV &&
+      (res.status === 401 || /no autorizado/i.test(raw))
+    ) {
+      const hasToken =
+        typeof payload.intake_access_token === 'string' && payload.intake_access_token.trim().length > 0
+      return {
+        ok: false,
+        error: hasToken
+          ? 'El permiso no está aprobado. Volvé a Permisos y tocá «Saltar permiso» estando logueado como entrenador.'
+          : 'Falta el permiso de Tomás. En Permisos tocá «Saltar permiso» estando logueado como entrenador.',
+        status: res.status,
+      }
+    }
+    return { ok: false, error: raw, status: res.status }
   }
   if (!body.ok) {
     return { ok: false, error: 'No se pudo completar el registro', status: res.status }

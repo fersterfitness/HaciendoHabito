@@ -199,7 +199,7 @@ export function PresetBlocksPage() {
 
   return (
     <div>
-      <Header title="Ejercicios" />
+      <Header title="Base de datos" />
       <div className="page-shell-x page-shell-y space-y-5">
         <ExercisesSectionNav />
 

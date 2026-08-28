@@ -1,4 +1,5 @@
--- Al marcar «terminé mi mes de rutina», la rutina activa pasa a completada (finalizó / venció).
+-- El envío público no debe fallar por la notificación al entrenador
+-- (RLS / "No autorizado para notificar a otro usuario" si hay JWT de otro usuario).
 
 CREATE OR REPLACE FUNCTION public.apply_check_in_response_side_effects()
 RETURNS trigger
@@ -149,10 +150,31 @@ BEGIN
       );
     END IF;
   EXCEPTION WHEN OTHERS THEN
-    -- No bloquear el envío del alumno si falla ciclo / rutina / notificación (p. ej. RLS o sesión de otro usuario).
     NULL;
   END;
 
   RETURN NEW;
 END;
 $$;
+
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'submit_check_in_response',
+        'submit_check_in_shared_response',
+        'get_check_in_form_by_token',
+        'get_check_in_form_by_public_token',
+        'lookup_check_in_student_preview',
+        'lookup_check_in_invite_preview'
+      )
+  LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon, authenticated', r.sig);
+  END LOOP;
+END $$;

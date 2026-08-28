@@ -970,7 +970,7 @@ export function NutritionPatientDetailView({
             <Card>
               <CardTitle className="mb-1">Plan de alimentación</CardTitle>
               <p className="text-sm text-ink-muted mb-4">
-                Plan semanal por columnas con exportación a PDF moderno.
+                Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño.
               </p>
               <NutritionWeeklyPlanSection student={student} measurements={measurements} />
               <div className="border-t border-surface-border pt-6 mt-8 space-y-2">

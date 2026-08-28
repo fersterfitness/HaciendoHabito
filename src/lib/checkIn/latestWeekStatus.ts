@@ -1,14 +1,15 @@
 import { supabase } from '@/lib/supabase'
-import { parseQuestions, weekStatusFromAnswers } from '@/lib/checkIn/questions'
+import { parseQuestions, weekStatusFromAnswers, weekStatusHasSignal } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
 
 export type LatestWeekStatus = {
   finished: boolean
   weekNumber: number | null
+  lastWeek: boolean
   submittedAt: string | null
 }
 
-const EMPTY: LatestWeekStatus = { finished: false, weekNumber: null, submittedAt: null }
+const EMPTY: LatestWeekStatus = { finished: false, weekNumber: null, lastWeek: false, submittedAt: null }
 
 /** Último check-in semanal del alumno (ignora feedback mensual). */
 export async function loadLatestWeekStatusForStudent(studentId: string): Promise<LatestWeekStatus> {
@@ -43,8 +44,13 @@ export async function loadLatestWeekStatusForStudent(studentId: string): Promise
         ? (r.responses as Record<string, unknown>)
         : {}
     const st = weekStatusFromAnswers(qs, obj)
-    if (st.finished || st.weekNumber != null) {
-      return { finished: st.finished, weekNumber: st.weekNumber, submittedAt: r.submitted_at }
+    if (weekStatusHasSignal(st)) {
+      return {
+        finished: st.finished,
+        weekNumber: st.weekNumber,
+        lastWeek: st.lastWeek,
+        submittedAt: r.submitted_at,
+      }
     }
   }
   return EMPTY

@@ -36,6 +36,9 @@ const TrainingMethodsPage = lazy(() =>
 const PresetBlocksPage = lazy(() =>
   import('@/pages/exercises/PresetBlocksPage').then((m) => ({ default: m.PresetBlocksPage })),
 )
+const ExerciseBlueprintsPage = lazy(() =>
+  import('@/pages/exercises/ExerciseBlueprintsPage').then((m) => ({ default: m.ExerciseBlueprintsPage })),
+)
 const FinancesPage = lazy(() => import('@/pages/finances/FinancesPage').then((m) => ({ default: m.FinancesPage })))
 const IncomeFormPage = lazy(() => import('@/pages/finances/IncomeFormPage').then((m) => ({ default: m.IncomeFormPage })))
 const ExpenseFormPage = lazy(() => import('@/pages/finances/ExpenseFormPage').then((m) => ({ default: m.ExpenseFormPage })))
@@ -193,6 +196,7 @@ function renderLoggedInRoutes({
       <Route path="exercises" element={canSeeTraining ? withPageSuspense(<ExercisesPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="exercises/methods" element={canSeeTraining ? withPageSuspense(<TrainingMethodsPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="exercises/presets" element={canSeeTraining ? withPageSuspense(<PresetBlocksPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="exercises/blueprints" element={canSeeTraining ? withPageSuspense(<ExerciseBlueprintsPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="exercises/new" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="exercises/:id/edit" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
 

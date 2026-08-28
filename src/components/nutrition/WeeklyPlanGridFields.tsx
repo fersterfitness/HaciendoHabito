@@ -2,9 +2,11 @@ import { Clock, Columns2, Plus, Trash2 } from 'lucide-react'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
   addMealRow,
-  columnLabels,
+  columnFullLabels,
   columnCount,
   createEmptyWeeklyGrid,
+  dayAccent,
+  filledMealCountForDay,
   normalizeWeeklyGrid,
   removeMealRowAt,
 } from '@/lib/nutrition/weeklyPlanGrid'
@@ -21,11 +23,11 @@ interface Props {
 }
 
 export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, grid, onGridChange }: Props) {
-  const days = columnLabels(mergeWeekends)
+  const days = columnFullLabels(mergeWeekends)
   const cols = columnCount(mergeWeekends)
+  const normalized = normalizeWeeklyGrid(grid, mergeWeekends)
 
   function updateCell(mealIdx: number, dayIdx: number, text: string) {
-    const normalized = normalizeWeeklyGrid(grid, mergeWeekends)
     const meals = [...normalized.mealRows]
     if (!meals[mealIdx]) return
     const nextCols = [...meals[mealIdx].columns]
@@ -35,7 +37,6 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
   }
 
   function updateMealField(mealIdx: number, key: 'label' | 'approxTime', text: string) {
-    const normalized = normalizeWeeklyGrid(grid, mergeWeekends)
     const meals = [...normalized.mealRows]
     if (!meals[mealIdx]) return
     meals[mealIdx] = { ...meals[mealIdx], [key]: text }
@@ -55,80 +56,107 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
         Unificar sábado y domingo
       </label>
 
-      <div className="overflow-x-auto -mx-1 px-1 pb-2">
-        <div className="min-w-[720px] space-y-4">
-          {normalizeWeeklyGrid(grid, mergeWeekends).mealRows.map((meal, mi) => (
-            <div
-              key={meal.id}
-              className="rounded-2xl border border-surface-border overflow-hidden bg-surface-elevated/50 shadow-sm"
+      <div className="flex flex-wrap items-center gap-2">
+        {normalized.mealRows.map((meal, mi) => (
+          <div
+            key={meal.id}
+            className="flex items-center gap-1.5 rounded-full border border-surface-border bg-white px-2 py-1 shadow-sm"
+          >
+            <input
+              value={meal.label}
+              onChange={(e) => updateMealField(mi, 'label', e.target.value)}
+              className={cn(
+                'w-28 bg-transparent px-1 py-0.5 text-[12px] font-semibold text-ink-primary',
+                planFocusClassName,
+              )}
+              aria-label="Nombre de la comida"
+            />
+            <span className="text-ink-muted">·</span>
+            <Clock className="h-3 w-3 text-ink-muted" aria-hidden />
+            <input
+              value={meal.approxTime}
+              onChange={(e) => updateMealField(mi, 'approxTime', e.target.value)}
+              placeholder="hora"
+              className={cn('w-14 bg-transparent py-0.5 text-[11px] text-ink-muted', planFocusClassName)}
+              aria-label="Horario aproximado"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const next = removeMealRowAt(normalized, mi)
+                onGridChange(next.mealRows.length ? next : createEmptyWeeklyGrid(mergeWeekends))
+              }}
+              className="rounded-full p-0.5 text-ink-muted hover:bg-rose-50 hover:text-rose-500"
+              aria-label={`Quitar ${meal.label}`}
             >
-              <div
-                className="grid divide-x divide-surface-border"
-                style={{
-                  gridTemplateColumns: `minmax(120px, 150px) repeat(${cols}, minmax(110px, 1fr))`,
-                }}
-              >
-                <div className="p-3 bg-brand-secondary/[0.06]">
-                  <label className="flex items-center gap-1 text-[10px] uppercase text-ink-muted mb-1">
-                    <Clock className="w-3 h-3" />
-                    Comida
-                  </label>
-                  <input
-                    value={meal.label}
-                    onChange={(e) => updateMealField(mi, 'label', e.target.value)}
-                    className={cn('w-full bg-surface-input border border-surface-inputBorder rounded-lg px-2 py-1.5 text-sm font-medium mb-2', planFocusClassName)}
-                  />
-                  <input
-                    value={meal.approxTime}
-                    onChange={(e) => updateMealField(mi, 'approxTime', e.target.value)}
-                    placeholder="~10:00"
-                    className={cn('w-full bg-surface-input border border-surface-inputBorder rounded-lg px-2 py-1 text-xs text-ink-muted mb-2', planFocusClassName)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = removeMealRowAt(normalizeWeeklyGrid(grid, mergeWeekends), mi)
-                      onGridChange(next.mealRows.length ? next : createEmptyWeeklyGrid(mergeWeekends))
-                    }}
-                    className="text-[11px] text-status-expired inline-flex items-center gap-1 hover:underline"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Quitar comida
-                  </button>
-                </div>
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => onGridChange(addMealRow(normalized, mergeWeekends))}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-surface-border px-2.5 py-1 text-[12px] font-medium text-brand-secondary hover:bg-brand-secondary/5"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Comida
+        </button>
+      </div>
 
-                {meal.columns.map((cell, ci) => (
-                  <div key={ci} className="flex flex-col min-h-[8rem] bg-surface-input/40">
-                    <div className="text-[9px] font-semibold uppercase tracking-wide text-center py-1.5 bg-brand-secondary/10 text-brand-secondary border-b border-surface-border/80">
-                      {days[ci]}
-                    </div>
+      <div className="overflow-x-auto -mx-1 rounded-2xl bg-slate-50/80 px-2 py-3 dark:bg-zinc-950/40">
+        <div
+          className="grid min-w-[54rem] items-stretch gap-x-2.5 gap-y-2.5"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(8.75rem, 1fr))` }}
+        >
+          {days.map((day, di) => {
+            const accent = dayAccent(di, mergeWeekends)
+            const count = filledMealCountForDay(normalized, di)
+            return (
+              <header key={`h-${day}`} className="flex items-center justify-between gap-2 px-0.5">
+                <h3 className="text-[12px] font-bold tracking-tight text-ink-primary">{day}</h3>
+                <span
+                  className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
+                  style={{ backgroundColor: accent.wash, color: accent.color }}
+                >
+                  {count}
+                </span>
+              </header>
+            )
+          })}
+
+          {normalized.mealRows.map((meal, mi) =>
+            days.map((day, di) => {
+              const accent = dayAccent(di, mergeWeekends)
+              return (
+                <div
+                  key={`${meal.id}-${di}`}
+                  className="flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] dark:border-zinc-700 dark:bg-zinc-950"
+                >
+                  <div className="h-[5px] w-full shrink-0" style={{ backgroundColor: accent.color }} />
+                  <div className="flex flex-1 flex-col p-2.5">
+                    <p className="text-[12px] font-bold leading-tight text-ink-primary">{meal.label}</p>
+                    {meal.approxTime.trim() ? (
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+                        {meal.approxTime}
+                      </p>
+                    ) : null}
                     <textarea
-                      value={cell}
-                      onChange={(e) => updateCell(mi, ci, e.target.value)}
-                      placeholder="Menú y orientaciones…"
-                      rows={5}
+                      value={meal.columns[di] ?? ''}
+                      onChange={(e) => updateCell(mi, di, e.target.value)}
+                      placeholder="Menú…"
+                      rows={4}
                       className={cn(
-                        'min-h-[6rem] w-full flex-1 resize-y whitespace-pre-wrap break-words px-2 py-2 text-xs leading-snug text-ink-primary',
-                        'bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-brand-secondary/30',
+                        'mt-2 min-h-[4.5rem] w-full flex-1 resize-y rounded-lg border-0 bg-slate-50/80 px-2 py-1.5 text-[12px] leading-relaxed text-ink-primary placeholder:text-ink-muted',
                         planFocusClassName,
                       )}
                     />
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                </div>
+              )
+            }),
+          )}
         </div>
       </div>
-
-      <button
-        type="button"
-        onClick={() => onGridChange(addMealRow(normalizeWeeklyGrid(grid, mergeWeekends), mergeWeekends))}
-        className="inline-flex items-center gap-2 text-sm font-medium text-brand-secondary hover:underline"
-      >
-        <Plus className="w-4 h-4" />
-        Agregar momento / comida
-      </button>
     </div>
   )
 }

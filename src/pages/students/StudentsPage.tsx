@@ -41,6 +41,9 @@ import {
 import { Input } from '@/components/ui/Input'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
+import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
+import { loadBlockCountsByRoutine, loadWeekStatusByOwner, weekStatusOrEmpty } from '@/lib/checkIn/routineWeekProgress'
+import type { LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { useAuthStore } from '@/stores/authStore'
@@ -500,7 +503,8 @@ export function StudentsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
-  const [routineExpiryMap, setRoutineExpiryMap] = useState<Map<string, string>>(new Map())
+  const [weekByStudent, setWeekByStudent] = useState<Map<string, LatestWeekStatus>>(() => new Map())
+  const [weeksByStudent, setWeeksByStudent] = useState<Map<string, number>>(() => new Map())
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
   const [currentPlanByStudent, setCurrentPlanByStudent] = useState<Record<string, import('@/types/database').StudentPlanAssignment>>({})
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
@@ -512,20 +516,27 @@ export function StudentsPage() {
     if (!user) return
     supabase
       .from('routines')
-      .select('student_id, end_date, status')
+      .select('id, student_id, status')
       .eq('owner_id', user.id)
       .in('status', ['activa', 'por_vencer'])
-      .then(({ data }) => {
-        const ids  = new Set<string>()
-        const expMap = new Map<string, string>()
-        for (const r of (data ?? [])) {
+      .order('updated_at', { ascending: false })
+      .then(async ({ data }) => {
+        const ids = new Set<string>()
+        const routineOfStudent = new Map<string, string>()
+        for (const r of data ?? []) {
           const sid = r.student_id as string
           ids.add(sid)
-          const d = daysUntil(r.end_date as string)
-          if (d >= 0 && d <= 7) expMap.set(sid, r.end_date as string)
+          if (!routineOfStudent.has(sid)) routineOfStudent.set(sid, r.id as string)
         }
         setActiveRoutineStudentIds(ids)
-        setRoutineExpiryMap(expMap)
+        const [weekMap, blockCounts] = await Promise.all([
+          loadWeekStatusByOwner(user.id),
+          loadBlockCountsByRoutine([...routineOfStudent.values()]),
+        ])
+        setWeekByStudent(weekMap)
+        const weeks = new Map<string, number>()
+        for (const [sid, rid] of routineOfStudent) weeks.set(sid, blockCounts.get(rid) ?? 0)
+        setWeeksByStudent(weeks)
       })
   }, [fetchStudents, user])
 
@@ -801,7 +812,8 @@ export function StudentsPage() {
               selectedStudentId={selectedStudentId}
               onAvatarUpdated={() => { void fetchStudents(search) }}
               activeRoutineStudentIds={activeRoutineStudentIds}
-              routineExpiryMap={routineExpiryMap}
+              weekByStudent={weekByStudent}
+              weeksByStudent={weeksByStudent}
               hasMealPlanStudentIds={hasMealPlanStudentIds}
               currentPlanByStudent={currentPlanByStudent}
               onRowClick={(studentId) => setSelectedStudentId(studentId)}
@@ -895,7 +907,8 @@ function StudentDirectoryTable({
   onStatusChanged,
   onFilterTag,
   activeRoutineStudentIds,
-  routineExpiryMap: _routineExpiryMap,
+  weekByStudent,
+  weeksByStudent,
   hasMealPlanStudentIds,
   currentPlanByStudent,
 }: {
@@ -911,7 +924,8 @@ function StudentDirectoryTable({
   onStatusChanged: (id: string, status: StudentStatus) => void
   onFilterTag?: (tag: string) => void
   activeRoutineStudentIds: Set<string>
-  routineExpiryMap: Map<string, string>
+  weekByStudent: Map<string, LatestWeekStatus>
+  weeksByStudent: Map<string, number>
   hasMealPlanStudentIds: Set<string>
   currentPlanByStudent: Record<string, StudentPlanAssignment>
 }) {
@@ -972,7 +986,14 @@ function StudentDirectoryTable({
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <StatusToggle student={student} onChanged={onStatusChanged} />
-                  {student.plan_end_date && <PlanDaysChip date={student.plan_end_date} />}
+                  {activeRoutineStudentIds.has(student.id) ? (
+                    <RoutineWeekSquares
+                      totalWeeks={weeksByStudent.get(student.id) ?? 0}
+                      currentWeek={weekStatusOrEmpty(weekByStudent, student.id).weekNumber}
+                      finished={weekStatusOrEmpty(weekByStudent, student.id).finished}
+                      lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
+                    />
+                  ) : null}
                   {currentPlanByStudent[student.id] ? (() => {
                     const a = currentPlanByStudent[student.id]
                     const eff = effectivePaymentStatus(a)
@@ -1045,7 +1066,7 @@ function StudentDirectoryTable({
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>
               <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5">Nivel</th>
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Vence</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
               <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5">Email</th>
               <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
@@ -1117,10 +1138,15 @@ function StudentDirectoryTable({
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
                     <StatusToggle student={student} onChanged={onStatusChanged} />
                   </td>
-                  <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
+                  <td className="hh-row-drop-in px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col items-start gap-1">
-                      {student.plan_end_date ? (
-                        <PlanDaysChip date={student.plan_end_date} />
+                      {hasRoutine ? (
+                        <RoutineWeekSquares
+                          totalWeeks={weeksByStudent.get(student.id) ?? 0}
+                          currentWeek={weekStatusOrEmpty(weekByStudent, student.id).weekNumber}
+                          finished={weekStatusOrEmpty(weekByStudent, student.id).finished}
+                          lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
+                        />
                       ) : (
                         <span className="text-[11px] text-ink-muted/50">—</span>
                       )}

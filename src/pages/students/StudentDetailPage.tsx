@@ -24,6 +24,7 @@ import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { StudentPlanCard } from '@/components/students/StudentPlanCard'
 import { AssignPlanModal } from '@/components/students/AssignPlanModal'
+import { AssignPresetRoutineModal } from '@/components/routines/AssignPresetRoutineModal'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
 import { PsychologistStudentIntakePanel } from '@/components/students/PsychologistStudentIntakePanel'
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
@@ -188,6 +189,9 @@ export function StudentDetailView({
   const [savingTags, setSavingTags] = useState(false)
 
   const [assignPlanOpen, setAssignPlanOpen] = useState(false)
+  const [assignPresetOpen, setAssignPresetOpen] = useState(false)
+  const [savingRoutinePaid, setSavingRoutinePaid] = useState(false)
+  const [paidAmountDraft, setPaidAmountDraft] = useState('')
   const [editPlanAssignment, setEditPlanAssignment] = useState<import('@/types/database').StudentPlanAssignment | null>(null)
   const [planRefreshKey, setPlanRefreshKey] = useState(0)
 
@@ -245,6 +249,36 @@ export function StudentDetailView({
   const [mealPlans, setMealPlans] = useState<TrainerStudentMealPlan[]>([])
   const [mealPlansLoading, setMealPlansLoading] = useState(false)
   const [mealPlanPdfBusy, setMealPlanPdfBusy] = useState<string | null>(null)
+
+  useEffect(() => {
+    const active = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
+    setPaidAmountDraft(active?.price && active.price > 0 ? String(active.price) : '')
+  }, [routines])
+
+  async function saveRoutinePaid(routineId: string, isPaid: boolean) {
+    const amount = paidAmountDraft.trim() ? Number(paidAmountDraft.replace(',', '.')) : null
+    setSavingRoutinePaid(true)
+    const { error } = await supabase
+      .from('routines')
+      .update({
+        is_paid: isPaid,
+        price: isPaid && Number.isFinite(amount) ? amount : isPaid ? 0 : null,
+      })
+      .eq('id', routineId)
+    setSavingRoutinePaid(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setRoutines((prev) =>
+      prev.map((r) =>
+        r.id === routineId
+          ? { ...r, is_paid: isPaid, price: isPaid && Number.isFinite(amount) ? amount : isPaid ? 0 : null }
+          : r,
+      ),
+    )
+    toast.success(isPaid ? 'Rutina marcada como abonada' : 'Abono desmarcado')
+  }
 
   useEffect(() => {
     if (!id || !user) return
@@ -922,6 +956,43 @@ export function StudentDetailView({
                     </div>
                   </dl>
 
+                  <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
+                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-800 dark:text-zinc-100">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
+                        checked={!!activeRoutine.is_paid}
+                        disabled={savingRoutinePaid}
+                        onChange={(e) => void saveRoutinePaid(activeRoutine.id, e.target.checked)}
+                      />
+                      ¿Abonó?
+                    </label>
+                    <label className="text-[11px] font-medium text-zinc-500">
+                      Monto (opcional)
+                      <input
+                        type="number"
+                        min={0}
+                        inputMode="decimal"
+                        placeholder="0"
+                        value={paidAmountDraft}
+                        onChange={(e) => setPaidAmountDraft(e.target.value)}
+                        onBlur={() => {
+                          if (activeRoutine.is_paid) void saveRoutinePaid(activeRoutine.id, true)
+                        }}
+                        className="mt-1 w-28 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm tabular-nums text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                      />
+                    </label>
+                    {activeRoutine.is_paid ? (
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        Abonada
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                        Pendiente
+                      </span>
+                    )}
+                  </div>
+
                   {/* Chips perfil entrenamiento */}
                   {profileChips.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
@@ -941,6 +1012,14 @@ export function StudentDetailView({
                       onClick={() => navigate(`/routines/${activeRoutine.id}`)}
                     >
                       Abrir rutina
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setAssignPresetOpen(true)}
+                      className="sm:flex-1"
+                    >
+                      Preestablecida
                     </Button>
                     <Button
                       variant="secondary"
@@ -990,6 +1069,13 @@ export function StudentDetailView({
                         onClick={() => navigate(`/routines?create=1&student=${id}`)}
                       >
                         {rutinaHistorialVacío ? 'Crear rutina' : 'Nueva rutina'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setAssignPresetOpen(true)}
+                      >
+                        Rutinas preestablecidas
                       </Button>
                       {!rutinaHistorialVacío && (
                         <Button
@@ -1313,6 +1399,18 @@ export function StudentDetailView({
           editAssignment={editPlanAssignment}
           onClose={() => { setAssignPlanOpen(false); setEditPlanAssignment(null) }}
           onAssigned={() => setPlanRefreshKey((k) => k + 1)}
+        />
+      ) : null}
+      {id && student ? (
+        <AssignPresetRoutineModal
+          open={assignPresetOpen}
+          studentId={id}
+          studentName={student.full_name}
+          onClose={() => setAssignPresetOpen(false)}
+          onPick={(blueprintId) => {
+            setAssignPresetOpen(false)
+            navigate(`/routines?create=1&student=${id}&blueprint=${blueprintId}`)
+          }}
         />
       ) : null}
     </div>

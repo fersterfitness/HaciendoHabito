@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
 
-/** Redirige al listado unificado de rutinas (pestaña Plantillas). */
+/** Las plantillas viven en Base de datos → Rutinas preestablecidas. */
 export function RoutineBlueprintsPage() {
-  return <Navigate to="/routines?tab=plantillas" replace />
+  return <Navigate to="/exercises/blueprints" replace />
 }

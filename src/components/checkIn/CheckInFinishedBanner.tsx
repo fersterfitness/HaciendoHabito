@@ -1,6 +1,27 @@
-import { Flag, MessageCircle } from 'lucide-react'
+import { AlertTriangle, Flag, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
+
+export function CheckInLastWeekBanner() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-rose-500/35 bg-gradient-to-br from-rose-500/15 via-surface-card to-rose-500/8 p-3.5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-700 dark:text-rose-300">
+          <AlertTriangle className="h-4 w-4" strokeWidth={2.2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-rose-600 dark:text-rose-400">
+            Última semana
+          </p>
+          <p className="mt-0.5 text-[11px] font-semibold text-rose-700 dark:text-rose-300">Renovar rutina</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-ink-secondary">
+            El alumno marcó que está en su última semana. Armá el siguiente mesociclo antes de que se quede sin plan.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function CheckInFinishedBanner({
   description,

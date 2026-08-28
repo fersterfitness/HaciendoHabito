@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
+import { WeeklyMealPlanBoard } from '@/components/nutrition/WeeklyMealPlanBoard'
 import { differenceInYears } from 'date-fns'
 import { FileDown, Sparkles } from 'lucide-react'
 import { colorBrandLogoSrc, socialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
@@ -369,7 +370,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
               Exportación premium del plan
             </p>
             <p className="text-xs text-ink-secondary mt-1">
-              Generá el PDF directamente desde esta sección, con diseño moderno para paciente.
+              Generá el PDF con el mismo tablero por días que ve el paciente.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -508,6 +509,13 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
           schedulePersist({ grid: next })
         }}
       />
+
+      <div className="rounded-2xl border border-surface-border bg-slate-50/80 p-3 sm:p-4 dark:bg-zinc-950/30">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          Vista del paciente
+        </p>
+        <WeeklyMealPlanBoard mergeWeekends={mergeWeekends} grid={normalizeWeeklyGrid(grid, mergeWeekends)} />
+      </div>
 
       <div className="flex flex-wrap gap-3 items-center pt-2">
         <Button

@@ -1,4 +1,5 @@
 import {
+  Font,
   Defs,
   Document,
   Image,
@@ -12,12 +13,22 @@ import {
   View,
 } from '@react-pdf/renderer'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
-import { columnLabels } from '@/lib/nutrition/weeklyPlanGrid'
+import {
+  columnFullLabels,
+  compactMealLabel,
+  dayAccent,
+  filledMealCountForDay,
+  isNoMealMarker,
+  mealContentLines,
+} from '@/lib/nutrition/weeklyPlanGrid'
 import { parsePlanGeneralNotes } from '@/lib/nutrition/planGeneralNotes'
 import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
 import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
 import { InstagramIcon, WhatsAppIcon } from '@/lib/pdf/pdfBrandIcons'
 import type { SocialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
+
+/** Evita cortes tipo «me- / dia mañana» en títulos angostos. */
+Font.registerHyphenationCallback((word) => [word])
 
 type ProfessionalContact = {
   phone?: string
@@ -44,7 +55,10 @@ const styles = StyleSheet.create({
     fontSize: 8.4,
     fontFamily: 'Helvetica',
     color: PDF_BRAND.body,
-    backgroundColor: PDF_BRAND.white,
+    backgroundColor: PDF_BRAND.surface,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
   /**
    * Banda decorativa de marca: gradient horizontal `secondary → tertiary`
@@ -77,12 +91,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: PDF_BRAND.white,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 0.8,
     borderColor: PDF_BRAND.border,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginBottom: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   heroLeft: {
     flexDirection: 'row',
@@ -96,18 +112,18 @@ const styles = StyleSheet.create({
    * dentro del viewport. Si querés agrandarlo, subir width/height a la par.
    */
   heroLogoImg: {
-    width: 60,
-    height: 60,
+    width: 32,
+    height: 32,
     objectFit: 'cover',
   },
   heroLogoMonogram: {
-    fontSize: 28,
+    fontSize: 18,
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.primary,
     letterSpacing: 0.4,
   },
   heroTitle: {
-    fontSize: 16.5,
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.heading,
     letterSpacing: 0.2,
@@ -441,7 +457,273 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 8,
   },
+  boardRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+    marginBottom: 8,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  dayCol: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
+  dayHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 0,
+    paddingHorizontal: 2,
+    paddingVertical: 3,
+  },
+  dayHeadTitle: {
+    fontSize: 7.6,
+    fontFamily: 'Helvetica-Bold',
+    color: PDF_BRAND.heading,
+  },
+  dayCount: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  mealCard: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    backgroundColor: PDF_BRAND.white,
+    borderRadius: 10,
+    borderWidth: 0.7,
+    borderColor: '#E8ECF0',
+    overflow: 'hidden',
+  },
+  cardAccentBar: {
+    height: 4,
+    width: '100%',
+  },
+  cardInner: {
+    paddingTop: 8,
+    paddingBottom: 7,
+    paddingHorizontal: 8,
+    flexGrow: 1,
+    flexDirection: 'column',
+  },
+  mealTitle: {
+    fontSize: 8.4,
+    fontFamily: 'Helvetica-Bold',
+    color: PDF_BRAND.heading,
+    letterSpacing: 0.1,
+  },
+  mealCardTime: {
+    fontSize: 6.4,
+    color: PDF_BRAND.muted,
+    marginTop: 1,
+    marginBottom: 6,
+    fontFamily: 'Helvetica-Bold',
+  },
+  mealBody: {
+    flexGrow: 1,
+  },
+  mealLine: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+  },
+  mealCheck: {
+    width: 7,
+    height: 7,
+    borderRadius: 1.4,
+    borderWidth: 1.1,
+    marginTop: 1.6,
+    marginRight: 5,
+    flexShrink: 0,
+    backgroundColor: PDF_BRAND.white,
+  },
+  mealLineText: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    fontSize: 7.2,
+    lineHeight: 1.4,
+    color: PDF_BRAND.body,
+  },
+  dayOffLabel: {
+    fontSize: 7.4,
+    color: PDF_BRAND.muted,
+    marginTop: 4,
+  },
+  identityStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 0.6,
+    borderColor: PDF_BRAND.border,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    backgroundColor: PDF_BRAND.white,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  identityItem: {
+    flexGrow: 1,
+    flexBasis: 0,
+    paddingHorizontal: 6,
+    borderLeftWidth: 0.5,
+    borderLeftColor: PDF_BRAND.border,
+  },
+  identityItemFirst: {
+    borderLeftWidth: 0,
+    paddingLeft: 2,
+  },
 })
+
+function PdfPageChrome({
+  footerSourceLabel,
+  gid = 'cover',
+}: {
+  footerSourceLabel: string
+  gid?: string
+}) {
+  return (
+    <>
+      <View style={[styles.brandAccentBar, styles.brandAccentTop]} fixed>
+        <Svg style={styles.brandAccentSvg}>
+          <Defs>
+            <LinearGradient id={`brandAccentTop-${gid}`} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={PDF_BRAND.secondary} stopOpacity={1} />
+              <Stop offset="1" stopColor={PDF_BRAND.tertiary} stopOpacity={1} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill={`url(#brandAccentTop-${gid})`} />
+        </Svg>
+      </View>
+      <View style={[styles.brandAccentBar, styles.brandAccentBottom]} fixed>
+        <Svg style={styles.brandAccentSvg}>
+          <Defs>
+            <LinearGradient id={`brandAccentBottom-${gid}`} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={PDF_BRAND.tertiary} stopOpacity={1} />
+              <Stop offset="1" stopColor={PDF_BRAND.secondary} stopOpacity={1} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill={`url(#brandAccentBottom-${gid})`} />
+        </Svg>
+      </View>
+      <View style={styles.footer} fixed>
+        <Text style={styles.footerText}>{footerSourceLabel}</Text>
+        <Text
+          style={styles.footerText}
+          render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+        />
+        <Text style={styles.footerBrand}>HACIÉNDOLO HÁBITO</Text>
+      </View>
+    </>
+  )
+}
+
+function DayHeaderRow({
+  days,
+  mergeWeekends,
+  grid,
+}: {
+  days: string[]
+  mergeWeekends: boolean
+  grid: WeeklyPlanGridJson
+}) {
+  return (
+    <View style={styles.boardRow}>
+      {days.map((day, di) => {
+        const accent = dayAccent(di, mergeWeekends)
+        const count = filledMealCountForDay(grid, di)
+        const wide = mergeWeekends && di === days.length - 1 ? { flexGrow: WEEKEND_COL_GROW } : {}
+        return (
+          <View key={day} style={[styles.dayCol, wide, styles.dayHead]}>
+            <Text style={styles.dayHeadTitle}>{day}</Text>
+            <View style={[styles.dayCount, { backgroundColor: accent.wash }]}>
+              <Text style={{ fontSize: 6.2, fontFamily: 'Helvetica-Bold', color: accent.color }}>
+                {String(count)}
+              </Text>
+            </View>
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
+function MealWeekCards({
+  mealLabel,
+  mealTime,
+  columns,
+  days,
+  mergeWeekends,
+  isCompact,
+}: {
+  mealLabel: string
+  mealTime: string
+  columns: string[]
+  days: string[]
+  mergeWeekends: boolean
+  isCompact: boolean
+}) {
+  const innerPad = isCompact ? { paddingTop: 6, paddingBottom: 5, paddingHorizontal: 6 } : {}
+  return (
+    <View style={styles.boardRow} wrap={false}>
+      {days.map((day, di) => {
+        const accent = dayAccent(di, mergeWeekends)
+        const wide = mergeWeekends && di === days.length - 1 ? { flexGrow: WEEKEND_COL_GROW } : {}
+        const raw = columns[di] ?? ''
+        const none = isNoMealMarker(raw)
+        const emptyRaw = !raw.trim()
+        const lines = emptyRaw || none ? [] : mealContentLines(raw)
+        const empty = lines.length === 0
+        const title = compactMealLabel(mealLabel)
+        return (
+          <View key={`${mealLabel}-${day}`} style={[styles.mealCard, wide]}>
+            <View style={[styles.cardAccentBar, { backgroundColor: accent.color }]} />
+            <View style={[styles.cardInner, innerPad]}>
+              <Text style={styles.mealTitle} wrap={false}>
+                {title}
+              </Text>
+              {mealTime ? (
+                <Text style={styles.mealCardTime} wrap={false}>
+                  {mealTime}
+                </Text>
+              ) : null}
+              {empty ? (
+                <Text style={styles.dayOffLabel}>Sin registro</Text>
+              ) : (
+                <View style={styles.mealBody}>
+                  {lines.map((line, li) => (
+                    <View key={li} style={styles.mealLine}>
+                      <View style={[styles.mealCheck, { borderColor: accent.color }]} />
+                      <Text
+                        style={[styles.mealLineText, isCompact ? { fontSize: 6.5, lineHeight: 1.34 } : {}]}
+                      >
+                        {parseInlineMarkdown(line).map((seg, si) => (
+                          <Text
+                            key={si}
+                            style={[seg.bold ? styles.cellBold : {}, seg.italic ? styles.cellItalic : {}]}
+                          >
+                            {seg.text}
+                          </Text>
+                        ))}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        )
+      })}
+    </View>
+  )
+}
 
 export interface NutritionMealPlanPdfDocumentProps {
   patientName: string
@@ -485,12 +767,11 @@ export function NutritionMealPlanPdfDocument({
   footerSourceLabel = 'Plan nutricional personalizado · Generado desde la ficha del paciente',
   layoutMode = 'patient',
 }: NutritionMealPlanPdfDocumentProps) {
-  const days = columnLabels(mergeWeekends)
-  const isCompact = variant === 'compact'
+  const days = columnFullLabels(mergeWeekends)
+  const isCompact = variant === 'compact' || grid.mealRows.length >= 5
   const isTemplate = layoutMode === 'template'
   const parsedNotes = parsePlanGeneralNotes(generalNotes)
   const objectiveText = objective?.trim() ?? ''
-  const mealHeaderMinAhead = isTemplate ? 28 : 60
 
   return (
     <Document>
@@ -514,7 +795,6 @@ export function NutritionMealPlanPdfDocument({
               </Text>
             </View>
           </View>
-
           <View style={styles.heroRight}>
             {professionalContact?.phone ? (
               <View style={styles.contactRow}>
@@ -554,205 +834,62 @@ export function NutritionMealPlanPdfDocument({
             ) : null}
           </View>
         </View>
-
         {isTemplate ? (
-          <>
-            {(objectiveText || parsedNotes.preamble || parsedNotes.aclaraciones.length > 0) ? (
-              <View style={styles.templateInfoStrip}>
-                {objectiveText ? (
-                  <View style={styles.templateInfoColWide}>
-                    <Text style={styles.metaLabel}>Objetivo del plan</Text>
-                    <Text style={styles.metaBody}>{objectiveText}</Text>
-                  </View>
-                ) : null}
-                {parsedNotes.preamble ? (
-                  <View style={styles.templateInfoCol}>
-                    <Text style={styles.metaLabel}>Notas</Text>
-                    <Text style={styles.metaBody}>{parsedNotes.preamble}</Text>
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-            {parsedNotes.aclaraciones.length > 0 ? (
-              <View style={[styles.metaBlock, styles.metaBlockCompact]}>
-                <Text style={styles.metaLabel}>Aclaraciones</Text>
-                <View style={styles.notesList}>
-                  {parsedNotes.aclaraciones.map((item, i) => (
-                    <View key={i} style={styles.notesItem}>
-                      <View style={styles.notesBullet} />
-                      <Text style={styles.notesItemText}>{item}</Text>
-                    </View>
-                  ))}
+          (objectiveText || parsedNotes.preamble) ? (
+            <View style={styles.templateInfoStrip}>
+              {objectiveText ? (
+                <View style={styles.templateInfoColWide}>
+                  <Text style={styles.metaLabel}>Objetivo del plan</Text>
+                  <Text style={styles.metaBody}>{objectiveText}</Text>
                 </View>
-              </View>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <View style={styles.headerGrid}>
-              <View style={styles.headerRow}>
-                <View style={[styles.headerItem, styles.headerItemFirst, styles.headerItemWide]}>
-                  <Text style={styles.headerLabel}>Nombre</Text>
-                  <Text style={styles.headerValue}>{patientName}</Text>
+              ) : null}
+              {parsedNotes.preamble ? (
+                <View style={styles.templateInfoCol}>
+                  <Text style={styles.metaLabel}>Notas</Text>
+                  <Text style={styles.metaBody}>{parsedNotes.preamble}</Text>
                 </View>
-                <View style={styles.headerItem}>
-                  <Text style={styles.headerLabel}>Sexo</Text>
-                  <Text style={styles.headerValue}>{genderLabel}</Text>
-                </View>
-                <View style={[styles.headerItem, styles.headerItemNarrow]}>
-                  <Text style={styles.headerLabel}>Edad</Text>
-                  <Text style={styles.headerValue}>{ageText ?? '—'}</Text>
-                </View>
-                <View style={styles.headerItem}>
-                  <Text style={styles.headerLabel}>Peso actual</Text>
-                  <Text style={styles.headerValue}>{weightKgText ?? '—'}</Text>
-                </View>
-                <View style={styles.headerItem}>
-                  <Text style={styles.headerLabel}>Valor calórico</Text>
-                  <Text style={styles.headerValue}>{totalKcalLabel ?? 'Consensuado'}</Text>
-                </View>
-              </View>
+              ) : null}
             </View>
-
-            {objectiveText ? (
-              <View style={styles.metaBlock}>
-                <Text style={styles.metaLabel}>Objetivo del plan</Text>
-                <Text style={styles.metaBody}>{objectiveText}</Text>
-              </View>
-            ) : null}
-
-            {parsedNotes.preamble || parsedNotes.aclaraciones.length > 0 ? (
-              <View style={styles.metaBlock}>
-                <Text style={styles.metaLabel}>Notas generales</Text>
-                {parsedNotes.preamble ? <Text style={styles.metaBody}>{parsedNotes.preamble}</Text> : null}
-                {parsedNotes.aclaraciones.length > 0 ? (
-                  <View style={styles.notesList}>
-                    <Text style={[styles.metaLabel, { marginTop: parsedNotes.preamble ? 4 : 0 }]}>Aclaraciones</Text>
-                    {parsedNotes.aclaraciones.map((item, i) => (
-                      <View key={i} style={styles.notesItem}>
-                        <View style={styles.notesBullet} />
-                        <Text style={styles.notesItemText}>{item}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-          </>
+          ) : null
+        ) : (
+          <View style={styles.identityStrip}>
+            <View style={[styles.identityItem, styles.identityItemFirst]}>
+              <Text style={styles.headerLabel}>Nombre</Text>
+              <Text style={styles.headerValue}>{patientName}</Text>
+            </View>
+            <View style={styles.identityItem}>
+              <Text style={styles.headerLabel}>Sexo</Text>
+              <Text style={styles.headerValue}>{genderLabel}</Text>
+            </View>
+            <View style={styles.identityItem}>
+              <Text style={styles.headerLabel}>Edad</Text>
+              <Text style={styles.headerValue}>{ageText ?? '—'}</Text>
+            </View>
+            <View style={styles.identityItem}>
+              <Text style={styles.headerLabel}>Peso actual</Text>
+              <Text style={styles.headerValue}>{weightKgText ?? '—'}</Text>
+            </View>
+            <View style={styles.identityItem}>
+              <Text style={styles.headerLabel}>Valor calórico</Text>
+              <Text style={styles.headerValue}>{totalKcalLabel ?? 'Consensuado'}</Text>
+            </View>
+          </View>
         )}
 
-        {grid.mealRows.map((meal, idx) => {
-          const time = meal.approxTime?.trim()
-          // Alternancia secondary (verde) / tertiary (ámbar) por bloque de comida.
-          const isAlt = idx % 2 === 1
-          return (
-            <View key={meal.id} style={styles.mealBlock}>
-              <View style={isAlt ? [styles.mealAccent, styles.mealAccentAlt] : styles.mealAccent} />
-              {/*
-                Header (título + horarios de columna) se mantiene unido y nunca
-                queda huérfano al pie de página (minPresenceAhead). El bloque
-                de celdas de abajo SÍ puede partirse entre páginas, así un menú
-                con mucho texto fluye a la página siguiente en vez de cortarse.
-              */}
-              <View wrap={false} minPresenceAhead={mealHeaderMinAhead}>
-                <View style={isAlt ? [styles.mealHeader, styles.mealHeaderAlt] : styles.mealHeader}>
-                  <Text style={styles.mealTitleText}>{meal.label}</Text>
-                  {time ? (
-                    <Text style={isAlt ? [styles.mealTimePill, styles.mealTimePillAlt] : styles.mealTimePill}>
-                      {time}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={styles.colHeaderRow}>
-                  {days.map((d, i) => {
-                    const isLast = i === days.length - 1
-                    // La columna combinada Sáb+Dom lleva el doble de texto → más ancha.
-                    const wide = isLast && mergeWeekends ? { flexGrow: WEEKEND_COL_GROW } : {}
-                    return (
-                      <Text
-                        key={i}
-                        style={[styles.colHeadCell, isLast ? { borderRightWidth: 0 } : {}, wide]}
-                      >
-                        {d}
-                      </Text>
-                    )
-                  })}
-                </View>
-              </View>
-              <View style={isCompact ? [styles.rowCells, { minHeight: 34 }] : styles.rowCells}>
-                {meal.columns.map((txt, ci) => {
-                  const text = txt?.trim() || ''
-                  const isEmpty = text.length === 0
-                  const isLast = ci === meal.columns.length - 1
-                  const baseStyle = isCompact
-                    ? [styles.cell, { fontSize: 6.2, lineHeight: 1.25, paddingVertical: 3 }]
-                    : [styles.cell]
-                  // Columna Sáb+Dom más ancha (debe coincidir con el header).
-                  const lastCell = isLast
-                    ? [{ borderRightWidth: 0, ...(mergeWeekends ? { flexGrow: WEEKEND_COL_GROW } : {}) }]
-                    : []
-                  const emptyStyle = isEmpty ? [styles.cellEmpty] : []
-                  return (
-                    <Text key={ci} style={[...baseStyle, ...lastCell, ...emptyStyle]}>
-                      {isEmpty
-                        ? '—'
-                        : parseInlineMarkdown(text).map((seg, si) => (
-                            <Text
-                              key={si}
-                              style={[
-                                seg.bold ? styles.cellBold : {},
-                                seg.italic ? styles.cellItalic : {},
-                              ]}
-                            >
-                              {seg.text}
-                            </Text>
-                          ))}
-                    </Text>
-                  )
-                })}
-              </View>
-            </View>
-          )
-        })}
-
-        {/*
-          Banda decorativa SUPERIOR: gradient violeta → magenta de borde a borde.
-          Renderizada al final del flujo (pero `position: absolute` la lleva al
-          top de la página) y `fixed` la repite en cada página si el contenido
-          desborda. Aporta vida cromática sin competir con la información.
-        */}
-        <View style={[styles.brandAccentBar, styles.brandAccentTop]} fixed>
-          <Svg style={styles.brandAccentSvg}>
-            <Defs>
-              <LinearGradient id="brandAccentTop" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor={PDF_BRAND.secondary} stopOpacity={1} />
-                <Stop offset="1" stopColor={PDF_BRAND.tertiary} stopOpacity={1} />
-              </LinearGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#brandAccentTop)" />
-          </Svg>
-        </View>
-        {/* Banda decorativa INFERIOR: gradient invertido (magenta → violeta) → efecto "marco". */}
-        <View style={[styles.brandAccentBar, styles.brandAccentBottom]} fixed>
-          <Svg style={styles.brandAccentSvg}>
-            <Defs>
-              <LinearGradient id="brandAccentBottom" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor={PDF_BRAND.tertiary} stopOpacity={1} />
-                <Stop offset="1" stopColor={PDF_BRAND.secondary} stopOpacity={1} />
-              </LinearGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#brandAccentBottom)" />
-          </Svg>
-        </View>
-
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{footerSourceLabel}</Text>
-          <Text
-            style={styles.footerText}
-            render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+        <DayHeaderRow days={days} mergeWeekends={mergeWeekends} grid={grid} />
+        {grid.mealRows.map((meal) => (
+          <MealWeekCards
+            key={meal.id}
+            mealLabel={meal.label}
+            mealTime={meal.approxTime?.trim() ?? ''}
+            columns={meal.columns}
+            days={days}
+            mergeWeekends={mergeWeekends}
+            isCompact={isCompact}
           />
-          <Text style={styles.footerBrand}>HACIÉNDOLO HÁBITO</Text>
-        </View>
+        ))}
+
+        <PdfPageChrome footerSourceLabel={footerSourceLabel} gid="board" />
       </Page>
     </Document>
   )

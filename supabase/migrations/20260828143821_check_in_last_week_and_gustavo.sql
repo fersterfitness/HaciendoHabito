@@ -1,4 +1,82 @@
--- Al marcar «terminé mi mes de rutina», la rutina activa pasa a completada (finalizó / venció).
+-- Datos: Gustavo Cabral (sexo + email para el check-in).
+-- Catálogo: ánimo "Estoy con temas personales" + opción last_week.
+-- Trigger: notificación "Última semana" al entrenador (sin marcar la rutina como completada).
+
+UPDATE public.students
+SET
+  gender = 'M',
+  email = 'gustavofabiancabral@gmail.com',
+  updated_at = now()
+WHERE full_name ILIKE '%gustavo%cabral%';
+
+CREATE OR REPLACE FUNCTION public._hh_patch_weekly_check_in_question(q jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_opts jsonb;
+  v_has_last boolean;
+BEGIN
+  IF q->>'key' = 'mood' AND q->'options' IS NOT NULL THEN
+    SELECT jsonb_agg(
+      CASE
+        WHEN opt->>'id' = 'b' OR lower(coalesce(opt->>'label', '')) LIKE '%triste%' THEN
+          jsonb_set(opt, '{label}', to_jsonb('Estoy con temas personales'::text))
+        ELSE opt
+      END
+    )
+    INTO v_opts
+    FROM jsonb_array_elements(q->'options') opt;
+    RETURN jsonb_set(q, '{options}', coalesce(v_opts, q->'options'));
+  END IF;
+
+  IF q->>'key' = 'week_status' AND q->'options' IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1 FROM jsonb_array_elements(q->'options') opt WHERE opt->>'id' = 'last_week'
+    ) INTO v_has_last;
+    IF NOT v_has_last THEN
+      RETURN jsonb_set(
+        q,
+        '{options}',
+        coalesce(q->'options', '[]'::jsonb) || jsonb_build_array(
+          jsonb_build_object(
+            'id', 'last_week',
+            'label', 'Estoy en mi última semana',
+            'color', '#f43f5e',
+            'extra', 'none'
+          )
+        )
+      );
+    END IF;
+  END IF;
+
+  RETURN q;
+END;
+$$;
+
+UPDATE public.check_in_forms f
+SET
+  questions = sub.patched,
+  updated_at = now()
+FROM (
+  SELECT
+    f2.id,
+    (
+      SELECT jsonb_agg(public._hh_patch_weekly_check_in_question(elem.q) ORDER BY elem.ord)
+      FROM jsonb_array_elements(f2.questions) WITH ORDINALITY AS elem(q, ord)
+    ) AS patched
+  FROM public.check_in_forms f2
+  WHERE jsonb_typeof(f2.questions) = 'array'
+    AND EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(f2.questions) q
+      WHERE q->>'key' IN ('week_status', 'mood')
+    )
+) sub
+WHERE f.id = sub.id
+  AND sub.patched IS NOT NULL;
+
+DROP FUNCTION public._hh_patch_weekly_check_in_question(jsonb);
 
 CREATE OR REPLACE FUNCTION public.apply_check_in_response_side_effects()
 RETURNS trigger
@@ -22,6 +100,7 @@ DECLARE
   v_option text;
   v_extra text;
   v_finished boolean := false;
+  v_last_week boolean := false;
   v_cycle_date date;
   v_routine_id uuid;
 BEGIN
@@ -76,6 +155,10 @@ BEGIN
         v_finished := true;
       END IF;
 
+      IF v_qkey = 'week_status' AND v_option = 'last_week' THEN
+        v_last_week := true;
+      END IF;
+
       IF v_qkey = 'cycle'
          AND coalesce(v_gender, '') = 'F'
          AND v_option IS NOT NULL
@@ -88,6 +171,37 @@ BEGIN
         EXCEPTION WHEN OTHERS THEN
           v_cycle_date := NULL;
         END;
+      END IF;
+    END LOOP;
+  END IF;
+
+  IF NOT v_finished AND NOT v_last_week AND NEW.responses IS NOT NULL AND jsonb_typeof(NEW.responses) = 'object' THEN
+    FOR v_raw IN SELECT value FROM jsonb_each(NEW.responses)
+    LOOP
+      v_choice := NULL;
+      v_option := NULL;
+      IF v_raw IS NULL OR v_raw = 'null'::jsonb THEN
+        CONTINUE;
+      END IF;
+      IF jsonb_typeof(v_raw) = 'object' THEN
+        v_choice := v_raw;
+      ELSIF jsonb_typeof(v_raw) = 'string' THEN
+        v_txt := v_raw #>> '{}';
+        IF v_txt LIKE '{%' THEN
+          BEGIN
+            v_choice := v_txt::jsonb;
+          EXCEPTION WHEN OTHERS THEN
+            v_choice := NULL;
+          END;
+        END IF;
+      END IF;
+      IF v_choice IS NOT NULL THEN
+        v_option := v_choice->>'option';
+      END IF;
+      IF v_option = 'finished' THEN
+        v_finished := true;
+      ELSIF v_option = 'last_week' THEN
+        v_last_week := true;
       END IF;
     END LOOP;
   END IF;
@@ -125,10 +239,17 @@ BEGIN
     VALUES (
       v_owner_id,
       'form_recibido',
-      left('Check-in · ' || coalesce(v_student_name, 'Alumno'), 200),
+      left(
+        CASE
+          WHEN v_last_week THEN 'Última semana · ' || coalesce(v_student_name, 'Alumno')
+          ELSE 'Check-in · ' || coalesce(v_student_name, 'Alumno')
+        END,
+        200
+      ),
       left(
         CASE
           WHEN v_finished THEN 'Terminó el mes de rutina. La rutina quedó como completada. Enviá el feedback mensual y pedí la foto del registro de progreso.'
+          WHEN v_last_week THEN 'Está en su última semana. Renová la rutina antes de que se quede sin plan.'
           ELSE 'Nueva respuesta del formulario semanal.'
         END,
         500
@@ -149,10 +270,31 @@ BEGIN
       );
     END IF;
   EXCEPTION WHEN OTHERS THEN
-    -- No bloquear el envío del alumno si falla ciclo / rutina / notificación (p. ej. RLS o sesión de otro usuario).
     NULL;
   END;
 
   RETURN NEW;
 END;
 $$;
+
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'submit_check_in_response',
+        'submit_check_in_shared_response',
+        'get_check_in_form_by_token',
+        'get_check_in_form_by_public_token',
+        'lookup_check_in_student_preview',
+        'lookup_check_in_invite_preview'
+      )
+  LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon, authenticated', r.sig);
+  END LOOP;
+END $$;

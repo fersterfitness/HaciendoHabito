@@ -39,7 +39,6 @@ export function useRoutines() {
       level: string
       start_date: string
       duration_days: number
-      price?: number
       notes?: string
     }) => {
       if (!user) return null
@@ -54,7 +53,7 @@ export function useRoutines() {
           owner_id: user.id,
           end_date,
           status: 'activa',
-          price: payload.price ?? 0,
+          price: 0,
           notes: payload.notes ?? null,
           student_plan_id: payload.student_plan_id ?? null,
         })

@@ -5,9 +5,12 @@ import {
   formatStoredAnswer,
   isQuestionVisible,
   menstrualDateFromAnswers,
+  mergeCheckInTemplate,
   parseQuestions,
   parseStoredChoice,
+  remapResponsesToQuestionIds,
   serializeDrafts,
+  syncWeeklyQuestionCatalog,
   validateDrafts,
   weekStatusFromAnswers,
   checkInHistoryMeta,
@@ -24,6 +27,7 @@ const choiceQ: CheckInQuestion = {
   options: [
     { id: 'finished', label: 'Terminé', color: '#22c55e' },
     { id: 'in_week', label: 'Estoy en mi semana', color: '#f59e0b', extra: 'number' },
+    { id: 'last_week', label: 'Estoy en mi última semana', color: '#f43f5e' },
   ],
 }
 
@@ -78,12 +82,38 @@ describe('choice encode/decode', () => {
 describe('weekStatusFromAnswers', () => {
   it('detecta mes terminado', () => {
     const answers = { q1: encodeChoiceAnswer({ option: 'finished' }) }
-    expect(weekStatusFromAnswers([choiceQ], answers)).toEqual({ finished: true, weekNumber: null })
+    expect(weekStatusFromAnswers([choiceQ], answers)).toEqual({
+      finished: true,
+      weekNumber: null,
+      lastWeek: false,
+    })
   })
 
   it('lee número de semana', () => {
     const answers = { q1: encodeChoiceAnswer({ option: 'in_week', extra: '4' }) }
-    expect(weekStatusFromAnswers([choiceQ], answers)).toEqual({ finished: false, weekNumber: 4 })
+    expect(weekStatusFromAnswers([choiceQ], answers)).toEqual({
+      finished: false,
+      weekNumber: 4,
+      lastWeek: false,
+    })
+  })
+
+  it('detecta última semana aunque el id de pregunta haya cambiado', () => {
+    const answers = { old_q: encodeChoiceAnswer({ option: 'last_week' }) }
+    expect(weekStatusFromAnswers([choiceQ], answers)).toEqual({
+      finished: false,
+      weekNumber: null,
+      lastWeek: true,
+    })
+  })
+
+  it('lee la semana aunque la respuesta esté bajo un id viejo', () => {
+    const answers = { old_week: encodeChoiceAnswer({ option: 'in_week', extra: '3' }) }
+    expect(weekStatusFromAnswers([choiceQ], answers)).toEqual({
+      finished: false,
+      weekNumber: 3,
+      lastWeek: false,
+    })
   })
 })
 
@@ -135,5 +165,66 @@ describe('checkInHistoryMeta', () => {
     expect(meta.weekLabel).toBe('Terminé mi mes de rutina')
     expect(meta.filingLabel).toContain('Ana Pérez')
     expect(meta.filingLabel).toContain('Terminé mi mes de rutina')
+  })
+
+  it('etiqueta última semana', () => {
+    const answers = { q1: encodeChoiceAnswer({ option: 'last_week' }) }
+    expect(checkInHistoryMeta([choiceQ], answers, '2026-08-25T15:00:00-03:00').weekLabel).toBe('Última semana')
+  })
+})
+
+describe('mergeCheckInTemplate / remapResponsesToQuestionIds', () => {
+  it('conserva el id de la pregunta week_status', () => {
+    const current: CheckInQuestion[] = [
+      { ...choiceQ, id: 'stable-week-id', label: 'Semana vieja' },
+    ]
+    const merged = mergeCheckInTemplate(current, [
+      { ...choiceQ, id: 'new-uuid', label: '¿En qué semana de entrenamiento estás?' },
+    ])
+    expect(merged[0]?.id).toBe('stable-week-id')
+    expect(merged[0]?.options?.some((o) => o.id === 'last_week')).toBe(true)
+  })
+
+  it('copia respuestas al id nuevo si la key coincide', () => {
+    const oldQs: CheckInQuestion[] = [{ ...choiceQ, id: 'old-id' }]
+    const newQs: CheckInQuestion[] = [{ ...choiceQ, id: 'new-id' }]
+    const encoded = encodeChoiceAnswer({ option: 'in_week', extra: '2' })
+    const next = remapResponsesToQuestionIds({ 'old-id': encoded }, oldQs, newQs)
+    expect(next['new-id']).toBe(encoded)
+    expect(next['old-id']).toBe(encoded)
+  })
+
+  it('agrega last_week y actualiza el ánimo sin cambiar ids', () => {
+    const current: CheckInQuestion[] = [
+      {
+        id: 'keep-week',
+        key: 'week_status',
+        label: '¿En qué semana de entrenamiento estás?',
+        type: 'choice',
+        options: [
+          { id: 'finished', label: 'Terminé mi mes de rutina', color: '#22c55e' },
+          { id: 'in_week', label: 'Estoy en mi semana', color: '#f59e0b', extra: 'number' },
+        ],
+      },
+      {
+        id: 'keep-mood',
+        key: 'mood',
+        label: '¿Cuál de estas opciones representa mejor tu semana?',
+        type: 'choice',
+        options: [
+          { id: 'a', label: 'Me siento contento/a', color: '#22c55e' },
+          { id: 'b', label: 'Estoy triste', color: '#f43f5e' },
+          { id: 'c', label: 'Estoy cansado/a', color: '#f59e0b' },
+        ],
+      },
+    ]
+    const { questions, changed } = syncWeeklyQuestionCatalog(current)
+    expect(changed).toBe(true)
+    expect(questions.find((q) => q.key === 'week_status')?.id).toBe('keep-week')
+    expect(questions.find((q) => q.key === 'week_status')?.options?.map((o) => o.id)).toContain('last_week')
+    expect(questions.find((q) => q.key === 'mood')?.id).toBe('keep-mood')
+    expect(questions.find((q) => q.key === 'mood')?.options?.find((o) => o.id === 'b')?.label).toBe(
+      'Estoy con temas personales',
+    )
   })
 })

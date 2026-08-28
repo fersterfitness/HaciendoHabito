@@ -15,6 +15,7 @@ import {
   isMonthlyTemplate,
   parseQuestions,
   weekStatusFromAnswers,
+  weekStatusHasSignal,
 } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ type Row = {
   totalWeeks: number
   currentWeek: number | null
   finished: boolean
+  lastWeek: boolean
   submittedAt: string | null
 }
 
@@ -105,7 +107,10 @@ export function StudentRoutineWeekPanel() {
         responses = (data ?? []) as Resp[]
       }
 
-      const latestByStudent = new Map<string, { submittedAt: string; finished: boolean; weekNumber: number | null }>()
+      const latestByStudent = new Map<
+        string,
+        { submittedAt: string; finished: boolean; weekNumber: number | null; lastWeek: boolean }
+      >()
       for (const resp of responses) {
         const inv = inviteById.get(resp.invite_id)
         if (!inv || latestByStudent.has(inv.student_id)) continue
@@ -115,10 +120,12 @@ export function StudentRoutineWeekPanel() {
             ? (resp.responses as Record<string, unknown>)
             : {}
         const st = weekStatusFromAnswers(qs, obj)
+        if (!weekStatusHasSignal(st)) continue
         latestByStudent.set(inv.student_id, {
           submittedAt: resp.submitted_at,
           finished: st.finished,
           weekNumber: st.weekNumber,
+          lastWeek: st.lastWeek,
         })
       }
 
@@ -133,6 +140,7 @@ export function StudentRoutineWeekPanel() {
           totalWeeks: blocks.length,
           currentWeek: check?.weekNumber ?? null,
           finished: check?.finished ?? false,
+          lastWeek: check?.lastWeek ?? false,
           submittedAt: check?.submittedAt ?? null,
         }
       })
@@ -146,6 +154,7 @@ export function StudentRoutineWeekPanel() {
   }, [user])
 
   const finishedCount = useMemo(() => rows.filter((r) => r.finished).length, [rows])
+  const lastWeekCount = useMemo(() => rows.filter((r) => r.lastWeek).length, [rows])
   const inWeekCount = useMemo(() => rows.filter((r) => !r.finished && r.currentWeek != null).length, [rows])
   const visible = useMemo(() => {
     if (filter === 'done') return rows.filter((r) => r.finished)
@@ -199,6 +208,7 @@ export function StudentRoutineWeekPanel() {
           <h3 className="text-base font-semibold tracking-tight text-ink-primary">Semana de rutina</h3>
           <p className="mt-0.5 max-w-prose text-[11px] leading-relaxed text-ink-muted">
             Según el último check-in. {inWeekCount} en curso
+            {lastWeekCount > 0 ? ` · ${lastWeekCount} en última semana` : ''}
             {finishedCount > 0 ? ` · ${finishedCount} cerró el mes` : ''}.
           </p>
         </div>
@@ -234,38 +244,63 @@ export function StudentRoutineWeekPanel() {
       ) : (
         <ul className="max-h-[28rem] space-y-2 overflow-y-auto px-3 pb-4">
           {visible.map((row) => {
-            const pct = row.totalWeeks
-              ? Math.round(((row.finished ? row.totalWeeks : row.currentWeek ?? 0) / row.totalWeeks) * 100)
-              : 0
+            const effectiveWeek = row.finished
+              ? row.totalWeeks
+              : row.currentWeek ?? (row.lastWeek ? row.totalWeeks : null)
+            const pct = row.totalWeeks ? Math.round(((effectiveWeek ?? 0) / row.totalWeeks) * 100) : 0
             return (
               <li
                 key={row.studentId}
-                className="rounded-2xl border border-surface-border/60 bg-surface-card/80 px-3 py-3 shadow-sm"
+                className={cn(
+                  'rounded-2xl border px-3 py-3 shadow-sm',
+                  row.lastWeek
+                    ? 'border-rose-500/45 bg-rose-500/[0.07]'
+                    : 'border-surface-border/60 bg-surface-card/80',
+                )}
               >
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-brand-secondary/15 text-[11px] font-bold text-brand-secondary">
+                  <span
+                    className={cn(
+                      'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-[11px] font-bold',
+                      row.lastWeek
+                        ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
+                        : 'bg-brand-secondary/15 text-brand-secondary',
+                    )}
+                  >
                     {initials(row.name)}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <p className="text-sm font-semibold text-ink-primary">{row.name}</p>
-                      <p className="text-[10px] font-medium tabular-nums text-ink-muted">
+                      <p
+                        className={cn(
+                          'text-[10px] font-medium tabular-nums',
+                          row.lastWeek ? 'font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400' : 'text-ink-muted',
+                        )}
+                      >
                         {row.finished
                           ? 'Mes cerrado'
-                          : row.currentWeek
-                            ? `Semana ${row.currentWeek}${row.totalWeeks ? ` / ${row.totalWeeks}` : ''}`
-                            : row.totalWeeks
-                              ? `${row.totalWeeks} sem. · sin check-in`
-                              : 'Sin rutina'}
+                          : row.lastWeek
+                            ? 'Última semana'
+                            : row.currentWeek
+                              ? `Semana ${row.currentWeek}${row.totalWeeks ? ` / ${row.totalWeeks}` : ''}`
+                              : row.totalWeeks
+                                ? `${row.totalWeeks} sem. · sin check-in`
+                                : 'Sin rutina'}
                       </p>
                     </div>
+                    {row.lastWeek ? (
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-400">
+                        Renovar rutina
+                      </p>
+                    ) : null}
                     {row.totalWeeks > 0 ? (
                       <>
                         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-elevated">
                           <div
                             className={cn(
                               'h-full rounded-full transition-all',
-                              row.finished ? 'bg-emerald-500' : 'bg-brand-primary',
+                              row.finished ? 'bg-emerald-500' : row.lastWeek ? 'bg-rose-500' : 'bg-brand-primary',
                             )}
                             style={{ width: `${Math.min(100, pct)}%` }}
                           />
@@ -273,8 +308,8 @@ export function StudentRoutineWeekPanel() {
                         <div className="mt-2 flex flex-wrap gap-1" aria-label="Progreso de semanas">
                           {Array.from({ length: row.totalWeeks }, (_, i) => {
                             const n = i + 1
-                            const done = row.finished || (row.currentWeek != null && n <= row.currentWeek)
-                            const current = !row.finished && row.currentWeek === n
+                            const done = row.finished || (effectiveWeek != null && n <= effectiveWeek)
+                            const current = !row.finished && effectiveWeek === n
                             return (
                               <span
                                 key={n}
@@ -282,9 +317,11 @@ export function StudentRoutineWeekPanel() {
                                 className={cn(
                                   'inline-flex h-6 min-w-6 items-center justify-center rounded-lg px-1 text-[9px] font-bold tabular-nums',
                                   done
-                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                    ? row.lastWeek
+                                      ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
+                                      : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
                                     : 'bg-surface-elevated text-ink-muted',
-                                  current && 'ring-2 ring-brand-primary/50',
+                                  current && (row.lastWeek ? 'ring-2 ring-rose-500/60' : 'ring-2 ring-brand-primary/50'),
                                 )}
                               >
                                 {done ? <Check className="h-3 w-3" strokeWidth={2.6} /> : n}

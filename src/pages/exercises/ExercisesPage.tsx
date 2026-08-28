@@ -172,7 +172,7 @@ export function ExercisesPage() {
 
   return (
     <div>
-      <Header title="Ejercicios" />
+      <Header title="Base de datos" />
 
       <div className="mx-auto max-w-[1600px] space-y-3 px-4 py-4 lg:px-6 lg:py-6">
         <ExercisesSectionNav />

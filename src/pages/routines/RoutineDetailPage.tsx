@@ -184,6 +184,7 @@ export function RoutineDetailPage() {
   const [checkInWeek, setCheckInWeek] = useState<LatestWeekStatus>({
     finished: false,
     weekNumber: null,
+    lastWeek: false,
     submittedAt: null,
   })
   const [blueprintModalOpen, setBlueprintModalOpen] = useState(false)
@@ -231,7 +232,7 @@ export function RoutineDetailPage() {
       } else {
         setRmLookup(emptyRmLookup())
         setLastMenstrualCycle(null)
-        setCheckInWeek({ finished: false, weekNumber: null, submittedAt: null })
+        setCheckInWeek({ finished: false, weekNumber: null, lastWeek: false, submittedAt: null })
       }
       if (blocksRes.data) {
         const sorted = (blocksRes.data as unknown as BlockWithDays[]).map((b) => ({
@@ -1092,7 +1093,7 @@ export function RoutineDetailPage() {
       toast.error(error.message)
       return
     }
-    toast.success('Plantilla guardada en el diccionario')
+    toast.success('Variante guardada en Rutinas preestablecidas')
     setBlueprintModalOpen(false)
     setBlueprintName('')
     setBlueprintDesc('')
@@ -1193,10 +1194,10 @@ export function RoutineDetailPage() {
               type="button"
               onClick={() => setBlueprintModalOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
-              title="Guardar como plantilla reutilizable"
+              title="Guardar como variante preestablecida"
             >
               <Library className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Plantilla</span>
+              <span className="hidden sm:inline">Guardar variante</span>
             </button>
             <button
               type="button"
@@ -1361,7 +1362,12 @@ export function RoutineDetailPage() {
           </p>
         ) : null}
 
-        {checkInWeek.finished || checkInWeek.weekNumber != null ? (
+        {checkInWeek.lastWeek ? (
+          <p className="rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-[11px] font-medium text-rose-700 dark:text-rose-300">
+            Última semana · renovar rutina
+            {checkInWeek.weekNumber != null ? ` (va por la semana ${checkInWeek.weekNumber}).` : '.'}
+          </p>
+        ) : checkInWeek.finished || checkInWeek.weekNumber != null ? (
           <p className="text-[11px] text-ink-secondary">
             {checkInWeek.finished
               ? 'El alumno marcó «Terminé mi mes de rutina» en el check-in. Las semanas quedan marcadas como hechas.'
@@ -1468,33 +1474,33 @@ export function RoutineDetailPage() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBlueprintModalOpen(false)} />
           <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-lg">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-ink-primary">Guardar en diccionario de plantillas</h3>
+              <h3 className="text-sm font-semibold text-ink-primary">Guardar variante preestablecida</h3>
               <button type="button" onClick={() => setBlueprintModalOpen(false)} className="text-ink-muted hover:text-ink-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <p className="text-xs text-ink-secondary mb-3">
-              Se guarda la estructura de semanas, días y ejercicios (con series, notas, circuitos). Luego podés aplicarla al crear una rutina nueva.
+              Se guarda la estructura de semanas, días y ejercicios. Después la asignás a un alumno desde su ficha (macrociclo → mesociclo → variante).
             </p>
             <div className="space-y-2">
               <Input
-                label="Nombre de la plantilla *"
-                placeholder="Ej: 3 días principiantes — empuje"
+                label="Nombre de la variante *"
+                placeholder="Ej: Empuje 4 días"
                 value={blueprintName}
                 onChange={(e) => setBlueprintName(e.target.value)}
                 className="text-sm"
               />
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  label="Categoría"
-                  placeholder="Ej: Fase de intensificación"
+                  label="Macrociclo"
+                  placeholder="Ej: Hipertrofia 12 semanas"
                   value={blueprintCategory}
                   onChange={(e) => setBlueprintCategory(e.target.value)}
                   className="text-sm"
                 />
                 <Input
-                  label="Subcategoría"
-                  placeholder="Ej: Principiantes"
+                  label="Mesociclo"
+                  placeholder="Ej: Acumulación"
                   value={blueprintSubcategory}
                   onChange={(e) => setBlueprintSubcategory(e.target.value)}
                   className="text-sm"
@@ -1517,7 +1523,7 @@ export function RoutineDetailPage() {
                 disabled={!blueprintName.trim() || totalExercises === 0}
                 onClick={saveRoutineAsBlueprint}
               >
-                Guardar plantilla
+                Guardar variante
               </Button>
             </div>
           </div>
@@ -1553,7 +1559,7 @@ export function RoutineDetailPage() {
             </div>
             {presetList.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-muted">
-                No tenés preestablecidos. Crealos en <strong>Ejercicios → Circuitos</strong>.
+                No tenés preestablecidos. Crealos en <strong>Base de datos → Circuitos</strong>.
               </p>
             ) : (
               <ul className="space-y-2">

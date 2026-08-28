@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, addDays } from 'date-fns'
-import { Copy, Check, Library } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { applyBlueprintPayloadToRoutine, type RoutineBlueprintPayload } from '@/lib/routine/routineBlueprint'
 import { useRoutines } from '@/hooks/useRoutines'
@@ -23,7 +22,6 @@ const schema = z.object({
   start_date: z.string().min(1, 'Seleccioná la fecha de inicio'),
   duration_days: z.coerce.number().min(1).max(365),
   level: z.enum(['inicial', 'intermedio', 'avanzado']),
-  price: z.coerce.number().min(0).optional(),
   objective: z.string().min(3, 'Ingresá el objetivo del coach'),
   notes: z.string().optional().or(z.literal('')),
 })
@@ -53,7 +51,6 @@ export function RoutineFormContent({
   const { createRoutine, updateRoutine } = useRoutines()
   const [students, setStudents] = useState<Student[]>([])
   const [routineTemplates, setRoutineTemplates] = useState<Array<{ id: string; name: string; student_name?: string | null }>>([])
-  const [blueprintTemplates, setBlueprintTemplates] = useState<Array<{ id: string; name: string }>>([])
   const [templateRoutineId, setTemplateRoutineId] = useState('')
   const [templateBlueprintId, setTemplateBlueprintId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
@@ -73,7 +70,6 @@ export function RoutineFormContent({
       start_date: format(new Date(), 'yyyy-MM-dd'),
       duration_days: 30,
       level: 'inicial',
-      price: 0,
     },
   })
 
@@ -134,14 +130,6 @@ export function RoutineFormContent({
         }))
         setRoutineTemplates(items)
       })
-    supabase
-      .from('routine_blueprints')
-      .select('id, name')
-      .eq('owner_id', user.id)
-      .order('updated_at', { ascending: false })
-      .then(({ data }) => {
-        setBlueprintTemplates(((data as Array<{ id: string; name: string }>) ?? []).map((b) => ({ id: b.id, name: b.name })))
-      })
   }, [user])
 
   useEffect(() => {
@@ -161,7 +149,6 @@ export function RoutineFormContent({
         start_date: data.start_date,
         duration_days: data.duration_days,
         level: data.level,
-        price: data.price ?? 0,
         objective: data.objective,
         notes: data.notes ?? '',
       })
@@ -271,7 +258,6 @@ export function RoutineFormContent({
         end_date,
         duration_days: values.duration_days,
         level: values.level,
-        price: values.price ?? 0,
         objective: values.objective,
         notes: values.notes || null,
       })
@@ -283,24 +269,23 @@ export function RoutineFormContent({
         start_date: values.start_date,
         duration_days: values.duration_days,
         level: values.level,
-        price: values.price ?? 0,
         objective: values.objective,
         notes: values.notes || undefined,
       })
       if (result) {
         if (templateBlueprintId) {
-          const loadingId = toast.loading('Aplicando plantilla del diccionario...')
+          const loadingId = toast.loading('Copiando rutina preestablecida...')
           try {
             const { data: row, error: bpErr } = await supabase
               .from('routine_blueprints')
               .select('payload')
               .eq('id', templateBlueprintId)
               .single()
-            if (bpErr || !row) throw new Error(bpErr?.message ?? 'Plantilla no encontrada')
+            if (bpErr || !row) throw new Error(bpErr?.message ?? 'Variante no encontrada')
             await applyBlueprintPayloadToRoutine(result.id, row.payload as RoutineBlueprintPayload)
-            toast.success('Rutina creada desde plantilla del diccionario', { id: loadingId })
+            toast.success('Rutina creada desde la variante preestablecida', { id: loadingId })
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'No se pudo aplicar la plantilla', { id: loadingId })
+            toast.error(error instanceof Error ? error.message : 'No se pudo copiar la variante', { id: loadingId })
           }
         } else if (templateRoutineId) {
           const loadingId = toast.loading('Copiando estructura de rutina...')
@@ -338,57 +323,30 @@ export function RoutineFormContent({
             error={errors.plan_name?.message}
             {...register('plan_name')}
           />
-          {!isEditing && (routineTemplates.length > 0 || blueprintTemplates.length > 0) && (
+          {!isEditing && (routineTemplates.length > 0 || templateBlueprintId) && (
             <div className="rounded-2xl border border-dashed border-zinc-300/80 bg-zinc-50/80 p-4 space-y-4 dark:border-zinc-600/50 dark:bg-zinc-900/35">
               <div className="flex items-center gap-2">
                 <Copy className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
-                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Usar plantilla</span>
+                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Copiar desde rutina existente</span>
                 <span className="ml-auto rounded-full bg-zinc-200/80 px-2 py-0.5 text-[10px] text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400">
                   opcional
                 </span>
               </div>
-              <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Elegí una entrada del{' '}
-                <Link
-                  to="/routines?tab=plantillas"
-                  className="font-medium text-zinc-800 underline decoration-zinc-400/80 underline-offset-2 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white"
-                >
-                  diccionario de plantillas
-                </Link>{' '}
-                o copiá desde una rutina ya creada. Solo aplica una opción a la vez.
-              </p>
-              {blueprintTemplates.length > 0 && (
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-800 dark:text-zinc-200">
-                    <Library className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
-                    Desde el diccionario
-                  </label>
-                  <select
-                    value={templateBlueprintId}
-                    onChange={(e) => {
-                      setTemplateBlueprintId(e.target.value)
-                      setTemplateRoutineId('')
-                    }}
-                    className="w-full rounded-xl border border-zinc-200/90 bg-surface-card px-3 py-2.5 text-sm text-ink-primary outline-none focus:border-zinc-400 dark:border-zinc-600/80 dark:focus:border-zinc-500"
-                  >
-                    <option value="">— Sin plantilla guardada —</option>
-                    {blueprintTemplates.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {templateBlueprintId ? (
+                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                  Esta rutina se va a armar con una variante de <strong>Rutinas preestablecidas</strong>.
+                </p>
+              ) : (
+                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                  Copiá bloques, días y ejercicios de otra rutina ya creada. Las variantes preestablecidas se asignan desde la ficha del alumno o desde Base de datos.
+                </p>
               )}
-              {routineTemplates.length > 0 && (
+              {routineTemplates.length > 0 && !templateBlueprintId ? (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-ink-primary">Copiar desde rutina existente</label>
+                  <label className="text-xs font-medium text-ink-primary">Rutina a copiar</label>
                   <select
                     value={templateRoutineId}
-                    onChange={(e) => {
-                      setTemplateRoutineId(e.target.value)
-                      setTemplateBlueprintId('')
-                    }}
+                    onChange={(e) => setTemplateRoutineId(e.target.value)}
                     className="w-full rounded-xl border border-zinc-200/90 bg-surface-card px-3 py-2.5 text-sm text-ink-primary outline-none focus:border-zinc-400 dark:border-zinc-600/80 dark:focus:border-zinc-500"
                   >
                     <option value="">— No copiar —</option>
@@ -399,7 +357,7 @@ export function RoutineFormContent({
                     ))}
                   </select>
                 </div>
-              )}
+              ) : null}
               {(templateBlueprintId || templateRoutineId) && (
                 <div className="flex items-center gap-2 rounded-xl border border-zinc-200/90 bg-zinc-100/90 px-3 py-2 dark:border-zinc-600/45 dark:bg-zinc-800/50">
                   <Check className="h-3.5 w-3.5 shrink-0 text-zinc-600 dark:text-zinc-300" />
@@ -440,23 +398,13 @@ export function RoutineFormContent({
         </FormSection>
 
         <FormSection title="Detalle">
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Nivel del alumno"
-              required
-              options={STUDENT_LEVELS}
-              error={errors.level?.message}
-              {...register('level')}
-            />
-            <Input
-              label="Precio de la rutina"
-              type="number"
-              min={0}
-              placeholder="0"
-              leftIcon={<span className="text-ink-muted text-xs">$</span>}
-              {...register('price')}
-            />
-          </div>
+          <Select
+            label="Nivel del alumno"
+            required
+            options={STUDENT_LEVELS}
+            error={errors.level?.message}
+            {...register('level')}
+          />
           <Textarea
             label="Objetivo del Coach"
             required

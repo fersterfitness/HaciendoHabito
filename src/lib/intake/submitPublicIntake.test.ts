@@ -61,7 +61,11 @@ describe('submitPublicIntake', () => {
       new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 }),
     )
     const result = await submitPublicIntake({ form_type: 'ferster' })
-    expect(result).toMatchObject({ ok: false, error: 'No autorizado', status: 401 })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.status).toBe(401)
+      expect(result.error.toLowerCase()).toMatch(/no autorizado|tomás|tomas|permiso/)
+    }
   })
 
   it('mensaje claro si la Edge Function no arranca (BOOT_ERROR)', async () => {

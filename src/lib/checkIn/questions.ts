@@ -194,17 +194,159 @@ export function questionByKey(questions: CheckInQuestion[], key: string): CheckI
   return questions.find((q) => q.key === key)
 }
 
+export type WeekStatusFromAnswers = {
+  finished: boolean
+  weekNumber: number | null
+  lastWeek: boolean
+}
+
+const WEEK_STATUS_OPTION_IDS = new Set(['finished', 'in_week', 'last_week'])
+
+function weekStatusChoiceFromResponses(
+  questions: CheckInQuestion[],
+  responses: Record<string, unknown>,
+): StoredChoiceAnswer | null {
+  const q = questionByKey(questions, 'week_status')
+  const ordered: unknown[] = []
+  if (q) ordered.push(responses[q.id])
+  for (const [key, value] of Object.entries(responses)) {
+    if (q && key === q.id) continue
+    ordered.push(value)
+  }
+  for (const raw of ordered) {
+    const choice = parseStoredChoice(raw)
+    if (!choice || choice.option === CHECK_IN_SKIP_OPTION) continue
+    if (WEEK_STATUS_OPTION_IDS.has(choice.option)) return choice
+  }
+  return null
+}
+
 export function weekStatusFromAnswers(
   questions: CheckInQuestion[],
   responses: Record<string, unknown>,
-): { finished: boolean; weekNumber: number | null } {
-  const q = questionByKey(questions, 'week_status')
-  if (!q) return { finished: false, weekNumber: null }
-  const choice = parseStoredChoice(responses[q.id])
-  if (!choice || choice.option === CHECK_IN_SKIP_OPTION) return { finished: false, weekNumber: null }
-  if (choice.option === 'finished') return { finished: true, weekNumber: null }
+): WeekStatusFromAnswers {
+  const empty: WeekStatusFromAnswers = { finished: false, weekNumber: null, lastWeek: false }
+  const choice = weekStatusChoiceFromResponses(questions, responses)
+  if (!choice) return empty
+  if (choice.option === 'finished') return { finished: true, weekNumber: null, lastWeek: false }
+  if (choice.option === 'last_week') {
+    const n = Number(choice.extra)
+    return {
+      finished: false,
+      weekNumber: Number.isFinite(n) && n > 0 ? Math.floor(n) : null,
+      lastWeek: true,
+    }
+  }
   const n = Number(choice.extra)
-  return { finished: false, weekNumber: Number.isFinite(n) && n > 0 ? Math.floor(n) : null }
+  return {
+    finished: false,
+    weekNumber: Number.isFinite(n) && n > 0 ? Math.floor(n) : null,
+    lastWeek: false,
+  }
+}
+
+export function weekStatusHasSignal(st: WeekStatusFromAnswers): boolean {
+  return st.finished || st.lastWeek || st.weekNumber != null
+}
+
+function questionCatalogSig(q: CheckInQuestion): string {
+  const opts = (q.options ?? [])
+    .map((o) => `${o.id}\t${o.label}\t${o.color}\t${o.extra && o.extra !== 'none' ? o.extra : ''}`)
+    .join('\n')
+  return [q.id, q.key ?? '', q.label, q.type, q.allowNote ? '1' : '0', q.visibleIfGender ?? '', opts].join('|')
+}
+
+/** Aplica la plantilla conservando los id de pregunta (y de opción) para no invalidar respuestas ya guardadas. */
+export function mergeCheckInTemplate(
+  current: CheckInQuestion[],
+  template: CheckInQuestion[],
+): CheckInQuestion[] {
+  const byKey = new Map(current.filter((q) => q.key).map((q) => [q.key as string, q]))
+  return template.map((tpl) => {
+    const prev = tpl.key ? byKey.get(tpl.key) : undefined
+    if (!prev) {
+      return {
+        ...tpl,
+        id: crypto.randomUUID(),
+        options: tpl.options?.map((o) => ({ ...o })),
+      }
+    }
+    return {
+      ...tpl,
+      id: prev.id,
+      options: tpl.options?.map((o) => ({ ...o })),
+    }
+  })
+}
+
+/** Actualiza etiquetas y opciones nuevas del catálogo semanal sin cambiar ids. */
+export function syncWeeklyQuestionCatalog(questions: CheckInQuestion[]): {
+  questions: CheckInQuestion[]
+  changed: boolean
+} {
+  if (!isWeeklyTemplate(questions)) return { questions, changed: false }
+  const templateByKey = new Map(
+    createWeeklyCheckInQuestions()
+      .filter((q) => q.key)
+      .map((q) => [q.key as string, q]),
+  )
+  let changed = false
+  const next = questions.map((q) => {
+    if (!q.key) return q
+    const tpl = templateByKey.get(q.key)
+    if (!tpl) return q
+    const patched: CheckInQuestion = {
+      ...q,
+      label: tpl.label,
+      type: tpl.type,
+      allowNote: tpl.allowNote,
+      visibleIfGender: tpl.visibleIfGender,
+      options: tpl.options?.map((o) => ({ ...o })),
+    }
+    if (questionCatalogSig(patched) !== questionCatalogSig(q)) {
+      changed = true
+      return patched
+    }
+    return q
+  })
+  return { questions: next, changed }
+}
+
+/** Copia respuestas de ids viejos a ids nuevos cuando la pregunta tiene la misma `key`. */
+export function remapResponsesToQuestionIds(
+  responses: Record<string, unknown>,
+  oldQuestions: CheckInQuestion[],
+  newQuestions: CheckInQuestion[],
+): Record<string, unknown> {
+  const oldByKey = new Map(oldQuestions.filter((q) => q.key).map((q) => [q.key as string, q.id]))
+  const newByKey = new Map(newQuestions.filter((q) => q.key).map((q) => [q.key as string, q.id]))
+  const out: Record<string, unknown> = { ...responses }
+  let copied = false
+  for (const [key, oldId] of oldByKey) {
+    const newId = newByKey.get(key)
+    if (!newId || newId === oldId) continue
+    if (!(oldId in out)) continue
+    const existing = out[newId]
+    const empty = existing == null || existing === ''
+    if (empty) {
+      out[newId] = out[oldId]
+      copied = true
+    }
+  }
+  return copied ? out : responses
+}
+
+export function questionIdsChangedByKey(
+  oldQuestions: CheckInQuestion[],
+  newQuestions: CheckInQuestion[],
+): boolean {
+  const oldByKey = new Map(oldQuestions.filter((q) => q.key).map((q) => [q.key as string, q.id]))
+  const newByKey = new Map(newQuestions.filter((q) => q.key).map((q) => [q.key as string, q.id]))
+  for (const [key, oldId] of oldByKey) {
+    const newId = newByKey.get(key)
+    if (newId && newId !== oldId) return true
+  }
+  return false
 }
 
 export function checkInHistoryMeta(
@@ -219,9 +361,11 @@ export function checkInHistoryMeta(
   const st = weekStatusFromAnswers(questions, responses)
   const weekLabel = st.finished
     ? 'Terminé mi mes de rutina'
-    : st.weekNumber
-      ? `Semana ${st.weekNumber}`
-      : '—'
+    : st.lastWeek
+      ? 'Última semana'
+      : st.weekNumber
+        ? `Semana ${st.weekNumber}`
+        : '—'
   const name = studentName?.trim() ? studentName.trim() : ''
   const filingLabel = [monthLabel, dateLabel, name, weekLabel].filter((x) => x && x !== '—').join(' · ')
   return { monthLabel, dateLabel, weekLabel, filingLabel }
@@ -278,6 +422,7 @@ export function createWeeklyCheckInQuestions(): CheckInQuestion[] {
       options: [
         opt('finished', 'Terminé mi mes de rutina', COLOR_A),
         opt('in_week', 'Estoy en mi semana', COLOR_B, 'number'),
+        opt('last_week', 'Estoy en mi última semana', COLOR_C),
       ],
     },
     {
@@ -300,7 +445,7 @@ export function createWeeklyCheckInQuestions(): CheckInQuestion[] {
       allowNote: true,
       options: [
         opt('a', 'Me siento contento/a', COLOR_A),
-        opt('b', 'Estoy triste', COLOR_C),
+        opt('b', 'Estoy con temas personales', COLOR_C),
         opt('c', 'Estoy cansado/a', COLOR_B),
       ],
     },
