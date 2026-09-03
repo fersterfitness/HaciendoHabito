@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { PageSectionTitle } from '@/components/ui/PageSectionTitle'
+import { loadStudentsMissingCheckIn, type DashboardMissingCheckInStudent } from '@/lib/dashboard/dashboardTrainerOps'
 import {
   buildWhatsAppGroupPickUrl,
   buildWhatsAppUrl,
@@ -22,6 +23,7 @@ import {
   normalizePhoneForWhatsApp,
   routineMonthFinishedWhatsAppMessage,
   shareToWhatsApp,
+  weeklyFormMissingReminderMessage,
   WHATSAPP_DIRECT_PASTE_HINT,
 } from '@/lib/whatsapp'
 import { groupByYearMonth, monthLabelEs } from '@/lib/checkIn/historyGroups'
@@ -40,9 +42,11 @@ import {
   type CheckInQuestion,
 } from '@/lib/checkIn/questions'
 import { CheckInAnswerList } from '@/components/checkIn/CheckInAnswerList'
+import { MonthlyFeedbackAnswers } from '@/components/checkIn/MonthlyFeedbackAnswers'
 import { CheckInFinishedBanner, CheckInLastWeekBanner } from '@/components/checkIn/CheckInFinishedBanner'
 import { CheckInQuestionEditor } from '@/components/checkIn/CheckInQuestionEditor'
 import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
+import { matchRoutineForSubmittedAt, type RoutineDateRange } from '@/lib/checkIn/monthlyFeedback'
 import { ensureDefaultCheckInForms, remapCheckInResponsesForForm, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -131,6 +135,10 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const [selectedHistoryYear, setSelectedHistoryYear] = useState<number | null>(null)
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<number | null>(null)
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null)
+  const [missingStudents, setMissingStudents] = useState<DashboardMissingCheckInStudent[]>([])
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'pending' | 'al_dia'>('all')
+  const [historyKind, setHistoryKind] = useState<'weekly' | 'monthly'>('weekly')
+  const [studentRoutines, setStudentRoutines] = useState<RoutineDateRange[]>([])
 
   type StudentHistoryRow = ResponseRow & {
     formId: string
@@ -169,6 +177,26 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   useEffect(() => {
     void loadForms()
   }, [loadForms])
+
+  useEffect(() => {
+    if (!user || checkInView !== 'student') return
+    void loadStudentsMissingCheckIn(user.id).then(setMissingStudents)
+  }, [user, checkInView, studentHistory])
+
+  useEffect(() => {
+    if (!user) return
+    void supabase
+      .from('routines')
+      .select('id, student_id, name, start_date, end_date')
+      .eq('owner_id', user.id)
+      .then(({ data }) => setStudentRoutines((data ?? []) as RoutineDateRange[]))
+  }, [user])
+
+  useEffect(() => {
+    setSelectedHistoryYear(null)
+    setSelectedHistoryMonth(null)
+    setSelectedResponseId(null)
+  }, [historyKind])
 
   const loadStudentHistory = useCallback(async () => {
     if (!user || forms.length === 0) {
@@ -238,6 +266,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const historyByStudent = useMemo(() => {
     const map = new Map<string, { studentName: string; rows: StudentHistoryRow[] }>()
     for (const row of studentHistory) {
+      const qs = parseQuestions(forms.find((f) => f.id === row.formId)?.questions)
+      const monthly = isMonthlyTemplate(qs)
+      if (historyKind === 'monthly' ? !monthly : monthly) continue
       const g = map.get(row.studentId) ?? { studentName: row.studentName, rows: [] }
       g.rows.push(row)
       map.set(row.studentId, g)
@@ -245,8 +276,21 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     for (const g of map.values()) {
       g.rows.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
     }
-    return [...map.entries()].sort((a, b) => a[1].studentName.localeCompare(b[1].studentName, 'es'))
-  }, [studentHistory])
+    const entries = [...map.entries()].sort((a, b) => {
+      const pendingA = a[1].rows.some((r) => !r.trainer_replied_at) ? 0 : 1
+      const pendingB = b[1].rows.some((r) => !r.trainer_replied_at) ? 0 : 1
+      return pendingA - pendingB || a[1].studentName.localeCompare(b[1].studentName, 'es')
+    })
+    return entries
+  }, [studentHistory, forms, historyKind])
+
+  const visibleHistoryByStudent = useMemo(() => {
+    if (historyStatusFilter === 'all') return historyByStudent
+    return historyByStudent.filter(([, group]) => {
+      const pending = group.rows.some((r) => !r.trainer_replied_at)
+      return historyStatusFilter === 'pending' ? pending : !pending
+    })
+  }, [historyByStudent, historyStatusFilter])
 
   const selectedStudentGroup = useMemo(() => {
     if (!selectedStudentId) return null
@@ -643,7 +687,11 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     return url || null
   }
 
-  function sendMonthlyFeedbackWa(studentName: string, phone: string | null | undefined) {
+  function sendMonthlyFeedbackWa(
+    studentName: string,
+    phone: string | null | undefined,
+    reason: 'finished' | 'last_week' = 'finished',
+  ) {
     const url = monthlyFormUrl()
     if (!url) {
       toast.error('Creá un formulario con la plantilla de feedback mensual.')
@@ -656,7 +704,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     }
     void shareToWhatsApp({
       phoneDigits: digits,
-      message: monthlyFeedbackInviteMessage({ studentName, url }),
+      message: monthlyFeedbackInviteMessage({ studentName, url, reason }),
     }).then((res) => {
       if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
     })
@@ -917,17 +965,112 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
         {checkInView === 'student' ? (
           <div className="space-y-4">
+            {missingStudents.length > 0 ? (
+              <Card padding="lg" className="space-y-3 border-amber-500/30">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-ink-primary">
+                      No completaron el formulario de esta semana
+                    </p>
+                    <p className="text-[11px] text-ink-muted">
+                      {missingStudents.length} alumno{missingStudents.length !== 1 ? 's' : ''} sin respuesta lun–dom.
+                    </p>
+                  </div>
+                </div>
+                <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
+                  {missingStudents.map((st) => (
+                    <li key={st.id} className="flex items-center gap-3 px-3 py-2">
+                      <p className="min-w-0 flex-1 text-sm font-medium text-ink-primary">{st.full_name}</p>
+                      <button
+                        type="button"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200"
+                        onClick={() => {
+                          const weekly = forms.find((f) => isWeeklyTemplate(parseQuestions(f.questions)))
+                          const url = weekly?.public_token ? sharedPublicUrl(weekly.public_token) : ''
+                          const digits = normalizePhoneForWhatsApp(st.phone)
+                          if (!digits) {
+                            toast.error('Sin teléfono válido en la ficha')
+                            return
+                          }
+                          window.open(
+                            buildWhatsAppUrl(digits, weeklyFormMissingReminderMessage(st.full_name, url)),
+                            '_blank',
+                            'noopener,noreferrer',
+                          )
+                        }}
+                      >
+                        <WhatsAppIcon className="h-3.5 w-3.5" />
+                        Recordar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
             <StudentRoutineWeekPanel />
           <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
             <p className="text-xs text-ink-secondary max-w-prose">
               Elegí un alumno, después el año y el mes, y por último la respuesta. Así el listado escala si el alumno está años con vos.
             </p>
+            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Tipo de formulario">
+              {([
+                { id: 'weekly' as const, label: 'Feedback semanales' },
+                { id: 'monthly' as const, label: 'Feedback mensuales' },
+              ]).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={historyKind === opt.id}
+                  onClick={() => setHistoryKind(opt.id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                    historyKind === opt.id
+                      ? 'border-brand-secondary/40 bg-brand-secondary/12 text-ink-primary'
+                      : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Estado de revisión">
+              {([
+                { id: 'all' as const, label: 'Todos' },
+                { id: 'pending' as const, label: 'Pendientes' },
+                { id: 'al_dia' as const, label: 'Al día' },
+              ]).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={historyStatusFilter === opt.id}
+                  onClick={() => setHistoryStatusFilter(opt.id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                    historyStatusFilter === opt.id
+                      ? opt.id === 'pending'
+                        ? 'border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-200'
+                        : opt.id === 'al_dia'
+                          ? 'border-emerald-600/35 bg-emerald-500/12 text-emerald-800 dark:text-emerald-200'
+                          : 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
+                      : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             {studentHistoryLoading ? (
               <p className="text-sm text-ink-muted py-8 text-center">Cargando historial…</p>
-            ) : historyByStudent.length === 0 ? (
+            ) : visibleHistoryByStudent.length === 0 ? (
               <EmptyState
-                title="Sin respuestas todavía"
-                description="Cuando los alumnos completen un formulario, aparecerán acá agrupados por nombre."
+                title={historyKind === 'monthly' ? 'Sin feedbacks mensuales' : 'Sin check-ins semanales'}
+                description={
+                  historyKind === 'monthly'
+                    ? 'Cuando un alumno complete el formulario mensual, aparece acá y queda asociado a la rutina de esas fechas.'
+                    : 'Cuando los alumnos completen el formulario semanal, aparecerán acá agrupados por nombre.'
+                }
               />
             ) : selectedHistoryResponse && selectedStudentGroup ? (
               <div className="space-y-3">
@@ -990,36 +1133,60 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         </button>
                       </div>
                       <div className="border-t border-surface-border/60 pt-3 space-y-3">
-                        <CheckInAnswerList
-                          questions={parseQuestions(forms.find((f) => f.id === row.formId)?.questions)}
-                          responses={obj}
-                        />
                         {(() => {
                           const qs = parseQuestions(forms.find((f) => f.id === row.formId)?.questions)
-                          const st = weekStatusFromAnswers(qs, obj)
-                          if (st.lastWeek) return <CheckInLastWeekBanner />
-                          if (!st.finished) return null
                           const student = students.find((s) => s.id === selectedStudentId)
+                          const matched = matchRoutineForSubmittedAt(
+                            studentRoutines.filter((r) => r.student_id === selectedStudentId),
+                            row.submitted_at,
+                          )
+                          if (isMonthlyTemplate(qs)) {
+                            return (
+                              <MonthlyFeedbackAnswers
+                                studentName={selectedStudentGroup.studentName}
+                                questions={qs}
+                                responses={obj}
+                                routineName={matched?.name}
+                              />
+                            )
+                          }
+                          const st = weekStatusFromAnswers(qs, obj)
                           return (
-                            <CheckInFinishedBanner
-                              description="Marcó «Terminé mi mes de rutina». Pedile la foto del registro de progreso y el feedback mensual."
-                              onAskProgress={() => {
-                                const digits = normalizePhoneForWhatsApp(student?.phone)
-                                if (!digits) {
-                                  toast.error('Sin teléfono válido en la ficha')
-                                  return
-                                }
-                                void shareToWhatsApp({
-                                  phoneDigits: digits,
-                                  message: routineMonthFinishedWhatsAppMessage(selectedStudentGroup.studentName),
-                                }).then((res) => {
-                                  if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
-                                })
-                              }}
-                              onAskMonthly={() =>
-                                sendMonthlyFeedbackWa(selectedStudentGroup.studentName, student?.phone)
-                              }
-                            />
+                            <>
+                              <CheckInAnswerList questions={qs} responses={obj} />
+                              {st.lastWeek ? (
+                                <CheckInLastWeekBanner
+                                  onAskMonthly={() =>
+                                    sendMonthlyFeedbackWa(
+                                      selectedStudentGroup.studentName,
+                                      student?.phone,
+                                      'last_week',
+                                    )
+                                  }
+                                />
+                              ) : null}
+                              {st.finished ? (
+                                <CheckInFinishedBanner
+                                  description="Marcó «Terminé mi mes de rutina». Pedile la foto del registro de progreso y el feedback mensual."
+                                  onAskProgress={() => {
+                                    const digits = normalizePhoneForWhatsApp(student?.phone)
+                                    if (!digits) {
+                                      toast.error('Sin teléfono válido en la ficha')
+                                      return
+                                    }
+                                    void shareToWhatsApp({
+                                      phoneDigits: digits,
+                                      message: routineMonthFinishedWhatsAppMessage(selectedStudentGroup.studentName),
+                                    }).then((res) => {
+                                      if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
+                                    })
+                                  }}
+                                  onAskMonthly={() =>
+                                    sendMonthlyFeedbackWa(selectedStudentGroup.studentName, student?.phone)
+                                  }
+                                />
+                              ) : null}
+                            </>
                           )
                         })()}
                       </div>
@@ -1205,7 +1372,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               </div>
             ) : (
               <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
-                {historyByStudent.map(([studentId, group]) => {
+                {visibleHistoryByStudent.map(([studentId, group]) => {
                   const pending = group.rows.filter((r) => !r.trainer_replied_at).length
                   const latest = group.rows[0]
                   return (
@@ -1664,8 +1831,33 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                               )}
                             </button>
                           </div>
-                          <CheckInAnswerList questions={questions} responses={obj} />
-                          {weekStatusFromAnswers(questions, obj).lastWeek ? <CheckInLastWeekBanner /> : null}
+                          {isMonthlyTemplate(questions) ? (
+                            <MonthlyFeedbackAnswers
+                              studentName={inv.student?.full_name ?? students.find((s) => s.id === inv.student_id)?.full_name ?? ''}
+                              questions={questions}
+                              responses={obj}
+                              routineName={
+                                matchRoutineForSubmittedAt(
+                                  studentRoutines.filter((r) => r.student_id === inv.student_id),
+                                  resp.submitted_at,
+                                )?.name
+                              }
+                            />
+                          ) : (
+                            <CheckInAnswerList questions={questions} responses={obj} />
+                          )}
+                          {weekStatusFromAnswers(questions, obj).lastWeek ? (
+                            <CheckInLastWeekBanner
+                              onAskMonthly={() => {
+                                const st = students.find((s) => s.id === inv.student_id)
+                                sendMonthlyFeedbackWa(
+                                  inv.student?.full_name ?? st?.full_name ?? '',
+                                  st?.phone,
+                                  'last_week',
+                                )
+                              }}
+                            />
+                          ) : null}
                           {weekStatusFromAnswers(questions, obj).finished ? (
                             <CheckInFinishedBanner
                               description="Pedile la foto del registro de progreso y el feedback mensual para armar el siguiente mesociclo."

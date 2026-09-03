@@ -13,6 +13,7 @@ import {
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
+import { TrainerMealPlansSectionNav } from '@/components/nutrition/TrainerMealPlansSectionNav'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
@@ -454,6 +455,7 @@ export function NutritionFoodsPage() {
       <Header title="Biblioteca" />
 
       <DirectoryPageShell className={cn('max-w-[1600px]', nutritionShellClass)}>
+        <TrainerMealPlansSectionNav />
         <NutritionLibraryTabs />
         <PageSectionTitle
           title="Biblioteca y carga"

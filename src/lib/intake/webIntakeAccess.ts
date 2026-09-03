@@ -2,24 +2,70 @@ import { supabase } from '@/lib/supabase'
 
 const STORAGE_TOKEN = 'hh_intake_access_token'
 const STORAGE_PLAN = 'hh_intake_access_plan'
+const STORAGE_EMAIL = 'hh_intake_access_email'
+
+function writeStore(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.setItem(key, value)
+  } catch {
+    /* ignore */
+  }
+}
+
+function readStore(key: string): string | null {
+  try {
+    const local = localStorage.getItem(key)?.trim()
+    if (local) return local
+  } catch {
+    /* ignore */
+  }
+  try {
+    return sessionStorage.getItem(key)?.trim() || null
+  } catch {
+    return null
+  }
+}
+
+function clearStore(key: string): void {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.removeItem(key)
+  } catch {
+    /* ignore */
+  }
+}
 
 export type WebIntakeAccessStatus = 'pending' | 'approved' | 'denied'
 
-export function saveIntakeAccessSession(requestToken: string, planSlug: string): void {
-  sessionStorage.setItem(STORAGE_TOKEN, requestToken)
-  sessionStorage.setItem(STORAGE_PLAN, planSlug)
+export function saveIntakeAccessSession(requestToken: string, planSlug: string, email?: string): void {
+  writeStore(STORAGE_TOKEN, requestToken)
+  writeStore(STORAGE_PLAN, planSlug)
+  if (email?.trim()) writeStore(STORAGE_EMAIL, email.trim().toLowerCase())
 }
 
 export function readIntakeAccessSession(): { token: string; planSlug: string } | null {
-  const token = sessionStorage.getItem(STORAGE_TOKEN)?.trim()
-  const planSlug = sessionStorage.getItem(STORAGE_PLAN)?.trim()
+  const token = readStore(STORAGE_TOKEN)
+  const planSlug = readStore(STORAGE_PLAN)
   if (!token || !planSlug) return null
   return { token, planSlug }
 }
 
+export function readIntakeAccessEmail(): string {
+  return readStore(STORAGE_EMAIL) ?? ''
+}
+
 export function clearIntakeAccessSession(): void {
-  sessionStorage.removeItem(STORAGE_TOKEN)
-  sessionStorage.removeItem(STORAGE_PLAN)
+  clearStore(STORAGE_TOKEN)
+  clearStore(STORAGE_PLAN)
 }
 
 /** Solo `npm run dev`. El build de producción sigue exigiendo el OK de Tomás. */
@@ -76,7 +122,7 @@ export async function requestWebIntakeAccess(params: {
     if (!res.ok || !data.ok || !data.request_token) {
       return { ok: false, error: data.error ?? 'No se pudo registrar la solicitud' }
     }
-    saveIntakeAccessSession(data.request_token, params.planSlug)
+    saveIntakeAccessSession(data.request_token, params.planSlug, params.applicantEmail)
     return { ok: true, requestToken: data.request_token }
   } catch {
     return { ok: false, error: 'Error de conexión. Probá de nuevo.' }
@@ -161,4 +207,42 @@ export async function issueDevApprovedIntakeAccess(params: {
 
   saveIntakeAccessSession(String(row.request_token), params.planSlug)
   return { ok: true }
+}
+
+/** Retoma un permiso ya pedido (mail + plan), aunque se haya cerrado la pestaña. */
+export async function resumeWebIntakeAccessByEmail(params: {
+  email: string
+  planSlug: string
+}): Promise<
+  | { ok: true; requestToken: string; status: WebIntakeAccessStatus }
+  | { ok: false; error: string }
+> {
+  const email = params.email.trim().toLowerCase()
+  if (!email || !email.includes('@')) {
+    return { ok: false, error: 'Ingresá un mail válido' }
+  }
+  try {
+    const { data, error } = await supabase.rpc('resume_web_intake_access', {
+      p_email: email,
+      p_plan_slug: params.planSlug,
+    })
+    if (error) {
+      const m = error.message.toLowerCase()
+      if (m.includes('does not exist') || m.includes('schema cache') || m.includes('42883')) {
+        return {
+          ok: false,
+          error: 'Falta aplicar el SQL resume_web_intake_access. Pedile a Tomás que recargue o pedí permiso de nuevo.',
+        }
+      }
+      return { ok: false, error: error.message }
+    }
+    const row = data as { ok?: boolean; error?: string; request_token?: string; status?: WebIntakeAccessStatus } | null
+    if (!row?.ok || !row.request_token || !row.status) {
+      return { ok: false, error: 'No hay un permiso para ese mail en este plan. Pedí acceso de nuevo.' }
+    }
+    saveIntakeAccessSession(String(row.request_token), params.planSlug, email)
+    return { ok: true, requestToken: String(row.request_token), status: row.status }
+  } catch {
+    return { ok: false, error: 'Error de conexión' }
+  }
 }

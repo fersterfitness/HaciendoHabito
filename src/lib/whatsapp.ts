@@ -321,16 +321,21 @@ export function routineMonthFinishedWhatsAppMessage(studentName: string): string
   ].join('\n')
 }
 
-/** Pedido del formulario de feedback mensual (después de cerrar el mes). */
+/** Pedido del formulario de feedback mensual (última semana o mes cerrado). */
 export function monthlyFeedbackInviteMessage(params: {
   studentName: string
   url: string
+  reason?: 'finished' | 'last_week'
 }): string {
   const first = params.studentName.trim().split(/\s+/)[0] || params.studentName.trim()
+  const lead =
+    params.reason === 'last_week'
+      ? 'Estás en tu última semana de rutina, te dejo el FEEDBACK MENSUAL 📋✨'
+      : 'Como cerraste el mes de rutina, te dejo el FEEDBACK MENSUAL 📋✨'
   return [
     `Hola ${first}! 🙌`,
     '',
-    'Como cerraste el mes de rutina, te dejo el FEEDBACK MENSUAL 📋✨',
+    lead,
     '',
     'Completalo cuando puedas, me sirve un montón para armar el próximo mesociclo.',
     '',
@@ -338,6 +343,22 @@ export function monthlyFeedbackInviteMessage(params: {
     '',
     'Gracias y a seguir Haciéndolo Hábito 💪',
   ].join('\n')
+}
+
+/** Recordatorio si el alumno no completó el formulario de esta semana. */
+export function weeklyFormMissingReminderMessage(studentName: string, formUrl?: string): string {
+  const first = studentName.trim().split(/\s+/)[0] || studentName.trim()
+  const lines = [
+    `Hola ${first}, ¿Cómo estás?`,
+    '',
+    'Recordá completar tu formulario semanal, esto me va a servir para hacer un seguimiento continuo de tu progreso.',
+    '',
+    '¡GRACIAS! 💪',
+  ]
+  if (formUrl?.trim()) {
+    lines.push('', formUrl.trim())
+  }
+  return lines.join('\n')
 }
 
 /** Mensaje al enviar rutina (PDF) al alumno por WhatsApp. */

@@ -32,6 +32,11 @@ export function CheckInQuestionFields({
         </span>
         {question.label}
       </p>
+      {question.helperText ? (
+        <p className="mt-2 rounded-xl border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[12px] leading-snug text-violet-800 dark:text-violet-200">
+          {question.helperText}
+        </p>
+      ) : null}
 
       {question.type === 'scale' ? (
         <div className="mt-4 flex gap-2" role="group" aria-label={question.label}>
@@ -72,9 +77,14 @@ export function CheckInQuestionFields({
                 className={cn(
                   'flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left text-sm transition-all',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30',
+                  opt.id === 'last_date' && !isOn
+                    ? 'border-violet-500/35 bg-violet-500/8 text-ink-primary'
+                    : '',
                   isOn
                     ? 'text-ink-primary shadow-sm'
-                    : 'border-surface-border/80 bg-surface-elevated/40 text-ink-secondary hover:border-brand-primary/30 hover:bg-surface-elevated/70 hover:text-ink-primary',
+                    : opt.id === 'last_date'
+                      ? 'hover:border-violet-500/50 hover:bg-violet-500/12'
+                      : 'border-surface-border/80 bg-surface-elevated/40 text-ink-secondary hover:border-brand-primary/30 hover:bg-surface-elevated/70 hover:text-ink-primary',
                 )}
                 style={
                   isOn
@@ -121,8 +131,10 @@ export function CheckInQuestionFields({
             </div>
           ) : null}
           {selected?.extra === 'date' ? (
-            <label className="block space-y-1.5 pt-2">
-              <span className="text-[11px] font-medium text-ink-muted">Fecha de tu última menstruación</span>
+            <label className="block space-y-1.5 rounded-2xl border border-violet-500/30 bg-violet-500/8 p-3 pt-2">
+              <span className="text-[11px] font-medium text-violet-800 dark:text-violet-200">
+                Fecha de tu última menstruación — registrala en cada ciclo
+              </span>
               <input
                 type="date"
                 value={draft.extra}

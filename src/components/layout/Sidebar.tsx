@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
-import { getSidebarBlocks, type NavItem } from '@/config/navigation'
+import { getSidebarBlocks, isNavPathActive, type NavItem } from '@/config/navigation'
 import type { AppRole } from '@/types/database'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 
@@ -140,14 +140,6 @@ function SidebarRailTooltip({ label, children }: { label: string; children: Reac
   )
 }
 
-function isPathActive(pathname: string, href: string, exactMatch?: boolean) {
-  if (exactMatch) return pathname === href
-  const homeHref = href === '/dashboard'
-  const atHome = pathname === '/' || pathname === '/dashboard'
-  if (homeHref && atHome) return true
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
-
 function navItemKey(item: NavItem) {
   return `${item.href}::${item.label}`
 }
@@ -205,7 +197,7 @@ function SidebarNavGroup({ items, className }: { items: NavItem[]; className?: s
   const navRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
 
-  const activeItem = items.find((item) => isPathActive(pathname, item.href, item.exactMatch))
+  const activeItem = items.find((item) => isNavPathActive(pathname, item))
   const activeKey = activeItem ? navItemKey(activeItem) : null
   const pill = useActivePill(navRef, activeKey)
 

@@ -1033,7 +1033,10 @@ function RoutineCoverPage({
               </Text>
             </View>
             <View style={s.coverPill}>
-              <Text style={s.coverPillText}>{routine.duration_days} días</Text>
+              <Text style={s.coverPillText}>
+                {Math.max(1, Math.round((routine.duration_days || 7) / 7))}{' '}
+                {Math.round((routine.duration_days || 7) / 7) === 1 ? 'semana' : 'semanas'}
+              </Text>
             </View>
           </View>
         </View>

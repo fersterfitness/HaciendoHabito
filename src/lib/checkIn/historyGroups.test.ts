@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { argentinaYearMonth, groupByYearMonth, monthLabelEs } from '@/lib/checkIn/historyGroups'
 
 describe('historyGroups', () => {
-  it('usa calendario de Argentina', () => {
-    expect(argentinaYearMonth('2026-08-27T15:00:00-03:00')).toEqual({ year: 2026, month: 8 })
+  it('agrupa por el viernes de esa semana, no por el día de envío', () => {
+    // martes 25 ago 2026 → viernes 28 ago → agosto
+    expect(argentinaYearMonth('2026-08-25T10:00:00-03:00')).toEqual({ year: 2026, month: 8 })
   })
 
   it('agrupa año → mes', () => {

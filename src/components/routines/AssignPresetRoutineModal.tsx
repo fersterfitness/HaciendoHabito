@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import type { RoutineBlueprint } from '@/types/database'
+import { realBlueprints } from '@/lib/routine/blueprintFolders'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
@@ -46,7 +47,7 @@ export function AssignPresetRoutineModal({
           toast.error(error.message)
           return
         }
-        setItems((data as RoutineBlueprint[]) ?? [])
+        setItems(realBlueprints((data as RoutineBlueprint[]) ?? []))
       })
   }, [open, user])
 
@@ -78,7 +79,7 @@ export function AssignPresetRoutineModal({
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
         <h3 className="mt-1 text-sm font-semibold text-ink-primary">Asignar a {studentName}</h3>
         <p className="mt-1 text-[11px] text-ink-secondary">
-          Elegí macrociclo, mesociclo y variante. Después podés editar la rutina del alumno.
+          Elegí carpeta (macrociclo), subcarpeta (variante) y la rutina. Después podés editarla.
         </p>
         {loading ? (
           <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
@@ -89,7 +90,7 @@ export function AssignPresetRoutineModal({
         ) : (
           <div className="mt-4 space-y-3">
             <label className="block text-[11px] font-medium text-ink-secondary">
-              Macrociclo
+              Macrociclo (carpeta)
               <select
                 value={macro}
                 onChange={(e) => {
@@ -108,7 +109,7 @@ export function AssignPresetRoutineModal({
               </select>
             </label>
             <label className="block text-[11px] font-medium text-ink-secondary">
-              Mesociclo
+              Variante (subcarpeta)
               <select
                 value={meso}
                 onChange={(e) => {
@@ -121,13 +122,13 @@ export function AssignPresetRoutineModal({
                 <option value="">{macro ? 'Elegí…' : 'Primero el macrociclo'}</option>
                 {mesos.map((m) => (
                   <option key={m || '__none'} value={m}>
-                    {m || 'Sin mesociclo'}
+                    {m || 'Sin subcarpeta'}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-[11px] font-medium text-ink-secondary">
-              Variante
+              Rutina
               <select
                 value={variantId}
                 onChange={(e) => setVariantId(e.target.value)}

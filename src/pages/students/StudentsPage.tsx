@@ -24,6 +24,8 @@ import type { StudentPlanAssignment } from '@/types/database'
 import { StudentTagChips } from '@/components/students/StudentTagChips'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { Header } from '@/components/layout/Header'
+import { AdvisoriesSectionNav } from '@/components/layout/AdvisoriesSectionNav'
+import { WomenCycleOverview } from '@/components/students/WomenCycleOverview'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -184,9 +186,10 @@ type StatusFilter = '' | StudentStatus
 type ExpiryFilter = '' | 'pronto' | 'vencido'
 
 /** Opciones de orden de la tabla (botón neutro tipo Gray UI). */
-type TableSort = 'recommended' | 'name_asc' | 'name_desc' | 'plan_asc' | 'plan_desc'
+type TableSort = 'recommended' | 'name_asc' | 'name_desc' | 'plan_asc' | 'plan_desc' | 'weeks_left'
 
 const TABLE_SORT_OPTS: { value: TableSort; label: string }[] = [
+  { value: 'weeks_left', label: 'Por terminar rutina · primero' },
   { value: 'recommended', label: 'Activos primero, luego nombre (A→Z)' },
   { value: 'name_asc', label: 'Nombre · A→Z' },
   { value: 'name_desc', label: 'Nombre · Z→A' },
@@ -196,6 +199,7 @@ const TABLE_SORT_OPTS: { value: TableSort; label: string }[] = [
 
 /** Texto corto bajo el título del listado. */
 const SORT_SUBTITLE: Record<TableSort, string> = {
+  weeks_left: 'Por terminar primero',
   recommended: 'Activos primero · A→Z',
   name_asc: 'Nombre · A→Z',
   name_desc: 'Nombre · Z→A',
@@ -211,7 +215,11 @@ function comparePlanEnd(a: string | null, b: string | null): number {
 }
 
 /** Orden estable respecto del nombre dentro de mismos valores de orden. */
-function sortStudentsClone(list: Student[], sort: TableSort): Student[] {
+function sortStudentsClone(
+  list: Student[],
+  sort: TableSort,
+  remainingWeeks?: (studentId: string) => number,
+): Student[] {
   const nameCmp = (a: Student, b: Student) => a.full_name.localeCompare(b.full_name, 'es')
   const rankActivo = (s: Student) => (s.status === 'activo' ? 0 : 1)
   const copy = [...list]
@@ -230,6 +238,13 @@ function sortStudentsClone(list: Student[], sort: TableSort): Student[] {
       break
     case 'plan_desc':
       copy.sort((a, b) => comparePlanEnd(b.plan_end_date, a.plan_end_date) || nameCmp(a, b))
+      break
+    case 'weeks_left':
+      copy.sort((a, b) => {
+        const ra = remainingWeeks?.(a.id) ?? 99
+        const rb = remainingWeeks?.(b.id) ?? 99
+        return ra - rb || nameCmp(a, b)
+      })
       break
     default:
       break
@@ -497,7 +512,8 @@ export function StudentsPage() {
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('')
   const [filterExpiry, setFilterExpiry] = useState<ExpiryFilter>('')
   const [filterTag,    setFilterTag]    = useState('')
-  const [tableSort, setTableSort] = useState<TableSort>('recommended')
+  const [filterGender, setFilterGender] = useState<'' | 'F' | 'M'>('')
+  const [tableSort, setTableSort] = useState<TableSort>('weeks_left')
   const TABLE_PAGE_SIZE = 50
   const [tableVisibleCount, setTableVisibleCount] = useState(TABLE_PAGE_SIZE)
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
@@ -664,12 +680,24 @@ export function StudentsPage() {
       if (filterExpiry === 'vencido' && d >= 0)               return false
     }
     if (filterTag && !studentTrainerTags(s).includes(filterTag)) return false
+    if (filterGender === 'F' && s.gender !== 'F') return false
+    if (filterGender === 'M' && s.gender !== 'M') return false
     return true
-  }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag])
+  }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag, filterGender])
+
+  const remainingWeeksOf = useCallback((studentId: string) => {
+    const total = weeksByStudent.get(studentId) ?? 0
+    const st = weekByStudent.get(studentId)
+    if (st?.finished) return 0
+    if (st?.lastWeek) return 1
+    if (!total) return 99
+    const current = st?.weekNumber ?? 0
+    return Math.max(0, total - current)
+  }, [weekByStudent, weeksByStudent])
 
   const sortedForTable = useMemo(
-    () => sortStudentsClone(filtered, tableSort),
-    [filtered, tableSort],
+    () => sortStudentsClone(filtered, tableSort, remainingWeeksOf),
+    [filtered, tableSort, remainingWeeksOf],
   )
 
   const visibleForTable = useMemo(
@@ -679,13 +707,38 @@ export function StudentsPage() {
 
   useEffect(() => {
     setTableVisibleCount(TABLE_PAGE_SIZE)
-  }, [search, filterLevel, filterStatus, filterExpiry, filterTag, tableSort])
+  }, [search, filterLevel, filterStatus, filterExpiry, filterTag, filterGender, tableSort])
 
   return (
     <div>
       <Header title={entityLabel} />
 
       <DirectoryPageShell>
+        <AdvisoriesSectionNav />
+        {filterGender === 'F' ? (
+          <WomenCycleOverview students={filtered} weekByStudent={weekByStudent} />
+        ) : null}
+        <div className="flex flex-wrap gap-1">
+          {([
+            { id: '' as const, label: 'Todos' },
+            { id: 'F' as const, label: 'Mujeres' },
+            { id: 'M' as const, label: 'Hombres' },
+          ]).map((opt) => (
+            <button
+              key={opt.id || 'all-g'}
+              type="button"
+              onClick={() => setFilterGender(opt.id)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                filterGender === opt.id
+                  ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
+                  : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="min-w-0 flex-1 max-w-xl">
             <Input

@@ -5,14 +5,15 @@ import {
   mobileNavActiveTextClassName,
   mobileNavActiveTintBgClassName,
 } from '@/lib/primaryGradientCtaClasses'
-import type { NavItem } from '@/config/navigation'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { useAuthStore } from '@/stores/authStore'
 import {
   getMobileNavDrawerSections,
   getMobileNavPrimaryItems,
+  isNavPathActive,
   navItemKey,
+  type NavItem,
 } from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 import { Settings, LogOut, X, Menu, UserCircle, type LucideIcon } from 'lucide-react'
@@ -20,14 +21,6 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 import type { AppRole } from '@/types/database'
-
-function isMobileItemActive(pathname: string, href: string, exactMatch?: boolean) {
-  if (exactMatch) return pathname === href
-  const homeHref = href === '/dashboard'
-  const atHome = pathname === '/' || pathname === '/dashboard'
-  if (homeHref && atHome) return true
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
 
 function roleLabel(role: AppRole | undefined) {
   if (role === 'nutritionist') return 'Nutricionista'
@@ -43,6 +36,7 @@ function DrawerNavItem({
   label,
   icon: Icon,
   exactMatch,
+  alsoMatch,
   onClose,
   badge,
 }: {
@@ -50,11 +44,12 @@ function DrawerNavItem({
   label: string
   icon: LucideIcon
   exactMatch?: boolean
+  alsoMatch?: string[]
   onClose: () => void
   badge?: React.ReactNode
 }) {
   const { pathname } = useLocation()
-  const active = isMobileItemActive(pathname, to, exactMatch)
+  const active = isNavPathActive(pathname, { href: to, label, icon: Icon, exactMatch, alsoMatch })
   return (
     <NavLink
       to={to}
@@ -89,7 +84,7 @@ export function MobileNav() {
   const primaryItems = getMobileNavPrimaryItems(role)
   const drawerSections = getMobileNavDrawerSections(role)
   const drawerRouteActive = drawerSections.some((section) =>
-    section.items.some((item) => isMobileItemActive(pathname, item.href, item.exactMatch)),
+    section.items.some((item) => isNavPathActive(pathname, item)),
   )
   const moreActive = drawerOpen || drawerRouteActive
 
@@ -119,7 +114,7 @@ export function MobileNav() {
           {primaryItems.map((item) => {
             const Icon = item.icon
             const to = item.href
-            const active = isMobileItemActive(pathname, to, item.exactMatch)
+            const active = isNavPathActive(pathname, item)
             return (
               <NavLink
                 key={item.href + item.label}
@@ -228,6 +223,7 @@ export function MobileNav() {
                         label={item.label}
                         icon={item.icon}
                         exactMatch={item.exactMatch}
+                        alsoMatch={item.alsoMatch}
                         onClose={() => setDrawerOpen(false)}
                       />
                     ))}

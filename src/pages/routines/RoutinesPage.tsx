@@ -33,6 +33,7 @@ import { StudentAvatarThumb } from '@/lib/studentAvatar'
 import { RoutineDeletionHistoryPanel } from '@/components/routines/RoutineDeletionHistoryPanel'
 import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
 import { NewRoutineModal } from '@/components/routines/NewRoutineModal'
+import { AdvisoriesSectionNav } from '@/components/layout/AdvisoriesSectionNav'
 
 const RoutinePdfsPanelLazy = lazy(() =>
   import('@/pages/routines/RoutinePdfsPanel').then((m) => ({ default: m.RoutinePdfsPanel })),
@@ -548,8 +549,11 @@ export function RoutinesPage() {
   return (
     <div>
       <Header title="Rutinas" />
+      <div className="px-4 pt-4 lg:px-6">
+        <AdvisoriesSectionNav />
+      </div>
 
-      <div className="flex gap-2 border-b border-surface-border px-4 pt-4 lg:px-6">
+      <div className="flex gap-2 border-b border-surface-border px-4 lg:px-6">
         <button
           type="button"
           onClick={() =>

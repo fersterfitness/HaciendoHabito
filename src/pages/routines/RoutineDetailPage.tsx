@@ -48,6 +48,7 @@ import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { cyclePhasesForWeekBlock, type CyclePhaseInfo, type CyclePhaseColor } from '@/lib/routine/menstrualCyclePlanning'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
+import { RoutineMonthlyFeedbackSection } from '@/components/checkIn/RoutineMonthlyFeedbackSection'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
 import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
@@ -1373,6 +1374,19 @@ export function RoutineDetailPage() {
               ? 'El alumno marcó «Terminé mi mes de rutina» en el check-in. Las semanas quedan marcadas como hechas.'
               : `Según el último check-in, va por la semana ${checkInWeek.weekNumber}.`}
           </p>
+        ) : null}
+
+        {user && routine.student_id ? (
+          <RoutineMonthlyFeedbackSection
+            ownerId={user.id}
+            studentId={routine.student_id}
+            studentName={routine.student?.full_name ?? 'Alumno'}
+            studentPhone={routine.student?.phone}
+            routine={routine}
+            lastWeek={
+              checkInWeek.lastWeek && (routine.status === 'activa' || routine.status === 'por_vencer')
+            }
+          />
         ) : null}
 
         {blocks.map((block, blockStripeIndex) => (

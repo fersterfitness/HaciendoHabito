@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Popover } from '@/components/ui/Popover'
 import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWorkbookReadonlyView'
+import { TrainerMealPlansSectionNav } from '@/components/nutrition/TrainerMealPlansSectionNav'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { cn, formatDate } from '@/lib/utils'
@@ -405,6 +406,7 @@ export function MealPlansPage() {
       <Header title="Planes de alimentación" />
 
       <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 lg:px-6 lg:py-8">
+        <TrainerMealPlansSectionNav />
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative min-h-10 min-w-0 flex-1">
             <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">

@@ -31,3 +31,24 @@ export function checkInWeekStartUtc(
   const offset = TZ_UTC_OFFSET[timeZone] ?? '-03:00'
   return new Date(`${ymd}T00:00:00${offset}`)
 }
+
+/** Viernes 00:00 de la semana calendaria (lun–dom) del check-in. */
+export function checkInFridayOfWeekUtc(
+  date = new Date(),
+  timeZone = CHECK_IN_SUBMISSION_TIMEZONE,
+): Date {
+  return new Date(checkInWeekStartUtc(date, timeZone).getTime() + 4 * 86_400_000)
+}
+
+/** Fecha YYYY-MM-DD del viernes de esa semana, en la TZ del check-in. */
+export function checkInFridayYmd(
+  date = new Date(),
+  timeZone = CHECK_IN_SUBMISSION_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(checkInFridayOfWeekUtc(date, timeZone))
+}

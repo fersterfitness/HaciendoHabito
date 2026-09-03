@@ -32,6 +32,7 @@ import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
+import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
 type Tab = 'income' | 'expenses'
@@ -826,6 +827,7 @@ export function FinancesPage() {
         )}
 
         {/* Cuotas pendientes — tonos contenidos */}
+        <RoutinePaymentsPanel />
         {deudores.length > 0 && (
           <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/65">
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">

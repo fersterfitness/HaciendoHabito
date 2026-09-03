@@ -11,9 +11,11 @@ import {
 import {
   checkInSharedPublicUrl,
   openCheckInGroupWhatsApp,
+  openLastWeekMonthlyFeedback,
   openMissingStudentCheckInReminder,
   openResourceGroupWhatsApp,
   type DashboardCheckInQuickSend,
+  type DashboardLastWeekStudent,
   type DashboardMissingCheckInStudent,
   type DashboardResourceQuickSend,
 } from '@/lib/dashboard/dashboardTrainerOps'
@@ -39,6 +41,8 @@ function shortReminderLabel(r: TrainerWeeklyReminder): string {
       return 'Recursos semanal'
     case 'routines-review':
       return 'Rutinas por vencer'
+    case 'off-context-wednesday':
+      return 'Saliendo de contexto'
     default:
       return r.title
         .toLowerCase()
@@ -53,6 +57,8 @@ type Props = {
   checkInQuickSends: DashboardCheckInQuickSend[]
   resourceQuickSends: DashboardResourceQuickSend[]
   missingCheckInStudents: DashboardMissingCheckInStudent[]
+  lastWeekStudents: DashboardLastWeekStudent[]
+  monthlyFeedbackUrl: string | null
 }
 
 function QuickActionRow({
@@ -86,10 +92,13 @@ export function DashboardTrainerOpsPanel({
   checkInQuickSends,
   resourceQuickSends,
   missingCheckInStudents,
+  lastWeekStudents,
+  monthlyFeedbackUrl,
 }: Props) {
   const navigate = useAppNavigate()
   const [guideOpen, setGuideOpen] = useState(false)
   const [missingOpen, setMissingOpen] = useState(false)
+  const [lastWeekOpen, setLastWeekOpen] = useState(true)
 
   const fridayHighlight = TRAINER_WEEKLY_REMINDERS.some((r) => isTrainerReminderHighlightedToday(r))
 
@@ -234,6 +243,58 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         )}
       </div>
+
+      {lastWeekStudents.length > 0 ? (
+        <div className="rounded-xl border border-rose-500/35 bg-rose-500/[0.07]">
+          <button
+            type="button"
+            onClick={() => setLastWeekOpen((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+            aria-expanded={lastWeekOpen}
+          >
+            <BellRing className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-300" aria-hidden />
+            <span className="flex-1 text-[11px] font-semibold text-ink-primary">
+              Última semana ({lastWeekStudents.length}) — enviar feedback mensual
+            </span>
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', lastWeekOpen && 'rotate-180')}
+              aria-hidden
+            />
+          </button>
+          {lastWeekOpen ? (
+            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-rose-500/20 px-2 py-2">
+              {lastWeekStudents.map((st) => (
+                <li
+                  key={st.id}
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-rose-500/10"
+                >
+                  <span className="min-w-0 truncate font-medium text-ink-primary">{st.full_name}</span>
+                  <button
+                    type="button"
+                    disabled={!monthlyFeedbackUrl}
+                    onClick={() => {
+                      if (!monthlyFeedbackUrl) {
+                        toast.error('Creá el formulario de feedback mensual en Check-ins')
+                        return
+                      }
+                      const ok = openLastWeekMonthlyFeedback({
+                        studentName: st.full_name,
+                        phone: st.phone,
+                        monthlyUrl: monthlyFeedbackUrl,
+                      })
+                      if (!ok) toast.error(`Sin teléfono válido para ${st.full_name}`)
+                    }}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-[10px] font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
+                  >
+                    <WhatsAppIcon className="h-3 w-3" />
+                    Enviar feedback mensual
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       {missingCheckInStudents.length > 0 ? (
         <div className="rounded-xl border border-surface-border bg-surface-card">

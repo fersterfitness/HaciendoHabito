@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { MessageCircle, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import {
   buildTrainerContactWhatsAppUrl,
@@ -12,8 +13,10 @@ import {
   checkWebIntakeAccessStatus,
   isDevIntakeAccessBypass,
   issueDevApprovedIntakeAccess,
+  readIntakeAccessEmail,
   readIntakeAccessSession,
   requestWebIntakeAccess,
+  resumeWebIntakeAccessByEmail,
 } from '@/lib/intake/webIntakeAccess'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +32,7 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
   const [requesting, setRequesting] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [hasToken, setHasToken] = useState(false)
+  const [email, setEmail] = useState(() => readIntakeAccessEmail())
 
   const waUrl = buildTrainerContactWhatsAppUrl(whatsAppInterestMessage(planName))
 
@@ -42,10 +46,15 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
   }, [refreshTokenState])
 
   async function handleRequestAccess() {
+    if (!email.trim() || !email.includes('@')) {
+      toast.error('Poné tu mail para que, si salís de la página, puedas retomar el permiso.')
+      return
+    }
     setRequesting(true)
     const result = await requestWebIntakeAccess({
       planSlug,
       planTitle: planName,
+      applicantEmail: email.trim(),
     })
     setRequesting(false)
     if (!result.ok) {
@@ -60,8 +69,30 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
   }
 
   async function handleCheckAccess() {
-    const session = readIntakeAccessSession()
+    let session = readIntakeAccessSession()
     if (!session?.token || session.planSlug !== planSlug) {
+      if (email.trim()) {
+        setChecking(true)
+        const resumed = await resumeWebIntakeAccessByEmail({ email, planSlug })
+        setChecking(false)
+        if (!resumed.ok) {
+          toast.error(resumed.error)
+          return
+        }
+        refreshTokenState()
+        session = readIntakeAccessSession()
+        if (resumed.status === 'approved') {
+          toast.success('¡Permiso otorgado! Podés completar tus datos.')
+          onApproved()
+          return
+        }
+        if (resumed.status === 'denied') {
+          toast.error('El acceso no fue aprobado. Escribile a Tomás por WhatsApp.')
+          return
+        }
+        toast('Todavía pendiente. Coordiná el pago con Tomás y volvé a intentar.', { icon: '⏳' })
+        return
+      }
       toast.error('Primero tocá «Pedir permiso» después de hablar con Tomás por WhatsApp.')
       return
     }
@@ -138,10 +169,20 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
           <ShieldCheck className="h-5 w-5 shrink-0 text-brand-primary" aria-hidden />
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Después de coordinar el pago por WhatsApp, tocá <strong className="text-zinc-800 dark:text-zinc-200">Pedir permiso</strong> para
-            que Tomás reciba el aviso en la app. Cuando te habilite, usá <strong className="text-zinc-800 dark:text-zinc-200">Ya tengo permiso</strong> para
+            que Tomás reciba el aviso en la app. El permiso queda guardado: podés salir y volver cuando quieras.
+            Cuando te habilite, usá <strong className="text-zinc-800 dark:text-zinc-200">Ya tengo permiso</strong> para
             pasar al paso Datos.
           </p>
         </div>
+        <Input
+          type="email"
+          label="Tu mail"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="para retomar si salís de la página"
+        />
         <Button
           type="button"
           variant="secondary"

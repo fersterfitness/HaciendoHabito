@@ -66,7 +66,18 @@ describe('monthlyFeedbackInviteMessage', () => {
     })
     expect(msg).toContain('Ana')
     expect(msg).toContain('FEEDBACK MENSUAL')
+    expect(msg).toContain('cerraste el mes')
     expect(msg).toContain('https://ejemplo.test/form/check-in/compartido/abc')
+  })
+
+  it('cambia el copy si está en última semana', () => {
+    const msg = monthlyFeedbackInviteMessage({
+      studentName: 'Ana Pérez',
+      url: 'https://ejemplo.test/form',
+      reason: 'last_week',
+    })
+    expect(msg).toContain('última semana')
+    expect(msg).not.toContain('cerraste el mes')
   })
 })
 

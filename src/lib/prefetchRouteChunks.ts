@@ -84,6 +84,11 @@ export function prefetchRouteChunkByHref(href: string): void {
     return
   }
 
+  if (path === '/contexto') {
+    runOnce('off-context', () => void import('@/pages/training/OffContextPage'))
+    return
+  }
+
   if (path.startsWith('/routines')) {
     runOnce('routines', () => {
       void import('@/pages/routines/RoutinesPage')

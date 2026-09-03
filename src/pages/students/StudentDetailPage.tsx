@@ -280,6 +280,23 @@ export function StudentDetailView({
     toast.success(isPaid ? 'Rutina marcada como abonada' : 'Abono desmarcado')
   }
 
+  async function savePaidOtherProfessional(routineId: string, paid: boolean) {
+    setSavingRoutinePaid(true)
+    const { error } = await supabase
+      .from('routines')
+      .update({ paid_other_professional: paid })
+      .eq('id', routineId)
+    setSavingRoutinePaid(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setRoutines((prev) =>
+      prev.map((r) => (r.id === routineId ? { ...r, paid_other_professional: paid } : r)),
+    )
+    toast.success(paid ? 'Marcado: pagaste al otro profesional' : 'Desmarcado el pago al otro profesional')
+  }
+
   useEffect(() => {
     if (!id || !user) return
     let cancelled = false
@@ -946,12 +963,12 @@ export function StudentDetailView({
                       <dd className="mt-1 text-sm tabular-nums font-medium text-zinc-700 dark:text-zinc-300">{formatDate(activeRoutine.end_date)}</dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Días restantes</dt>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Semanas restantes</dt>
                       <dd className={cn(
                         'mt-1 text-sm tabular-nums font-semibold',
                         daysUntil(activeRoutine.end_date) <= 7 ? 'text-status-expired' : 'text-zinc-900 dark:text-zinc-50',
                       )}>
-                        {Math.max(0, daysUntil(activeRoutine.end_date))}
+                        {Math.max(0, Math.ceil(daysUntil(activeRoutine.end_date) / 7))}
                       </dd>
                     </div>
                   </dl>
@@ -991,6 +1008,16 @@ export function StudentDetailView({
                         Pendiente
                       </span>
                     )}
+                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-800 dark:text-zinc-100">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
+                        checked={!!activeRoutine.paid_other_professional}
+                        disabled={savingRoutinePaid}
+                        onChange={(e) => void savePaidOtherProfessional(activeRoutine.id, e.target.checked)}
+                      />
+                      ¿Abonó al otro profesional?
+                    </label>
                   </div>
 
                   {/* Chips perfil entrenamiento */}

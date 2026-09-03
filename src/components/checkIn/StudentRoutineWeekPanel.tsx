@@ -32,7 +32,7 @@ type Row = {
   submittedAt: string | null
 }
 
-type FilterId = 'all' | 'open' | 'done'
+type FilterId = 'all' | 'open' | 'last' | 'done'
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -158,6 +158,7 @@ export function StudentRoutineWeekPanel() {
   const inWeekCount = useMemo(() => rows.filter((r) => !r.finished && r.currentWeek != null).length, [rows])
   const visible = useMemo(() => {
     if (filter === 'done') return rows.filter((r) => r.finished)
+    if (filter === 'last') return rows.filter((r) => r.lastWeek)
     if (filter === 'open') return rows.filter((r) => !r.finished)
     return rows
   }, [rows, filter])
@@ -187,7 +188,11 @@ export function StudentRoutineWeekPanel() {
     }
     const res = await shareToWhatsApp({
       phoneDigits: digits,
-      message: monthlyFeedbackInviteMessage({ studentName: row.name, url: monthlyUrl }),
+      message: monthlyFeedbackInviteMessage({
+        studentName: row.name,
+        url: monthlyUrl,
+        reason: row.lastWeek ? 'last_week' : 'finished',
+      }),
     })
     if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
   }
@@ -197,6 +202,7 @@ export function StudentRoutineWeekPanel() {
   const filters: { id: FilterId; label: string; count?: number }[] = [
     { id: 'all', label: 'Todos', count: rows.length },
     { id: 'open', label: 'En curso', count: rows.length - finishedCount },
+    { id: 'last', label: 'Última semana', count: lastWeekCount },
     { id: 'done', label: 'Cerraron mes', count: finishedCount },
   ]
 
@@ -331,18 +337,20 @@ export function StudentRoutineWeekPanel() {
                         </div>
                       </>
                     ) : null}
-                    {row.finished ? (
+                    {row.finished || row.lastWeek ? (
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-7 rounded-full border-emerald-600/40 text-[10px] text-emerald-800 dark:text-emerald-300"
-                          icon={<WhatsAppIcon className="h-3 w-3" />}
-                          onClick={() => void sendFinishedWa(row)}
-                        >
-                          Pedir progreso
-                        </Button>
+                        {row.finished ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-full border-emerald-600/40 text-[10px] text-emerald-800 dark:text-emerald-300"
+                            icon={<WhatsAppIcon className="h-3 w-3" />}
+                            onClick={() => void sendFinishedWa(row)}
+                          >
+                            Pedir progreso
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
                           size="sm"
@@ -351,7 +359,7 @@ export function StudentRoutineWeekPanel() {
                           icon={<MessageCircle className="h-3 w-3" />}
                           onClick={() => void sendMonthlyWa(row)}
                         >
-                          Feedback mensual
+                          Enviar feedback mensual
                         </Button>
                       </div>
                     ) : null}

@@ -37,10 +37,14 @@ import { notificationHref } from '@/lib/notifications'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
 import { DashboardExpiringPlansAlert } from '@/components/dashboard/DashboardExpiringPlansAlert'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
+import { loadMonthlyFeedbackPublicToken } from '@/lib/checkIn/monthlyFeedback'
 import {
+  checkInSharedPublicUrl,
   loadDashboardQuickSends,
+  loadStudentsInLastWeek,
   loadStudentsMissingCheckIn,
   type DashboardCheckInQuickSend,
+  type DashboardLastWeekStudent,
   type DashboardMissingCheckInStudent,
   type DashboardResourceQuickSend,
 } from '@/lib/dashboard/dashboardTrainerOps'
@@ -541,6 +545,8 @@ export function DashboardPage() {
   const [checkInQuickSends, setCheckInQuickSends] = useState<DashboardCheckInQuickSend[]>([])
   const [resourceQuickSends, setResourceQuickSends] = useState<DashboardResourceQuickSend[]>([])
   const [missingCheckInStudents, setMissingCheckInStudents] = useState<DashboardMissingCheckInStudent[]>([])
+  const [lastWeekStudents, setLastWeekStudents] = useState<DashboardLastWeekStudent[]>([])
+  const [monthlyFeedbackUrl, setMonthlyFeedbackUrl] = useState<string | null>(null)
 
   const animatedIncome = useCountUp(stats.currentMonthIncome, {
     duration: 2600,
@@ -1033,13 +1039,17 @@ export function DashboardPage() {
           setDueResourceSchedules([])
         }
 
-        const [quickSends, missing] = await Promise.all([
+        const [quickSends, missing, lastWeek, monthlyToken] = await Promise.all([
           loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
           loadStudentsMissingCheckIn(user!.id),
+          loadStudentsInLastWeek(user!.id),
+          loadMonthlyFeedbackPublicToken(user!.id),
         ])
         setCheckInQuickSends(quickSends.checkInSends)
         setResourceQuickSends(quickSends.resourceSends)
         setMissingCheckInStudents(missing)
+        setLastWeekStudents(lastWeek)
+        setMonthlyFeedbackUrl(monthlyToken ? checkInSharedPublicUrl(monthlyToken) : null)
       } else {
         setCheckInRecentCount(0)
         setDueCheckInSchedules([])
@@ -1047,6 +1057,8 @@ export function DashboardPage() {
         setCheckInQuickSends([])
         setResourceQuickSends([])
         setMissingCheckInStudents([])
+        setLastWeekStudents([])
+        setMonthlyFeedbackUrl(null)
       }
 
       setDataUpdatedAt(new Date())
@@ -1113,6 +1125,8 @@ export function DashboardPage() {
             checkInQuickSends={checkInQuickSends}
             resourceQuickSends={resourceQuickSends}
             missingCheckInStudents={missingCheckInStudents}
+            lastWeekStudents={lastWeekStudents}
+            monthlyFeedbackUrl={monthlyFeedbackUrl}
           />
         ) : null}
 

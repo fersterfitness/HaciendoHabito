@@ -1,5 +1,7 @@
 /** Preguntas del check-in semanal: tipos, plantillas y serialización compatible con el RPC actual. */
 
+import { CHECK_IN_SUBMISSION_TIMEZONE, checkInFridayOfWeekUtc } from '@/lib/checkInWeek'
+
 export const CHECK_IN_SKIP_OPTION = '__skip'
 export const CHECK_IN_NOTE_MAX = 800
 export const CHECK_IN_TEXT_MAX = 4000
@@ -22,6 +24,8 @@ export type CheckInQuestion = {
   options?: CheckInOption[]
   allowNote?: boolean
   visibleIfGender?: CheckInGenderFilter
+  /** Texto de ayuda debajo del título (p. ej. ciclo menstrual). */
+  helperText?: string
   /** Clave estable para gráficos / lógica (week_status, mood, …). */
   key?: string
 }
@@ -67,6 +71,7 @@ export function parseQuestions(raw: unknown): CheckInQuestion[] {
       o.type === 'scale' ? 'scale' : o.type === 'choice' ? 'choice' : 'text'
     const q: CheckInQuestion = { id: o.id, label: o.label, type }
     if (typeof o.key === 'string' && o.key.trim()) q.key = o.key.trim()
+    if (typeof o.helperText === 'string' && o.helperText.trim()) q.helperText = o.helperText.trim()
     if (o.visibleIfGender === 'F') q.visibleIfGender = 'F'
     if (o.allowNote === true || (type === 'choice' && o.allowNote !== false)) q.allowNote = true
     if (type === 'choice') {
@@ -253,7 +258,7 @@ function questionCatalogSig(q: CheckInQuestion): string {
   const opts = (q.options ?? [])
     .map((o) => `${o.id}\t${o.label}\t${o.color}\t${o.extra && o.extra !== 'none' ? o.extra : ''}`)
     .join('\n')
-  return [q.id, q.key ?? '', q.label, q.type, q.allowNote ? '1' : '0', q.visibleIfGender ?? '', opts].join('|')
+  return [q.id, q.key ?? '', q.label, q.helperText ?? '', q.type, q.allowNote ? '1' : '0', q.visibleIfGender ?? '', opts].join('|')
 }
 
 /** Aplica la plantilla conservando los id de pregunta (y de opción) para no invalidar respuestas ya guardadas. */
@@ -298,6 +303,7 @@ export function syncWeeklyQuestionCatalog(questions: CheckInQuestion[]): {
     const patched: CheckInQuestion = {
       ...q,
       label: tpl.label,
+      helperText: tpl.helperText,
       type: tpl.type,
       allowNote: tpl.allowNote,
       visibleIfGender: tpl.visibleIfGender,
@@ -355,9 +361,18 @@ export function checkInHistoryMeta(
   submittedAt: string,
   studentName?: string,
 ): { monthLabel: string; dateLabel: string; weekLabel: string; filingLabel: string } {
-  const submitted = new Date(submittedAt)
-  const monthLabel = submitted.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
-  const dateLabel = submitted.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const friday = checkInFridayOfWeekUtc(new Date(submittedAt))
+  const monthLabel = friday.toLocaleDateString('es-AR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: CHECK_IN_SUBMISSION_TIMEZONE,
+  })
+  const dateLabel = friday.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: CHECK_IN_SUBMISSION_TIMEZONE,
+  })
   const st = weekStatusFromAnswers(questions, responses)
   const weekLabel = st.finished
     ? 'Terminé mi mes de rutina'
@@ -453,14 +468,15 @@ export function createWeeklyCheckInQuestions(): CheckInQuestion[] {
       id: crypto.randomUUID(),
       key: 'cycle',
       label: 'Sobre tu ciclo menstrual',
+      helperText: 'Registrate siempre en cada menstruación. Los ciclos varían: anotar la fecha me permite hacer el seguimiento.',
       type: 'choice',
       allowNote: true,
       visibleIfGender: 'F',
       options: [
+        opt('last_date', '¿Cuándo fue tu última menstruación? (anotala siempre)', COLOR_D, 'date'),
         opt('a', 'Estoy menstruando', COLOR_C),
         opt('b', 'No me está afectando', COLOR_A),
         opt('c', 'Noto cansancio', COLOR_B),
-        opt('last_date', '¿Cuándo fue tu última menstruación?', COLOR_D, 'date'),
       ],
     },
     {

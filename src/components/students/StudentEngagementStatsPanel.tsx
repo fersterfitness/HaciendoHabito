@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/Button'
-import { CheckInAnswerList } from '@/components/checkIn/CheckInAnswerList'
+import { MonthlyFeedbackAnswers } from '@/components/checkIn/MonthlyFeedbackAnswers'
 import { formatDate } from '@/lib/utils'
 import {
   monthlyFeedbackInviteMessage,
@@ -13,17 +13,14 @@ import {
   shareToWhatsApp,
   WHATSAPP_DIRECT_PASTE_HINT,
 } from '@/lib/whatsapp'
-import { isMonthlyTemplate, parseQuestions, type CheckInQuestion } from '@/lib/checkIn/questions'
-import type { Json, Routine, StudentTestimonial } from '@/types/database'
+import {
+  loadMonthlyFeedbackPublicToken,
+  loadMonthlyFeedbackRows,
+  matchRoutineForSubmittedAt,
+  type MonthlyFeedbackRow,
+} from '@/lib/checkIn/monthlyFeedback'
+import type { Routine, StudentTestimonial } from '@/types/database'
 import toast from 'react-hot-toast'
-
-type MonthlyResponseRow = {
-  id: string
-  submittedAt: string
-  formTitle: string
-  questions: CheckInQuestion[]
-  responses: Record<string, unknown>
-}
 
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -52,7 +49,7 @@ export function StudentEngagementStatsPanel({
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const [testimonials, setTestimonials] = useState<StudentTestimonial[]>([])
-  const [monthlyRows, setMonthlyRows] = useState<MonthlyResponseRow[]>([])
+  const [monthlyRows, setMonthlyRows] = useState<MonthlyFeedbackRow[]>([])
   const [monthlyUrl, setMonthlyUrl] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [draftPeriod, setDraftPeriod] = useState(() => {
@@ -64,84 +61,25 @@ export function StudentEngagementStatsPanel({
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const [tRes, fRes] = await Promise.all([
-        supabase
-          .from('student_testimonials')
-          .select('*')
-          .eq('student_id', studentId)
-          .order('created_at', { ascending: false }),
-        user
-          ? supabase
-              .from('check_in_forms')
-              .select('id, title, questions, public_token')
-              .eq('owner_id', user.id)
-          : Promise.resolve({ data: [] as never[] }),
-      ])
+      const tRes = await supabase
+        .from('student_testimonials')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
       if (cancelled) return
       setTestimonials((tRes.data as StudentTestimonial[]) ?? [])
-
-      const forms = (fRes.data ?? []) as {
-        id: string
-        title: string
-        questions: Json
-        public_token?: string
-      }[]
-      const monthlyForms = forms.filter((f) => isMonthlyTemplate(parseQuestions(f.questions)))
-      const monthly = monthlyForms[0]
-      setMonthlyUrl(
-        monthly?.public_token
-          ? `${window.location.origin}/form/check-in/compartido/${monthly.public_token}`
-          : null,
-      )
-      if (!monthlyForms.length) {
+      if (!user) {
         setMonthlyRows([])
+        setMonthlyUrl(null)
         return
       }
-      const { data: invites } = await supabase
-        .from('check_in_invites')
-        .select('id, form_id')
-        .eq('student_id', studentId)
-        .in(
-          'form_id',
-          monthlyForms.map((f) => f.id),
-        )
+      const [rows, token] = await Promise.all([
+        loadMonthlyFeedbackRows(user.id, studentId),
+        loadMonthlyFeedbackPublicToken(user.id),
+      ])
       if (cancelled) return
-      const invList = (invites ?? []) as { id: string; form_id: string }[]
-      if (!invList.length) {
-        setMonthlyRows([])
-        return
-      }
-      const formById = new Map(monthlyForms.map((f) => [f.id, f]))
-      const { data: resp } = await supabase
-        .from('check_in_responses')
-        .select('id, invite_id, submitted_at, responses')
-        .in(
-          'invite_id',
-          invList.map((i) => i.id),
-        )
-        .order('submitted_at', { ascending: false })
-      if (cancelled) return
-      const inviteById = new Map(invList.map((i) => [i.id, i]))
-      const next: MonthlyResponseRow[] = []
-      for (const r of resp ?? []) {
-        const row = r as { id: string; invite_id: string; submitted_at: string; responses: Json }
-        const inv = inviteById.get(row.invite_id)
-        if (!inv) continue
-        const form = formById.get(inv.form_id)
-        if (!form) continue
-        const obj =
-          row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
-            ? (row.responses as Record<string, unknown>)
-            : {}
-        next.push({
-          id: row.id,
-          submittedAt: row.submitted_at,
-          formTitle: form.title,
-          questions: parseQuestions(form.questions),
-          responses: obj,
-        })
-      }
-      setMonthlyRows(next)
+      setMonthlyRows(rows)
+      setMonthlyUrl(token ? `${window.location.origin}/form/check-in/compartido/${token}` : null)
     }
     void load()
     return () => {
@@ -290,13 +228,18 @@ export function StudentEngagementStatsPanel({
                     })}
                   </span>
                 </div>
-                <CheckInAnswerList questions={row.questions} responses={row.responses} />
+                <MonthlyFeedbackAnswers
+                  studentName={studentName}
+                  questions={row.questions}
+                  responses={row.responses}
+                  routineName={matchRoutineForSubmittedAt(routines, row.submittedAt)?.name}
+                />
               </li>
             ))}
           </ul>
         ) : (
           <p className="mb-3 text-[11px] text-ink-muted">
-            Cuando el alumno complete el formulario de feedback mensual, las respuestas aparecen acá.
+            Cuando el alumno complete el formulario de feedback mensual, las respuestas aparecen acá atadas a la rutina de esas fechas.
           </p>
         )}
         <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[10rem_1fr_auto]">

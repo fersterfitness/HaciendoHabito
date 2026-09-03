@@ -1,12 +1,15 @@
 import { checkInWeekStartUtc } from '@/lib/checkInWeek'
+import { loadWeekStatusByOwner } from '@/lib/checkIn/routineWeekProgress'
 import { supabase } from '@/lib/supabase'
 import {
   buildResourceShareMessage,
   checkInGroupMessage,
   buildWhatsAppGroupPickUrl,
   buildWhatsAppUrl,
+  monthlyFeedbackInviteMessage,
   normalizePhoneForWhatsApp,
   shareToWhatsApp,
+  weeklyFormMissingReminderMessage,
   type WhatsAppShareResult,
 } from '@/lib/whatsapp'
 import type { CheckInSendSchedule, TrainerResourceSendSchedule } from '@/types/database'
@@ -30,6 +33,8 @@ export type DashboardMissingCheckInStudent = {
   full_name: string
   phone: string | null
 }
+
+export type DashboardLastWeekStudent = DashboardMissingCheckInStudent
 
 export function checkInSharedPublicUrl(publicToken: string): string {
   return `${window.location.origin}/form/check-in/compartido/${publicToken}`
@@ -64,18 +69,7 @@ export function openMissingStudentCheckInReminder(params: {
   const digits = normalizePhoneForWhatsApp(params.phone)
   if (!digits) return false
   const first = params.studentName.trim().split(/\s+/)[0] || params.studentName.trim()
-  const msg = [
-    `Hola ${first},`,
-    '',
-    `Te falta completar el check-in «${params.formTitle.trim()}».`,
-    '',
-    params.intro?.trim() ?? '',
-    params.sharedUrl.trim(),
-    '',
-    'Cuando puedas, completalo. ¡Gracias!',
-  ]
-    .filter(Boolean)
-    .join('\n')
+  const msg = weeklyFormMissingReminderMessage(first, params.sharedUrl)
   window.open(buildWhatsAppUrl(digits, msg), '_blank', 'noopener,noreferrer')
   return true
 }
@@ -138,6 +132,45 @@ export async function loadStudentsMissingCheckIn(ownerId: string): Promise<Dashb
   return students
     .filter((s) => !submittedStudentIds.has(s.id))
     .map((s) => ({ id: s.id, full_name: s.full_name, phone: s.phone ?? null }))
+}
+
+/** Alumnos activos cuyo último check-in semanal marca última semana. */
+export async function loadStudentsInLastWeek(ownerId: string): Promise<DashboardLastWeekStudent[]> {
+  const [stuRes, weekMap] = await Promise.all([
+    supabase
+      .from('students')
+      .select('id, full_name, phone')
+      .eq('owner_id', ownerId)
+      .eq('status', 'activo')
+      .order('full_name'),
+    loadWeekStatusByOwner(ownerId),
+  ])
+  if (stuRes.error) return []
+  return ((stuRes.data ?? []) as { id: string; full_name: string; phone: string | null }[])
+    .filter((s) => weekMap.get(s.id)?.lastWeek)
+    .map((s) => ({ id: s.id, full_name: s.full_name, phone: s.phone ?? null }))
+}
+
+export function openLastWeekMonthlyFeedback(params: {
+  studentName: string
+  phone: string | null | undefined
+  monthlyUrl: string
+}): boolean {
+  const digits = normalizePhoneForWhatsApp(params.phone)
+  if (!digits) return false
+  window.open(
+    buildWhatsAppUrl(
+      digits,
+      monthlyFeedbackInviteMessage({
+        studentName: params.studentName,
+        url: params.monthlyUrl,
+        reason: 'last_week',
+      }),
+    ),
+    '_blank',
+    'noopener,noreferrer',
+  )
+  return true
 }
 
 export async function loadDashboardQuickSends(

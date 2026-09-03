@@ -29,6 +29,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ObjectivesGuideMatrixTable } from '@/components/nutrition/ObjectivesGuideMatrixTable'
 import { NutritionPlansTabs } from '@/components/nutrition/NutritionPlansTabs'
+import { TrainerMealPlansSectionNav } from '@/components/nutrition/TrainerMealPlansSectionNav'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
@@ -1453,6 +1454,7 @@ export function NutritionPlanningPage() {
         }
       />
       <div className="mx-auto w-full max-w-[min(1600px,calc(100%-2rem))] space-y-5 px-4 pt-2 lg:px-6">
+        <TrainerMealPlansSectionNav />
         <NutritionPlansTabs className="pt-2" />
         <nav
           className="-mx-4 border-b border-surface-border px-4 pt-4 lg:-mx-6 lg:px-6"

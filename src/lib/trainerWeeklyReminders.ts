@@ -38,6 +38,13 @@ export const TRAINER_WEEKLY_REMINDERS: TrainerWeeklyReminder[] = [
     href: '/routines',
     highlightOnWeekday: null,
   },
+  {
+    id: 'off-context-wednesday',
+    title: 'SALIENDO DE CONTEXTO (MIÉRCOLES)',
+    description: 'Armá la pregunta de la semana y mandá el hilo al grupo de WhatsApp.',
+    href: '/contexto',
+    highlightOnWeekday: 3,
+  },
 ]
 
 export function isTrainerReminderHighlightedToday(reminder: TrainerWeeklyReminder, now = new Date()): boolean {

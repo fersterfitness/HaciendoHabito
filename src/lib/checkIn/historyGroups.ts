@@ -1,12 +1,10 @@
 /** Agrupa fechas de check-in en calendario de Argentina (año → mes). */
 
+import { checkInFridayYmd } from '@/lib/checkInWeek'
+
 export function argentinaYearMonth(iso: string): { year: number; month: number } {
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    year: 'numeric',
-    month: '2-digit',
-  })
-  const [y, m] = fmt.format(new Date(iso)).split('-').map(Number)
+  const ymd = checkInFridayYmd(new Date(iso))
+  const [y, m] = ymd.split('-').map(Number)
   return { year: y ?? 0, month: m ?? 1 }
 }
 

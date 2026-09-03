@@ -11,16 +11,19 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { FormSection } from '@/components/ui/FormSection'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { STUDENT_LEVELS } from '@/lib/constants'
 import type { Student, StudentRoutineNote } from '@/types/database'
 import { AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { isMonthlyTemplate, parseQuestions } from '@/lib/checkIn/questions'
+import { monthlyFeedbackInviteMessage, normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
 
 const schema = z.object({
   student_id: z.string().uuid('Seleccioná un alumno'),
   plan_name: z.string().min(2, 'Ingresá el nombre de la rutina'),
   start_date: z.string().min(1, 'Seleccioná la fecha de inicio'),
-  duration_days: z.coerce.number().min(1).max(365),
+  duration_days: z.coerce.number().min(7).max(364),
   level: z.enum(['inicial', 'intermedio', 'avanzado']),
   objective: z.string().min(3, 'Ingresá el objetivo del coach'),
   notes: z.string().optional().or(z.literal('')),
@@ -54,6 +57,11 @@ export function RoutineFormContent({
   const [templateRoutineId, setTemplateRoutineId] = useState('')
   const [templateBlueprintId, setTemplateBlueprintId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
+  const [feedbackPrompt, setFeedbackPrompt] = useState<{
+    routineId: string
+    studentName: string
+    phone: string | null
+  } | null>(null)
 
   const {
     register,
@@ -68,7 +76,7 @@ export function RoutineFormContent({
     defaultValues: {
       student_id: initialStudentId ?? '',
       start_date: format(new Date(), 'yyyy-MM-dd'),
-      duration_days: 30,
+      duration_days: 28,
       level: 'inicial',
     },
   })
@@ -263,6 +271,11 @@ export function RoutineFormContent({
       })
       if (result) onSuccess(routineId)
     } else {
+      const { count: priorCount } = await supabase
+        .from('routines')
+        .select('id', { count: 'exact', head: true })
+        .eq('student_id', values.student_id)
+      const hadPrevious = (priorCount ?? 0) > 0
       const result = await createRoutine({
         student_id: values.student_id,
         name: values.plan_name,
@@ -296,7 +309,16 @@ export function RoutineFormContent({
             toast.error(error instanceof Error ? error.message : 'No se pudo copiar la estructura', { id: loadingId })
           }
         }
-        onSuccess(result.id)
+        if (hadPrevious) {
+          const st = students.find((s) => s.id === values.student_id)
+          setFeedbackPrompt({
+            routineId: result.id,
+            studentName: st?.full_name ?? 'el alumno',
+            phone: st?.phone ?? null,
+          })
+        } else {
+          onSuccess(result.id)
+        }
       }
     }
   }
@@ -380,13 +402,18 @@ export function RoutineFormContent({
               {...register('start_date')}
             />
             <Input
-              label="Duración (días)"
+              label="Duración (semanas)"
               required
               type="number"
               min={1}
-              max={365}
+              max={52}
               error={errors.duration_days?.message}
-              {...register('duration_days')}
+              value={Math.max(1, Math.round((Number(watchDuration) || 28) / 7))}
+              onChange={(e) => {
+                const weeks = Number(e.target.value)
+                const safe = Number.isFinite(weeks) && weeks > 0 ? Math.min(52, Math.round(weeks)) : 1
+                setValue('duration_days', safe * 7, { shouldValidate: true, shouldDirty: true })
+              }}
             />
           </div>
           {endDate && (
@@ -428,6 +455,46 @@ export function RoutineFormContent({
           </Button>
         </div>
       </form>
+      <ConfirmDialog
+        open={!!feedbackPrompt}
+        onClose={() => {
+          const id = feedbackPrompt?.routineId
+          setFeedbackPrompt(null)
+          if (id) onSuccess(id)
+        }}
+        onConfirm={() => {
+          void (async () => {
+            if (!feedbackPrompt) return
+            const { data: forms } = await supabase.from('check_in_forms').select('questions, public_token').eq('owner_id', user!.id)
+            const monthly = (forms ?? []).find((f) => isMonthlyTemplate(parseQuestions(f.questions)))
+            const url = monthly?.public_token
+              ? `${window.location.origin}/form/check-in/compartido/${monthly.public_token}`
+              : ''
+            if (!url) {
+              toast.error('Creá un formulario con la plantilla de feedback mensual.')
+              return
+            }
+            const digits = normalizePhoneForWhatsApp(feedbackPrompt.phone)
+            if (!digits) {
+              toast.error('Sin teléfono válido en la ficha')
+              return
+            }
+            const res = await shareToWhatsApp({
+              phoneDigits: digits,
+              message: monthlyFeedbackInviteMessage({ studentName: feedbackPrompt.studentName, url }),
+            })
+            if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
+            const id = feedbackPrompt.routineId
+            setFeedbackPrompt(null)
+            onSuccess(id)
+          })()
+        }}
+        variant="warning"
+        title="Feedback mensual de la rutina anterior"
+        description={`Mandale a ${feedbackPrompt?.studentName ?? 'el alumno'} el feedback mensual de la rutina que cierra. Sirve como testimonio para redes.`}
+        confirmLabel="Enviar por WhatsApp"
+        cancelLabel="Ahora no"
+      />
     </div>
   )
 }

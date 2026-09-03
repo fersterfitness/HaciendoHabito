@@ -387,6 +387,10 @@ export interface Database {
         Args: { p_plan_slug: string; p_plan_title: string }
         Returns: Json
       }
+      resume_web_intake_access: {
+        Args: { p_email: string; p_plan_slug: string }
+        Returns: Json
+      }
       notify_user: {
         Args: {
           p_user_id: string
@@ -585,6 +589,7 @@ export interface Routine {
   duration_days: number
   price: number | null
   is_paid?: boolean
+  paid_other_professional?: boolean
   status: RoutineStatus
   notes: string | null
   last_status_change: string | null

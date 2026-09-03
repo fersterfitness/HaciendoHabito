@@ -78,6 +78,9 @@ const PublicCheckInPage = lazy(() => import('@/pages/public/PublicCheckInPage').
 const TrainingSectionRedirect = lazy(() =>
   import('@/pages/training/TrainingSectionRedirect').then((m) => ({ default: m.TrainingSectionRedirect })),
 )
+const OffContextPage = lazy(() =>
+  import('@/pages/training/OffContextPage').then((m) => ({ default: m.OffContextPage })),
+)
 
 function withPageSuspense(node: ReactNode) {
   return <Suspense fallback={<PageRouteFallback />}>{node}</Suspense>
@@ -191,6 +194,10 @@ function renderLoggedInRoutes({
       <Route
         path="check-ins"
         element={canSeeTraining ? withPageSuspense(<TrainingSectionRedirect tab="checkins" />) : <Navigate to="/dashboard" replace />}
+      />
+      <Route
+        path="contexto"
+        element={canSeeTraining ? withPageSuspense(<OffContextPage />) : <Navigate to="/dashboard" replace />}
       />
 
       <Route path="exercises" element={canSeeTraining ? withPageSuspense(<ExercisesPage />) : <Navigate to="/dashboard" replace />} />
