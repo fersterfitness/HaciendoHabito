@@ -1,3 +1,4 @@
+import { isWeeklyTemplate, parseQuestions } from '@/lib/checkIn/questions'
 import { checkInWeekStartUtc } from '@/lib/checkInWeek'
 import { loadWeekStatusByOwner } from '@/lib/checkIn/routineWeekProgress'
 import { supabase } from '@/lib/supabase'
@@ -74,10 +75,11 @@ export function openMissingStudentCheckInReminder(params: {
   return true
 }
 
-/** Alumnos activos sin respuesta de check-in en la semana actual (lun–dom, Argentina). */
-export async function loadStudentsMissingCheckIn(ownerId: string): Promise<DashboardMissingCheckInStudent[]> {
-  const since = checkInWeekStartUtc()
-
+/** Alumnos activos sin respuesta del formulario semanal desde `since` (por defecto, lunes de esta semana). */
+export async function loadStudentsMissingCheckIn(
+  ownerId: string,
+  since: Date = checkInWeekStartUtc(),
+): Promise<DashboardMissingCheckInStudent[]> {
   const [stuRes, formsRes] = await Promise.all([
     supabase
       .from('students')
@@ -85,12 +87,14 @@ export async function loadStudentsMissingCheckIn(ownerId: string): Promise<Dashb
       .eq('owner_id', ownerId)
       .eq('status', 'activo')
       .order('full_name'),
-    supabase.from('check_in_forms').select('id').eq('owner_id', ownerId),
+    supabase.from('check_in_forms').select('id, questions').eq('owner_id', ownerId),
   ])
 
   if (stuRes.error || formsRes.error) return []
   const students = stuRes.data ?? []
-  const formIds = (formsRes.data ?? []).map((f) => f.id)
+  const formIds = (formsRes.data ?? [])
+    .filter((f) => isWeeklyTemplate(parseQuestions((f as { questions: unknown }).questions)))
+    .map((f) => f.id)
   if (!students.length || !formIds.length) {
     return students.map((s) => ({ id: s.id, full_name: s.full_name, phone: s.phone ?? null }))
   }

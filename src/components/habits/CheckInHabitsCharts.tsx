@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -15,13 +15,16 @@ import {
   type HabitChartSeries,
   type HabitCompareFilter,
 } from '@/lib/checkIn/habitCharts'
+import { buildAdherenceTimeline } from '@/lib/checkIn/adherence'
 import { parseQuestions } from '@/lib/checkIn/questions'
+import { brandHex } from '@/theme/brandColors'
 import type { Json } from '@/types/database'
 
-const PERIODS: { id: CheckInHabitChartPeriod | 'compare'; label: string }[] = [
+const PERIODS: { id: CheckInHabitChartPeriod | 'compare' | 'evolucion'; label: string }[] = [
   { id: 'weekly', label: 'Semanal' },
   { id: 'monthly', label: 'Mensual' },
   { id: 'yearly', label: 'Anual' },
+  { id: 'evolucion', label: 'Evolución' },
   { id: 'compare', label: 'Comparar' },
 ]
 
@@ -68,7 +71,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const tick = isDark ? '#a1a1aa' : '#52525b'
-  const [period, setPeriod] = useState<CheckInHabitChartPeriod | 'compare'>('weekly')
+  const [period, setPeriod] = useState<CheckInHabitChartPeriod | 'compare' | 'evolucion'>('weekly')
   const [points, setPoints] = useState<CheckInResponsePoint[]>([])
   const [loading, setLoading] = useState(true)
   const [compareKind, setCompareKind] = useState<'month' | 'year' | 'range'>('month')
@@ -141,9 +144,10 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
   }, [monthOpts, yearOpts, monthA, monthB, yearA, yearB])
 
   const series = useMemo(
-    () => (period === 'compare' ? [] : buildCheckInHabitCharts(points, period)),
+    () => (period === 'compare' || period === 'evolucion' ? [] : buildCheckInHabitCharts(points, period)),
     [points, period],
   )
+  const adherence = useMemo(() => buildAdherenceTimeline(points), [points])
 
   function parseMonth(value: string): HabitCompareFilter | null {
     const [y, m] = value.split('-').map(Number)
@@ -205,7 +209,9 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary">Check-in</p>
           <p className="text-sm font-semibold tracking-tight text-ink-primary">Hábitos del formulario</p>
           <p className="mt-0.5 max-w-md text-[11px] leading-relaxed text-ink-muted">
-            Solo opciones por color. Compará meses, años o rangos cuando quieras ver evolución.
+            {period === 'evolucion'
+              ? 'Adherencia de entrenamiento y comidas por semana. No es un juicio: es para ver la tendencia sin desmotivar.'
+              : 'Solo opciones por color. Compará meses, años o rangos cuando quieras ver evolución.'}
           </p>
         </div>
         <div className="flex rounded-full border border-surface-border/80 bg-surface-card p-0.5">
@@ -225,7 +231,47 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
         </div>
       </div>
 
-      {period === 'compare' ? (
+      {period === 'evolucion' ? (
+        adherence.length ? (
+          <div className="space-y-3 rounded-2xl border border-surface-border/70 bg-surface-elevated/30 p-3.5">
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={adherence} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#3f3f46' : '#e4e4e7'} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: tick }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: tick }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(value) => [`${value ?? '—'}%`, 'Adherencia']}
+                    contentStyle={{
+                      fontSize: 11,
+                      borderRadius: 12,
+                      border: '1px solid rgb(var(--surface-border))',
+                      background: 'rgb(var(--surface-card))',
+                    }}
+                  />
+                  <Line type="monotone" dataKey="score" stroke={brandHex('primary')} strokeWidth={2.4} dot={{ r: 4 }} connectNulls={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="flex flex-wrap gap-2">
+              {adherence.map((p) => (
+                <li key={p.weekKey} className="rounded-full border border-surface-border px-2 py-0.5 text-[10px] text-ink-secondary">
+                  {p.label}: {p.missing || p.score == null ? 'sin registro' : `${p.score}%`}
+                  {p.delta != null ? (
+                    <span className={p.delta >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>
+                      {' '}
+                      {p.delta >= 0 ? '+' : ''}
+                      {p.delta}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-[11px] text-ink-muted">Todavía no hay check-ins semanales para armar la evolución.</p>
+        )
+      ) : period === 'compare' ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-surface-border/60 bg-surface-elevated/25 p-3">
             <label className="text-[10px] font-medium text-ink-muted">

@@ -10,7 +10,7 @@ type Row = Pick<Routine, 'id' | 'name' | 'is_paid' | 'paid_other_professional' |
   student_name: string
 }
 
-export function RoutinePaymentsPanel() {
+export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean }) {
   const { user } = useAuthStore()
   const [rows, setRows] = useState<Row[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -62,6 +62,8 @@ export function RoutinePaymentsPanel() {
   if (rows.length === 0) return null
 
   const pending = rows.filter((r) => !r.is_paid).length
+  const visible = compact ? rows.filter((r) => !r.is_paid).slice(0, 8) : rows
+  const list = visible.length ? visible : rows.slice(0, compact ? 6 : rows.length)
 
   return (
     <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/65">
@@ -70,9 +72,14 @@ export function RoutinePaymentsPanel() {
         <span className="text-[11px] text-ink-muted">
           {pending} pendiente{pending !== 1 ? 's' : ''} · dual/integral: check del otro profesional
         </span>
+        {compact ? (
+          <Link to="/finances" className="ml-auto text-[11px] font-medium text-brand-primary hover:underline">
+            Finanzas
+          </Link>
+        ) : null}
       </div>
       <ul className="space-y-2">
-        {rows.map((row) => (
+        {list.map((row) => (
           <li
             key={row.id}
             className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200/60 bg-zinc-50/40 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950/50"

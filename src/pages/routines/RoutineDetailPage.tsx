@@ -1285,7 +1285,13 @@ export function RoutineDetailPage() {
                 days <= 0 ? 'text-status-expired' :
                 days <= 7 ? 'text-status-expiring' : 'text-ink-primary'
               )}>
-                {days <= 0 ? 'Vencida' : `${days}d`}
+                {checkInWeek.lastWeek
+                  ? 'Última sem.'
+                  : checkInWeek.finished
+                    ? 'Cerrada'
+                    : days <= 0
+                      ? 'Revisar fecha'
+                      : `${days}d`}
               </span>
             </div>
             <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">

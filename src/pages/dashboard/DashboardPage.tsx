@@ -36,8 +36,11 @@ import { scheduleMatchesToday } from '@/lib/checkInSchedule'
 import { notificationHref } from '@/lib/notifications'
 import { DashboardTrainerOpsPanel } from '@/components/dashboard/DashboardTrainerOpsPanel'
 import { DashboardExpiringPlansAlert } from '@/components/dashboard/DashboardExpiringPlansAlert'
+import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
+import { TrainerAdherenceOverview } from '@/components/habits/TrainerAdherenceOverview'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { loadMonthlyFeedbackPublicToken } from '@/lib/checkIn/monthlyFeedback'
+import { loadWeeklyPeriodStartYmd, weeklyPeriodStartUtc } from '@/lib/checkIn/weeklyPeriod'
 import {
   checkInSharedPublicUrl,
   loadDashboardQuickSends,
@@ -138,6 +141,7 @@ type MergedExpiringItem = {
   subtitle: string
   href: string
   days: number
+  lastWeek?: boolean
 }
 
 const MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -553,9 +557,14 @@ export function DashboardPage() {
     enabled: !loading,
   })
 
+  const lastWeekStudentIds = useMemo(() => new Set(lastWeekStudents.map((s) => s.id)), [lastWeekStudents])
+
   const mergedExpiring = useMemo((): MergedExpiringItem[] => {
     const items: MergedExpiringItem[] = []
     for (const r of expiring) {
+      const days = daysUntil(r.end_date)
+      const lastWeek = lastWeekStudentIds.has(r.student_id)
+      if (days < 0 && !lastWeek) continue
       items.push({
         kind: 'routine',
         id: r.id,
@@ -563,10 +572,27 @@ export function DashboardPage() {
         title: r.student?.full_name ?? '—',
         subtitle: r.name,
         href: `/routines/${r.id}`,
-        days: daysUntil(r.end_date),
+        days,
+        lastWeek,
       })
     }
     for (const s of expiringPlans) {
+      const days = daysUntil(s.plan_end_date)
+      const lastWeek = lastWeekStudentIds.has(s.id)
+      if (days < 0 && lastWeek) {
+        items.push({
+          kind: 'plan',
+          id: s.id,
+          sortDate: s.plan_end_date,
+          title: s.full_name,
+          subtitle: 'Última semana de rutina',
+          href: peopleDetailPath(s.id),
+          days,
+          lastWeek: true,
+        })
+        continue
+      }
+      if (days < 0) continue
       items.push({
         kind: 'plan',
         id: s.id,
@@ -574,11 +600,12 @@ export function DashboardPage() {
         title: s.full_name,
         subtitle: 'Plan del alumno',
         href: peopleDetailPath(s.id),
-        days: daysUntil(s.plan_end_date),
+        days,
+        lastWeek,
       })
     }
     return items.sort((a, b) => a.sortDate.localeCompare(b.sortDate))
-  }, [expiring, expiringPlans, role])
+  }, [expiring, expiringPlans, lastWeekStudentIds, role])
 
   const showUnifiedExpiringCard = canSeeTraining || expiringPlans.length > 0
 
@@ -1041,7 +1068,7 @@ export function DashboardPage() {
 
         const [quickSends, missing, lastWeek, monthlyToken] = await Promise.all([
           loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
-          loadStudentsMissingCheckIn(user!.id),
+          loadStudentsMissingCheckIn(user!.id, weeklyPeriodStartUtc(loadWeeklyPeriodStartYmd(user!.id))),
           loadStudentsInLastWeek(user!.id),
           loadMonthlyFeedbackPublicToken(user!.id),
         ])
@@ -1129,6 +1156,29 @@ export function DashboardPage() {
             monthlyFeedbackUrl={monthlyFeedbackUrl}
           />
         ) : null}
+
+        {canSeeTraining && birthdays.length > 0 ? (
+          <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">Cumpleaños</p>
+            <div className="flex flex-wrap gap-2">
+              {birthdays.map((b) => (
+                <button
+                  key={`bday-block-${b.id}`}
+                  type="button"
+                  onClick={() => navigate(peopleDetailPath(b.id))}
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15"
+                >
+                  <Cake className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
+                  <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {canSeeFinances ? <RoutinePaymentsPanel compact /> : null}
+
+        {canSeeTraining ? <TrainerAdherenceOverview compact /> : null}
 
         <DashboardExpiringPlansAlert
           studentPathBase={role === 'nutritionist' ? '/nutrition' : '/students'}
@@ -1308,7 +1358,12 @@ export function DashboardPage() {
                   <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
                 </button>
               ))}
-              {mergedExpiring.filter(r => r.days <= 3).map((row) => (
+              {mergedExpiring
+                .filter((r) => {
+                  if (r.kind === 'routine' && r.days < 0) return false
+                  return r.days <= 3
+                })
+                .map((row) => (
                 <button
                   key={`exp-${row.id}`}
                   type="button"
@@ -1316,7 +1371,7 @@ export function DashboardPage() {
                   className="inline-flex items-center gap-2 rounded-xl border border-status-expired/25 bg-status-expired/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expired/15 transition-colors"
                 >
                   <AlertTriangle className="h-3.5 w-3.5 text-status-expired shrink-0" />
-                  <span>{row.title} · {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Vence hoy' : `${row.days}d`}</span>
+                  <span>{row.title} · {row.lastWeek ? 'Última sem.' : row.days < 0 ? 'Revisar' : row.days === 0 ? 'Vence hoy' : `${row.days}d`}</span>
                 </button>
               ))}
               {pendingIncomeTotal > 0 && (
@@ -1636,7 +1691,7 @@ export function DashboardPage() {
                         row.days > 3 && 'border border-surface-border/80 text-ink-secondary',
                       )}
                     >
-                      {row.days < 0 ? 'Vencido' : row.days === 0 ? 'Hoy' : `${row.days}d`}
+                      {row.lastWeek ? 'Última sem.' : row.days < 0 ? 'Revisar' : row.days === 0 ? 'Hoy' : `${row.days}d`}
                     </span>
                   </button>
                 ))}

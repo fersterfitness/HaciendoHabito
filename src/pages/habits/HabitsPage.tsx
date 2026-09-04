@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
+import { TrainerAdherenceOverview } from '@/components/habits/TrainerAdherenceOverview'
 import type { Student } from '@/types/database'
 
 /** Vista dedicada (barra lateral ya no enlaza acá): elegís alumno o venís con `?student=id` desde la ficha. */
@@ -67,11 +68,14 @@ export function HabitsPage() {
         </div>
 
         {!selectedStudent ? (
-          <EmptyState
-            icon={<Users className="h-8 w-8" />}
-            title="Elegí un alumno"
-            description="Seleccionando arriba se abre el mismo panel de hábitos que en la solapa del alumno."
-          />
+          <div className="space-y-4">
+            <TrainerAdherenceOverview />
+            <EmptyState
+              icon={<Users className="h-8 w-8" />}
+              title="Elegí un alumno para ver el detalle"
+              description="Arriba está el ranking de adherencia. Seleccioná un nombre para abrir gráficos y evolución semanal."
+            />
+          </div>
         ) : (
           <StudentHabitsPanel studentId={selectedStudent} key={selectedStudent} />
         )}

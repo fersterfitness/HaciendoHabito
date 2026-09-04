@@ -886,7 +886,7 @@ export function RoutinesPage() {
         open={showNewRoutineModal}
         title="Registrar rutina"
         onClose={closeNewRoutineModal}
-        onCreated={(id) => navigate(`/routines/${id}`)}
+        onCreated={(id) => navigate(id ? `/routines/${id}` : '/exercises/blueprints')}
         initialStudentId={searchParams.get('student') ?? undefined}
         initialBlueprintId={searchParams.get('blueprint') ?? undefined}
       />

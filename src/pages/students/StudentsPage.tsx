@@ -85,10 +85,18 @@ function daysUntil(dateStr: string): number {
   return Math.round((end.getTime() - today.getTime()) / 86_400_000)
 }
 
-function PlanDaysChip({ date }: { date: string }) {
+function PlanDaysChip({ date, remainingWeeks }: { date: string; remainingWeeks?: number }) {
   const days = daysUntil(date)
   const pill =
     'inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium border border-black/[0.06] whitespace-nowrap dark:border-white/[0.08]'
+
+  if (remainingWeeks != null && remainingWeeks > 0) {
+    return (
+      <span className={cn(pill, 'border-surface-border bg-surface-elevated text-ink-secondary')}>
+        {remainingWeeks === 1 ? 'Última semana' : `${remainingWeeks} sem.`}
+      </span>
+    )
+  }
 
   if (days < 0) {
     return <span className={cn(pill, 'border-status-expired/25 bg-status-expired/8 text-status-expired')}>Vencido</span>
@@ -114,9 +122,11 @@ function PlanDaysChip({ date }: { date: string }) {
 function StatusToggle({
   student,
   onChanged,
+  remainingWeeks,
 }: {
   student: Student
   onChanged: (id: string, status: StudentStatus) => void
+  remainingWeeks?: number
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -175,7 +185,7 @@ function StatusToggle({
         </div>
       </Popover>
       {student.plan_end_date && (
-        <PlanDaysChip date={student.plan_end_date} />
+        <PlanDaysChip date={student.plan_end_date} remainingWeeks={remainingWeeks} />
       )}
     </div>
   )
@@ -987,6 +997,16 @@ function StudentDirectoryTable({
   const iconStrike =
     "after:content-[''] after:absolute after:left-1/2 after:top-1/2 after:h-[2px] after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-[-35deg] after:bg-current after:opacity-55"
 
+  function remainingWeeksOf(studentId: string): number | undefined {
+    const total = weeksByStudent.get(studentId)
+    if (total == null) return undefined
+    const st = weekByStudent.get(studentId)
+    if (st?.finished) return 0
+    if (st?.lastWeek) return 1
+    const current = st?.weekNumber ?? 0
+    return Math.max(0, total - current)
+  }
+
   const tableHeader = (
     <div className="flex items-center justify-between gap-3 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-2.5 sm:py-3">
       <div className="min-w-0 flex items-baseline gap-2">
@@ -1038,7 +1058,7 @@ function StudentDirectoryTable({
                   )}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <StatusToggle student={student} onChanged={onStatusChanged} />
+                  <StatusToggle student={student} onChanged={onStatusChanged} remainingWeeks={remainingWeeksOf(student.id)} />
                   {activeRoutineStudentIds.has(student.id) ? (
                     <RoutineWeekSquares
                       totalWeeks={weeksByStudent.get(student.id) ?? 0}
@@ -1189,7 +1209,7 @@ function StudentDirectoryTable({
                     <span className="text-[12px]">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
-                    <StatusToggle student={student} onChanged={onStatusChanged} />
+                    <StatusToggle student={student} onChanged={onStatusChanged} remainingWeeks={remainingWeeksOf(student.id)} />
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col items-start gap-1">

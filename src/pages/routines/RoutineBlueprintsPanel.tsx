@@ -10,7 +10,15 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { RoutineBlueprint } from '@/types/database'
 import toast from 'react-hot-toast'
-import { folderPlaceholderPayload, isBlueprintFolderPlaceholder, realBlueprints } from '@/lib/routine/blueprintFolders'
+import {
+  blueprintAudience,
+  blueprintObjective,
+  blueprintRoutineGroup,
+  folderPlaceholderPayload,
+  isBlueprintFolderPlaceholder,
+  realBlueprints,
+  withBlueprintMeta,
+} from '@/lib/routine/blueprintFolders'
 
 /** Lista de plantillas guardadas desde el detalle de rutina (pestaña dentro de Rutinas). */
 export function RoutineBlueprintsPanel() {
@@ -45,20 +53,23 @@ export function RoutineBlueprintsPanel() {
     void load()
   }, [load])
 
-  /** Agrupado: carpeta (macrociclo) → subcarpeta (variante) → rutinas. */
+  /** Agrupado: macrociclo → mesociclo → rutina → variantes. */
   const grouped = useMemo(() => {
     const SIN_CAT = 'Sin carpeta'
-    const cats = new Map<string, Map<string, RoutineBlueprint[]>>()
+    const cats = new Map<string, Map<string, Map<string, RoutineBlueprint[]>>>()
     const sorted = [...items].sort(
       (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name),
     )
     for (const bp of sorted) {
       const cat = bp.category?.trim() || SIN_CAT
       const sub = bp.subcategory?.trim() || ''
+      const rut = blueprintRoutineGroup(bp)
       if (!cats.has(cat)) cats.set(cat, new Map())
       const subs = cats.get(cat)!
-      if (!subs.has(sub)) subs.set(sub, [])
-      subs.get(sub)!.push(bp)
+      if (!subs.has(sub)) subs.set(sub, new Map())
+      const ruts = subs.get(sub)!
+      if (!ruts.has(rut)) ruts.set(rut, [])
+      ruts.get(rut)!.push(bp)
     }
     return [...cats.entries()].sort((a, b) =>
       a[0] === SIN_CAT ? 1 : b[0] === SIN_CAT ? -1 : a[0].localeCompare(b[0]),
@@ -106,7 +117,7 @@ export function RoutineBlueprintsPanel() {
     matchCategory?: string,
   ) {
     const next = window.prompt(
-      field === 'category' ? 'Nuevo nombre de la carpeta (macrociclo)' : 'Nuevo nombre de la subcarpeta (variante)',
+      field === 'category' ? 'Nuevo nombre del macrociclo' : 'Nuevo nombre del mesociclo',
       current,
     )
     if (next == null) return
@@ -135,9 +146,16 @@ export function RoutineBlueprintsPanel() {
           <Library className="h-4 w-4 text-brand-primary shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-ink-primary">{bp.name}</p>
-            {bp.description && (
+            {blueprintAudience(bp) ? (
+              <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted mt-1">
+                Para: {blueprintAudience(bp)}
+              </p>
+            ) : null}
+            {blueprintObjective(bp) ? (
+              <p className="text-xs text-ink-secondary mt-1 whitespace-pre-wrap">{blueprintObjective(bp)}</p>
+            ) : bp.description ? (
               <p className="text-xs text-ink-secondary mt-1 whitespace-pre-wrap">{bp.description}</p>
-            )}
+            ) : null}
             <p className="text-[10px] text-ink-muted mt-2">
               Actualizada {new Date(bp.updated_at).toLocaleString('es-AR')}
             </p>
@@ -182,7 +200,7 @@ export function RoutineBlueprintsPanel() {
               />
             </label>
             <label className="text-[11px] font-medium text-ink-secondary">
-              Variante (subcarpeta)
+              Mesociclo
               <input
                 list="bp-subcategories"
                 value={editSub}
@@ -214,31 +232,87 @@ export function RoutineBlueprintsPanel() {
     )
   }
 
-  async function createFolder(kind: 'macro' | 'meso', macroName?: string) {
+  async function createFolder(kind: 'macro' | 'meso' | 'rutina', macroName?: string, mesoName?: string) {
     if (!user) return
     const label =
       kind === 'macro'
-        ? window.prompt('Nombre de la carpeta (macrociclo)')
-        : window.prompt('Nombre de la subcarpeta (variante)', '')
+        ? window.prompt('Nombre del macrociclo (carpeta madre)')
+        : kind === 'meso'
+          ? window.prompt('Nombre del mesociclo')
+          : window.prompt('Nombre de la rutina (carpeta)')
     const name = label?.trim()
     if (!name) return
     const category = kind === 'macro' ? name : (macroName ?? '').trim()
-    if (kind === 'meso' && !category) {
-      toast.error('Creá primero la carpeta del macrociclo')
+    if ((kind === 'meso' || kind === 'rutina') && !category) {
+      toast.error('Creá primero el macrociclo')
+      return
+    }
+    const subcategory = kind === 'meso' ? name : kind === 'rutina' ? (mesoName ?? '').trim() : null
+    if (kind === 'rutina' && !subcategory) {
+      toast.error('Creá primero el mesociclo')
       return
     }
     const { error } = await supabase.from('routine_blueprints').insert({
       owner_id: user.id,
       name: '·',
-      category: kind === 'macro' ? name : category,
-      subcategory: kind === 'meso' ? name : null,
-      payload: folderPlaceholderPayload(),
+      category,
+      subcategory,
+      payload: folderPlaceholderPayload(kind, kind === 'rutina' ? name : undefined),
     })
     if (error) {
       toast.error(error.message)
       return
     }
-    toast.success(kind === 'macro' ? 'Carpeta creada' : 'Subcarpeta creada')
+    toast.success(kind === 'macro' ? 'Macrociclo creado' : kind === 'meso' ? 'Mesociclo creado' : 'Rutina creada')
+    void load()
+  }
+
+  async function renameRoutineGroup(macroName: string, mesoName: string, current: string) {
+    const next = window.prompt('Nuevo nombre de la rutina (carpeta)', current)
+    if (next == null) return
+    const value = next.trim()
+    if (!value || !user) return
+    const targets = items.filter(
+      (bp) =>
+        (bp.category?.trim() || '') === macroName &&
+        (bp.subcategory?.trim() || '') === mesoName &&
+        blueprintRoutineGroup(bp) === current,
+    )
+    const results = await Promise.all(
+      targets.map((bp) =>
+        supabase
+          .from('routine_blueprints')
+          .update({ payload: withBlueprintMeta(bp.payload, { routine_group: value }) })
+          .eq('id', bp.id),
+      ),
+    )
+    const err = results.find((r) => r.error)?.error
+    if (err) {
+      toast.error(err.message)
+      return
+    }
+    toast.success('Rutina renombrada')
+    void load()
+  }
+
+  async function createVariant(macroName: string, mesoName: string, rutinaName: string) {
+    if (!user) return
+    const label = window.prompt('Nombre de la variante (ej. estándar, sin racks, principiantes)')
+    const name = label?.trim()
+    if (!name) return
+    const { error } = await supabase.from('routine_blueprints').insert({
+      owner_id: user.id,
+      name,
+      category: macroName,
+      subcategory: mesoName || null,
+      description: null,
+      payload: withBlueprintMeta({ v: 1, blocks: [] }, { routine_group: rutinaName }),
+    })
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Variante creada. Asignala a un alumno o seguí armando más variantes.')
     void load()
   }
 
@@ -260,9 +334,8 @@ export function RoutineBlueprintsPanel() {
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <p className="text-sm text-ink-secondary leading-relaxed max-w-[52rem]">
-          Guardá las rutinas desde el detalle (botón <strong className="text-ink-primary">Guardar variante</strong>) y
-          organizalas como un Drive: <strong className="text-ink-primary">carpeta (macrociclo) → subcarpeta (variante) → rutina</strong>.
-          Podés crear carpetas vacías y después meter las rutinas adentro.
+          Drive de plantillas: <strong className="text-ink-primary">macrociclo → mesociclo → rutina → variante</strong>.
+          Podés crear carpetas y variantes sin asignarlas a un alumno. Al asignar, se copia el objetivo que hayas cargado.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Button size="sm" variant="secondary" icon={<FolderOpen className="h-4 w-4" />} onClick={() => void createFolder('macro')}>
@@ -299,7 +372,12 @@ export function RoutineBlueprintsPanel() {
           {grouped.map(([cat, subs]) => {
             const isReal = cat !== 'Sin carpeta'
             const realCount = [...subs.values()].reduce(
-              (n, arr) => n + arr.filter((bp) => !isBlueprintFolderPlaceholder(bp)).length,
+              (n, ruts) =>
+                n +
+                [...ruts.values()].reduce(
+                  (m, arr) => m + arr.filter((bp) => !isBlueprintFolderPlaceholder(bp)).length,
+                  0,
+                ),
               0,
             )
             return (
@@ -324,14 +402,14 @@ export function RoutineBlueprintsPanel() {
                     onClick={() => void createFolder('meso', cat)}
                     className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
                   >
-                    + Subcarpeta
+                    + Mesociclo
                   </button>
                 )}
               </div>
               <div className="space-y-4 pl-1">
                 {[...subs.entries()]
                   .sort((a, b) => (a[0] === '' ? 1 : b[0] === '' ? -1 : a[0].localeCompare(b[0])))
-                  .map(([sub, bps]) => (
+                  .map(([sub, ruts]) => (
                     <div key={sub || '__none__'}>
                       {sub ? (
                         <div className="mb-1.5 flex items-center gap-1.5">
@@ -342,13 +420,52 @@ export function RoutineBlueprintsPanel() {
                             type="button"
                             onClick={() => void renameGroup('subcategory', sub, isReal ? cat : undefined)}
                             className="rounded p-0.5 text-ink-muted hover:text-brand-secondary"
-                            title="Renombrar subcarpeta"
+                            title="Renombrar mesociclo"
                           >
                             <Pencil className="h-2.5 w-2.5" />
                           </button>
+                          {isReal ? (
+                            <button
+                              type="button"
+                              onClick={() => void createFolder('rutina', cat, sub)}
+                              className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                            >
+                              + Rutina
+                            </button>
+                          ) : null}
                         </div>
                       ) : null}
-                      <ul className="space-y-2">{realBlueprints(bps).map(renderBlueprint)}</ul>
+                      <div className="space-y-3 pl-2">
+                        {[...ruts.entries()]
+                          .sort((a, b) => (a[0] === '' ? 1 : b[0] === '' ? -1 : a[0].localeCompare(b[0])))
+                          .map(([rut, bps]) => (
+                            <div key={rut || '__loose__'}>
+                              {rut ? (
+                                <div className="mb-1 flex items-center gap-1.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-wide text-ink-secondary">{rut}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => void renameRoutineGroup(isReal ? cat : '', sub, rut)}
+                                    className="rounded p-0.5 text-ink-muted hover:text-brand-secondary"
+                                    title="Renombrar rutina"
+                                  >
+                                    <Pencil className="h-2.5 w-2.5" />
+                                  </button>
+                                  {isReal && sub ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => void createVariant(cat, sub, rut)}
+                                      className="rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                                    >
+                                      + Variante
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                              <ul className="space-y-2">{realBlueprints(bps).map(renderBlueprint)}</ul>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   ))}
               </div>

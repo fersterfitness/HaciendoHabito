@@ -6,6 +6,7 @@ import { format, addDays } from 'date-fns'
 import { Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { applyBlueprintPayloadToRoutine, type RoutineBlueprintPayload } from '@/lib/routine/routineBlueprint'
+import { blueprintObjective, withBlueprintMeta } from '@/lib/routine/blueprintFolders'
 import { useRoutines } from '@/hooks/useRoutines'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
@@ -20,7 +21,7 @@ import { isMonthlyTemplate, parseQuestions } from '@/lib/checkIn/questions'
 import { monthlyFeedbackInviteMessage, normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
 
 const schema = z.object({
-  student_id: z.string().uuid('Seleccioná un alumno'),
+  student_id: z.string().optional().or(z.literal('')),
   plan_name: z.string().min(2, 'Ingresá el nombre de la rutina'),
   start_date: z.string().min(1, 'Seleccioná la fecha de inicio'),
   duration_days: z.coerce.number().min(7).max(364),
@@ -57,6 +58,12 @@ export function RoutineFormContent({
   const [templateRoutineId, setTemplateRoutineId] = useState('')
   const [templateBlueprintId, setTemplateBlueprintId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
+  const [saveAsPreset, setSaveAsPreset] = useState(false)
+  const [presetMacro, setPresetMacro] = useState('')
+  const [presetMeso, setPresetMeso] = useState('')
+  const [presetRutina, setPresetRutina] = useState('')
+  const [knownMacros, setKnownMacros] = useState<string[]>([])
+  const [knownMesos, setKnownMesos] = useState<string[]>([])
   const [feedbackPrompt, setFeedbackPrompt] = useState<{
     routineId: string
     studentName: string
@@ -138,6 +145,15 @@ export function RoutineFormContent({
         }))
         setRoutineTemplates(items)
       })
+    void supabase
+      .from('routine_blueprints')
+      .select('category, subcategory')
+      .eq('owner_id', user.id)
+      .then(({ data }) => {
+        const rows = (data ?? []) as { category: string | null; subcategory: string | null }[]
+        setKnownMacros([...new Set(rows.map((r) => r.category?.trim()).filter((c): c is string => !!c))].sort())
+        setKnownMesos([...new Set(rows.map((r) => r.subcategory?.trim()).filter((c): c is string => !!c))].sort())
+      })
   }, [user])
 
   useEffect(() => {
@@ -147,6 +163,21 @@ export function RoutineFormContent({
       setTemplateRoutineId('')
     }
   }, [isEditing, initialBlueprintId])
+
+  useEffect(() => {
+    if (!templateBlueprintId) return
+    void supabase
+      .from('routine_blueprints')
+      .select('payload, name')
+      .eq('id', templateBlueprintId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return
+        const obj = blueprintObjective(data)
+        if (obj) setValue('objective', obj)
+        if (data.name) setValue('plan_name', data.name)
+      })
+  }, [templateBlueprintId, setValue])
 
   useEffect(() => {
     if (!isEditing || !routineId) return
@@ -164,6 +195,36 @@ export function RoutineFormContent({
   }, [routineId, isEditing, reset])
 
   async function onSubmit(values: FormValues) {
+    if (saveAsPreset && !isEditing) {
+      if (!user) return
+      const { error } = await supabase.from('routine_blueprints').insert({
+        owner_id: user.id,
+        name: values.plan_name,
+        category: presetMacro.trim() || null,
+        subcategory: presetMeso.trim() || null,
+        description: values.notes?.trim() || values.level,
+        payload: withBlueprintMeta(
+          { v: 1, blocks: [] },
+          {
+            routine_group: presetRutina.trim() || values.plan_name,
+            objective: values.objective,
+            audience: values.level,
+          },
+        ),
+      })
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+      toast.success('Guardada en rutinas preestablecidas. Ahora podés meterla en un macrociclo.')
+      onSuccess('')
+      return
+    }
+    if (!values.student_id) {
+      toast.error('Seleccioná un alumno o marcá «Guardar en rutinas preestablecidas»')
+      return
+    }
+
     async function copyStructureFromTemplate(sourceRoutineId: string, targetRoutineId: string) {
       const { data: templateBlocks, error: blocksError } = await supabase
         .from('routine_blocks')
@@ -329,11 +390,70 @@ export function RoutineFormContent({
     <div className={formClassName}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormSection title="Alumno y plan">
+          {!isEditing ? (
+            <label className="flex items-start gap-2 rounded-xl border border-surface-border/70 bg-surface-elevated/20 px-3 py-2 text-sm text-ink-secondary">
+              <input
+                type="checkbox"
+                checked={saveAsPreset}
+                onChange={(e) => setSaveAsPreset(e.target.checked)}
+                className="mt-0.5 rounded border-surface-border"
+              />
+              <span>
+                <strong className="text-ink-primary">Guardar en rutinas preestablecidas</strong>
+                <span className="mt-0.5 block text-[11px] text-ink-muted">
+                  No asigna un alumno. Queda en preestablecidas para testear o asignar después.
+                </span>
+              </span>
+            </label>
+          ) : null}
+          {saveAsPreset && !isEditing ? (
+            <div className="grid gap-3 rounded-xl border border-surface-border/70 bg-surface-elevated/15 p-3 sm:grid-cols-3">
+              <label className="text-[11px] font-medium text-ink-secondary">
+                Macrociclo
+                <input
+                  list="new-routine-macros"
+                  value={presetMacro}
+                  onChange={(e) => setPresetMacro(e.target.value)}
+                  placeholder="Ej. Adaptación Neural"
+                  className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
+                />
+              </label>
+              <label className="text-[11px] font-medium text-ink-secondary">
+                Mesociclo
+                <input
+                  list="new-routine-mesos"
+                  value={presetMeso}
+                  onChange={(e) => setPresetMeso(e.target.value)}
+                  placeholder="Ej. Fase NTC"
+                  className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
+                />
+              </label>
+              <label className="text-[11px] font-medium text-ink-secondary">
+                Rutina (carpeta)
+                <input
+                  value={presetRutina}
+                  onChange={(e) => setPresetRutina(e.target.value)}
+                  placeholder="Nombre de la rutina madre"
+                  className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
+                />
+              </label>
+              <datalist id="new-routine-macros">
+                {knownMacros.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+              <datalist id="new-routine-mesos">
+                {knownMesos.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </div>
+          ) : null}
           <Select
             label="Alumno"
-            required
+            required={!saveAsPreset}
             options={studentOptions}
-            placeholder="Seleccionar alumno"
+            placeholder={saveAsPreset ? 'Opcional si guardás como preestablecida' : 'Seleccionar alumno'}
             error={errors.student_id?.message}
             {...register('student_id')}
           />
@@ -426,7 +546,7 @@ export function RoutineFormContent({
 
         <FormSection title="Detalle">
           <Select
-            label="Nivel del alumno"
+            label="Para quién (principiantes, avanzados…)"
             required
             options={STUDENT_LEVELS}
             error={errors.level?.message}

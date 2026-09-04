@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Save, Trash2, Download, Users,
+  CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Trash2, Download, Users,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -47,6 +47,16 @@ import { CheckInFinishedBanner, CheckInLastWeekBanner } from '@/components/check
 import { CheckInQuestionEditor } from '@/components/checkIn/CheckInQuestionEditor'
 import { StudentRoutineWeekPanel } from '@/components/checkIn/StudentRoutineWeekPanel'
 import { matchRoutineForSubmittedAt, type RoutineDateRange } from '@/lib/checkIn/monthlyFeedback'
+import {
+  defaultWeeklyPeriodStartYmd,
+  formatPeriodYmd,
+  isWeeklyPeriodOverdue,
+  loadWeeklyPeriodStartYmd,
+  saveWeeklyPeriodStartYmd,
+  submittedInWeeklyPeriod,
+  weeklyPeriodDueYmd,
+  weeklyPeriodStartUtc,
+} from '@/lib/checkIn/weeklyPeriod'
 import { ensureDefaultCheckInForms, remapCheckInResponsesForForm, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -136,6 +146,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<number | null>(null)
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null)
   const [missingStudents, setMissingStudents] = useState<DashboardMissingCheckInStudent[]>([])
+  const [studentPanel, setStudentPanel] = useState<'seguimiento' | 'sin_respuesta' | 'feedbacks'>('seguimiento')
+  const [periodStart, setPeriodStart] = useState(() => defaultWeeklyPeriodStartYmd())
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'pending' | 'al_dia'>('all')
   const [historyKind, setHistoryKind] = useState<'weekly' | 'monthly'>('weekly')
   const [studentRoutines, setStudentRoutines] = useState<RoutineDateRange[]>([])
@@ -179,9 +191,14 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   }, [loadForms])
 
   useEffect(() => {
+    if (!user) return
+    setPeriodStart(loadWeeklyPeriodStartYmd(user.id))
+  }, [user])
+
+  useEffect(() => {
     if (!user || checkInView !== 'student') return
-    void loadStudentsMissingCheckIn(user.id).then(setMissingStudents)
-  }, [user, checkInView, studentHistory])
+    void loadStudentsMissingCheckIn(user.id, weeklyPeriodStartUtc(periodStart)).then(setMissingStudents)
+  }, [user, checkInView, studentHistory, periodStart])
 
   useEffect(() => {
     if (!user) return
@@ -610,7 +627,6 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   }
 
   function toggleStudent(id: string) {
-    if (invites.some((i) => i.student_id === id)) return
     setSelectedStudentIds((prev) => {
       const n = new Set(prev)
       if (n.has(id)) n.delete(id)
@@ -965,7 +981,34 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
         {checkInView === 'student' ? (
           <div className="space-y-4">
-            {missingStudents.length > 0 ? (
+            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Vista por alumno">
+              {([
+                { id: 'seguimiento' as const, label: 'Seguimiento' },
+                { id: 'sin_respuesta' as const, label: 'Sin respuesta' },
+                { id: 'feedbacks' as const, label: 'Feedbacks general' },
+              ]).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={studentPanel === opt.id}
+                  onClick={() => setStudentPanel(opt.id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                    studentPanel === opt.id
+                      ? 'border-brand-secondary/40 bg-brand-secondary/12 text-ink-primary'
+                      : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
+                  )}
+                >
+                  {opt.label}
+                  {opt.id === 'sin_respuesta' && missingStudents.length > 0 ? (
+                    <span className="ml-1 tabular-nums opacity-70">{missingStudents.length}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            {studentPanel === 'sin_respuesta' ? (
               <Card padding="lg" className="space-y-3 border-amber-500/30">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -973,10 +1016,13 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       No completaron el formulario de esta semana
                     </p>
                     <p className="text-[11px] text-ink-muted">
-                      {missingStudents.length} alumno{missingStudents.length !== 1 ? 's' : ''} sin respuesta lun–dom.
+                      Desde el {formatPeriodYmd(periodStart)}
+                      {isWeeklyPeriodOverdue(periodStart) ? ' · ya pasaron 3 días hábiles: recordales' : ' · tienen 3 días hábiles'}
+                      . {missingStudents.length} sin respuesta.
                     </p>
                   </div>
                 </div>
+                {missingStudents.length > 0 ? (
                 <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
                   {missingStudents.map((st) => (
                     <li key={st.id} className="flex items-center gap-3 px-3 py-2">
@@ -1005,9 +1051,15 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                     </li>
                   ))}
                 </ul>
+              ) : (
+                <p className="text-sm text-ink-muted">Todos completaron el formulario de esta semana.</p>
+              )}
               </Card>
             ) : null}
-            <StudentRoutineWeekPanel />
+
+            {studentPanel === 'seguimiento' ? <StudentRoutineWeekPanel /> : null}
+
+            {studentPanel === 'feedbacks' ? (
           <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
             <p className="text-xs text-ink-secondary max-w-prose">
               Elegí un alumno, después el año y el mes, y por último la respuesta. Así el listado escala si el alumno está años con vos.
@@ -1429,6 +1481,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               </ul>
             )}
           </Card>
+            ) : null}
           </div>
         ) : null}
 
@@ -1496,6 +1549,40 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 {activeFormId ? 'Editar formulario' : 'Nuevo formulario'}
               </h2>
             </div>
+            {isWeeklyTemplate(questions) ? (
+              <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5 space-y-2">
+                <p className="text-[11px] font-semibold text-ink-primary">Semana de envío</p>
+                <p className="text-[10px] leading-relaxed text-ink-muted">
+                  El link es el mismo todas las semanas. Iniciá una ronda con la fecha de hoy (o el viernes) para
+                  marcar quién ya respondió <em>esta</em> vuelta. Tienen 3 días hábiles (hasta el {formatPeriodYmd(weeklyPeriodDueYmd(periodStart))}).
+                </p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="text-[10px] font-medium text-ink-secondary">
+                    Fecha de inicio
+                    <input
+                      type="date"
+                      value={periodStart}
+                      onChange={(e) => setPeriodStart(e.target.value)}
+                      className="mt-1 block rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary"
+                    />
+                  </label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (!user) return
+                      const ymd = periodStart || defaultWeeklyPeriodStartYmd()
+                      saveWeeklyPeriodStartYmd(user.id, ymd)
+                      setPeriodStart(ymd)
+                      toast.success(`Semana iniciada el ${formatPeriodYmd(ymd)}. Quienes respondieron antes pueden completar de nuevo.`)
+                    }}
+                  >
+                    Iniciar semana
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <Input label="Título" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Check semanal" />
             <Textarea
               label="Intro (opcional)"
@@ -1603,31 +1690,35 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
                     Links por alumno (opcional)
                   </h3>
-                  <p className="text-[11px] text-ink-muted">Marcá alumnos que todavía no tienen fila en la tabla de abajo y generá el link.</p>
+                  <p className="text-[11px] text-ink-muted">
+                    El link personal se reutiliza todas las semanas. Quien respondió la semana pasada puede volver a completar.
+                  </p>
                   <p className="text-[11px] text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
                     No compartas los links en grupos públicos: son como una clave. Si un formulario queda pausado, el link deja de aceptar respuestas
                     nuevas.
                   </p>
                   <div className="max-h-36 overflow-y-auto space-y-1 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2">
                     {students.map((s) => {
-                      const has = invites.some((i) => i.student_id === s.id)
+                      const inv = invites.find((i) => i.student_id === s.id)
+                      const resp = inv ? responseByInvite.get(inv.id) : undefined
+                      const thisWeek = resp ? submittedInWeeklyPeriod(resp.submitted_at, periodStart) : false
                       return (
                         <label
                           key={s.id}
-                          className={cn(
-                            'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors',
-                            has ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-brand-secondary/8',
-                          )}
+                          className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors cursor-pointer hover:bg-brand-secondary/8"
                         >
                           <input
                             type="checkbox"
-                            disabled={has}
                             checked={selectedStudentIds.has(s.id)}
                             onChange={() => toggleStudent(s.id)}
                             className={checkInCheckboxClass}
                           />
                           {s.full_name}
-                          {has ? <span className="text-[10px] text-ink-muted">ya tiene link</span> : null}
+                          {thisWeek ? (
+                            <span className="text-[10px] text-emerald-700 dark:text-emerald-300">completó esta semana</span>
+                          ) : inv ? (
+                            <span className="text-[10px] text-ink-muted">tiene link · puede completar de nuevo</span>
+                          ) : null}
                         </label>
                       )
                     })}
@@ -1672,14 +1763,15 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         <tbody>
                           {invites.map((inv) => {
                             const resp = responseByInvite.get(inv.id)
+                            const thisWeek = resp ? submittedInWeeklyPeriod(resp.submitted_at, periodStart) : false
                             return (
                               <tr key={inv.id} className="border-b border-surface-border/80">
                                 <td className="py-2 pr-2 text-ink-primary">{inv.student?.full_name ?? '—'}</td>
                                 <td className="py-2 pr-2">
-                                  {resp ? (
+                                  {thisWeek && resp ? (
                                     <div className="flex flex-col items-start gap-1">
                                       <span className="text-emerald-600 dark:text-emerald-400">
-                                        Respondió {new Date(resp.submitted_at).toLocaleDateString('es-AR')}
+                                        Respondió esta semana · {new Date(resp.submitted_at).toLocaleDateString('es-AR')}
                                       </span>
                                       <button
                                         type="button"
@@ -1707,8 +1799,12 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                         )}
                                       </button>
                                     </div>
+                                  ) : resp ? (
+                                    <span className="text-ink-muted">
+                                      Semana anterior ({new Date(resp.submitted_at).toLocaleDateString('es-AR')}) · puede completar de nuevo
+                                    </span>
                                   ) : (
-                                    <span className="text-ink-muted">Pendiente</span>
+                                    <span className="text-ink-muted">Pendiente esta semana</span>
                                   )}
                                 </td>
                                 <td className="py-2 pr-2">
@@ -1763,167 +1859,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   )}
                 </div>
 
-                {invites.some((i) => responseByInvite.has(i.id)) ? (
-                  <div className="border-t border-surface-border/80 pt-4 space-y-3">
-                    <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
-                      Detalle de respuestas
-                    </h3>
-                    {invites.map((inv) => {
-                      const resp = responseByInvite.get(inv.id)
-                      if (!resp) return null
-                      const obj = resp.responses && typeof resp.responses === 'object' && !Array.isArray(resp.responses) ? (resp.responses as Record<string, unknown>) : {}
-                      const noteDraft = noteDraftFor(resp)
-                      const noteDirty = noteDraft.trim() !== (resp.trainer_note ?? '').trim()
-                      const isSaving = savingResponseIds.has(resp.id)
-                      const isReplied = !!resp.trainer_replied_at
-                      return (
-                        <div
-                          key={inv.id}
-                          className={cn(
-                            'rounded-xl border p-3 space-y-2 text-sm transition-colors',
-                            isReplied
-                              ? 'border-emerald-600/25 bg-emerald-500/[0.04]'
-                              : 'border-brand-secondary/20 bg-brand-secondary/5',
-                          )}
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-medium text-ink-primary">{inv.student?.full_name ?? '—'}</p>
-                              <p className="text-[10px] text-ink-muted">
-                                {checkInHistoryMeta(questions, obj, resp.submitted_at, inv.student?.full_name).filingLabel}
-                                {' · '}
-                                Testimonio: {resp.testimonial_consent ? 'sí' : 'no'}
-                                {' · '}
-                                Correo: {resp.responder_email ?? '—'} ({resp.email_verified ? 'verificado' : 'no verif.'})
-                                {isReplied ? (
-                                  <>
-                                    {' · '}
-                                    <span className="text-emerald-700 dark:text-emerald-400">
-                                      Respondido el {new Date(resp.trainer_replied_at!).toLocaleString('es-AR')}
-                                    </span>
-                                  </>
-                                ) : null}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => void setResponseTrainerStatus(resp, !isReplied)}
-                              disabled={isSaving}
-                              aria-pressed={isReplied}
-                              title={isReplied ? 'Marcar como pendiente' : 'Marcar como respondido'}
-                              className={cn(
-                                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50',
-                                isReplied
-                                  ? 'border-emerald-600/45 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300'
-                                  : 'border-amber-500/45 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300',
-                              )}
-                            >
-                              {isReplied ? (
-                                <>
-                                  <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-                                  Respondido
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                                  Marcar respondido
-                                </>
-                              )}
-                            </button>
-                          </div>
-                          {isMonthlyTemplate(questions) ? (
-                            <MonthlyFeedbackAnswers
-                              studentName={inv.student?.full_name ?? students.find((s) => s.id === inv.student_id)?.full_name ?? ''}
-                              questions={questions}
-                              responses={obj}
-                              routineName={
-                                matchRoutineForSubmittedAt(
-                                  studentRoutines.filter((r) => r.student_id === inv.student_id),
-                                  resp.submitted_at,
-                                )?.name
-                              }
-                            />
-                          ) : (
-                            <CheckInAnswerList questions={questions} responses={obj} />
-                          )}
-                          {weekStatusFromAnswers(questions, obj).lastWeek ? (
-                            <CheckInLastWeekBanner
-                              onAskMonthly={() => {
-                                const st = students.find((s) => s.id === inv.student_id)
-                                sendMonthlyFeedbackWa(
-                                  inv.student?.full_name ?? st?.full_name ?? '',
-                                  st?.phone,
-                                  'last_week',
-                                )
-                              }}
-                            />
-                          ) : null}
-                          {weekStatusFromAnswers(questions, obj).finished ? (
-                            <CheckInFinishedBanner
-                              description="Pedile la foto del registro de progreso y el feedback mensual para armar el siguiente mesociclo."
-                              onAskProgress={() => {
-                                const st = students.find((s) => s.id === inv.student_id)
-                                const digits = normalizePhoneForWhatsApp(st?.phone)
-                                if (!digits) {
-                                  toast.error('Sin teléfono válido en la ficha')
-                                  return
-                                }
-                                void shareToWhatsApp({
-                                  phoneDigits: digits,
-                                  message: routineMonthFinishedWhatsAppMessage(inv.student?.full_name ?? st?.full_name ?? ''),
-                                }).then((res) => {
-                                  if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
-                                })
-                              }}
-                              onAskMonthly={() => {
-                                const st = students.find((s) => s.id === inv.student_id)
-                                sendMonthlyFeedbackWa(inv.student?.full_name ?? st?.full_name ?? '', st?.phone)
-                              }}
-                            />
-                          ) : null}
-                          <div className="pt-1 space-y-1.5">
-                            <label
-                              htmlFor={`note-${resp.id}`}
-                              className="text-[10px] font-medium uppercase tracking-wide text-ink-muted"
-                            >
-                              Nota privada (no la ve el alumno)
-                            </label>
-                            <Textarea
-                              id={`note-${resp.id}`}
-                              value={noteDraft}
-                              onChange={(e) =>
-                                setNoteDrafts((prev) => {
-                                  const next = new Map(prev)
-                                  next.set(resp.id, e.target.value)
-                                  return next
-                                })
-                              }
-                              rows={2}
-                              placeholder="Ej. aumentar proteínas, pedir foto de comida, etc."
-                              className="text-xs"
-                            />
-                            {noteDirty ? (
-                              <div className="flex justify-end">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  loading={isSaving}
-                                  disabled={isSaving}
-                                  onClick={() => void setResponseTrainerStatus(resp, isReplied, noteDraft)}
-                                  icon={<Save className="h-3 w-3" aria-hidden />}
-                                  className="h-7 min-h-7 px-2 text-[10px]"
-                                >
-                                  Guardar nota
-                                </Button>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : null}
+                <p className="border-t border-surface-border/80 pt-3 text-[11px] text-ink-muted">
+                  Las respuestas de cada alumno están en <strong className="text-ink-secondary">Por alumno → Feedbacks general</strong>.
+                </p>
               </>
             ) : null}
           </Card>

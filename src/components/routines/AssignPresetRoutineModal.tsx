@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import type { RoutineBlueprint } from '@/types/database'
-import { realBlueprints } from '@/lib/routine/blueprintFolders'
+import { blueprintRoutineGroup, realBlueprints } from '@/lib/routine/blueprintFolders'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +28,7 @@ export function AssignPresetRoutineModal({
   const [loading, setLoading] = useState(false)
   const [macro, setMacro] = useState('')
   const [meso, setMeso] = useState('')
+  const [rutina, setRutina] = useState('')
   const [variantId, setVariantId] = useState('')
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function AssignPresetRoutineModal({
     setLoading(true)
     setMacro('')
     setMeso('')
+    setRutina('')
     setVariantId('')
     void supabase
       .from('routine_blueprints')
@@ -62,13 +64,24 @@ export function AssignPresetRoutineModal({
     return names.sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'es')))
   }, [items, macro])
 
-  const variants = useMemo(() => {
-    return items.filter(
+  const rutinas = useMemo(() => {
+    const inMeso = items.filter(
       (b) =>
         (b.category?.trim() || SIN_MACRO) === macro &&
         (b.subcategory?.trim() || '') === meso,
     )
+    const names = [...new Set(inMeso.map((b) => blueprintRoutineGroup(b)))]
+    return names.sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'es')))
   }, [items, macro, meso])
+
+  const variants = useMemo(() => {
+    return items.filter(
+      (b) =>
+        (b.category?.trim() || SIN_MACRO) === macro &&
+        (b.subcategory?.trim() || '') === meso &&
+        blueprintRoutineGroup(b) === rutina,
+    )
+  }, [items, macro, meso, rutina])
 
   if (!open) return null
 
@@ -79,7 +92,7 @@ export function AssignPresetRoutineModal({
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
         <h3 className="mt-1 text-sm font-semibold text-ink-primary">Asignar a {studentName}</h3>
         <p className="mt-1 text-[11px] text-ink-secondary">
-          Elegí carpeta (macrociclo), subcarpeta (variante) y la rutina. Después podés editarla.
+          Elegí macrociclo → mesociclo → rutina → variante. El objetivo se copia al asignar.
         </p>
         {loading ? (
           <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
@@ -96,6 +109,7 @@ export function AssignPresetRoutineModal({
                 onChange={(e) => {
                   setMacro(e.target.value)
                   setMeso('')
+                  setRutina('')
                   setVariantId('')
                 }}
                 className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
@@ -109,11 +123,12 @@ export function AssignPresetRoutineModal({
               </select>
             </label>
             <label className="block text-[11px] font-medium text-ink-secondary">
-              Variante (subcarpeta)
+              Mesociclo
               <select
                 value={meso}
                 onChange={(e) => {
                   setMeso(e.target.value)
+                  setRutina('')
                   setVariantId('')
                 }}
                 disabled={!macro}
@@ -122,13 +137,32 @@ export function AssignPresetRoutineModal({
                 <option value="">{macro ? 'Elegí…' : 'Primero el macrociclo'}</option>
                 {mesos.map((m) => (
                   <option key={m || '__none'} value={m}>
-                    {m || 'Sin subcarpeta'}
+                    {m || 'Sin mesociclo'}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-[11px] font-medium text-ink-secondary">
               Rutina
+              <select
+                value={rutina}
+                onChange={(e) => {
+                  setRutina(e.target.value)
+                  setVariantId('')
+                }}
+                disabled={!macro}
+                className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+              >
+                <option value="">{macro ? 'Elegí…' : 'Primero el mesociclo'}</option>
+                {rutinas.map((r) => (
+                  <option key={r || '__loose'} value={r}>
+                    {r || 'Sin carpeta de rutina'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-[11px] font-medium text-ink-secondary">
+              Variante
               <select
                 value={variantId}
                 onChange={(e) => setVariantId(e.target.value)}

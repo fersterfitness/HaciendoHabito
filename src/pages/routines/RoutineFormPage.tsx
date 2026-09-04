@@ -19,7 +19,7 @@ export function RoutineFormPage() {
           initialStudentId={searchParams.get('student') ?? undefined}
           initialBlueprintId={searchParams.get('blueprint') ?? undefined}
           onCancel={() => navigate(-1)}
-          onSuccess={(routineId) => navigate(`/routines/${routineId}`)}
+          onSuccess={(routineId) => navigate(routineId ? `/routines/${routineId}` : '/exercises/blueprints')}
         />
       </div>
     </div>
