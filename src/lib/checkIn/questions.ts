@@ -412,9 +412,9 @@ function opt(id: string, label: string, color: string, extra: CheckInOptionExtra
   return { id, label, color, extra }
 }
 
-export const WEEKLY_CHECK_IN_INTRO = `Hola 👋 este formulario semanal es para tener un FEEDBACK de cómo venís llevando tus hábitos, no solo en lo que respecta al entrenamiento. El componente emocional también es algo sumamente importante 💛
+export const WEEKLY_CHECK_IN_INTRO = `Hola 👋 este es tu FEEDBACK SEMANAL. Te llega todos los viernes (es el mismo formulario) y corresponde a la semana de ese día: lunes a domingo, no a la semana siguiente.
 
-Por favor completalo TODAS LAS SEMANAS ✨📋`
+Sirve para ver cómo venís con hábitos y también con lo emocional 💛 Completalo cada viernes ✨📋`
 
 export const MONTHLY_FEEDBACK_INTRO = `Terminaste tu mes de rutina 🙌 Este feedback mensual me ayuda a planificar tu próximo mesociclo.
 
@@ -591,7 +591,7 @@ export function createMonthlyFeedbackQuestions(): CheckInQuestion[] {
 
 export function weeklyFormDefaults(): { title: string; intro: string; questions: CheckInQuestion[] } {
   return {
-    title: 'Check-in semanal',
+    title: 'Feedback semanal',
     intro: WEEKLY_CHECK_IN_INTRO,
     questions: createWeeklyCheckInQuestions(),
   }

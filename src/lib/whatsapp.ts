@@ -351,7 +351,7 @@ export function weeklyFormMissingReminderMessage(studentName: string, formUrl?: 
   const lines = [
     `Hola ${first}, ¿Cómo estás?`,
     '',
-    'Recordá completar tu formulario semanal, esto me va a servir para hacer un seguimiento continuo de tu progreso.',
+    'Recordá completar tu feedback semanal (el de todos los viernes). Me sirve para el seguimiento de tu semana.',
     '',
     '¡GRACIAS! 💪',
   ]

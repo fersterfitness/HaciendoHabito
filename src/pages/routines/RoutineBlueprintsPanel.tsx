@@ -12,6 +12,7 @@ import type { RoutineBlueprint } from '@/types/database'
 import toast from 'react-hot-toast'
 import {
   blueprintAudience,
+  blueprintLibraryRoutineId,
   blueprintObjective,
   blueprintRoutineGroup,
   folderPlaceholderPayload,
@@ -19,6 +20,7 @@ import {
   realBlueprints,
   withBlueprintMeta,
 } from '@/lib/routine/blueprintFolders'
+import { ensureLibraryRoutineForBlueprint } from '@/lib/routine/libraryRoutine'
 
 /** Lista de plantillas guardadas desde el detalle de rutina (pestaña dentro de Rutinas). */
 export function RoutineBlueprintsPanel() {
@@ -32,6 +34,7 @@ export function RoutineBlueprintsPanel() {
   const [editCat, setEditCat] = useState('')
   const [editSub, setEditSub] = useState('')
   const [savingCat, setSavingCat] = useState(false)
+  const [openingId, setOpeningId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -85,6 +88,18 @@ export function RoutineBlueprintsPanel() {
     () => [...new Set(items.map((b) => b.subcategory?.trim()).filter((c): c is string => !!c))].sort(),
     [items],
   )
+
+  async function openLibraryEditor(bp: RoutineBlueprint) {
+    if (!user) return
+    setOpeningId(bp.id)
+    const result = await ensureLibraryRoutineForBlueprint(user.id, bp)
+    setOpeningId(null)
+    if ('error' in result) {
+      toast.error(result.error)
+      return
+    }
+    navigate(`/routines/${result.routineId}`)
+  }
 
   function startEdit(bp: RoutineBlueprint) {
     setEditId(bp.id)
@@ -145,7 +160,15 @@ export function RoutineBlueprintsPanel() {
         <div className="flex items-start gap-3">
           <Library className="h-4 w-4 text-brand-primary shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-ink-primary">{bp.name}</p>
+            <button
+              type="button"
+              onClick={() => void openLibraryEditor(bp)}
+              disabled={openingId === bp.id}
+              className="text-left text-sm font-semibold text-ink-primary hover:text-brand-primary disabled:opacity-60"
+              title="Armar o editar esta variante (semanas y ejercicios)"
+            >
+              {openingId === bp.id ? 'Abriendo editor…' : bp.name}
+            </button>
             {blueprintAudience(bp) ? (
               <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted mt-1">
                 Para: {blueprintAudience(bp)}
@@ -300,25 +323,34 @@ export function RoutineBlueprintsPanel() {
     const label = window.prompt('Nombre de la variante (ej. estándar, sin racks, principiantes)')
     const name = label?.trim()
     if (!name) return
-    const { error } = await supabase.from('routine_blueprints').insert({
-      owner_id: user.id,
-      name,
-      category: macroName,
-      subcategory: mesoName || null,
-      description: null,
-      payload: withBlueprintMeta({ v: 1, blocks: [] }, { routine_group: rutinaName }),
-    })
-    if (error) {
-      toast.error(error.message)
+    const { data, error } = await supabase
+      .from('routine_blueprints')
+      .insert({
+        owner_id: user.id,
+        name,
+        category: macroName,
+        subcategory: mesoName || null,
+        description: null,
+        payload: withBlueprintMeta({ v: 1, blocks: [] }, { routine_group: rutinaName }),
+      })
+      .select('*')
+      .single()
+    if (error || !data) {
+      toast.error(error?.message ?? 'No se pudo crear la variante')
       return
     }
-    toast.success('Variante creada. Asignala a un alumno o seguí armando más variantes.')
-    void load()
+    toast.success('Variante creada. Armá las semanas y después asignala si querés.')
+    await openLibraryEditor(data as RoutineBlueprint)
   }
 
   async function handleDelete() {
     if (!deleteId) return
     setDeleting(true)
+    const target = items.find((bp) => bp.id === deleteId)
+    const libraryId = target ? blueprintLibraryRoutineId(target) : null
+    if (libraryId) {
+      await supabase.from('routines').delete().eq('id', libraryId).eq('owner_id', user!.id)
+    }
     const { error } = await supabase.from('routine_blueprints').delete().eq('id', deleteId)
     setDeleting(false)
     if (error) {
@@ -335,7 +367,8 @@ export function RoutineBlueprintsPanel() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <p className="text-sm text-ink-secondary leading-relaxed max-w-[52rem]">
           Drive de plantillas: <strong className="text-ink-primary">macrociclo → mesociclo → rutina → variante</strong>.
-          Podés crear carpetas y variantes sin asignarlas a un alumno. Al asignar, se copia el objetivo que hayas cargado.
+          Tocá la variante para armar semanas y ejercicios (queda guardada para vos).
+          Con la flecha la asignás a un alumno cuando quieras; si no, la dejás solo en tu biblioteca.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Button size="sm" variant="secondary" icon={<FolderOpen className="h-4 w-4" />} onClick={() => void createFolder('macro')}>
@@ -360,7 +393,7 @@ export function RoutineBlueprintsPanel() {
         <EmptyState
           icon={<Library className="h-8 w-8" />}
           title="Sin carpetas todavía"
-          description="Creá una carpeta (macrociclo) o guardá una rutina desde el detalle con «Guardar variante»."
+          description="Creá un macrociclo, mesociclo, rutina y variante. Después tocá la variante para armar las semanas, igual que una rutina de alumno."
           action={{
             label: 'Ir a mis rutinas',
             onClick: () => navigate('/routines'),

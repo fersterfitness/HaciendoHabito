@@ -17,7 +17,7 @@ import {
   Layers,
   X,
 } from 'lucide-react'
-import { colorBrandLogoSrc, socialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
+import { colorBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import { Header } from '@/components/layout/Header'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
@@ -71,7 +71,7 @@ const planEditorPanelBg: CSSProperties = {
 }
 
 export function NutritionTemplatesPage() {
-  const { user, profile } = useAuthStore()
+  const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<NutritionPlanLibrary[]>([])
   const [search, setSearch] = useState('')
@@ -250,14 +250,7 @@ export function NutritionTemplatesPage() {
           layoutMode="template"
           objective={draftObjective}
           generalNotes={draftNotes}
-          professionalName={profile?.full_name ?? 'Nutricionista'}
-          professionalContact={{
-            phone: '1155082465',
-            email: 'cris.crossetto@gmail.com',
-            instagram: '@c.vazqueznutricion',
-          }}
           appLogoUrl={colorBrandLogoSrc()}
-          socialIcons={socialIconUrls()}
           footerSourceLabel="Plan nutricional · Generado desde biblioteca de planes"
         />
       )
@@ -676,10 +669,7 @@ export function NutritionTemplatesPage() {
                     }}
                   />
 
-                  <div className="rounded-2xl border border-surface-border bg-slate-50/80 p-3 dark:bg-zinc-950/30">
-                    <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-                      Vista del paciente
-                    </p>
+                  <div className="rounded-2xl border border-surface-border bg-surface-card p-3">
                     <WeeklyMealPlanBoard mergeWeekends={mergeWeekends} grid={normalizeWeeklyGrid(grid, mergeWeekends)} />
                   </div>
 

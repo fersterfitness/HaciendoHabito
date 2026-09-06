@@ -825,7 +825,7 @@ export function RoutinesPage() {
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')} onClick={(e) => e.stopPropagation()}>
                             {(() => {
-                              const st = weekStatusOrEmpty(weekByStudent, r.student_id)
+                              const st = weekStatusOrEmpty(weekByStudent, r.student_id ?? '')
                               return (
                                 <RoutineWeekSquares
                                   totalWeeks={blocksByRoutine.get(r.id) ?? 0}

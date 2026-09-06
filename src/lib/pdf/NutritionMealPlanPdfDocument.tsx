@@ -17,24 +17,15 @@ import {
   columnFullLabels,
   compactMealLabel,
   dayAccent,
-  filledMealCountForDay,
   isNoMealMarker,
   mealContentLines,
 } from '@/lib/nutrition/weeklyPlanGrid'
 import { parsePlanGeneralNotes } from '@/lib/nutrition/planGeneralNotes'
 import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
 import { PDF_BRAND } from '@/lib/pdf/pdfBrandTheme'
-import { InstagramIcon, WhatsAppIcon } from '@/lib/pdf/pdfBrandIcons'
-import type { SocialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
 
 /** Evita cortes tipo «me- / dia mañana» en títulos angostos. */
 Font.registerHyphenationCallback((word) => [word])
-
-type ProfessionalContact = {
-  phone?: string
-  email?: string
-  instagram?: string
-}
 
 /**
  * Cuánto más ancha es la columna combinada «Sáb y Dom» respecto a un día
@@ -89,12 +80,12 @@ const styles = StyleSheet.create({
   heroCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     backgroundColor: PDF_BRAND.white,
     borderRadius: 10,
     borderWidth: 0.8,
     borderColor: PDF_BRAND.border,
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     marginBottom: 4,
     flexGrow: 0,
@@ -132,46 +123,6 @@ const styles = StyleSheet.create({
     fontSize: 8.2,
     color: PDF_BRAND.muted,
     marginTop: 2,
-  },
-  /**
-   * Lado derecho del header: los 3 contactos quedan alineados en UNA SOLA línea
-   * horizontal. El gap del contenedor maneja la separación entre cada contacto.
-   */
-  heroRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flexShrink: 0,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    flexShrink: 0,
-  },
-  /** Badge circular usado solo cuando se cae al fallback SVG (icono monocromo). */
-  contactBadge: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  /**
-   * Icono PNG (WhatsApp/Gmail/Instagram). Se reduce un poquito vs. la versión
-   * stack porque ahora viaja en línea con los demás → tamaño más balanceado
-   * con el texto y look más minimalista.
-   */
-  contactBrandIcon: {
-    width: 14,
-    height: 14,
-    objectFit: 'contain',
-  },
-  contactText: {
-    fontSize: 8,
-    color: PDF_BRAND.heading,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 0.1,
   },
   headerGrid: {
     marginTop: 6,
@@ -464,6 +415,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     flexGrow: 0,
     flexShrink: 0,
+    minHeight: 0,
   },
   dayCol: {
     flexGrow: 1,
@@ -483,14 +435,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.heading,
   },
-  dayCount: {
-    width: 13,
-    height: 13,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
   mealCard: {
     flexGrow: 1,
     flexShrink: 1,
@@ -499,7 +443,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 0.7,
     borderColor: '#E8ECF0',
-    overflow: 'hidden',
   },
   cardAccentBar: {
     height: 4,
@@ -526,27 +469,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
   },
   mealBody: {
-    flexGrow: 1,
-  },
-  mealLine: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 5,
-  },
-  mealCheck: {
-    width: 7,
-    height: 7,
-    borderRadius: 1.4,
-    borderWidth: 1.1,
-    marginTop: 1.6,
-    marginRight: 5,
+    flexGrow: 0,
     flexShrink: 0,
-    backgroundColor: PDF_BRAND.white,
   },
   mealLineText: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
     fontSize: 7.2,
     lineHeight: 1.4,
     color: PDF_BRAND.body,
@@ -628,26 +554,17 @@ function PdfPageChrome({
 function DayHeaderRow({
   days,
   mergeWeekends,
-  grid,
 }: {
   days: string[]
   mergeWeekends: boolean
-  grid: WeeklyPlanGridJson
 }) {
   return (
     <View style={styles.boardRow}>
       {days.map((day, di) => {
-        const accent = dayAccent(di, mergeWeekends)
-        const count = filledMealCountForDay(grid, di)
         const wide = mergeWeekends && di === days.length - 1 ? { flexGrow: WEEKEND_COL_GROW } : {}
         return (
           <View key={day} style={[styles.dayCol, wide, styles.dayHead]}>
             <Text style={styles.dayHeadTitle}>{day}</Text>
-            <View style={[styles.dayCount, { backgroundColor: accent.wash }]}>
-              <Text style={{ fontSize: 6.2, fontFamily: 'Helvetica-Bold', color: accent.color }}>
-                {String(count)}
-              </Text>
-            </View>
           </View>
         )
       })}
@@ -672,7 +589,7 @@ function MealWeekCards({
 }) {
   const innerPad = isCompact ? { paddingTop: 6, paddingBottom: 5, paddingHorizontal: 6 } : {}
   return (
-    <View style={styles.boardRow} wrap={false}>
+    <View style={styles.boardRow} wrap minPresenceAhead={36}>
       {days.map((day, di) => {
         const accent = dayAccent(di, mergeWeekends)
         const wide = mergeWeekends && di === days.length - 1 ? { flexGrow: WEEKEND_COL_GROW } : {}
@@ -698,12 +615,12 @@ function MealWeekCards({
                 <Text style={styles.dayOffLabel}>Sin registro</Text>
               ) : (
                 <View style={styles.mealBody}>
-                  {lines.map((line, li) => (
-                    <View key={li} style={styles.mealLine}>
-                      <View style={[styles.mealCheck, { borderColor: accent.color }]} />
-                      <Text
-                        style={[styles.mealLineText, isCompact ? { fontSize: 6.5, lineHeight: 1.34 } : {}]}
-                      >
+                  <Text
+                    style={[styles.mealLineText, isCompact ? { fontSize: 6.5, lineHeight: 1.34 } : {}]}
+                  >
+                    {lines.map((line, li) => (
+                      <Text key={li}>
+                        {li > 0 ? '\n' : ''}
                         {parseInlineMarkdown(line).map((seg, si) => (
                           <Text
                             key={si}
@@ -713,8 +630,8 @@ function MealWeekCards({
                           </Text>
                         ))}
                       </Text>
-                    </View>
-                  ))}
+                    ))}
+                  </Text>
                 </View>
               )}
             </View>
@@ -735,11 +652,7 @@ export interface NutritionMealPlanPdfDocumentProps {
   mergeWeekends: boolean
   grid: WeeklyPlanGridJson
   variant?: 'compact' | 'detailed'
-  professionalName?: string | null
-  professionalContact?: ProfessionalContact
   appLogoUrl?: string | null
-  /** Iconos PNG oficiales (WhatsApp/Instagram/Gmail) servidos desde `public/`. */
-  socialIcons?: SocialIconUrls
   /** Objetivo del plan (biblioteca / plantilla). */
   objective?: string | null
   /** Notas generales serializadas (preámbulo + aclaraciones). */
@@ -759,9 +672,7 @@ export function NutritionMealPlanPdfDocument({
   mergeWeekends,
   grid,
   variant = 'detailed',
-  professionalContact,
   appLogoUrl,
-  socialIcons,
   objective,
   generalNotes,
   footerSourceLabel = 'Plan nutricional personalizado · Generado desde la ficha del paciente',
@@ -794,44 +705,6 @@ export function NutritionMealPlanPdfDocument({
                 {isTemplate ? patientName : 'Distribución semanal personalizada'}
               </Text>
             </View>
-          </View>
-          <View style={styles.heroRight}>
-            {professionalContact?.phone ? (
-              <View style={styles.contactRow}>
-                {socialIcons?.whatsapp ? (
-                  <Image src={socialIcons.whatsapp} style={styles.contactBrandIcon} />
-                ) : (
-                  <View style={[styles.contactBadge, { backgroundColor: '#25D366' }]}>
-                    <WhatsAppIcon size={10} color="#FFFFFF" />
-                  </View>
-                )}
-                <Text style={styles.contactText}>{professionalContact.phone}</Text>
-              </View>
-            ) : null}
-            {professionalContact?.email ? (
-              <View style={styles.contactRow}>
-                {socialIcons?.gmail ? (
-                  <Image src={socialIcons.gmail} style={styles.contactBrandIcon} />
-                ) : (
-                  <View style={[styles.contactBadge, { backgroundColor: '#EA4335' }]}>
-                    <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#FFFFFF' }}>M</Text>
-                  </View>
-                )}
-                <Text style={styles.contactText}>{professionalContact.email}</Text>
-              </View>
-            ) : null}
-            {professionalContact?.instagram ? (
-              <View style={styles.contactRow}>
-                {socialIcons?.instagram ? (
-                  <Image src={socialIcons.instagram} style={styles.contactBrandIcon} />
-                ) : (
-                  <View style={[styles.contactBadge, { backgroundColor: '#E1306C' }]}>
-                    <InstagramIcon size={10} color="#FFFFFF" bgColor="#E1306C" />
-                  </View>
-                )}
-                <Text style={styles.contactText}>{professionalContact.instagram}</Text>
-              </View>
-            ) : null}
           </View>
         </View>
         {isTemplate ? (
@@ -876,7 +749,7 @@ export function NutritionMealPlanPdfDocument({
           </View>
         )}
 
-        <DayHeaderRow days={days} mergeWeekends={mergeWeekends} grid={grid} />
+        <DayHeaderRow days={days} mergeWeekends={mergeWeekends} />
         {grid.mealRows.map((meal) => (
           <MealWeekCards
             key={meal.id}

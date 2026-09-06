@@ -6,7 +6,8 @@ import { format, addDays } from 'date-fns'
 import { Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { applyBlueprintPayloadToRoutine, type RoutineBlueprintPayload } from '@/lib/routine/routineBlueprint'
-import { blueprintObjective, withBlueprintMeta } from '@/lib/routine/blueprintFolders'
+import { blueprintLibraryRoutineId, blueprintObjective, withBlueprintMeta } from '@/lib/routine/blueprintFolders'
+import { ensureLibraryRoutineForBlueprint } from '@/lib/routine/libraryRoutine'
 import { useRoutines } from '@/hooks/useRoutines'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
@@ -59,6 +60,7 @@ export function RoutineFormContent({
   const [templateBlueprintId, setTemplateBlueprintId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
   const [saveAsPreset, setSaveAsPreset] = useState(false)
+  const [editingLibrary, setEditingLibrary] = useState(false)
   const [presetMacro, setPresetMacro] = useState('')
   const [presetMeso, setPresetMeso] = useState('')
   const [presetRutina, setPresetRutina] = useState('')
@@ -182,45 +184,57 @@ export function RoutineFormContent({
   useEffect(() => {
     if (!isEditing || !routineId) return
     supabase.from('routines').select('*').eq('id', routineId).single().then(({ data }) => {
-      if (data) reset({
-        student_id: data.student_id,
-        plan_name: data.name,
-        start_date: data.start_date,
-        duration_days: data.duration_days,
-        level: data.level,
-        objective: data.objective,
-        notes: data.notes ?? '',
-      })
+      if (data) {
+        setEditingLibrary(!data.student_id)
+        reset({
+          student_id: data.student_id ?? '',
+          plan_name: data.name,
+          start_date: data.start_date,
+          duration_days: data.duration_days,
+          level: data.level,
+          objective: data.objective,
+          notes: data.notes ?? '',
+        })
+      }
     })
   }, [routineId, isEditing, reset])
 
   async function onSubmit(values: FormValues) {
     if (saveAsPreset && !isEditing) {
       if (!user) return
-      const { error } = await supabase.from('routine_blueprints').insert({
-        owner_id: user.id,
-        name: values.plan_name,
-        category: presetMacro.trim() || null,
-        subcategory: presetMeso.trim() || null,
-        description: values.notes?.trim() || values.level,
-        payload: withBlueprintMeta(
-          { v: 1, blocks: [] },
-          {
-            routine_group: presetRutina.trim() || values.plan_name,
-            objective: values.objective,
-            audience: values.level,
-          },
-        ),
-      })
-      if (error) {
-        toast.error(error.message)
+      const { data, error } = await supabase
+        .from('routine_blueprints')
+        .insert({
+          owner_id: user.id,
+          name: values.plan_name,
+          category: presetMacro.trim() || null,
+          subcategory: presetMeso.trim() || null,
+          description: values.notes?.trim() || values.level,
+          payload: withBlueprintMeta(
+            { v: 1, blocks: [] },
+            {
+              routine_group: presetRutina.trim() || values.plan_name,
+              objective: values.objective,
+              audience: values.level,
+            },
+          ),
+        })
+        .select('*')
+        .single()
+      if (error || !data) {
+        toast.error(error?.message ?? 'No se pudo guardar la preestablecida')
         return
       }
-      toast.success('Guardada en rutinas preestablecidas. Ahora podés meterla en un macrociclo.')
-      onSuccess('')
+      const ensured = await ensureLibraryRoutineForBlueprint(user.id, data)
+      if ('error' in ensured) {
+        toast.error(ensured.error)
+        return
+      }
+      toast.success('Guardada en preestablecidas. Ahora armá las semanas.')
+      onSuccess(ensured.routineId)
       return
     }
-    if (!values.student_id) {
+    if (!values.student_id && !isEditing) {
       toast.error('Seleccioná un alumno o marcá «Guardar en rutinas preestablecidas»')
       return
     }
@@ -322,7 +336,7 @@ export function RoutineFormContent({
       const end_date = format(addDays(new Date(values.start_date), values.duration_days - 1), 'yyyy-MM-dd')
       const result = await updateRoutine(routineId, {
         name: values.plan_name,
-        student_id: values.student_id,
+        student_id: editingLibrary ? null : (values.student_id || null),
         start_date: values.start_date,
         end_date,
         duration_days: values.duration_days,
@@ -356,7 +370,12 @@ export function RoutineFormContent({
               .eq('id', templateBlueprintId)
               .single()
             if (bpErr || !row) throw new Error(bpErr?.message ?? 'Variante no encontrada')
-            await applyBlueprintPayloadToRoutine(result.id, row.payload as RoutineBlueprintPayload)
+            const libraryId = blueprintLibraryRoutineId(row)
+            if (libraryId) {
+              await copyStructureFromTemplate(libraryId, result.id)
+            } else {
+              await applyBlueprintPayloadToRoutine(result.id, row.payload as RoutineBlueprintPayload)
+            }
             toast.success('Rutina creada desde la variante preestablecida', { id: loadingId })
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'No se pudo copiar la variante', { id: loadingId })
@@ -449,15 +468,23 @@ export function RoutineFormContent({
               </datalist>
             </div>
           ) : null}
-          <Select
-            label="Alumno"
-            required={!saveAsPreset}
-            options={studentOptions}
-            placeholder={saveAsPreset ? 'Opcional si guardás como preestablecida' : 'Seleccionar alumno'}
-            error={errors.student_id?.message}
-            {...register('student_id')}
-          />
-          <PendingRoutineNotesBanner studentId={watchStudentId} />
+          {!saveAsPreset && !editingLibrary ? (
+            <Select
+              label="Alumno"
+              required
+              options={studentOptions}
+              placeholder="Seleccionar alumno"
+              error={errors.student_id?.message}
+              {...register('student_id')}
+            />
+          ) : editingLibrary ? (
+            <p className="text-xs text-ink-secondary">
+              Esta rutina es de tu biblioteca. Para dársela a un alumno usá <strong className="text-ink-primary">Asignar</strong> desde el editor.
+            </p>
+          ) : null}
+          {!saveAsPreset && !editingLibrary ? (
+            <PendingRoutineNotesBanner studentId={watchStudentId} />
+          ) : null}
           <Input
             label="Nombre de la Rutina"
             required

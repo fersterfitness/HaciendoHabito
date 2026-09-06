@@ -4,7 +4,6 @@ import {
   columnFullLabels,
   compactMealLabel,
   dayAccent,
-  filledMealCountForDay,
   isNoMealMarker,
   mealContentLines,
   normalizeWeeklyGrid,
@@ -41,24 +40,14 @@ export function WeeklyMealPlanBoard({
         className="grid min-w-[54rem] items-stretch gap-x-3 gap-y-3"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(8.75rem, 1fr))` }}
       >
-        {days.map((day, di) => {
-          const accent = dayAccent(di, mergeWeekends)
-          const count = filledMealCountForDay(normalized, di)
-          return (
-            <header
-              key={`h-${day}`}
-              className="sticky top-0 z-[1] flex items-center justify-between gap-2 rounded-lg bg-slate-50/95 px-1 py-1 backdrop-blur-sm dark:bg-zinc-950/90"
-            >
-              <h3 className="text-[12px] font-bold tracking-tight text-ink-primary">{day}</h3>
-              <span
-                className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
-                style={{ backgroundColor: accent.wash, color: accent.color }}
-              >
-                {count}
-              </span>
-            </header>
-          )
-        })}
+        {days.map((day) => (
+          <header
+            key={`h-${day}`}
+            className="sticky top-0 z-[1] rounded-lg bg-surface-base/95 px-1 py-1 backdrop-blur-sm"
+          >
+            <h3 className="text-[12px] font-bold tracking-tight text-ink-primary">{day}</h3>
+          </header>
+        ))}
 
         {normalized.mealRows.map((meal) =>
           days.map((day, di) => {
@@ -71,7 +60,7 @@ export function WeeklyMealPlanBoard({
             return (
               <article
                 key={`${meal.id}-${di}`}
-                className="flex h-full min-h-[8rem] flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)] dark:border-zinc-700 dark:bg-zinc-950"
+                className="flex h-full min-h-[8rem] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
               >
                 <div className="h-1 w-full shrink-0" style={{ backgroundColor: accent.color }} />
                 <div className="flex flex-1 flex-col px-3 pb-2.5 pt-2.5">
@@ -88,15 +77,8 @@ export function WeeklyMealPlanBoard({
                   ) : (
                     <ul className="mt-2 flex-1 space-y-1.5">
                       {lines.map((line, li) => (
-                        <li key={li} className="flex items-start gap-2 text-[12px] leading-relaxed text-ink-secondary">
-                          <span
-                            className="mt-[3px] h-3 w-3 shrink-0 rounded-[3px] border-[1.5px] bg-white"
-                            style={{ borderColor: accent.color }}
-                            aria-hidden
-                          />
-                          <span className="min-w-0 break-words">
-                            <MarkdownLine text={line} />
-                          </span>
+                        <li key={li} className="min-w-0 break-words text-[12px] leading-relaxed text-ink-secondary">
+                          <MarkdownLine text={line} />
                         </li>
                       ))}
                     </ul>

@@ -40,7 +40,7 @@ import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel
 import { TrainerAdherenceOverview } from '@/components/habits/TrainerAdherenceOverview'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { loadMonthlyFeedbackPublicToken } from '@/lib/checkIn/monthlyFeedback'
-import { loadWeeklyPeriodStartYmd, weeklyPeriodStartUtc } from '@/lib/checkIn/weeklyPeriod'
+import { loadWeeklyPeriodStartYmd, weeklyPeriodMondayUtc } from '@/lib/checkIn/weeklyPeriod'
 import {
   checkInSharedPublicUrl,
   loadDashboardQuickSends,
@@ -563,7 +563,7 @@ export function DashboardPage() {
     const items: MergedExpiringItem[] = []
     for (const r of expiring) {
       const days = daysUntil(r.end_date)
-      const lastWeek = lastWeekStudentIds.has(r.student_id)
+      const lastWeek = r.student_id ? lastWeekStudentIds.has(r.student_id) : false
       if (days < 0 && !lastWeek) continue
       items.push({
         kind: 'routine',
@@ -662,6 +662,7 @@ export function DashboardPage() {
             .select('id', { count: 'exact', head: true })
             .eq('owner_id', user!.id)
             .in('status', ['activa', 'por_vencer'])
+            .not('student_id', 'is', null)
             .gte('created_at', mb.startThis)
             .lt('created_at', mb.startNext),
           supabase
@@ -669,6 +670,7 @@ export function DashboardPage() {
             .select('id', { count: 'exact', head: true })
             .eq('owner_id', user!.id)
             .in('status', ['activa', 'por_vencer'])
+            .not('student_id', 'is', null)
             .gte('created_at', mb.startPrev)
             .lt('created_at', mb.startThis),
           supabase
@@ -738,7 +740,7 @@ export function DashboardPage() {
       const r = await Promise.all([
         accessibleStudentsSelect('id', { count: 'exact', head: true }).eq('status', 'activo'),
         canSeeTraining
-          ? supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
+          ? supabase.from('routines').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).not('student_id', 'is', null)
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeTraining
           ? supabase
@@ -763,7 +765,7 @@ export function DashboardPage() {
           ? supabase.from('nutrition_patient_documents').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeTraining
-          ? supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5)
+          ? supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).not('student_id', 'is', null).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5)
           : Promise.resolve({ data: [] } as { data: unknown[] }),
         supabase.from('notifications').select('*').eq('user_id', user!.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
         canSeeFinances
@@ -804,7 +806,7 @@ export function DashboardPage() {
           ? supabase.from('income').select('amount').eq('owner_id', user!.id).neq('status', 'cobrado')
           : Promise.resolve({ data: [] as { amount: number }[] }),
         canSeeTraining
-          ? supabase.from('routines').select('student_id').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer'])
+          ? supabase.from('routines').select('student_id').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).not('student_id', 'is', null)
           : Promise.resolve({ data: [] as { student_id: string }[] }),
         accessibleStudentsSelect('intake_ferster').eq('status', 'activo').not('intake_ferster', 'is', null),
       ])
@@ -1068,7 +1070,7 @@ export function DashboardPage() {
 
         const [quickSends, missing, lastWeek, monthlyToken] = await Promise.all([
           loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
-          loadStudentsMissingCheckIn(user!.id, weeklyPeriodStartUtc(loadWeeklyPeriodStartYmd(user!.id))),
+          loadStudentsMissingCheckIn(user!.id, weeklyPeriodMondayUtc(loadWeeklyPeriodStartYmd(user!.id))),
           loadStudentsInLastWeek(user!.id),
           loadMonthlyFeedbackPublicToken(user!.id),
         ])

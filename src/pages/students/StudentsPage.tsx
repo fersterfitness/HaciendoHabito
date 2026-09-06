@@ -545,6 +545,7 @@ export function StudentsPage() {
       .select('id, student_id, status')
       .eq('owner_id', user.id)
       .in('status', ['activa', 'por_vencer'])
+      .not('student_id', 'is', null)
       .order('updated_at', { ascending: false })
       .then(async ({ data }) => {
         const ids = new Set<string>()

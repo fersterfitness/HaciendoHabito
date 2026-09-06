@@ -26,7 +26,12 @@ export function blueprintRoutineGroup(bp: Pick<RoutineBlueprint, 'payload'>): st
 
 export function withBlueprintMeta(
   payload: Json | null | undefined,
-  meta: { routine_group?: string; objective?: string; audience?: string },
+  meta: {
+    routine_group?: string
+    objective?: string
+    audience?: string
+    library_routine_id?: string | null
+  },
 ): Json {
   const base =
     payload && typeof payload === 'object' && !Array.isArray(payload)
@@ -35,7 +40,16 @@ export function withBlueprintMeta(
   if (meta.routine_group != null) base.routine_group = meta.routine_group
   if (meta.objective != null) base.objective = meta.objective
   if (meta.audience != null) base.audience = meta.audience
+  if (meta.library_routine_id === null) delete base.library_routine_id
+  else if (meta.library_routine_id != null) base.library_routine_id = meta.library_routine_id
   return base
+}
+
+export function blueprintLibraryRoutineId(bp: Pick<RoutineBlueprint, 'payload'>): string | null {
+  const p = bp.payload
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null
+  const id = (p as Record<string, unknown>).library_routine_id
+  return typeof id === 'string' && id.trim() ? id.trim() : null
 }
 
 export function blueprintObjective(bp: Pick<RoutineBlueprint, 'payload'>): string {

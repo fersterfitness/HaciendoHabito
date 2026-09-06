@@ -182,7 +182,7 @@ export function DashboardTrainerOpsPanel({
             </div>
           </QuickActionRow>
         ) : (
-          <QuickActionRow title="Check-in semanal">
+          <QuickActionRow title="Feedback semanal">
             <p className="text-[10px] text-ink-muted">Creá un formulario en Devoluciones → Check-ins y guardalo para obtener el link general.</p>
             <button
               type="button"
@@ -306,7 +306,7 @@ export function DashboardTrainerOpsPanel({
           >
             <CalendarClock className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
             <span className="flex-1 text-[11px] font-semibold text-ink-primary">
-              Sin check-in de esta ronda ({missingCheckInStudents.length}) — recordales por WhatsApp
+              Sin feedback semanal de esta ronda ({missingCheckInStudents.length}) — recordales por WhatsApp
             </span>
             <ChevronDown
               className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', missingOpen && 'rotate-180')}

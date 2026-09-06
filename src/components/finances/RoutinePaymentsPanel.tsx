@@ -22,6 +22,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
       .select('id, name, is_paid, paid_other_professional, price, student_id, student:students(full_name)')
       .eq('owner_id', user.id)
       .in('status', ['activa', 'por_vencer'])
+      .not('student_id', 'is', null)
       .order('updated_at', { ascending: false })
     if (error) {
       toast.error(error.message)

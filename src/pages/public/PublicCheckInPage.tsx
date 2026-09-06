@@ -18,6 +18,7 @@ import {
   type CheckInAnswerDraft,
 } from '@/lib/checkIn/questions'
 import toast from 'react-hot-toast'
+import { formatWeekRangeEs, todayYmdInCheckInTz } from '@/lib/checkInWeek'
 
 type FormPayload = {
   ok: boolean
@@ -235,7 +236,9 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
     const res = data as { ok?: boolean; error?: string }
     if (!res?.ok) {
       if (res?.error === 'already_submitted') {
-        toast.error('Ya enviaste el check-in de esta semana. Podés volver a completarlo la semana que viene.')
+        toast.error(
+          `Ya enviaste el feedback semanal de esta semana (${formatWeekRangeEs(todayYmdInCheckInTz())}). El mismo formulario te llega de nuevo el viernes que viene.`,
+        )
       } else if (res?.error === 'rate_limited') toast.error('Demasiados intentos. Probá de nuevo en un rato.')
       else if (res?.error === 'answer_too_long') toast.error('Alguna respuesta es demasiado larga.')
       else if (res?.error === 'email_required') toast.error('Ingresá tu correo.')
@@ -329,6 +332,10 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
               {payload.intro}
             </p>
           ) : null}
+          <p className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/8 px-4 py-2.5 text-center text-[12px] leading-relaxed text-ink-secondary">
+            Feedback semanal · {formatWeekRangeEs(todayYmdInCheckInTz())}. Te llega todos los viernes; es el mismo
+            formulario.
+          </p>
         </header>
 
         {questions.length > 0 ? (

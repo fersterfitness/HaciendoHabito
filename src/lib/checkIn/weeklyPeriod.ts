@@ -1,9 +1,14 @@
-import { CHECK_IN_SUBMISSION_TIMEZONE, checkInFridayYmd } from '@/lib/checkInWeek'
+import {
+  CHECK_IN_SUBMISSION_TIMEZONE,
+  addCalendarDaysYmd,
+  todayYmdInCheckInTz,
+  weekRangeContainingYmd,
+} from '@/lib/checkInWeek'
 
 const storageKey = (ownerId: string) => `hh-weekly-period-${ownerId}`
 
 export function defaultWeeklyPeriodStartYmd(date = new Date()): string {
-  return checkInFridayYmd(date)
+  return todayYmdInCheckInTz(date)
 }
 
 export function loadWeeklyPeriodStartYmd(ownerId: string): string {
@@ -24,8 +29,18 @@ export function weeklyPeriodStartUtc(ymd: string): Date {
   return new Date(`${ymd}T00:00:00-03:00`)
 }
 
+/** Lunes 00:00 AR de la semana que contiene la fecha cargada. */
+export function weeklyPeriodMondayUtc(ymd: string): Date {
+  return weeklyPeriodStartUtc(weekRangeContainingYmd(ymd).startYmd)
+}
+
+/** La respuesta cuenta si cayó en la semana lun–dom de la fecha cargada (no “desde esa fecha”). */
 export function submittedInWeeklyPeriod(submittedAt: string, periodStartYmd: string): boolean {
-  return new Date(submittedAt).getTime() >= weeklyPeriodStartUtc(periodStartYmd).getTime()
+  const { startYmd } = weekRangeContainingYmd(periodStartYmd)
+  const start = weeklyPeriodStartUtc(startYmd).getTime()
+  const end = weeklyPeriodStartUtc(addCalendarDaysYmd(startYmd, 7)).getTime()
+  const at = new Date(submittedAt).getTime()
+  return at >= start && at < end
 }
 
 /** Suma días hábiles (lun–vie) a una fecha YYYY-MM-DD en Argentina. */

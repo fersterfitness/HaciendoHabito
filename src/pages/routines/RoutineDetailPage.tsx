@@ -4,6 +4,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Check,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
+  UserPlus,
   Table2, Droplets, ClipboardList, CheckCircle2, Boxes, CopyPlus,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -41,6 +42,7 @@ import {
   type StudentRmLookup,
 } from '@/lib/routine/studentRmLookup'
 import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
+import { syncLibraryBlueprintPayload } from '@/lib/routine/libraryRoutine'
 import { cascadeWeekDatesFromBlock, initialDatesForNewBlock } from '@/lib/routine/weekBlockDates'
 import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
 import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProgressLogPdf'
@@ -51,7 +53,7 @@ import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/che
 import { RoutineMonthlyFeedbackSection } from '@/components/checkIn/RoutineMonthlyFeedbackSection'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
-import type { Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
+import type { Json, Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
 import toast from 'react-hot-toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -196,6 +198,10 @@ export function RoutineDetailPage() {
   const [completionNote, setCompletionNote] = useState('')
   const [savingCompletionNote, setSavingCompletionNote] = useState(false)
   const [savingBlueprint, setSavingBlueprint] = useState(false)
+  const [libraryBlueprintId, setLibraryBlueprintId] = useState<string | null>(null)
+  const libraryBlueprintIdRef = useRef<string | null>(null)
+  const libraryPayloadRef = useRef<Json | null>(null)
+  const blocksRef = useRef<BlockWithDays[]>([])
 
   const fetchData = useCallback(async () => {
     if (!id) return
@@ -246,12 +252,52 @@ export function RoutineDetailPage() {
         setBlocks(sorted)
         setExpandedBlocks(new Set(sorted.map((b) => b.id)))
       }
+      if (!routineData?.student_id && user && id) {
+        const { data: linked } = await supabase
+          .from('routine_blueprints')
+          .select('id, payload')
+          .eq('owner_id', user.id)
+          .eq('payload->>library_routine_id', id)
+          .maybeSingle()
+        setLibraryBlueprintId(linked?.id ?? null)
+        libraryBlueprintIdRef.current = linked?.id ?? null
+        libraryPayloadRef.current = (linked?.payload as Json | null) ?? null
+      } else {
+        setLibraryBlueprintId(null)
+        libraryBlueprintIdRef.current = null
+        libraryPayloadRef.current = null
+      }
     } finally {
       setLoading(false)
     }
-  }, [id, loadRmLookup])
+  }, [id, loadRmLookup, user])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  blocksRef.current = blocks
+  libraryBlueprintIdRef.current = libraryBlueprintId
+
+  useEffect(() => {
+    if (!libraryBlueprintId) return
+    const timer = window.setTimeout(() => {
+      void syncLibraryBlueprintPayload(libraryBlueprintId, blocksRef.current, libraryPayloadRef.current)
+        .then((next) => {
+          libraryPayloadRef.current = next
+        })
+        .catch(() => {
+          /* el próximo cambio o el unmount reintenta */
+        })
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [blocks, libraryBlueprintId])
+
+  useEffect(() => {
+    return () => {
+      const bpId = libraryBlueprintIdRef.current
+      if (!bpId) return
+      void syncLibraryBlueprintPayload(bpId, blocksRef.current, libraryPayloadRef.current).catch(() => undefined)
+    }
+  }, [])
 
   /** Recarga solo los bloques/días/ejercicios desde la base (sin recargar toda la página).
    *  Sirve para que la Guía semanal refleje cambios tras copiar semanas/días. */
@@ -277,8 +323,9 @@ export function RoutineDetailPage() {
   }, [id])
 
   useEffect(() => {
-    if (!routine?.student_id) return
-    const onFocus = () => void loadRmLookup(routine.student_id)
+    const studentId = routine?.student_id
+    if (!studentId) return
+    const onFocus = () => void loadRmLookup(studentId)
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [routine?.student_id, loadRmLookup])
@@ -303,9 +350,13 @@ export function RoutineDetailPage() {
   async function handleDelete() {
     if (!id) return
     setDeleting(true)
+    const libraryId = libraryBlueprintId
     const ok = await deleteRoutine(id)
+    if (ok && libraryId) {
+      await supabase.from('routine_blueprints').delete().eq('id', libraryId)
+    }
     setDeleting(false)
-    if (ok) navigate('/routines')
+    if (ok) navigate(libraryId ? '/exercises/blueprints' : '/routines')
   }
 
   // ── PDF ───────────────────────────────────────────────────────────────────
@@ -1120,11 +1171,12 @@ export function RoutineDetailPage() {
 
   const days = daysUntil(routine.end_date)
   const totalExercises = blocks.reduce((sum, b) => sum + b.days.reduce((s, d) => s + d.exercises.length, 0), 0)
+  const isLibrary = !routine.student_id
 
   return (
     <div>
       <Header
-        title={routine.student?.full_name ?? 'Rutina'}
+        title={isLibrary ? routine.name : (routine.student?.full_name ?? 'Rutina')}
         showBack
         actions={
           <div className="flex items-center gap-1.5">
@@ -1138,6 +1190,7 @@ export function RoutineDetailPage() {
               <Table2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Guía semanal</span>
             </button>
+            {!isLibrary ? (
             <button
               type="button"
               onClick={() => void handleDownloadProgressLog()}
@@ -1154,7 +1207,8 @@ export function RoutineDetailPage() {
                 {exportingProgressLog ? 'Generando…' : 'Registro de progreso'}
               </span>
             </button>
-            {routine.status !== 'completada' ? (
+            ) : null}
+            {!isLibrary && (routine.status !== 'completada' ? (
               <button
                 type="button"
                 onClick={() => void handleStatusChange('completada')}
@@ -1174,7 +1228,7 @@ export function RoutineDetailPage() {
                 <RefreshCw className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Reactivar</span>
               </button>
-            )}
+            ))}
             <button
               onClick={() => navigate(`/routines/${id}/edit`)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
@@ -1183,6 +1237,7 @@ export function RoutineDetailPage() {
               <Pencil className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Editar datos</span>
             </button>
+            {!isLibrary ? (
             <button
               onClick={duplicateRoutine}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
@@ -1191,15 +1246,46 @@ export function RoutineDetailPage() {
               <Copy className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Duplicar</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setBlueprintModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
-              title="Guardar como variante preestablecida"
-            >
-              <Library className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Guardar variante</span>
-            </button>
+            ) : null}
+            {isLibrary ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void (async () => {
+                    if (libraryBlueprintId) {
+                      try {
+                        libraryPayloadRef.current = await syncLibraryBlueprintPayload(
+                          libraryBlueprintId,
+                          blocksRef.current,
+                          libraryPayloadRef.current,
+                        )
+                      } catch {
+                        /* igual dejamos asignar desde la rutina de biblioteca */
+                      }
+                      navigate(`/routines?create=1&blueprint=${libraryBlueprintId}`)
+                      return
+                    }
+                    navigate('/routines?create=1')
+                  })()
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors bg-brand-primary/12 text-brand-primary hover:bg-brand-primary/20"
+                title="Asignar esta preestablecida a un alumno"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Asignar a un alumno</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setBlueprintModalOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
+                title="Guardar como variante preestablecida"
+              >
+                <Library className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Guardar variante</span>
+              </button>
+            )}
+            {!isLibrary ? (
             <button
               type="button"
               onClick={() => void handleSendRoutineWhatsApp()}
@@ -1213,6 +1299,8 @@ export function RoutineDetailPage() {
               {sendingWa ? <Spinner className="h-3.5 w-3.5" /> : <WhatsAppIcon className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">{sendingWa ? 'Enviando…' : 'WhatsApp'}</span>
             </button>
+            ) : null}
+            {!isLibrary ? (
             <button
               type="button"
               onClick={handleGeneratePdf}
@@ -1232,6 +1320,7 @@ export function RoutineDetailPage() {
               )}
               <span className="hidden sm:inline">{generatingPdf ? 'Generando...' : 'PDF'}</span>
             </button>
+            ) : null}
             <button
               onClick={() => setShowDelete(true)}
               className="p-1.5 rounded-xl text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
@@ -1250,9 +1339,11 @@ export function RoutineDetailPage() {
         <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs text-ink-muted mb-0.5">{routine.name}</p>
+              <p className="text-xs text-ink-muted mb-0.5">
+                {isLibrary ? 'Rutina preestablecida' : routine.name}
+              </p>
               <h2 className="text-lg font-bold text-ink-primary truncate">
-                {routine.student?.full_name ?? '—'}
+                {isLibrary ? routine.name : (routine.student?.full_name ?? '—')}
               </h2>
             </div>
             <Badge status={routine.status} size="md" />
@@ -1300,12 +1391,18 @@ export function RoutineDetailPage() {
             </div>
           </div>
 
+          {!isLibrary ? (
           <Select
             label="Estado"
             options={ROUTINE_STATUSES}
             value={routine.status}
             onChange={(e) => handleStatusChange(e.target.value)}
           />
+          ) : (
+            <p className="text-[11px] text-ink-secondary leading-relaxed">
+              Guardada en tu biblioteca. No está asignada a ningún alumno. Cuando quieras dársela a alguien, usá <strong className="text-ink-primary">Asignar a un alumno</strong>.
+            </p>
+          )}
         </div>
         </div>
 
@@ -1328,7 +1425,7 @@ export function RoutineDetailPage() {
         )}
 
         {/* Nota de cierre → próxima rutina (solo cuando está completada) */}
-        {routine.status === 'completada' && (
+        {!isLibrary && routine.status === 'completada' && (
           <div className="rounded-2xl border border-amber-300/50 bg-amber-50/50 p-4 dark:border-amber-700/40 dark:bg-amber-950/15">
             <div className="mb-1 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -1611,8 +1708,12 @@ export function RoutineDetailPage() {
         open={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
-        title="¿Eliminar rutina?"
-        description="Se eliminarán todos los bloques, días y ejercicios asociados. Esta acción no se puede deshacer."
+        title={isLibrary ? '¿Eliminar esta preestablecida?' : '¿Eliminar rutina?'}
+        description={
+          isLibrary
+            ? 'Se borra esta variante de tu biblioteca (semanas y ejercicios). Las copias ya asignadas a alumnos no se tocan.'
+            : 'Se eliminarán todos los bloques, días y ejercicios asociados. Esta acción no se puede deshacer.'
+        }
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />

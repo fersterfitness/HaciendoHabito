@@ -55,8 +55,9 @@ import {
   saveWeeklyPeriodStartYmd,
   submittedInWeeklyPeriod,
   weeklyPeriodDueYmd,
-  weeklyPeriodStartUtc,
+  weeklyPeriodMondayUtc,
 } from '@/lib/checkIn/weeklyPeriod'
+import { formatWeekRangeEs } from '@/lib/checkInWeek'
 import { ensureDefaultCheckInForms, remapCheckInResponsesForForm, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
@@ -197,7 +198,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
   useEffect(() => {
     if (!user || checkInView !== 'student') return
-    void loadStudentsMissingCheckIn(user.id, weeklyPeriodStartUtc(periodStart)).then(setMissingStudents)
+    void loadStudentsMissingCheckIn(user.id, weeklyPeriodMondayUtc(periodStart)).then(setMissingStudents)
   }, [user, checkInView, studentHistory, periodStart])
 
   useEffect(() => {
@@ -206,6 +207,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       .from('routines')
       .select('id, student_id, name, start_date, end_date')
       .eq('owner_id', user.id)
+      .not('student_id', 'is', null)
       .then(({ data }) => setStudentRoutines((data ?? []) as RoutineDateRange[]))
   }, [user])
 
@@ -1013,10 +1015,10 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-ink-primary">
-                      No completaron el formulario de esta semana
+                      No completaron el feedback semanal
                     </p>
                     <p className="text-[11px] text-ink-muted">
-                      Desde el {formatPeriodYmd(periodStart)}
+                      Semana del {formatWeekRangeEs(periodStart)}
                       {isWeeklyPeriodOverdue(periodStart) ? ' · ya pasaron 3 días hábiles: recordales' : ' · tienen 3 días hábiles'}
                       . {missingStudents.length} sin respuesta.
                     </p>
@@ -1052,7 +1054,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-ink-muted">Todos completaron el formulario de esta semana.</p>
+                <p className="text-sm text-ink-muted">Todos completaron el feedback semanal de esta semana.</p>
               )}
               </Card>
             ) : null}
@@ -1117,7 +1119,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               <p className="text-sm text-ink-muted py-8 text-center">Cargando historial…</p>
             ) : visibleHistoryByStudent.length === 0 ? (
               <EmptyState
-                title={historyKind === 'monthly' ? 'Sin feedbacks mensuales' : 'Sin check-ins semanales'}
+                title={historyKind === 'monthly' ? 'Sin feedbacks mensuales' : 'Sin feedbacks semanales'}
                 description={
                   historyKind === 'monthly'
                     ? 'Cuando un alumno complete el formulario mensual, aparece acá y queda asociado a la rutina de esas fechas.'
@@ -1519,7 +1521,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         {isMonthlyTemplate(parseQuestions(f.questions))
                           ? 'Feedback mensual'
                           : isWeeklyTemplate(parseQuestions(f.questions))
-                            ? 'Check-in semanal'
+                            ? 'Feedback semanal'
                             : null}
                         {!f.is_active ? `${isMonthlyTemplate(parseQuestions(f.questions)) || isWeeklyTemplate(parseQuestions(f.questions)) ? ' · ' : ''}Pausado` : ''}
                       </span>
@@ -1551,10 +1553,14 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             </div>
             {isWeeklyTemplate(questions) ? (
               <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5 space-y-2">
-                <p className="text-[11px] font-semibold text-ink-primary">Semana de envío</p>
+                <p className="text-[11px] font-semibold text-ink-primary">Feedback semanal</p>
                 <p className="text-[10px] leading-relaxed text-ink-muted">
-                  El link es el mismo todas las semanas. Iniciá una ronda con la fecha de hoy (o el viernes) para
-                  marcar quién ya respondió <em>esta</em> vuelta. Tienen 3 días hábiles (hasta el {formatPeriodYmd(weeklyPeriodDueYmd(periodStart))}).
+                  El mismo formulario se manda todos los viernes. La fecha que elijas entra en <em>esa</em> semana
+                  (lun–dom), no en la siguiente: el 5/09 es el {formatWeekRangeEs('2026-09-05')}. Tienen 3 días hábiles
+                  (hasta el {formatPeriodYmd(weeklyPeriodDueYmd(periodStart))}).
+                </p>
+                <p className="text-[10px] font-medium text-ink-secondary">
+                  Semana cargada: {formatWeekRangeEs(periodStart)}
                 </p>
                 <div className="flex flex-wrap items-end gap-2">
                   <label className="text-[10px] font-medium text-ink-secondary">
@@ -1575,7 +1581,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       const ymd = periodStart || defaultWeeklyPeriodStartYmd()
                       saveWeeklyPeriodStartYmd(user.id, ymd)
                       setPeriodStart(ymd)
-                      toast.success(`Semana iniciada el ${formatPeriodYmd(ymd)}. Quienes respondieron antes pueden completar de nuevo.`)
+                      toast.success(`Feedback semanal de la semana del ${formatWeekRangeEs(ymd)}.`)
                     }}
                   >
                     Iniciar semana

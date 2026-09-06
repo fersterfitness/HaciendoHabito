@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 
 const planFocusClassName =
-  'focus:border-brand-secondary focus:ring-1 focus:ring-brand-secondary/25 outline-none'
+  'focus:border-brand-secondary/50 focus:ring-1 focus:ring-brand-secondary/20 outline-none'
 
 interface Props {
   mergeWeekends: boolean
@@ -60,7 +60,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
         {normalized.mealRows.map((meal, mi) => (
           <div
             key={meal.id}
-            className="flex items-center gap-1.5 rounded-full border border-surface-border bg-white px-2 py-1 shadow-sm"
+            className="flex items-center gap-1.5 rounded-full border border-surface-border bg-surface-card px-2.5 py-1"
           >
             <input
               value={meal.label}
@@ -71,13 +71,13 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
               )}
               aria-label="Nombre de la comida"
             />
-            <span className="text-ink-muted">·</span>
+            <span className="text-ink-muted/70">·</span>
             <Clock className="h-3 w-3 text-ink-muted" aria-hidden />
             <input
               value={meal.approxTime}
               onChange={(e) => updateMealField(mi, 'approxTime', e.target.value)}
               placeholder="hora"
-              className={cn('w-14 bg-transparent py-0.5 text-[11px] text-ink-muted', planFocusClassName)}
+              className={cn('w-24 min-w-0 bg-transparent py-0.5 text-[11px] text-ink-secondary', planFocusClassName)}
               aria-label="Horario aproximado"
             />
             <button
@@ -86,7 +86,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                 const next = removeMealRowAt(normalized, mi)
                 onGridChange(next.mealRows.length ? next : createEmptyWeeklyGrid(mergeWeekends))
               }}
-              className="rounded-full p-0.5 text-ink-muted hover:bg-rose-50 hover:text-rose-500"
+              className="rounded-full p-0.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
               aria-label={`Quitar ${meal.label}`}
             >
               <Trash2 className="h-3 w-3" />
@@ -96,14 +96,14 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
         <button
           type="button"
           onClick={() => onGridChange(addMealRow(normalized, mergeWeekends))}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-surface-border px-2.5 py-1 text-[12px] font-medium text-brand-secondary hover:bg-brand-secondary/5"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-surface-border px-2.5 py-1 text-[12px] font-medium text-brand-secondary hover:bg-brand-secondary/8"
         >
           <Plus className="h-3.5 w-3.5" />
           Comida
         </button>
       </div>
 
-      <div className="overflow-x-auto -mx-1 rounded-2xl bg-slate-50/80 px-2 py-3 dark:bg-zinc-950/40">
+      <div className="overflow-x-auto -mx-1 rounded-2xl border border-surface-border/60 bg-surface-base px-2 py-3">
         <div
           className="grid min-w-[54rem] items-stretch gap-x-2.5 gap-y-2.5"
           style={{ gridTemplateColumns: `repeat(${cols}, minmax(8.75rem, 1fr))` }}
@@ -116,7 +116,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                 <h3 className="text-[12px] font-bold tracking-tight text-ink-primary">{day}</h3>
                 <span
                   className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
-                  style={{ backgroundColor: accent.wash, color: accent.color }}
+                  style={{ backgroundColor: `${accent.color}22`, color: accent.color }}
                 >
                   {count}
                 </span>
@@ -127,13 +127,14 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
           {normalized.mealRows.map((meal, mi) =>
             days.map((day, di) => {
               const accent = dayAccent(di, mergeWeekends)
+              const filled = (meal.columns[di] ?? '').trim().length > 0
               return (
                 <div
                   key={`${meal.id}-${di}`}
-                  className="flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)] dark:border-zinc-700 dark:bg-zinc-950"
+                  className="flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
                 >
-                  <div className="h-[5px] w-full shrink-0" style={{ backgroundColor: accent.color }} />
-                  <div className="flex flex-1 flex-col p-2.5">
+                  <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />
+                  <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
                     <p className="text-[12px] font-bold leading-tight text-ink-primary">{meal.label}</p>
                     {meal.approxTime.trim() ? (
                       <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
@@ -143,10 +144,12 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                     <textarea
                       value={meal.columns[di] ?? ''}
                       onChange={(e) => updateCell(mi, di, e.target.value)}
-                      placeholder="Menú…"
+                      placeholder="Escribí el menú…"
                       rows={4}
                       className={cn(
-                        'mt-2 min-h-[4.5rem] w-full flex-1 resize-y rounded-lg border-0 bg-slate-50/80 px-2 py-1.5 text-[12px] leading-relaxed text-ink-primary placeholder:text-ink-muted',
+                        'mt-1.5 min-h-[4.75rem] w-full flex-1 resize-none rounded-md border-0 bg-transparent px-0 py-1 text-[12px] leading-relaxed text-ink-primary',
+                        'placeholder:text-ink-muted/55',
+                        filled ? '' : 'opacity-90',
                         planFocusClassName,
                       )}
                     />

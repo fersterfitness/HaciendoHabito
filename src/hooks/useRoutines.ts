@@ -21,6 +21,7 @@ export function useRoutines() {
         .order('created_at', { ascending: false })
 
       if (studentId) query = query.eq('student_id', studentId)
+      else query = query.not('student_id', 'is', null)
 
       const { data, error } = await query
       if (error) toast.error(error.message)
@@ -32,7 +33,7 @@ export function useRoutines() {
 
   const createRoutine = useCallback(
     async (payload: {
-      student_id: string
+      student_id?: string | null
       student_plan_id?: string
       name: string
       objective: string

@@ -579,7 +579,8 @@ export interface Plan {
 export interface Routine {
   id: string
   owner_id: string
-  student_id: string
+  /** Null = rutina de biblioteca (preestablecida), no asignada a un alumno. */
+  student_id: string | null
   student_plan_id: string | null
   name: string
   objective: string

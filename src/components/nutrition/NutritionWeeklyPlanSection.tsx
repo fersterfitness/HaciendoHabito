@@ -4,7 +4,7 @@ import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridField
 import { WeeklyMealPlanBoard } from '@/components/nutrition/WeeklyMealPlanBoard'
 import { differenceInYears } from 'date-fns'
 import { FileDown, Sparkles } from 'lucide-react'
-import { colorBrandLogoSrc, socialIconUrls } from '@/lib/pdf/defaultBrandLogoSrc'
+import { colorBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import { patientGenderLabel, patientWeightKgLabel } from '@/lib/nutrition/patientGenderLabel'
@@ -38,7 +38,7 @@ function ageFromStudent(student: Student): string | null {
 }
 
 export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
-  const { user, profile } = useAuthStore()
+  const { user } = useAuthStore()
   const sid = student.id
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -224,14 +224,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
           mergeWeekends={mergeWeekends}
           grid={normalizeWeeklyGrid(grid, mergeWeekends)}
           variant={pdfVariant}
-          professionalName={profile?.full_name ?? 'Cris Crossetto'}
-          professionalContact={{
-            phone: '1155082465',
-            email: 'cris.crossetto@gmail.com',
-            instagram: '@c.vazqueznutricion',
-          }}
           appLogoUrl={colorBrandLogoSrc()}
-          socialIcons={socialIconUrls()}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -510,10 +503,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
         }}
       />
 
-      <div className="rounded-2xl border border-surface-border bg-slate-50/80 p-3 sm:p-4 dark:bg-zinc-950/30">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-          Vista del paciente
-        </p>
+      <div className="rounded-2xl border border-surface-border bg-surface-card p-3 sm:p-4">
         <WeeklyMealPlanBoard mergeWeekends={mergeWeekends} grid={normalizeWeeklyGrid(grid, mergeWeekends)} />
       </div>
 

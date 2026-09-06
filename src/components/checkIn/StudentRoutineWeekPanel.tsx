@@ -59,7 +59,8 @@ export function StudentRoutineWeekPanel() {
           .from('routines')
           .select('id, student_id, status, updated_at, routine_blocks(id, sort_order)')
           .eq('owner_id', user!.id)
-          .in('status', ['activa', 'por_vencer']),
+          .in('status', ['activa', 'por_vencer'])
+          .not('student_id', 'is', null),
         supabase.from('check_in_forms').select('id, public_token, questions').eq('owner_id', user!.id),
       ])
       if (cancelled) return
