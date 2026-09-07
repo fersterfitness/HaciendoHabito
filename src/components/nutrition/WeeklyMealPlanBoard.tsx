@@ -72,11 +72,11 @@ export function WeeklyMealPlanBoard({
                     className="flex min-h-[7.5rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
                   >
                     <div className="h-1 w-full shrink-0" style={{ backgroundColor: accent.color }} />
-                    <div className="flex flex-1 flex-col px-2.5 py-2">
+                    <div className="flex flex-1 flex-col justify-center px-2.5 py-2">
                       {empty ? (
-                        <p className="text-[12px] text-ink-muted">Sin registro</p>
+                        <p className="text-center text-[12px] text-ink-muted">Sin registro</p>
                       ) : (
-                        <div className="space-y-1.5 text-[13px] leading-relaxed text-ink-secondary">
+                        <div className="space-y-1.5 text-center text-[13px] leading-relaxed text-ink-secondary">
                           {lines.map((line, li) => (
                             <p key={li} className="min-w-0 break-words">
                               <MarkdownLine text={line} />

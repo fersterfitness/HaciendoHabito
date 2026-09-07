@@ -44,6 +44,25 @@ function pageCount(data: Uint8Array): number {
   return last ? Number(last[1]) : 0
 }
 
+function fiveMealGrid(): WeeklyPlanGridJson {
+  const cell = LONG_SNACK + ' ' + LONG_SNACK
+  const row = (id: string, label: string, approxTime: string): WeeklyPlanGridJson['mealRows'][number] => ({
+    id,
+    label,
+    approxTime,
+    columns: [cell, cell, cell, cell, cell, cell, cell],
+  })
+  return {
+    mealRows: [
+      row('breakfast', 'Desayuno', '08:00'),
+      row('lunch', 'Almuerzo', '13:00'),
+      row('snack', 'Merienda', '17:30'),
+      row('tea', 'Colación de media tarde (OPCIONAL)', '19:30'),
+      row('dinner', 'Cena', '21:00'),
+    ],
+  }
+}
+
 describe('NutritionMealPlanPdfDocument layout', () => {
   it('genera el tablero semanal en una sola hoja cuando hay pocas comidas', async () => {
     const element = createElement(NutritionMealPlanPdfDocument, {
@@ -60,5 +79,22 @@ describe('NutritionMealPlanPdfDocument layout', () => {
     const data = new Uint8Array(await blob.arrayBuffer())
 
     expect(pageCount(data)).toBe(1)
+  }, 30_000)
+
+  it('pasa comidas enteras a la hoja siguiente en planes largos', async () => {
+    const element = createElement(NutritionMealPlanPdfDocument, {
+      patientName: 'Florencia Vega',
+      genderLabel: 'Femenino',
+      ageText: '27 años',
+      weightKgText: '69 kg',
+      totalKcalLabel: '1850 kcal/día',
+      nextConsultLabel: null,
+      mergeWeekends: false,
+      grid: fiveMealGrid(),
+    })
+    const blob = await pdf(element).toBlob()
+    const data = new Uint8Array(await blob.arrayBuffer())
+
+    expect(pageCount(data)).toBeGreaterThanOrEqual(2)
   }, 30_000)
 })

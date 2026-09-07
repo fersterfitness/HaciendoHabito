@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 0,
+    flexDirection: 'column',
     backgroundColor: PDF_BRAND.white,
     borderRadius: 10,
     borderWidth: 0.7,
@@ -230,18 +231,25 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cardInner: {
+    flexGrow: 1,
+    width: '100%',
+    justifyContent: 'center',
     paddingTop: 7,
     paddingBottom: 7,
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
   },
   mealLineText: {
+    width: '100%',
     fontSize: 8.3,
     lineHeight: 1.38,
     color: PDF_BRAND.body,
+    textAlign: 'center',
   },
   dayOffLabel: {
+    width: '100%',
     fontSize: 8,
     color: PDF_BRAND.muted,
+    textAlign: 'center',
   },
   cellBold: {
     fontFamily: 'Helvetica-Bold',
@@ -480,49 +488,58 @@ function MealWeekRow({
   const innerPad = isCompact ? { paddingTop: 6, paddingBottom: 5, paddingHorizontal: 6 } : {}
   const cellFont = isCompact ? { fontSize: 7.5, lineHeight: 1.34 } : {}
   return (
-    <View style={styles.mealSection} wrap minPresenceAhead={56}>
+    <View style={styles.mealSection} wrap={false}>
+      {/* wrap=false: si no entra, la comida entera pasa de hoja (evita cortar Merienda). */}
       <View style={styles.mealSectionTitle} wrap={false}>
         <Text style={styles.mealTitle}>{mealLabel}</Text>
         {mealTime ? <Text style={styles.mealTime}>{mealTime}</Text> : null}
       </View>
-      <View style={styles.mealCardsRow}>
-      {days.map((day, di) => {
-        const accent = dayAccent(di, mergeWeekends)
-        const raw = columns[di] ?? ''
-        const none = isNoMealMarker(raw)
-        const emptyRaw = !raw.trim()
-        const lines = emptyRaw || none ? [] : mealContentLines(raw)
-        const empty = lines.length === 0
-        return (
-          <View
-            key={`${mealLabel}-${day}`}
-            style={[styles.mealCard, mergeWeekends && di === last ? { flexGrow: WEEKEND_COL_GROW } : {}]}
-          >
-            <View style={[styles.cardAccentBar, { backgroundColor: accent.color }]} />
-            <View style={[styles.cardInner, innerPad]}>
-              {empty ? (
-                <Text style={styles.dayOffLabel}>Sin registro</Text>
-              ) : (
-                <Text style={[styles.mealLineText, cellFont]}>
-                  {lines.map((line, li) => (
-                    <Text key={li}>
-                      {li > 0 ? '\n' : ''}
-                      {parseInlineMarkdown(line).map((seg, si) => (
-                        <Text
-                          key={si}
-                          style={[seg.bold ? styles.cellBold : {}, seg.italic ? styles.cellItalic : {}]}
-                        >
-                          {seg.text}
-                        </Text>
-                      ))}
-                    </Text>
-                  ))}
-                </Text>
-              )}
+      <DayHeaderRow days={days} mergeWeekends={mergeWeekends} />
+      <View style={styles.mealCardsRow} wrap={false}>
+        {days.map((day, di) => {
+          const accent = dayAccent(di, mergeWeekends)
+          const raw = columns[di] ?? ''
+          const none = isNoMealMarker(raw)
+          const emptyRaw = !raw.trim()
+          const lines = emptyRaw || none ? [] : mealContentLines(raw)
+          const empty = lines.length === 0
+          return (
+            <View
+              key={`${mealLabel}-${day}`}
+              wrap={false}
+              style={[styles.mealCard, mergeWeekends && di === last ? { flexGrow: WEEKEND_COL_GROW } : {}]}
+            >
+              <View style={[styles.cardAccentBar, { backgroundColor: accent.color }]} />
+              <View style={[styles.cardInner, innerPad]}>
+                {empty ? (
+                  <Text style={styles.dayOffLabel}>Sin registro</Text>
+                ) : (
+                  lines.map((line, li) => {
+                    const segs = parseInlineMarkdown(line)
+                    const styled = segs.some((seg) => seg.bold || seg.italic)
+                    return (
+                      <Text
+                        key={li}
+                        style={[styles.mealLineText, cellFont, li > 0 ? { marginTop: 3 } : {}]}
+                      >
+                        {styled
+                          ? segs.map((seg, si) => (
+                              <Text
+                                key={si}
+                                style={[seg.bold ? styles.cellBold : {}, seg.italic ? styles.cellItalic : {}]}
+                              >
+                                {seg.text}
+                              </Text>
+                            ))
+                          : line}
+                      </Text>
+                    )
+                  })
+                )}
+              </View>
             </View>
-          </View>
-        )
-      })}
+          )
+        })}
       </View>
     </View>
   )
@@ -635,7 +652,6 @@ export function NutritionMealPlanPdfDocument({
           </View>
         )}
 
-        <DayHeaderRow days={days} mergeWeekends={mergeWeekends} />
         {grid.mealRows.map((meal) => (
           <MealWeekRow
             key={meal.id}
