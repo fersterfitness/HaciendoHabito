@@ -15,7 +15,6 @@ import {
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
   columnFullLabels,
-  compactMealLabel,
   dayAccent,
   isNoMealMarker,
   mealContentLines,
@@ -43,7 +42,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingHorizontal: 22,
     paddingBottom: 24,
-    fontSize: 8.4,
+    fontSize: 9,
     fontFamily: 'Helvetica',
     color: PDF_BRAND.body,
     backgroundColor: PDF_BRAND.surface,
@@ -171,115 +170,78 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.heading,
   },
-  mealBlock: {
-    marginBottom: 5,
-    borderWidth: 0.6,
-    borderColor: PDF_BRAND.border,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: PDF_BRAND.white,
-    position: 'relative',
+  /** Título de comida a lo ancho (no consume columnas de los días). */
+  mealSection: {
+    marginBottom: 7,
   },
-  /**
-   * Tema "secondary" (verde) — usado en bloques de comida pares (idx 0, 2, 4...).
-   * El acento, el wash del header y el pill comparten paleta verde.
-   */
-  mealAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: PDF_BRAND.secondary,
-  },
-  mealHeader: {
+  mealSectionTitle: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4.5,
-    paddingLeft: 12,
-    paddingRight: 8,
-    backgroundColor: PDF_BRAND.secondaryWash,
+    alignItems: 'baseline',
+    gap: 6,
+    marginBottom: 4,
+    paddingBottom: 3,
     borderBottomWidth: 0.6,
     borderBottomColor: PDF_BRAND.border,
-    gap: 8,
   },
-  mealTitleText: {
+  mealTitle: {
     fontSize: 9.4,
     fontFamily: 'Helvetica-Bold',
     color: PDF_BRAND.heading,
-    letterSpacing: 0.2,
+    letterSpacing: 0.15,
   },
-  /** Pill de hora en tema secondary (violeta). Texto/bg/borde armonizan con `secondary`. */
-  mealTimePill: {
-    fontSize: 6.4,
-    fontFamily: 'Helvetica-Bold',
-    color: '#5B21B6',
-    backgroundColor: '#F5F3FF',
-    paddingVertical: 1.5,
-    paddingHorizontal: 6,
-    borderRadius: 999,
-    borderWidth: 0.5,
-    borderColor: '#DDD6FE',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  /**
-   * Tema "tertiary" (magenta/rosa) — overrides aplicados a los bloques impares
-   * (idx 1, 3...). Mantiene la misma estructura, solo cambia la paleta.
-   */
-  mealAccentAlt: {
-    backgroundColor: PDF_BRAND.tertiary,
-  },
-  mealHeaderAlt: {
-    backgroundColor: PDF_BRAND.tertiaryWash,
-  },
-  mealTimePillAlt: {
-    color: '#9D174D',
-    backgroundColor: '#FDF2F8',
-    borderColor: '#FBCFE8',
-  },
-  colHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: '#F4F6F8',
-    borderBottomWidth: 0.4,
-    borderBottomColor: PDF_BRAND.border,
-  },
-  colHeadCell: {
-    flexGrow: 1,
-    flexBasis: 0,
-    paddingVertical: 3,
-    paddingHorizontal: 4,
-    fontSize: 6.2,
-    fontFamily: 'Helvetica-Bold',
+  mealTime: {
+    fontSize: 7.4,
     color: PDF_BRAND.muted,
-    borderRightWidth: 0.4,
-    borderRightColor: PDF_BRAND.border,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    fontFamily: 'Helvetica-Bold',
   },
-  /**
-   * Altura mínima de cada fila de comidas. Subió de 32 → 46 ahora que el header
-   * es ~42pt más bajo, así las tablas aprovechan el espacio vertical liberado
-   * y no queda un hueco grande al fondo de la página.
-   */
-  rowCells: {
+  mealCardsRow: {
     flexDirection: 'row',
-    minHeight: 46,
+    alignItems: 'stretch',
+    gap: 6,
   },
-  cell: {
+  dayHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+    marginBottom: 6,
+  },
+  dayHeadTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: PDF_BRAND.heading,
+    textAlign: 'center',
+  },
+  dayCol: {
     flexGrow: 1,
     flexBasis: 0,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    fontSize: 7,
-    lineHeight: 1.35,
-    color: PDF_BRAND.body,
-    borderRightWidth: 0.4,
-    borderRightColor: PDF_BRAND.border,
+    minWidth: 0,
   },
-  cellEmpty: {
-    color: '#CBD5E1',
+  mealCard: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    backgroundColor: PDF_BRAND.white,
+    borderRadius: 10,
+    borderWidth: 0.7,
+    borderColor: '#E8ECF0',
+  },
+  cardAccentBar: {
+    height: 4,
+    width: '100%',
+  },
+  cardInner: {
+    paddingTop: 7,
+    paddingBottom: 7,
+    paddingHorizontal: 7,
+  },
+  mealLineText: {
+    fontSize: 8.3,
+    lineHeight: 1.38,
+    color: PDF_BRAND.body,
+  },
+  dayOffLabel: {
+    fontSize: 8,
+    color: PDF_BRAND.muted,
   },
   cellBold: {
     fontFamily: 'Helvetica-Bold',
@@ -408,80 +370,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 8,
   },
-  boardRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 8,
-    marginBottom: 8,
-    flexGrow: 0,
-    flexShrink: 0,
-    minHeight: 0,
-  },
-  dayCol: {
-    flexGrow: 1,
-    flexBasis: 0,
-    minWidth: 0,
-  },
-  dayHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 0,
-    paddingHorizontal: 2,
-    paddingVertical: 3,
-  },
-  dayHeadTitle: {
-    fontSize: 7.6,
-    fontFamily: 'Helvetica-Bold',
-    color: PDF_BRAND.heading,
-  },
-  mealCard: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    backgroundColor: PDF_BRAND.white,
-    borderRadius: 10,
-    borderWidth: 0.7,
-    borderColor: '#E8ECF0',
-  },
-  cardAccentBar: {
-    height: 4,
-    width: '100%',
-  },
-  cardInner: {
-    paddingTop: 8,
-    paddingBottom: 7,
-    paddingHorizontal: 8,
-    flexGrow: 1,
-    flexDirection: 'column',
-  },
-  mealTitle: {
-    fontSize: 8.4,
-    fontFamily: 'Helvetica-Bold',
-    color: PDF_BRAND.heading,
-    letterSpacing: 0.1,
-  },
-  mealCardTime: {
-    fontSize: 6.4,
-    color: PDF_BRAND.muted,
-    marginTop: 1,
-    marginBottom: 6,
-    fontFamily: 'Helvetica-Bold',
-  },
-  mealBody: {
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  mealLineText: {
-    fontSize: 7.2,
-    lineHeight: 1.4,
-    color: PDF_BRAND.body,
-  },
-  dayOffLabel: {
-    fontSize: 7.4,
-    color: PDF_BRAND.muted,
-    marginTop: 4,
-  },
   identityStrip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -558,21 +446,22 @@ function DayHeaderRow({
   days: string[]
   mergeWeekends: boolean
 }) {
+  const last = days.length - 1
   return (
-    <View style={styles.boardRow}>
-      {days.map((day, di) => {
-        const wide = mergeWeekends && di === days.length - 1 ? { flexGrow: WEEKEND_COL_GROW } : {}
-        return (
-          <View key={day} style={[styles.dayCol, wide, styles.dayHead]}>
-            <Text style={styles.dayHeadTitle}>{day}</Text>
-          </View>
-        )
-      })}
+    <View style={styles.dayHeadRow} wrap={false}>
+      {days.map((day, di) => (
+        <View
+          key={day}
+          style={[styles.dayCol, mergeWeekends && di === last ? { flexGrow: WEEKEND_COL_GROW } : {}]}
+        >
+          <Text style={styles.dayHeadTitle}>{day}</Text>
+        </View>
+      ))}
     </View>
   )
 }
 
-function MealWeekCards({
+function MealWeekRow({
   mealLabel,
   mealTime,
   columns,
@@ -587,57 +476,54 @@ function MealWeekCards({
   mergeWeekends: boolean
   isCompact: boolean
 }) {
+  const last = days.length - 1
   const innerPad = isCompact ? { paddingTop: 6, paddingBottom: 5, paddingHorizontal: 6 } : {}
+  const cellFont = isCompact ? { fontSize: 7.5, lineHeight: 1.34 } : {}
   return (
-    <View style={styles.boardRow} wrap minPresenceAhead={36}>
+    <View style={styles.mealSection} wrap minPresenceAhead={56}>
+      <View style={styles.mealSectionTitle} wrap={false}>
+        <Text style={styles.mealTitle}>{mealLabel}</Text>
+        {mealTime ? <Text style={styles.mealTime}>{mealTime}</Text> : null}
+      </View>
+      <View style={styles.mealCardsRow}>
       {days.map((day, di) => {
         const accent = dayAccent(di, mergeWeekends)
-        const wide = mergeWeekends && di === days.length - 1 ? { flexGrow: WEEKEND_COL_GROW } : {}
         const raw = columns[di] ?? ''
         const none = isNoMealMarker(raw)
         const emptyRaw = !raw.trim()
         const lines = emptyRaw || none ? [] : mealContentLines(raw)
         const empty = lines.length === 0
-        const title = compactMealLabel(mealLabel)
         return (
-          <View key={`${mealLabel}-${day}`} style={[styles.mealCard, wide]}>
+          <View
+            key={`${mealLabel}-${day}`}
+            style={[styles.mealCard, mergeWeekends && di === last ? { flexGrow: WEEKEND_COL_GROW } : {}]}
+          >
             <View style={[styles.cardAccentBar, { backgroundColor: accent.color }]} />
             <View style={[styles.cardInner, innerPad]}>
-              <Text style={styles.mealTitle} wrap={false}>
-                {title}
-              </Text>
-              {mealTime ? (
-                <Text style={styles.mealCardTime} wrap={false}>
-                  {mealTime}
-                </Text>
-              ) : null}
               {empty ? (
                 <Text style={styles.dayOffLabel}>Sin registro</Text>
               ) : (
-                <View style={styles.mealBody}>
-                  <Text
-                    style={[styles.mealLineText, isCompact ? { fontSize: 6.5, lineHeight: 1.34 } : {}]}
-                  >
-                    {lines.map((line, li) => (
-                      <Text key={li}>
-                        {li > 0 ? '\n' : ''}
-                        {parseInlineMarkdown(line).map((seg, si) => (
-                          <Text
-                            key={si}
-                            style={[seg.bold ? styles.cellBold : {}, seg.italic ? styles.cellItalic : {}]}
-                          >
-                            {seg.text}
-                          </Text>
-                        ))}
-                      </Text>
-                    ))}
-                  </Text>
-                </View>
+                <Text style={[styles.mealLineText, cellFont]}>
+                  {lines.map((line, li) => (
+                    <Text key={li}>
+                      {li > 0 ? '\n' : ''}
+                      {parseInlineMarkdown(line).map((seg, si) => (
+                        <Text
+                          key={si}
+                          style={[seg.bold ? styles.cellBold : {}, seg.italic ? styles.cellItalic : {}]}
+                        >
+                          {seg.text}
+                        </Text>
+                      ))}
+                    </Text>
+                  ))}
+                </Text>
               )}
             </View>
           </View>
         )
       })}
+      </View>
     </View>
   )
 }
@@ -751,7 +637,7 @@ export function NutritionMealPlanPdfDocument({
 
         <DayHeaderRow days={days} mergeWeekends={mergeWeekends} />
         {grid.mealRows.map((meal) => (
-          <MealWeekCards
+          <MealWeekRow
             key={meal.id}
             mealLabel={meal.label}
             mealTime={meal.approxTime?.trim() ?? ''}

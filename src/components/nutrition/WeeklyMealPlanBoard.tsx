@@ -2,7 +2,6 @@ import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
   columnFullLabels,
-  compactMealLabel,
   dayAccent,
   isNoMealMarker,
   mealContentLines,
@@ -36,58 +35,63 @@ export function WeeklyMealPlanBoard({
 
   return (
     <div className={cn('overflow-x-auto -mx-1 px-1 pb-1', className)}>
-      <div
-        className="grid min-w-[54rem] items-stretch gap-x-3 gap-y-3"
-        style={{ gridTemplateColumns: `repeat(${days.length}, minmax(8.75rem, 1fr))` }}
-      >
-        {days.map((day) => (
-          <header
-            key={`h-${day}`}
-            className="sticky top-0 z-[1] rounded-lg bg-surface-base/95 px-1 py-1 backdrop-blur-sm"
-          >
-            <h3 className="text-[12px] font-bold tracking-tight text-ink-primary">{day}</h3>
-          </header>
-        ))}
-
-        {normalized.mealRows.map((meal) =>
-          days.map((day, di) => {
+      <div className="min-w-[52rem] space-y-4">
+        <div className="flex items-end gap-2.5">
+          {days.map((day, di) => {
             const accent = dayAccent(di, mergeWeekends)
-            const raw = meal.columns[di] ?? ''
-            const empty = !raw.trim()
-            const none = isNoMealMarker(raw)
-            const lines = empty || none ? [] : mealContentLines(raw)
-            const time = meal.approxTime.trim()
             return (
-              <article
-                key={`${meal.id}-${di}`}
-                className="flex h-full min-h-[8rem] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
+              <h3
+                key={day}
+                className="min-w-0 flex-1 text-center text-[12px] font-bold tracking-tight text-ink-primary"
+                style={{ color: accent.color }}
               >
-                <div className="h-1 w-full shrink-0" style={{ backgroundColor: accent.color }} />
-                <div className="flex flex-1 flex-col px-3 pb-2.5 pt-2.5">
-                  <p className="truncate text-[13px] font-bold leading-tight text-ink-primary">
-                    {compactMealLabel(meal.label)}
-                  </p>
-                  {time ? (
-                    <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
-                      {time}
-                    </p>
-                  ) : null}
-                  {empty || none ? (
-                    <p className="mt-2 text-[12px] text-ink-muted">Sin registro</p>
-                  ) : (
-                    <ul className="mt-2 flex-1 space-y-1.5">
-                      {lines.map((line, li) => (
-                        <li key={li} className="min-w-0 break-words text-[12px] leading-relaxed text-ink-secondary">
-                          <MarkdownLine text={line} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </article>
+                {day}
+              </h3>
             )
-          }),
-        )}
+          })}
+        </div>
+        {normalized.mealRows.map((meal) => {
+          const time = meal.approxTime.trim()
+          return (
+            <section key={meal.id} className="space-y-2">
+              <div className="flex items-baseline gap-2 border-b border-surface-border pb-1">
+                <h4 className="text-[13px] font-bold leading-tight text-ink-primary">{meal.label}</h4>
+                {time ? (
+                  <p className="text-[11px] font-semibold text-ink-muted">{time}</p>
+                ) : null}
+              </div>
+              <div className="flex items-stretch gap-2.5">
+              {days.map((day, di) => {
+                const accent = dayAccent(di, mergeWeekends)
+                const raw = meal.columns[di] ?? ''
+                const empty = !raw.trim() || isNoMealMarker(raw)
+                const lines = empty ? [] : mealContentLines(raw)
+                return (
+                  <article
+                    key={`${meal.id}-${day}`}
+                    className="flex min-h-[7.5rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
+                  >
+                    <div className="h-1 w-full shrink-0" style={{ backgroundColor: accent.color }} />
+                    <div className="flex flex-1 flex-col px-2.5 py-2">
+                      {empty ? (
+                        <p className="text-[12px] text-ink-muted">Sin registro</p>
+                      ) : (
+                        <div className="space-y-1.5 text-[13px] leading-relaxed text-ink-secondary">
+                          {lines.map((line, li) => (
+                            <p key={li} className="min-w-0 break-words">
+                              <MarkdownLine text={line} />
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+              </div>
+            </section>
+          )
+        })}
       </div>
     </div>
   )

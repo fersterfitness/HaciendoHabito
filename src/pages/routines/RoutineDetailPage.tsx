@@ -958,9 +958,6 @@ export function RoutineDetailPage() {
   const applyMethodWeekPlan = (sourceEx: RoutineExercise, method: TrainingMethod) => applyWeekPlanInternal(sourceEx, method, false)
   const applyMethodWeekPlanAllDays = (sourceEx: RoutineExercise, method: TrainingMethod) => applyWeekPlanInternal(sourceEx, method, true)
 
-  const blocksRef = useRef(blocks)
-  useEffect(() => { blocksRef.current = blocks }, [blocks])
-
   const persistCircuitGroup = useCallback(async (dayId: string, groupId: number) => {
     const snap = blocksRef.current
     let day: DayWithEx | undefined
