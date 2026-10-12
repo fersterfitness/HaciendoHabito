@@ -1145,7 +1145,7 @@ export function AppointmentsPage() {
               <div className="min-w-0 flex flex-1 flex-col gap-1">
                 <label
                   htmlFor="appt-search"
-                  className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                  className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none"
                 >
                   Buscar
                 </label>
@@ -1170,7 +1170,7 @@ export function AppointmentsPage() {
                   <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
                     <span
                       id="appt-status-label"
-                      className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                      className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none"
                     >
                       Estado
                     </span>
@@ -1186,7 +1186,7 @@ export function AppointmentsPage() {
                     </select>
                   </div>
                   <div className="flex flex-col justify-end gap-1 lg:shrink-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none">
+                    <span className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none">
                       Videollamada
                     </span>
                     <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary dark:bg-zinc-900/40">
@@ -1203,7 +1203,7 @@ export function AppointmentsPage() {
               ) : null}
               {viewMode === 'week' && (
                 <div className="flex flex-col gap-1 lg:w-auto lg:shrink-0">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none">
+                  <span className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none">
                     Exportar
                   </span>
                   <Button
@@ -1219,7 +1219,7 @@ export function AppointmentsPage() {
                 </div>
               )}
             </div>
-            <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-[10px] leading-relaxed text-ink-muted ">
+            <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-3xs leading-relaxed text-ink-muted ">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500/85" aria-hidden />
               <span>
                 <span className="font-medium text-ink-secondary">Tip:</span>{' '}
@@ -1235,7 +1235,7 @@ export function AppointmentsPage() {
               {/* Day-of-week header */}
               <div className="grid grid-cols-7 mb-1">
                 {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map((d) => (
-                  <p key={d} className="text-center text-[10px] font-semibold text-ink-muted uppercase tracking-wide py-1">
+                  <p key={d} className="text-center text-3xs font-semibold text-ink-muted uppercase tracking-wide py-1">
                     {d}
                   </p>
                 ))}
@@ -1295,7 +1295,7 @@ export function AppointmentsPage() {
                                 >
                                   <div
                                     className={cn(
-                                      'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default',
+                                      'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default',
                                       appointmentInProgress(a) &&
                                         'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
                                       a.status === 'confirmed'
@@ -1317,7 +1317,7 @@ export function AppointmentsPage() {
                                 >
                                   <div
                                     className={cn(
-                                      'truncate rounded border px-1 py-0.5 text-[10px] font-medium leading-tight cursor-default border-violet-400/35 bg-violet-500/[0.12] text-violet-950 dark:text-violet-200/95',
+                                      'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default border-violet-400/35 bg-violet-500/[0.12] text-violet-950 dark:text-violet-200/95',
                                       personalInProgress(p) && 'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
                                     )}
                                   >
@@ -1326,7 +1326,7 @@ export function AppointmentsPage() {
                                 </UiTooltip>
                               ))}
                           {(calendarScope === 'students' ? dayAppts.length : dayPersonal.length) > 3 && (
-                            <p className="text-[9px] text-ink-muted pl-1">
+                            <p className="text-3xs text-ink-muted pl-1">
                               +{(calendarScope === 'students' ? dayAppts.length : dayPersonal.length) - 3} más
                             </p>
                           )}
@@ -1357,13 +1357,13 @@ export function AppointmentsPage() {
                     >
                       <p
                         className={cn(
-                          'text-[11px] uppercase tracking-wide',
+                          'text-2xs uppercase tracking-wide',
                           dayIsToday ? 'font-semibold text-ink-primary dark:text-zinc-300' : 'text-ink-secondary',
                         )}
                       >
                         {format(day, 'EEE', { locale: es })}
                         {dayIsToday ? (
-                          <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
+                          <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
                             · Hoy
                           </span>
                         ) : null}
@@ -1373,7 +1373,7 @@ export function AppointmentsPage() {
                       </p>
                       <div className="mt-2 space-y-1.5">
                         {dayPersonalItems.length === 0 ? (
-                          <p className="text-[11px] text-ink-secondary">Sin eventos</p>
+                          <p className="text-2xs text-ink-secondary">Sin eventos</p>
                         ) : (
                           dayPersonalItems.map((p) => (
                             <Popover
@@ -1397,11 +1397,11 @@ export function AppointmentsPage() {
                                   {...a11y}
                                 >
                                   <p className="text-xs font-medium text-ink-primary truncate">{p.title}</p>
-                                  <p className="text-[11px] text-ink-secondary">
+                                  <p className="text-2xs text-ink-secondary">
                                     {format(parseISO(p.starts_at), 'HH:mm')} — {format(parseISO(p.ends_at), 'HH:mm')}
                                   </p>
                                   {personalInProgress(p) ? (
-                                    <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
+                                    <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
                                       En curso
                                     </p>
                                   ) : null}
@@ -1409,11 +1409,11 @@ export function AppointmentsPage() {
                               )}
                             >
                               <p className="text-xs font-semibold text-ink-primary truncate">{p.title}</p>
-                              <p className="text-[11px] text-ink-muted">
+                              <p className="text-2xs text-ink-muted">
                                 {format(parseISO(p.starts_at), 'HH:mm')} — {format(parseISO(p.ends_at), 'HH:mm')}
                               </p>
                               {p.notes?.trim() ? (
-                                <p className="text-[10px] leading-snug text-ink-secondary rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
+                                <p className="text-3xs leading-snug text-ink-secondary rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
                                   {p.notes.trim()}
                                 </p>
                               ) : null}
@@ -1446,13 +1446,13 @@ export function AppointmentsPage() {
                   >
                     <p
                       className={cn(
-                        'text-[11px] uppercase tracking-wide',
+                        'text-2xs uppercase tracking-wide',
                         dayIsToday ? 'font-semibold text-ink-primary dark:text-zinc-300' : 'text-ink-secondary',
                       )}
                     >
                       {format(day, 'EEE', { locale: es })}
                       {dayIsToday ? (
-                        <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
+                        <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
                           · Hoy
                         </span>
                       ) : null}
@@ -1462,7 +1462,7 @@ export function AppointmentsPage() {
                     </p>
                     <div className="mt-2 space-y-1.5">
                       {dayAppointments.length === 0 ? (
-                        <p className="text-[11px] text-ink-secondary">Sin turnos</p>
+                        <p className="text-2xs text-ink-secondary">Sin turnos</p>
                       ) : (
                         dayAppointments.map((a) => (
                           <Popover
@@ -1491,11 +1491,11 @@ export function AppointmentsPage() {
                                 {...a11y}
                               >
                                 <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>
-                                <p className="text-[11px] text-ink-secondary">
+                                <p className="text-2xs text-ink-secondary">
                                   {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                                 </p>
                                 {appointmentInProgress(a) ? (
-                                  <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
+                                  <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
                                     En curso
                                   </p>
                                 ) : null}
@@ -1503,14 +1503,14 @@ export function AppointmentsPage() {
                             )}
                           >
                             <p className="text-xs font-semibold text-ink-primary truncate">{a.title}</p>
-                            <p className="text-[11px] text-ink-muted">
+                            <p className="text-2xs text-ink-muted">
                               {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? '—'}
                             </p>
                             {appointmentInProgress(a) && (
-                              <p className="text-[10px] font-semibold text-amber-800 dark:text-amber-300/90">En curso ahora</p>
+                              <p className="text-3xs font-semibold text-amber-800 dark:text-amber-300/90">En curso ahora</p>
                             )}
                             {formatReminderLine(a.reminders) ? (
-                              <p className="text-[10px] leading-snug text-ink-muted rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
+                              <p className="text-3xs leading-snug text-ink-muted rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
                                 Recordatorios: {formatReminderLine(a.reminders)}
                               </p>
                             ) : null}
@@ -1521,7 +1521,7 @@ export function AppointmentsPage() {
                                 setWeekPopoverOpen(false)
                                 setWeekPopoverApptId(null)
                               }}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-surface-card/70 px-2.5 py-1.5 text-[11px] font-medium text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-surface-card/70 px-2.5 py-1.5 text-2xs font-medium text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
                             >
                               <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
                               Ficha del {personWord}
@@ -1613,7 +1613,7 @@ export function AppointmentsPage() {
                         <button
                           type="button"
                           onClick={() => void deletePersonalEvent(p.id)}
-                          className="shrink-0 text-[11px] px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired hover:bg-status-expired/10"
+                          className="shrink-0 text-2xs px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired hover:bg-status-expired/10"
                         >
                           Eliminar
                         </button>
@@ -1646,26 +1646,26 @@ export function AppointmentsPage() {
                           {new Date(a.starts_at).toLocaleString('es-AR')}
                         </p>
                         {appointmentInProgress(a) ? (
-                          <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/90">
+                          <p className="mt-1 text-3xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/90">
                             En curso
                           </p>
                         ) : null}
                         {formatReminderLine(a.reminders) ? (
-                          <p className="mt-1 text-[10px] leading-snug text-ink-muted">
+                          <p className="mt-1 text-3xs leading-snug text-ink-muted">
                             Recordatorios: {formatReminderLine(a.reminders)}
                           </p>
                         ) : null}
                         <button
                           type="button"
                           onClick={() => navigate(`/students/${a.student_id}`)}
-                          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-ink-secondary underline-offset-2 transition-colors hover:text-brand-secondary hover:underline"
+                          className="mt-2 inline-flex items-center gap-1 text-2xs font-medium text-ink-secondary underline-offset-2 transition-colors hover:text-brand-secondary hover:underline"
                         >
                           <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           Ver ficha del {personWord}
                           <ExternalLink className="h-3 w-3" aria-hidden />
                         </button>
                       </div>
-                      <span className={`shrink-0 text-[10px] px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
+                      <span className={`shrink-0 text-3xs px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
                         {STATUS_LABEL_ES[a.status]}
                       </span>
                     </div>
@@ -1712,21 +1712,21 @@ export function AppointmentsPage() {
                         <button
                           type="button"
                           onClick={() => updateStatus(a.id, 'confirmed')}
-                          className="text-[11px] px-2 py-1 rounded-lg border border-brand-primary/35 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12"
+                          className="text-2xs px-2 py-1 rounded-lg border border-brand-primary/35 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12"
                         >
                           Confirmar
                         </button>
                         <button
                           type="button"
                           onClick={() => { setCompletingId(a.id); setCompletingNote('') }}
-                          className="text-[11px] px-2 py-1 rounded-lg border border-slate-400/45 text-slate-800 dark:text-slate-200 hover:bg-slate-500/12"
+                          className="text-2xs px-2 py-1 rounded-lg border border-slate-400/45 text-slate-800 dark:text-slate-200 hover:bg-slate-500/12"
                         >
                           Completar
                         </button>
                         <button
                           type="button"
                           onClick={() => updateStatus(a.id, 'cancelled')}
-                          className="text-[11px] px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired"
+                          className="text-2xs px-2 py-1 rounded-lg border border-status-expired/30 text-status-expired"
                         >
                           Cancelar
                         </button>
@@ -1736,7 +1736,7 @@ export function AppointmentsPage() {
                             disabled={syncingGoogleId === a.id}
                             onClick={() => void retryGoogleCalendarSync(a.id)}
                             title="Crear o vincular el evento en Google Calendar"
-                            className="text-[11px] px-2.5 py-1 rounded-lg border border-sky-500/35 text-sky-900 dark:text-sky-300/95 hover:bg-sky-500/12 inline-flex items-center gap-1 disabled:opacity-50"
+                            className="text-2xs px-2.5 py-1 rounded-lg border border-sky-500/35 text-sky-900 dark:text-sky-300/95 hover:bg-sky-500/12 inline-flex items-center gap-1 disabled:opacity-50"
                           >
                             <Calendar className="h-3 w-3" />
                             {syncingGoogleId === a.id ? 'Sincronizando…' : 'Google Calendar'}
@@ -1752,7 +1752,7 @@ export function AppointmentsPage() {
                               ? 'Abre WhatsApp con el mensaje de preparación para la videollamada (mismo que al confirmar).'
                               : 'Abre WhatsApp para pedir que confirme asistencia (misma plantilla que al crear el turno).'
                           }
-                          className="text-[11px] px-2.5 py-1 rounded-lg border border-brand-primary/38 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1"
+                          className="text-2xs px-2.5 py-1 rounded-lg border border-brand-primary/38 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1"
                         >
                           <MessageCircle className="h-3 w-3" />
                           {a.status === 'confirmed' ? 'Prep videollamada WA' : 'Pedir confirmación WA'}
@@ -1776,7 +1776,7 @@ export function AppointmentsPage() {
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-gradient-to-r from-zinc-500/[0.06] to-surface-elevated/25 px-4 py-3 transition-colors hover:from-zinc-500/[0.09] hover:to-surface-elevated/35 dark:from-zinc-500/[0.1] dark:hover:from-zinc-500/[0.14] [&::-webkit-details-marker]:hidden">
             <div>
               <p className="text-sm font-semibold text-ink-primary">Agendar turno</p>
-              <p className="text-[11px] text-ink-muted mt-0.5">Alta rápida · se limpia después de guardar</p>
+              <p className="text-2xs text-ink-muted mt-0.5">Alta rápida · se limpia después de guardar</p>
             </div>
             <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
           </summary>
@@ -1828,7 +1828,7 @@ export function AppointmentsPage() {
                     </option>
                   ))}
                 </select>
-                <span className="block text-[10px] text-ink-muted mt-1 leading-snug">
+                <span className="block text-3xs text-ink-muted mt-1 leading-snug">
                   Fin automático según duración (incrementos de 15 min).
                 </span>
               </label>
@@ -1896,7 +1896,7 @@ export function AppointmentsPage() {
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-gradient-to-r from-violet-500/[0.08] to-surface-elevated/25 px-4 py-3 transition-colors hover:from-violet-500/[0.11] hover:to-surface-elevated/35 dark:from-violet-500/[0.12] dark:hover:from-violet-500/[0.16] [&::-webkit-details-marker]:hidden">
               <div>
                 <p className="text-sm font-semibold text-ink-primary">Nuevo evento personal</p>
-                <p className="text-[11px] text-ink-muted mt-0.5">No se asocia a alumnos ni sincroniza con Google Calendar</p>
+                <p className="text-2xs text-ink-muted mt-0.5">No se asocia a alumnos ni sincroniza con Google Calendar</p>
               </div>
               <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
             </summary>
@@ -1983,7 +1983,7 @@ export function AppointmentsPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-ink-primary">{a.title}</p>
-                    <span className={`text-[10px] px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
+                    <span className={`text-3xs px-2 py-1 rounded-md border font-medium ${STATUS_BADGE[a.status]}`}>
                       {STATUS_LABEL_ES[a.status]}
                     </span>
                   </div>
@@ -1994,7 +1994,7 @@ export function AppointmentsPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/students/${a.student_id}`)}
-                    className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-ink-muted transition-colors hover:text-brand-secondary"
+                    className="mt-1.5 inline-flex items-center gap-1 text-2xs font-medium text-ink-muted transition-colors hover:text-brand-secondary"
                   >
                     <UserRound className="h-3 w-3 shrink-0" aria-hidden />
                     Ficha del {personWord}
@@ -2009,7 +2009,7 @@ export function AppointmentsPage() {
                       type="button"
                       onClick={() => openAppointmentFeedbackWa(a)}
                       title="Pedir feedback por WhatsApp (misma plantilla que al completar)."
-                      className="mt-2 text-[11px] px-2.5 py-1.5 rounded-lg border border-brand-primary/40 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1.5"
+                      className="mt-2 text-2xs px-2.5 py-1.5 rounded-lg border border-brand-primary/40 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1.5"
                     >
                       <MessageCircle className="h-3 w-3" />
                       Feedback WA

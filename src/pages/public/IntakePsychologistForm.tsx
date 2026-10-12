@@ -113,7 +113,7 @@ export function IntakePsychologistForm({
           <div>
             <FieldLabel required>Fecha de nacimiento</FieldLabel>
             <input type="date" className={inputClass(errors.birth_date)} {...register('birth_date')} />
-            <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Para registrar tu edad.</p>
+            <p className="mt-1 text-2xs text-zinc-500 dark:text-zinc-400">Para registrar tu edad.</p>
             {errors.birth_date ? <p className="mt-1 text-xs text-red-600">{errors.birth_date.message}</p> : null}
           </div>
           <div>

@@ -338,7 +338,7 @@ export function PresetBlocksPage() {
                         <button
                           type="button"
                           onClick={() => setOpenWeeks((p) => { const n = new Set(p); if (n.has(i)) n.delete(i); else n.add(i); return n })}
-                          className="flex items-center gap-1 text-[11px] font-semibold text-brand-secondary"
+                          className="flex items-center gap-1 text-2xs font-semibold text-brand-secondary"
                         >
                           {weeksOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                           Plan por semana ({weeksCount})
@@ -349,7 +349,7 @@ export function PresetBlocksPage() {
                               const wk = ex.weeks?.[w]
                               return (
                                 <div key={w} className="flex items-center gap-2">
-                                  <span className="w-12 shrink-0 text-[10px] font-semibold text-ink-muted">Sem {w + 1}</span>
+                                  <span className="w-12 shrink-0 text-3xs font-semibold text-ink-muted">Sem {w + 1}</span>
                                   <input
                                     value={wk?.reps_scheme ?? ''}
                                     onChange={(e) => setWeekValue(i, w, { reps_scheme: e.target.value || null })}
@@ -402,7 +402,7 @@ export function PresetBlocksPage() {
             {grouped.map((g) => (
               <section key={g.cat?.id ?? '__none__'}>
                 <h3 className="mb-2 border-b border-surface-border pb-1 text-sm font-bold uppercase tracking-wide text-ink-primary">
-                  {g.cat?.name ?? 'Sin categoría'} <span className="text-[11px] font-normal text-ink-muted">({g.items.length})</span>
+                  {g.cat?.name ?? 'Sin categoría'} <span className="text-2xs font-normal text-ink-muted">({g.items.length})</span>
                 </h3>
                 <ul className="space-y-2">
                   {g.items.map((b) => (
@@ -411,11 +411,11 @@ export function PresetBlocksPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-ink-primary">
                           {b.name}
-                          <span className="ml-2 rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
+                          <span className="ml-2 rounded bg-surface-elevated px-1.5 py-0.5 text-3xs font-medium text-ink-muted">
                             {b.kind === 'circuit' ? 'Circuito' : 'Individual'} · {b.payload?.exercises?.length ?? 0} ej. · {b.weeks_count} sem.
                           </span>
                         </p>
-                        {b.block_note && <p className="mt-0.5 text-[11px] text-ink-muted">{b.block_note}</p>}
+                        {b.block_note && <p className="mt-0.5 text-2xs text-ink-muted">{b.block_note}</p>}
                         {b.description && <p className="mt-1 text-xs text-ink-secondary whitespace-pre-wrap">{b.description}</p>}
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
@@ -445,7 +445,7 @@ export function PresetBlocksPage() {
 
 function NumField({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number | null) => void }) {
   return (
-    <label className="block text-[10px] font-medium text-ink-muted">
+    <label className="block text-3xs font-medium text-ink-muted">
       {label}
       <input
         type="number"
@@ -459,7 +459,7 @@ function NumField({ label, value, onChange }: { label: string; value: number | n
 
 function TextField({ label, value, onChange, placeholder }: { label: string; value: string | null; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <label className="block text-[10px] font-medium text-ink-muted">
+    <label className="block text-3xs font-medium text-ink-muted">
       {label}
       <input
         value={value ?? ''}

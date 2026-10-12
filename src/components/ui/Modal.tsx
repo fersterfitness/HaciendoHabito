@@ -94,7 +94,7 @@ export function Modal({
           <div className="flex items-start gap-3 px-5 pb-3 pt-5">
             <div className="min-w-0 flex-1">
               {eyebrow ? (
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">{eyebrow}</p>
+                <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-ink-muted">{eyebrow}</p>
               ) : null}
               {title ? (
                 <h2 id={titleId} className="mt-0.5 text-base font-semibold tracking-tight text-ink-primary">

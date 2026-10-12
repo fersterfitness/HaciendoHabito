@@ -62,7 +62,7 @@ export function CheckInQuestionEditor({
   return (
     <div className={rowClass}>
       <div className="flex flex-col sm:flex-row gap-2 items-start">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-secondary/12 text-[10px] font-semibold text-brand-secondary tabular-nums">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-secondary/12 text-3xs font-semibold text-brand-secondary tabular-nums">
           {index + 1}
         </span>
         <Input
@@ -112,7 +112,7 @@ export function CheckInQuestionEditor({
 
       {question.type === 'choice' ? (
         <div className="ml-0 sm:ml-8 space-y-2">
-          <div className="flex flex-wrap items-center gap-3 text-[11px] text-ink-secondary">
+          <div className="flex flex-wrap items-center gap-3 text-2xs text-ink-secondary">
             <label className="inline-flex items-center gap-1.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -134,7 +134,7 @@ export function CheckInQuestionEditor({
           </div>
           {(question.options ?? []).map((opt, oi) => (
             <div key={opt.id} className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] text-ink-muted w-4">{oi + 1}</span>
+              <span className="text-3xs text-ink-muted w-4">{oi + 1}</span>
               <input
                 className="flex-1 min-w-[10rem] rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs"
                 value={opt.label}
@@ -169,7 +169,7 @@ export function CheckInQuestionEditor({
               </select>
               <button
                 type="button"
-                className="text-[10px] text-ink-muted hover:text-status-expired"
+                className="text-3xs text-ink-muted hover:text-status-expired"
                 onClick={() =>
                   onChange({ options: (question.options ?? []).filter((o) => o.id !== opt.id) })
                 }
@@ -178,7 +178,7 @@ export function CheckInQuestionEditor({
               </button>
             </div>
           ))}
-          <button type="button" className="text-[11px] font-medium text-brand-secondary hover:underline" onClick={addOption}>
+          <button type="button" className="text-2xs font-medium text-brand-secondary hover:underline" onClick={addOption}>
             + Opción
           </button>
         </div>

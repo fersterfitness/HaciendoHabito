@@ -15,8 +15,8 @@ export function PlanGeneralNotesDisplay({ value, className, size = 'sm' }: Props
   const bodyClass = size === 'xs' ? 'text-xs leading-snug' : 'text-sm leading-snug'
   const labelClass =
     size === 'xs'
-      ? 'text-[10px] font-semibold uppercase tracking-wider text-brand-secondary/90 mb-1'
-      : 'text-[10px] font-semibold uppercase tracking-wider text-brand-secondary mb-1.5'
+      ? 'text-3xs font-semibold uppercase tracking-wider text-brand-secondary/90 mb-1'
+      : 'text-3xs font-semibold uppercase tracking-wider text-brand-secondary mb-1.5'
 
   return (
     <div className={cn('space-y-2.5', className)}>

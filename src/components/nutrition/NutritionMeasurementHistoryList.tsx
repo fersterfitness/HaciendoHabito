@@ -52,7 +52,7 @@ export function NutritionMeasurementHistoryList({
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-ink-muted">
+      <p className="text-2xs text-ink-muted">
         {measurements.length === 1
           ? '1 control guardado. Clic en la fila para el informe «Presentación».'
           : `${measurements.length} controles. Clic en la fila para el informe; Editar o Clonar cargan el programa arriba.`}
@@ -62,22 +62,22 @@ export function NutritionMeasurementHistoryList({
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="border-b border-surface-border bg-surface-elevated/40">
-              <th className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                 N°
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                 Fecha
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                 Tipo
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                 Peso
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                 Talla
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
                 Acciones
               </th>
             </tr>
@@ -102,7 +102,7 @@ export function NutritionMeasurementHistoryList({
                   <td className="px-3 py-2.5 sm:px-4">
                     <span
                       className={cn(
-                        'inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg px-1.5 text-[11px] font-bold tabular-nums',
+                        'inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg px-1.5 text-2xs font-bold tabular-nums',
                         active
                           ? 'bg-brand-secondary/20 text-brand-secondary'
                           : 'bg-surface-elevated text-ink-muted',
@@ -117,7 +117,7 @@ export function NutritionMeasurementHistoryList({
                   <td className="px-3 py-2.5 sm:px-4">
                     <span
                       className={cn(
-                        'inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium',
+                        'inline-flex rounded-md border px-2 py-0.5 text-3xs font-medium',
                         program
                           ? 'border-brand-secondary/30 bg-brand-secondary/10 text-brand-secondary'
                           : 'border-surface-border text-ink-muted',

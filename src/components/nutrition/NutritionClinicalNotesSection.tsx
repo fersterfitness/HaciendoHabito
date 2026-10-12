@@ -109,7 +109,7 @@ export function NutritionClinicalNotesSection({
               <button
                 type="button"
                 onClick={() => void remove(r.id)}
-                className="text-[11px] text-ink-muted hover:text-status-expired shrink-0"
+                className="text-2xs text-ink-muted hover:text-status-expired shrink-0"
               >
                 Borrar
               </button>

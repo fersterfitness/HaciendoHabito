@@ -89,7 +89,7 @@ function daysUntil(dateStr: string): number {
 function PlanDaysChip({ date, remainingWeeks }: { date: string; remainingWeeks?: number }) {
   const days = daysUntil(date)
   const pill =
-    'inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium border border-black/[0.06] whitespace-nowrap dark:border-white/[0.08]'
+    'inline-flex items-center rounded px-2 py-0.5 text-2xs font-medium border border-black/[0.06] whitespace-nowrap dark:border-white/[0.08]'
 
   if (remainingWeeks != null && remainingWeeks > 0) {
     return (
@@ -324,7 +324,7 @@ function FiltersDropdown({
             <Filter className="h-4 w-4 opacity-70" aria-hidden />
             <span className="hidden sm:inline">Filtrar</span>
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-secondary px-1.5 text-[10px] font-bold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-secondary px-1.5 text-3xs font-bold text-white">
                 {activeCount}
               </span>
             )}
@@ -334,7 +334,7 @@ function FiltersDropdown({
       >
           {/* Nivel */}
           <div>
-            <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Nivel</p>
+            <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Nivel</p>
             {(['', 'inicial', 'intermedio', 'avanzado'] as LevelFilter[]).map((v) => (
               <button
                 key={v || 'all-nivel'}
@@ -353,7 +353,7 @@ function FiltersDropdown({
           </div>
 
           <div className={directoryPopoverDividerClassName}>
-            <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Estado</p>
+            <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Estado</p>
             {([{ value: '' as StatusFilter, label: 'Todos' }, ...STATUS_OPTIONS]).map((opt) => (
               <button
                 key={opt.value || 'all-status'}
@@ -372,7 +372,7 @@ function FiltersDropdown({
           </div>
 
           <div className={directoryPopoverDividerClassName}>
-            <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Plan</p>
+            <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Plan</p>
             {([
               { value: '' as ExpiryFilter, label: 'Todos' },
               { value: 'pronto' as ExpiryFilter, label: 'Vence en ≤14 días' },
@@ -396,7 +396,7 @@ function FiltersDropdown({
 
           {allTags.length > 0 && (
             <div className={directoryPopoverDividerClassName}>
-              <p className="text-[10px] text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Etiqueta</p>
+              <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Etiqueta</p>
               {(['', ...allTags]).map((t) => (
                 <button
                   key={t || 'all-tag'}
@@ -458,7 +458,7 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">
             Orden de la tabla
           </p>
           {TABLE_SORT_OPTS.map((opt) => (
@@ -745,7 +745,7 @@ export function StudentsPage() {
               type="button"
               onClick={() => setFilterGender(opt.id)}
               className={cn(
-                'rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                 filterGender === opt.id
                   ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
                   : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
@@ -1021,12 +1021,12 @@ function StudentDirectoryTable({
     <div className="flex items-center justify-between gap-3 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-2.5 sm:py-3">
       <div className="min-w-0 flex items-baseline gap-2">
         <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel}</h2>
-        <span className="text-[11px] tabular-nums text-ink-muted">
+        <span className="text-2xs tabular-nums text-ink-muted">
           · {students.length}
         </span>
-        <span className="hidden sm:inline text-[11px] text-ink-muted truncate">· {sortSubtitle}</span>
+        <span className="hidden sm:inline text-2xs text-ink-muted truncate">· {sortSubtitle}</span>
       </div>
-      <span className="sm:hidden text-[10px] uppercase tracking-wide text-ink-muted truncate">{sortSubtitle}</span>
+      <span className="sm:hidden text-3xs uppercase tracking-wide text-ink-muted truncate">{sortSubtitle}</span>
     </div>
   )
 
@@ -1062,9 +1062,9 @@ function StudentDirectoryTable({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate font-semibold text-[14px] leading-snug text-ink-primary">{student.full_name}</span>
+                  <span className="truncate font-semibold text-sm leading-snug text-ink-primary">{student.full_name}</span>
                   {age !== null && (
-                    <span className="shrink-0 text-[11px] text-ink-muted">{age}a</span>
+                    <span className="shrink-0 text-2xs text-ink-muted">{age}a</span>
                   )}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -1079,7 +1079,7 @@ function StudentDirectoryTable({
                   ) : null}
                   {rmTestDueIds.has(student.id) ? (
                     <span
-                      className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                      className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
                       title="12 semanas de rutina desde el último test de RM"
                     >
                       Testear RM
@@ -1096,14 +1096,14 @@ function StudentDirectoryTable({
                     return (
                       <span
                         title={`${a.plan_name_snapshot} · ${PAYMENT_STATUS_LABELS[eff]}`}
-                        className={cn('inline-flex max-w-[140px] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1', cls)}
+                        className={cn('inline-flex max-w-[140px] items-center gap-1 truncate rounded-full px-2 py-0.5 text-3xs font-semibold ring-1', cls)}
                       >
                         <span className="truncate">{a.plan_name_snapshot}</span>
                       </span>
                     )
                   })() : null}
                   <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-                    <span className="text-[11px] text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                    <span className="text-2xs text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
                     <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
                       <span className={cn(iconWrapBase, 'h-5 w-5', hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
                         <Dumbbell className="h-2.5 w-2.5" />
@@ -1151,14 +1151,14 @@ function StudentDirectoryTable({
 
       {/* ── Desktop table (≥ sm) ─────────────────────────────────── */}
       <div className="hidden sm:block max-h-[min(68vh,36rem)] overflow-auto">
-        <table className="w-full border-collapse text-[13px] leading-snug">
+        <table className="w-full border-collapse text-body-sm leading-snug">
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>
-              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5">Nivel</th>
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
-              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5">Email</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>
+              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5">Nivel</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
+              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5">Email</th>
               <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
           </thead>
@@ -1196,10 +1196,10 @@ function StudentDirectoryTable({
                       />
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug text-ink-primary">
+                          <span className="min-w-0 flex-1 truncate text-body-sm font-semibold leading-snug text-ink-primary">
                             {student.full_name}
                           </span>
-                          {age !== null && <span className="shrink-0 text-[11px] text-ink-muted tabular-nums">{age}a</span>}
+                          {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{age}a</span>}
                           <div className="flex shrink-0 items-center gap-1">
                             <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
                               <span className={cn(iconWrapBase, hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
@@ -1213,7 +1213,7 @@ function StudentDirectoryTable({
                             </Tooltip>
                           </div>
                         </div>
-                        {student.email ? <span className="truncate text-[11px] text-ink-muted lg:hidden">{student.email}</span> : null}
+                        {student.email ? <span className="truncate text-2xs text-ink-muted lg:hidden">{student.email}</span> : null}
                         <StudentTagChips
                           student={student}
                           maxVisible={2}
@@ -1224,7 +1224,7 @@ function StudentDirectoryTable({
                     </div>
                   </td>
                   <td className="hh-row-drop-in hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
-                    <span className="text-[12px]">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                    <span className="text-xs">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
                     <StatusToggle student={student} onChanged={onStatusChanged} remainingWeeks={remainingWeeksOf(student.id)} />
@@ -1239,11 +1239,11 @@ function StudentDirectoryTable({
                           lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
                         />
                       ) : (
-                        <span className="text-[11px] text-ink-muted/50">—</span>
+                        <span className="text-2xs text-ink-muted/50">—</span>
                       )}
                       {rmTestDueIds.has(student.id) ? (
                         <span
-                          className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                          className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
                           title="12 semanas de rutina desde el último test de RM"
                         >
                           Testear RM
@@ -1260,7 +1260,7 @@ function StudentDirectoryTable({
                         return (
                           <span
                             title={`${a.plan_name_snapshot} · ${PAYMENT_STATUS_LABELS[eff]}`}
-                            className={cn('inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1', cls)}
+                            className={cn('inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full px-2 py-0.5 text-3xs font-semibold ring-1', cls)}
                           >
                             <span className="truncate">{a.plan_name_snapshot}</span>
                           </span>
@@ -1269,14 +1269,14 @@ function StudentDirectoryTable({
                     </div>
                   </td>
                   <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
-                    <span className="text-[12px]">{student.email ?? '—'}</span>
+                    <span className="text-xs">{student.email ?? '—'}</span>
                   </td>
                   <td className="hh-row-drop-in px-2 sm:px-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onRowClick(student.id) }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-[11px] font-medium text-ink-secondary opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand-secondary/40 hover:text-brand-secondary"
+                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-2xs font-medium text-ink-secondary opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand-secondary/40 hover:text-brand-secondary"
                         title="Abrir ficha"
                       >
                         Abrir <ChevronRight className="h-3 w-3" />

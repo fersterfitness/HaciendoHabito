@@ -460,7 +460,7 @@ export function PublicIntakeFormPageV2() {
               href={trainerWaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden items-center gap-1 rounded-lg border border-emerald-600/30 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-500/10 sm:inline-flex dark:text-emerald-300"
+              className="hidden items-center gap-1 rounded-lg border border-emerald-600/30 px-2.5 py-1.5 text-2xs font-medium text-emerald-800 hover:bg-emerald-500/10 sm:inline-flex dark:text-emerald-300"
               title={TRAINER_CONTACT_WHATSAPP_DISPLAY}
             >
               <WhatsAppIcon className="h-3.5 w-3.5" />
@@ -470,7 +470,7 @@ export function PublicIntakeFormPageV2() {
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
               to="/v2/login"
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 sm:gap-1.5 sm:px-3 sm:text-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-2xs font-medium whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 sm:gap-1.5 sm:px-3 sm:text-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
             >
               Ya tengo cuenta
               <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -541,7 +541,7 @@ export function PublicIntakeFormPageV2() {
                 )}
               >
                 <div className="mb-3 text-center sm:mb-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1 de 4</p>
+                  <p className="text-3xs font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1 de 4</p>
                   <h3 className="mt-1 text-base font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
                     Seleccioná una modalidad y elegí tu plan
                   </h3>
@@ -550,7 +550,7 @@ export function PublicIntakeFormPageV2() {
                 <ModalityPicker value={catalogSegment} onChange={setCatalogSegment} />
 
                 <div className="mt-5 border-t border-zinc-200/80 pt-4 dark:border-zinc-800/80 sm:mt-6 sm:pt-5">
-                  <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
+                  <p className="mb-3 px-1 text-2xs font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
 
                   {catalogSegment === 'full_trio' && plansVisible.length > 0 ? (
                     <div className="-mx-1">
@@ -597,7 +597,7 @@ export function PublicIntakeFormPageV2() {
                           <div key={sub.key}>
                             <div className="mb-4 flex items-center gap-3">
                               <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
-                              <span className="shrink-0 rounded-lg border border-orange-500/40 bg-orange-500/[0.06] px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-500 dark:border-orange-400/30 dark:bg-orange-400/[0.07] dark:text-orange-400">
+                              <span className="shrink-0 rounded-lg border border-orange-500/40 bg-orange-500/[0.06] px-3 py-0.5 text-3xs font-semibold uppercase tracking-[0.14em] text-orange-500 dark:border-orange-400/30 dark:bg-orange-400/[0.07] dark:text-orange-400">
                                 {sub.label}
                               </span>
                               <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
@@ -631,7 +631,7 @@ export function PublicIntakeFormPageV2() {
                           </div>
                         ))}
                       {/* CTA vive dentro de cada card (cardLayout); aquí solo la nota */}
-                      <p className="border-t border-zinc-200 pt-4 text-center text-[10px] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+                      <p className="border-t border-zinc-200 pt-4 text-center text-3xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
                         Cancelás cuando quieras.
                       </p>
                     </div>
@@ -715,7 +715,7 @@ export function PublicIntakeFormPageV2() {
                       <ArrowLeft className="h-4 w-4" />
                     </button>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 3 de 4</p>
+                      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 3 de 4</p>
                       <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">Contanos un poco de vos</h2>
                       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">100% confidencial — solo lo ve el profesional asignado.</p>
                     </div>
@@ -799,7 +799,7 @@ export function PublicIntakeFormPageV2() {
           )}
         </div>
 
-        <p className="mt-10 text-center text-[10px] text-zinc-400 dark:text-zinc-600">
+        <p className="mt-10 text-center text-3xs text-zinc-400 dark:text-zinc-600">
           © {new Date().getFullYear()} Ferster Fitness · Haciéndolo Hábito
         </p>
       </main>
@@ -854,7 +854,7 @@ function Stepper({
                 </span>
                 {/* Label debajo */}
                 <span className={cn(
-                  'max-w-[4.5rem] text-center text-[10px] font-medium leading-tight sm:max-w-none sm:text-xs',
+                  'max-w-[4.5rem] text-center text-3xs font-medium leading-tight sm:max-w-none sm:text-xs',
                   active ? 'text-zinc-900 dark:text-white' : completed ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-500',
                 )}>{s.label}</span>
               </NodeTag>
@@ -956,9 +956,9 @@ function ModalityPicker({
                   ) : null}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-500">{m.short}</p>
+                  <p className="text-3xs font-bold uppercase tracking-[0.12em] text-orange-500">{m.short}</p>
                   <p className="text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</p>
-                  <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</p>
+                  <p className="text-2xs leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</p>
                 </div>
               </button>
             </li>
@@ -986,11 +986,11 @@ function ModalityPicker({
               ) : null}
               <IntakeModalityProfessionIcons modalityId={m.id} className="relative mb-2 min-h-6 pr-6" />
               <span className={cn(
-                'relative text-[10px] font-bold uppercase tracking-wider',
+                'relative text-3xs font-bold uppercase tracking-wider',
                 active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
               )}>{m.short}</span>
               <span className="relative text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</span>
-              <span className="relative text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</span>
+              <span className="relative text-2xs leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</span>
               {active ? (
                 <span className="absolute right-3 top-3 inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white shadow-sm">
                   <Check className="h-3 w-3" aria-hidden />
@@ -1027,7 +1027,7 @@ function MeetTheTeam({
   return (
     <section>
       <div className="mb-3 text-center sm:mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-orange-500">
+        <p className="text-3xs font-bold uppercase tracking-[0.22em] text-orange-500">
           Conocé a
         </p>
         <h2 className="mt-1 text-xl font-extrabold tracking-tight text-zinc-900 sm:text-3xl dark:text-white">
@@ -1073,12 +1073,12 @@ function MeetTheTeam({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-500">{p.role}</p>
+                  <p className="text-3xs font-bold uppercase tracking-[0.12em] text-orange-500">{p.role}</p>
                   <div className="mt-0.5 flex items-center gap-1">
                     <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{p.name}</p>
                     <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-hidden />
                   </div>
-                  <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{p.tagline}</p>
+                  <p className="truncate text-2xs text-zinc-500 dark:text-zinc-400">{p.tagline}</p>
                 </div>
               </article>
             </li>
@@ -1123,17 +1123,17 @@ function MeetTheTeam({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
 
               <div className="relative p-3 sm:p-4">
-                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/25 backdrop-blur-sm">
+                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/25 backdrop-blur-sm">
                   {p.role}
                 </span>
                 <div className="mt-2 flex items-center gap-1.5">
                   <p className="text-base font-semibold leading-tight text-white drop-shadow-sm sm:text-lg">{p.name}</p>
                   <BadgeCheck className="h-[18px] w-[18px] shrink-0 text-emerald-400" aria-hidden />
                 </div>
-                <p className="mt-1 text-[13px] leading-snug text-white/75">{p.tagline}</p>
+                <p className="mt-1 text-body-sm leading-snug text-white/75">{p.tagline}</p>
                 <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-out group-hover:grid-rows-[1fr]">
                   <div className="overflow-hidden">
-                    <p className="pt-1.5 text-[11px] leading-snug text-white/55">{p.credential}</p>
+                    <p className="pt-1.5 text-2xs leading-snug text-white/55">{p.credential}</p>
                   </div>
                 </div>
               </div>
@@ -1176,14 +1176,14 @@ function PlanSummary({
     )}>
       <header className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Tu plan</p>
+          <p className="text-3xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Tu plan</p>
           <h3 className="mt-0.5 text-base font-bold text-zinc-900 dark:text-white">{plan.name}</h3>
         </div>
         {step !== 'plan' && step !== 'confirmation' && (
           <button
             type="button"
             onClick={onChangePlan}
-            className="shrink-0 text-[11px] font-semibold text-brand-primary underline-offset-2 hover:underline"
+            className="shrink-0 text-2xs font-semibold text-brand-primary underline-offset-2 hover:underline"
           >
             Cambiar
           </button>
@@ -1191,17 +1191,17 @@ function PlanSummary({
       </header>
 
       <div className="rounded-xl border border-zinc-100 bg-gradient-to-br from-orange-50/60 to-stone-50 p-4 dark:border-zinc-800 dark:from-orange-500/[0.08] dark:to-zinc-900/40">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Precio</p>
+        <p className="text-3xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Precio</p>
         <p className="mt-1 text-2xl font-extrabold tabular-nums text-zinc-900 dark:text-white">{price}</p>
-        <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{planBillingCaption(billing)}</p>
+        <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{planBillingCaption(billing)}</p>
       </div>
 
       {features.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Incluye</p>
+          <p className="mb-2 text-2xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Incluye</p>
           <ul className="space-y-1.5">
             {features.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-[12px] leading-snug text-zinc-700 dark:text-zinc-300">
+              <li key={f} className="flex items-start gap-2 text-xs leading-snug text-zinc-700 dark:text-zinc-300">
                 <span className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
                   <Check className="h-2.5 w-2.5" aria-hidden />
                 </span>
@@ -1212,7 +1212,7 @@ function PlanSummary({
         </div>
       )}
 
-      <p className="mt-5 border-t border-zinc-100 pt-3 text-center text-[10px] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+      <p className="mt-5 border-t border-zinc-100 pt-3 text-center text-3xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
         Cancelás cuando quieras
       </p>
     </div>
@@ -1226,11 +1226,11 @@ function ConfirmationView({ planName, onAgain }: { planName: string | null; onAg
       <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-green-50 ring-1 ring-green-200 dark:bg-green-500/10 dark:ring-green-500/30">
         <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" aria-hidden />
       </div>
-      <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-[11px] font-semibold text-green-700 ring-1 ring-green-200 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30">
+      <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-2xs font-semibold text-green-700 ring-1 ring-green-200 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30">
         <Check className="h-3 w-3" aria-hidden />
         Inscripción confirmada
       </span>
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 4 de 4</p>
+      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 4 de 4</p>
       <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
         ¡Recibimos tus datos!
       </h2>

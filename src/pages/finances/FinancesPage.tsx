@@ -75,7 +75,7 @@ function buildPaymentReminderWaUrl(phone: string | null | undefined, studentName
 }
 
 function expenseTypePillClass(expenseType: string): string {
-  const base = 'inline-flex rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide'
+  const base = 'inline-flex rounded border px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide'
   if (expenseType === 'fijo') {
     return cn(
       base,
@@ -106,7 +106,7 @@ function MetricTile({
         containerClassName,
       )}
     >
-      <p className="text-[11px] font-medium text-ink-muted">{label}</p>
+      <p className="text-2xs font-medium text-ink-muted">{label}</p>
       <p className={cn('text-lg font-semibold tracking-tight tabular-nums sm:text-xl', valueClassName ?? 'text-ink-primary')}>
         {value}
       </p>
@@ -133,11 +133,11 @@ function AnnualIncomeTooltip({
 
   return (
     <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-surface-border bg-white px-3 py-2 text-left shadow-lg dark:bg-zinc-950">
-      <p className="text-[11px] font-semibold text-ink-primary dark:text-zinc-50">{safeLabel}</p>
-      <p className="mt-1 font-semibold tabular-nums leading-tight text-[13px] text-brand-tertiary">
+      <p className="text-2xs font-semibold text-ink-primary dark:text-zinc-50">{safeLabel}</p>
+      <p className="mt-1 font-semibold tabular-nums leading-tight text-body-sm text-brand-tertiary">
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
-      <p className="mt-1.5 border-t border-surface-border pt-1.5 text-[10px] font-medium uppercase tracking-wide text-ink-secondary ">
+      <p className="mt-1.5 border-t border-surface-border pt-1.5 text-3xs font-medium uppercase tracking-wide text-ink-secondary ">
         Cobrado (ingresos)
       </p>
     </div>
@@ -385,7 +385,7 @@ export function FinancesPage() {
           <MetricTile label="Pendiente" value={formatCurrency(animPendiente)} />
           <MetricTile label="Total gastos" value={formatCurrency(animGastos)} />
         </div>
-        <p className="text-[11px] leading-relaxed text-ink-muted">
+        <p className="text-2xs leading-relaxed text-ink-muted">
           Los montos siguen el filtro &ldquo;
           {scopeFilter === 'all' ? 'Todos los ámbitos' : scopeFilter === 'business' ? 'Haciéndolo hábito' : 'Vida personal'}
           &rdquo;.
@@ -397,8 +397,8 @@ export function FinancesPage() {
 
         {scopeFilter === 'personal' && !loading && (
           <div className="rounded-xl border border-surface-border/80 bg-surface-muted/25 px-4 py-3 ">
-            <p className="text-[11px] font-semibold text-ink-primary">Caja personal · {MES_LABELS_FULL[now.getMonth()]} {now.getFullYear()}</p>
-            <p className="mt-1 text-[10px] leading-relaxed text-ink-muted">
+            <p className="text-2xs font-semibold text-ink-primary">Caja personal · {MES_LABELS_FULL[now.getMonth()]} {now.getFullYear()}</p>
+            <p className="mt-1 text-3xs leading-relaxed text-ink-muted">
               <strong className="text-ink-secondary">Efectivo neto</strong> (ingresos en efectivo − gastos en efectivo) +{' '}
               <strong className="text-ink-secondary">gastos pagados con Cuenta DNI</strong> = referencia de{' '}
               <strong className="text-ink-primary">total a transferir</strong> a tu cuenta. Los ingresos que entran por Cuenta DNI
@@ -415,12 +415,12 @@ export function FinancesPage() {
                 containerClassName="lg:col-span-1"
               />
             </div>
-            <p className="mt-2 rounded-md bg-surface-card/80 px-2 py-1.5 text-center text-[11px] tabular-nums text-ink-secondary ">
+            <p className="mt-2 rounded-md bg-surface-card/80 px-2 py-1.5 text-center text-2xs tabular-nums text-ink-secondary ">
               {formatCurrency(Math.round(personalCashTransferHint.efectivoNet))} + {formatCurrency(Math.round(personalCashTransferHint.gastosDni))} ={' '}
               <span className="font-semibold text-ink-primary">{formatCurrency(Math.round(personalCashTransferHint.totalATransferir))}</span>
               <span className="text-ink-muted"> · total referencia a transferir</span>
             </p>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px]">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-2xs">
               <Link
                 to="/finances/income/new?scope=personal&method=cuenta_dni&desc=Sueldo%20%2F%20acreditaci%C3%B3n%20DNI"
                 className="font-medium text-brand-secondary underline-offset-2 hover:underline"
@@ -441,7 +441,7 @@ export function FinancesPage() {
         {/* Comparación mensual */}
         <div className="grid grid-cols-2 gap-2.5 lg:gap-3">
           <div className="flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 ">
-            <p className="text-[11px] font-medium text-ink-muted">
+            <p className="text-2xs font-medium text-ink-muted">
               {MES_LABELS[now.getMonth()]} cobrado
               {mesDelta !== null && (
                 <span
@@ -462,7 +462,7 @@ export function FinancesPage() {
             </p>
           </div>
           <div className="flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 ">
-            <p className="text-[11px] font-medium text-ink-muted">{MES_LABELS[prevMonthDate.getMonth()]} cobrado</p>
+            <p className="text-2xs font-medium text-ink-muted">{MES_LABELS[prevMonthDate.getMonth()]} cobrado</p>
             <p className="text-lg font-semibold tracking-tight text-ink-secondary tabular-nums sm:text-xl">
               {formatCurrency(animMesAnterior)}
             </p>
@@ -485,7 +485,7 @@ export function FinancesPage() {
             Ingresos
             <span
               className={cn(
-                'rounded-md px-1.5 py-px text-[10px] font-bold tabular-nums',
+                'rounded-md px-1.5 py-px text-3xs font-bold tabular-nums',
                 tab === 'income' ? 'bg-surface-border/80 text-ink-primary dark:text-zinc-100' : 'bg-zinc-500/15 text-ink-secondary ',
               )}
             >
@@ -506,7 +506,7 @@ export function FinancesPage() {
             Gastos
             <span
               className={cn(
-                'rounded-md px-1.5 py-px text-[10px] font-bold tabular-nums',
+                'rounded-md px-1.5 py-px text-3xs font-bold tabular-nums',
                 tab === 'expenses' ? 'bg-surface-border/80 text-ink-primary dark:text-zinc-100' : 'bg-zinc-500/15 text-ink-secondary ',
               )}
             >
@@ -530,7 +530,7 @@ export function FinancesPage() {
               onChange={(e) => setSearch(e.target.value)}
               aria-label={tab === 'income' ? 'Buscar ingresos' : 'Buscar gastos'}
               className={cn(
-                'h-10 rounded-md border-surface-border/75 text-[14px] shadow-none ',
+                'h-10 rounded-md border-surface-border/75 text-sm shadow-none ',
                 'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50 ',
               )}
             />
@@ -578,7 +578,7 @@ export function FinancesPage() {
           </div>
         </div>
         {dataUpdatedAt && !loading ? (
-          <p className="text-[10px] text-ink-muted tabular-nums">
+          <p className="text-3xs text-ink-muted tabular-nums">
             Datos actualizados ·{' '}
             {dataUpdatedAt.toLocaleString('es-AR', {
               day: '2-digit',
@@ -609,10 +609,10 @@ export function FinancesPage() {
           const grandTotal = entries.reduce((s, [, v]) => s + v, 0)
           return (
             <div className="rounded-md border border-surface-border/70 bg-surface-card px-4 py-3 ">
-              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+              <p className="mb-2.5 text-2xs font-semibold uppercase tracking-wider text-ink-muted">
                 {tab === 'income' ? 'Ingresos cobrados' : 'Gastos registrados'} por método de pago
               </p>
-              <p className="-mt-2 mb-2.5 text-[11px] text-ink-muted">
+              <p className="-mt-2 mb-2.5 text-2xs text-ink-muted">
                 Vas viendo cada canal por separado; el total reproduce la suma de esas cifras ({formatCurrency(grandTotal)}).
               </p>
               <div className="flex flex-wrap gap-2">
@@ -626,7 +626,7 @@ export function FinancesPage() {
                   </div>
                 ))}
                 <div className="flex min-w-[9.5rem] flex-1 flex-col gap-0.5 rounded-lg border border-surface-inputBorder/50 bg-surface-elevated/60 px-3 py-2 sm:flex-initial sm:justify-center">
-                  <span className="text-[11px] font-medium text-ink-muted">Total ({entries.length} {entries.length === 1 ? 'medio' : 'medios'})</span>
+                  <span className="text-2xs font-medium text-ink-muted">Total ({entries.length} {entries.length === 1 ? 'medio' : 'medios'})</span>
                   <span className="text-sm font-bold tabular-nums text-ink-primary">{formatCurrency(grandTotal)}</span>
                 </div>
               </div>
@@ -651,19 +651,19 @@ export function FinancesPage() {
             <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card shadow-none ">
               <div className="border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2 ">
                 <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
-                <p className="truncate text-[11px] text-ink-muted">{filteredIncomes.length === 1 ? '1 movimiento' : `${filteredIncomes.length} movimientos`}</p>
+                <p className="truncate text-2xs text-ink-muted">{filteredIncomes.length === 1 ? '1 movimiento' : `${filteredIncomes.length} movimientos`}</p>
               </div>
               <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
-                <table className="w-full min-w-[900px] border-collapse text-[13px] leading-snug">
+                <table className="w-full min-w-[900px] border-collapse text-body-sm leading-snug">
                   <thead className="sticky top-0 z-[1] border-b border-surface-border/55 bg-surface-card/95 backdrop-blur-[2px] dark:bg-zinc-950/95">
                     <tr className="text-left">
-                      <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
-                      <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Concepto</th>
-                      <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
-                      <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
+                      <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Concepto</th>
+                      <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
+                      <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border/40 ">
@@ -678,7 +678,7 @@ export function FinancesPage() {
                           <p className="truncate font-semibold text-ink-primary" title={income.student?.full_name ?? income.description}>
                             {income.student?.full_name ?? income.description}
                           </p>
-                          <p className="truncate text-[11px] text-ink-muted md:hidden">
+                          <p className="truncate text-2xs text-ink-muted md:hidden">
                             {income.income_type} · {income.category}
                           </p>
                         </td>
@@ -689,14 +689,14 @@ export function FinancesPage() {
                           {formatCurrency(income.amount)}
                         </td>
                         <td className="hh-row-drop-in px-3 py-2 sm:px-4">
-                          <Badge status={income.status} className="text-[10px]" />
+                          <Badge status={income.status} className="text-3xs" />
                         </td>
                         <td className="hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4">
                           <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
                             <PaymentMethodBadge method={income.payment_method} className="shrink-0" />
                             {income.notes?.trim() ? (
                               <span
-                                className="min-w-0 flex-1 whitespace-pre-wrap text-[11px] leading-snug text-ink-muted"
+                                className="min-w-0 flex-1 whitespace-pre-wrap text-2xs leading-snug text-ink-muted"
                                 title={income.notes}
                               >
                                 {income.notes.trim()}
@@ -744,19 +744,19 @@ export function FinancesPage() {
           <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card shadow-none ">
             <div className="border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2 ">
               <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
-              <p className="truncate text-[11px] text-ink-muted">{filteredExpenses.length === 1 ? '1 gasto' : `${filteredExpenses.length} gastos`}</p>
+              <p className="truncate text-2xs text-ink-muted">{filteredExpenses.length === 1 ? '1 gasto' : `${filteredExpenses.length} gastos`}</p>
             </div>
             <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
-              <table className="w-full min-w-[760px] border-collapse text-[13px] leading-snug">
+              <table className="w-full min-w-[760px] border-collapse text-body-sm leading-snug">
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/55 bg-surface-card/95 backdrop-blur-[2px] dark:bg-zinc-950/95">
                   <tr className="text-left">
-                    <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
-                    <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Descripción</th>
-                    <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Categoría</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
-                    <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
+                    <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Descripción</th>
+                    <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Categoría</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
+                    <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border/40 ">
@@ -772,7 +772,7 @@ export function FinancesPage() {
                           {expense.description}
                         </p>
                         {expense.subcategory && (
-                          <p className="truncate text-[11px] text-ink-muted sm:hidden">{expense.subcategory}</p>
+                          <p className="truncate text-2xs text-ink-muted sm:hidden">{expense.subcategory}</p>
                         )}
                       </td>
                       <td className="hh-row-drop-in hidden truncate px-3 py-2 text-ink-secondary sm:table-cell sm:px-4" title={expense.category}>
@@ -790,7 +790,7 @@ export function FinancesPage() {
                           <PaymentMethodBadge method={expense.payment_method} className="shrink-0" />
                           {expense.notes?.trim() ? (
                             <span
-                              className="min-w-0 flex-1 whitespace-pre-wrap text-[11px] leading-snug text-ink-muted"
+                              className="min-w-0 flex-1 whitespace-pre-wrap text-2xs leading-snug text-ink-muted"
                               title={expense.notes ?? undefined}
                             >
                               {expense.notes.trim()}
@@ -833,7 +833,7 @@ export function FinancesPage() {
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
-              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-status-expiring">
+              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-status-expiring">
                 {deudores.length}
               </span>
             </div>
@@ -865,7 +865,7 @@ export function FinancesPage() {
                         Recordar
                       </a>
                     ) : (
-                      <span className="text-[10px] text-ink-muted">Sin teléfono</span>
+                      <span className="text-3xs text-ink-muted">Sin teléfono</span>
                     )}
                   </div>
                 )
@@ -876,7 +876,7 @@ export function FinancesPage() {
 
         {/* Gráfico anual */}
         <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4 ">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
+          <p className="mb-3 text-2xs font-semibold uppercase tracking-wide text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
           <ResponsiveContainer width="100%" height={168}>
             <BarChart data={annualChartData} margin={{ top: 6, right: 8, bottom: 2, left: -16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} vertical={false} />

@@ -28,7 +28,7 @@ function Field({
         className,
       )}
     >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+      <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
         {label}
       </p>
       <div className="mt-1 whitespace-pre-wrap break-words text-sm text-ink-primary">
@@ -43,7 +43,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   if (!hasContent) return null
   return (
     <section className="space-y-1">
-      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-ink-secondary">
+      <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-secondary">
         {title}
       </h4>
       <div>{children}</div>
@@ -117,14 +117,14 @@ export function NutritionWebIntakePanel({ student }: { student: Student }) {
         <div className="flex items-start gap-2">
           <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary dark:text-brand-primary" aria-hidden />
           <div>
-            <h3 className="text-[13px] font-semibold text-ink-primary">Cuestionario nutricional del registro</h3>
-            <p className="text-[11px] text-ink-muted">
+            <h3 className="text-body-sm font-semibold text-ink-primary">Cuestionario nutricional del registro</h3>
+            <p className="text-2xs text-ink-muted">
               {nutritionIntakeFormTypeLabel(formType)} · completado en /form
             </p>
           </div>
         </div>
         {i.submitted_at ? (
-          <p className="text-[11px] text-ink-muted sm:text-right">
+          <p className="text-2xs text-ink-muted sm:text-right">
             Enviado el{' '}
             <span className="tabular-nums text-ink-secondary">
               {formatDate(i.submitted_at.slice(0, 10))}

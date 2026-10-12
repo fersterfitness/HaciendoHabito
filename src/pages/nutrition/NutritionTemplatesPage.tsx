@@ -431,30 +431,30 @@ export function NutritionTemplatesPage() {
                           <FileText className="h-3.5 w-3.5" aria-hidden />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                          <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
                             Plan
                           </p>
                           <p
                             className={cn(
-                              'truncate text-[13px] font-semibold leading-tight',
+                              'truncate text-body-sm font-semibold leading-tight',
                               active ? 'text-brand-secondary' : 'text-ink-primary group-hover:text-brand-secondary',
                             )}
                           >
                             {t.name}
                           </p>
                           {active ? (
-                            <p className="truncate text-[10px] text-brand-secondary/80 sm:hidden">Editando ahora</p>
+                            <p className="truncate text-3xs text-brand-secondary/80 sm:hidden">Editando ahora</p>
                           ) : null}
                         </div>
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
                           Objetivo
                         </p>
                         <p
                           className={cn(
-                            'truncate text-[12px] leading-snug',
+                            'truncate text-xs leading-snug',
                             t.objective ? 'text-ink-secondary' : 'text-ink-muted',
                           )}
                           title={t.objective ?? undefined}
@@ -464,12 +464,12 @@ export function NutritionTemplatesPage() {
                       </div>
 
                       <div>
-                        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <p className="mb-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
                           Formato
                         </p>
                         <span
                           className={cn(
-                            'inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap',
+                            'inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-3xs font-medium whitespace-nowrap',
                             t.merge_weekends
                               ? 'border-brand-tertiary/30 bg-brand-tertiary/10 text-brand-tertiary'
                               : 'border-surface-border/80 bg-surface-elevated/40 text-ink-muted',
@@ -481,11 +481,11 @@ export function NutritionTemplatesPage() {
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
                           Actualización
                         </p>
                         <p
-                          className="truncate text-[11px] tabular-nums text-ink-muted"
+                          className="truncate text-2xs tabular-nums text-ink-muted"
                           title={active ? 'Editando ahora' : updatedTitle}
                         >
                           {active ? (
@@ -503,7 +503,7 @@ export function NutritionTemplatesPage() {
                         className="flex items-center justify-end gap-0.5"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="mr-auto text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <span className="mr-auto text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
                           Acciones
                         </span>
                         <button
@@ -581,7 +581,7 @@ export function NutritionTemplatesPage() {
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={nutritionKickerClass}>Editor de plan</span>
-                        <span className="rounded-md border border-brand-secondary/25 bg-brand-secondary/10 px-2 py-0.5 text-[10px] font-medium text-brand-secondary">
+                        <span className="rounded-md border border-brand-secondary/25 bg-brand-secondary/10 px-2 py-0.5 text-3xs font-medium text-brand-secondary">
                           Autoguardado en grilla
                         </span>
                       </div>

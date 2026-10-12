@@ -277,11 +277,11 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
         <div>
           <div className="flex items-center gap-2">
             <Camera className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            <h3 className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">
               Progreso en fotografía
             </h3>
           </div>
-          <p className="mt-2 max-w-[640px] text-[11px] leading-relaxed text-ink-muted">
+          <p className="mt-2 max-w-[640px] text-2xs leading-relaxed text-ink-muted">
             Fotos opcionales por mes para seguimiento visual (no reemplazan evaluación profesional).
             Las sube el equipo o podés cargarlas si acordamos seguimiento con imágenes.
           </p>
@@ -290,7 +290,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
 
       {canManage ? (
         <div className="flex flex-wrap items-end gap-3 border-b border-surface-border/45 border-dashed pb-4 ">
-          <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted shrink-0">
+          <label className="text-3xs font-semibold uppercase tracking-wide text-ink-muted shrink-0">
             Mes
             <input
               type="month"
@@ -330,7 +330,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
           <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
         </div>
       ) : byMonth.length === 0 ? (
-        <div className="rounded-xl border border-surface-border/70 bg-surface-elevated/25 px-3 py-3 text-[12px] text-ink-muted">
+        <div className="rounded-xl border border-surface-border/70 bg-surface-elevated/25 px-3 py-3 text-xs text-ink-muted">
           Aún no hay fotos cargadas por mes.
         </div>
       ) : (
@@ -339,7 +339,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
             const monthUrls: string[] = []
             return (
               <div key={ym}>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-ink-muted ">{formatYmLabel(ym)}</p>
+                <p className="mb-2 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">{formatYmLabel(ym)}</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                   {rows.map((ph, photoIdx) => {
                     return (

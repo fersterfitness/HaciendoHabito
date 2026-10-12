@@ -22,7 +22,7 @@ export function ExercisesSectionNav() {
           end={end}
           className={({ isActive }) =>
             cn(
-              'flex flex-1 min-h-9 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors sm:text-xs sm:px-3',
+              'flex flex-1 min-h-9 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-2xs font-semibold transition-colors sm:text-xs sm:px-3',
               isActive
                 ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary shadow-sm'
                 : 'border-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',

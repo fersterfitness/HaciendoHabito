@@ -425,7 +425,7 @@ export function RoutineFormContent({
               />
               <span>
                 <strong className="text-ink-primary">Guardar en rutinas preestablecidas</strong>
-                <span className="mt-0.5 block text-[11px] text-ink-muted">
+                <span className="mt-0.5 block text-2xs text-ink-muted">
                   No asigna un alumno. Queda en preestablecidas para testear o asignar después.
                 </span>
               </span>
@@ -433,7 +433,7 @@ export function RoutineFormContent({
           ) : null}
           {saveAsPreset && !isEditing ? (
             <div className="grid gap-3 rounded-xl border border-surface-border/70 bg-surface-elevated/15 p-3 sm:grid-cols-3">
-              <label className="text-[11px] font-medium text-ink-secondary">
+              <label className="text-2xs font-medium text-ink-secondary">
                 Macrociclo
                 <input
                   list="new-routine-macros"
@@ -443,7 +443,7 @@ export function RoutineFormContent({
                   className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
                 />
               </label>
-              <label className="text-[11px] font-medium text-ink-secondary">
+              <label className="text-2xs font-medium text-ink-secondary">
                 Mesociclo
                 <input
                   list="new-routine-mesos"
@@ -453,7 +453,7 @@ export function RoutineFormContent({
                   className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
                 />
               </label>
-              <label className="text-[11px] font-medium text-ink-secondary">
+              <label className="text-2xs font-medium text-ink-secondary">
                 Rutina (carpeta)
                 <input
                   value={presetRutina}
@@ -503,7 +503,7 @@ export function RoutineFormContent({
               <div className="flex items-center gap-2">
                 <Copy className="h-4 w-4 shrink-0 text-ink-muted dark:text-zinc-400" />
                 <span className="text-sm font-semibold text-ink-primary ">Copiar desde rutina existente</span>
-                <span className="ml-auto rounded-full bg-surface-border/80 px-2 py-0.5 text-[10px] text-ink-secondary dark:bg-zinc-700/60 dark:text-zinc-400">
+                <span className="ml-auto rounded-full bg-surface-border/80 px-2 py-0.5 text-3xs text-ink-secondary dark:bg-zinc-700/60 dark:text-zinc-400">
                   opcional
                 </span>
               </div>
@@ -682,7 +682,7 @@ function PendingRoutineNotesBanner({ studentId }: { studentId?: string }) {
       </div>
       <ul className="space-y-1">
         {notes.map((n) => (
-          <li key={n.id} className="flex gap-2 text-[13px] text-ink-primary">
+          <li key={n.id} className="flex gap-2 text-body-sm text-ink-primary">
             <span className="text-amber-500">•</span>
             <span>{n.content}</span>
           </li>

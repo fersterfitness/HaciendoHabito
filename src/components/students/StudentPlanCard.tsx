@@ -156,7 +156,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
               <div className="flex flex-col items-end gap-1">
                 <span
                   className={cn(
-                    'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1',
+                    'inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold ring-1',
                     active
                       ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 ring-emerald-500/30'
                       : effStatus === 'cancelled'
@@ -175,7 +175,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
                   disabled={updatingPayment === current.id || effStatus === 'cancelled'}
                   onClick={() => void handleTogglePaid(current)}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 transition-opacity',
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold ring-1 transition-opacity',
                     paymentStatusClasses(effStatus),
                     (updatingPayment === current.id || effStatus === 'cancelled') && 'opacity-50',
                   )}
@@ -189,22 +189,22 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
               <div>
-                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Inicio</dt>
+                <dt className="text-2xs uppercase tracking-wide text-ink-muted">Inicio</dt>
                 <dd className="font-medium text-ink-primary">{formatDate(current.start_date)}</dd>
               </div>
               <div>
-                <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Vencimiento</dt>
+                <dt className="text-2xs uppercase tracking-wide text-ink-muted">Vencimiento</dt>
                 <dd className="font-medium text-ink-primary">{formatDate(current.end_date)}</dd>
               </div>
               {money ? (
                 <div>
-                  <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Monto</dt>
+                  <dt className="text-2xs uppercase tracking-wide text-ink-muted">Monto</dt>
                   <dd className="font-medium text-ink-primary">{money}</dd>
                 </div>
               ) : null}
               {current.payment_method ? (
                 <div>
-                  <dt className="text-[11px] uppercase tracking-wide text-ink-muted">Método</dt>
+                  <dt className="text-2xs uppercase tracking-wide text-ink-muted">Método</dt>
                   <dd className="inline-flex items-center gap-1 font-medium text-ink-primary">
                     <Wallet className="h-3 w-3" />
                     {PAYMENT_METHOD_LABELS[current.payment_method]}
@@ -223,7 +223,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
               <button
                 type="button"
                 onClick={() => onRequestEdit(current)}
-                className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-1 text-[11px] font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
+                className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-1 text-2xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
               >
                 <Pencil className="h-3 w-3" />
                 Editar
@@ -232,7 +232,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
                 <button
                   type="button"
                   onClick={() => setConfirmCancel(current)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-1 text-[11px] font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
+                  className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-1 text-2xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
                 >
                   <Ban className="h-3 w-3" />
                   Cancelar plan
@@ -241,7 +241,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
               <button
                 type="button"
                 onClick={() => setConfirmDelete(current)}
-                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2 py-1 text-[11px] font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10"
+                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2 py-1 text-2xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10"
               >
                 <Trash2 className="h-3 w-3" />
                 Eliminar
@@ -272,7 +272,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
                     <li key={a.id} className="rounded-lg border border-surface-border/60 px-3 py-2 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-ink-primary">{a.plan_name_snapshot}</span>
-                        <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1', paymentStatusClasses(eff))}>
+                        <span className={cn('rounded-full px-1.5 py-0.5 text-3xs font-semibold ring-1', paymentStatusClasses(eff))}>
                           {PAYMENT_STATUS_LABELS[eff]}
                         </span>
                       </div>
@@ -285,14 +285,14 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
                         <button
                           type="button"
                           onClick={() => onRequestEdit(a)}
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-3xs text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
                         >
                           <Pencil className="h-2.5 w-2.5" /> Editar
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmDelete(a)}
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-500/10"
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-3xs text-red-600 hover:bg-red-500/10"
                         >
                           <Trash2 className="h-2.5 w-2.5" /> Eliminar
                         </button>

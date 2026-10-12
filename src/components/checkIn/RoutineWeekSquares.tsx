@@ -18,7 +18,7 @@ export function RoutineWeekSquares({
   className,
 }: RoutineWeekSquaresProps) {
   if (totalWeeks <= 0) {
-    return <span className={cn('text-[11px] text-ink-muted', className)}>—</span>
+    return <span className={cn('text-2xs text-ink-muted', className)}>—</span>
   }
   const effectiveWeek = finished
     ? totalWeeks
@@ -45,7 +45,7 @@ export function RoutineWeekSquares({
             key={n}
             title={`Semana ${n}`}
             className={cn(
-              'inline-flex h-5 min-w-5 items-center justify-center rounded px-0.5 text-[8px] font-bold tabular-nums',
+              'inline-flex h-5 min-w-5 items-center justify-center rounded px-0.5 text-3xs font-bold tabular-nums',
               done
                 ? lastWeek
                   ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
@@ -59,7 +59,7 @@ export function RoutineWeekSquares({
         )
       })}
       {lastWeek ? (
-        <span className="ml-0.5 text-[8px] font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+        <span className="ml-0.5 text-3xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400">
           Última
         </span>
       ) : null}

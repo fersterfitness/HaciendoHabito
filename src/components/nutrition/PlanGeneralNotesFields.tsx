@@ -127,7 +127,7 @@ export function PlanGeneralNotesFields({ value, onChange, className }: Props) {
 
       {hasPreviewContent ? (
         <div className="rounded-xl border border-brand-secondary/20 bg-brand-secondary/[0.04] px-3 py-2.5">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-brand-secondary/90">
+          <p className="mb-2 text-3xs font-semibold uppercase tracking-wider text-brand-secondary/90">
             Vista en el plan
           </p>
           <PlanGeneralNotesDisplay value={serialized} />

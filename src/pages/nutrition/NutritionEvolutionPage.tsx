@@ -142,7 +142,7 @@ export function NutritionEvolutionPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold text-ink-primary">{f.label}</p>
-                      <span className="rounded-md border border-brand-secondary/25 bg-brand-secondary/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-secondary">
+                      <span className="rounded-md border border-brand-secondary/25 bg-brand-secondary/8 px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-wide text-brand-secondary">
                         {f.tabHint}
                       </span>
                     </div>

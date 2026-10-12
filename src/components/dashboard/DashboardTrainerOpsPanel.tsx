@@ -77,9 +77,9 @@ function QuickActionRow({
   return (
     <div className="rounded-xl border border-surface-border/70 bg-surface-card/80 px-3 py-3 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[11px] font-semibold text-ink-primary">{title}</p>
+        <p className="text-2xs font-semibold text-ink-primary">{title}</p>
         {dueToday ? (
-          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
             Hoy
           </span>
         ) : null}
@@ -149,7 +149,7 @@ export function DashboardTrainerOpsPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+      <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
         Avisos semanales · envío rápido
       </p>
 
@@ -159,14 +159,14 @@ export function DashboardTrainerOpsPanel({
             title={`Check-in · ${primaryCheckIn.formTitle}`}
             dueToday={checkInDueToday}
           >
-            <p className="text-[10px] text-ink-muted leading-relaxed">
+            <p className="text-3xs text-ink-muted leading-relaxed">
               Link general para el grupo. Cada alumno completa con su correo.
             </p>
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => void copyCheckInLink(primaryCheckIn)}
-                className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-[10px] font-medium text-ink-primary hover:bg-surface-card transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-card transition-colors"
               >
                 <Copy className="h-3 w-3" aria-hidden />
                 Copiar link
@@ -176,7 +176,7 @@ export function DashboardTrainerOpsPanel({
                   href={checkInSharedPublicUrl(primaryCheckIn.publicToken)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-[10px] font-medium text-ink-primary hover:bg-surface-card transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-card transition-colors"
                 >
                   <ExternalLink className="h-3 w-3" aria-hidden />
                   Abrir
@@ -193,7 +193,7 @@ export function DashboardTrainerOpsPanel({
                   openCheckInGroupWhatsApp(primaryCheckIn)
                   toast.success('Elegí el grupo en WhatsApp')
                 }}
-                className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 disabled:opacity-45 dark:text-emerald-300"
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-3xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 disabled:opacity-45 dark:text-emerald-300"
               >
                 <WhatsAppIcon className="h-3 w-3" />
                 Grupo WA
@@ -202,11 +202,11 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         ) : (
           <QuickActionRow title="Feedback semanal">
-            <p className="text-[10px] text-ink-muted">Creá un formulario en Devoluciones → Check-ins y guardalo para obtener el link general.</p>
+            <p className="text-3xs text-ink-muted">Creá un formulario en Devoluciones → Check-ins y guardalo para obtener el link general.</p>
             <button
               type="button"
               onClick={() => navigate('/feedback?tab=checkins')}
-              className="text-[10px] font-medium text-brand-primary hover:underline"
+              className="text-3xs font-medium text-brand-primary hover:underline"
             >
               Ir a Check-ins
             </button>
@@ -215,7 +215,7 @@ export function DashboardTrainerOpsPanel({
 
         {primaryResource ? (
           <QuickActionRow title={`Recursos · ${primaryResource.label}`} dueToday={resourceDueToday}>
-            <p className="text-[10px] text-ink-muted leading-relaxed">
+            <p className="text-3xs text-ink-muted leading-relaxed">
               Aviso semanal o recurso para compartir en el grupo de alumnos.
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -226,7 +226,7 @@ export function DashboardTrainerOpsPanel({
                     ok ? toast.success('Mensaje copiado') : toast.error('No se pudo copiar'),
                   )
                 }}
-                className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-[10px] font-medium text-ink-primary hover:bg-surface-card transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-card transition-colors"
               >
                 <Copy className="h-3 w-3" aria-hidden />
                 Copiar mensaje
@@ -242,7 +242,7 @@ export function DashboardTrainerOpsPanel({
                     }
                   })
                 }}
-                className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 dark:text-emerald-300"
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-3xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 dark:text-emerald-300"
               >
                 <WhatsAppIcon className="h-3 w-3" />
                 Grupo WA
@@ -251,11 +251,11 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         ) : (
           <QuickActionRow title="Recursos · aviso semanal">
-            <p className="text-[10px] text-ink-muted">Agregá una plantilla o recurso en Devoluciones → Recursos.</p>
+            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Devoluciones → Recursos.</p>
             <button
               type="button"
               onClick={() => navigate('/feedback?tab=recursos')}
-              className="text-[10px] font-medium text-brand-primary hover:underline"
+              className="text-3xs font-medium text-brand-primary hover:underline"
             >
               Ir a Recursos
             </button>
@@ -272,7 +272,7 @@ export function DashboardTrainerOpsPanel({
             aria-expanded={rmOpen}
           >
             <Dumbbell className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
-            <span className="flex-1 text-[11px] font-semibold text-ink-primary">
+            <span className="flex-1 text-2xs font-semibold text-ink-primary">
               TESTEAR RM en la próxima rutina ({rmTestDueStudents.length})
             </span>
             <ChevronDown
@@ -285,7 +285,7 @@ export function DashboardTrainerOpsPanel({
               {rmTestDueStudents.map((st) => (
                 <li
                   key={st.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-amber-500/10"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-amber-500/10"
                 >
                   <button
                     type="button"
@@ -294,12 +294,12 @@ export function DashboardTrainerOpsPanel({
                   >
                     {st.full_name}
                   </button>
-                  <span className="ml-auto shrink-0 tabular-nums text-[10px] text-ink-muted">{st.weeks} sem.</span>
+                  <span className="ml-auto shrink-0 tabular-nums text-3xs text-ink-muted">{st.weeks} sem.</span>
                   <button
                     type="button"
                     disabled={rmMarkingId === st.id}
                     onClick={() => void markRmRead(st.id)}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-amber-600/35 px-2 py-0.5 text-[10px] font-medium text-amber-800 hover:bg-amber-500/10 disabled:opacity-45 dark:text-amber-300"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-amber-600/35 px-2 py-0.5 text-3xs font-medium text-amber-800 hover:bg-amber-500/10 disabled:opacity-45 dark:text-amber-300"
                     title="Marcar como leído: la cuenta de 12 semanas vuelve a cero"
                   >
                     <Check className="h-3 w-3" />
@@ -321,7 +321,7 @@ export function DashboardTrainerOpsPanel({
             aria-expanded={lastWeekOpen}
           >
             <BellRing className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-300" aria-hidden />
-            <span className="flex-1 text-[11px] font-semibold text-ink-primary">
+            <span className="flex-1 text-2xs font-semibold text-ink-primary">
               Última semana ({lastWeekStudents.length}) — enviar feedback mensual
             </span>
             <ChevronDown
@@ -334,7 +334,7 @@ export function DashboardTrainerOpsPanel({
               {lastWeekStudents.map((st) => (
                 <li
                   key={st.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-rose-500/10"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-rose-500/10"
                 >
                   <span className="min-w-0 truncate font-medium text-ink-primary">{st.full_name}</span>
                   <button
@@ -352,7 +352,7 @@ export function DashboardTrainerOpsPanel({
                       })
                       if (!ok) toast.error(`Sin teléfono válido para ${st.full_name}`)
                     }}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-[10px] font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-3xs font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
                   >
                     <WhatsAppIcon className="h-3 w-3" />
                     Enviar feedback mensual
@@ -373,7 +373,7 @@ export function DashboardTrainerOpsPanel({
             aria-expanded={missingOpen}
           >
             <CalendarClock className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
-            <span className="flex-1 text-[11px] font-semibold text-ink-primary">
+            <span className="flex-1 text-2xs font-semibold text-ink-primary">
               Sin feedback semanal de esta ronda ({missingCheckInStudents.length}) — recordales por WhatsApp
             </span>
             <ChevronDown
@@ -386,7 +386,7 @@ export function DashboardTrainerOpsPanel({
               {missingCheckInStudents.map((st) => (
                 <li
                   key={st.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-surface-elevated"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-surface-elevated"
                 >
                   <span className="min-w-0 truncate font-medium text-ink-primary">{st.full_name}</span>
                   <button
@@ -406,7 +406,7 @@ export function DashboardTrainerOpsPanel({
                       })
                       if (!ok) toast.error(`Sin teléfono válido para ${st.full_name}`)
                     }}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-[10px] font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-3xs font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
                   >
                     <WhatsAppIcon className="h-3 w-3" />
                     Recordar
@@ -426,7 +426,7 @@ export function DashboardTrainerOpsPanel({
           aria-expanded={guideOpen}
         >
           <BellRing className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
-          <span className="flex-1 min-w-0 text-[11px] font-medium text-ink-secondary">
+          <span className="flex-1 min-w-0 text-2xs font-medium text-ink-secondary">
             Guía semanal
             {fridayHighlight ? (
               <span className="text-brand-primary font-semibold"> · hoy: check-ins al grupo</span>
@@ -449,7 +449,7 @@ export function DashboardTrainerOpsPanel({
                   title={reminder.description}
                   onClick={() => navigate(reminder.href)}
                   className={cn(
-                    'rounded-md border px-2 py-1 text-[10px] font-medium transition-colors',
+                    'rounded-md border px-2 py-1 text-3xs font-medium transition-colors',
                     highlighted
                       ? 'border-brand-primary/35 bg-brand-primary/10 text-brand-primary'
                       : 'border-surface-border/80 bg-surface-base/50 text-ink-secondary hover:text-ink-primary hover:border-surface-border',

@@ -30,7 +30,7 @@ export function IntakeFormPlanHint({
         'dark:border-white/10 dark:bg-white/[0.04]',
       )}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Plan elegido</p>
+      <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Plan elegido</p>
       <div className="mt-1.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-bold uppercase leading-tight tracking-tight text-ink-primary">

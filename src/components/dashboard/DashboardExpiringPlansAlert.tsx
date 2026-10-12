@@ -37,7 +37,7 @@ export function DashboardExpiringPlansAlert({ daysAhead = 14, studentPathBase = 
         aria-expanded={open}
       >
         <CalendarX className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
-        <span className="flex-1 text-[11px] font-semibold text-ink-primary">
+        <span className="flex-1 text-2xs font-semibold text-ink-primary">
           Planes por vencer ({expiringPlans.length}) — próximos {daysAhead} días
         </span>
         <ChevronDown
@@ -54,7 +54,7 @@ export function DashboardExpiringPlansAlert({ daysAhead = 14, studentPathBase = 
               <li
                 key={p.id}
                 onClick={() => navigate(`${studentPathBase}/${p.student_id}`)}
-                className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-surface-elevated"
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-surface-elevated"
               >
                 <span className="min-w-0 flex-1 truncate">
                   <span className="font-medium text-ink-primary">{p.student_name ?? '—'}</span>

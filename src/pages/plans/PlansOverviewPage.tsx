@@ -103,7 +103,7 @@ export function PlansOverviewPage() {
           <CardTitle className={cn('flex items-center gap-2', tone)}>
             {icon}
             {title}
-            <span className="rounded-full bg-surface-elevated px-1.5 py-0.5 text-[10px] font-semibold text-ink-secondary">
+            <span className="rounded-full bg-surface-elevated px-1.5 py-0.5 text-3xs font-semibold text-ink-secondary">
               {items.length}
             </span>
           </CardTitle>
@@ -128,7 +128,7 @@ export function PlansOverviewPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1',
+                      'rounded-full px-2 py-0.5 text-3xs font-semibold ring-1',
                       eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
                       eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
                       eff === 'cancelled' ? 'bg-zinc-500/15 text-ink-secondary ring-zinc-500/25' :
@@ -140,7 +140,7 @@ export function PlansOverviewPage() {
                       <span className="hidden text-xs tabular-nums text-ink-secondary sm:inline">{formatMoney(r.amount)}</span>
                     ) : null}
                     {days >= 0 && r.end_date >= todayISO() ? (
-                      <span className="hidden text-[11px] text-ink-muted sm:inline">{days}d</span>
+                      <span className="hidden text-2xs text-ink-muted sm:inline">{days}d</span>
                     ) : null}
                     <ChevronRight className="h-4 w-4 text-ink-muted" />
                   </div>
@@ -177,19 +177,19 @@ export function PlansOverviewPage() {
         {/* KPIs */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Card padding="md">
-            <p className="text-[11px] uppercase tracking-wide text-ink-muted">Activos</p>
+            <p className="text-2xs uppercase tracking-wide text-ink-muted">Activos</p>
             <p className="mt-1 text-xl font-semibold text-emerald-600 dark:text-emerald-400">{grouped.active.length}</p>
           </Card>
           <Card padding="md">
-            <p className="text-[11px] uppercase tracking-wide text-ink-muted">Por vencer</p>
+            <p className="text-2xs uppercase tracking-wide text-ink-muted">Por vencer</p>
             <p className="mt-1 text-xl font-semibold text-amber-600 dark:text-amber-400">{grouped.expiring.length}</p>
           </Card>
           <Card padding="md">
-            <p className="text-[11px] uppercase tracking-wide text-ink-muted">Vencidos</p>
+            <p className="text-2xs uppercase tracking-wide text-ink-muted">Vencidos</p>
             <p className="mt-1 text-xl font-semibold text-red-600 dark:text-red-400">{grouped.expired.length}</p>
           </Card>
           <Card padding="md">
-            <p className="text-[11px] uppercase tracking-wide text-ink-muted">Pendiente cobro</p>
+            <p className="text-2xs uppercase tracking-wide text-ink-muted">Pendiente cobro</p>
             <p className="mt-1 text-xl font-semibold text-ink-primary">{formatMoney(pendingAmount)}</p>
           </Card>
         </div>

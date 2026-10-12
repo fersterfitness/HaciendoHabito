@@ -17,7 +17,7 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
       <label className={intakeFormFieldLabelClass()}>
         Forma de pago preferida<span className="text-zinc-500 dark:text-zinc-400">*</span>
       </label>
-      <p className="mb-2 text-[11px] text-ink-muted">Para coordinar el alta con el equipo.</p>
+      <p className="mb-2 text-2xs text-ink-muted">Para coordinar el alta con el equipo.</p>
       <div className="space-y-2">
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
           <input
@@ -51,7 +51,7 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
         <span className={intakeFormFieldLabelClass()}>
           Dato de pago <span className="text-zinc-500 dark:text-zinc-400">(opcional)</span>
         </span>
-        <p className="mb-1.5 text-[11px] text-ink-muted">
+        <p className="mb-1.5 text-2xs text-ink-muted">
           Mercado Pago: alias o comprobante. Efectivo: acuerdo o sucursal si querés dejar constancia.
         </p>
         <textarea

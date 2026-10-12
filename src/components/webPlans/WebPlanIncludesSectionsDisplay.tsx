@@ -57,7 +57,7 @@ function FeatureCheckList({
           ) : (
             <Check size={checkSize} strokeWidth={2.8} className={cn('mt-0.5 shrink-0', checkClass)} />
           )}
-          <span className={cn('text-[13px] font-medium leading-snug', itemTextClass)}>{text}</span>
+          <span className={cn('text-body-sm font-medium leading-snug', itemTextClass)}>{text}</span>
         </li>
       ))}
     </ul>
@@ -80,15 +80,15 @@ export function WebPlanIncludesSectionsDisplay({
   if (!sections.length && !giftItems.length) return null
 
   const eyebrowClass = darkChrome
-    ? 'text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45'
-    : 'text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-400'
+    ? 'text-3xs font-semibold uppercase tracking-[0.12em] text-white/45'
+    : 'text-3xs font-semibold uppercase tracking-[0.12em] text-neutral-400'
 
   const sectionHeadingClass = (s: IntakeIncludeSectionView) =>
     darkChrome
       ? cn('text-xs font-bold uppercase tracking-wide leading-tight', s.headingClassDark)
       : cn('text-xs font-bold uppercase tracking-wide leading-tight', s.headingClassLight)
 
-  const subtitleClass = darkChrome ? 'text-[11px] leading-snug text-white/55' : 'text-[11px] leading-snug text-neutral-500'
+  const subtitleClass = darkChrome ? 'text-2xs leading-snug text-white/55' : 'text-2xs leading-snug text-neutral-500'
   const itemTextClass = darkChrome ? 'text-white/78' : 'text-neutral-600'
   const giftCheckClass = darkChrome ? 'text-emerald-400/75' : 'text-emerald-600/85'
   const dividerClass = darkChrome ? 'border-white/10' : 'border-neutral-200/80'

@@ -23,7 +23,7 @@ export function PublicFormBrandBar({ title, subtitle, className, onDark, compact
       <div className="min-w-0">
         <p
           className={cn(
-            'text-[10px] font-bold uppercase tracking-[0.14em]',
+            'text-3xs font-bold uppercase tracking-[0.14em]',
             onDark ? 'text-white/70' : 'text-brand-primary',
           )}
         >

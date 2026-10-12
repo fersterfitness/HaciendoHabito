@@ -188,14 +188,14 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
 function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-surface-border bg-surface-card/60 p-4 dark:bg-surface-card/40">
-      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-muted">{title}</h3>
+      <h3 className="mb-3 text-2xs font-semibold uppercase tracking-[0.07em] text-ink-muted">{title}</h3>
       <div className="space-y-4">{children}</div>
     </div>
   )
 }
 
 function SubsectionTitle({ children }: { children: ReactNode }) {
-  return <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">{children}</p>
+  return <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-ink-muted">{children}</p>
 }
 
 function newPlanDraft(sortOrder: number): EditableWebPlan {
@@ -866,16 +866,16 @@ export function WebPlansSettingsPage() {
                 <span className="font-medium text-ink-primary">Antes de elegir plan:</span> se muestran las fotos del equipo y 5 modalidades en este orden: TODO en un plan, Servicio Dual, Entrenamiento, Nutrición y Psicólogo Deportivo.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Servicio integral (full_trio):</span> entreno + nutrición + psicólogo en una sola modalidad. Asigná segmento <code className="font-mono text-[10px]">full_trio</code> a esas ofertas.
+                <span className="font-medium text-ink-primary">Servicio integral (full_trio):</span> entreno + nutrición + psicólogo en una sola modalidad. Asigná segmento <code className="font-mono text-3xs">full_trio</code> a esas ofertas.
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Par profesional / Servicio Dual (full):</span> ofertas con segmento <code className="font-mono text-[10px]">full</code> (entreno + nutrición o entreno + psicólogo, sin los tres juntos).
+                <span className="font-medium text-ink-primary">Par profesional / Servicio Dual (full):</span> ofertas con segmento <code className="font-mono text-3xs">full</code> (entreno + nutrición o entreno + psicólogo, sin los tres juntos).
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Entrenamiento Individual (solo):</span> ofertas con segmento <code className="font-mono text-[10px]">solo</code>, activas y con «Mostrar en /form».
+                <span className="font-medium text-ink-primary">Entrenamiento Individual (solo):</span> ofertas con segmento <code className="font-mono text-3xs">solo</code>, activas y con «Mostrar en /form».
               </li>
               <li>
-                <span className="font-medium text-ink-primary">Nutrición (with_nutritionist):</span> ofertas con segmento <code className="font-mono text-[10px]">with_nutritionist</code>, activas y con «Mostrar en /form».
+                <span className="font-medium text-ink-primary">Nutrición (with_nutritionist):</span> ofertas con segmento <code className="font-mono text-3xs">with_nutritionist</code>, activas y con «Mostrar en /form».
               </li>
               <li>
                 <span className="font-medium text-ink-primary">Psicólogo Deportivo (psychologist):</span> muestra «Próximamente» en el /form. Cuando haya ofertas creadas con este segmento y activadas, se mostrarán automáticamente.
@@ -1132,7 +1132,7 @@ export function WebPlansSettingsPage() {
               </>
             ) : null}
           </p>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-secondary">
+          <div className="flex flex-wrap items-center gap-2 text-2xs text-ink-secondary">
             <span className="font-medium text-ink-primary">Leyenda de color:</span>
             <span className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface-base/50 px-2 py-0.5 text-ink-secondary">
               <span className="h-2 w-2 rounded-sm bg-brand-secondary" aria-hidden />
@@ -1293,7 +1293,7 @@ export function WebPlansSettingsPage() {
                       <span className="ml-1.5 font-normal text-ink-secondary">· {plan.title}</span>
                     </h2>
                     <span
-                      className="shrink-0 rounded-md border border-surface-border/80 bg-surface-base/70 px-2 py-0.5 font-mono text-[10px] font-medium text-ink-muted"
+                      className="shrink-0 rounded-md border border-surface-border/80 bg-surface-base/70 px-2 py-0.5 font-mono text-3xs font-medium text-ink-muted"
                       title={
                         segmentRank > 0
                           ? `Posición ${segmentRank} en su modalidad en /form · fila ${listPosition > 0 ? listPosition : plan.sort_order} en esta lista`
@@ -1315,7 +1315,7 @@ export function WebPlansSettingsPage() {
                     </span>
                     {plan.show_in_public_intake ? (
                       <span
-                        className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary"
+                        className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide text-brand-primary"
                         title={
                           plan.isCatalogCanonical
                             ? 'Oferta base del catálogo (también tiene defaults en código)'
@@ -1326,7 +1326,7 @@ export function WebPlansSettingsPage() {
                       </span>
                     ) : (
                       <span
-                        className="shrink-0 rounded-md border border-surface-border px-2 py-0.5 text-[10px] font-medium text-ink-muted"
+                        className="shrink-0 rounded-md border border-surface-border px-2 py-0.5 text-3xs font-medium text-ink-muted"
                         title="Activá «Mostrar en /form» para publicarla"
                       >
                         Oculta en /form
@@ -1334,7 +1334,7 @@ export function WebPlansSettingsPage() {
                     )}
                     <span
                       className={cn(
-                        'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                        'shrink-0 rounded-md px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide',
                         segmentBrandBadgeClass(plan.catalog_segment),
                       )}
                     >
@@ -1352,7 +1352,7 @@ export function WebPlansSettingsPage() {
                       (() => {
                         const sub = webPlanFullSubcategoryLabel(plan.slug, plan.title)
                         return sub ? (
-                          <span className="shrink-0 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300">
+                          <span className="shrink-0 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-3xs font-medium text-sky-700 dark:text-sky-300">
                             {sub}
                           </span>
                         ) : null
@@ -1460,7 +1460,7 @@ export function WebPlansSettingsPage() {
                     />
                     Mostrar esta oferta en el /form
                   </label>
-                  <p className="text-[11px] leading-snug text-ink-muted -mt-2 pl-7">
+                  <p className="text-2xs leading-snug text-ink-muted -mt-2 pl-7">
                     Si desmarcás «Mostrar en /form», esa oferta no aparece como card. Mensual / x3 / x6 / Anual solo cambian precios en pantalla.
                   </p>
                   <div>
@@ -1490,7 +1490,7 @@ export function WebPlansSettingsPage() {
                       <option value="with_nutritionist">NUTRICIÓN (with_nutritionist)</option>
                       <option value="psychologist">PSICÓLOGO DEPORTIVO (psychologist)</option>
                     </select>
-                    <p className="mt-1.5 text-[11px] text-ink-muted">
+                    <p className="mt-1.5 text-2xs text-ink-muted">
                       <strong className="text-ink-secondary">Servicio integral (full_trio)</strong>: modalidad propia con los tres profesionales.{' '}
                       <strong className="text-ink-secondary">Par profesional (full)</strong>: entreno + nutrición o entreno + psicólogo.{' '}
                       <strong className="text-ink-secondary">Entrenamiento / Nutrición / Psicólogo</strong>: modalidades individuales.
@@ -1498,7 +1498,7 @@ export function WebPlansSettingsPage() {
                     {(() => {
                       const hint = webPlanSegmentMismatchHint(plan.catalog_segment, plan.slug, plan.title)
                       return hint ? (
-                        <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
+                        <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-2xs leading-snug text-amber-900 dark:text-amber-100">
                           {hint}
                         </p>
                       ) : null
@@ -1553,7 +1553,7 @@ export function WebPlansSettingsPage() {
                   />
                   <div className="rounded-lg border border-surface-border/80 bg-surface-elevated/30 px-3 py-3 space-y-3">
                     <SubsectionTitle>Precios por plazo (opcional)</SubsectionTitle>
-                    <p className="text-[11px] leading-snug text-ink-muted">
+                    <p className="text-2xs leading-snug text-ink-muted">
                       Una sola fila de oferta puede mostrar precios distintos al cambiar Mensual / x3 / x6 en el /form. Si dejás vacío, x3 y x6 se
                       calculan desde el precio mensual (salvo filas promo dedicadas).
                     </p>
@@ -1596,7 +1596,7 @@ export function WebPlansSettingsPage() {
                     onChange={(e) => updatePlan(plan.slug, { intro_text: e.target.value })}
                   />
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-muted mb-2">
+                    <p className="text-2xs font-semibold uppercase tracking-[0.07em] text-ink-muted mb-2">
                       Incluye — por profesional
                     </p>
                     <WebPlanIncludesSectionsEditor

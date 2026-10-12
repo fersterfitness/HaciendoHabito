@@ -89,7 +89,7 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
         <h3 className="text-sm font-semibold text-ink-primary">
           Notas para la próxima rutina
           {pending.length > 0 && (
-            <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+            <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-2xs font-bold text-amber-700 dark:text-amber-300">
               {pending.length} pendiente{pending.length > 1 ? 's' : ''}
             </span>
           )}
@@ -139,10 +139,10 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
                 {n.is_done && <Check className="h-3 w-3" />}
               </button>
               <div className="min-w-0 flex-1">
-                <p className={'text-[13px] leading-snug ' + (n.is_done ? 'text-ink-muted line-through' : 'text-ink-primary')}>
+                <p className={'text-body-sm leading-snug ' + (n.is_done ? 'text-ink-muted line-through' : 'text-ink-primary')}>
                   {n.content}
                 </p>
-                <p className="text-[10px] text-ink-muted">{formatDate(n.created_at.slice(0, 10))}</p>
+                <p className="text-3xs text-ink-muted">{formatDate(n.created_at.slice(0, 10))}</p>
               </div>
               <button
                 type="button"

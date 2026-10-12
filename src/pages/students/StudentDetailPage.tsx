@@ -92,7 +92,7 @@ function intakeRoutinePhrase(status: string): string {
 
 /** Píldora de estado de rutina (activa = verde; resto semántico). */
 function routineStatusPillClass(status: string, compact = false): string {
-  const sizing = compact ? 'px-1.5 py-px text-[9px]' : 'px-2 py-0.5 text-[10px]'
+  const sizing = compact ? 'px-1.5 py-px text-3xs' : 'px-2 py-0.5 text-3xs'
   const base = cn('rounded border font-semibold uppercase tracking-wide', sizing)
   switch (status) {
     case 'activa':
@@ -597,7 +597,7 @@ export function StudentDetailView({
       ) : (
         <div className="flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-surface-border/80 bg-white/90 px-4 py-3.5 ">
           <div className="min-w-0 flex-1">
-            <p id="student-sheet-title" className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+            <p id="student-sheet-title" className="text-3xs font-semibold uppercase tracking-widest text-ink-muted">
               {entitySingularCapitalized}
             </p>
             <p className="truncate text-sm font-semibold text-ink-primary">{student.full_name}</p>
@@ -655,7 +655,7 @@ export function StudentDetailView({
                     onClick={() => setSheetTab(key)}
                     className={cn(
                       'relative -mb-px flex min-w-0 flex-1 items-center justify-center gap-2',
-                      'rounded-t-2xl border px-2 py-3 sm:px-4 text-[12px] font-semibold transition-colors',
+                      'rounded-t-2xl border px-2 py-3 sm:px-4 text-xs font-semibold transition-colors',
                       active
                         ? 'border-surface-border/80 bg-surface-card text-ink-primary shadow-card'
                         : 'border-transparent bg-transparent text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/25',
@@ -685,7 +685,7 @@ export function StudentDetailView({
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="order-2 min-w-0 flex-1 sm:order-1">
               <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{student.full_name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium uppercase tracking-wider">
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium uppercase tracking-wider">
                 <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
                 <span className="text-zinc-300 " aria-hidden>
                   ·
@@ -737,7 +737,7 @@ export function StudentDetailView({
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {savingTags ? (
-                  <span className="inline-flex h-8 items-center gap-1.5 px-1 text-[11px] text-ink-muted" aria-live="polite">
+                  <span className="inline-flex h-8 items-center gap-1.5 px-1 text-2xs text-ink-muted" aria-live="polite">
                     <Spinner size="sm" variant="spin" />
                     Guardando…
                   </span>
@@ -996,10 +996,10 @@ export function StudentDetailView({
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted ">Rutina activa</p>
+                      <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted ">Rutina activa</p>
                       <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{activeRoutine.name}</p>
                       {activeRoutine.objective?.trim() ? (
-                        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
+                        <p className="mt-1 max-w-lg text-body-sm leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
                       ) : null}
                     </div>
                     <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
@@ -1007,11 +1007,11 @@ export function StudentDetailView({
 
                   <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-surface-border/60 pt-4 ">
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Inicio</dt>
+                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Inicio</dt>
                       <dd className="mt-1 text-sm tabular-nums text-ink-secondary ">{formatDate(activeRoutine.start_date)}</dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semana</dt>
+                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semana</dt>
                       <dd className="mt-1">
                         <RoutineWeekSquares
                           totalWeeks={weekTotal}
@@ -1022,7 +1022,7 @@ export function StudentDetailView({
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semanas restantes</dt>
+                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semanas restantes</dt>
                       <dd className={cn(
                         'mt-1 text-sm tabular-nums font-semibold',
                         weekSt?.lastWeek ? 'text-status-expired' : 'text-ink-primary dark:text-zinc-50',
@@ -1039,7 +1039,7 @@ export function StudentDetailView({
                   </dl>
 
                   <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-surface-border/60 pt-4 ">
-                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-ink-primary dark:text-zinc-100">
+                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary dark:text-zinc-100">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
@@ -1049,7 +1049,7 @@ export function StudentDetailView({
                       />
                       ¿Abonó?
                     </label>
-                    <label className="text-[11px] font-medium text-ink-muted">
+                    <label className="text-2xs font-medium text-ink-muted">
                       Monto (opcional)
                       <input
                         type="number"
@@ -1065,15 +1065,15 @@ export function StudentDetailView({
                       />
                     </label>
                     {activeRoutine.is_paid ? (
-                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-semibold text-emerald-700 dark:text-emerald-300">
                         Abonada
                       </span>
                     ) : (
-                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-3xs font-semibold text-amber-700 dark:text-amber-300">
                         Pendiente
                       </span>
                     )}
-                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-ink-primary dark:text-zinc-100">
+                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary dark:text-zinc-100">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
@@ -1089,7 +1089,7 @@ export function StudentDetailView({
                   {profileChips.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5 border-t border-surface-border/60 pt-4 ">
                       {profileChips.map((c) => (
-                        <span key={c.label} className="rounded-md border border-surface-border/80 bg-white px-2 py-0.5 text-[11px] font-medium text-ink-secondary dark:bg-zinc-800/60 ">
+                        <span key={c.label} className="rounded-md border border-surface-border/80 bg-white px-2 py-0.5 text-2xs font-medium text-ink-secondary dark:bg-zinc-800/60 ">
                           {c.label}
                         </span>
                       ))}
@@ -1132,11 +1132,11 @@ export function StudentDetailView({
                   {/* Acento izquierdo */}
                   <div className="w-1 shrink-0 bg-zinc-300/60 dark:bg-zinc-700/60" />
                   <div className="flex-1 px-5 py-6">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted dark:text-zinc-500">Sin rutina activa</p>
+                    <p className="text-3xs font-semibold uppercase tracking-[0.16em] text-ink-muted dark:text-zinc-500">Sin rutina activa</p>
                     <p className="mt-2 text-[15px] font-semibold text-ink-primary dark:text-zinc-100">
                       {student.full_name.split(' ')[0]} no tiene una rutina asignada
                     </p>
-                    <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-ink-muted dark:text-zinc-500">
+                    <p className="mt-1.5 max-w-sm text-body-sm leading-relaxed text-ink-muted dark:text-zinc-500">
                       {rutinaHistorialVacío
                         ? 'Creá la primera rutina para este alumno.'
                         : 'Tiene rutinas en el historial. Podés abrirlas para renovar o activar un período.'}
@@ -1146,7 +1146,7 @@ export function StudentDetailView({
                     {profileChips.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-1.5">
                         {profileChips.map((c) => (
-                          <span key={c.label} className="rounded-md border border-surface-border bg-surface-elevated/80 px-2 py-0.5 text-[11px] font-medium text-ink-secondary ">
+                          <span key={c.label} className="rounded-md border border-surface-border bg-surface-elevated/80 px-2 py-0.5 text-2xs font-medium text-ink-secondary ">
                             {c.label}
                           </span>
                         ))}
@@ -1188,7 +1188,7 @@ export function StudentDetailView({
             <section>
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border/55 pb-3 ">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted ">Historial</p>
+                  <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted ">Historial</p>
                   <h3 className="mt-0.5 text-sm font-semibold text-ink-primary dark:text-zinc-50">Rutinas anteriores</h3>
                 </div>
                 <Button
@@ -1196,7 +1196,7 @@ export function StudentDetailView({
                   size="sm"
                   icon={<Plus className="h-3.5 w-3.5" />}
                   className={cn(
-                    '!h-8 text-[12px] font-semibold',
+                    '!h-8 text-xs font-semibold',
                     rutinaHistorialVacío
                       ? 'text-ink-muted hover:bg-surface-elevated hover:text-ink-secondary '
                       : '!text-brand-secondary hover:bg-brand-secondary/10',
@@ -1208,7 +1208,7 @@ export function StudentDetailView({
               </div>
 
               {rutinaHistorialVacío ? (
-                <p className="py-6 text-center text-[13px] text-ink-muted ">
+                <p className="py-6 text-center text-body-sm text-ink-muted ">
                   Todavía no hay rutinas activas.
                 </p>
               ) : (
@@ -1223,8 +1223,8 @@ export function StudentDetailView({
                           className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-semibold text-ink-primary ">{r.name}</p>
-                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-ink-muted">
+                            <p className="truncate text-body-sm font-semibold text-ink-primary ">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-2xs tabular-nums text-ink-muted">
                               <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
                               {weeks != null && (
                                 <span className="rounded bg-surface-elevated px-1.5 py-px font-medium ">
@@ -1249,7 +1249,7 @@ export function StudentDetailView({
             {completedRoutines.length > 0 && (
               <section>
                 <div className="border-b border-surface-border/55 pb-3 ">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">Historial</p>
+                  <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">Historial</p>
                   <h3 className="mt-0.5 text-sm font-semibold text-ink-primary ">
                     Rutinas completadas ({completedRoutines.length})
                   </h3>
@@ -1265,8 +1265,8 @@ export function StudentDetailView({
                           className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-semibold text-ink-primary dark:text-zinc-50">{r.name}</p>
-                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-ink-muted">
+                            <p className="truncate text-body-sm font-semibold text-ink-primary dark:text-zinc-50">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-2xs tabular-nums text-ink-muted">
                               <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
                               {r.completed_at && (
                                 <span className="rounded bg-emerald-100 px-1.5 py-px font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -1329,7 +1329,7 @@ export function StudentDetailView({
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-ink-primary dark:text-zinc-50">{p.title}</p>
-                      <p className="text-[11px] text-ink-muted">
+                      <p className="text-2xs text-ink-muted">
                         {p.start_date || p.end_date ? (
                           <span className="mr-2 font-medium text-ink-secondary ">
                             {p.start_date ? formatDate(p.start_date) : '—'} → {p.end_date ? formatDate(p.end_date) : '—'}
@@ -1376,7 +1376,7 @@ export function StudentDetailView({
                     <ul className="divide-y divide-surface-border/60 ">{vigentes.map(renderPlan)}</ul>
                     {completados.length > 0 && (
                       <div className="mt-6">
-                        <p className="border-b border-surface-border/55 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
+                        <p className="border-b border-surface-border/55 pb-2 text-3xs font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
                           Planes completados ({completados.length})
                         </p>
                         <ul className="divide-y divide-surface-border/60 ">{completados.map(renderPlan)}</ul>
@@ -1408,7 +1408,7 @@ export function StudentDetailView({
                   aria-selected={seguimientoTab === value}
                   onClick={() => setSeguimientoTab(value)}
                   className={cn(
-                    '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide transition-colors sm:text-xs',
+                    '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold uppercase tracking-wide transition-colors sm:text-xs',
                     seguimientoTab === value
                       ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 dark:text-zinc-50'
                       : 'border-transparent text-ink-muted hover:text-ink-primary ',
@@ -1649,7 +1649,7 @@ function FuerzaTab({
             <Dumbbell className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold uppercase tracking-wide text-ink-primary">Testear RM en la próxima rutina</p>
-              <p className="text-[11px] text-ink-secondary">
+              <p className="text-2xs text-ink-secondary">
                 {rmTestWeeks} semanas de rutina desde el último test. Al marcarlo como leído la cuenta vuelve a cero.
               </p>
             </div>
@@ -1668,7 +1668,7 @@ function FuerzaTab({
             </Button>
           </div>
         ) : (
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-2xs text-ink-muted">
             Próximo test de RM: {rmTestWeeks} de {RM_TEST_EVERY_WEEKS} semanas de rutina.
           </p>
         )
@@ -1713,14 +1713,14 @@ function FuerzaTab({
                     />
                     <button type="button" onClick={() => setOpenKey(isOpen ? null : g.key)} className="min-w-0 flex-1 text-left">
                       <p className="truncate text-sm font-semibold text-ink-primary">{g.name}</p>
-                      <p className="text-[10px] text-ink-muted">
+                      <p className="text-3xs text-ink-muted">
                         {formatDate(latest.tested_at)} · {g.history.length} {g.history.length === 1 ? 'test' : 'tests'}
                       </p>
                     </button>
                     {delta != null && prev ? (
                       <span
                         className={cn(
-                          'shrink-0 text-[11px] font-semibold tabular-nums',
+                          'shrink-0 text-2xs font-semibold tabular-nums',
                           delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-status-expired' : 'text-ink-muted',
                         )}
                         title={`Antes: ${prev.rm_kg} kg (${formatDate(prev.tested_at)})`}
@@ -1750,10 +1750,10 @@ function FuerzaTab({
                               <p className="text-xs text-ink-secondary">
                                 {formatDate(h.tested_at)} · {h.source === 'epley' ? 'Estimado (Epley)' : 'Testeado'}
                               </p>
-                              {h.notes ? <p className="truncate text-[10px] text-ink-muted">{h.notes}</p> : null}
+                              {h.notes ? <p className="truncate text-3xs text-ink-muted">{h.notes}</p> : null}
                             </div>
                             {d != null && d !== 0 ? (
-                              <span className={cn('text-[10px] tabular-nums', d > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
+                              <span className={cn('text-3xs tabular-nums', d > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
                                 {d > 0 ? `+${d}` : d}
                               </span>
                             ) : null}
@@ -1785,7 +1785,7 @@ function FuerzaTab({
             <TrendingUp className="h-4 w-4 text-ink-muted" aria-hidden />
             <h3 className="text-sm font-semibold text-ink-primary ">Progreso de RM</h3>
           </div>
-          <p className="mb-3 text-[11px] text-ink-muted">
+          <p className="mb-3 text-2xs text-ink-muted">
             Tocá el punto de color de cada ejercicio para sumarlo o quitarlo del gráfico (hasta {RM_MAX_COMPARE}).
           </p>
           {compareSel.length === 0 ? (
@@ -1794,7 +1794,7 @@ function FuerzaTab({
             <>
               <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
                 {compareSel.map((c) => (
-                  <span key={c.key} className="inline-flex items-center gap-1.5 text-[11px] text-ink-secondary">
+                  <span key={c.key} className="inline-flex items-center gap-1.5 text-2xs text-ink-secondary">
                     <span className="h-2 w-2 rounded-full" style={{ background: palette[c.slot] }} />
                     {groups.find((g) => g.key === c.key)?.name}
                   </span>
@@ -1826,7 +1826,7 @@ function FuerzaTab({
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null
                       return (
-                        <div className="rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-[11px] shadow-md">
+                        <div className="rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-2xs shadow-md">
                           <p className="mb-1 text-ink-muted">{formatDate(String(label))}</p>
                           {payload.map((p) => (
                             <p key={String(p.dataKey)} className="flex items-center gap-1.5 text-ink-primary">
@@ -1882,7 +1882,7 @@ function FuerzaTab({
             {calcRm != null && (
               <>
                 <div>
-                  <label className="mb-1 block text-[10px] uppercase tracking-wide text-ink-muted">
+                  <label className="mb-1 block text-3xs uppercase tracking-wide text-ink-muted">
                     Porcentaje: {calcPercent}%
                   </label>
                   <input
@@ -1894,13 +1894,13 @@ function FuerzaTab({
                 </div>
                 <div className="flex items-center justify-between border border-surface-border/80 bg-surface-elevated/60 px-4 py-3 ">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted ">Peso estimado</p>
+                    <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">Peso estimado</p>
                     <p className="text-2xl font-bold tabular-nums text-ink-primary dark:text-zinc-50">{calcWeight} kg</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-ink-muted">1RM base</p>
+                    <p className="text-3xs text-ink-muted">1RM base</p>
                     <p className="text-sm font-semibold text-ink-primary">{calcRm} kg</p>
-                    <p className="mt-1 text-[10px] text-ink-muted">al {calcPercent}%</p>
+                    <p className="mt-1 text-3xs text-ink-muted">al {calcPercent}%</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -2074,7 +2074,7 @@ function AddRmModal({
           {percentRm ? (
             <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM aproximado</p>
+                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM aproximado</p>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary ">{percentRm} kg</p>
               </div>
               <p className="text-xs text-ink-muted text-right">
@@ -2083,7 +2083,7 @@ function AddRmModal({
               </p>
             </div>
           ) : null}
-          <p className="text-[10px] text-ink-muted">Si ya había un RM de este ejercicio, el anterior queda en el historial.</p>
+          <p className="text-3xs text-ink-muted">Si ya había un RM de este ejercicio, el anterior queda en el historial.</p>
         </div>
       ) : mode === 'test' ? (
         <div>
@@ -2120,7 +2120,7 @@ function AddRmModal({
           {estimatedRm && (
             <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM estimado (Epley)</p>
+                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM estimado (Epley)</p>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary ">{estimatedRm} kg</p>
               </div>
               <p className="text-xs text-ink-muted text-right">
@@ -2129,7 +2129,7 @@ function AddRmModal({
               </p>
             </div>
           )}
-          <p className="text-[10px] text-ink-muted">La fórmula de Epley es más precisa con 1-6 repeticiones.</p>
+          <p className="text-3xs text-ink-muted">La fórmula de Epley es más precisa con 1-6 repeticiones.</p>
         </div>
       )}
 

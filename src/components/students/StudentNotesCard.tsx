@@ -83,7 +83,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
             className={cn(
               'mb-0',
               variant === 'minimal'
-                ? 'text-[11px] font-semibold uppercase tracking-wide text-ink-muted'
+                ? 'text-2xs font-semibold uppercase tracking-wide text-ink-muted'
                 : 'text-sm',
             )}
           >
@@ -122,7 +122,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
           className={cn(
             'mb-0',
             variant === 'minimal'
-              ? 'text-[11px] font-semibold uppercase tracking-wide text-ink-muted'
+              ? 'text-2xs font-semibold uppercase tracking-wide text-ink-muted'
               : 'text-sm',
           )}
         >
@@ -136,7 +136,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
             {batch.kind === 'meta' ? (
               <p
                 className={cn(
-                  'inline-flex max-w-full px-2 py-1 text-[11px] font-medium leading-snug text-ink-secondary',
+                  'inline-flex max-w-full px-2 py-1 text-2xs font-medium leading-snug text-ink-secondary',
                   variant === 'minimal'
                     ? 'border border-surface-border/70'
                     : 'rounded-lg border border-[#ff5508]/25 bg-[#ff5508]/[0.08] text-[#ff5508] dark:text-[#ffa065]',
@@ -170,7 +170,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
                       variant === 'minimal' && 'border-0 px-2 sm:px-0 py-3 first:pt-0',
                     )}
                   >
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">{p.label}</dt>
+                    <dt className="text-2xs font-medium uppercase tracking-wide text-ink-muted">{p.label}</dt>
                     <dd
                       className={cn(
                         'text-sm leading-snug text-ink-primary',

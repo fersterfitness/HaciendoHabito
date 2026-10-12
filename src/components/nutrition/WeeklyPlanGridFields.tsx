@@ -66,7 +66,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
               value={meal.label}
               onChange={(e) => updateMealField(mi, 'label', e.target.value)}
               className={cn(
-                'w-28 bg-transparent px-1 py-0.5 text-[12px] font-semibold text-ink-primary',
+                'w-28 bg-transparent px-1 py-0.5 text-xs font-semibold text-ink-primary',
                 planFocusClassName,
               )}
               aria-label="Nombre de la comida"
@@ -77,7 +77,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
               value={meal.approxTime}
               onChange={(e) => updateMealField(mi, 'approxTime', e.target.value)}
               placeholder="hora"
-              className={cn('w-24 min-w-0 bg-transparent py-0.5 text-[11px] text-ink-secondary', planFocusClassName)}
+              className={cn('w-24 min-w-0 bg-transparent py-0.5 text-2xs text-ink-secondary', planFocusClassName)}
               aria-label="Horario aproximado"
             />
             <button
@@ -96,7 +96,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
         <button
           type="button"
           onClick={() => onGridChange(addMealRow(normalized, mergeWeekends))}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-surface-border px-2.5 py-1 text-[12px] font-medium text-brand-secondary hover:bg-brand-secondary/8"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-surface-border px-2.5 py-1 text-xs font-medium text-brand-secondary hover:bg-brand-secondary/8"
         >
           <Plus className="h-3.5 w-3.5" />
           Comida
@@ -113,9 +113,9 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
             const count = filledMealCountForDay(normalized, di)
             return (
               <header key={`h-${day}`} className="flex items-center justify-between gap-2 px-0.5">
-                <h3 className="text-[12px] font-bold tracking-tight text-ink-primary">{day}</h3>
+                <h3 className="text-xs font-bold tracking-tight text-ink-primary">{day}</h3>
                 <span
-                  className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
+                  className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-3xs font-semibold tabular-nums"
                   style={{ backgroundColor: `${accent.color}22`, color: accent.color }}
                 >
                   {count}
@@ -135,9 +135,9 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                 >
                   <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />
                   <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
-                    <p className="text-[12px] font-bold leading-tight text-ink-primary">{meal.label}</p>
+                    <p className="text-xs font-bold leading-tight text-ink-primary">{meal.label}</p>
                     {meal.approxTime.trim() ? (
-                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+                      <p className="mt-0.5 text-3xs font-medium uppercase tracking-wide text-ink-muted">
                         {meal.approxTime}
                       </p>
                     ) : null}
@@ -147,7 +147,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                       placeholder="Escribí el menú…"
                       rows={4}
                       className={cn(
-                        'mt-1.5 min-h-[4.75rem] w-full flex-1 resize-none rounded-md border-0 bg-transparent px-0 py-1 text-[12px] leading-relaxed text-ink-primary',
+                        'mt-1.5 min-h-[4.75rem] w-full flex-1 resize-none rounded-md border-0 bg-transparent px-0 py-1 text-xs leading-relaxed text-ink-primary',
                         'placeholder:text-ink-muted/55',
                         filled ? '' : 'opacity-90',
                         planFocusClassName,

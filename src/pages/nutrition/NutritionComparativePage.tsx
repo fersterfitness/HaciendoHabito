@@ -420,7 +420,7 @@ export function NutritionComparativePage() {
               className="shrink-0 text-ink-secondary/70"
             />
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-secondary">
+              <p className="text-3xs font-semibold uppercase tracking-[0.18em] text-brand-secondary">
                 PDFs nutrición
               </p>
               <h1 className="text-xl font-semibold tracking-tight text-ink-primary sm:text-2xl">
@@ -487,13 +487,13 @@ export function NutritionComparativePage() {
                     />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-ink-primary">{selectedStudent.full_name}</p>
-                      <p className="text-[11px] text-ink-muted">Listo para comparar controles</p>
+                      <p className="text-2xs text-ink-muted">Listo para comparar controles</p>
                     </div>
                   </div>
                 ) : null}
 
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                  <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
                     Fuente de datos
                   </p>
                   <SegmentedMode
@@ -645,7 +645,7 @@ export function NutritionComparativePage() {
                     </summary>
                     <ul className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
                       {diffRows.slice(6).map((row) => (
-                        <li key={row.label} className="text-[11px] text-ink-secondary flex justify-between gap-2">
+                        <li key={row.label} className="text-2xs text-ink-secondary flex justify-between gap-2">
                           <span className="font-medium text-ink-primary truncate">{row.label}</span>
                           <span className={cn('shrink-0 tabular-nums font-semibold', deltaToneClass(row.delta))}>
                             {row.delta}
@@ -667,7 +667,7 @@ export function NutritionComparativePage() {
                   />
                 </label>
 
-                <p className="text-[11px] leading-relaxed text-ink-muted">
+                <p className="text-2xs leading-relaxed text-ink-muted">
                   PDF escaneado sin texto embebido: puede requerir OCR para extraer datos.
                 </p>
               </div>
@@ -788,7 +788,7 @@ function ControlPickerColumn({
     <div className="min-w-0 rounded-xl border border-surface-border/80 bg-surface-elevated/25 overflow-hidden flex flex-col">
       <div className="px-3 py-2 border-b border-surface-border/60 bg-surface-card/50">
         <p className="text-xs font-semibold text-ink-primary">{title}</p>
-        <p className="text-[10px] text-ink-muted">{subtitle}</p>
+        <p className="text-3xs text-ink-muted">{subtitle}</p>
       </div>
       <ul className="flex-1 max-h-[220px] overflow-y-auto p-2 space-y-1.5">
         {options.map((item) => {
@@ -820,7 +820,7 @@ function ControlPickerColumn({
                 <p className={cn('text-xs font-medium truncate', active ? 'text-brand-secondary' : 'text-ink-primary')}>
                   {label}
                 </p>
-                <p className="text-[10px] text-ink-muted truncate mt-0.5">{meta}</p>
+                <p className="text-3xs text-ink-muted truncate mt-0.5">{meta}</p>
               </button>
             </li>
           )
@@ -843,8 +843,8 @@ function MetricDeltaCard({
 }) {
   return (
     <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/30 p-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted truncate">{label}</p>
-      <p className="mt-1 text-[11px] text-ink-secondary tabular-nums truncate">
+      <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted truncate">{label}</p>
+      <p className="mt-1 text-2xs text-ink-secondary tabular-nums truncate">
         {from} → {to}
       </p>
       <p className={cn('mt-0.5 text-sm font-bold tabular-nums', deltaToneClass(delta))}>{delta}</p>

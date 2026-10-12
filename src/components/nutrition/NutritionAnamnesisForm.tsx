@@ -291,7 +291,7 @@ export function NutritionAnamnesisForm({ value, onChange }: Props) {
 
       <div>
         <SectionTitle>Frecuencia alimentaria (tipo · frecuencia · cantidad · no consume · motivo)</SectionTitle>
-        <p className="mb-2 text-[11px] text-ink-muted">
+        <p className="mb-2 text-2xs text-ink-muted">
           Si marcás «No consume», completá el motivo en esa fila (gusto, alergia, intolerancia, etc.).
         </p>
         <div className="overflow-auto max-h-[22rem] rounded-xl border border-surface-border shadow-sm">

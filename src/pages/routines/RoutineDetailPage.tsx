@@ -1352,7 +1352,7 @@ export function RoutineDetailPage() {
           <div className="grid grid-cols-4 gap-2">
             <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
               <Calendar className="h-3.5 w-3.5 text-ink-muted mb-0.5" />
-              <span className="text-[10px] text-ink-muted">Inicio</span>
+              <span className="text-3xs text-ink-muted">Inicio</span>
               <span className="text-xs font-semibold text-ink-primary">{formatDate(routine.start_date)}</span>
             </div>
             <div className={cn(
@@ -1360,7 +1360,7 @@ export function RoutineDetailPage() {
               checkInWeek.lastWeek ? 'bg-status-expired/10' : 'bg-surface-elevated',
             )}>
               <Clock className={cn('h-3.5 w-3.5 mb-0.5', checkInWeek.lastWeek ? 'text-status-expired' : 'text-ink-muted')} />
-              <span className="text-[10px] text-ink-muted">Semana</span>
+              <span className="text-3xs text-ink-muted">Semana</span>
               <span className={cn('text-xs font-semibold', checkInWeek.lastWeek ? 'text-status-expired' : 'text-ink-primary')}>
                 {isLibrary
                   ? '—'
@@ -1375,11 +1375,11 @@ export function RoutineDetailPage() {
             </div>
             <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
               <Calendar className="h-3.5 w-3.5 text-ink-muted mb-0.5" />
-              <span className="text-[10px] text-ink-muted">Semanas</span>
+              <span className="text-3xs text-ink-muted">Semanas</span>
               <span className="text-xs font-semibold text-ink-primary">{blocks.length}</span>
             </div>
             <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
-              <span className="text-[10px] text-ink-muted mt-1">Ejercicios</span>
+              <span className="text-3xs text-ink-muted mt-1">Ejercicios</span>
               <span className="text-xs font-semibold text-ink-primary">{totalExercises}</span>
             </div>
           </div>
@@ -1392,7 +1392,7 @@ export function RoutineDetailPage() {
             onChange={(e) => handleStatusChange(e.target.value)}
           />
           ) : (
-            <p className="text-[11px] text-ink-secondary leading-relaxed">
+            <p className="text-2xs text-ink-secondary leading-relaxed">
               Guardada en tu biblioteca. No está asignada a ningún alumno. Cuando quieras dársela a alguien, usá <strong className="text-ink-primary">Asignar a un alumno</strong>.
             </p>
           )}
@@ -1404,13 +1404,13 @@ export function RoutineDetailPage() {
           <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3 shadow-card">
             {routine.objective && (
               <div className="border-l-[3px] border-l-brand-primary pl-3">
-                <p className="text-[10px] font-semibold text-brand-primary uppercase tracking-wider mb-1.5">Objetivo del Coach</p>
+                <p className="text-3xs font-semibold text-brand-primary uppercase tracking-wider mb-1.5">Objetivo del Coach</p>
                 <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.objective}</p>
               </div>
             )}
             {routine.notes && (
               <div className="pt-3 border-t border-surface-border border-l-[3px] border-l-amber-500 pl-3 mt-3">
-                <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1.5">Aclaraciones</p>
+                <p className="text-3xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1.5">Aclaraciones</p>
                 <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.notes}</p>
               </div>
             )}
@@ -1454,18 +1454,18 @@ export function RoutineDetailPage() {
 
         {/* Editor de bloques */}
         {lastMenstrualCycle && routine.student?.gender === 'F' ? (
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-2xs text-ink-muted">
             Ciclo menstrual: último inicio {formatDate(lastMenstrualCycle.cycle_start_date)} · {lastMenstrualCycle.cycle_length} días. Los avisos por semana usan esas fechas y las del bloque.
           </p>
         ) : null}
 
         {checkInWeek.lastWeek ? (
-          <p className="rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-[11px] font-medium text-rose-700 dark:text-rose-300">
+          <p className="rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-2xs font-medium text-rose-700 dark:text-rose-300">
             Última semana · renovar rutina
             {checkInWeek.weekNumber != null ? ` (va por la semana ${checkInWeek.weekNumber}).` : '.'}
           </p>
         ) : checkInWeek.finished || checkInWeek.weekNumber != null ? (
-          <p className="text-[11px] text-ink-secondary">
+          <p className="text-2xs text-ink-secondary">
             {checkInWeek.finished
               ? 'El alumno marcó «Terminé mi mes de rutina» en el check-in. Las semanas quedan marcadas como hechas.'
               : `Según el último check-in, va por la semana ${checkInWeek.weekNumber}.`}
@@ -1679,12 +1679,12 @@ export function RoutineDetailPage() {
                     >
                       <p className="text-sm font-semibold text-ink-primary">
                         {p.name}
-                        <span className="ml-2 rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
+                        <span className="ml-2 rounded bg-surface-elevated px-1.5 py-0.5 text-3xs font-medium text-ink-muted">
                           {p.kind === 'circuit' ? 'Circuito' : 'Individual'} · {p.payload?.exercises?.length ?? 0} ej.
                         </span>
                       </p>
-                      {p.block_note && <p className="mt-0.5 text-[11px] text-ink-muted">{p.block_note}</p>}
-                      {p.category?.name && <p className="mt-0.5 text-[10px] uppercase tracking-wide text-brand-secondary">{p.category.name}</p>}
+                      {p.block_note && <p className="mt-0.5 text-2xs text-ink-muted">{p.block_note}</p>}
+                      {p.category?.name && <p className="mt-0.5 text-3xs uppercase tracking-wide text-brand-secondary">{p.category.name}</p>}
                     </button>
                   </li>
                 ))}
@@ -1800,7 +1800,7 @@ function BlockCard({
         <span
           title={weekCurrent ? 'Semana actual según el check-in' : weekDone ? 'Semana ya marcada en el check-in' : `Semana ${weekN}`}
           className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-white',
+            'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-3xs font-bold tabular-nums text-white',
             weekDone ? 'bg-emerald-600' : 'bg-brand-primary',
             weekCurrent && 'ring-2 ring-brand-primary/70 ring-offset-1 ring-offset-surface-card',
           )}
@@ -1829,12 +1829,12 @@ function BlockCard({
               {block.name}
             </span>
             {weekCurrent ? (
-              <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-primary">
+              <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-brand-primary">
                 Semana actual
               </span>
             ) : null}
             {(block.start_date || block.end_date) && (
-              <p className="text-[10px] text-ink-muted mt-0.5">
+              <p className="text-3xs text-ink-muted mt-0.5">
                 {block.start_date ? new Date(block.start_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
                 {' → '}
                 {block.end_date ? new Date(block.end_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
@@ -1846,7 +1846,7 @@ function BlockCard({
                   <span
                     key={p.phase}
                     className={cn(
-                      'rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                      'rounded-md border px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide',
                       CYCLE_PHASE_CLASSES[p.color].chip,
                     )}
                   >
@@ -1869,7 +1869,7 @@ function BlockCard({
             <>
               <div className="fixed inset-0 z-30" onClick={onCloseCopyMenu} />
               <div className="absolute right-0 top-6 z-40 bg-surface-card border border-surface-border rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
-                <p className="px-3 py-1.5 text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Copiar días a…</p>
+                <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted uppercase tracking-wide">Copiar días a…</p>
                 {otherBlocks.length === 0
                   ? <p className="px-3 py-2 text-xs text-ink-muted">No hay otras semanas</p>
                   : otherBlocks.map((b) => (
@@ -1930,7 +1930,7 @@ function BlockCard({
           {/* Fechas del bloque */}
           <div className="grid grid-cols-2 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
             <div>
-              <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Fecha inicio</label>
+              <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Fecha inicio</label>
               <input
                 type="date"
                 className={cn(
@@ -1947,7 +1947,7 @@ function BlockCard({
               />
             </div>
             <div>
-              <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Fecha fin</label>
+              <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Fecha fin</label>
               <input
                 type="date"
                 className={cn(
@@ -1958,12 +1958,12 @@ function BlockCard({
                 value={block.end_date ?? ''}
                 onChange={(e) => onUpdateBlock({ end_date: e.target.value || null })}
               />
-              <p className="mt-0.5 text-[9px] text-ink-muted">Editable manualmente</p>
+              <p className="mt-0.5 text-3xs text-ink-muted">Editable manualmente</p>
             </div>
           </div>
 
           <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-            <label className="block text-[10px] text-ink-muted mb-1 uppercase tracking-wide">Aclaración general del bloque</label>
+            <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Aclaración general del bloque</label>
             <Textarea
               placeholder="Ej: Intermitente HIIT corto 20x20'' x 4 vueltas. Descanso entre vueltas: 3'."
               rows={5}
@@ -2164,7 +2164,7 @@ function DayCard({
             <>
               <div className="fixed inset-0 z-30" onClick={() => setCopyToWeekOpen(false)} />
               <div className="absolute right-0 top-6 z-40 min-w-[160px] overflow-hidden rounded-xl border border-surface-border bg-surface-card py-1 shadow-lg">
-                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Copiar día a…</p>
+                <p className="px-3 py-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Copiar día a…</p>
                 {otherWeeks.map((w) => (
                   <button
                     key={w.id}
@@ -2203,7 +2203,7 @@ function DayCard({
                     setWarmup(preset.text)
                     saveDay({ warmup_notes: preset.text })
                   }}
-                  className="text-[10px] px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary hover:border-brand-primary/50 transition-colors"
+                  className="text-3xs px-2 py-1 rounded-lg border border-surface-border text-ink-secondary hover:text-ink-primary hover:border-brand-primary/50 transition-colors"
                 >
                   {preset.label}
                 </button>
@@ -2232,7 +2232,7 @@ function DayCard({
                   setCopyIncludeDayMeta(false)
                   setCopyPrescriptionOpen(true)
                 }}
-                className="text-[10px] text-ink-muted hover:text-ink-primary underline underline-offset-2"
+                className="text-3xs text-ink-muted hover:text-ink-primary underline underline-offset-2"
               >
                 todos los demás
               </button>
@@ -2274,10 +2274,10 @@ function DayCard({
                       'w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors',
                       selectedIds.has(ex.id) ? 'bg-brand-primary border-brand-primary' : 'border-surface-border'
                     )}>
-                      {selectedIds.has(ex.id) && <span className="text-white text-[10px] font-bold">✓</span>}
+                      {selectedIds.has(ex.id) && <span className="text-white text-3xs font-bold">✓</span>}
                     </div>
                     <span className="flex-1 text-sm font-medium text-ink-primary">{ex.exercise?.name ?? 'Ejercicio'}</span>
-                    <span className="text-[10px] text-ink-muted">{(ex.exercise?.muscle_group as { name: string } | undefined)?.name}</span>
+                    <span className="text-3xs text-ink-muted">{(ex.exercise?.muscle_group as { name: string } | undefined)?.name}</span>
                   </button>
                 ))}
               </div>
@@ -2321,20 +2321,20 @@ function DayCard({
                 <div className="flex items-center justify-between px-3 py-1.5 bg-brand-primary/5 border-b border-brand-primary/20">
                   <div className="flex items-center gap-2">
                     <Link2 className="h-3 w-3 text-brand-primary" />
-                    <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider">
+                    <span className="text-3xs font-bold text-brand-primary uppercase tracking-wider">
                       Circuito · {group.exercises.length} ejercicios
                     </span>
                   </div>
                   <button
                     onClick={() => dissolveCircuit(group.groupId)}
-                    className="flex items-center gap-1 text-[10px] text-ink-muted hover:text-status-expired transition-colors"
+                    className="flex items-center gap-1 text-3xs text-ink-muted hover:text-status-expired transition-colors"
                     title="Disolver circuito"
                   >
                     <Unlink className="h-3 w-3" /> Disolver
                   </button>
                 </div>
                 <div className="px-3 py-2 border-b border-brand-primary/15 bg-brand-primary/5">
-                  <label className="block text-[10px] text-brand-primary font-semibold uppercase tracking-wide mb-1">
+                  <label className="block text-3xs text-brand-primary font-semibold uppercase tracking-wide mb-1">
                     Aclaración del circuito
                   </label>
                   <input
@@ -2563,7 +2563,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           {exercise.exercise?.name ?? 'Ejercicio'}
         </span>
         {exercise.exercise?.muscle_group && (
-          <span className="text-[10px] text-ink-muted shrink-0">
+          <span className="text-3xs text-ink-muted shrink-0">
             {(exercise.exercise.muscle_group as unknown as { name: string }).name}
           </span>
         )}
@@ -2608,7 +2608,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
 
       <div className="grid grid-cols-2 gap-1.5">
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">Series</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">Series</label>
           <input
             type="number" min={0}
             className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
@@ -2620,7 +2620,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           />
         </div>
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">Reps por serie</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">Reps por serie</label>
           <input
             type="text"
             placeholder="ej: 8 / 6 / 5"
@@ -2644,7 +2644,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">Descanso</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">Descanso</label>
           <input
             type="text"
             placeholder="20'' / 2'"
@@ -2659,7 +2659,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           />
         </div>
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">Peso kg</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">Peso kg</label>
           <input
             type="number" min={0}
             className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
@@ -2671,7 +2671,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           />
         </div>
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">1 RM (100%)</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">1 RM (100%)</label>
           <div
             className={cn(
               'w-full rounded-lg px-2 py-1.5 border text-xs text-center font-semibold tabular-nums',
@@ -2689,7 +2689,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           </div>
         </div>
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">RPE / RIR</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">RPE / RIR</label>
           <input
             type="text"
             placeholder="RIR 8/9"
@@ -2708,22 +2708,22 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
       {/* Multiarticulares: plan serie por serie (%RM → kg desde 1RM, reps, RPE/RIR) */}
       {isMultiarticular && (sets ?? 0) > 0 ? (
         <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/5 p-2">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary">
+          <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-brand-primary">
             Series por porcentaje {rmKg != null ? `· 1RM ${rmKg} kg` : '· sin 1RM en ficha (no calcula kg)'}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[420px] text-center text-xs">
               <thead>
                 <tr>
-                  <th className="w-16 px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">Serie</th>
+                  <th className="w-16 px-1 py-0.5 text-left text-3xs font-semibold uppercase text-ink-muted">Serie</th>
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
-                    <th key={i} className="px-1 py-0.5 text-[10px] font-bold text-ink-secondary">{i + 1}°</th>
+                    <th key={i} className="px-1 py-0.5 text-3xs font-bold text-ink-secondary">{i + 1}°</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">% RM</td>
+                  <td className="px-1 py-0.5 text-left text-3xs font-semibold uppercase text-ink-muted">% RM</td>
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
                     <td key={i} className="px-0.5 py-0.5">
                       <input
@@ -2737,7 +2737,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
                   ))}
                 </tr>
                 <tr>
-                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">Kg</td>
+                  <td className="px-1 py-0.5 text-left text-3xs font-semibold uppercase text-ink-muted">Kg</td>
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
                     <td key={i} className="px-0.5 py-0.5">
                       <div className="rounded-md border border-brand-primary/25 bg-brand-primary/10 px-1 py-1 text-xs font-semibold tabular-nums text-brand-primary">
@@ -2747,7 +2747,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
                   ))}
                 </tr>
                 <tr>
-                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">Reps</td>
+                  <td className="px-1 py-0.5 text-left text-3xs font-semibold uppercase text-ink-muted">Reps</td>
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
                     <td key={i} className="px-0.5 py-0.5">
                       <input
@@ -2760,7 +2760,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
                   ))}
                 </tr>
                 <tr>
-                  <td className="px-1 py-0.5 text-left text-[9px] font-semibold uppercase text-ink-muted">RPE/RIR</td>
+                  <td className="px-1 py-0.5 text-left text-3xs font-semibold uppercase text-ink-muted">RPE/RIR</td>
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
                     <td key={i} className="px-0.5 py-0.5">
                       <input
@@ -2775,7 +2775,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
               </tbody>
             </table>
           </div>
-          <p className="mt-1 text-[9px] text-ink-muted">
+          <p className="mt-1 text-3xs text-ink-muted">
             Si no cargás nada acá, el ejercicio usa los campos comunes (peso / % único).
           </p>
         </div>
@@ -2783,7 +2783,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
 
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <div>
-          <label className="block text-[10px] text-ink-muted mb-0.5">% del 1RM</label>
+          <label className="block text-3xs text-ink-muted mb-0.5">% del 1RM</label>
           <input
             type="number"
             min={1}
@@ -2828,18 +2828,18 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
               setWeight(suggestedWeight)
               save({ weight_kg: suggestedWeight })
             }}
-            className="h-8 px-2.5 rounded-lg border border-surface-border text-[11px] text-ink-secondary hover:text-ink-primary disabled:opacity-40"
+            className="h-8 px-2.5 rounded-lg border border-surface-border text-2xs text-ink-secondary hover:text-ink-primary disabled:opacity-40"
           >
             {suggestedWeight ? `Aplicar ${suggestedWeight}kg` : rmKg ? 'Ingresá %' : 'Sin 1RM en ficha'}
           </button>
         ) : (
-          <p className="h-8 flex items-center text-[10px] text-ink-muted px-1">
+          <p className="h-8 flex items-center text-3xs text-ink-muted px-1">
             {suggestedWeight != null ? `${suggestedWeight} kg` : rmKg ? 'Ingresá %' : '—'}
           </p>
         )}
       </div>
       {rmKg != null && hasPercent && suggestedWeight != null ? (
-        <p className="text-[10px] text-ink-muted -mt-1">
+        <p className="text-3xs text-ink-muted -mt-1">
           {isMultiarticular
             ? `${percent1rm}% de ${rmKg} kg → ${suggestedWeight} kg (carga automática)`
             : `${percent1rm}% de ${rmKg} kg → ${suggestedWeight} kg`}
@@ -2864,7 +2864,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
         }}
       />
       <div>
-        <label className="block text-[10px] text-ink-muted mb-0.5">Video demostración (URL)</label>
+        <label className="block text-3xs text-ink-muted mb-0.5">Video demostración (URL)</label>
         <input
           className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
           placeholder={libraryVideo ? `Vacío → se usa el de la biblioteca` : 'https://youtube.com/...'}
@@ -2876,7 +2876,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
           }}
         />
         {libraryVideo ? (
-          <p className="mt-1 text-[10px] text-ink-muted leading-snug">
+          <p className="mt-1 text-3xs text-ink-muted leading-snug">
             Biblioteca:{' '}
             <a
               href={libraryVideo}
@@ -2895,7 +2895,7 @@ function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodW
             href={effectiveVideo.startsWith('http') ? effectiveVideo : `https://${effectiveVideo}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-brand-primary hover:underline"
+            className="mt-1 inline-flex items-center gap-1 text-3xs font-medium text-brand-primary hover:underline"
           >
             Abrir video en navegador
             <ExternalLink className="h-3 w-3" />
@@ -3031,7 +3031,7 @@ function ExercisePicker({
     <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
       <div>
         <h3 className="text-sm font-semibold text-ink-primary">{title}</h3>
-        {subtitle ? <p className="text-[11px] text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
+        {subtitle ? <p className="text-2xs text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
       </div>
       <button onClick={onClose} className="text-ink-muted hover:text-ink-primary shrink-0"><X className="h-4 w-4" /></button>
     </div>
@@ -3068,7 +3068,7 @@ function ExercisePicker({
               >
                 <span className="text-xs font-semibold text-ink-primary">{group.name}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-ink-muted">{group.exercises.length}</span>
+                  <span className="text-3xs text-ink-muted">{group.exercises.length}</span>
                   {openGroups.has(group.id) ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
                 </div>
               </button>
@@ -3168,7 +3168,7 @@ function ExerciseItem({ ex, onSelect, inGroup }: { ex: ExerciseWithGroup; onSele
         {!inGroup && <p className="text-xs text-ink-muted">{(ex.muscle_group as { name: string } | undefined)?.name}</p>}
       </div>
       <span className={cn(
-        'text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0',
+        'text-3xs font-semibold px-1.5 py-0.5 rounded-md shrink-0',
         ex.difficulty === 'basico'     ? 'bg-status-generated/10 text-status-generated' :
         ex.difficulty === 'intermedio' ? 'bg-status-expiring/10 text-status-expiring'   :
                                          'bg-status-expired/10 text-status-expired'

@@ -39,7 +39,7 @@ export function OffContextPage() {
         )}
 
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">
             Cuestionamiento
           </span>
           <Textarea
@@ -52,7 +52,7 @@ export function OffContextPage() {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">
             Tu respuesta (abro hilo)
           </span>
           <Textarea
@@ -65,7 +65,7 @@ export function OffContextPage() {
         </label>
 
         <div className="rounded-2xl border border-surface-border bg-surface-card p-4">
-          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          <p className="mb-2 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-muted">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
             Vista previa
           </p>

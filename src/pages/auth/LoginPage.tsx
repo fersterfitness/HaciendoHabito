@@ -355,7 +355,7 @@ export function LoginPage() {
             )}
           </div>
 
-          <p className="mt-4 text-center text-[10px] text-ink-muted/80 lg:hidden">
+          <p className="mt-4 text-center text-3xs text-ink-muted/80 lg:hidden">
             {new Date().getFullYear()}
           </p>
           </div>

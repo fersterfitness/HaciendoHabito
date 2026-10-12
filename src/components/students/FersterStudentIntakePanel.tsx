@@ -48,7 +48,7 @@ function Field({
   if (value == null || value === '') return null
   return (
     <div className={cn('border-b border-surface-border/45 py-3 last:border-b-0 ', className)}>
-      <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted ">{label}</p>
+      <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted ">{label}</p>
       <div className="mt-1 break-words text-sm text-ink-primary dark:text-zinc-100">{value}</div>
     </div>
   )
@@ -67,7 +67,7 @@ function Section({
     <section className="space-y-2">
       <div className="flex items-center gap-2 pb-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-ink-secondary ">{title}</h4>
+        <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-secondary ">{title}</h4>
       </div>
       <div>{children}</div>
     </section>
@@ -124,14 +124,14 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
         <div className="flex items-start gap-2">
           <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted dark:text-zinc-500" aria-hidden />
           <div>
-            <h3 className="text-[13px] font-semibold text-ink-primary dark:text-zinc-100">
+            <h3 className="text-body-sm font-semibold text-ink-primary dark:text-zinc-100">
               Cuestionario de registro
             </h3>
-            <p className="text-[11px] text-ink-muted ">Datos desde el formulario web (Ferster / form)</p>
+            <p className="text-2xs text-ink-muted ">Datos desde el formulario web (Ferster / form)</p>
           </div>
         </div>
         {i?.submitted_at ? (
-          <p className="text-[11px] text-ink-muted sm:text-right">
+          <p className="text-2xs text-ink-muted sm:text-right">
             Enviado el{' '}
             <span className="tabular-nums text-ink-secondary ">
               {formatDate(i.submitted_at.slice(0, 10))}
@@ -341,7 +341,7 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
                         <span className="block truncate text-sm font-medium text-ink-primary">
                           {uploadKeyLabel(key)}
                         </span>
-                        <span className="text-[10px] text-ink-muted">student-intake</span>
+                        <span className="text-3xs text-ink-muted">student-intake</span>
                       </span>
                       <ExternalLink className="h-4 w-4 shrink-0 text-ink-muted transition-colors group-hover:text-zinc-200" />
                     </a>

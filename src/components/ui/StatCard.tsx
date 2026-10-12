@@ -89,7 +89,7 @@ function VsMesAnteriorHint() {
       className={cn(
         'pointer-events-none absolute bottom-full left-0 z-20 mb-0.5 whitespace-nowrap',
         'rounded border border-surface-border/70 bg-surface-card px-1.5 py-px',
-        'text-[9px] font-medium leading-none text-ink-muted shadow-sm',
+        'text-3xs font-medium leading-none text-ink-muted shadow-sm',
         'opacity-0 transition-opacity duration-150',
         'group-hover:opacity-100 group-focus-within:opacity-100',
       )}
@@ -112,7 +112,7 @@ function ComparisonFooter({
       <div
         className={cn(
           'flex min-w-0 items-baseline leading-snug',
-          'text-[10px] sm:text-[11px] font-medium tabular-nums',
+          'text-3xs sm:text-2xs font-medium tabular-nums',
         )}
       >
         <span
@@ -147,7 +147,7 @@ function PercentComparisonFooter({ percent, featured = false }: { percent: numbe
       <div
         className={cn(
           'flex min-w-0 items-baseline leading-snug',
-          'text-[10px] sm:text-[11px] font-medium tabular-nums',
+          'text-3xs sm:text-2xs font-medium tabular-nums',
         )}
       >
         <span
@@ -354,7 +354,7 @@ function StatCardGradient({
           className={cn(
             'min-w-0 flex-1 line-clamp-2',
             statCardGradientTitleClass,
-            compact ? 'text-[9px]' : 'text-[10px] sm:text-[0.6875rem]',
+            compact ? 'text-3xs' : 'text-3xs sm:text-[0.6875rem]',
             featured && 'text-white/90',
           )}
         >
@@ -440,7 +440,7 @@ export function StatCard({
     ) : comparison != null && monthOverMonth ? (
       <ComparisonFooter comparison={comparison} monthOverMonth={monthOverMonth} />
     ) : subtitle ? (
-      <p className="text-[10px] sm:text-[11px] font-medium text-ink-muted leading-snug">{subtitle}</p>
+      <p className="text-3xs sm:text-2xs font-medium text-ink-muted leading-snug">{subtitle}</p>
     ) : null
 
   const useGradient = surface === 'gradient' || featured

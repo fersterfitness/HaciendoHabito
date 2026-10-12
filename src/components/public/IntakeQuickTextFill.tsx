@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 
 const pillClass =
-  'inline-flex shrink-0 items-center rounded-md border border-surface-border bg-surface-card px-2.5 py-1 text-[11px] font-semibold tracking-tight text-ink-secondary shadow-sm transition-colors hover:bg-surface-elevated hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/35 dark:focus-visible:ring-zinc-500/40 active:scale-[0.98]'
+  'inline-flex shrink-0 items-center rounded-md border border-surface-border bg-surface-card px-2.5 py-1 text-2xs font-semibold tracking-tight text-ink-secondary shadow-sm transition-colors hover:bg-surface-elevated hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/35 dark:focus-visible:ring-zinc-500/40 active:scale-[0.98]'
 
 type IntakeQuickTextFillProps = {
   /** Texto que se escribe en el campo al tocar. */

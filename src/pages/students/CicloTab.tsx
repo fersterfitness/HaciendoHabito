@@ -229,13 +229,13 @@ export function CicloTab({ studentId }: { studentId: string }) {
           <div className="border-b border-surface-border/60 pb-5 ">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Fase actual</p>
+                <p className="mb-0.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted">Fase actual</p>
                 <p className="text-lg font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{PHASE_META[cycleInfo.phase].label}</p>
                 <p className="mt-2 text-xs leading-relaxed text-ink-secondary ">{PHASE_META[cycleInfo.phase].desc}</p>
               </div>
               <div className="min-w-[60px] shrink-0 border border-surface-border/70 px-3 py-2 text-center ">
                 <p className="text-2xl font-bold tabular-nums text-ink-primary dark:text-zinc-50">{Math.max(cycleInfo.dayInCycle, 1)}</p>
-                <p className="text-[10px] text-ink-muted">
+                <p className="text-3xs text-ink-muted">
                   día {cycleInfo.dayInCycle > cycleInfo.cycleLen ? '(pasado)' : `/ ${cycleInfo.cycleLen}`}
                 </p>
               </div>
@@ -248,7 +248,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
                 { label: 'Largo prom.', value: `${avgCycleLen} días` },
               ].map(({ label, value }) => (
                 <div key={label}>
-                  <dt className="text-[9px] font-semibold uppercase tracking-wide text-ink-muted">{label}</dt>
+                  <dt className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{label}</dt>
                   <dd className="mt-0.5 text-sm font-medium text-ink-primary ">{value}</dd>
                 </div>
               ))}
@@ -256,7 +256,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
 
             {activeRoutine ? (
               <div className="mt-4 rounded-xl border border-brand-secondary/35 bg-brand-secondary/[0.06] px-3 py-3 dark:border-brand-secondary/45 dark:bg-brand-secondary/[0.08]">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-secondary">Planificación · rutina + ciclo</p>
+                <p className="text-3xs font-semibold uppercase tracking-wider text-brand-secondary">Planificación · rutina + ciclo</p>
                 <p className="mt-2 text-xs leading-relaxed text-ink-secondary ">
                   {(() => {
                     const w = approxRoutineWeekHint(activeRoutine)
@@ -314,7 +314,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
                   <span className="h-2 w-2 shrink-0 bg-zinc-400 dark:bg-zinc-500" aria-hidden />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-ink-primary dark:text-zinc-50">{formatDate(c.cycle_start_date)}</p>
-                    <p className="text-[10px] text-ink-muted">
+                    <p className="text-3xs text-ink-muted">
                       {c.cycle_length} días · hasta {formatDate(end.toISOString().split('T')[0])}
                       {c.notes && ` · ${c.notes}`}
                     </p>
@@ -389,7 +389,7 @@ function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
 
   return (
     <div className="border-b border-surface-border/55 pb-4 ">
-      <p className="mb-4 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Gráfico hormonal del ciclo</p>
+      <p className="mb-4 text-3xs font-semibold uppercase tracking-wider text-ink-muted">Gráfico hormonal del ciclo</p>
 
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -28 }}>
@@ -474,7 +474,7 @@ function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
 
   return (
     <div className="border-b border-surface-border/55 pb-4 ">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+      <p className="mb-3 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
         Rueda del ciclo · seguimiento por día
       </p>
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8">
@@ -535,7 +535,7 @@ function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
               ['lutea', 'Lútea · 20+'],
             ] as const
           ).map(([k, label]) => (
-            <li key={k} className="flex items-center gap-2 text-[11px] text-ink-secondary">
+            <li key={k} className="flex items-center gap-2 text-2xs text-ink-secondary">
               <span className="h-2.5 w-2.5 rounded-sm" style={{ background: PHASE_COLORS[k] }} />
               {label}
             </li>
@@ -593,7 +593,7 @@ function AddCycleModal({
           onChange={(e) => setCycleLen(Number(e.target.value))}
           className="w-full accent-zinc-500 dark:accent-zinc-400"
         />
-        <div className="flex justify-between text-[10px] text-ink-muted mt-0.5">
+        <div className="flex justify-between text-3xs text-ink-muted mt-0.5">
           <span>21</span><span>28</span><span>35</span>
         </div>
       </div>

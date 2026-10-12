@@ -58,7 +58,7 @@ function BlockExerciseRows({
     <>
       {block.exercises.map((row, exIdx) => (
         <tr key={row.key} className="bg-surface-elevated">
-          <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 align-middle text-[11px] font-semibold uppercase leading-tight text-white">
+          <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 align-middle text-2xs font-semibold uppercase leading-tight text-white">
             {row.exerciseName}
           </td>
           {row.weeks.map((cell, i) => {
@@ -86,7 +86,7 @@ function BlockExerciseRows({
                     : {})}
                 >
                   {exIdx === 0 ? labelCol : <div className="w-[4.75rem] shrink-0 border-r border-black/15 dark:border-white/15" aria-hidden />}
-                  <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-[11px] font-semibold tabular-nums text-ink-primary">
+                  <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-2xs font-semibold tabular-nums text-ink-primary">
                     {cell?.trim() || ''}
                   </div>
                 </div>
@@ -127,7 +127,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
       <div className="mx-auto flex h-full w-full max-w-[92rem] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
+            <p className="text-3xs font-semibold uppercase tracking-wider text-brand-primary">
               Solo entrenador · no PDF ni alumno
             </p>
             <h2 id="progression-guide-title" className="truncate text-base font-bold text-white">
@@ -185,20 +185,20 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                   <table className="w-full min-w-[800px] border-collapse text-xs">
                     <thead>
                       <tr>
-                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-white">
+                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-3xs font-bold uppercase tracking-wide text-white">
                           Ejercicio / bloque
                         </th>
                         {weekLabels.map((w, i) => (
                           <th
                             key={i}
                             className={cn(
-                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-white',
+                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-3xs font-bold uppercase tracking-wide text-white',
                               weekHeaderBg(i),
                             )}
                           >
                             <div>{w.label}</div>
                             {w.dates ? (
-                              <div className="mt-0.5 text-[9px] font-normal normal-case text-white/80">{w.dates}</div>
+                              <div className="mt-0.5 text-3xs font-normal normal-case text-white/80">{w.dates}</div>
                             ) : null}
                           </th>
                         ))}
@@ -214,14 +214,14 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                           ) : null}
 
                           <tr className="bg-black">
-                            <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 text-center text-[11px] font-extrabold uppercase tracking-wider text-white">
+                            <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 text-center text-2xs font-extrabold uppercase tracking-wider text-white">
                               {KIND_LABEL[block.kind]}
                             </td>
                             {block.headerNotesByWeek.map((note, i) => (
                               <td
                                 key={i}
                                 className={cn(
-                                  'border-b border-zinc-700 px-2 py-2 text-center text-[10px] font-semibold uppercase leading-snug',
+                                  'border-b border-zinc-700 px-2 py-2 text-center text-3xs font-semibold uppercase leading-snug',
                                   i % 2 === 0 ? 'bg-zinc-400 text-ink-primary' : 'bg-brand-primary/75 text-white',
                                 )}
                               >

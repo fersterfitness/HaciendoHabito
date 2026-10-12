@@ -108,7 +108,7 @@ const PLAN_FIELD_TEXTAREA_FOCUS =
 const PLAN_SECTION_CARD =
   'rounded-md border border-surface-border/75 bg-surface-card'
 
-const PLAN_STEP_KICKER = 'text-[11px] font-semibold uppercase tracking-wide text-ink-secondary'
+const PLAN_STEP_KICKER = 'text-2xs font-semibold uppercase tracking-wide text-ink-secondary'
 
 const PLAN_DOC_LINK_CLASS =
   'font-medium text-ink-secondary underline underline-offset-2 hover:text-ink-primary'
@@ -188,24 +188,24 @@ function LiveMacroCell({
 
   return (
     <div className="min-w-0 rounded-md border border-surface-border/75 bg-white/95 px-2 py-2 text-center dark:bg-zinc-950/45 sm:px-2.5">
-      <p className="text-[9px] font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-500 sm:text-[10px]">{abbr}</p>
+      <p className="text-3xs font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-500 sm:text-3xs">{abbr}</p>
       <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-ink-primary dark:text-zinc-100 sm:text-xl">
         {fmt1(intakeG)}
-        <span className="ml-0.5 text-[10px] font-semibold text-ink-muted dark:text-zinc-500">g</span>
+        <span className="ml-0.5 text-3xs font-semibold text-ink-muted dark:text-zinc-500">g</span>
       </p>
-      <p className="mt-1 text-[9px] tabular-nums leading-tight text-ink-secondary ">
+      <p className="mt-1 text-3xs tabular-nums leading-tight text-ink-secondary ">
         Meta {hasGoal ? `${fmt1(goalG)} g` : '—'}
       </p>
       <p
         className={cn(
-          'mt-0.5 text-[10px] font-bold tabular-nums leading-tight sm:text-[11px]',
+          'mt-0.5 text-3xs font-bold tabular-nums leading-tight sm:text-2xs',
           !hasGoal ? 'text-ink-muted dark:text-zinc-600' : over ? 'text-status-expiring' : 'text-ink-secondary ',
         )}
       >
         Rest {hasGoal ? `${fmt1(remainderG)} g` : '—'}
       </p>
       {hasGoal && pct != null ? (
-        <p className="mt-0.5 text-[9px] tabular-nums text-ink-secondary ">Obj. {pct} %</p>
+        <p className="mt-0.5 text-3xs tabular-nums text-ink-secondary ">Obj. {pct} %</p>
       ) : null}
       {hasGoal ? (
         <div className="mx-auto mt-1.5 h-1.5 max-w-[5.5rem] overflow-hidden rounded-full bg-surface-border ">
@@ -215,7 +215,7 @@ function LiveMacroCell({
           />
         </div>
       ) : intakeG > 0 ? (
-        <p className="mt-1 px-0.5 text-[8px] leading-snug text-ink-muted ">Peso y g/kg en 2</p>
+        <p className="mt-1 px-0.5 text-3xs leading-snug text-ink-muted ">Peso y g/kg en 2</p>
       ) : null}
     </div>
   )
@@ -246,17 +246,17 @@ function TotalsBadge({
         compact ? 'px-3 py-2' : 'px-4 py-3',
       )}
     >
-      <p className={cn('uppercase tracking-wide text-ink-muted font-bold', compact ? 'text-[9px]' : 'text-[10px]')}>
+      <p className={cn('uppercase tracking-wide text-ink-muted font-bold', compact ? 'text-3xs' : 'text-3xs')}>
         {label}
       </p>
       <p className={cn('tabular-nums text-ink-secondary', compact ? 'text-xs mt-0.5 leading-snug' : 'mt-1')}>
         HC {fmt1(t.carbsG)} · P {fmt1(t.proteinG)} · G {fmt1(t.fatG)} · {fmt1(kcalLine)} kcal
       </p>
       {energyKcalFootnote ? (
-        <p className="mt-1 text-[9px] leading-snug text-ink-muted">{energyKcalFootnote}</p>
+        <p className="mt-1 text-3xs leading-snug text-ink-muted">{energyKcalFootnote}</p>
       ) : null}
       {pct && !compact && (
-        <p className="text-[11px] text-ink-muted mt-1 tabular-nums">
+        <p className="text-2xs text-ink-muted mt-1 tabular-nums">
           Distribución aprox.: P {pct.p.toFixed(0)} % · HC {pct.c.toFixed(0)} % · G {pct.f.toFixed(0)} %
         </p>
       )}
@@ -1353,7 +1353,7 @@ export function NutritionPlanningPage() {
         actions={
           <div className="flex items-center gap-2 shrink-0 min-w-0">
             {/* Save status */}
-            <span className="hidden lg:flex items-center gap-1 text-[11px] text-ink-muted whitespace-nowrap select-none">
+            <span className="hidden lg:flex items-center gap-1 text-2xs text-ink-muted whitespace-nowrap select-none">
               {saveState === 'saving' ? (
                 <><Loader2 className={cn('h-3 w-3 animate-spin', trainerCtaAccentTextClassName)} aria-hidden />Guardando…</>
               ) : saveState === 'dirty' ? (
@@ -1524,7 +1524,7 @@ export function NutritionPlanningPage() {
                   </p>
                 </div>
                 <div className="w-full sm:max-w-[min(100%,20rem)] shrink-0">
-                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">{referenceEntityLabel}</label>
+                  <label className="block text-3xs font-semibold uppercase tracking-wide text-ink-muted mb-1">{referenceEntityLabel}</label>
                   <select
                     className={selectPlanClasses}
                     disabled={referenceStudentsLoading}
@@ -1541,7 +1541,7 @@ export function NutritionPlanningPage() {
                       </option>
                     ))}
                   </select>
-                  <span className="text-[10px] text-ink-muted mt-1 block leading-snug">
+                  <span className="text-3xs text-ink-muted mt-1 block leading-snug">
                     Opcional · trae peso, sexo, altura y edad si están en la ficha.
                   </span>
                 </div>
@@ -1549,11 +1549,11 @@ export function NutritionPlanningPage() {
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
-                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Meta kcal</p>
+                  <p className="text-3xs uppercase font-semibold text-ink-muted">Meta kcal</p>
                   <p className="text-lg font-bold tabular-nums text-ink-primary">{targetKcal > 0 ? fmt1(targetKcal) : '—'}</p>
                 </div>
                 <div className="rounded-md border border-surface-border/70 bg-surface-card px-3 py-2 ">
-                  <p className="text-[9px] font-semibold uppercase text-ink-muted">Consumido</p>
+                  <p className="text-3xs font-semibold uppercase text-ink-muted">Consumido</p>
                   <p className="text-lg font-bold tabular-nums text-ink-primary ">{fmt1(intakeTotals.kcal)}</p>
                 </div>
                 <div
@@ -1564,7 +1564,7 @@ export function NutritionPlanningPage() {
                 >
                   <p
                     className={cn(
-                      'text-[9px] uppercase font-semibold',
+                      'text-3xs uppercase font-semibold',
                       remainderKcalTarget && remainderKcalTarget.kcal < 0 ? 'text-status-expired/85' : 'text-ink-muted',
                     )}
                   >
@@ -1582,7 +1582,7 @@ export function NutritionPlanningPage() {
                   </p>
                 </div>
                 <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
-                  <p className="text-[9px] uppercase font-semibold text-ink-muted">Del objetivo</p>
+                  <p className="text-3xs uppercase font-semibold text-ink-muted">Del objetivo</p>
                   <p className="text-lg font-bold tabular-nums text-ink-primary">
                     {targetKcal > 0 ? `${Math.round((100 * intakeTotals.kcal) / targetKcal)} %` : '—'}
                   </p>
@@ -1592,15 +1592,15 @@ export function NutritionPlanningPage() {
               <TotalsBadge compact label="Ya sumaste (macros)" {...foodGrand} />
 
               {remainderVsGuide ? (
-                <div className="rounded-lg border border-surface-border bg-surface-card px-3 py-2 text-[11px]">
-                  <p className="text-[9px] uppercase font-bold text-ink-muted mb-1">Gramos restantes vs objetivo (g/kg × peso)</p>
+                <div className="rounded-lg border border-surface-border bg-surface-card px-3 py-2 text-2xs">
+                  <p className="text-3xs uppercase font-bold text-ink-muted mb-1">Gramos restantes vs objetivo (g/kg × peso)</p>
                   <p className="tabular-nums text-ink-secondary leading-relaxed">
                     Prot {fmt1(remainderVsGuide.proteinG)} g · HC {fmt1(remainderVsGuide.carbsG)} g · Grasas {fmt1(remainderVsGuide.fatG)} g · negativo =
                     fuiste pasado · orientativo
                   </p>
                 </div>
               ) : (
-                <p className="text-[11px] text-ink-muted">Cargá peso en la calculadora y g/kg más abajo para ver gramos restantes.</p>
+                <p className="text-2xs text-ink-muted">Cargá peso en la calculadora y g/kg más abajo para ver gramos restantes.</p>
               )}
             </div>
 
@@ -1611,13 +1611,13 @@ export function NutritionPlanningPage() {
                 <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
               </summary>
               <div className="p-4 space-y-4 border-t border-surface-border/40">
-                <p className="text-[11px] text-ink-muted -mt-1">
+                <p className="text-2xs text-ink-muted -mt-1">
                   Como la segunda solapa del Excel HH: texto de objetivo, calorías del día target y targets en g/kg.
                 </p>
                 <label className="text-sm space-y-1 block max-w-[12rem]">
                   <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Peso (kg)</span>
                   <Input value={wb.person.weightKg} onChange={(e) => patchPerson('weightKg', e.target.value)} inputMode="decimal" />
-                  <span className="text-[10px] text-ink-muted leading-snug inline-block mt-1">
+                  <span className="text-3xs text-ink-muted leading-snug inline-block mt-1">
                     Para g/kg y para la calculadora TDEE; también desde «{referenceEntityLabel}» en el punto 1.
                   </span>
                 </label>
@@ -1648,14 +1648,14 @@ export function NutritionPlanningPage() {
                       inputMode="decimal"
                       placeholder="Ej. 2700"
                     />
-                    <span className="text-[10px] text-ink-muted">Base para «restante» en el cuadro 1 (TDEE ± ajuste o manual).</span>
+                    <span className="text-3xs text-ink-muted">Base para «restante» en el cuadro 1 (TDEE ± ajuste o manual).</span>
                   </label>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-ink-primary mb-2">Macros · g/kg de peso</p>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <label className="text-sm space-y-1">
-                      <span className="text-ink-muted text-[10px]">Proteína</span>
+                      <span className="text-ink-muted text-3xs">Proteína</span>
                       <Input
                         value={wb.macroInputs.proteinGPerKg}
                         onChange={(e) => patchMacroInputs('proteinGPerKg', e.target.value)}
@@ -1663,11 +1663,11 @@ export function NutritionPlanningPage() {
                       />
                     </label>
                     <label className="text-sm space-y-1">
-                      <span className="text-ink-muted text-[10px]">Carbohidratos</span>
+                      <span className="text-ink-muted text-3xs">Carbohidratos</span>
                       <Input value={wb.macroInputs.carbGPerKg} onChange={(e) => patchMacroInputs('carbGPerKg', e.target.value)} inputMode="decimal" />
                     </label>
                     <label className="text-sm space-y-1">
-                      <span className="text-ink-muted text-[10px]">Grasas</span>
+                      <span className="text-ink-muted text-3xs">Grasas</span>
                       <Input value={wb.macroInputs.fatGPerKg} onChange={(e) => patchMacroInputs('fatGPerKg', e.target.value)} inputMode="decimal" />
                     </label>
                   </div>
@@ -1700,12 +1700,12 @@ export function NutritionPlanningPage() {
                     }
                   />
                   <div className="rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-sm space-y-1.5">
-                    <p className="text-[9px] uppercase tracking-wide text-ink-muted font-bold">Meta calórica del día</p>
+                    <p className="text-3xs uppercase tracking-wide text-ink-muted font-bold">Meta calórica del día</p>
                     <p className="text-base font-semibold tabular-nums text-ink-primary">
                       {targetKcal > 0 ? `${targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
                     </p>
                     {weightKg > 0 ? (
-                      <p className="text-[10px] text-ink-muted tabular-nums">
+                      <p className="text-3xs text-ink-muted tabular-nums">
                         Suma térmica de los g/kg (4·P+4·C+9·G):{' '}
                         {macrosKcalGuess.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal
                         {targetKcal > 0 ? (
@@ -1718,7 +1718,7 @@ export function NutritionPlanningPage() {
                       </p>
                     ) : null}
                     {weightKg > 0 && targetKcal > 0 && guidePctVsTarget ? (
-                      <p className="text-[10px] text-ink-muted tabular-nums">
+                      <p className="text-3xs text-ink-muted tabular-nums">
                         % energía sobre meta: HC {guidePctVsTarget.c.toFixed(0)} · P {guidePctVsTarget.p.toFixed(0)} · G{' '}
                         {guidePctVsTarget.f.toFixed(0)}
                       </p>
@@ -1727,7 +1727,7 @@ export function NutritionPlanningPage() {
                 </div>
               </div>
               <div className="rounded-xl border border-surface-border overflow-hidden mt-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
+                <p className="text-3xs font-bold uppercase tracking-wide text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
                   Vista cuadro (Excel) · objetivo y datos
                 </p>
                 <table className="w-full border-collapse text-left text-sm border border-surface-border/80">
@@ -1763,7 +1763,7 @@ export function NutritionPlanningPage() {
                       ] as const
                     ).map(([k, v]) => (
                       <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                        <th className="w-[34%] px-3 py-2 text-[10px] font-bold uppercase text-ink-muted bg-surface-muted/20 align-top border-r border-surface-border/60">
+                        <th className="w-[34%] px-3 py-2 text-3xs font-bold uppercase text-ink-muted bg-surface-muted/20 align-top border-r border-surface-border/60">
                           {k}
                         </th>
                         <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap tabular-nums">{v}</td>
@@ -1779,7 +1779,7 @@ export function NutritionPlanningPage() {
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
                 <div className="min-w-0 text-left space-y-0.5">
                   <span className="text-sm font-medium text-ink-primary block">3 · Calculadora TMB / TDEE</span>
-                  <span className="text-[10px] text-ink-muted block tabular-nums">
+                  <span className="text-3xs text-ink-muted block tabular-nums">
                     Mifflin–St Jeor ·{' '}
                     {wb.person.sex === 'M' && Number.isFinite(calcTdeeMale)
                       ? `TDEE hombre ${fmt1(calcTdeeMale)} kcal`
@@ -1793,20 +1793,20 @@ export function NutritionPlanningPage() {
                 <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
               </summary>
               <div className="p-4 space-y-4 border-t border-surface-border/40">
-                <p className="rounded-md border border-surface-border/80 bg-surface-elevated/80 px-3 py-2 text-[11px] leading-relaxed text-ink-secondary ">
+                <p className="rounded-md border border-surface-border/80 bg-surface-elevated/80 px-3 py-2 text-2xs leading-relaxed text-ink-secondary ">
                   Orientación pedagógica (plantilla tipo HH); no sustituye criterio clínico.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <label className="text-sm space-y-1">
-                    <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Altura (cm)</span>
+                    <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Altura (cm)</span>
                     <Input value={wb.person.heightCm} onChange={(e) => patchPerson('heightCm', e.target.value)} inputMode="decimal" />
                   </label>
                   <label className="text-sm space-y-1">
-                    <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Edad (años)</span>
+                    <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Edad (años)</span>
                     <Input value={wb.person.ageYears} onChange={(e) => patchPerson('ageYears', e.target.value)} inputMode="decimal" />
                   </label>
                   <label className="text-sm space-y-1 lg:col-span-2">
-                    <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Sexo · copiar TDEE</span>
+                    <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Sexo · copiar TDEE</span>
                     <select
                       className={selectPlanClasses}
                       value={wb.person.sex}
@@ -1818,14 +1818,14 @@ export function NutritionPlanningPage() {
                     </select>
                   </label>
                 </div>
-                <details className="group/actguide rounded-lg border border-surface-border bg-surface-card text-[11px] overflow-hidden">
+                <details className="group/actguide rounded-lg border border-surface-border bg-surface-card text-2xs overflow-hidden">
                   <summary className="cursor-pointer px-3 py-2 font-medium text-ink-secondary hover:bg-surface-muted/40 list-none flex justify-between items-center [&::-webkit-details-marker]:hidden">
                     Tabla de factores de actividad (guía)
                     <ChevronDown className="h-3.5 w-3.5 text-ink-muted transition-transform [.group\\/actguide:not([open])_&]:-rotate-90" aria-hidden />
                   </summary>
                   <div className="border-t border-surface-border overflow-x-auto px-2 pb-2 pt-2">
                     <table className="w-full border-collapse min-w-[320px]">
-                      <thead className="bg-surface-muted/50 text-ink-muted text-[9px] uppercase">
+                      <thead className="bg-surface-muted/50 text-ink-muted text-3xs uppercase">
                         <tr>
                           <th className="text-left px-2 py-1 border-b border-surface-border">Nivel</th>
                           <th className="text-left px-2 py-1 border-b border-surface-border w-16">Factor</th>
@@ -1845,7 +1845,7 @@ export function NutritionPlanningPage() {
                   </div>
                 </details>
                 <label className="block max-w-[11rem] space-y-1">
-                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Actividad estimada ×</span>
+                  <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Actividad estimada ×</span>
                   <Input
                     value={wb.person.activityFactor}
                     onChange={(e) => patchPerson('activityFactor', e.target.value)}
@@ -1861,7 +1861,7 @@ export function NutritionPlanningPage() {
                     ['TDEE · M', calcTdeeFemale],
                   ].map(([label, val]) => (
                     <div key={String(label)} className="rounded-lg border border-brand-primary/20 bg-brand-primary/[0.06] px-2.5 py-2">
-                      <p className="text-[9px] uppercase text-ink-muted font-bold">{label}</p>
+                      <p className="text-3xs uppercase text-ink-muted font-bold">{label}</p>
                       <p className="text-base font-semibold tabular-nums text-ink-primary">
                         {Number.isFinite(val as number) ? `${fmt1(val as number)} kcal` : '—'}
                       </p>
@@ -1919,7 +1919,7 @@ export function NutritionPlanningPage() {
                     TDEE M → meta kcal
                   </Button>
                 </div>
-                <div className="rounded-lg bg-surface-muted/50 border border-surface-border px-3 py-2 text-[11px] text-ink-secondary flex flex-wrap items-center gap-x-3 gap-y-2">
+                <div className="rounded-lg bg-surface-muted/50 border border-surface-border px-3 py-2 text-2xs text-ink-secondary flex flex-wrap items-center gap-x-3 gap-y-2">
                   <span className="tabular-nums shrink-0">Mantención PDF (manual):</span>
                   <span className="inline-flex flex-wrap items-center gap-2">
                     <span className="text-ink-muted whitespace-nowrap">H</span>
@@ -1964,7 +1964,7 @@ export function NutritionPlanningPage() {
               Todo se <strong>guarda solo</strong>; «Restaurar plantilla» vuelve al formato inicial HH en tu cuenta.
             </li>
           </ol>
-          <p className="text-[11px] text-ink-muted pt-3 mt-2 border-t border-surface-border/70 leading-relaxed">
+          <p className="text-2xs text-ink-muted pt-3 mt-2 border-t border-surface-border/70 leading-relaxed">
             Si el alumno tiene plan con nutricionista, estos números sirven como apoyo; no los sustituyan sin consenso profesional.
           </p>
         </details>
@@ -2036,7 +2036,7 @@ export function NutritionPlanningPage() {
               <strong className="text-ink-secondary">Mi lista</strong> · notas al pie de cada momento. El resumen de kcal arriba se actualiza con lo que sumes acá y en tablas.
             </p>
             <label className="block mt-4 space-y-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+              <span className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">
                 Guía orientativa para el alumno / PDF (hortalizas A y B, equivalencias, proteínas, marcas)
               </span>
               <textarea
@@ -2048,7 +2048,7 @@ export function NutritionPlanningPage() {
                 }}
                 placeholder="Editá el texto por defecto o dejá el que trae la plantilla…"
               />
-              <span className="text-[10px] text-ink-muted leading-snug block">
+              <span className="text-3xs text-ink-muted leading-snug block">
                 Aparece al pie del PDF y en la vista del alumno. Es orientación general, no reemplaza indicación individual.
               </span>
             </label>
@@ -2059,7 +2059,7 @@ export function NutritionPlanningPage() {
             <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:border-zinc-800/80 dark:bg-surface-card/95">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-ink-muted">
+                  <span className="shrink-0 text-3xs font-bold uppercase tracking-wide text-ink-muted">
                     Kcal del plan (en vivo)
                   </span>
                   <span className="text-2xl font-bold tabular-nums leading-none text-ink-primary sm:text-3xl">
@@ -2069,11 +2069,11 @@ export function NutritionPlanningPage() {
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
                   <div>
-                    <p className="text-[9px] font-semibold uppercase text-ink-muted">Meta</p>
+                    <p className="text-3xs font-semibold uppercase text-ink-muted">Meta</p>
                     <p className="font-semibold text-ink-primary">{targetKcal > 0 ? `${fmt1(targetKcal)} kcal` : '—'}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold uppercase text-ink-muted">Restante</p>
+                    <p className="text-3xs font-semibold uppercase text-ink-muted">Restante</p>
                     <p
                       className={cn(
                         'text-lg font-bold',
@@ -2093,7 +2093,7 @@ export function NutritionPlanningPage() {
                   </div>
                   {targetKcal > 0 ? (
                     <div>
-                      <p className="text-[9px] font-semibold uppercase text-ink-muted">Del objetivo</p>
+                      <p className="text-3xs font-semibold uppercase text-ink-muted">Del objetivo</p>
                       <p className="font-semibold text-ink-primary">{`${Math.round((100 * intakeTotals.kcal) / targetKcal)} %`}</p>
                     </div>
                   ) : null}
@@ -2105,7 +2105,7 @@ export function NutritionPlanningPage() {
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
-                <p className="mb-1.5 px-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-ink-muted sm:text-left">
+                <p className="mb-1.5 px-0.5 text-center text-3xs font-bold uppercase tracking-wide text-ink-muted sm:text-left">
                   Macros en vivo (g) · tablas, Mi lista y esta distribución
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -2130,7 +2130,7 @@ export function NutritionPlanningPage() {
                   />
                 </div>
               ) : (
-                <p className="text-[11px] leading-snug text-ink-muted">
+                <p className="text-2xs leading-snug text-ink-muted">
                   Cargá <strong className="font-semibold text-ink-primary">Calorías propuestas</strong> en la sección 2 para ver
                   cuánto te falta descontar respecto a la meta.
                 </p>
@@ -2154,7 +2154,7 @@ export function NutritionPlanningPage() {
           ) : null}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between border border-surface-border/80 rounded-xl p-3 bg-surface-muted/15">
             <div className="flex flex-col gap-2 min-w-[200px] flex-1">
-              <label htmlFor="apply-meal-template" className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+              <label htmlFor="apply-meal-template" className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">
                 Plantillas (este navegador)
               </label>
               <select
@@ -2181,7 +2181,7 @@ export function NutritionPlanningPage() {
               {saveTemplateOpen ? (
                 <div className="flex flex-wrap items-end gap-2">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] text-ink-muted">Nombre</span>
+                    <span className="text-3xs text-ink-muted">Nombre</span>
                     <Input
                       className="h-9 min-w-[12rem]"
                       value={templateSaveName}
@@ -2235,7 +2235,7 @@ export function NutritionPlanningPage() {
                     <span>{t.name}</span>
                     <button
                       type="button"
-                      className="text-status-expired hover:underline text-[11px] font-medium"
+                      className="text-status-expired hover:underline text-2xs font-medium"
                       onClick={() => {
                         removeMealDistributionTemplate(t.id)
                         setTemplateListVersion((v) => v + 1)
@@ -2296,7 +2296,7 @@ export function NutritionPlanningPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 dark:bg-zinc-900/45">
                       <span
                         id={`meal-slot-title-${key}`}
-                        className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted"
+                        className="text-3xs font-bold uppercase tracking-[0.14em] text-ink-muted"
                       >
                         {label}
                       </span>
@@ -2316,7 +2316,7 @@ export function NutritionPlanningPage() {
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[520px] border-collapse text-sm">
                             <thead>
-                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-[10px] font-semibold uppercase tracking-wide text-ink-muted dark:bg-zinc-900/40">
+                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-3xs font-semibold uppercase tracking-wide text-ink-muted dark:bg-zinc-900/40">
                                 <th className="min-w-0 px-3 py-2 text-left">Alimento</th>
                                 <th className="hidden px-2 py-2 text-left md:table-cell" title="Macronutrientes orientativos de esta porción">
                                   Macros
@@ -2366,11 +2366,11 @@ export function NutritionPlanningPage() {
                                       )}
                                     >
                                       <td className="min-w-0 max-w-[40%] px-3 py-2.5 align-top">
-                                        <p className="text-[13px] font-semibold leading-snug text-ink-primary">
+                                        <p className="text-body-sm font-semibold leading-snug text-ink-primary">
                                           {displayNameForMealPick(p)}
                                         </p>
                                         {studentQty.prepLine || hintText ? (
-                                          <p className="mt-1 text-[10px] leading-snug">
+                                          <p className="mt-1 text-3xs leading-snug">
                                             {studentQty.prepLine ? (
                                               <span className="text-brand-primary dark:text-brand-primary/90">
                                                 {studentQty.prepLine}
@@ -2388,7 +2388,7 @@ export function NutritionPlanningPage() {
                                         ) : null}
                                         <div className="mt-2 space-y-1.5 md:hidden">
                                           {macroLine ? (
-                                            <p className="text-[10px] text-ink-muted tabular-nums leading-snug">
+                                            <p className="text-3xs text-ink-muted tabular-nums leading-snug">
                                               {macroLine}
                                             </p>
                                           ) : null}
@@ -2396,26 +2396,26 @@ export function NutritionPlanningPage() {
                                       </td>
                                       <td className="px-2 py-2.5 align-top hidden md:table-cell">
                                         {macroLine ? (
-                                          <p className="text-[10px] text-ink-muted tabular-nums leading-relaxed max-w-[14rem]">
+                                          <p className="text-3xs text-ink-muted tabular-nums leading-relaxed max-w-[14rem]">
                                             {macroLine}
                                           </p>
                                         ) : (
-                                          <span className="text-ink-muted text-[10px]">—</span>
+                                          <span className="text-ink-muted text-3xs">—</span>
                                         )}
                                       </td>
                                       <td className="px-2 py-2.5 align-top text-right">
-                                        <p className="text-[10px] text-ink-secondary tabular-nums leading-snug">
+                                        <p className="text-3xs text-ink-secondary tabular-nums leading-snug">
                                           {studentQty.gramsLine}
                                         </p>
                                       </td>
                                       <td className="px-2 py-2 align-top">
                                         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end sm:gap-x-2 sm:gap-y-2">
                                           <label className="flex min-w-0 flex-col gap-0.5 sm:items-end">
-                                            <span className="text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                            <span className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
                                               Modo
                                             </span>
                                             <select
-                                              className={cn(selectPlanClasses, 'h-8 w-full min-w-[6.5rem] text-[11px] sm:w-[7rem]')}
+                                              className={cn(selectPlanClasses, 'h-8 w-full min-w-[6.5rem] text-2xs sm:w-[7rem]')}
                                               value={modeSelectValue}
                                               onChange={(e) => {
                                                 const v = e.target.value
@@ -2464,7 +2464,7 @@ export function NutritionPlanningPage() {
                                           </label>
                                           {modeSelectValue === 'units' || modeSelectValue === 'volume' ? (
                                             <label className="flex min-w-0 flex-col gap-0.5 sm:items-end">
-                                              <span className="text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                              <span className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
                                                 {modeSelectValue === 'volume' ? 'ml' : 'Uds.'}
                                               </span>
                                               <Input
@@ -2497,7 +2497,7 @@ export function NutritionPlanningPage() {
                                                 : undefined
                                             }
                                           >
-                                            <span className="text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                            <span className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
                                               {modeSelectValue === 'grams'
                                                 ? 'Gramos'
                                                 : 'Equiv. gramos'}
@@ -2510,7 +2510,7 @@ export function NutritionPlanningPage() {
                                                 onChange={(e) => updateMealPickQty(key, p.id, e.target.value)}
                                                 aria-label={`Gramos equivalentes · ${displayNameForMealPick(p)}`}
                                               />
-                                              <span className="shrink-0 text-[10px] text-ink-muted">g</span>
+                                              <span className="shrink-0 text-3xs text-ink-muted">g</span>
                                             </div>
                                           </label>
                                         </div>
@@ -2531,7 +2531,7 @@ export function NutritionPlanningPage() {
                                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
                                           <button
                                             type="button"
-                                            className="inline-flex w-fit items-center justify-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1.5 text-[10px] font-medium text-ink-secondary hover:bg-surface-elevated"
+                                            className="inline-flex w-fit items-center justify-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1.5 text-3xs font-medium text-ink-secondary hover:bg-surface-elevated"
                                             title="Actualizar tip desde la fila del plan o las notas de Mi lista"
                                             onClick={() => syncPickHintSnapshot(key, p.id)}
                                           >
@@ -2543,7 +2543,7 @@ export function NutritionPlanningPage() {
                                           </label>
                                           <select
                                             id={`dup-${key}-${p.id}`}
-                                            className={cn(selectPlanClasses, 'h-8 max-w-full sm:max-w-[11rem] text-[10px] py-0 w-full sm:w-auto')}
+                                            className={cn(selectPlanClasses, 'h-8 max-w-full sm:max-w-[11rem] text-3xs py-0 w-full sm:w-auto')}
                                             value=""
                                             onChange={(e) => {
                                               const to = e.target.value as MealSlotKey
@@ -2562,13 +2562,13 @@ export function NutritionPlanningPage() {
                                             <span id={`prep-desc-${p.id}`} className="sr-only">
                                               Define cómo se muestra crudo o cocido en el PDF para este alimento.
                                             </span>
-                                            <span className="shrink-0 text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+                                            <span className="shrink-0 text-3xs font-medium uppercase tracking-wide text-ink-muted">
                                               PDF
                                             </span>
                                             <select
                                               className={cn(
                                                 selectPlanClasses,
-                                                'h-8 flex-1 min-w-0 text-[11px] py-0 sm:max-w-[18rem]',
+                                                'h-8 flex-1 min-w-0 text-2xs py-0 sm:max-w-[18rem]',
                                               )}
                                               value={p.preparation ?? 'infer'}
                                               onChange={(e) =>
@@ -2599,7 +2599,7 @@ export function NutritionPlanningPage() {
                       )}
                       <div className="border-t border-surface-border bg-surface-muted/30 px-3 py-3 ">
                         <label className="block space-y-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                          <span className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">
                             Notas del momento (opcional)
                           </span>
                           <textarea
@@ -2649,7 +2649,7 @@ export function NutritionPlanningPage() {
                 <Apple className="h-4 w-4 shrink-0 text-ink-muted " aria-hidden />
                 Alimentos personalizados
               </h2>
-              <p className="mt-1 max-w-[640px] text-[11px] leading-relaxed text-ink-muted">
+              <p className="mt-1 max-w-[640px] text-2xs leading-relaxed text-ink-muted">
                 Desde <strong>Mi lista</strong> en la{' '}
                 <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
                   Guía de alimentos
@@ -2760,7 +2760,7 @@ export function NutritionPlanningPage() {
                               onClick={() => openTableTargetModal(lib)}
                               className={cn(
                                 'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
-                                'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-ink-primary ',
+                                'text-3xs font-semibold uppercase tracking-wide text-ink-muted hover:text-ink-primary ',
                                 'hover:border-surface-inputBorder hover:bg-surface-elevated/60 transition-colors',
                               )}
                             >
@@ -2838,14 +2838,14 @@ export function NutritionPlanningPage() {
                 <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-xs font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
-                    <p className="text-[10px] text-ink-muted mt-0.5 leading-snug">{sec.quantityColumnHint}</p>
+                    <p className="text-3xs text-ink-muted mt-0.5 leading-snug">{sec.quantityColumnHint}</p>
                   </div>
-                  <p className="text-[10px] text-ink-secondary tabular-nums shrink-0">
+                  <p className="text-3xs text-ink-secondary tabular-nums shrink-0">
                     Subtotal: HC {fmt1(secTotals.carbsG)} · P {fmt1(secTotals.proteinG)} · G {fmt1(secTotals.fatG)} · {fmt1(secTotals.kcal)} kcal
                   </p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11px] min-w-[960px]">
+                  <table className="w-full text-2xs min-w-[960px]">
                     <thead>
                       <tr className="border-b border-surface-border text-left bg-surface-muted/30">
                         <th className="px-2 py-1.5 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[220px]">Alimento</th>
@@ -2880,9 +2880,9 @@ export function NutritionPlanningPage() {
                             <td className="px-2 py-1.5 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[240px]">
                               <div className="flex items-start gap-1.5 min-w-0">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-ink-primary font-medium break-words leading-snug text-[11px]">{r.name}</p>
+                                  <p className="text-ink-primary font-medium break-words leading-snug text-2xs">{r.name}</p>
                                   {r.hint ? (
-                                    <p className="mt-1 text-[10px] leading-snug text-ink-secondary ">{r.hint}</p>
+                                    <p className="mt-1 text-3xs leading-snug text-ink-secondary ">{r.hint}</p>
                                   ) : null}
                                 </div>
                                 <button
@@ -2898,7 +2898,7 @@ export function NutritionPlanningPage() {
                                   }}
                                   className={cn(
                                     'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
-                                    'text-[10px] font-semibold uppercase tracking-wide text-ink-muted hover:text-ink-primary ',
+                                    'text-3xs font-semibold uppercase tracking-wide text-ink-muted hover:text-ink-primary ',
                                     'hover:border-surface-inputBorder hover:bg-surface-elevated/60 transition-colors',
                                   )}
                                 >
@@ -2909,7 +2909,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1 py-1 align-top">
                               <select
-                                className="h-8 w-full rounded-md border border-surface-inputBorder bg-surface-input px-1 text-[10px] text-ink-primary"
+                                className="h-8 w-full rounded-md border border-surface-inputBorder bg-surface-input px-1 text-3xs text-ink-primary"
                                 value={r.qtyPresentation ?? 'grams'}
                                 onChange={(e) => {
                                   const v = e.target.value
@@ -2927,7 +2927,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1 py-1 align-top">
                               <Input
-                                className="h-8 text-[10px] px-1"
+                                className="h-8 text-3xs px-1"
                                 value={r.unitsLabel ?? ''}
                                 placeholder={(r.qtyPresentation ?? 'grams') === 'volume' ? '200' : '2'}
                                 disabled={(r.qtyPresentation ?? 'grams') === 'grams'}
@@ -2937,7 +2937,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-8 text-[11px]"
+                                className="h-8 text-2xs"
                                 inputMode="decimal"
                                 value={r.qtyG}
                                 onChange={(e) => patchRow(sec.key, r.id, { qtyG: e.target.value })}
@@ -2946,7 +2946,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-8 text-[11px]"
+                                className="h-8 text-2xs"
                                 inputMode="decimal"
                                 value={r.refCarbs}
                                 onChange={(e) => patchRow(sec.key, r.id, { refCarbs: e.target.value })}
@@ -2954,7 +2954,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-8 text-[11px]"
+                                className="h-8 text-2xs"
                                 inputMode="decimal"
                                 value={r.refProt}
                                 onChange={(e) => patchRow(sec.key, r.id, { refProt: e.target.value })}
@@ -2962,7 +2962,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-8 text-[11px]"
+                                className="h-8 text-2xs"
                                 inputMode="decimal"
                                 value={r.refFat}
                                 onChange={(e) => patchRow(sec.key, r.id, { refFat: e.target.value })}
@@ -2970,16 +2970,16 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1.5 py-1 align-top">
                               <Input
-                                className="h-8 text-[11px]"
+                                className="h-8 text-2xs"
                                 inputMode="decimal"
                                 value={r.refKcal}
                                 onChange={(e) => patchRow(sec.key, r.id, { refKcal: e.target.value })}
                               />
                             </td>
-                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.carbsG)}</td>
-                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.proteinG)}</td>
-                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.fatG)}</td>
-                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-[11px]">{fmt1(out.kcal)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-2xs">{fmt1(out.carbsG)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-2xs">{fmt1(out.proteinG)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-2xs">{fmt1(out.fatG)}</td>
+                            <td className="px-1.5 py-1.5 tabular-nums text-ink-secondary text-2xs">{fmt1(out.kcal)}</td>
                           </tr>
                         )
                       })}
@@ -3043,7 +3043,7 @@ export function NutritionPlanningPage() {
             </div>
             {mealPickTab === 'plan' ? (
               <div className="space-y-3">
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">Tabla</label>
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Tabla</label>
                 <select
                   className={selectPlanClasses}
                   value={mealPickSecKey}
@@ -3055,7 +3055,7 @@ export function NutritionPlanningPage() {
                     </option>
                   ))}
                 </select>
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">Alimento</label>
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Alimento</label>
                 <select
                   className={selectPlanClasses}
                   value={mealPickRowId}
@@ -3072,7 +3072,7 @@ export function NutritionPlanningPage() {
                     </option>
                   ))}
                 </select>
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
                   Gramos (este momento)
                 </label>
                 <Input
@@ -3085,7 +3085,7 @@ export function NutritionPlanningPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
                   Alimento de Mi lista
                 </label>
                 <select
@@ -3115,7 +3115,7 @@ export function NutritionPlanningPage() {
                     </Link>
                   </p>
                 ) : null}
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
                   Gramos (este momento)
                 </label>
                 <Input
@@ -3128,7 +3128,7 @@ export function NutritionPlanningPage() {
               </div>
             )}
             <div className="space-y-2 pt-2 border-t border-surface-border/70">
-              <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">
+              <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
                 Referencia para el alumno (PDF)
               </label>
               <select
@@ -3140,7 +3140,7 @@ export function NutritionPlanningPage() {
                 <option value="crudo">Cantidad en crudo</option>
                 <option value="cocido">Cantidad cocida</option>
               </select>
-              <p className="text-[11px] text-ink-muted leading-relaxed">
+              <p className="text-2xs text-ink-muted leading-relaxed">
                 El PDF muestra gramos y, cuando aplica, cucharadas orientativas; en carnes/pescado/huevo prioriza gramos y el tip de la fila (ej. churrasco en g), no cucharadas.
               </p>
             </div>
@@ -3170,7 +3170,7 @@ export function NutritionPlanningPage() {
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se cargan nombre y macros por 100 g en esa fila de la tabla (podés cambiar los gramos después).
             </p>
-            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Momento</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Momento</label>
             <select
               className={cn(selectPlanClasses, 'mb-4')}
               value={tableTargetSecKey}
@@ -3187,7 +3187,7 @@ export function NutritionPlanningPage() {
                 </option>
               ))}
             </select>
-            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Fila de la plantilla</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Fila de la plantilla</label>
             <select className={cn(selectPlanClasses, 'mb-5')} value={tableTargetRowId} onChange={(e) => setTableTargetRowId(e.target.value)}>
               {rowsForTableTarget.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -3282,7 +3282,7 @@ export function NutritionPlanningPage() {
                         )}
                       >
                         <span className="font-medium text-ink-primary block text-sm">{lib.display_name}</span>
-                        <span className="text-[11px] text-ink-muted tabular-nums mt-1 inline-block">
+                        <span className="text-2xs text-ink-muted tabular-nums mt-1 inline-block">
                           HC {formatLibNutrientForPlanning(lib.carbs_g_per_100g)} · P {formatLibNutrientForPlanning(lib.protein_g_per_100g)} · G{' '}
                           {formatLibNutrientForPlanning(lib.fat_g_per_100g)} · {formatLibNutrientForPlanning(lib.energy_kcal_per_100g)} kcal{' '}
                           {libSavedMacroRefSuffix(lib)}
@@ -3309,7 +3309,7 @@ export function NutritionPlanningPage() {
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se guarda una copia del contenido actual del plan. El alumno la ve en su cuenta si su usuario está vinculado en la ficha.
             </p>
-            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Alumno</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Alumno</label>
             <select
               className={cn(selectPlanClasses, 'mb-4')}
               value={assignStudentId}
@@ -3334,15 +3334,15 @@ export function NutritionPlanningPage() {
                 ))
               )}
             </select>
-            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Título del plan</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Título del plan</label>
             <Input className="mb-4" value={assignTitle} onChange={(e) => setAssignTitle(e.target.value)} placeholder="Ej. Plan marzo · déficit" />
             <div className="mb-5 grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Desde</label>
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Desde</label>
                 <Input type="date" value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Hasta</label>
+                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Hasta</label>
                 <Input type="date" value={assignEndDate} onChange={(e) => setAssignEndDate(e.target.value)} />
               </div>
             </div>
@@ -3370,14 +3370,14 @@ export function NutritionPlanningPage() {
             <p className="text-xs text-ink-muted leading-relaxed">
               Se guarda todo el plan actual (tablas, distribución, guías, TDEE, etc.) en tu cuenta para reutilizarlo después con «Cargar».
             </p>
-            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">Nombre</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Nombre</label>
             <Input
               className="w-full"
               value={workbookTplName}
               onChange={(e) => setWorkbookTplName(e.target.value)}
               placeholder="Ej. Déficit · 3 comidas + plantilla HH"
             />
-            <label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-wide">Nota (opcional)</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Nota (opcional)</label>
             <textarea
               className="w-full min-h-[64px] rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary"
               value={workbookTplDesc}

@@ -593,7 +593,7 @@ export function IntakeFersterForm({
               planPrice={selectedPlanPrice}
             />
 
-            <p className="text-[11px] leading-snug text-ink-muted">
+            <p className="text-2xs leading-snug text-ink-muted">
               Fotos y estudios opcionales. Hasta 5 imágenes, 10 MB c/u.
             </p>
 

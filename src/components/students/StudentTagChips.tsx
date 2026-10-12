@@ -32,7 +32,7 @@ export function StudentTagChips({
           <span className="truncate">{t}</span>
         )
         const classNames = cn(
-          'inline-flex h-5 max-w-[8rem] items-center gap-0.5 rounded-md border px-1.5 text-[10px] font-medium',
+          'inline-flex h-5 max-w-[8rem] items-center gap-0.5 rounded-md border px-1.5 text-3xs font-medium',
           'border-surface-border/70 bg-surface-elevated/50 text-ink-secondary',
           onTagClick &&
             'cursor-pointer transition-colors hover:border-brand-secondary/40 hover:text-brand-secondary',
@@ -59,7 +59,7 @@ export function StudentTagChips({
           </span>
         )
       })}
-      {extra > 0 ? <span className="text-[10px] tabular-nums text-ink-muted">+{extra}</span> : null}
+      {extra > 0 ? <span className="text-3xs tabular-nums text-ink-muted">+{extra}</span> : null}
     </div>
   )
 }

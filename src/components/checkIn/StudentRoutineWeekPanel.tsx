@@ -214,9 +214,9 @@ export function StudentRoutineWeekPanel() {
     <div className="overflow-hidden rounded-3xl border border-brand-secondary/20 bg-gradient-to-br from-brand-secondary/[0.10] via-surface-card to-surface-card shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary">Seguimiento</p>
+          <p className="text-3xs font-bold uppercase tracking-[0.14em] text-brand-secondary">Seguimiento</p>
           <h3 className="text-base font-semibold tracking-tight text-ink-primary">Semana de rutina</h3>
-          <p className="mt-0.5 max-w-prose text-[11px] leading-relaxed text-ink-muted">
+          <p className="mt-0.5 max-w-prose text-2xs leading-relaxed text-ink-muted">
             Según el último check-in. {inWeekCount} en curso
             {lastWeekCount > 0 ? ` · ${lastWeekCount} en última semana` : ''}
             {finishedCount > 0 ? ` · ${finishedCount} cerró el mes` : ''}.
@@ -229,7 +229,7 @@ export function StudentRoutineWeekPanel() {
               type="button"
               onClick={() => setFilter(f.id)}
               className={cn(
-                'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors',
+                'rounded-full px-2.5 py-1 text-3xs font-semibold transition-colors',
                 filter === f.id
                   ? 'bg-ink-primary text-surface-card'
                   : 'text-ink-muted hover:text-ink-primary',
@@ -271,7 +271,7 @@ export function StudentRoutineWeekPanel() {
                 <div className="flex items-start gap-3">
                   <span
                     className={cn(
-                      'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-[11px] font-bold',
+                      'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-2xs font-bold',
                       row.lastWeek
                         ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
                         : 'bg-brand-secondary/15 text-brand-secondary',
@@ -284,7 +284,7 @@ export function StudentRoutineWeekPanel() {
                       <p className="text-sm font-semibold text-ink-primary">{row.name}</p>
                       <p
                         className={cn(
-                          'text-[10px] font-medium tabular-nums',
+                          'text-3xs font-medium tabular-nums',
                           row.lastWeek ? 'font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400' : 'text-ink-muted',
                         )}
                       >
@@ -300,7 +300,7 @@ export function StudentRoutineWeekPanel() {
                       </p>
                     </div>
                     {row.lastWeek ? (
-                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-400">
+                      <p className="mt-1 text-2xs font-semibold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-400">
                         Renovar rutina
                       </p>
                     ) : null}
@@ -325,7 +325,7 @@ export function StudentRoutineWeekPanel() {
                                 key={n}
                                 title={`Semana ${n}`}
                                 className={cn(
-                                  'inline-flex h-6 min-w-6 items-center justify-center rounded-lg px-1 text-[9px] font-bold tabular-nums',
+                                  'inline-flex h-6 min-w-6 items-center justify-center rounded-lg px-1 text-3xs font-bold tabular-nums',
                                   done
                                     ? row.lastWeek
                                       ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
@@ -348,7 +348,7 @@ export function StudentRoutineWeekPanel() {
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="h-7 rounded-full border-emerald-600/40 text-[10px] text-emerald-800 dark:text-emerald-300"
+                            className="h-7 rounded-full border-emerald-600/40 text-3xs text-emerald-800 dark:text-emerald-300"
                             icon={<WhatsAppIcon className="h-3 w-3" />}
                             onClick={() => void sendFinishedWa(row)}
                           >
@@ -359,7 +359,7 @@ export function StudentRoutineWeekPanel() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-7 rounded-full text-[10px]"
+                          className="h-7 rounded-full text-3xs"
                           icon={<MessageCircle className="h-3 w-3" />}
                           onClick={() => void sendMonthlyWa(row)}
                         >

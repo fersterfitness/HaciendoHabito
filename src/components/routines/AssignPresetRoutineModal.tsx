@@ -88,9 +88,9 @@ export function AssignPresetRoutineModal({
 
   return (
     <Modal open onClose={onClose} size="md" bare className="p-4">
-    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
+    <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
     <h3 className="mt-1 text-sm font-semibold text-ink-primary">Asignar a {studentName}</h3>
-    <p className="mt-1 text-[11px] text-ink-secondary">
+    <p className="mt-1 text-2xs text-ink-secondary">
       Elegí macrociclo → mesociclo → rutina → variante. El objetivo se copia al asignar.
     </p>
     {loading ? (
@@ -101,7 +101,7 @@ export function AssignPresetRoutineModal({
       </p>
     ) : (
       <div className="mt-4 space-y-3">
-        <label className="block text-[11px] font-medium text-ink-secondary">
+        <label className="block text-2xs font-medium text-ink-secondary">
           Macrociclo (carpeta)
           <select
             value={macro}
@@ -121,7 +121,7 @@ export function AssignPresetRoutineModal({
             ))}
           </select>
         </label>
-        <label className="block text-[11px] font-medium text-ink-secondary">
+        <label className="block text-2xs font-medium text-ink-secondary">
           Mesociclo
           <select
             value={meso}
@@ -141,7 +141,7 @@ export function AssignPresetRoutineModal({
             ))}
           </select>
         </label>
-        <label className="block text-[11px] font-medium text-ink-secondary">
+        <label className="block text-2xs font-medium text-ink-secondary">
           Rutina
           <select
             value={rutina}
@@ -160,7 +160,7 @@ export function AssignPresetRoutineModal({
             ))}
           </select>
         </label>
-        <label className="block text-[11px] font-medium text-ink-secondary">
+        <label className="block text-2xs font-medium text-ink-secondary">
           Variante
           <select
             value={variantId}

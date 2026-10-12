@@ -27,13 +27,13 @@ export function CheckInQuestionFields({
   return (
     <section className="rounded-3xl border border-surface-border/70 bg-surface-card/80 p-4 shadow-card sm:p-5">
       <p className="text-[15px] font-semibold leading-snug text-ink-primary">
-        <span className="mr-2 inline-flex h-6 w-6 translate-y-[-1px] items-center justify-center rounded-full bg-brand-primary/12 text-[11px] font-bold tabular-nums text-brand-primary">
+        <span className="mr-2 inline-flex h-6 w-6 translate-y-[-1px] items-center justify-center rounded-full bg-brand-primary/12 text-2xs font-bold tabular-nums text-brand-primary">
           {index + 1}
         </span>
         {question.label}
       </p>
       {question.helperText ? (
-        <p className="mt-2 rounded-xl border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[12px] leading-snug text-violet-800 dark:text-violet-200">
+        <p className="mt-2 rounded-xl border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs leading-snug text-violet-800 dark:text-violet-200">
           {question.helperText}
         </p>
       ) : null}
@@ -107,7 +107,7 @@ export function CheckInQuestionFields({
           })}
           {selected?.extra === 'number' ? (
             <div className="pt-2">
-              <p className="mb-2 text-[11px] font-medium text-ink-muted">Número de semana</p>
+              <p className="mb-2 text-2xs font-medium text-ink-muted">Número de semana</p>
               <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
                 {WEEK_CHIPS.map((n) => {
                   const on = draft.extra === String(n)
@@ -132,7 +132,7 @@ export function CheckInQuestionFields({
           ) : null}
           {selected?.extra === 'date' ? (
             <label className="block space-y-1.5 rounded-2xl border border-violet-500/30 bg-violet-500/8 p-3 pt-2">
-              <span className="text-[11px] font-medium text-violet-800 dark:text-violet-200">
+              <span className="text-2xs font-medium text-violet-800 dark:text-violet-200">
                 Fecha de tu última menstruación — registrala en cada ciclo
               </span>
               <input
@@ -160,7 +160,7 @@ export function CheckInQuestionFields({
 
       {question.allowNote && draft.optionId ? (
         <label className="mt-3 block space-y-1.5">
-          <span className="text-[11px] text-ink-muted">¿Querés aclarar algo? (opcional)</span>
+          <span className="text-2xs text-ink-muted">¿Querés aclarar algo? (opcional)</span>
           <textarea
             rows={2}
             maxLength={CHECK_IN_NOTE_MAX}

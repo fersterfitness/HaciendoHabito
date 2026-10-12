@@ -92,7 +92,7 @@ export function NutritionSeasonalMenusPage() {
         <Card>
           <div className="space-y-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
+              <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
                 Temporada
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -111,7 +111,7 @@ export function NutritionSeasonalMenusPage() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2 flex items-center gap-1.5">
+                <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted mb-2 flex items-center gap-1.5">
                   <Wheat className="h-3 w-3" /> Patología
                 </p>
                 <select
@@ -129,7 +129,7 @@ export function NutritionSeasonalMenusPage() {
               </div>
 
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2 flex items-center gap-1.5">
+                <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted mb-2 flex items-center gap-1.5">
                   <Flame className="h-3 w-3" /> Tolerancia digestiva
                 </p>
                 <select
@@ -190,7 +190,7 @@ export function NutritionSeasonalMenusPage() {
                 <p className="text-xs text-ink-secondary mb-3 leading-relaxed">{m.summary}</p>
 
                 {m.approximateKcal ? (
-                  <p className="text-[11px] text-ink-muted mb-3">
+                  <p className="text-2xs text-ink-muted mb-3">
                     <span className="font-medium">~{m.approximateKcal} kcal/día</span>
                   </p>
                 ) : null}
@@ -199,7 +199,7 @@ export function NutritionSeasonalMenusPage() {
                   {m.pathologies.map((p) => (
                     <span
                       key={p}
-                      className="inline-flex items-center text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
+                      className="inline-flex items-center text-3xs uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
                     >
                       {PATHOLOGY_LABELS[p]}
                     </span>
@@ -282,7 +282,7 @@ function SeasonBadge({ season }: { season: MenuSeason }) {
         : 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/15'
 
   return (
-    <span className={cn('inline-flex items-center gap-1 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md border', color)}>
+    <span className={cn('inline-flex items-center gap-1 text-3xs uppercase tracking-wide px-2 py-0.5 rounded-md border', color)}>
       {icon} {SEASON_LABELS[season]}
     </span>
   )
@@ -296,7 +296,7 @@ function ToleranceBadge({ tolerance }: { tolerance: DigestiveTolerance }) {
   }
   const item = map[tolerance]
   return (
-    <span className={cn('text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md border', item.color)}>
+    <span className={cn('text-3xs uppercase tracking-wide px-2 py-0.5 rounded-md border', item.color)}>
       {item.label}
     </span>
   )
@@ -341,13 +341,13 @@ function MenuDetailModal({
             {template.pathologies.map((p) => (
               <span
                 key={p}
-                className="inline-flex items-center text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
+                className="inline-flex items-center text-3xs uppercase tracking-wide px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
               >
                 {PATHOLOGY_LABELS[p]}
               </span>
             ))}
             {template.approximateKcal ? (
-              <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md bg-surface-elevated text-ink-muted">
+              <span className="text-3xs uppercase tracking-wide px-2 py-0.5 rounded-md bg-surface-elevated text-ink-muted">
                 ~{template.approximateKcal} kcal
               </span>
             ) : null}

@@ -47,6 +47,9 @@ const config: Config = {
         sans: [...appFontFamilyStack],
       },
       fontSize: {
+        /** Escala chica (solo tamaño; el interlineado lo hereda). 9px y menos no se usan: no se leen. */
+        '3xs': '0.625rem',
+        '2xs': '0.6875rem',
         caption: ['0.625rem', { lineHeight: '0.875rem' }],
         label: ['0.6875rem', { lineHeight: '1rem' }],
         'table-head': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.08em' }],

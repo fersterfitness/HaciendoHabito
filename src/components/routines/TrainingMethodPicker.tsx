@@ -101,7 +101,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
               onClick={onClick}
               {...a11y}
               className={cn(
-                'inline-flex h-7 items-center gap-1 rounded-lg border px-2 text-[10px] font-semibold transition-colors',
+                'inline-flex h-7 items-center gap-1 rounded-lg border px-2 text-3xs font-semibold transition-colors',
                 selected
                   ? 'border-brand-secondary/35 bg-brand-secondary/10 text-brand-secondary'
                   : 'border-surface-border bg-surface-elevated text-ink-secondary hover:border-brand-secondary/30',
@@ -122,7 +122,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
           ) : (
             grouped.map((g) => (
               <div key={g.label} className="mb-2 last:mb-0">
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                <p className="px-2 py-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">
                   {g.label}
                 </p>
                 {g.items.map((m) => (
@@ -134,10 +134,10 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
                   >
                     <span className="font-medium text-ink-primary">{m.name}</span>
                     {m.default_reps_scheme ? (
-                      <span className="text-[10px] text-ink-muted">Reps: {m.default_reps_scheme}</span>
+                      <span className="text-3xs text-ink-muted">Reps: {m.default_reps_scheme}</span>
                     ) : null}
                     {Array.isArray(m.week_plan) && m.week_plan.length > 0 ? (
-                      <span className="text-[10px] font-medium text-brand-secondary">
+                      <span className="text-3xs font-medium text-brand-secondary">
                         Plan por semana ({m.week_plan.length})
                       </span>
                     ) : null}
@@ -151,7 +151,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
           <button
             type="button"
             onClick={() => onApplyWeekPlan(selected)}
-            className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2 text-[10px] font-semibold text-brand-secondary hover:bg-brand-secondary/20"
+            className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-secondary/35 bg-brand-secondary/10 px-2 text-3xs font-semibold text-brand-secondary hover:bg-brand-secondary/20"
             title="Copiar reps, %, RPE, RIR, descanso y aclaración de cada semana a todas las semanas (este día)"
           >
             Aplicar a las semanas ({selected.week_plan.length})
@@ -161,7 +161,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
           <button
             type="button"
             onClick={() => onApplyWeekPlanAllDays(selected)}
-            className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-primary/35 bg-brand-primary/10 px-2 text-[10px] font-semibold text-brand-primary hover:bg-brand-primary/20"
+            className="inline-flex h-7 items-center gap-1 rounded-lg border border-brand-primary/35 bg-brand-primary/10 px-2 text-3xs font-semibold text-brand-primary hover:bg-brand-primary/20"
             title="Aplicar el plan a todas las semanas y todos los días donde esté este ejercicio"
           >
             A todas las semanas y días
@@ -171,7 +171,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
           <button
             type="button"
             onClick={clearMethod}
-            className="inline-flex h-7 items-center gap-0.5 rounded-lg px-1.5 text-[10px] text-ink-muted hover:text-status-expired"
+            className="inline-flex h-7 items-center gap-0.5 rounded-lg px-1.5 text-3xs text-ink-muted hover:text-status-expired"
             title="Quitar método"
           >
             <X className="h-3 w-3" />
@@ -180,16 +180,16 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
         <button
           type="button"
           onClick={() => setShowCoachNotes((v) => !v)}
-          className="text-[10px] text-ink-muted underline-offset-2 hover:text-brand-secondary hover:underline"
+          className="text-3xs text-ink-muted underline-offset-2 hover:text-brand-secondary hover:underline"
         >
           {showCoachNotes || coachNotes ? 'Guía (solo vos)' : null}
         </button>
       </div>
       {(showCoachNotes || selected || coachNotes) && (
         <div className="rounded-xl border border-dashed border-brand-secondary/25 bg-brand-secondary/5 px-2 py-2">
-          <p className="text-[10px] font-medium text-brand-secondary mb-1">Guía privada — no aparece en el PDF</p>
+          <p className="text-3xs font-medium text-brand-secondary mb-1">Guía privada — no aparece en el PDF</p>
           {selected?.coach_guide && !coachNotes ? (
-            <p className="text-[10px] text-ink-secondary whitespace-pre-wrap mb-2">{selected.coach_guide}</p>
+            <p className="text-3xs text-ink-secondary whitespace-pre-wrap mb-2">{selected.coach_guide}</p>
           ) : null}
           <Textarea
             rows={4}

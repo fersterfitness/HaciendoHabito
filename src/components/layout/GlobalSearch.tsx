@@ -225,7 +225,7 @@ export function GlobalSearch() {
               <X className="h-3.5 w-3.5" />
             </button>
           ) : null}
-          <kbd className="hidden shrink-0 rounded border border-surface-border/80 bg-surface-elevated/60 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted sm:inline">
+          <kbd className="hidden shrink-0 rounded border border-surface-border/80 bg-surface-elevated/60 px-1.5 py-0.5 text-3xs font-medium text-ink-muted sm:inline">
             esc
           </kbd>
         </div>
@@ -247,7 +247,7 @@ export function GlobalSearch() {
                 const label = k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
                 return (
                   <div key={k}>
-                    <p className="px-3 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                    <p className="px-3 pb-0.5 pt-2 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
                       {label}
                     </p>
                     <ul>
@@ -281,7 +281,7 @@ export function GlobalSearch() {
                               </span>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-ink-primary">{r.label}</p>
-                                <p className="truncate text-[11px] text-ink-muted">{r.sub}</p>
+                                <p className="truncate text-2xs text-ink-muted">{r.sub}</p>
                               </div>
                             </button>
                           </li>
@@ -296,9 +296,9 @@ export function GlobalSearch() {
         </div>
 
         <div className="flex items-center gap-3 border-t border-surface-border/80 bg-surface-elevated/30 px-3 py-1.5">
-          <span className="text-[10px] text-ink-muted">↑↓ navegar</span>
-          <span className="text-[10px] text-ink-muted">↵ abrir</span>
-          <span className="text-[10px] text-ink-muted">esc cerrar</span>
+          <span className="text-3xs text-ink-muted">↑↓ navegar</span>
+          <span className="text-3xs text-ink-muted">↵ abrir</span>
+          <span className="text-3xs text-ink-muted">esc cerrar</span>
         </div>
       </div>
     </div>

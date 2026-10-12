@@ -124,7 +124,7 @@ export function Tooltip({
               className={cn(
                 'fixed z-[10060] pointer-events-none',
                 'rounded-md border border-surface-border/80 bg-surface-card px-2 py-1',
-                'text-[11px] font-medium text-ink-primary shadow-lg',
+                'text-2xs font-medium text-ink-primary shadow-lg',
                 'max-w-[min(22rem,calc(100vw-2rem))] whitespace-nowrap',
                 contentClassName,
               )}

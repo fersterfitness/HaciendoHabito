@@ -30,10 +30,10 @@ export function NutritionRequirementsCalculatorCard({ student }: { student: Stud
   return (
     <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-4 space-y-3">
       <p className="text-sm font-semibold text-ink-primary">Calculadora energética (Mifflin–St Jeor)</p>
-      <p className="text-[11px] text-ink-muted leading-relaxed">
+      <p className="text-2xs text-ink-muted leading-relaxed">
         Usa fecha de nacimiento, sexo y talla del paciente en la ficha. El peso toma el de la ficha salvo que lo sobrescribas abajo.
       </p>
-      <label className="text-[11px] text-ink-secondary block">
+      <label className="text-2xs text-ink-secondary block">
         Peso para cálculo (kg), opcional
         <input
           value={weightOverride}
@@ -42,7 +42,7 @@ export function NutritionRequirementsCalculatorCard({ student }: { student: Stud
           className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
         />
       </label>
-      <label className="text-[11px] text-ink-secondary block">
+      <label className="text-2xs text-ink-secondary block">
         Nivel de actividad
         <select
           value={activity}
@@ -68,7 +68,7 @@ export function NutritionRequirementsCalculatorCard({ student }: { student: Stud
           TDEE aprox.: <span className="font-medium text-brand-primary">{tdee != null ? `${tdee} kcal/día` : '—'}</span>
         </p>
       </div>
-      <p className="text-[10px] text-ink-muted leading-snug">
+      <p className="text-3xs text-ink-muted leading-snug">
         Referencia orientativa; el profesional ajusta según composición corporal, objetivo y contexto clínico.
       </p>
     </div>

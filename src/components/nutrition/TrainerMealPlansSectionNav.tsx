@@ -28,7 +28,7 @@ export function TrainerMealPlansSectionNav() {
             end={href === '/meal-plans'}
             className={({ isActive }) =>
               cn(
-                'flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors sm:text-xs sm:px-3',
+                'flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-2xs font-semibold transition-colors sm:text-xs sm:px-3',
                 isActive
                   ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary shadow-sm'
                   : 'border-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',

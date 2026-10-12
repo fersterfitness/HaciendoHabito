@@ -133,9 +133,9 @@ export function BlueprintFromStudentRoutineModal({
 
   return (
     <Modal open onClose={onClose} size="lg" bare className="max-h-[92vh] overflow-y-auto p-4">
-    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
+    <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
     <h3 className="mt-1 text-sm font-semibold text-ink-primary">Copiar desde rutina de un alumno</h3>
-    <p className="mt-1 text-[11px] text-ink-secondary">
+    <p className="mt-1 text-2xs text-ink-secondary">
       Elegí la rutina, ubicala en una carpeta y se abre el editor para modificarla. La rutina del alumno no cambia.
     </p>
 
@@ -148,19 +148,19 @@ export function BlueprintFromStudentRoutineModal({
     </div>
 
     <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <label className="text-[11px] font-medium text-ink-secondary sm:col-span-2">
+      <label className="text-2xs font-medium text-ink-secondary sm:col-span-2">
         Nombre de la variante
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: estándar" className={inputCls} />
       </label>
-      <label className="text-[11px] font-medium text-ink-secondary">
+      <label className="text-2xs font-medium text-ink-secondary">
         Macrociclo (carpeta)
         <input list="bp-from-student-categories" value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} />
       </label>
-      <label className="text-[11px] font-medium text-ink-secondary">
+      <label className="text-2xs font-medium text-ink-secondary">
         Mesociclo
         <input list="bp-from-student-subcategories" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={inputCls} />
       </label>
-      <label className="text-[11px] font-medium text-ink-secondary sm:col-span-2">
+      <label className="text-2xs font-medium text-ink-secondary sm:col-span-2">
         Rutina (carpeta, opcional)
         <input value={routineGroup} onChange={(e) => setRoutineGroup(e.target.value)} className={inputCls} />
       </label>

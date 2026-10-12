@@ -506,7 +506,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <AlignLeft className="h-4 w-4" />
             Plantillas de texto (sin link)
           </h2>
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-2xs text-ink-muted">
             Texto que se antepone al mensaje del recurso (saludo, contexto, recordatorios). Opcional al enviar.
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -638,7 +638,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                         onClick={() => setSelectedResourceId(r.id)}
                       >
                         <p className="text-sm font-medium text-ink-primary truncate">{r.title}</p>
-                        <p className="text-[11px] text-ink-muted truncate font-mono">{r.url}</p>
+                        <p className="text-2xs text-ink-muted truncate font-mono">{r.url}</p>
                       </button>
                       <a
                         href={r.url}
@@ -689,7 +689,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                       <p className="font-semibold text-ink-primary">{tpl.title}</p>
                       <p className="text-ink-muted whitespace-pre-wrap line-clamp-4">{tpl.body}</p>
                       {/\uFFFD/.test(tpl.body ?? '') ? (
-                        <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                        <p className="text-2xs text-amber-700 dark:text-amber-300">
                           Hay caracteres dañados (◇). Editá la plantilla y volvé a poner los emojis desde el teclado.
                         </p>
                       ) : null}
@@ -727,7 +727,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                             <span className="truncate text-ink-primary">{s.full_name}</span>
                             <Button
                               type="button" size="sm" variant="outline"
-                              className="shrink-0 text-[11px] h-7"
+                              className="shrink-0 text-2xs h-7"
                               onClick={() => void openWaStudentTemplate(s)}
                             >
                               WhatsApp
@@ -795,7 +795,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     con teléfono para poder abrir WhatsApp desde acá.
                   </p>
                 ) : null}
-                <p className="text-[11px] text-ink-muted">
+                <p className="text-2xs text-ink-muted">
                   Marcados: {waSelectionSummary.marked} · Con número válido para WhatsApp: {waSelectionSummary.withPhone}
                 </p>
                 <div className="max-h-52 overflow-y-auto space-y-1 rounded-lg border border-surface-border p-2">
@@ -812,7 +812,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                       />
                       <span className="text-ink-primary">{s.full_name}</span>
                       {!s.phone?.trim() ? (
-                        <span className="text-[10px] text-status-expired">sin teléfono</span>
+                        <span className="text-3xs text-status-expired">sin teléfono</span>
                       ) : null}
                     </label>
                   ))}
@@ -857,7 +857,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     Registrar envío en historial
                   </Button>
                 </div>
-                <p className="text-[11px] text-ink-muted">
+                <p className="text-2xs text-ink-muted">
                   El navegador puede bloquear muchas pestañas: si falla, usá los enlaces individuales abajo.
                 </p>
                 <div className="space-y-1 border-t border-surface-border pt-3">
@@ -872,7 +872,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="shrink-0 text-[11px] h-7"
+                          className="shrink-0 text-2xs h-7"
                           onClick={() => void openWaForStudent(st, selectedResource)}
                         >
                           WhatsApp
@@ -903,7 +903,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               type="button"
               onClick={() => setScheduleTargetType('resource')}
               className={cn(
-                'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                'flex-1 rounded-lg px-3 py-1.5 text-2xs font-semibold transition-colors',
                 scheduleTargetType === 'resource'
                   ? 'bg-surface-card text-ink-primary shadow-sm'
                   : 'text-ink-muted hover:text-ink-secondary',
@@ -915,7 +915,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               type="button"
               onClick={() => setScheduleTargetType('template')}
               className={cn(
-                'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                'flex-1 rounded-lg px-3 py-1.5 text-2xs font-semibold transition-colors',
                 scheduleTargetType === 'template'
                   ? 'bg-surface-card text-ink-primary shadow-sm'
                   : 'text-ink-muted hover:text-ink-secondary',
@@ -926,7 +926,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
           </div>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
             <div className="space-y-1 min-w-[8rem]">
-              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">Día</label>
+              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted">Día</label>
               <select
                 className="w-full text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2"
                 value={newResSchedDow}
@@ -940,7 +940,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               </select>
             </div>
             <div className="space-y-1 flex-1 min-w-[10rem]">
-              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">Zona horaria</label>
+              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted">Zona horaria</label>
               <select
                 className="w-full text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2"
                 value={newResSchedTz}
@@ -973,7 +973,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             </Button>
           </div>
           {!canAddSchedule ? (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+            <p className="text-2xs text-amber-700 dark:text-amber-400">
               {scheduleTargetType === 'template'
                 ? 'Seleccioná una plantilla en la lista de arriba para asociar el recordatorio.'
                 : 'Seleccioná un recurso en la lista para asociar el recordatorio.'}
@@ -992,10 +992,10 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     <p className="font-medium text-ink-primary truncate">
                       {s.template?.title ?? s.resource?.title ?? 'Recordatorio'}
                       {s.template_id ? (
-                        <span className="ml-1.5 text-[10px] font-normal text-brand-secondary">plantilla</span>
+                        <span className="ml-1.5 text-3xs font-normal text-brand-secondary">plantilla</span>
                       ) : null}
                     </p>
-                    <p className="text-[11px] text-ink-muted">
+                    <p className="text-2xs text-ink-muted">
                       Cada {WEEKDAY_LABELS_ES[s.day_of_week] ?? '—'} · {s.timezone}
                       {scheduleMatchesToday(s) ? (
                         <span className="ml-1 font-semibold text-brand-secondary">· hoy</span>
@@ -1020,12 +1020,12 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <History className="h-4 w-4" />
             Historial de envíos registrados
           </h2>
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-2xs text-ink-muted">
             Incluye envíos al abrir WhatsApp (si está activada esa opción) y los manuales. Mismo alumno y recurso dentro de 60 minutos no duplica
             filas ni nuevos registros.
           </p>
           {sendLogHiddenDuplicateCount > 0 ? (
-            <p className="text-[10px] text-ink-muted rounded-lg bg-surface-elevated/40 border border-surface-border px-2 py-1.5">
+            <p className="text-3xs text-ink-muted rounded-lg bg-surface-elevated/40 border border-surface-border px-2 py-1.5">
               Se ocultaron {sendLogHiddenDuplicateCount} fila{sendLogHiddenDuplicateCount === 1 ? '' : 's'} duplicada
               {sendLogHiddenDuplicateCount === 1 ? '' : 's'} en la vista (mismo alumno, mismo recurso, menos de 60 minutos entre registros).
             </p>
@@ -1062,7 +1062,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                             href={row.trainer_resources.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-[10px] text-brand-primary truncate max-w-[220px] hover:underline font-mono"
+                            className="block text-3xs text-brand-primary truncate max-w-[220px] hover:underline font-mono"
                           >
                             {row.trainer_resources.url}
                           </a>

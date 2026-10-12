@@ -71,7 +71,7 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
             {typeof tab.count === 'number' && tab.count > 0 ? (
               <span
                 className={cn(
-                  'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md text-[10px] font-semibold tabular-nums',
+                  'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md text-3xs font-semibold tabular-nums',
                   isActive
                     ? 'bg-brand-primary/12 text-brand-primary'
                     : 'bg-surface-elevated text-ink-muted',

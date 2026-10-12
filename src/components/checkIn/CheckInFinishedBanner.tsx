@@ -14,8 +14,8 @@ export function CheckInLastWeekBanner({ onAskMonthly }: { onAskMonthly?: () => v
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-rose-600 dark:text-rose-400">
               Última semana
             </p>
-            <p className="mt-0.5 text-[11px] font-semibold text-rose-700 dark:text-rose-300">Renovar rutina</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-ink-secondary">
+            <p className="mt-0.5 text-2xs font-semibold text-rose-700 dark:text-rose-300">Renovar rutina</p>
+            <p className="mt-1 text-2xs leading-relaxed text-ink-secondary">
               El alumno marcó que está en su última semana. Armá el siguiente mesociclo y pedile el feedback mensual.
             </p>
           </div>
@@ -24,7 +24,7 @@ export function CheckInLastWeekBanner({ onAskMonthly }: { onAskMonthly?: () => v
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 rounded-full text-[11px]"
+              className="h-8 rounded-full text-2xs"
               icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
               onClick={onAskMonthly}
             >
@@ -55,14 +55,14 @@ export function CheckInFinishedBanner({
         <div className="min-w-0 flex-1 space-y-2.5">
           <div>
             <p className="text-xs font-semibold text-ink-primary">Mes de rutina cerrado</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-ink-secondary">{description}</p>
+            <p className="mt-0.5 text-2xs leading-relaxed text-ink-secondary">{description}</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 rounded-full border-emerald-600/35 bg-emerald-500/8 text-[11px] text-emerald-800 dark:text-emerald-300"
+              className="h-8 rounded-full border-emerald-600/35 bg-emerald-500/8 text-2xs text-emerald-800 dark:text-emerald-300"
               icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
               onClick={onAskProgress}
             >
@@ -72,7 +72,7 @@ export function CheckInFinishedBanner({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 rounded-full text-[11px]"
+              className="h-8 rounded-full text-2xs"
               icon={<MessageCircle className="h-3.5 w-3.5" />}
               onClick={onAskMonthly}
             >

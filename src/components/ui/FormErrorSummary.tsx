@@ -54,7 +54,7 @@ export function FormErrorSummary({
         <AlertTriangle className="h-4 w-4 shrink-0 text-status-expired mt-0.5" aria-hidden />
         <div className="min-w-0">
           <p className="font-semibold text-ink-primary">{title}</p>
-          <ul className="mt-1 space-y-0.5 text-[12px] text-ink-secondary">
+          <ul className="mt-1 space-y-0.5 text-xs text-ink-secondary">
             {Array.from(new Set(messages)).slice(0, 5).map((m) => (
               <li key={m} className="leading-snug">
                 {m}

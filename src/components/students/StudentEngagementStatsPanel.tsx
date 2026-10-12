@@ -179,13 +179,13 @@ export function StudentEngagementStatsPanel({
           ].map((k) => (
             <div key={k.label} className="rounded-xl border border-surface-border bg-surface-elevated/40 px-3 py-2.5 text-center">
               <dd className="text-xl font-bold tabular-nums text-ink-primary">{k.value}</dd>
-              <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{k.label}</dt>
-              <p className="text-[9px] text-ink-muted">{k.hint}</p>
+              <dt className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{k.label}</dt>
+              <p className="text-3xs text-ink-muted">{k.hint}</p>
             </div>
           ))}
         </dl>
 
-        <p className="mb-1 mt-4 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+        <p className="mb-1 mt-4 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
           Rutinas iniciadas por mes (últimos 12)
         </p>
         <ResponsiveContainer width="100%" height={120}>
@@ -217,10 +217,10 @@ export function StudentEngagementStatsPanel({
             {monthlyRows.map((row) => (
               <li key={row.id} className="rounded-xl border border-emerald-600/25 bg-emerald-500/5 px-3 py-2.5">
                 <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                  <span className="text-3xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                     {row.formTitle}
                   </span>
-                  <span className="text-[10px] text-ink-muted">
+                  <span className="text-3xs text-ink-muted">
                     {new Date(row.submittedAt).toLocaleDateString('es-AR', {
                       day: '2-digit',
                       month: 'short',
@@ -238,7 +238,7 @@ export function StudentEngagementStatsPanel({
             ))}
           </ul>
         ) : (
-          <p className="mb-3 text-[11px] text-ink-muted">
+          <p className="mb-3 text-2xs text-ink-muted">
             Cuando el alumno complete el formulario de feedback mensual, las respuestas aparecen acá atadas a la rutina de esas fechas.
           </p>
         )}
@@ -271,7 +271,7 @@ export function StudentEngagementStatsPanel({
             {testimonials.map((t) => (
               <li key={t.id} className="rounded-xl border border-surface-border bg-surface-elevated/40 px-3 py-2.5">
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-brand-secondary">{t.period_label}</span>
+                  <span className="text-3xs font-bold uppercase tracking-wide text-brand-secondary">{t.period_label}</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -294,8 +294,8 @@ export function StudentEngagementStatsPanel({
                     </button>
                   </div>
                 </div>
-                <p className="whitespace-pre-wrap text-[13px] leading-snug text-ink-secondary">{t.content}</p>
-                <p className="mt-1 text-[9px] text-ink-muted">{formatDate(t.created_at.slice(0, 10))}</p>
+                <p className="whitespace-pre-wrap text-body-sm leading-snug text-ink-secondary">{t.content}</p>
+                <p className="mt-1 text-3xs text-ink-muted">{formatDate(t.created_at.slice(0, 10))}</p>
               </li>
             ))}
           </ul>

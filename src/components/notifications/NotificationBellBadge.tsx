@@ -21,7 +21,7 @@ export function NotificationBellBadge({ count, className }: Props) {
       {showNumber ? (
         <span
           className={cn(
-            'flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-surface-base',
+            'flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-3xs font-bold leading-none text-white shadow-sm ring-2 ring-surface-base',
             trainerCtaSolidBgClassName,
           )}
         >

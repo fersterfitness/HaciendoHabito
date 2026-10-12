@@ -37,7 +37,7 @@ export function MonthlyFeedbackAnswers({
   return (
     <div className="space-y-2.5">
       {routineName ? (
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-secondary">
+        <p className="text-3xs font-semibold uppercase tracking-wide text-brand-secondary">
           Rutina · {routineName}
         </p>
       ) : null}

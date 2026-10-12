@@ -78,7 +78,7 @@ export function NutritionResumenKpi({
         <span className="text-ink-muted shrink-0 [&_svg]:h-4 [&_svg]:w-4">
           {icon}
         </span>
-        <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider truncate">
+        <p className="text-3xs font-semibold text-ink-muted uppercase tracking-wider truncate">
           {label}
         </p>
       </div>
@@ -91,7 +91,7 @@ export function NutritionResumenKpi({
       </div>
 
       <div className="flex items-center justify-between gap-2 min-w-0">
-        <div className={cn('flex items-center gap-1 text-[11px] font-semibold tabular-nums leading-none', tone)}>
+        <div className={cn('flex items-center gap-1 text-2xs font-semibold tabular-nums leading-none', tone)}>
           {delta == null ? (
             <span className="text-ink-muted">Sin control previo</span>
           ) : delta > 0 ? (

@@ -46,7 +46,7 @@ function getMuscleColor(index: number) {
 }
 
 function difficultyBadgeClass(difficulty: string): string {
-  const base = 'inline-flex rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap'
+  const base = 'inline-flex rounded border px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide whitespace-nowrap'
   switch (difficulty) {
     case 'basico':
       return cn(base, 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/[0.14] dark:text-emerald-400')
@@ -188,7 +188,7 @@ export function ExercisesPage() {
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Buscar ejercicios"
               className={cn(
-                'h-10 rounded-md border-surface-border/75 text-[14px] shadow-none ',
+                'h-10 rounded-md border-surface-border/75 text-sm shadow-none ',
                 'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50 ',
               )}
             />
@@ -227,7 +227,7 @@ export function ExercisesPage() {
               type="button"
               onClick={() => setMuscleFilter(null)}
               className={cn(
-                'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                'inline-flex items-center rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                 muscleFilter === null
                   ? 'border-zinc-700 bg-zinc-800 text-white dark:border-zinc-300 dark:bg-zinc-100 dark:text-zinc-900'
                   : 'border-surface-border/80 bg-surface-elevated/60 text-ink-secondary hover:bg-surface-elevated ',
@@ -250,7 +250,7 @@ export function ExercisesPage() {
                     type="button"
                     onClick={() => setMuscleFilter(isActive ? null : g.id)}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                       isActive
                         ? cn(palette.bg, palette.border, palette.text, 'ring-1 ring-inset', palette.border)
                         : 'border-surface-border/80 bg-surface-elevated/60 text-ink-muted hover:bg-surface-elevated ',
@@ -274,7 +274,7 @@ export function ExercisesPage() {
 
         {showCategoryPanel && (
           <div className="space-y-2 rounded-lg border border-surface-border/75 bg-surface-elevated/50 p-3 ">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Nueva categoría (grupo muscular)</p>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">Nueva categoría (grupo muscular)</p>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <Input
@@ -332,13 +332,13 @@ export function ExercisesPage() {
           />
         ) : (
           <div className="w-full overflow-x-auto rounded-md border border-surface-border/70 bg-surface-card ">
-            <table className="w-full border-collapse text-[13px] leading-snug">
+            <table className="w-full border-collapse text-body-sm leading-snug">
               <thead className="border-b border-surface-border/55 bg-surface-elevated/40 dark:border-zinc-800/80 ">
                 <tr className="text-left">
-                  <th className="w-[32%] px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Ejercicio</th>
-                  <th className="hidden w-[18%] px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Músculo</th>
-                  <th className="w-[13%] px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Nivel</th>
-                  <th className="hidden px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Equipo</th>
+                  <th className="w-[32%] px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Ejercicio</th>
+                  <th className="hidden w-[18%] px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Músculo</th>
+                  <th className="w-[13%] px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Nivel</th>
+                  <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Equipo</th>
                   <th className="w-24 px-2 py-2 sm:w-28" aria-label="Acciones" />
                 </tr>
               </thead>
@@ -356,7 +356,7 @@ export function ExercisesPage() {
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           <span className="font-semibold tracking-tight text-ink-primary">{exercise.name}</span>
                           {!exercise.is_active && (
-                            <span className="rounded border border-surface-inputBorder/65 bg-zinc-500/[0.08] px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-ink-secondary ">
+                            <span className="rounded border border-surface-inputBorder/65 bg-zinc-500/[0.08] px-1.5 py-px text-3xs font-semibold uppercase tracking-wide text-ink-secondary ">
                               Inactivo
                             </span>
                           )}
@@ -365,7 +365,7 @@ export function ExercisesPage() {
                       <td className="hh-row-drop-in hidden px-3 py-2 sm:table-cell sm:px-4">
                         {exercise.muscle_group && palette ? (
                           <span className={cn(
-                            'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                            'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide',
                             palette.bg, palette.border, palette.text,
                           )}>
                             <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: palette.dot }} />

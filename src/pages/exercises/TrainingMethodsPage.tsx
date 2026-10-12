@@ -281,7 +281,7 @@ export function TrainingMethodsPage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-semibold text-ink-primary">Plan por semana (opcional)</p>
-                  <p className="text-[10px] text-ink-muted">
+                  <p className="text-3xs text-ink-muted">
                     Reps, % RM, RPE, RIR, descanso y aclaración por semana. Al aplicar el método, cada semana copia su valor.
                   </p>
                 </div>
@@ -300,7 +300,7 @@ export function TrainingMethodsPage() {
                 </Button>
               </div>
               {methodWeekPlan.length === 0 ? (
-                <p className="text-[11px] text-ink-muted">Sin plan semanal. Se usan las "reps sugeridas" para todas las semanas.</p>
+                <p className="text-2xs text-ink-muted">Sin plan semanal. Se usan las "reps sugeridas" para todas las semanas.</p>
               ) : (
                 <div className="space-y-2">
                   {methodWeekPlan.map((w, i) => {
@@ -311,7 +311,7 @@ export function TrainingMethodsPage() {
                     return (
                       <div key={i} className="rounded-lg border border-surface-border/70 bg-surface-elevated/30 p-2">
                         <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-[11px] font-semibold text-ink-secondary">Semana {i + 1}</span>
+                          <span className="text-2xs font-semibold text-ink-secondary">Semana {i + 1}</span>
                           <button
                             type="button"
                             onClick={() => setMethodWeekPlan((p) => p.filter((_, j) => j !== i))}
@@ -322,7 +322,7 @@ export function TrainingMethodsPage() {
                           </button>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
-                          <label className="col-span-2 text-[10px] text-ink-muted">
+                          <label className="col-span-2 text-3xs text-ink-muted">
                             Reps
                             <input
                               value={w.reps_scheme ?? ''}
@@ -331,23 +331,23 @@ export function TrainingMethodsPage() {
                               className={numCls}
                             />
                           </label>
-                          <label className="text-[10px] text-ink-muted">
+                          <label className="text-3xs text-ink-muted">
                             % RM
                             <input type="number" value={w.percent_rm ?? ''} onChange={(e) => upd({ percent_rm: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
                           </label>
-                          <label className="text-[10px] text-ink-muted">
+                          <label className="text-3xs text-ink-muted">
                             RPE
                             <input type="number" value={w.rpe ?? ''} onChange={(e) => upd({ rpe: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
                           </label>
-                          <label className="text-[10px] text-ink-muted">
+                          <label className="text-3xs text-ink-muted">
                             RIR
                             <input type="number" value={w.rir ?? ''} onChange={(e) => upd({ rir: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
                           </label>
-                          <label className="text-[10px] text-ink-muted">
+                          <label className="text-3xs text-ink-muted">
                             Descanso (s)
                             <input type="number" value={w.rest_seconds ?? ''} onChange={(e) => upd({ rest_seconds: e.target.value === '' ? null : Number(e.target.value) })} className={numCls} />
                           </label>
-                          <label className="col-span-2 sm:col-span-6 text-[10px] text-ink-muted">
+                          <label className="col-span-2 sm:col-span-6 text-3xs text-ink-muted">
                             Aclaración del bloque
                             <input value={w.block_note ?? ''} onChange={(e) => upd({ block_note: e.target.value || null })} placeholder="ej: 3 vueltas, 1' pausa" className={numCls} />
                           </label>

@@ -22,7 +22,7 @@ function ProIcon({ kind }: { kind: ProKind }) {
 
 function Plus() {
   return (
-    <span className="select-none px-px text-[9px] font-bold leading-none text-zinc-400 dark:text-zinc-500" aria-hidden>
+    <span className="select-none px-px text-3xs font-bold leading-none text-zinc-400 dark:text-zinc-500" aria-hidden>
       +
     </span>
   )

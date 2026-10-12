@@ -131,7 +131,7 @@ export function MobileNav() {
                 <div className={cn('p-1.5 rounded-lg transition-colors', active && mobileNavActiveTintBgClassName)}>
                   <Icon className={cn('h-4 w-4', active && mobileNavActiveTextClassName)} />
                 </div>
-                <span className="text-[10px] font-medium leading-none text-center max-w-[4.5rem] truncate">
+                <span className="text-3xs font-medium leading-none text-center max-w-[4.5rem] truncate">
                   {item.label}
                 </span>
               </NavLink>
@@ -152,7 +152,7 @@ export function MobileNav() {
             <div className={cn('p-1.5 rounded-lg transition-colors', moreActive && mobileNavActiveTintBgClassName)}>
               <Menu className={cn('h-4 w-4', moreActive && mobileNavActiveTextClassName)} />
             </div>
-            <span className="text-[10px] font-medium leading-none">Más</span>
+            <span className="text-3xs font-medium leading-none">Más</span>
           </button>
         </div>
       </nav>
@@ -212,7 +212,7 @@ export function MobileNav() {
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 space-y-3">
               {drawerSections.map((section) => (
                 <section key={section.title} aria-label={section.title}>
-                  <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+                  <p className="px-4 pb-1 text-3xs font-semibold uppercase tracking-widest text-ink-muted">
                     {section.title}
                   </p>
                   <div className="space-y-0.5">
@@ -233,7 +233,7 @@ export function MobileNav() {
 
               {/* Settings + Profile always visible */}
               <div className="mt-2 border-t border-surface-border/60 pt-2 space-y-0.5">
-                <p className="px-4 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+                <p className="px-4 pb-1 pt-1 text-3xs font-semibold uppercase tracking-widest text-ink-muted">
                   Cuenta
                 </p>
                 <DrawerNavItem

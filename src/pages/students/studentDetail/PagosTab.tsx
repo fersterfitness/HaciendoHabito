@@ -85,7 +85,7 @@ export function PagosTab({
             <button
               type="button"
               onClick={() => { setCuotaInput(String(cuota ?? '')); setEditingCuota(true) }}
-              className="text-[11px] font-semibold text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline "
+              className="text-2xs font-semibold text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline "
             >
               {cuota ? 'Modificar' : 'Configurar'}
             </button>
@@ -126,7 +126,7 @@ export function PagosTab({
                     <p className="text-sm font-medium text-status-expiring">Pendiente de cobro</p>
                   )}
                   {totalEsteMes > 0 && totalEsteMes < cuota && (
-                    <p className="text-[11px] text-ink-muted mt-0.5">Cobrado: {formatCurrency(totalEsteMes)} / {formatCurrency(cuota)}</p>
+                    <p className="text-2xs text-ink-muted mt-0.5">Cobrado: {formatCurrency(totalEsteMes)} / {formatCurrency(cuota)}</p>
                   )}
                 </div>
               )
@@ -140,11 +140,11 @@ export function PagosTab({
       {/* Estado de cuenta */}
       <div className="grid grid-cols-3 gap-px border border-surface-border/70 bg-surface-border/70 ">
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Total cobrado</p>
+          <p className="mb-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Total cobrado</p>
           <p className="text-lg font-bold text-ink-primary ">{formatCurrency(totalCobrado)}</p>
         </div>
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Este mes</p>
+          <p className="mb-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Este mes</p>
           <p
             className={cn(
               'text-sm font-medium',
@@ -155,7 +155,7 @@ export function PagosTab({
           </p>
         </div>
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Último pago</p>
+          <p className="mb-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Último pago</p>
           <p className="text-sm font-semibold text-ink-primary ">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
         </div>
       </div>
@@ -190,7 +190,7 @@ export function PagosTab({
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-xs font-medium text-ink-secondary">{formatDate(p.income_date)}</p>
-                  <p className={cn('text-[11px] font-medium', incomeLedgerStatusClass(p.status))}>
+                  <p className={cn('text-2xs font-medium', incomeLedgerStatusClass(p.status))}>
                     {incomeStatusPhrase(p.status)}
                   </p>
                 </div>

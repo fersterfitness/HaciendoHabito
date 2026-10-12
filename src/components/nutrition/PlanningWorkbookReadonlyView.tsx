@@ -84,7 +84,7 @@ export function PlanningWorkbookReadonlyView({
           <div>
             <h2 className="text-sm font-bold text-ink-primary uppercase tracking-wide">Distribución del día</h2>
             {documentUpdatedAt ? (
-              <p className="text-[10px] text-ink-muted mt-1 tabular-nums">
+              <p className="text-3xs text-ink-muted mt-1 tabular-nums">
                 Última actualización: {formatDate(documentUpdatedAt)}
               </p>
             ) : null}
@@ -106,7 +106,7 @@ export function PlanningWorkbookReadonlyView({
                   className="rounded-xl border border-surface-border bg-surface-card overflow-hidden shadow-sm"
                 >
                   <div className="px-3 py-2 bg-surface-muted/50 border-b border-surface-border">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">{b.title}</p>
+                    <p className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted">{b.title}</p>
                   </div>
                   <div className="p-3 space-y-3 bg-surface-muted/10">
                     {picks.length > 0 ? (
@@ -129,17 +129,17 @@ export function PlanningWorkbookReadonlyView({
                             >
                               <div className="grid grid-cols-1 min-[420px]:grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 items-start">
                                 <div className="min-w-0 space-y-1">
-                                  <p className="font-medium text-ink-primary text-[13px] leading-snug">{p.nameSnapshot}</p>
+                                  <p className="font-medium text-ink-primary text-body-sm leading-snug">{p.nameSnapshot}</p>
                                   {lines.prepLine ? (
-                                    <p className="text-[10px] text-ink-muted leading-snug">{lines.prepLine}</p>
+                                    <p className="text-3xs text-ink-muted leading-snug">{lines.prepLine}</p>
                                   ) : null}
                                   {hintText ? (
-                                    <p className="text-[10px] text-ink-muted italic leading-snug border-l-2 border-brand-primary/30 pl-2">
+                                    <p className="text-3xs text-ink-muted italic leading-snug border-l-2 border-brand-primary/30 pl-2">
                                       Tip / unidad: {hintText}
                                     </p>
                                   ) : null}
                                 </div>
-                                <p className="text-[10px] text-ink-secondary tabular-nums leading-snug min-[420px]:text-right min-[420px]:max-w-[12rem] min-[420px]:self-start">
+                                <p className="text-3xs text-ink-secondary tabular-nums leading-snug min-[420px]:text-right min-[420px]:max-w-[12rem] min-[420px]:self-start">
                                   {lines.gramsLine}
                                 </p>
                               </div>
@@ -150,7 +150,7 @@ export function PlanningWorkbookReadonlyView({
                     ) : null}
                     {b.notes.trim() ? (
                       <div className="rounded-lg border border-dashed border-surface-border/80 bg-surface-muted/20 px-2.5 py-2">
-                        <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-muted mb-1">Observaciones</p>
+                        <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted mb-1">Observaciones</p>
                         <p className="text-xs text-ink-secondary whitespace-pre-wrap leading-relaxed">{b.notes.trim()}</p>
                       </div>
                     ) : null}
@@ -162,7 +162,7 @@ export function PlanningWorkbookReadonlyView({
           {audience === 'student' ? (
             <div className="pt-4 border-t border-surface-border/80 space-y-4">
               <div>
-                <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide mb-2">Resumen orientativo</p>
+                <p className="text-2xs font-bold text-ink-muted uppercase tracking-wide mb-2">Resumen orientativo</p>
                 <div className="rounded-xl border border-brand-primary/25 overflow-hidden text-sm">
                   <table className="w-full text-left">
                     <tbody>
@@ -175,7 +175,7 @@ export function PlanningWorkbookReadonlyView({
                         ] as const
                       ).map(([k, v]) => (
                         <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                          <th className="w-[38%] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-ink-muted bg-surface-muted/40 align-top">
+                          <th className="w-[38%] px-3 py-2 text-3xs font-bold uppercase tracking-wide text-ink-muted bg-surface-muted/40 align-top">
                             {k}
                           </th>
                           <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap">{v}</td>
@@ -187,7 +187,7 @@ export function PlanningWorkbookReadonlyView({
               </div>
               {wb.studentOrientativeGuide?.trim() ? (
                 <div className="rounded-xl border border-dashed border-surface-border bg-surface-muted/15 px-3 py-3">
-                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wide mb-1.5">
+                  <p className="text-3xs font-bold text-ink-muted uppercase tracking-wide mb-1.5">
                     Hortalizas, equivalencias y proteínas (guía)
                   </p>
                   <p className="text-xs text-ink-secondary whitespace-pre-wrap leading-relaxed">{wb.studentOrientativeGuide.trim()}</p>
@@ -218,7 +218,7 @@ export function PlanningWorkbookReadonlyView({
                   ] as const
                 ).map(([k, v]) => (
                   <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                    <th className="w-[40%] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-ink-muted bg-surface-muted/40 align-top">
+                    <th className="w-[40%] px-3 py-2 text-3xs font-bold uppercase tracking-wide text-ink-muted bg-surface-muted/40 align-top">
                       {k}
                     </th>
                     <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap tabular-nums">{v}</td>
@@ -273,10 +273,10 @@ export function PlanningWorkbookReadonlyView({
               <div className="border-b border-surface-border bg-surface-muted/40 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
-                  <p className="text-[11px] text-ink-muted mt-0.5">{sec.quantityColumnHint}</p>
+                  <p className="text-2xs text-ink-muted mt-0.5">{sec.quantityColumnHint}</p>
                 </div>
                 {showTechnical ? (
-                  <p className="text-[11px] text-ink-secondary tabular-nums shrink-0">
+                  <p className="text-2xs text-ink-secondary tabular-nums shrink-0">
                     Subtotal: HC {fmt1(secTotals.carbsG)} · P {fmt1(secTotals.proteinG)} · G {fmt1(secTotals.fatG)} ·{' '}
                     {fmt1(secTotals.kcal)} kcal
                   </p>
@@ -318,10 +318,10 @@ export function PlanningWorkbookReadonlyView({
                           <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
                             <p className="text-ink-primary font-medium break-words">{r.name}</p>
                             {r.hint ? (
-                              <p className="text-[10px] text-status-expiring mt-1 leading-snug">{r.hint}</p>
+                              <p className="text-3xs text-status-expiring mt-1 leading-snug">{r.hint}</p>
                             ) : null}
                           </td>
-                          <td className="px-2 py-2 tabular-nums text-ink-secondary text-[11px]">
+                          <td className="px-2 py-2 tabular-nums text-ink-secondary text-2xs">
                             {r.qtyPresentation === 'volume' && r.unitsLabel?.trim()
                               ? `${r.unitsLabel.trim()} ml (~${r.qtyG || '?'} g)`
                               : r.qtyPresentation === 'units' && r.unitsLabel?.trim()

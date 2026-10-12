@@ -100,7 +100,7 @@ export function NutritionPatientCards({
                 <p className="truncate text-xl font-semibold leading-tight tracking-tight text-ink-primary transition-colors group-hover:text-brand-tertiary">
                   {row.full_name}
                 </p>
-                <p className="mt-1 truncate text-[11px] font-light leading-snug text-ink-muted">
+                <p className="mt-1 truncate text-2xs font-light leading-snug text-ink-muted">
                   {row.selectedWebPlanLabel ?? '—'}
                 </p>
               </div>
@@ -108,7 +108,7 @@ export function NutritionPatientCards({
               <div className="h-px bg-surface-border/50" />
 
               <div className="grid grid-cols-2 gap-2.5" onClick={(e) => e.stopPropagation()}>
-                <label className="flex flex-col gap-1 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+                <label className="flex flex-col gap-1 text-3xs font-medium uppercase tracking-wide text-ink-muted">
                   Última
                   <input
                     type="date"
@@ -119,7 +119,7 @@ export function NutritionPatientCards({
                     className={cardDateInputClass}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+                <label className="flex flex-col gap-1 text-3xs font-medium uppercase tracking-wide text-ink-muted">
                   Próxima
                   <input
                     type="date"

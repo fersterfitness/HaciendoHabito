@@ -110,7 +110,7 @@ export function NotificationsPage() {
                 {notifications.length} en el historial
                 {unreadCount > 0 ? ` · ${unreadCount} sin leer` : ''}
               </p>
-              <p className="text-[11px] text-ink-muted/80 shrink-0">Más recientes primero</p>
+              <p className="text-2xs text-ink-muted/80 shrink-0">Más recientes primero</p>
             </div>
 
             <ul className="divide-y divide-surface-border/40" role="list">
@@ -150,17 +150,17 @@ export function NotificationsPage() {
                       <span className="flex items-baseline gap-2 min-w-0">
                         <span
                           className={cn(
-                            'truncate text-[13px] leading-tight',
+                            'truncate text-body-sm leading-tight',
                             n.is_read ? 'font-normal text-ink-secondary' : 'font-medium text-ink-primary',
                           )}
                         >
                           {n.title}
                         </span>
-                        <span className="shrink-0 text-[11px] tabular-nums text-ink-muted/70">
+                        <span className="shrink-0 text-2xs tabular-nums text-ink-muted/70">
                           {formatDate(n.created_at, 'dd/MM HH:mm')}
                         </span>
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-ink-muted leading-tight">
+                      <span className="mt-0.5 block truncate text-2xs text-ink-muted leading-tight">
                         {typeLabel}
                         {n.body ? ` · ${n.body}` : ''}
                       </span>

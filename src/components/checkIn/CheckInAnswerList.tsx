@@ -26,7 +26,7 @@ export function CheckInAnswerList({
         const enlargeText = monthly && q.type === 'text' && q.key !== 'full_name'
         return (
           <li key={q.id} className="rounded-2xl border border-surface-border/60 bg-surface-elevated/25 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{q.label}</p>
+            <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{q.label}</p>
             {choice && !skipped && opt ? (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
@@ -37,7 +37,7 @@ export function CheckInAnswerList({
                   {opt.label}
                 </span>
                 {choice.extra ? (
-                  <span className="rounded-full bg-surface-card px-2 py-1 text-[11px] font-medium tabular-nums text-ink-secondary">
+                  <span className="rounded-full bg-surface-card px-2 py-1 text-2xs font-medium tabular-nums text-ink-secondary">
                     {choice.extra}
                   </span>
                 ) : null}
@@ -53,7 +53,7 @@ export function CheckInAnswerList({
               </p>
             )}
             {choice?.note ? (
-              <p className="mt-1.5 text-[12px] leading-snug text-ink-secondary">{choice.note}</p>
+              <p className="mt-1.5 text-xs leading-snug text-ink-secondary">{choice.note}</p>
             ) : null}
           </li>
         )
@@ -62,7 +62,7 @@ export function CheckInAnswerList({
         .filter(([k]) => !known.has(k))
         .map(([k, v]) => (
           <li key={k} className="rounded-2xl border border-surface-border/60 bg-surface-elevated/25 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{k}</p>
+            <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{k}</p>
             <p className="mt-1 text-sm text-ink-primary">{String(v ?? '—')}</p>
           </li>
         ))}

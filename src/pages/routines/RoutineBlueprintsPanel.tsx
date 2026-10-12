@@ -174,7 +174,7 @@ export function RoutineBlueprintsPanel() {
               {openingId === bp.id ? 'Abriendo editor…' : bp.name}
             </button>
             {blueprintAudience(bp) ? (
-              <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted mt-1">
+              <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted mt-1">
                 Para: {blueprintAudience(bp)}
               </p>
             ) : null}
@@ -183,7 +183,7 @@ export function RoutineBlueprintsPanel() {
             ) : bp.description ? (
               <p className="text-xs text-ink-secondary mt-1 whitespace-pre-wrap">{bp.description}</p>
             ) : null}
-            <p className="text-[10px] text-ink-muted mt-2">
+            <p className="text-3xs text-ink-muted mt-2">
               Actualizada {new Date(bp.updated_at).toLocaleString('es-AR')}
             </p>
           </div>
@@ -216,7 +216,7 @@ export function RoutineBlueprintsPanel() {
 
         {editing && (
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 border-t border-surface-border pt-3">
-            <label className="text-[11px] font-medium text-ink-secondary">
+            <label className="text-2xs font-medium text-ink-secondary">
               Macrociclo (carpeta)
               <input
                 list="bp-categories"
@@ -226,7 +226,7 @@ export function RoutineBlueprintsPanel() {
                 className="mt-1 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
               />
             </label>
-            <label className="text-[11px] font-medium text-ink-secondary">
+            <label className="text-2xs font-medium text-ink-secondary">
               Mesociclo
               <input
                 list="bp-subcategories"
@@ -425,7 +425,7 @@ export function RoutineBlueprintsPanel() {
               <div className="mb-2 flex items-center gap-2 border-b border-surface-border pb-1.5">
                 <FolderOpen className="h-4 w-4 text-brand-secondary shrink-0" />
                 <h3 className="text-sm font-bold uppercase tracking-wide text-ink-primary">{cat}</h3>
-                <span className="text-[11px] text-ink-muted">{realCount}</span>
+                <span className="text-2xs text-ink-muted">{realCount}</span>
                 {isReal && (
                   <button
                     type="button"
@@ -440,7 +440,7 @@ export function RoutineBlueprintsPanel() {
                   <button
                     type="button"
                     onClick={() => void createFolder('meso', cat)}
-                    className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                    className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
                   >
                     + Mesociclo
                   </button>
@@ -453,7 +453,7 @@ export function RoutineBlueprintsPanel() {
                     <div key={sub || '__none__'}>
                       {sub ? (
                         <div className="mb-1.5 flex items-center gap-1.5">
-                          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
                             {sub}
                           </p>
                           <button
@@ -468,7 +468,7 @@ export function RoutineBlueprintsPanel() {
                             <button
                               type="button"
                               onClick={() => void createFolder('rutina', cat, sub)}
-                              className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                              className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
                             >
                               + Rutina
                             </button>
@@ -482,7 +482,7 @@ export function RoutineBlueprintsPanel() {
                             <div key={rut || '__loose__'}>
                               {rut ? (
                                 <div className="mb-1 flex items-center gap-1.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-wide text-ink-secondary">{rut}</p>
+                                  <p className="text-3xs font-bold uppercase tracking-wide text-ink-secondary">{rut}</p>
                                   <button
                                     type="button"
                                     onClick={() => void renameRoutineGroup(isReal ? cat : '', sub, rut)}
@@ -495,7 +495,7 @@ export function RoutineBlueprintsPanel() {
                                     <button
                                       type="button"
                                       onClick={() => void createVariant(cat, sub, rut)}
-                                      className="rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                                      className="rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
                                     >
                                       + Variante
                                     </button>
@@ -504,7 +504,7 @@ export function RoutineBlueprintsPanel() {
                                     <button
                                       type="button"
                                       onClick={() => setFromStudent({ category: cat, subcategory: sub, routineGroup: rut })}
-                                      className="rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                                      className="rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
                                       title="Copiar una rutina ya asignada a un alumno como variante"
                                     >
                                       + Desde alumno

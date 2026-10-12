@@ -695,7 +695,7 @@ export function NutritionPatientDetailView({
           <div className="min-w-0 flex-1">
             <p
               id="nutrition-patient-sheet-title"
-              className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted"
+              className="text-3xs font-semibold uppercase tracking-widest text-ink-muted"
             >
               Carpeta nutricional
             </p>
@@ -1059,7 +1059,7 @@ export function NutritionPatientDetailView({
                     {f.label}
                     <span
                       className={
-                        'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold tabular-nums ' +
+                        'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-3xs font-semibold tabular-nums ' +
                         (isActive
                           ? 'bg-surface-border/80 text-ink-secondary'
                           : 'bg-surface-elevated text-ink-muted')

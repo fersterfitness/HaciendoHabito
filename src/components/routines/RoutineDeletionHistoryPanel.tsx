@@ -71,7 +71,7 @@ export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-muted hover:text-ink-primary transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary transition-colors"
       >
         <Archive className="h-3.5 w-3.5 opacity-70" aria-hidden />
         {open ? 'Ocultar eliminadas' : 'Ver rutinas eliminadas'}
@@ -82,7 +82,7 @@ export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
           <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Rutinas eliminadas</h2>
-              <p className="text-[11px] text-ink-muted">
+              <p className="text-2xs text-ink-muted">
                 Restaurar recupera la rutina con todos sus bloques, días y ejercicios. Solo si el alumno sigue activo.
               </p>
             </div>
@@ -115,7 +115,7 @@ export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
                         ? ` · ${formatDate(row.start_date)} – ${formatDate(row.end_date)}`
                         : ''}
                     </p>
-                    <p className="text-[10px] text-ink-muted">
+                    <p className="text-3xs text-ink-muted">
                       Eliminada {formatDate(row.deleted_at)}
                       {row.deleted_by_name ? ` · por ${row.deleted_by_name}` : ''}
                     </p>
@@ -132,7 +132,7 @@ export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
                       Restaurar
                     </Button>
                   ) : (
-                    <span className="text-[11px] text-ink-muted shrink-0">Alumno no disponible</span>
+                    <span className="text-2xs text-ink-muted shrink-0">Alumno no disponible</span>
                   )}
                 </li>
               ))}

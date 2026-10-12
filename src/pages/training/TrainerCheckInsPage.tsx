@@ -98,7 +98,7 @@ type ScheduleRow = CheckInSendSchedule & { form: { title: string } | null }
 
 /** Botones de acción en la tabla de invitaciones (misma altura y padding). */
 const inviteTableActionBtnClass =
-  'h-7 min-h-7 min-w-[3.25rem] px-2.5 text-[10px] font-medium gap-1 shrink-0'
+  'h-7 min-h-7 min-w-[3.25rem] px-2.5 text-3xs font-medium gap-1 shrink-0'
 
 const checkInPanelCardClass =
   'border-brand-secondary/20 bg-gradient-to-br from-brand-secondary/[0.08] via-surface-card to-surface-card shadow-[0_8px_28px_rgba(169,121,255,0.06)]'
@@ -997,7 +997,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   aria-selected={studentPanel === opt.id}
                   onClick={() => setStudentPanel(opt.id)}
                   className={cn(
-                    'rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                    'rounded-full border px-3 py-1.5 text-2xs font-semibold transition-colors',
                     studentPanel === opt.id
                       ? 'border-brand-secondary/40 bg-brand-secondary/12 text-ink-primary'
                       : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
@@ -1018,7 +1018,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                     <p className="text-sm font-semibold text-ink-primary">
                       No completaron el feedback semanal
                     </p>
-                    <p className="text-[11px] text-ink-muted">
+                    <p className="text-2xs text-ink-muted">
                       Semana del {formatWeekRangeEs(periodStart)}
                       {isWeeklyPeriodOverdue(periodStart) ? ' · ya pasaron 3 días hábiles: recordales' : ' · tienen 3 días hábiles'}
                       . {missingStudents.length} sin respuesta.
@@ -1032,7 +1032,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       <p className="min-w-0 flex-1 text-sm font-medium text-ink-primary">{st.full_name}</p>
                       <button
                         type="button"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-500/10 px-2 py-1 text-2xs font-semibold text-emerald-800 dark:text-emerald-200"
                         onClick={() => {
                           const weekly = forms.find((f) => isWeeklyTemplate(parseQuestions(f.questions)))
                           const url = weekly?.public_token ? sharedPublicUrl(weekly.public_token) : ''
@@ -1079,7 +1079,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   aria-selected={historyKind === opt.id}
                   onClick={() => setHistoryKind(opt.id)}
                   className={cn(
-                    'rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                    'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                     historyKind === opt.id
                       ? 'border-brand-secondary/40 bg-brand-secondary/12 text-ink-primary'
                       : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
@@ -1102,7 +1102,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   aria-selected={historyStatusFilter === opt.id}
                   onClick={() => setHistoryStatusFilter(opt.id)}
                   className={cn(
-                    'rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
+                    'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                     historyStatusFilter === opt.id
                       ? opt.id === 'pending'
                         ? 'border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-200'
@@ -1153,7 +1153,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
                           <p className="text-xs text-ink-secondary">{row.formTitle}</p>
-                          <p className="text-[11px] text-ink-muted">
+                          <p className="text-2xs text-ink-muted">
                             {checkInHistoryMeta(
                               parseQuestions(forms.find((f) => f.id === row.formId)?.questions),
                               obj,
@@ -1168,7 +1168,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                           disabled={isSaving}
                           aria-pressed={isReplied}
                           className={cn(
-                            'inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium disabled:opacity-50',
+                            'inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-3xs font-medium disabled:opacity-50',
                             isReplied
                               ? 'border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                               : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -1246,7 +1246,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         })()}
                       </div>
                       {row.trainer_note ? (
-                        <p className="text-[11px] text-ink-secondary italic border-l-2 border-brand-secondary/30 pl-2">
+                        <p className="text-2xs text-ink-secondary italic border-l-2 border-brand-secondary/30 pl-2">
                           Nota: {row.trainer_note}
                         </p>
                       ) : null}
@@ -1271,7 +1271,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   <p className="font-semibold capitalize text-ink-primary">
                     {monthLabelEs(selectedHistoryYear, selectedHistoryMonth)}
                   </p>
-                  <p className="text-[11px] text-ink-muted">
+                  <p className="text-2xs text-ink-muted">
                     {historyRowsOfMonth.length} respuesta{historyRowsOfMonth.length !== 1 ? 's' : ''} · {selectedStudentGroup.studentName}
                   </p>
                 </div>
@@ -1308,11 +1308,11 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                               </span>
                             </p>
                             <p className="truncate text-xs text-ink-secondary">{meta.weekLabel}</p>
-                            <p className="truncate text-[10px] text-ink-muted">{row.formTitle}</p>
+                            <p className="truncate text-3xs text-ink-muted">{row.formTitle}</p>
                           </div>
                           <span
                             className={cn(
-                              'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                              'shrink-0 rounded-full border px-2 py-0.5 text-3xs font-medium',
                               isReplied
                                 ? 'border-emerald-600/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                                 : 'border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -1343,7 +1343,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 </button>
                 <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-4 py-2.5">
                   <p className="font-semibold text-ink-primary">{selectedHistoryYear}</p>
-                  <p className="text-[11px] text-ink-muted">{selectedStudentGroup.studentName}</p>
+                  <p className="text-2xs text-ink-muted">{selectedStudentGroup.studentName}</p>
                 </div>
                 <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
                   {historyMonthsOfYear.map(({ month, rows }) => {
@@ -1360,12 +1360,12 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         >
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-ink-primary">{monthLabelEs(selectedHistoryYear, month)}</p>
-                            <p className="text-[11px] text-ink-muted">
+                            <p className="text-2xs text-ink-muted">
                               {rows.length} respuesta{rows.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                           {pending > 0 ? (
-                            <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                            <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-3xs font-medium text-amber-700 dark:text-amber-300">
                               {pending} pend.
                             </span>
                           ) : null}
@@ -1393,7 +1393,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 </button>
                 <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/20 px-4 py-2.5">
                   <p className="font-semibold text-ink-primary">{selectedStudentGroup.studentName}</p>
-                  <p className="text-[11px] text-ink-muted">
+                  <p className="text-2xs text-ink-muted">
                     {selectedStudentGroup.rows.length} respuesta{selectedStudentGroup.rows.length !== 1 ? 's' : ''} · elegí el año
                   </p>
                 </div>
@@ -1414,7 +1414,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         >
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold tabular-nums text-ink-primary">{year}</p>
-                            <p className="text-[11px] text-ink-muted">
+                            <p className="text-2xs text-ink-muted">
                               {count} respuesta{count !== 1 ? 's' : ''} · {months?.size ?? 0} mes{(months?.size ?? 0) !== 1 ? 'es' : ''}
                             </p>
                           </div>
@@ -1444,7 +1444,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       >
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-ink-primary">{group.studentName}</p>
-                          <p className="text-[11px] text-ink-muted">
+                          <p className="text-2xs text-ink-muted">
                             {group.rows.length} respuesta{group.rows.length !== 1 ? 's' : ''}
                             {latest ? (
                               <>
@@ -1468,11 +1468,11 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                           </p>
                         </div>
                         {pending > 0 ? (
-                          <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                          <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-3xs font-medium text-amber-700 dark:text-amber-300">
                             {pending} pend.
                           </span>
                         ) : (
-                          <span className="shrink-0 rounded-full border border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                          <span className="shrink-0 rounded-full border border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-medium text-emerald-700 dark:text-emerald-300">
                             Al día
                           </span>
                         )}
@@ -1518,7 +1518,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       onClick={() => openForm(f)}
                     >
                       <span className="block truncate">{f.title}</span>
-                      <span className="text-[10px] font-normal text-ink-muted">
+                      <span className="text-3xs font-normal text-ink-muted">
                         {isMonthlyTemplate(parseQuestions(f.questions))
                           ? 'Feedback mensual'
                           : isWeeklyTemplate(parseQuestions(f.questions))
@@ -1554,17 +1554,17 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             </div>
             {isWeeklyTemplate(questions) ? (
               <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5 space-y-2">
-                <p className="text-[11px] font-semibold text-ink-primary">Feedback semanal</p>
-                <p className="text-[10px] leading-relaxed text-ink-muted">
+                <p className="text-2xs font-semibold text-ink-primary">Feedback semanal</p>
+                <p className="text-3xs leading-relaxed text-ink-muted">
                   El mismo formulario se manda todos los viernes. La fecha que elijas entra en <em>esa</em> semana
                   (lun–dom), no en la siguiente: el 5/09 es el {formatWeekRangeEs('2026-09-05')}. Tienen 3 días hábiles
                   (hasta el {formatPeriodYmd(weeklyPeriodDueYmd(periodStart))}).
                 </p>
-                <p className="text-[10px] font-medium text-ink-secondary">
+                <p className="text-3xs font-medium text-ink-secondary">
                   Semana cargada: {formatWeekRangeEs(periodStart)}
                 </p>
                 <div className="flex flex-wrap items-end gap-2">
-                  <label className="text-[10px] font-medium text-ink-secondary">
+                  <label className="text-3xs font-medium text-ink-secondary">
                     Fecha de inicio
                     <input
                       type="date"
@@ -1612,10 +1612,10 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-label font-semibold uppercase tracking-wider text-brand-secondary/80">Preguntas</span>
                 <div className="flex flex-wrap gap-1">
-                  <Button type="button" size="sm" variant="outline" className="text-[10px] h-7" onClick={applyWeeklyTemplate}>
+                  <Button type="button" size="sm" variant="outline" className="text-3xs h-7" onClick={applyWeeklyTemplate}>
                     Plantilla semanal
                   </Button>
-                  <Button type="button" size="sm" variant="outline" className="text-[10px] h-7" onClick={applyMonthlyTemplate}>
+                  <Button type="button" size="sm" variant="outline" className="text-3xs h-7" onClick={applyMonthlyTemplate}>
                     Feedback mensual
                   </Button>
                   <Button
@@ -1629,7 +1629,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   </Button>
                 </div>
               </div>
-              <p className="text-[11px] text-ink-muted">
+              <p className="text-2xs text-ink-muted">
                 Podés cambiar el orden, el texto y las opciones. Cada opción admite una aclaración opcional del alumno.
               </p>
               {questions.map((q, idx) => (
@@ -1655,7 +1655,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
                     Link general (recomendado)
                   </h3>
-                  <p className="text-[11px] text-ink-muted leading-relaxed">
+                  <p className="text-2xs text-ink-muted leading-relaxed">
                     Un solo link para todos. Cada persona ingresa su correo (el mismo de la ficha) y la respuesta queda vinculada automáticamente. El
                     texto del intro (con emojis) se incluye al compartir por WhatsApp.
                   </p>
@@ -1690,17 +1690,17 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       Grupo WA
                     </Button>
                   </div>
-                  <p className="text-[10px] text-ink-muted font-mono break-all">{sharedPublicUrl(savedForm.public_token)}</p>
+                  <p className="text-3xs text-ink-muted font-mono break-all">{sharedPublicUrl(savedForm.public_token)}</p>
                 </div>
 
                 <div className="border-t border-surface-border/80 pt-4 space-y-3">
                   <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
                     Links por alumno (opcional)
                   </h3>
-                  <p className="text-[11px] text-ink-muted">
+                  <p className="text-2xs text-ink-muted">
                     El link personal se reutiliza todas las semanas. Quien respondió la semana pasada puede volver a completar.
                   </p>
-                  <p className="text-[11px] text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
+                  <p className="text-2xs text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
                     No compartas los links en grupos públicos: son como una clave. Si un formulario queda pausado, el link deja de aceptar respuestas
                     nuevas.
                   </p>
@@ -1722,9 +1722,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                           />
                           {s.full_name}
                           {thisWeek ? (
-                            <span className="text-[10px] text-emerald-700 dark:text-emerald-300">completó esta semana</span>
+                            <span className="text-3xs text-emerald-700 dark:text-emerald-300">completó esta semana</span>
                           ) : inv ? (
-                            <span className="text-[10px] text-ink-muted">tiene link · puede completar de nuevo</span>
+                            <span className="text-3xs text-ink-muted">tiene link · puede completar de nuevo</span>
                           ) : null}
                         </label>
                       )
@@ -1787,7 +1787,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                         title={resp.trainer_replied_at ? 'Marcar como pendiente' : 'Marcar como respondido'}
                                         aria-pressed={!!resp.trainer_replied_at}
                                         className={cn(
-                                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50',
+                                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium transition-colors disabled:opacity-50',
                                           resp.trainer_replied_at
                                             ? 'border border-emerald-600/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300'
                                             : 'border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300',
@@ -1866,7 +1866,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   )}
                 </div>
 
-                <p className="border-t border-surface-border/80 pt-3 text-[11px] text-ink-muted">
+                <p className="border-t border-surface-border/80 pt-3 text-2xs text-ink-muted">
                   Las respuestas de cada alumno están en <strong className="text-ink-secondary">Por alumno → Feedbacks general</strong>.
                 </p>
               </>
@@ -1890,7 +1890,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
             <div className="space-y-1 min-w-[8rem]">
-              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-dow">
+              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-dow">
                 Día
               </label>
               <select
@@ -1907,7 +1907,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               </select>
             </div>
             <div className="space-y-1 flex-1 min-w-[10rem]">
-              <label className="text-[10px] font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-tz">
+              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-tz">
                 Zona horaria
               </label>
               <select
@@ -1944,7 +1944,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             </Button>
           </div>
           {!activeFormId ? (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+            <p className="text-2xs text-amber-700 dark:text-amber-400">
               Elegí un formulario en la columna izquierda para asociar el recordatorio.
             </p>
           ) : null}
@@ -1959,7 +1959,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 >
                   <div className="min-w-0">
                     <p className="font-medium text-ink-primary truncate">{s.form?.title ?? 'Formulario'}</p>
-                    <p className="text-[11px] text-ink-muted">
+                    <p className="text-2xs text-ink-muted">
                       Cada {WEEKDAY_LABELS_ES[s.day_of_week] ?? '—'} · {s.timezone}
                       {s.prefer_group_whatsapp ? ' · sugerido: grupo WA' : ''}
                       {!s.is_enabled ? ' · pausado' : ''}

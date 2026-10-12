@@ -268,7 +268,7 @@ export function LoginPageV2() {
                       to="/v2/form"
                       className={cn(
                         'shrink-0 rounded-full border border-white/90 px-4 py-2',
-                        'bg-black/50 text-[11px] font-semibold text-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]',
+                        'bg-black/50 text-2xs font-semibold text-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]',
                         'backdrop-blur-md transition-colors',
                         'hover:border-white hover:bg-black/65',
                       )}
@@ -288,10 +288,10 @@ export function LoginPageV2() {
                       <BrandLogo size="sm" decorative className="h-6 w-6" />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-white">
+                      <p className="truncate text-body-sm font-semibold text-white">
                         Tu plataforma
                       </p>
-                      <p className="truncate text-[11px] text-white/65">
+                      <p className="truncate text-2xs text-white/65">
                         Entrenamiento &amp; Nutrición
                       </p>
                     </div>
@@ -451,7 +451,7 @@ export function LoginPageV2() {
               </div>
             </div>
 
-            <p className="mt-auto pt-4 text-center text-[10px] text-ink-muted">
+            <p className="mt-auto pt-4 text-center text-3xs text-ink-muted">
               {new Date().getFullYear()} Haciéndolo Hábito
             </p>
           </div>

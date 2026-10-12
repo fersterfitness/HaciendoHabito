@@ -62,7 +62,7 @@ function RailTooltipBubble({ label }: { label: string }) {
     <span
       className={cn(
         'inline-block max-w-[min(14rem,calc(100vw-4.5rem))] truncate rounded-md px-2.5 py-1',
-        'border border-surface-border/90 bg-surface-card text-[11px] font-medium leading-snug tracking-tight text-ink-primary',
+        'border border-surface-border/90 bg-surface-card text-2xs font-medium leading-snug tracking-tight text-ink-primary',
         'shadow-card-md',
         'dark:border-white/10 dark:bg-zinc-900/95 dark:text-white/90 dark:shadow-[0_6px_20px_rgba(0,0,0,0.4)]',
       )}

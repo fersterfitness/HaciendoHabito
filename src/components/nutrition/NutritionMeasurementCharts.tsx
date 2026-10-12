@@ -170,11 +170,11 @@ function ChartTooltip({
   if (v == null) return null
   return (
     <div className="rounded-xl border border-surface-border bg-surface-card/95 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-sm">
-      <p className="text-[10px] text-ink-muted">{label}</p>
+      <p className="text-3xs text-ink-muted">{label}</p>
       <p className="text-sm font-semibold tabular-nums" style={{ color: stroke }}>
         {v} {unit}
       </p>
-      <p className="text-[10px] text-ink-muted mt-0.5">{title}</p>
+      <p className="text-3xs text-ink-muted mt-0.5">{title}</p>
     </div>
   )
 }
@@ -221,10 +221,10 @@ function VariableChip({
 function StatPill({ label, value, unit }: { label: string; value: number | null; unit: string }) {
   return (
     <div className="rounded-xl border border-surface-border/60 bg-surface-elevated/30 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-ink-muted">{label}</p>
+      <p className="text-3xs uppercase tracking-wide text-ink-muted">{label}</p>
       <p className="mt-0.5 text-sm font-semibold tabular-nums text-ink-primary">
         {value != null ? value : '—'}
-        {value != null ? <span className="ml-0.5 text-[10px] font-normal text-ink-muted">{unit}</span> : null}
+        {value != null ? <span className="ml-0.5 text-3xs font-normal text-ink-muted">{unit}</span> : null}
       </p>
     </div>
   )
@@ -243,7 +243,7 @@ function FeaturedChart({ meta, data }: { meta: VariableMeta; data: TimePoint[] }
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stroke }} aria-hidden />
             <p className="truncate text-sm font-semibold text-ink-primary">{label}</p>
           </div>
-          <p className="mt-1 text-[11px] text-ink-muted">
+          <p className="mt-1 text-2xs text-ink-muted">
             {meta.group === 'perimeter' ? 'Perímetro' : 'Pliegue cutáneo'} · {unit} ·{' '}
             {points === 1 ? '1 control' : `${points} controles`}
           </p>
@@ -257,7 +257,7 @@ function FeaturedChart({ meta, data }: { meta: VariableMeta; data: TimePoint[] }
             {delta != null ? (
               <span
                 className={cn(
-                  'mt-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums',
+                  'mt-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-2xs font-medium tabular-nums',
                   deltaIsZero ? 'bg-surface-elevated/50 text-ink-muted' : 'text-white',
                 )}
                 style={deltaIsZero ? undefined : { backgroundColor: stroke }}
@@ -276,7 +276,7 @@ function FeaturedChart({ meta, data }: { meta: VariableMeta; data: TimePoint[] }
                 </span>
               </span>
             ) : (
-              <span className="mt-1.5 text-[11px] text-ink-muted">Sin control previo</span>
+              <span className="mt-1.5 text-2xs text-ink-muted">Sin control previo</span>
             )}
           </div>
         ) : null}
@@ -361,10 +361,10 @@ function ChipGroup({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
-        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: accent }}>
+        <p className="text-2xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
           {title}
         </p>
-        <span className="text-[11px] font-normal text-ink-muted">· {variables.length}</span>
+        <span className="text-2xs font-normal text-ink-muted">· {variables.length}</span>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {variables.map((meta) => (

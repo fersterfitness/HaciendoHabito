@@ -83,13 +83,13 @@ export function RoutineMonthlyFeedbackSection({
   return (
     <div className="space-y-3 rounded-xl border border-surface-border/80 bg-surface-elevated/20 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold text-ink-primary">Feedback mensual de esta rutina</p>
+        <p className="text-2xs font-semibold text-ink-primary">Feedback mensual de esta rutina</p>
         {lastWeek ? (
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 rounded-full text-[10px]"
+            className="h-7 rounded-full text-3xs"
             icon={<WhatsAppIcon className="h-3 w-3" />}
             onClick={() => void sendMonthlyWa()}
           >
@@ -101,7 +101,7 @@ export function RoutineMonthlyFeedbackSection({
         <ul className="space-y-2">
           {forThisRoutine.map((row) => (
             <li key={row.id} className="rounded-xl border border-emerald-600/20 bg-emerald-500/5 px-3 py-2">
-              <p className="mb-2 text-[10px] text-ink-muted">
+              <p className="mb-2 text-3xs text-ink-muted">
                 {new Date(row.submittedAt).toLocaleDateString('es-AR', {
                   day: '2-digit',
                   month: 'short',
@@ -118,7 +118,7 @@ export function RoutineMonthlyFeedbackSection({
           ))}
         </ul>
       ) : (
-        <p className="text-[11px] text-ink-muted">
+        <p className="text-2xs text-ink-muted">
           Cuando el alumno complete el feedback mensual, queda atado a esta rutina (aunque la renueves).
         </p>
       )}

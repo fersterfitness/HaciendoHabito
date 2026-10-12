@@ -151,16 +151,16 @@ export function SettingsPage() {
               <summary className="text-xs font-medium text-ink-secondary cursor-pointer select-none">
                 Cómo probar esto (y qué tenés que tener en Supabase)
               </summary>
-              <ol className="mt-2 text-[11px] text-ink-muted list-decimal pl-4 space-y-1.5 leading-relaxed max-w-prose">
+              <ol className="mt-2 text-2xs text-ink-muted list-decimal pl-4 space-y-1.5 leading-relaxed max-w-prose">
                 <li>
                   En tu proyecto Supabase, aplicá las migraciones del repo: al menos{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529120000_trainer_resources_and_check_ins.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529160000_trainer_sends_rpc_check_in_hardening.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260529180000_check_in_email_and_send_schedules.sql</code>,{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260530140000_check_in_fix_rate_limit_and_shared_link.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260530150000_security_hardening_rls.sql</code> y{' '}
-                  <code className="text-[10px] bg-surface-base px-1 rounded">20260530160000_intake_rate_limit_postgres.sql</code>. Sin
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260529120000_trainer_resources_and_check_ins.sql</code> y{' '}
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260529140000_trainer_message_templates.sql</code> y{' '}
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260529160000_trainer_sends_rpc_check_in_hardening.sql</code> y{' '}
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260529180000_check_in_email_and_send_schedules.sql</code>,{' '}
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260530140000_check_in_fix_rate_limit_and_shared_link.sql</code> y{' '}
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260530150000_security_hardening_rls.sql</code> y{' '}
+                  <code className="text-3xs bg-surface-base px-1 rounded">20260530160000_intake_rate_limit_postgres.sql</code>. Sin
                   eso, fallan tablas o RPC de check-in.
                 </li>
                 <li>
@@ -174,7 +174,7 @@ export function SettingsPage() {
                 </li>
                 <li>
                   <strong className="text-ink-secondary">Check-ins (Consulta semanal → Check-ins):</strong> creá un formulario, guardá, generá links para alumnos,
-                  abrí el link en otra ventana o navegador (ruta <code className="text-[10px] bg-surface-base px-1 rounded">/form/check-in/…</code>
+                  abrí el link en otra ventana o navegador (ruta <code className="text-3xs bg-surface-base px-1 rounded">/form/check-in/…</code>
                   ), enviá respuestas y confirmá que aparecen en la app y en export CSV si hay datos. No compartas esos links en público: equivalen a
                   acceso a nombre del alumno.
                 </li>
@@ -193,7 +193,7 @@ export function SettingsPage() {
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
               <Link to="/settings/web-plans">Gestionar Planes Web</Link>
             </Button>
-            <p className="text-[11px] text-ink-muted mt-2">
+            <p className="text-2xs text-ink-muted mt-2">
               Solicitudes de acceso al formulario público: en Planes Web, sección «Accesos al formulario web» (o tocá la
               notificación en Inicio).
             </p>

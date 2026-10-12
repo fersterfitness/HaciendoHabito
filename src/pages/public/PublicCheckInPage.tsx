@@ -319,7 +319,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
         <header className="space-y-4 pt-2">
           <div className="flex flex-col items-center space-y-2.5 text-center">
             <BrandLogo size="sm" decorative />
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-primary">
+            <p className="text-3xs font-bold uppercase tracking-[0.16em] text-brand-primary">
               Ferster Fitness · Haciéndolo hábito
             </p>
             <h1 className="text-balance text-[1.7rem] font-semibold tracking-tight text-ink-primary sm:text-3xl">
@@ -328,11 +328,11 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
             {firstName ? <p className="text-sm text-ink-secondary">Hola, {firstName} 👋</p> : null}
           </div>
           {payload.intro ? (
-            <p className="whitespace-pre-wrap rounded-3xl border border-surface-border/60 bg-surface-card/75 px-4 py-3.5 text-left text-[13px] leading-relaxed text-ink-secondary shadow-card">
+            <p className="whitespace-pre-wrap rounded-3xl border border-surface-border/60 bg-surface-card/75 px-4 py-3.5 text-left text-body-sm leading-relaxed text-ink-secondary shadow-card">
               {payload.intro}
             </p>
           ) : null}
-          <p className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/8 px-4 py-2.5 text-center text-[12px] leading-relaxed text-ink-secondary">
+          <p className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/8 px-4 py-2.5 text-center text-xs leading-relaxed text-ink-secondary">
             Feedback semanal · {formatWeekRangeEs(todayYmdInCheckInTz())}. Te llega todos los viernes; es el mismo
             formulario.
           </p>
@@ -340,7 +340,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
 
         {questions.length > 0 ? (
           <div className="sticky top-3 z-10 rounded-2xl border border-surface-border/70 bg-surface-card/90 px-3.5 py-2.5 shadow-card backdrop-blur-md">
-            <div className="mb-1.5 flex items-center justify-between text-[11px]">
+            <div className="mb-1.5 flex items-center justify-between text-2xs">
               <span className="font-medium text-ink-muted">Progreso</span>
               <span className="tabular-nums font-semibold text-ink-primary">
                 {answeredCount}/{questions.length}
@@ -359,12 +359,12 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
           <div className="rounded-3xl border border-surface-border/70 bg-surface-card/80 p-4 shadow-card sm:p-5">
             {import.meta.env.DEV ? (
               <div className="mb-3 rounded-2xl border border-dashed border-brand-secondary/40 bg-brand-secondary/8 px-3 py-2.5">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-secondary">Modo desarrollo</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">
+                <p className="text-3xs font-bold uppercase tracking-wide text-brand-secondary">Modo desarrollo</p>
+                <p className="mt-0.5 text-2xs leading-relaxed text-ink-muted">
                   El mail tiene que ser de un alumno de la cuenta dueña de este formulario. No hace falta pedirle permiso a Tomás: usá un alumno tuyo o el link personal (Abrir) desde Consulta semanal.
                 </p>
                 {devStudents.length > 0 ? (
-                  <label className="mt-2 block text-[11px] font-medium text-ink-muted">
+                  <label className="mt-2 block text-2xs font-medium text-ink-muted">
                     Probar como
                     <select
                       className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-2.5 py-2 text-sm text-ink-primary"
@@ -386,7 +386,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
                     </select>
                   </label>
                 ) : (
-                  <p className="mt-1.5 text-[11px] text-ink-muted">
+                  <p className="mt-1.5 text-2xs text-ink-muted">
                     Creá un alumno de prueba con tu mail en Alumnos, o abrí el link personal de uno existente.
                   </p>
                 )}
@@ -410,7 +410,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
                 'transition-colors focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/15',
               )}
             />
-            <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+            <p className="mt-2 text-2xs leading-relaxed text-ink-muted">
               {shared || payload.must_confirm_email
                 ? 'Usá el mismo correo con el que te inscribiste o el que figura en tu ficha del entrenador.'
                 : 'Tu entrenador lo usa para identificarte. Si tenés mail en la ficha, debe coincidir.'}
@@ -455,16 +455,16 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
               Enviar respuestas
             </Button>
             {questions.length > 0 && answeredCount < questions.length ? (
-              <p className="text-center text-[11px] text-ink-muted">
+              <p className="text-center text-2xs text-ink-muted">
                 Completá las {questions.length} preguntas para enviar
               </p>
             ) : !emailOk ? (
-              <p className="text-center text-[11px] text-ink-muted">Ingresá un correo válido para enviar</p>
+              <p className="text-center text-2xs text-ink-muted">Ingresá un correo válido para enviar</p>
             ) : null}
           </div>
         </form>
 
-        <p className="text-center text-[10px] text-ink-muted/80 pb-4">
+        <p className="text-center text-3xs text-ink-muted/80 pb-4">
           Tus respuestas son privadas y solo las ve tu entrenador.
         </p>
       </div>

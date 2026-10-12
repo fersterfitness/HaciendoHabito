@@ -98,7 +98,7 @@ export function RoutineSourcePicker({
             <button
               type="button"
               onClick={() => onChange('')}
-              className="shrink-0 text-[11px] font-medium text-ink-muted hover:text-ink-primary"
+              className="shrink-0 text-2xs font-medium text-ink-muted hover:text-ink-primary"
             >
               {emptyLabel}
             </button>
@@ -127,8 +127,8 @@ export function RoutineSourcePicker({
                   ) : (
                     <UserRound className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
                   )}
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink-primary">{g.label}</span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-ink-muted">{g.items.length}</span>
+                  <span className="min-w-0 flex-1 truncate text-body-sm font-semibold text-ink-primary">{g.label}</span>
+                  <span className="shrink-0 text-2xs tabular-nums text-ink-muted">{g.items.length}</span>
                 </button>
                 {isOpen ? (
                   <ul className="pb-1">
@@ -144,7 +144,7 @@ export function RoutineSourcePicker({
                         >
                           <span className="min-w-0 flex-1 truncate">{r.name}</span>
                           {r.start_date ? (
-                            <span className="shrink-0 tabular-nums text-[10px] text-ink-muted">{formatDate(r.start_date)}</span>
+                            <span className="shrink-0 tabular-nums text-3xs text-ink-muted">{formatDate(r.start_date)}</span>
                           ) : null}
                         </button>
                       </li>

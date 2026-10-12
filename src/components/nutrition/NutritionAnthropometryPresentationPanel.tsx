@@ -48,7 +48,7 @@ export function NutritionAnthropometryPresentationPanel({
         sec = r.sectionTitle
         lines.push(
           <tr key={`h-${sec}`} className="bg-surface-card/90">
-            <td colSpan={5} className="px-2 py-1.5 font-semibold text-ink-primary text-[11px]">
+            <td colSpan={5} className="px-2 py-1.5 font-semibold text-ink-primary text-2xs">
               {sec}
             </td>
           </tr>,
@@ -149,7 +149,7 @@ export function NutritionAnthropometryPresentationPanel({
           <tbody>{tableBody}</tbody>
         </table>
       </div>
-      <p className="text-[10px] text-ink-muted leading-relaxed">
+      <p className="text-3xs text-ink-muted leading-relaxed">
         Ajuste TE {te}% en diámetros y pliegues (ISAK orientativo). La sección inferior suma IMC, pliegues y ratio cintura/cadera. Score-Z
         requiere tablas normativas: mostramos N/D hasta incorporar referencias.
       </p>

@@ -103,7 +103,7 @@ export function StudentDeletionHistoryPanel({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-muted hover:text-ink-primary transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-ink-primary transition-colors"
       >
         <Archive className="h-3.5 w-3.5 opacity-70" aria-hidden />
         {open ? 'Ocultar eliminados' : 'Ver eliminados'}
@@ -114,12 +114,12 @@ export function StudentDeletionHistoryPanel({
           <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold tracking-tight text-ink-primary">{entityLabel} eliminados</h2>
-              <p className="text-[11px] text-ink-muted">
+              <p className="text-2xs text-ink-muted">
                 Restaurar recupera la ficha básica. Rutinas, mediciones y archivos no vuelven.
               </p>
             </div>
             {!loading && !loadError ? (
-              <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
+              <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-2xs font-semibold tabular-nums text-ink-secondary">
                 {rows.length === 1 ? '1 registro' : `${rows.length} registros`}
               </span>
             ) : null}
@@ -137,42 +137,42 @@ export function StudentDeletionHistoryPanel({
             </p>
           ) : (
             <div className="max-h-[min(40vh,20rem)] overflow-auto">
-              <table className="w-full border-collapse text-[13px] leading-snug">
+              <table className="w-full border-collapse text-body-sm leading-snug">
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
                     <th
                       scope="col"
-                      className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
+                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
                     >
                       {columnLabel}
                     </th>
                     <th
                       scope="col"
-                      className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
+                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
                     >
                       Nivel
                     </th>
                     <th
                       scope="col"
-                      className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
+                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
                     >
                       Estado
                     </th>
                     <th
                       scope="col"
-                      className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
+                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
                     >
                       Eliminado
                     </th>
                     <th
                       scope="col"
-                      className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
+                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
                     >
                       Por
                     </th>
                     <th
                       scope="col"
-                      className="hidden whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
+                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
                     >
                       Email
                     </th>
@@ -190,25 +190,25 @@ export function StudentDeletionHistoryPanel({
                             <StudentAvatarThumb
                               storagePath={row.avatar_path ?? null}
                               name={row.full_name}
-                              className="h-6 w-6 shrink-0 rounded-full text-[10px]"
+                              className="h-6 w-6 shrink-0 rounded-full text-3xs"
                             />
                             <div className="flex min-w-0 flex-col gap-0.5">
                               <div className="flex min-w-0 items-center gap-2">
-                                <span className="min-w-0 truncate text-[13px] font-semibold leading-snug text-ink-primary">
+                                <span className="min-w-0 truncate text-body-sm font-semibold leading-snug text-ink-primary">
                                   {row.full_name}
                                 </span>
                                 {age !== null ? (
-                                  <span className="shrink-0 text-[11px] text-ink-muted tabular-nums">{age}a</span>
+                                  <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{age}a</span>
                                 ) : null}
                               </div>
                               {row.phone ? (
-                                <span className="truncate text-[11px] text-ink-muted lg:hidden">{row.phone}</span>
+                                <span className="truncate text-2xs text-ink-muted lg:hidden">{row.phone}</span>
                               ) : null}
                             </div>
                           </div>
                         </td>
                         <td className="hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
-                          <span className="text-[12px]">
+                          <span className="text-xs">
                             {row.level ? (LEVEL_LABELS[row.level] ?? row.level) : '—'}
                           </span>
                         </td>
@@ -216,26 +216,26 @@ export function StudentDeletionHistoryPanel({
                           {row.status ? (
                             <span
                               className={cn(
-                                'inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize',
+                                'inline-flex rounded-md border px-2 py-0.5 text-3xs font-semibold capitalize',
                                 statusPillClass(row.status),
                               )}
                             >
                               {row.status}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-ink-muted/50">—</span>
+                            <span className="text-2xs text-ink-muted/50">—</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-ink-secondary whitespace-nowrap sm:px-5">
-                          <span className="text-[12px] tabular-nums">
+                          <span className="text-xs tabular-nums">
                             {formatDate(row.deleted_at, 'dd/MM/yyyy HH:mm')}
                           </span>
                         </td>
                         <td className="hidden max-w-[10rem] truncate text-ink-muted lg:table-cell lg:px-5 lg:py-2.5">
-                          <span className="text-[12px]">{row.deleted_by_name ?? '—'}</span>
+                          <span className="text-xs">{row.deleted_by_name ?? '—'}</span>
                         </td>
                         <td className="hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
-                          <span className="text-[12px]">{row.email ?? '—'}</span>
+                          <span className="text-xs">{row.email ?? '—'}</span>
                         </td>
                         <td className="px-2 py-2.5 sm:px-3">
                           <div className="flex items-center justify-end">
@@ -252,7 +252,7 @@ export function StudentDeletionHistoryPanel({
                               </Button>
                             ) : (
                               <span
-                                className="px-2 text-[10px] text-ink-muted"
+                                className="px-2 text-3xs text-ink-muted"
                                 title="Solo el entrenador dueño puede restaurar"
                               >
                                 —

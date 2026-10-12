@@ -168,7 +168,7 @@ export function IntakeChangeablePlansSection({
             'font-semibold tracking-tight',
             flushEmbed
               ? lightChrome
-                ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-ink-secondary'
+                ? 'text-3xs font-bold uppercase tracking-[0.14em] text-ink-secondary'
                 : 'text-xs font-medium text-ink-muted'
               : heroTone
                 ? 'text-xs font-medium text-white/55'
@@ -200,8 +200,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('monthly')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'monthly' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'monthly'}
@@ -213,8 +213,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('months3')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'months3' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'months3'}
@@ -226,8 +226,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('months6')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'months6' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'months6'}
@@ -239,8 +239,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('annual')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-[10px]'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-[10px]',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'annual' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'annual'}
@@ -295,7 +295,7 @@ export function IntakeChangeablePlansSection({
                   />
                 ) : plan.features.length > 0 ? (
                   <>
-                    <p className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
+                    <p className={cn('mb-2 text-3xs font-semibold uppercase tracking-[0.12em]', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
                       {plan.featuresLabel ?? 'Incluye'}
                     </p>
                     <ul className="flex flex-col gap-1.5">
@@ -305,7 +305,7 @@ export function IntakeChangeablePlansSection({
                             aria-hidden
                             className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', darkChrome ? 'bg-orange-500/70' : 'bg-orange-500')}
                           />
-                          <span className={cn('text-[13px] font-medium leading-snug', darkChrome ? 'text-white/78' : 'text-neutral-600')}>
+                          <span className={cn('text-body-sm font-medium leading-snug', darkChrome ? 'text-white/78' : 'text-neutral-600')}>
                             {feature.text}
                           </span>
                           {feature.hasInfo ? (
@@ -360,13 +360,13 @@ export function IntakeChangeablePlansSection({
                     </div>
                     <div className="min-w-0 flex-1">
                       {plan.badge?.trim() ? (
-                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-orange-500">{plan.badge.trim()}</p>
+                        <p className="text-3xs font-bold uppercase tracking-[0.1em] text-orange-500">{plan.badge.trim()}</p>
                       ) : null}
                       <p className={cn('truncate text-sm font-semibold', darkChrome ? 'text-white' : 'text-zinc-900')}>
                         {plan.name}
                       </p>
                       {plan.description?.trim() ? (
-                        <p className={cn('truncate text-[11px]', darkChrome ? 'text-white/50' : 'text-zinc-500')}>
+                        <p className={cn('truncate text-2xs', darkChrome ? 'text-white/50' : 'text-zinc-500')}>
                           {plan.description.trim()}
                         </p>
                       ) : null}
@@ -375,7 +375,7 @@ export function IntakeChangeablePlansSection({
                       <p className={cn('text-sm font-bold tabular-nums leading-none', darkChrome ? 'text-white' : 'text-zinc-900')}>
                         {priceMain}
                       </p>
-                      <p className={cn('mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]', darkChrome ? 'text-white/40' : 'text-zinc-400')}>
+                      <p className={cn('mt-0.5 text-3xs font-semibold uppercase tracking-[0.08em]', darkChrome ? 'text-white/40' : 'text-zinc-400')}>
                         {priceSub}
                       </p>
                     </div>
@@ -395,7 +395,7 @@ export function IntakeChangeablePlansSection({
                             e.stopPropagation()
                             onContinue?.()
                           }}
-                          className="w-full text-[13px] font-semibold tracking-tight px-5 py-2"
+                          className="w-full text-body-sm font-semibold tracking-tight px-5 py-2"
                         >
                           {buttonText} <span aria-hidden>→</span>
                         </AuroraButton>
@@ -429,7 +429,7 @@ export function IntakeChangeablePlansSection({
               >
                 {/* Badge ámbar — esquina superior derecha, montado sobre el borde */}
                 {plan.badge?.trim() ? (
-                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-white shadow-sm">
+                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-3xs font-bold uppercase tracking-[0.07em] text-white shadow-sm">
                     {plan.badge.trim()}
                   </span>
                 ) : null}
@@ -437,19 +437,19 @@ export function IntakeChangeablePlansSection({
                 <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,0.85fr)_1px_minmax(0,1.25fr)] sm:gap-0 sm:p-6">
                   {/* IZQUIERDA: nombre, precio, descripción, CTA */}
                   <div className="sm:pr-6">
-                    <p className={cn('text-[12px] font-bold uppercase tracking-[0.12em]', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
+                    <p className={cn('text-xs font-bold uppercase tracking-[0.12em]', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
                       {plan.name}
                     </p>
                     <div className="mt-2 flex items-baseline gap-1">
                       <span className={cn('text-3xl font-extrabold leading-none tracking-tight tabular-nums', darkChrome ? 'text-white' : 'text-neutral-900')}>
                         {priceMain}
                       </span>
-                      <span className={cn('text-[11px] font-medium lowercase', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
+                      <span className={cn('text-2xs font-medium lowercase', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
                         {priceSub}
                       </span>
                     </div>
                     {plan.description?.trim() ? (
-                      <p className={cn('mt-3 max-w-[15rem] text-[12px] leading-relaxed', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
+                      <p className={cn('mt-3 max-w-[15rem] text-xs leading-relaxed', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
                         {plan.description.trim()}
                       </p>
                     ) : null}
@@ -461,7 +461,7 @@ export function IntakeChangeablePlansSection({
                           if (isSelected) onContinue?.()
                           else onSelectPlan(plan.id)
                         }}
-                        className="text-[13px] font-semibold tracking-tight px-5 py-2"
+                        className="text-body-sm font-semibold tracking-tight px-5 py-2"
                       >
                         {isSelected ? buttonText : 'Elegir plan'} <span aria-hidden>→</span>
                       </AuroraButton>
@@ -509,7 +509,7 @@ export function IntakeChangeablePlansSection({
               {plan.badge?.trim() ? (
                 <span
                   className={cn(
-                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-[0.07em]',
+                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-3xs font-bold uppercase tracking-[0.07em]',
                     cornerBadgeClass(plan.badge, badgeVariant),
                   )}
                 >
@@ -546,7 +546,7 @@ export function IntakeChangeablePlansSection({
                       <span
                         className={cn(
                           'leading-snug transition-all duration-200',
-                          isSelected ? 'text-[14px] font-semibold' : 'text-[13px] font-medium',
+                          isSelected ? 'text-sm font-semibold' : 'text-body-sm font-medium',
                           darkChrome ? 'text-white/95' : 'text-neutral-900',
                           /* dejar espacio para el badge corner si hay badge */
                           plan.badge?.trim() ? 'pr-20' : '',
@@ -561,7 +561,7 @@ export function IntakeChangeablePlansSection({
                   <div className="flex shrink-0 flex-col items-end">
                     <div
                       className={cn(
-                        'text-[16px] font-bold leading-none tabular-nums',
+                        'text-base font-bold leading-none tabular-nums',
                         darkChrome ? 'text-white' : 'text-neutral-900',
                       )}
                     >
@@ -569,7 +569,7 @@ export function IntakeChangeablePlansSection({
                     </div>
                     <span
                       className={cn(
-                        'mt-1 text-[9px] font-semibold uppercase leading-tight tracking-[0.1em]',
+                        'mt-1 text-3xs font-semibold uppercase leading-tight tracking-[0.1em]',
                         darkChrome ? 'text-white/35' : 'text-neutral-400',
                       )}
                     >
@@ -617,7 +617,7 @@ export function IntakeChangeablePlansSection({
                           <>
                             <p
                               className={cn(
-                                'mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]',
+                                'mb-2 text-3xs font-semibold uppercase tracking-[0.12em]',
                                 darkChrome ? 'text-white/45' : 'text-neutral-400',
                               )}
                             >
@@ -633,7 +633,7 @@ export function IntakeChangeablePlansSection({
                                   />
                                   <span
                                     className={cn(
-                                      'text-[13px] font-medium leading-snug',
+                                      'text-body-sm font-medium leading-snug',
                                       darkChrome ? 'text-white/78' : 'text-neutral-600',
                                     )}
                                   >
@@ -676,7 +676,7 @@ export function IntakeChangeablePlansSection({
 
       {cardLayout ? (
         showFooter && footerText ? (
-          <p className={cn('mt-4 text-center text-[10px] leading-snug', darkChrome ? 'text-white/40' : 'text-ink-muted')}>
+          <p className={cn('mt-4 text-center text-3xs leading-snug', darkChrome ? 'text-white/40' : 'text-ink-muted')}>
             {footerText}
           </p>
         ) : null
@@ -695,7 +695,7 @@ export function IntakeChangeablePlansSection({
           {showFooter && footerText ? (
             <span
               className={cn(
-                'mr-auto max-w-[18rem] text-[10px] leading-snug sm:text-left',
+                'mr-auto max-w-[18rem] text-3xs leading-snug sm:text-left',
                 darkChrome ? 'text-white/40' : 'text-ink-muted',
               )}
             >

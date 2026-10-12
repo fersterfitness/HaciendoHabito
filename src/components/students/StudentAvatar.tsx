@@ -73,7 +73,7 @@ export function StudentAvatar({
           : size === 'sm'
             ? 'w-8 h-8 rounded-lg text-xs'
             : size === 'xs'
-              ? 'w-6 h-6 rounded-md text-[10px]'
+              ? 'w-6 h-6 rounded-md text-3xs'
               : 'w-8 h-8 rounded-lg text-xs'
 
   const overlayRounded =
@@ -230,7 +230,7 @@ export function StudentAvatar({
             appFocusRingClassName,
             size === 'lg'
               ? '-top-2 -right-2 h-8 w-8 text-sm'
-              : '-top-1 -right-1 h-5 w-5 text-[10px]',
+              : '-top-1 -right-1 h-5 w-5 text-3xs',
           )}
         >
           ×

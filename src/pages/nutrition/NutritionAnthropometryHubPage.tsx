@@ -151,7 +151,7 @@ function MetricCard({
 
   return (
     <div className="rounded-2xl border border-surface-border/70 bg-surface-card p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{label}</p>
+      <p className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">{label}</p>
       <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-ink-primary">
         {fmtNum(latest)}
         {unit ? <span className="ml-1 text-sm font-normal text-ink-muted">{unit}</span> : null}
@@ -705,7 +705,7 @@ export function NutritionAnthropometryHubPage() {
                         ) : aiResult ? (
                           <>
                             <AiMarkdown text={aiResult} />
-                            <p className="mt-4 border-t border-surface-border/60 pt-3 text-[10px] leading-snug text-ink-muted">
+                            <p className="mt-4 border-t border-surface-border/60 pt-3 text-3xs leading-snug text-ink-muted">
                               Generado por IA a partir de los controles cargados. Es una ayuda orientativa, no
                               reemplaza el criterio profesional.
                             </p>

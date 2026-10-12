@@ -70,11 +70,11 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
     <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <p className="text-sm font-semibold text-ink-primary">Abonos de rutinas</p>
-        <span className="text-[11px] text-ink-muted">
+        <span className="text-2xs text-ink-muted">
           {pending} pendiente{pending !== 1 ? 's' : ''} · dual/integral: check del otro profesional
         </span>
         {compact ? (
-          <Link to="/finances" className="ml-auto text-[11px] font-medium text-brand-primary hover:underline">
+          <Link to="/finances" className="ml-auto text-2xs font-medium text-brand-primary hover:underline">
             Finanzas
           </Link>
         ) : null}
@@ -89,12 +89,12 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
               <Link to={`/students/${row.student_id}`} className="truncate text-sm font-semibold text-ink-primary hover:underline">
                 {row.student_name}
               </Link>
-              <p className="truncate text-[11px] text-ink-muted">
+              <p className="truncate text-2xs text-ink-muted">
                 {row.name}
                 {row.price ? ` · ${formatCurrency(row.price)}` : ''}
               </p>
             </div>
-            <label className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-secondary">
+            <label className="inline-flex items-center gap-1.5 text-2xs font-medium text-ink-secondary">
               <input
                 type="checkbox"
                 className="h-3.5 w-3.5 accent-brand-secondary"
@@ -104,7 +104,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
               />
               Abonó
             </label>
-            <label className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-secondary">
+            <label className="inline-flex items-center gap-1.5 text-2xs font-medium text-ink-secondary">
               <input
                 type="checkbox"
                 className="h-3.5 w-3.5 accent-brand-secondary"

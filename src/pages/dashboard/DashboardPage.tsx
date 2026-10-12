@@ -359,21 +359,21 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
                   <span className="truncate font-medium text-ink-secondary">{s.label}</span>
                 </span>
                 <span className={cn(
-                  'shrink-0 text-[12px] font-bold tabular-nums',
+                  'shrink-0 text-xs font-bold tabular-nums',
                   net >= 0 ? 'text-status-generated' : 'text-status-expired',
                 )}
                 >
                   {formatCurrency(net)}
                 </span>
               </div>
-              <p className="mt-1 pl-3 text-[10px] leading-snug text-ink-muted tabular-nums">
+              <p className="mt-1 pl-3 text-3xs leading-snug text-ink-muted tabular-nums">
                 {financeUi.cobrado} ${d.cobrados.toLocaleString('es-AR')} · {financeUi.gastos} ${d.gastos.toLocaleString('es-AR')}
               </p>
             </div>
           )
         })}
       </div>
-      <p className="mt-2 border-t border-surface-border pt-2 text-[11px] font-semibold tabular-nums text-ink-primary">
+      <p className="mt-2 border-t border-surface-border pt-2 text-2xs font-semibold tabular-nums text-ink-primary">
         {financeUi.netosSum}: {formatCurrency(Number(raw.combinedNetSum ?? 0))}
       </p>
       {(() => {
@@ -381,7 +381,7 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
         const pct = Number(raw.changePctCombinedNet ?? 0)
         if (idx === 0) {
           return (
-            <p className="mt-1.5 text-[10px] leading-snug text-ink-muted">
+            <p className="mt-1.5 text-3xs leading-snug text-ink-muted">
               Primer mes del rango: sin comparación vs mes anterior.
             </p>
           )
@@ -389,7 +389,7 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
         return (
           <p
             className={cn(
-              'mt-1.5 border-t border-surface-border pt-1.5 text-[10px] font-medium tabular-nums',
+              'mt-1.5 border-t border-surface-border pt-1.5 text-3xs font-medium tabular-nums',
               pct > 0 && 'text-status-generated',
               pct < 0 && 'text-status-expired',
               pct === 0 && 'text-ink-muted',
@@ -1136,7 +1136,7 @@ export function DashboardPage() {
     <div>
       <Header title="Inicio" />
       {dataUpdatedAt && !loading && (
-        <p className="px-4 pt-1 text-[10px] text-ink-muted tabular-nums lg:px-6" aria-live="polite">
+        <p className="px-4 pt-1 text-3xs text-ink-muted tabular-nums lg:px-6" aria-live="polite">
           Datos del tablero actualizados · {formatDate(dataUpdatedAt, 'dd/MM/yyyy HH:mm')}
         </p>
       )}
@@ -1173,7 +1173,7 @@ export function DashboardPage() {
 
         {canSeeTraining && birthdays.length > 0 ? (
           <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">Cumpleaños</p>
+            <p className="mb-2 text-3xs font-semibold uppercase tracking-widest text-ink-muted">Cumpleaños</p>
             <div className="flex flex-wrap gap-2">
               {birthdays.map((b) => (
                 <button
@@ -1327,7 +1327,7 @@ export function DashboardPage() {
 
 
         {canSeeTraining && checkInRecentCount > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-[11px]">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-2xs">
             <ClipboardCheck className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
             <span className="text-amber-900 dark:text-amber-200">
               {checkInRecentCount === 1
@@ -1348,7 +1348,7 @@ export function DashboardPage() {
         {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
         {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (
           <div className="rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">{todayLabel}</p>
+            <p className="text-3xs font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">{todayLabel}</p>
             <div className="flex flex-wrap gap-2">
               {todayApps.map((a) => (
                 <button
@@ -1440,13 +1440,13 @@ export function DashboardPage() {
                 <p className="py-8 text-center text-sm text-ink-muted">Sin ingresos registrados aún</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[12px]">
+                  <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-surface-border/60 bg-surface-elevated/30">
-                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Alumno</th>
-                        <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Monto</th>
-                        <th className="hidden px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:table-cell">Método</th>
-                        <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Estado</th>
+                        <th className="px-4 py-2 text-left text-3xs font-semibold uppercase tracking-wider text-ink-muted">Alumno</th>
+                        <th className="px-3 py-2 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted">Monto</th>
+                        <th className="hidden px-3 py-2 text-left text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell">Método</th>
+                        <th className="px-3 py-2 text-center text-3xs font-semibold uppercase tracking-wider text-ink-muted">Estado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border/40">
@@ -1459,17 +1459,17 @@ export function DashboardPage() {
                         >
                           <td className="hh-row-drop-in px-4 py-2.5">
                             <p className="font-medium text-ink-primary truncate max-w-[130px]">{row.student_name ?? '—'}</p>
-                            <p className="text-[10px] text-ink-muted tabular-nums">{new Date(row.income_date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</p>
+                            <p className="text-3xs text-ink-muted tabular-nums">{new Date(row.income_date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</p>
                           </td>
                           <td className="hh-row-drop-in px-3 py-2.5 text-right font-semibold tabular-nums text-ink-primary whitespace-nowrap">
                             {formatCurrency(row.amount)}
                           </td>
                           <td className="hh-row-drop-in hidden px-3 py-2.5 sm:table-cell">
-                            <PaymentMethodBadge method={row.payment_method} className="text-[10px]" />
+                            <PaymentMethodBadge method={row.payment_method} className="text-3xs" />
                           </td>
                           <td className="hh-row-drop-in px-3 py-2.5 text-center">
                             <span className={cn(
-                              'inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
+                              'inline-flex rounded-md border px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-wide',
                               row.status === 'cobrado' && 'border-brand-secondary/40 bg-brand-secondary/15 text-brand-secondary',
                               row.status === 'pendiente' && 'border-brand-tertiary/40 bg-brand-tertiary/12 text-brand-tertiary',
                               row.status !== 'cobrado' && row.status !== 'pendiente' && 'border-surface-border/50 bg-surface-elevated/50 text-ink-muted',
@@ -1559,14 +1559,14 @@ export function DashboardPage() {
                   const accent = BRAND_ROW_ACCENT_PAIR[i % BRAND_ROW_ACCENT_PAIR.length]
                   return (
                     <div key={s.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate(peopleDetailPath(s.id))}>
-                      <span className="w-4 text-[11px] font-bold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
+                      <span className="w-4 text-2xs font-bold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="mb-1 flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
                             <span className={cn('h-2 w-2 shrink-0 rounded-full ring-2 ring-black/10 dark:ring-white/10', accent.dot)} />
                             <p className="truncate text-xs font-medium text-ink-primary group-hover:text-brand-secondary transition-colors">{s.name}</p>
                           </div>
-                          <span className={cn('text-[11px] font-semibold tabular-nums shrink-0', accent.text)}>{s.pct}%</span>
+                          <span className={cn('text-2xs font-semibold tabular-nums shrink-0', accent.text)}>{s.pct}%</span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-surface-elevated">
                           <div
@@ -1628,8 +1628,8 @@ export function DashboardPage() {
           <Card padding="none" className="overflow-hidden">
             <div className="flex items-center justify-between gap-2 border-b border-surface-border/40 px-3 py-2 sm:px-3.5">
               <div className="min-w-0 leading-tight">
-                <p className="truncate text-[13px] font-semibold text-ink-primary">Sin rutina activa</p>
-                <p className="truncate text-[10px] text-ink-muted">
+                <p className="truncate text-body-sm font-semibold text-ink-primary">Sin rutina activa</p>
+                <p className="truncate text-3xs text-ink-muted">
                   {studentsWithoutRoutine.length === 1
                     ? '1 alumno activo sin rutina vigente'
                     : `${studentsWithoutRoutine.length} alumnos activos sin rutina vigente`}
@@ -1649,7 +1649,7 @@ export function DashboardPage() {
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <StudentAvatarThumb storagePath={s.avatar_path} name={s.full_name} />
-                    <p className="truncate text-[13px] font-medium text-ink-primary group-hover:text-brand-secondary transition-colors">{s.full_name}</p>
+                    <p className="truncate text-body-sm font-medium text-ink-primary group-hover:text-brand-secondary transition-colors">{s.full_name}</p>
                   </div>
                   <ChevronRight className="h-3 w-3 shrink-0 text-ink-muted opacity-45 transition-opacity group-hover:opacity-100" />
                 </button>
@@ -1663,8 +1663,8 @@ export function DashboardPage() {
           <Card padding="sm">
             <CardHeader className="mb-2 items-start gap-x-3 gap-y-1 sm:items-center">
               <div className="min-w-0 leading-tight">
-                <CardTitle className="text-[13px] font-semibold leading-snug">Próximos vencimientos</CardTitle>
-                <p className="text-[10px] text-ink-muted">Rutinas en última semana · planes 14 días</p>
+                <CardTitle className="text-body-sm font-semibold leading-snug">Próximos vencimientos</CardTitle>
+                <p className="text-3xs text-ink-muted">Rutinas en última semana · planes 14 días</p>
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-0.5 sm:ml-auto">
                 {canSeeTraining && (
@@ -1689,17 +1689,17 @@ export function DashboardPage() {
                     className="flex w-full items-center justify-between gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/30 px-2.5 py-1.5 text-left transition-colors hover:bg-surface-elevated/55"
                   >
                     <div className="flex min-w-0 items-start gap-2">
-                      <span className="w-[4rem] shrink-0 pt-[1px] text-[9px] font-semibold uppercase tracking-wide text-ink-muted">
+                      <span className="w-[4rem] shrink-0 pt-[1px] text-3xs font-semibold uppercase tracking-wide text-ink-muted">
                         {row.kind === 'routine' ? 'Rutina' : 'Plan'}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium text-ink-primary">{row.title}</p>
-                        <p className="truncate text-[11px] text-ink-muted">{row.subtitle}</p>
+                        <p className="truncate text-body-sm font-medium text-ink-primary">{row.title}</p>
+                        <p className="truncate text-2xs text-ink-muted">{row.subtitle}</p>
                       </div>
                     </div>
                     <span
                       className={cn(
-                        'shrink-0 rounded px-1.5 py-[1px] text-[10px] font-semibold tabular-nums',
+                        'shrink-0 rounded px-1.5 py-[1px] text-3xs font-semibold tabular-nums',
                         row.days < 0 && 'border border-status-expired/30 text-status-expired',
                         row.days >= 0 && row.days <= 3 && 'border border-status-expiring/30 text-status-expiring',
                         row.days > 3 && 'border border-surface-border/80 text-ink-secondary',
@@ -1729,7 +1729,7 @@ export function DashboardPage() {
                   .map(({ label, value }) => (
                     <div key={label} className="px-3 py-4 text-center">
                       <p className="text-2xl font-semibold tabular-nums text-ink-primary">{value}</p>
-                      <p className="text-[11px] text-ink-muted mt-1">{label}</p>
+                      <p className="text-2xs text-ink-muted mt-1">{label}</p>
                     </div>
                   ))}
               </div>

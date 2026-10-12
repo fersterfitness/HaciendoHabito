@@ -145,7 +145,7 @@ function IntakeHorizontalChoiceRow({
   const segmentedButtonClass = (isSelected: boolean) =>
     cn(
       'flex min-w-0 flex-1 touch-manipulation items-center justify-center rounded-lg border transition-all',
-      compact ? 'min-h-[2.25rem] px-1.5 py-1.5 text-[11px]' : 'min-h-[2.75rem] rounded-xl px-2 py-2 text-[12px]',
+      compact ? 'min-h-[2.25rem] px-1.5 py-1.5 text-2xs' : 'min-h-[2.75rem] rounded-xl px-2 py-2 text-xs',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-0',
       'text-center font-semibold leading-tight',
       isSelected ? intakePanelSegmentSelectedClass(theme) : intakePanelSegmentIdleClass(theme),
@@ -179,7 +179,7 @@ function IntakeHorizontalChoiceRow({
       {!interactive ? (
         <div
           className={cn(
-            compact ? 'mt-1 rounded-lg border border-dashed px-2 py-1.5 text-[11px] italic' : 'mt-1.5 rounded-lg border border-dashed px-3 py-2 text-[12px] italic',
+            compact ? 'mt-1 rounded-lg border border-dashed px-2 py-1.5 text-2xs italic' : 'mt-1.5 rounded-lg border border-dashed px-3 py-2 text-xs italic',
             emptyClasses,
           )}
           aria-disabled
@@ -218,11 +218,11 @@ function IntakeHorizontalChoiceRow({
                   expandable
                 />
                 <div className="min-w-0 flex-1">
-                  <p className={cn('text-[13px] font-semibold leading-tight', compactNameClass)}>
+                  <p className={cn('text-body-sm font-semibold leading-tight', compactNameClass)}>
                     {displayName}
                   </p>
                   {opt.subtitle ? (
-                    <p className={cn('mt-0.5 text-[11px] leading-snug', compactSubtitleClass)}>
+                    <p className={cn('mt-0.5 text-2xs leading-snug', compactSubtitleClass)}>
                       {opt.subtitle}
                     </p>
                   ) : null}
@@ -258,7 +258,7 @@ function IntakeHorizontalChoiceRow({
           {selected?.detail ? (
             <p
               id={detailId}
-              className={cn(compact ? 'mt-1 text-[10px] leading-snug' : 'mt-1.5 text-[11px] leading-snug', detailClass)}
+              className={cn(compact ? 'mt-1 text-3xs leading-snug' : 'mt-1.5 text-2xs leading-snug', detailClass)}
               aria-live="polite"
             >
               {selected.detail}
@@ -312,9 +312,9 @@ function IntakeSlotsBanner({ spots, compact }: { spots: PublicIntakeSlots; compa
         className={`mb-3 flex items-center gap-1.5 overflow-hidden rounded-xl border px-2.5 py-1.5 ${tone}`}
         title={`${title} — ${body}`}
       >
-        <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-white/80">{title}</span>
-        <span className="shrink-0 text-white/30 text-[9px]" aria-hidden>·</span>
-        <span className="min-w-0 flex-1 truncate text-[11px] text-white/70">{body}</span>
+        <span className="shrink-0 text-3xs font-bold uppercase tracking-[0.1em] text-white/80">{title}</span>
+        <span className="shrink-0 text-white/30 text-3xs" aria-hidden>·</span>
+        <span className="min-w-0 flex-1 truncate text-2xs text-white/70">{body}</span>
       </div>
     )
   }
@@ -324,11 +324,11 @@ function IntakeSlotsBanner({ spots, compact }: { spots: PublicIntakeSlots; compa
       className={`mb-4 flex min-h-[2.5rem] items-center gap-2 overflow-hidden rounded-2xl border px-3 py-2 backdrop-blur-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_8px_28px_rgba(0,0,0,0.22)] ${tone}`}
       title={`${title} — ${body}`}
     >
-      <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-white/88">{title}</span>
+      <span className="shrink-0 text-3xs font-bold uppercase tracking-[0.12em] text-white/88">{title}</span>
       <span className="shrink-0 text-white/35" aria-hidden>
         ·
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight text-white/95">{body}</span>
+      <span className="min-w-0 flex-1 truncate text-body-sm font-semibold leading-tight text-white/95">{body}</span>
     </div>
   )
 }
@@ -349,7 +349,7 @@ function TestimonialsSection({ urls }: { urls: string[] }) {
   if (clean.length === 0) return null
   return (
     <div className="mb-6 rounded-2xl border border-surface-border/80 bg-surface-elevated/25 px-4 py-4">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-ink-muted font-semibold">Testimonios</p>
+      <p className="text-3xs uppercase tracking-[0.2em] text-ink-muted font-semibold">Testimonios</p>
       <p className="mt-1 text-sm font-semibold text-ink-primary">Personas que ya hicieron el proceso</p>
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {clean.slice(0, 4).map((u) => {
@@ -482,7 +482,7 @@ function PlanDetailView({
             <span className="block text-2xl font-extrabold tabular-nums">
               {displayPriceForPlan(plan, planBilling)}
             </span>
-            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
+            <span className="mt-1 block text-3xs font-bold uppercase tracking-[0.14em] text-white/45">
               {planBillingCaption(planBilling)}
             </span>
           </div>
@@ -787,7 +787,7 @@ function LeftBrandPanel({
               {catalogError ? (
                 <p
                   className={cn(
-                    'text-[11px] rounded-lg border px-2.5 py-2',
+                    'text-2xs rounded-lg border px-2.5 py-2',
                     isDarkPanel
                       ? 'text-amber-200/90 border-amber-400/30 bg-amber-500/15'
                       : 'text-amber-900 border-amber-300 bg-amber-50',
@@ -796,7 +796,7 @@ function LeftBrandPanel({
                   {catalogError}
                 </p>
               ) : catalogLoading ? (
-                <p className={cn('text-[11px]', isDarkPanel ? 'text-white/50' : 'text-ink-muted')}>
+                <p className={cn('text-2xs', isDarkPanel ? 'text-white/50' : 'text-ink-muted')}>
                   Actualizando precios…
                 </p>
               ) : null}
@@ -858,7 +858,7 @@ function LeftBrandPanel({
               ) : (
                 <p
                   className={cn(
-                    'mt-3 text-center text-[11px] leading-relaxed',
+                    'mt-3 text-center text-2xs leading-relaxed',
                     isDarkPanel ? 'text-white/52' : 'text-ink-muted',
                   )}
                 >
@@ -875,7 +875,7 @@ function LeftBrandPanel({
               {catalogSegment === 'full' && plansVisible.length === 0 && (
                 <p
                   className={cn(
-                    'mt-2 text-center text-[10px]',
+                    'mt-2 text-center text-3xs',
                     isDarkPanel ? 'text-white/40' : 'text-ink-muted',
                   )}
                 >
@@ -887,7 +887,7 @@ function LeftBrandPanel({
         </div>
 
         <div className="relative z-[1] mt-auto hidden shrink-0 border-t border-white/[0.06] pt-2.5 lg:block">
-          <p className="mx-auto max-w-sm text-center text-[10px] font-medium leading-snug text-white/48 lg:mx-0 lg:text-left">
+          <p className="mx-auto max-w-sm text-center text-3xs font-medium leading-snug text-white/48 lg:mx-0 lg:text-left">
             Hábitos que transforman, día a día.
           </p>
         </div>
@@ -1435,18 +1435,18 @@ export function PublicIntakeFormPage({ loginHref = '/login' }: { loginHref?: str
                 {selectedPlan ? (
                   <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-surface-border bg-surface-card/90 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-ink-secondary">Tu plan</p>
+                      <p className="text-3xs font-bold uppercase tracking-[0.12em] text-ink-secondary">Tu plan</p>
                       <p className="truncate text-sm font-semibold text-ink-primary leading-tight">
                         {selectedPlan.name}
                       </p>
-                      <p className="mt-0.5 truncate text-[11px] text-ink-muted tabular-nums">
+                      <p className="mt-0.5 truncate text-2xs text-ink-muted tabular-nums">
                         {displayPriceForPlan(selectedPlan, planBilling)} · {planBillingCaption(planBilling)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={onRequestChangePlan}
-                      className="shrink-0 rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-[11px] font-semibold text-ink-primary"
+                      className="shrink-0 rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-2xs font-semibold text-ink-primary"
                     >
                       Cambiar
                     </button>

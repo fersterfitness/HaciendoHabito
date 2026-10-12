@@ -418,7 +418,7 @@ export function IntakeNutritionForm({
                   }}
                 />
               </label>
-              <p className="mt-1 text-[11px] text-ink-muted">Antigüedad máxima 2 años</p>
+              <p className="mt-1 text-2xs text-ink-muted">Antigüedad máxima 2 años</p>
             </div>
           </>
         )}
@@ -569,9 +569,9 @@ export function IntakeNutritionForm({
             <div className="rounded-xl border border-surface-border overflow-hidden">
               {/* Header */}
               <div className="grid grid-cols-[1fr_90px_90px] gap-px bg-surface-border">
-                <div className="bg-surface-elevated px-3 py-2 text-[10px] font-semibold text-ink-muted uppercase tracking-wide">Alimento</div>
-                <div className="bg-surface-elevated px-2 py-2 text-[10px] font-semibold text-ink-muted uppercase tracking-wide text-center">Frecuencia</div>
-                <div className="bg-surface-elevated px-2 py-2 text-[10px] font-semibold text-ink-muted uppercase tracking-wide text-center">Tipo / detalle</div>
+                <div className="bg-surface-elevated px-3 py-2 text-3xs font-semibold text-ink-muted uppercase tracking-wide">Alimento</div>
+                <div className="bg-surface-elevated px-2 py-2 text-3xs font-semibold text-ink-muted uppercase tracking-wide text-center">Frecuencia</div>
+                <div className="bg-surface-elevated px-2 py-2 text-3xs font-semibold text-ink-muted uppercase tracking-wide text-center">Tipo / detalle</div>
               </div>
 
               {/* Rows */}
@@ -583,7 +583,7 @@ export function IntakeNutritionForm({
                     </div>
                     <div className="bg-surface-card px-1 py-1.5 flex items-center">
                       <select
-                        className="w-full bg-surface-elevated text-ink-primary text-[11px] rounded-lg px-1.5 py-1.5 border border-surface-border focus:border-zinc-400 dark:focus:border-zinc-500 outline-none cursor-pointer"
+                        className="w-full bg-surface-elevated text-ink-primary text-2xs rounded-lg px-1.5 py-1.5 border border-surface-border focus:border-zinc-400 dark:focus:border-zinc-500 outline-none cursor-pointer"
                         {...register(`food_freq.${food.key}.frecuencia`)}
                       >
                         {FREQ_OPTIONS.map((o) => (
@@ -595,7 +595,7 @@ export function IntakeNutritionForm({
                       <input
                         type="text"
                         placeholder="—"
-                        className="w-full bg-surface-elevated text-ink-primary text-[11px] rounded-lg px-2 py-1.5 border border-surface-border focus:border-zinc-400 dark:focus:border-zinc-500 outline-none placeholder:text-ink-muted"
+                        className="w-full bg-surface-elevated text-ink-primary text-2xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-zinc-400 dark:focus:border-zinc-500 outline-none placeholder:text-ink-muted"
                         {...register(`food_freq.${food.key}.tipo`)}
                       />
                     </div>

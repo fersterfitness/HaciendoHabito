@@ -88,7 +88,7 @@ export function StudentAvatarThumb({ storagePath, name, className, fallbackClass
     <div
       className={cn(
         box,
-        'flex items-center justify-center bg-surface-elevated/60 text-[10px] font-semibold text-ink-muted',
+        'flex items-center justify-center bg-surface-elevated/60 text-3xs font-semibold text-ink-muted',
         fallbackClassName,
       )}
       aria-hidden

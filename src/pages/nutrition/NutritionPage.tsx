@@ -69,7 +69,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors',
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
           ? 'border-brand-tertiary bg-brand-tertiary/10 text-brand-tertiary'
           : 'border-surface-border/70 text-ink-muted hover:border-surface-border hover:text-ink-secondary',
@@ -79,7 +79,7 @@ function FilterChip({
       {label}
       <span
         className={cn(
-          'ml-0.5 rounded-full px-1.5 text-[10px] tabular-nums',
+          'ml-0.5 rounded-full px-1.5 text-3xs tabular-nums',
           active ? 'bg-brand-tertiary/15 text-brand-tertiary' : 'bg-surface-elevated text-ink-muted',
         )}
       >

@@ -148,7 +148,7 @@ export function PaymentMethodBadge({
       title={label}
     >
       {icon}
-      <span className={cn('text-[11px] font-medium leading-none', color)}>{label}</span>
+      <span className={cn('text-2xs font-medium leading-none', color)}>{label}</span>
     </span>
   )
 }

@@ -108,7 +108,7 @@ export function TrainerAdherenceOverview({ compact = false }: { compact?: boolea
   const dropping = rows.filter((r) => r.delta != null && r.delta < 0).length
 
   if (loading) {
-    return <p className="py-4 text-center text-[11px] text-ink-muted">Cargando adherencia…</p>
+    return <p className="py-4 text-center text-2xs text-ink-muted">Cargando adherencia…</p>
   }
 
   if (!rows.length) return null
@@ -118,12 +118,12 @@ export function TrainerAdherenceOverview({ compact = false }: { compact?: boolea
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-ink-primary">Adherencia semanal · todos</p>
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-2xs text-ink-muted">
             Entrenamiento + comidas (0–100%). {dropping > 0 ? `${dropping} bajaron respecto a la semana anterior.` : 'Sin caídas esta ronda.'}
           </p>
         </div>
         {compact ? (
-          <Link to="/habits" className="text-[11px] font-medium text-brand-primary hover:underline">
+          <Link to="/habits" className="text-2xs font-medium text-brand-primary hover:underline">
             Ver todos
           </Link>
         ) : null}
@@ -133,7 +133,7 @@ export function TrainerAdherenceOverview({ compact = false }: { compact?: boolea
           <li key={row.studentId}>
             <Link
               to={`/habits?student=${encodeURIComponent(row.studentId)}`}
-              className="flex items-center justify-between gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/25 px-2.5 py-1.5 text-[12px] hover:bg-surface-elevated/50"
+              className="flex items-center justify-between gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/25 px-2.5 py-1.5 text-xs hover:bg-surface-elevated/50"
             >
               <span className="min-w-0 truncate font-medium text-ink-primary">{row.name}</span>
               <span className="shrink-0 tabular-nums text-ink-secondary">

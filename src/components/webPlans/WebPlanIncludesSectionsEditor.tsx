@@ -48,7 +48,7 @@ export function WebPlanIncludesSectionsEditor({ sections, onChange, itemMaxLengt
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-ink-muted leading-snug">
+      <p className="text-2xs text-ink-muted leading-snug">
         Agrupá lo que incluye cada profesional. En el formulario público el tilde usa:{' '}
         <span className="text-brand-secondary font-medium">Entrenador (secondary)</span>,{' '}
         <span className="text-cyan-600 dark:text-cyan-400 font-medium">Psicólogo (cyan)</span>,{' '}

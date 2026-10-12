@@ -5,7 +5,7 @@ import { profileAvatarDisplayUrl } from '@/lib/profileAvatar'
 type Size = 'sm' | 'md' | 'lg'
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'size-[34px] text-[10px]',
+  sm: 'size-[34px] text-3xs',
   md: 'size-9 text-xs',
   lg: 'size-14 text-lg sm:size-16 sm:text-xl',
 }

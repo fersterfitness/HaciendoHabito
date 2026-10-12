@@ -53,7 +53,7 @@ function inputsWithBasicPrefill(
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted mb-2">{children}</p>
+  return <p className="text-2xs font-semibold uppercase tracking-wide text-ink-muted mb-2">{children}</p>
 }
 
 function SeriesRow({
@@ -68,7 +68,7 @@ function SeriesRow({
   const median = useMemo(() => medianOfSeries(parseSeries5FromStrings(values)), [values])
   return (
     <div className="grid grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(0,0.65fr))_minmax(0,0.55fr)] gap-1.5 items-center py-1 border-b border-surface-border/60 last:border-0">
-      <span className="text-[11px] text-ink-secondary leading-tight pr-1">{label}</span>
+      <span className="text-2xs text-ink-secondary leading-tight pr-1">{label}</span>
       {values.map((cell, i) => (
         <input
           key={i}
@@ -76,10 +76,10 @@ function SeriesRow({
           inputMode="decimal"
           value={cell}
           onChange={(e) => onCell(i, e.target.value)}
-          className="w-full min-w-0 rounded-lg border border-surface-inputBorder bg-surface-input px-1.5 py-1 text-[11px] text-ink-primary"
+          className="w-full min-w-0 rounded-lg border border-surface-inputBorder bg-surface-input px-1.5 py-1 text-2xs text-ink-primary"
         />
       ))}
-      <span className="text-right text-[11px] font-medium text-brand-secondary tabular-nums">
+      <span className="text-right text-2xs font-medium text-brand-secondary tabular-nums">
         {median == null ? '—' : median}
       </span>
     </div>
@@ -265,11 +265,11 @@ export function NutritionAnthropometryProgramForm({
 
       <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-3 space-y-3">
         <SectionTitle>Datos generales (como en el Excel)</SectionTitle>
-        <p className="text-[10px] text-ink-muted leading-relaxed -mt-1">
+        <p className="text-3xs text-ink-muted leading-relaxed -mt-1">
           Se completan desde la ficha del paciente, el registro web o la última medición. Podés editarlos si hace falta.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <label className="text-[11px] text-ink-secondary">
+          <label className="text-2xs text-ink-secondary">
             Fecha de medición
             <input
               type="date"
@@ -278,7 +278,7 @@ export function NutritionAnthropometryProgramForm({
               className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
             />
           </label>
-          <label className="text-[11px] text-ink-secondary">
+          <label className="text-2xs text-ink-secondary">
             N° medición
             <input
               type="number"
@@ -294,7 +294,7 @@ export function NutritionAnthropometryProgramForm({
               className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
             />
           </label>
-          <label className="text-[11px] text-ink-secondary">
+          <label className="text-2xs text-ink-secondary">
             Sexo (programa: 1=m · 2=f)
             <select
               value={meta.sex == null ? '' : String(meta.sex)}
@@ -309,7 +309,7 @@ export function NutritionAnthropometryProgramForm({
               <option value="2">2 · Femenino</option>
             </select>
           </label>
-          <label className="text-[11px] text-ink-secondary sm:col-span-2">
+          <label className="text-2xs text-ink-secondary sm:col-span-2">
             Deporte
             <input
               value={meta.sport ?? ''}
@@ -317,7 +317,7 @@ export function NutritionAnthropometryProgramForm({
               className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
             />
           </label>
-          <label className="text-[11px] text-ink-secondary">
+          <label className="text-2xs text-ink-secondary">
             Act. física
             <input
               value={meta.physical_activity ?? ''}
@@ -325,7 +325,7 @@ export function NutritionAnthropometryProgramForm({
               className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
             />
           </label>
-          <label className="text-[11px] text-ink-secondary">
+          <label className="text-2xs text-ink-secondary">
             Depo/Recrea (D/R)
             <input
               value={meta.depo_recrea ?? ''}
@@ -333,7 +333,7 @@ export function NutritionAnthropometryProgramForm({
               className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
             />
           </label>
-          <label className="text-[11px] text-ink-secondary lg:col-span-2">
+          <label className="text-2xs text-ink-secondary lg:col-span-2">
             % error técnico TE (diámetros/pliegues)
             <div className="mt-1 flex items-center gap-2.5">
               <div className="relative w-[5.5rem] shrink-0">
@@ -354,7 +354,7 @@ export function NutritionAnthropometryProgramForm({
                   %
                 </span>
               </div>
-              <span className="text-[10px] leading-snug text-ink-muted">
+              <span className="text-3xs leading-snug text-ink-muted">
                 Por defecto 2% (como en el Excel). Usado en valor ajustado y PDF.
               </span>
             </div>
@@ -365,13 +365,13 @@ export function NutritionAnthropometryProgramForm({
       <div className="overflow-x-auto rounded-xl border border-surface-border">
         <div className="min-w-[720px] p-3 bg-surface-card/80">
           <div className="grid grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(0,0.65fr))_minmax(0,0.55fr)] gap-1.5 items-end pb-2 mb-2 border-b border-surface-border">
-            <span className="text-[10px] font-semibold uppercase text-ink-muted">Variable</span>
-            <span className="text-[10px] font-semibold text-center text-ink-muted">Serie 1</span>
-            <span className="text-[10px] font-semibold text-center text-ink-muted">Serie 2</span>
-            <span className="text-[10px] font-semibold text-center text-ink-muted">Serie 3</span>
-            <span className="text-[10px] font-semibold text-center text-ink-muted">Serie 4</span>
-            <span className="text-[10px] font-semibold text-center text-ink-muted">Serie 5</span>
-            <span className="text-[10px] font-semibold text-right text-ink-muted">Mediana</span>
+            <span className="text-3xs font-semibold uppercase text-ink-muted">Variable</span>
+            <span className="text-3xs font-semibold text-center text-ink-muted">Serie 1</span>
+            <span className="text-3xs font-semibold text-center text-ink-muted">Serie 2</span>
+            <span className="text-3xs font-semibold text-center text-ink-muted">Serie 3</span>
+            <span className="text-3xs font-semibold text-center text-ink-muted">Serie 4</span>
+            <span className="text-3xs font-semibold text-center text-ink-muted">Serie 5</span>
+            <span className="text-3xs font-semibold text-right text-ink-muted">Mediana</span>
           </div>
 
           <SectionTitle>Datos básicos</SectionTitle>
@@ -399,7 +399,7 @@ export function NutritionAnthropometryProgramForm({
         </div>
       </div>
 
-      <p className="text-[11px] text-ink-muted leading-relaxed">
+      <p className="text-2xs text-ink-muted leading-relaxed">
         Las medianas se calculan con los valores ingresados (vacíos se ignoran). Peso, talla y talla sentado alimentan también
         los campos resumen e IMC. Podés complementar con la sección de mediciones rápidas si usás % grasa o masa muscular de
         otro método.

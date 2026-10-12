@@ -187,7 +187,7 @@ function RoutinesFiltersDropdown({
             <Filter className="h-4 w-4 text-ink-muted " aria-hidden />
             Filtrar
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-3xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
                 {activeCount}
               </span>
             )}
@@ -196,7 +196,7 @@ function RoutinesFiltersDropdown({
         )}
       >
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted ">Nivel</p>
+            <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">Nivel</p>
             {(['', 'inicial', 'intermedio', 'avanzado'] as RoutineLevelFilter[]).map((v) => (
               <button
                 key={v || 'all-nivel'}
@@ -215,7 +215,7 @@ function RoutinesFiltersDropdown({
           </div>
 
           <div className="border-t border-surface-border/65 pt-2 ">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Estado rutina</p>
+            <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Estado rutina</p>
             {([{ value: '' as RoutineStatusFilter, label: 'Todos' }, ...ROUTINE_STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))]).map(
               (opt) => (
                 <button
@@ -284,7 +284,7 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Orden del listado</p>
+          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Orden del listado</p>
           {ROUTINE_SORT_OPTS.map((opt) => (
             <button
               key={opt.value}
@@ -627,7 +627,7 @@ export function RoutinesPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className={cn(
-                    'h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-[14px] text-ink-primary outline-none shadow-none',
+                    'h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-sm text-ink-primary outline-none shadow-none',
                     'placeholder:text-ink-muted',
                     'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50',
                     ' dark:text-zinc-100 ',
@@ -710,13 +710,13 @@ export function RoutinesPage() {
                 <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
-                    <p className="truncate text-[11px] text-ink-muted">
+                    <p className="truncate text-2xs text-ink-muted">
                       {ROUTINE_SORT_SUBTITLE[tableSort]}
                       {search.trim() ? ` · texto “${search.trim()}”` : ''}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-[11px] font-semibold tabular-nums text-ink-secondary">
+                    <span className="inline-flex items-center rounded-full border border-surface-border/70 bg-surface-card px-2.5 py-1 text-2xs font-semibold tabular-nums text-ink-secondary">
                       {filteredSorted.length === 1 ? '1 rutina' : `${filteredSorted.length} rutinas`}
                     </span>
                     {filterActiveCount > 0 && (
@@ -726,7 +726,7 @@ export function RoutinesPage() {
                           setFilterLevel('')
                           setFilterStatus('')
                         }}
-                        className="text-[11px] font-medium text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline"
+                        className="text-2xs font-medium text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline"
                       >
                         Limpiar filtros
                       </button>
@@ -735,16 +735,16 @@ export function RoutinesPage() {
                 </div>
 
                 <div className="max-h-[min(72vh,40rem)] overflow-auto">
-                  <table className="w-full min-w-[980px] border-collapse text-[13px] leading-snug">
+                  <table className="w-full min-w-[980px] border-collapse text-body-sm leading-snug">
                     <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                       <tr className="text-left">
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Rutina</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Alumno</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Período</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Nivel</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Rutina</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Alumno</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Período</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Nivel</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
                           Acciones
                         </th>
                       </tr>
@@ -807,7 +807,7 @@ export function RoutinesPage() {
                           {/* Alumno con foto */}
                           <td
                             className={cn(
-                              'hh-row-drop-in max-w-[13rem] px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5',
+                              'hh-row-drop-in max-w-[13rem] px-4 py-2.5 text-body-sm font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5',
                             )}
                             title={routineStudentName(r) || undefined}
                           >
@@ -815,7 +815,7 @@ export function RoutinesPage() {
                               <StudentAvatarThumb
                                 storagePath={(r.student as RoutineWithStudent['student'])?.avatar_path}
                                 name={routineStudentName(r) || '?'}
-                                fallbackClassName={cn('text-[10px] font-bold', colors.avatar)}
+                                fallbackClassName={cn('text-3xs font-bold', colors.avatar)}
                               />
                               <span className="truncate">{routineStudentName(r) || '—'}</span>
                             </div>

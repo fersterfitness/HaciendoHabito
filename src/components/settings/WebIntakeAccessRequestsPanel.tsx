@@ -88,7 +88,7 @@ export function WebIntakeAccessRequestsPanel({ variant = 'settings' }: Props) {
       )}
     >
       <div>
-        <h2 className={cn('font-semibold text-ink-primary', isDashboard ? 'text-[13px]' : 'text-sm')}>
+        <h2 className={cn('font-semibold text-ink-primary', isDashboard ? 'text-body-sm' : 'text-sm')}>
           Accesos al formulario web (/form)
           {isDashboard && pending.length > 0 ? (
             <span className="ml-1.5 font-medium text-ink-muted">({pending.length})</span>

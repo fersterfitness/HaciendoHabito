@@ -37,7 +37,7 @@ export function HabitsPage() {
       <Header title="Hábitos" />
 
       <div className="mx-auto max-w-[min(1200px,calc(100%-2rem))] space-y-4 px-4 py-5 lg:px-6">
-        <p className="text-[13px] leading-relaxed text-ink-muted">
+        <p className="text-body-sm leading-relaxed text-ink-muted">
           El acceso principal está en la <strong className="text-ink-primary">ficha del alumno</strong>, solapa{' '}
           <strong className="text-ink-primary">Hábitos</strong> (<strong className="text-ink-primary">Vista amplia</strong> te
           trae a esta página). Desde acá podés cambiar de alumno cuando haga falta.

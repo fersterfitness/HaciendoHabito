@@ -56,7 +56,7 @@ function ChartCard({ series, tick, isDark }: { series: HabitChartSeries; tick: s
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {series.buckets[0]?.segments.map((seg) => (
-          <li key={seg.optionId} className="inline-flex items-center gap-1.5 text-[10px] text-ink-muted">
+          <li key={seg.optionId} className="inline-flex items-center gap-1.5 text-3xs text-ink-muted">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seg.color }} />
             {seg.label}
           </li>
@@ -192,7 +192,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
     return (
       <div className="rounded-2xl border border-dashed border-surface-border px-4 py-8 text-center">
         <p className="text-sm font-medium text-ink-primary">Todavía no hay hábitos para graficar</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
+        <p className="mt-1 text-2xs leading-relaxed text-ink-muted">
           Cuando el alumno complete el check-in semanal, acá vas a ver barras por color. Las aclaraciones quedan en Consulta semanal.
         </p>
       </div>
@@ -200,15 +200,15 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
   }
 
   const selectClass =
-    'mt-1 block w-full rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-1.5 text-[11px] text-ink-primary outline-none focus:border-brand-secondary/50'
+    'mt-1 block w-full rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-1.5 text-2xs text-ink-primary outline-none focus:border-brand-secondary/50'
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-secondary">Check-in</p>
+          <p className="text-3xs font-bold uppercase tracking-[0.14em] text-brand-secondary">Check-in</p>
           <p className="text-sm font-semibold tracking-tight text-ink-primary">Hábitos del formulario</p>
-          <p className="mt-0.5 max-w-md text-[11px] leading-relaxed text-ink-muted">
+          <p className="mt-0.5 max-w-md text-2xs leading-relaxed text-ink-muted">
             {period === 'evolucion'
               ? 'Adherencia de entrenamiento y comidas por semana. No es un juicio: es para ver la tendencia sin desmotivar.'
               : 'Solo opciones por color. Compará meses, años o rangos cuando quieras ver evolución.'}
@@ -221,7 +221,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
               type="button"
               onClick={() => setPeriod(p.id)}
               className={cn(
-                'rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors',
+                'rounded-full px-2.5 py-1 text-3xs font-semibold transition-colors',
                 period === p.id ? 'bg-ink-primary text-surface-card' : 'text-ink-muted hover:text-ink-primary',
               )}
             >
@@ -255,7 +255,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
             </div>
             <ul className="flex flex-wrap gap-2">
               {adherence.map((p) => (
-                <li key={p.weekKey} className="rounded-full border border-surface-border px-2 py-0.5 text-[10px] text-ink-secondary">
+                <li key={p.weekKey} className="rounded-full border border-surface-border px-2 py-0.5 text-3xs text-ink-secondary">
                   {p.label}: {p.missing || p.score == null ? 'sin registro' : `${p.score}%`}
                   {p.delta != null ? (
                     <span className={p.delta >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>
@@ -269,12 +269,12 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
             </ul>
           </div>
         ) : (
-          <p className="text-[11px] text-ink-muted">Todavía no hay check-ins semanales para armar la evolución.</p>
+          <p className="text-2xs text-ink-muted">Todavía no hay check-ins semanales para armar la evolución.</p>
         )
       ) : period === 'compare' ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-surface-border/60 bg-surface-elevated/25 p-3">
-            <label className="text-[10px] font-medium text-ink-muted">
+            <label className="text-3xs font-medium text-ink-muted">
               Comparar
               <select
                 className={selectClass}
@@ -288,7 +288,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
             </label>
             {compareKind === 'month' ? (
               <>
-                <label className="text-[10px] font-medium text-ink-muted">
+                <label className="text-3xs font-medium text-ink-muted">
                   Período A
                   <select className={selectClass} value={monthA} onChange={(e) => setMonthA(e.target.value)}>
                     {monthOpts.map((o) => (
@@ -296,7 +296,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
                     ))}
                   </select>
                 </label>
-                <label className="text-[10px] font-medium text-ink-muted">
+                <label className="text-3xs font-medium text-ink-muted">
                   Período B
                   <select className={selectClass} value={monthB} onChange={(e) => setMonthB(e.target.value)}>
                     {monthOpts.map((o) => (
@@ -308,7 +308,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
             ) : null}
             {compareKind === 'year' ? (
               <>
-                <label className="text-[10px] font-medium text-ink-muted">
+                <label className="text-3xs font-medium text-ink-muted">
                   Año A
                   <select className={selectClass} value={yearA} onChange={(e) => setYearA(e.target.value)}>
                     {yearOpts.map((y) => (
@@ -316,7 +316,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
                     ))}
                   </select>
                 </label>
-                <label className="text-[10px] font-medium text-ink-muted">
+                <label className="text-3xs font-medium text-ink-muted">
                   Año B
                   <select className={selectClass} value={yearB} onChange={(e) => setYearB(e.target.value)}>
                     {yearOpts.map((y) => (
@@ -328,21 +328,21 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
             ) : null}
             {compareKind === 'range' ? (
               <>
-                <label className="text-[10px] font-medium text-ink-muted">A desde<input className={selectClass} type="date" value={rangeAFrom} onChange={(e) => setRangeAFrom(e.target.value)} /></label>
-                <label className="text-[10px] font-medium text-ink-muted">A hasta<input className={selectClass} type="date" value={rangeATo} onChange={(e) => setRangeATo(e.target.value)} /></label>
-                <label className="text-[10px] font-medium text-ink-muted">B desde<input className={selectClass} type="date" value={rangeBFrom} onChange={(e) => setRangeBFrom(e.target.value)} /></label>
-                <label className="text-[10px] font-medium text-ink-muted">B hasta<input className={selectClass} type="date" value={rangeBTo} onChange={(e) => setRangeBTo(e.target.value)} /></label>
+                <label className="text-3xs font-medium text-ink-muted">A desde<input className={selectClass} type="date" value={rangeAFrom} onChange={(e) => setRangeAFrom(e.target.value)} /></label>
+                <label className="text-3xs font-medium text-ink-muted">A hasta<input className={selectClass} type="date" value={rangeATo} onChange={(e) => setRangeATo(e.target.value)} /></label>
+                <label className="text-3xs font-medium text-ink-muted">B desde<input className={selectClass} type="date" value={rangeBFrom} onChange={(e) => setRangeBFrom(e.target.value)} /></label>
+                <label className="text-3xs font-medium text-ink-muted">B hasta<input className={selectClass} type="date" value={rangeBTo} onChange={(e) => setRangeBTo(e.target.value)} /></label>
               </>
             ) : null}
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-ink-primary">Período A</p>
-              {seriesA.length ? seriesA.map((s) => <ChartCard key={`a-${s.key}`} series={s} tick={tick} isDark={isDark} />) : <p className="text-[11px] text-ink-muted">Sin datos en A.</p>}
+              <p className="text-2xs font-semibold text-ink-primary">Período A</p>
+              {seriesA.length ? seriesA.map((s) => <ChartCard key={`a-${s.key}`} series={s} tick={tick} isDark={isDark} />) : <p className="text-2xs text-ink-muted">Sin datos en A.</p>}
             </div>
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-ink-primary">Período B</p>
-              {seriesB.length ? seriesB.map((s) => <ChartCard key={`b-${s.key}`} series={s} tick={tick} isDark={isDark} />) : <p className="text-[11px] text-ink-muted">Sin datos en B.</p>}
+              <p className="text-2xs font-semibold text-ink-primary">Período B</p>
+              {seriesB.length ? seriesB.map((s) => <ChartCard key={`b-${s.key}`} series={s} tick={tick} isDark={isDark} />) : <p className="text-2xs text-ink-muted">Sin datos en B.</p>}
             </div>
           </div>
         </div>
@@ -353,7 +353,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
           ))}
         </div>
       ) : (
-        <p className="text-[11px] text-ink-muted">Todavía no hay opciones de hábitos en esas respuestas.</p>
+        <p className="text-2xs text-ink-muted">Todavía no hay opciones de hábitos en esas respuestas.</p>
       )}
     </div>
   )
