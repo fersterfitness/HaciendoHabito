@@ -138,14 +138,14 @@ function MealPlansFiltersDropdown({
             type="button"
             onClick={onClick}
             className={cn(
-              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-ink-primary transition-colors',
               activeCount > 0
-                ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
-                : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+                ? 'border-surface-inputBorder/90 bg-surface-elevated/80 dark:text-zinc-100'
+                : 'border-surface-border/70 bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 dark:text-zinc-200',
             )}
             {...a11y}
           >
-            <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            <Filter className="h-4 w-4 text-ink-muted" aria-hidden />
             Filtrar
             {activeCount > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
@@ -156,7 +156,7 @@ function MealPlansFiltersDropdown({
           </button>
         )}
       >
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Origen</p>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Origen</p>
           {(
             [
               { value: '' as MealPlanOriginFilter, label: 'Todos' },
@@ -171,8 +171,8 @@ function MealPlansFiltersDropdown({
               className={cn(
                 'mt-1 w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors first:mt-0',
                 filterOrigin === opt.value
-                  ? 'bg-slate-500/12 font-medium text-zinc-900 dark:bg-slate-400/14 dark:text-zinc-50'
-                  : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                  ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14'
+                  : 'text-ink-secondary hover:bg-surface-elevated/60',
               )}
             >
               {opt.label}
@@ -186,7 +186,7 @@ function MealPlansFiltersDropdown({
                 setFilterOrigin('')
                 setOpen(false)
               }}
-              className="mt-2 flex w-full items-center justify-center gap-1 border-t border-zinc-200/65 pt-2 text-xs text-zinc-500 transition-colors hover:text-rose-600 dark:border-zinc-800/80 dark:hover:text-rose-400"
+              className="mt-2 flex w-full items-center justify-center gap-1 border-t border-surface-border/65 pt-2 text-xs text-ink-muted transition-colors hover:text-rose-600 dark:hover:text-rose-400"
             >
               <X className="h-3 w-3" />
               Limpiar filtros
@@ -216,18 +216,18 @@ function MealPlansSortDropdown({ value, onChange }: { value: MealPlanTableSort; 
             title={selectedLabel}
             onClick={onClick}
             className={cn(
-              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-              'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-surface-border/70 px-3.5 text-sm font-medium text-ink-primary transition-colors',
+              'bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 ',
             )}
             {...a11y}
           >
-            <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            <ArrowDownUp className="h-4 w-4 text-ink-muted " aria-hidden />
             Ordenar
             <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Orden del listado</p>
+          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Orden del listado</p>
           {SORT_OPTS.map((opt) => (
             <button
               key={opt.value}
@@ -239,8 +239,8 @@ function MealPlansSortDropdown({ value, onChange }: { value: MealPlanTableSort; 
               className={cn(
                 'w-full rounded-md px-2.5 py-2 text-left text-xs transition-colors',
                 opt.value === value
-                  ? 'bg-zinc-200/85 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                  : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                  ? 'bg-surface-border/85 font-medium text-ink-primary dark:text-zinc-50'
+                  : 'text-ink-secondary hover:bg-surface-elevated/60 ',
               )}
             >
               {opt.label}
@@ -410,7 +410,7 @@ export function MealPlansPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative min-h-10 min-w-0 flex-1">
             <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
-              <Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" aria-hidden />
+              <Search className="h-4 w-4 text-ink-muted " aria-hidden />
             </span>
             <input
               ref={searchRef}
@@ -422,11 +422,11 @@ export function MealPlansPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className={cn(
-                'h-10 w-full rounded-md border border-zinc-200/75 bg-transparent pl-10 pr-3 text-[14px] text-zinc-900 outline-none shadow-none',
-                'placeholder:text-zinc-400',
-                'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50',
-                'dark:border-zinc-700/80 dark:text-zinc-100 dark:placeholder:text-zinc-500',
-                'dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
+                'h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-[14px] text-ink-primary outline-none shadow-none',
+                'placeholder:text-ink-muted',
+                'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50',
+                ' dark:text-zinc-100 ',
+                ' ',
               )}
             />
           </div>
@@ -436,11 +436,11 @@ export function MealPlansPage() {
             <MealPlansSortDropdown value={tableSort} onChange={setTableSort} />
 
             {filterOrigin && (
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary dark:text-zinc-100">
                 {filterOrigin === 'from_template' ? 'Desde plantilla' : 'Asignación directa'}
                 <button
                   type="button"
-                  className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  className="text-ink-muted hover:text-ink-primary "
                   aria-label="Quitar filtro origen"
                   onClick={() => setFilterOrigin('')}
                 >
@@ -690,7 +690,7 @@ export function MealPlansPage() {
               'inset-3 sm:inset-auto sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-5xl lg:right-6 lg:top-6 lg:bottom-6 xl:max-w-6xl',
             )}
           >
-            <div className="flex shrink-0 flex-col gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-800">
+            <div className="flex shrink-0 flex-col gap-3 border-b border-surface-border/70 px-4 py-3 ">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">{entityColumn}</p>
@@ -702,7 +702,7 @@ export function MealPlansPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-transparent p-2 text-ink-muted transition-colors hover:border-zinc-200 hover:bg-zinc-100 hover:text-ink-primary dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
+                  className="shrink-0 rounded-lg border border-transparent p-2 text-ink-muted transition-colors hover:border-surface-border hover:bg-surface-elevated hover:text-ink-primary "
                   aria-label="Cerrar"
                   onClick={() => setSelectedPlanId(null)}
                 >

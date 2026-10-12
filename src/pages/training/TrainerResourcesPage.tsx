@@ -27,6 +27,7 @@ import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { COMMON_TIMEZONES, WEEKDAY_LABELS_ES, scheduleMatchesToday } from '@/lib/checkInSchedule'
 import type { Student, TrainerMessageTemplate, TrainerResource, TrainerResourceSendSchedule } from '@/types/database'
 import toast from 'react-hot-toast'
+import { confirmDialog } from '@/components/ui/dialogs'
 
 function toastAfterWhatsAppShare(result: WhatsAppShareResult, directStudent?: boolean) {
   if (result.mode === 'clipboard') {
@@ -245,7 +246,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
     if (!user) return
     const r = resources.find((x) => x.id === id)
     const label = r?.title ? `«${r.title}»` : 'este recurso'
-    if (!window.confirm(`¿Eliminar ${label}? También se borra el historial de envíos de ese recurso.`)) return
+    if (!(await confirmDialog({ title: `¿Eliminar ${label}?`, description: 'También se borra el historial de envíos de ese recurso.', confirmLabel: 'Eliminar' }))) return
     const { error } = await supabase.from('trainer_resources').delete().eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
@@ -338,7 +339,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
     if (!user) return
     const t = templates.find((x) => x.id === id)
     const label = t?.title ? `«${t.title}»` : 'esta plantilla'
-    if (!window.confirm(`¿Eliminar la plantilla ${label}?`)) return
+    if (!(await confirmDialog({ title: `¿Eliminar la plantilla ${label}?`, confirmLabel: 'Eliminar' }))) return
     const { error } = await supabase.from('trainer_message_templates').delete().eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
@@ -429,7 +430,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
 
   async function deleteResourceSchedule(id: string) {
     if (!user) return
-    if (!window.confirm('¿Quitar este recordatorio?')) return
+    if (!(await confirmDialog({ title: '¿Quitar este recordatorio?', confirmLabel: 'Quitar' }))) return
     const { error } = await supabase.from('trainer_resource_send_schedules').delete().eq('id', id).eq('owner_id', user.id)
     if (error) toast.error(error.message)
     else {

@@ -7,6 +7,7 @@ import type { RoutineBlueprint } from '@/types/database'
 import { blueprintRoutineGroup, realBlueprints } from '@/lib/routine/blueprintFolders'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { Modal } from '@/components/ui/Modal'
 
 const SIN_MACRO = 'Sin macrociclo'
 
@@ -86,117 +87,114 @@ export function AssignPresetRoutineModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-surface-border bg-surface-card p-4 shadow-lg">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
-        <h3 className="mt-1 text-sm font-semibold text-ink-primary">Asignar a {studentName}</h3>
-        <p className="mt-1 text-[11px] text-ink-secondary">
-          Elegí macrociclo → mesociclo → rutina → variante. El objetivo se copia al asignar.
-        </p>
-        {loading ? (
-          <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
-        ) : items.length === 0 ? (
-          <p className="py-6 text-sm text-ink-muted">
-            Todavía no hay variantes. Guardá una desde el detalle de una rutina (Base de datos → Rutinas preestablecidas).
-          </p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            <label className="block text-[11px] font-medium text-ink-secondary">
-              Macrociclo (carpeta)
-              <select
-                value={macro}
-                onChange={(e) => {
-                  setMacro(e.target.value)
-                  setMeso('')
-                  setRutina('')
-                  setVariantId('')
-                }}
-                className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
-              >
-                <option value="">Elegí…</option>
-                {macros.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[11px] font-medium text-ink-secondary">
-              Mesociclo
-              <select
-                value={meso}
-                onChange={(e) => {
-                  setMeso(e.target.value)
-                  setRutina('')
-                  setVariantId('')
-                }}
-                disabled={!macro}
-                className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
-              >
-                <option value="">{macro ? 'Elegí…' : 'Primero el macrociclo'}</option>
-                {mesos.map((m) => (
-                  <option key={m || '__none'} value={m}>
-                    {m || 'Sin mesociclo'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[11px] font-medium text-ink-secondary">
-              Rutina
-              <select
-                value={rutina}
-                onChange={(e) => {
-                  setRutina(e.target.value)
-                  setVariantId('')
-                }}
-                disabled={!macro}
-                className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
-              >
-                <option value="">{macro ? 'Elegí…' : 'Primero el mesociclo'}</option>
-                {rutinas.map((r) => (
-                  <option key={r || '__loose'} value={r}>
-                    {r || 'Sin carpeta de rutina'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[11px] font-medium text-ink-secondary">
-              Variante
-              <select
-                value={variantId}
-                onChange={(e) => setVariantId(e.target.value)}
-                disabled={!macro}
-                className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
-              >
-                <option value="">Elegí…</option>
-                {variants.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
-        <div className="mt-4 flex gap-2">
-          <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            className={cn('flex-1', !variantId && 'opacity-50')}
-            disabled={!variantId}
-            icon={<Library className="h-3.5 w-3.5" />}
-            onClick={() => {
-              if (!variantId) return
-              onPick(variantId)
+    <Modal open onClose={onClose} size="md" bare className="p-4">
+    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
+    <h3 className="mt-1 text-sm font-semibold text-ink-primary">Asignar a {studentName}</h3>
+    <p className="mt-1 text-[11px] text-ink-secondary">
+      Elegí macrociclo → mesociclo → rutina → variante. El objetivo se copia al asignar.
+    </p>
+    {loading ? (
+      <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
+    ) : items.length === 0 ? (
+      <p className="py-6 text-sm text-ink-muted">
+        Todavía no hay variantes. Guardá una desde el detalle de una rutina (Base de datos → Rutinas preestablecidas).
+      </p>
+    ) : (
+      <div className="mt-4 space-y-3">
+        <label className="block text-[11px] font-medium text-ink-secondary">
+          Macrociclo (carpeta)
+          <select
+            value={macro}
+            onChange={(e) => {
+              setMacro(e.target.value)
+              setMeso('')
+              setRutina('')
+              setVariantId('')
             }}
+            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
           >
-            Asignar y editar
-          </Button>
-        </div>
+            <option value="">Elegí…</option>
+            {macros.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-[11px] font-medium text-ink-secondary">
+          Mesociclo
+          <select
+            value={meso}
+            onChange={(e) => {
+              setMeso(e.target.value)
+              setRutina('')
+              setVariantId('')
+            }}
+            disabled={!macro}
+            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+          >
+            <option value="">{macro ? 'Elegí…' : 'Primero el macrociclo'}</option>
+            {mesos.map((m) => (
+              <option key={m || '__none'} value={m}>
+                {m || 'Sin mesociclo'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-[11px] font-medium text-ink-secondary">
+          Rutina
+          <select
+            value={rutina}
+            onChange={(e) => {
+              setRutina(e.target.value)
+              setVariantId('')
+            }}
+            disabled={!macro}
+            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+          >
+            <option value="">{macro ? 'Elegí…' : 'Primero el mesociclo'}</option>
+            {rutinas.map((r) => (
+              <option key={r || '__loose'} value={r}>
+                {r || 'Sin carpeta de rutina'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-[11px] font-medium text-ink-secondary">
+          Variante
+          <select
+            value={variantId}
+            onChange={(e) => setVariantId(e.target.value)}
+            disabled={!macro}
+            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+          >
+            <option value="">Elegí…</option>
+            {variants.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+    )}
+    <div className="mt-4 flex gap-2">
+      <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
+        Cancelar
+      </Button>
+      <Button
+        type="button"
+        className={cn('flex-1', !variantId && 'opacity-50')}
+        disabled={!variantId}
+        icon={<Library className="h-3.5 w-3.5" />}
+        onClick={() => {
+          if (!variantId) return
+          onPick(variantId)
+        }}
+      >
+        Asignar y editar
+      </Button>
     </div>
+    </Modal>
   )
 }

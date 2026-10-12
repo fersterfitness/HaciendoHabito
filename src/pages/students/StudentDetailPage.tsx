@@ -54,6 +54,7 @@ import toast from 'react-hot-toast'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts'
+import { Modal } from '@/components/ui/Modal'
 
 /** Pestañas dentro de Seguimiento (peso, fuerza, pagos, ciclo). */
 type SeguimientoTab = 'peso' | 'fuerza' | 'pagos' | 'ciclo'
@@ -117,7 +118,7 @@ function routineStatusPillClass(status: string, compact = false): string {
     case 'cancelada':
       return cn(base, 'border-surface-border/60 bg-surface-border/40 text-ink-muted')
     default:
-      return cn(base, 'border-zinc-200/80 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400')
+      return cn(base, 'border-surface-border/80 text-ink-secondary')
   }
 }
 
@@ -136,11 +137,11 @@ function studentAccountStatusChipClass(status: string): string {
         'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
       )
     case 'inactivo':
-      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-700/25 dark:text-zinc-400')
+      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-ink-secondary dark:border-zinc-600 dark:bg-zinc-700/25')
     case 'baja':
       return cn(base, 'border-rose-400/40 bg-rose-500/10 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-400')
     default:
-      return cn(base, 'border-zinc-200/80 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400')
+      return cn(base, 'border-surface-border/80 text-ink-muted')
   }
 }
 
@@ -467,9 +468,9 @@ export function StudentDetailView({
       .from('student_rm_records')
       .delete()
       .eq('id', recordId)
-      .eq('owner_id', user.id)   // ← solo el dueño puede eliminar
+      .eq('owner_id', user.id) // ← solo el dueño puede eliminar
     if (error) {
-      setRmRecords(prev)          // ← rollback si falla
+      setRmRecords(prev) // ← rollback si falla
       toast.error(error.message)
     }
   }
@@ -547,7 +548,7 @@ export function StudentDetailView({
     return variant === 'page' ? (
       <div><Header title={entitySingularCapitalized} showBack /><div className="flex justify-center py-16"><Spinner size="lg" /></div></div>
     ) : (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-zinc-50 py-24 dark:bg-[rgb(var(--surface-base))]">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-surface-elevated/60 py-24 dark:bg-[rgb(var(--surface-base))]">
         <Spinner size="lg" />
       </div>
     )
@@ -590,11 +591,11 @@ export function StudentDetailView({
       : null
 
   return (
-    <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-zinc-50 dark:bg-[rgb(var(--surface-base))]')}>
+    <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-surface-elevated/60 dark:bg-[rgb(var(--surface-base))]')}>
       {variant === 'page' ? (
         <Header title={student.full_name} showBack />
       ) : (
-        <div className="flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-zinc-200/80 bg-white/90 px-4 py-3.5 dark:border-zinc-800/90 dark:bg-zinc-900/85">
+        <div className="flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-surface-border/80 bg-white/90 px-4 py-3.5 ">
           <div className="min-w-0 flex-1">
             <p id="student-sheet-title" className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
               {entitySingularCapitalized}
@@ -680,30 +681,30 @@ export function StudentDetailView({
         {sheetTab === 'ficha' && (
           <>
         {/* Perfil: sin tarjeta contenedora, tipografía y líneas */}
-        <section className="border-b border-zinc-200/60 pb-6 dark:border-zinc-800/60">
+        <section className="border-b border-surface-border/60 pb-6 ">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="order-2 min-w-0 flex-1 sm:order-1">
-              <h2 className="text-balance text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{student.full_name}</h2>
+              <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{student.full_name}</h2>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium uppercase tracking-wider">
                 <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
-                <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>
+                <span className="text-zinc-300 " aria-hidden>
                   ·
                 </span>
                 {student.level ? (
                   <>
-                    <span className="text-zinc-400 dark:text-zinc-500">{DETAIL_LEVEL_LABEL[student.level] ?? student.level}</span>
-                    <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>
+                    <span className="text-ink-muted ">{DETAIL_LEVEL_LABEL[student.level] ?? student.level}</span>
+                    <span className="text-zinc-300 " aria-hidden>
                       ·
                     </span>
                   </>
                 ) : null}
-                <span className="text-zinc-400 dark:text-zinc-500">{selectedPlanLabel ?? 'Sin plan web'}</span>
+                <span className="text-ink-muted ">{selectedPlanLabel ?? 'Sin plan web'}</span>
               </p>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
                 {student.email && (
                   <a
                     href={`mailto:${student.email}`}
-                    className="flex items-center gap-1 text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+                    className="flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
                   >
                     <Mail className="h-3 w-3 opacity-70" aria-hidden />{student.email}
                   </a>
@@ -712,7 +713,7 @@ export function StudentDetailView({
                   <>
                     <a
                       href={`tel:${student.phone}`}
-                      className="flex items-center gap-1 text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+                      className="flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
                     >
                       <Phone className="h-3 w-3 opacity-70" aria-hidden />{student.phone}
                     </a>
@@ -721,7 +722,7 @@ export function StudentDetailView({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+                      className="flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
                     >
                       <MessageCircle className="h-3 w-3 opacity-70" aria-hidden />
                       WhatsApp
@@ -729,7 +730,7 @@ export function StudentDetailView({
                   </>
                 )}
                 {student.birth_date && (
-                  <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
+                  <span className="flex items-center gap-1 text-ink-secondary ">
                     <Calendar className="h-3 w-3 opacity-70" aria-hidden />{formatDate(student.birth_date)}
                   </span>
                 )}
@@ -786,7 +787,7 @@ export function StudentDetailView({
                         'h-8 w-36 rounded-xl border border-surface-border/80 bg-surface-card px-3 text-xs text-ink-primary',
                         'outline-none placeholder:text-ink-muted',
                         'focus:border-brand-secondary/35 focus:ring-2 focus:ring-brand-secondary/15',
-                        'dark:border-zinc-600 dark:bg-zinc-900/60',
+                        ' dark:bg-zinc-900/60',
                       )}
                     />
                     <Button
@@ -834,7 +835,7 @@ export function StudentDetailView({
               />
             </div>
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-zinc-200/60 pt-4 dark:border-zinc-800/60">
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-surface-border/60 pt-4 ">
             <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
               Editar
             </Button>
@@ -850,7 +851,7 @@ export function StudentDetailView({
             <button
               type="button"
               onClick={() => setShowDelete(true)}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-muted transition-colors hover:text-zinc-300"
             >
               <Trash2 className="h-3.5 w-3.5" /> Eliminar
             </button>
@@ -875,7 +876,7 @@ export function StudentDetailView({
 
             {/* Notas / observaciones */}
             {editingNotes ? (
-              <div className="space-y-3 border-t border-zinc-200/60 pt-4 dark:border-zinc-800/60">
+              <div className="space-y-3 border-t border-surface-border/60 pt-4 dark:border-zinc-800/60">
                 <div className="flex items-center gap-2">
                   <StickyNote className="h-4 w-4 text-brand-secondary" aria-hidden />
                   <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
@@ -885,7 +886,7 @@ export function StudentDetailView({
                   value={notesValue}
                   onChange={(e) => setNotesValue(e.target.value)}
                   rows={5}
-                  className="w-full resize-none border border-zinc-200/80 bg-zinc-50 px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950/40"
+                  className="w-full resize-none border border-surface-border/80 bg-surface-elevated/60 px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-brand-primary/60 "
                   placeholder="Observaciones, lesiones, objetivos..."
                 />
                 <div className="flex items-center gap-2 justify-end">
@@ -914,7 +915,7 @@ export function StudentDetailView({
             ) : (
               <button
                 onClick={startEditNotes}
-                className="flex w-full items-center gap-2 border-b border-dashed border-zinc-300/80 py-4 text-sm text-zinc-500 transition-colors hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-200"
+                className="flex w-full items-center gap-2 border-b border-dashed border-surface-inputBorder/80 py-4 text-sm text-ink-muted transition-colors hover:border-surface-inputBorder hover:text-ink-primary "
               >
                 <StickyNote className="h-4 w-4 shrink-0 text-brand-secondary" aria-hidden />
                 Agregar observaciones...
@@ -984,9 +985,9 @@ export function StudentDetailView({
 
             {/* ── Rutina activa ── */}
             {activeRoutine ? (
-              <section className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 dark:border-zinc-700/60 dark:bg-zinc-900/40 overflow-hidden">
+              <section className="rounded-xl border border-surface-border/70 bg-surface-elevated/60 overflow-hidden">
                 {/* Barra de progreso top */}
-                <div className="h-1 w-full bg-zinc-200/70 dark:bg-zinc-800">
+                <div className="h-1 w-full bg-surface-border/70 ">
                   <div
                     className="h-full bg-brand-secondary transition-all duration-700"
                     style={{ width: `${routineProgressPct}%` }}
@@ -995,22 +996,22 @@ export function StudentDetailView({
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Rutina activa</p>
-                      <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{activeRoutine.name}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted ">Rutina activa</p>
+                      <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{activeRoutine.name}</p>
                       {activeRoutine.objective?.trim() ? (
-                        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{activeRoutine.objective}</p>
+                        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
                       ) : null}
                     </div>
                     <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
                   </div>
 
-                  <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
+                  <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-surface-border/60 pt-4 ">
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Inicio</dt>
-                      <dd className="mt-1 text-sm tabular-nums text-zinc-700 dark:text-zinc-300">{formatDate(activeRoutine.start_date)}</dd>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Inicio</dt>
+                      <dd className="mt-1 text-sm tabular-nums text-ink-secondary ">{formatDate(activeRoutine.start_date)}</dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Semana</dt>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semana</dt>
                       <dd className="mt-1">
                         <RoutineWeekSquares
                           totalWeeks={weekTotal}
@@ -1021,10 +1022,10 @@ export function StudentDetailView({
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Semanas restantes</dt>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semanas restantes</dt>
                       <dd className={cn(
                         'mt-1 text-sm tabular-nums font-semibold',
-                        weekSt?.lastWeek ? 'text-status-expired' : 'text-zinc-900 dark:text-zinc-50',
+                        weekSt?.lastWeek ? 'text-status-expired' : 'text-ink-primary dark:text-zinc-50',
                       )}>
                         {weekSt?.lastWeek
                           ? 'Última semana'
@@ -1037,8 +1038,8 @@ export function StudentDetailView({
                     </div>
                   </dl>
 
-                  <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
-                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-800 dark:text-zinc-100">
+                  <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-surface-border/60 pt-4 ">
+                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-ink-primary dark:text-zinc-100">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
@@ -1048,7 +1049,7 @@ export function StudentDetailView({
                       />
                       ¿Abonó?
                     </label>
-                    <label className="text-[11px] font-medium text-zinc-500">
+                    <label className="text-[11px] font-medium text-ink-muted">
                       Monto (opcional)
                       <input
                         type="number"
@@ -1060,7 +1061,7 @@ export function StudentDetailView({
                         onBlur={() => {
                           if (activeRoutine.is_paid) void saveRoutinePaid(activeRoutine.id, true)
                         }}
-                        className="mt-1 w-28 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm tabular-nums text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                        className="mt-1 w-28 rounded-lg border border-surface-border bg-white px-2 py-1 text-sm tabular-nums text-ink-primary dark:bg-zinc-900 dark:text-zinc-100"
                       />
                     </label>
                     {activeRoutine.is_paid ? (
@@ -1072,7 +1073,7 @@ export function StudentDetailView({
                         Pendiente
                       </span>
                     )}
-                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-800 dark:text-zinc-100">
+                    <label className="inline-flex items-center gap-2 text-[13px] font-medium text-ink-primary dark:text-zinc-100">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
@@ -1086,9 +1087,9 @@ export function StudentDetailView({
 
                   {/* Chips perfil entrenamiento */}
                   {profileChips.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-zinc-200/60 pt-4 dark:border-zinc-700/50">
+                    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-surface-border/60 pt-4 ">
                       {profileChips.map((c) => (
-                        <span key={c.label} className="rounded-md border border-zinc-200/80 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                        <span key={c.label} className="rounded-md border border-surface-border/80 bg-white px-2 py-0.5 text-[11px] font-medium text-ink-secondary dark:bg-zinc-800/60 ">
                           {c.label}
                         </span>
                       ))}
@@ -1126,16 +1127,16 @@ export function StudentDetailView({
               </section>
             ) : (
               /* ── Empty state sin rutina ── */
-              <div className="rounded-xl border border-dashed border-zinc-300/80 dark:border-zinc-700/60 overflow-hidden">
+              <div className="rounded-xl border border-dashed border-surface-inputBorder/80 overflow-hidden">
                 <div className="flex items-stretch">
                   {/* Acento izquierdo */}
                   <div className="w-1 shrink-0 bg-zinc-300/60 dark:bg-zinc-700/60" />
                   <div className="flex-1 px-5 py-6">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Sin rutina activa</p>
-                    <p className="mt-2 text-[15px] font-semibold text-zinc-800 dark:text-zinc-100">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted dark:text-zinc-500">Sin rutina activa</p>
+                    <p className="mt-2 text-[15px] font-semibold text-ink-primary dark:text-zinc-100">
                       {student.full_name.split(' ')[0]} no tiene una rutina asignada
                     </p>
-                    <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-500">
+                    <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-ink-muted dark:text-zinc-500">
                       {rutinaHistorialVacío
                         ? 'Creá la primera rutina para este alumno.'
                         : 'Tiene rutinas en el historial. Podés abrirlas para renovar o activar un período.'}
@@ -1145,7 +1146,7 @@ export function StudentDetailView({
                     {profileChips.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-1.5">
                         {profileChips.map((c) => (
-                          <span key={c.label} className="rounded-md border border-zinc-200 bg-zinc-100/80 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                          <span key={c.label} className="rounded-md border border-surface-border bg-surface-elevated/80 px-2 py-0.5 text-[11px] font-medium text-ink-secondary ">
                             {c.label}
                           </span>
                         ))}
@@ -1185,10 +1186,10 @@ export function StudentDetailView({
 
             {/* ── Historial ── */}
             <section>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/55 pb-3 dark:border-zinc-800/55">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border/55 pb-3 ">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">Historial</p>
-                  <h3 className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">Rutinas anteriores</h3>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted ">Historial</p>
+                  <h3 className="mt-0.5 text-sm font-semibold text-ink-primary dark:text-zinc-50">Rutinas anteriores</h3>
                 </div>
                 <Button
                   variant="ghost"
@@ -1197,7 +1198,7 @@ export function StudentDetailView({
                   className={cn(
                     '!h-8 text-[12px] font-semibold',
                     rutinaHistorialVacío
-                      ? 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-300'
+                      ? 'text-ink-muted hover:bg-surface-elevated hover:text-ink-secondary '
                       : '!text-brand-secondary hover:bg-brand-secondary/10',
                   )}
                   onClick={() => navigate(`/routines?create=1&student=${id}`)}
@@ -1207,11 +1208,11 @@ export function StudentDetailView({
               </div>
 
               {rutinaHistorialVacío ? (
-                <p className="py-6 text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                <p className="py-6 text-center text-[13px] text-ink-muted ">
                   Todavía no hay rutinas activas.
                 </p>
               ) : (
-                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                <ul className="divide-y divide-surface-border/70 ">
                   {historialRoutines.map((r) => {
                     const weeks = routineWeeks(r)
                     return (
@@ -1219,14 +1220,14 @@ export function StudentDetailView({
                         <button
                           type="button"
                           onClick={() => navigate(`/routines/${r.id}`)}
-                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30"
+                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-50">{r.name}</p>
-                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-zinc-500">
+                            <p className="truncate text-[13px] font-semibold text-ink-primary ">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-ink-muted">
                               <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
                               {weeks != null && (
-                                <span className="rounded bg-zinc-100 px-1.5 py-px font-medium dark:bg-zinc-800">
+                                <span className="rounded bg-surface-elevated px-1.5 py-px font-medium ">
                                   {weeks} sem.
                                 </span>
                               )}
@@ -1234,7 +1235,7 @@ export function StudentDetailView({
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <span className={routineStatusPillClass(r.status, true)}>{intakeRoutinePhrase(r.status)}</span>
-                            <span className="text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-700 dark:group-hover:text-zinc-400">›</span>
+                            <span className="text-zinc-300 transition-colors group-hover:text-ink-muted dark:text-zinc-700 ">›</span>
                           </div>
                         </button>
                       </li>
@@ -1247,13 +1248,13 @@ export function StudentDetailView({
             {/* ── Rutinas completadas (historial) ── */}
             {completedRoutines.length > 0 && (
               <section>
-                <div className="border-b border-zinc-200/55 pb-3 dark:border-zinc-800/55">
+                <div className="border-b border-surface-border/55 pb-3 ">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">Historial</p>
-                  <h3 className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  <h3 className="mt-0.5 text-sm font-semibold text-ink-primary ">
                     Rutinas completadas ({completedRoutines.length})
                   </h3>
                 </div>
-                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                <ul className="divide-y divide-surface-border/70 ">
                   {completedRoutines.map((r) => {
                     const weeks = routineWeeks(r)
                     return (
@@ -1261,11 +1262,11 @@ export function StudentDetailView({
                         <button
                           type="button"
                           onClick={() => navigate(`/routines/${r.id}`)}
-                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30"
+                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-50">{r.name}</p>
-                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-zinc-500">
+                            <p className="truncate text-[13px] font-semibold text-ink-primary dark:text-zinc-50">{r.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-[11px] tabular-nums text-ink-muted">
                               <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
                               {r.completed_at && (
                                 <span className="rounded bg-emerald-100 px-1.5 py-px font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -1273,11 +1274,11 @@ export function StudentDetailView({
                                 </span>
                               )}
                               {weeks != null && (
-                                <span className="rounded bg-zinc-100 px-1.5 py-px font-medium dark:bg-zinc-800">{weeks} sem.</span>
+                                <span className="rounded bg-surface-elevated px-1.5 py-px font-medium ">{weeks} sem.</span>
                               )}
                             </p>
                           </div>
-                          <span className="text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-700 dark:group-hover:text-zinc-400">›</span>
+                          <span className="text-zinc-300 transition-colors group-hover:text-ink-muted dark:text-zinc-700 ">›</span>
                         </button>
                       </li>
                     )
@@ -1292,16 +1293,16 @@ export function StudentDetailView({
         {/* ── Nutrición ── */}
         {sheetTab === 'nutricion' && showNutritionTab && (
           <section>
-            <div className="border-b border-zinc-200/50 pb-4 dark:border-zinc-800/50">
-              <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-100">
-                <ClipboardList className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+            <div className="border-b border-surface-border/50 pb-4 ">
+              <div className="flex items-center gap-2 text-ink-primary dark:text-zinc-100">
+                <ClipboardList className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
                 <h3 className="text-sm font-semibold">Planes de alimentación</h3>
               </div>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 Asignados desde Plan de alimentación.{' '}
                 <button
                   type="button"
-                  className="font-medium text-zinc-700 underline-offset-4 hover:text-zinc-950 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                  className="font-medium text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline "
                   onClick={() => navigate('/meal-plans')}
                 >
                   Ver todos
@@ -1327,10 +1328,10 @@ export function StudentDetailView({
                 const renderPlan = (p: TrainerStudentMealPlan) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{p.title}</p>
-                      <p className="text-[11px] text-zinc-500">
+                      <p className="truncate text-sm font-medium text-ink-primary dark:text-zinc-50">{p.title}</p>
+                      <p className="text-[11px] text-ink-muted">
                         {p.start_date || p.end_date ? (
-                          <span className="mr-2 font-medium text-zinc-600 dark:text-zinc-300">
+                          <span className="mr-2 font-medium text-ink-secondary ">
                             {p.start_date ? formatDate(p.start_date) : '—'} → {p.end_date ? formatDate(p.end_date) : '—'}
                           </span>
                         ) : null}
@@ -1372,13 +1373,13 @@ export function StudentDetailView({
                 )
                 return (
                   <>
-                    <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">{vigentes.map(renderPlan)}</ul>
+                    <ul className="divide-y divide-surface-border/60 ">{vigentes.map(renderPlan)}</ul>
                     {completados.length > 0 && (
                       <div className="mt-6">
-                        <p className="border-b border-zinc-200/55 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:border-zinc-800/55 dark:text-emerald-400">
+                        <p className="border-b border-surface-border/55 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
                           Planes completados ({completados.length})
                         </p>
-                        <ul className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">{completados.map(renderPlan)}</ul>
+                        <ul className="divide-y divide-surface-border/60 ">{completados.map(renderPlan)}</ul>
                       </div>
                     )}
                   </>
@@ -1391,7 +1392,7 @@ export function StudentDetailView({
         {/* ── Seguimiento (peso, fuerza, pagos, ciclo) ── */}
         {sheetTab === 'seguimiento' && (
           <div className="space-y-4">
-            <div className="-mx-px flex border-b border-zinc-200/60 dark:border-zinc-800/60" role="tablist" aria-label="Seguimiento">
+            <div className="-mx-px flex border-b border-surface-border/60 " role="tablist" aria-label="Seguimiento">
               {(
                 [
                   { value: 'peso' as const, label: 'Peso' },
@@ -1409,8 +1410,8 @@ export function StudentDetailView({
                   className={cn(
                     '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide transition-colors sm:text-xs',
                     seguimientoTab === value
-                      ? 'border-b-zinc-900 text-zinc-900 dark:border-b-zinc-200 dark:text-zinc-50'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-200',
+                      ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 dark:text-zinc-50'
+                      : 'border-transparent text-ink-muted hover:text-ink-primary ',
                   )}
                 >
                   {label}
@@ -1464,7 +1465,7 @@ export function StudentDetailView({
               studentPhone={student.phone}
               routines={routines}
             />
-            <div className="min-h-0 rounded-xl bg-zinc-50/80 p-1 dark:bg-zinc-950/25">
+            <div className="min-h-0 rounded-xl bg-surface-elevated/80 p-1 ">
               <StudentHabitsPanel studentId={id!} toolbarLeading={<HabitsViewToolbar studentId={id!} />} />
             </div>
           </div>
@@ -1632,8 +1633,8 @@ function FuerzaTab({
     return [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)))
   }, [compareSel, groups])
 
-  const calcGroup  = groups.find((g) => g.key === calcKey)
-  const calcRm     = calcGroup?.history[0]?.rm_kg ?? null
+  const calcGroup = groups.find((g) => g.key === calcKey)
+  const calcRm = calcGroup?.history[0]?.rm_kg ?? null
   const calcWeight = calcRm != null ? Math.round(calcRm * (calcPercent / 100) * 10) / 10 : null
 
   const rmDue = rmTestWeeks != null && rmTestWeeks >= RM_TEST_EVERY_WEEKS
@@ -1675,8 +1676,8 @@ function FuerzaTab({
 
       {/* ── Registros por ejercicio ── */}
       <section>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">RM por ejercicio</h3>
+        <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 pb-3 ">
+          <h3 className="text-sm font-semibold text-ink-primary ">RM por ejercicio</h3>
           <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
             Cargar RM
           </Button>
@@ -1689,13 +1690,13 @@ function FuerzaTab({
             description="Cargá el RM de cada ejercicio. Cada test nuevo se suma al historial para ver el progreso."
           />
         ) : (
-          <div className="divide-y divide-zinc-200/40 dark:divide-zinc-800/50">
+          <div className="divide-y divide-surface-border/40 ">
             {groups.map((g) => {
               const latest = g.history[0]
-              const prev   = g.history[1]
-              const delta  = prev ? Math.round((latest.rm_kg - prev.rm_kg) * 10) / 10 : null
+              const prev = g.history[1]
+              const delta = prev ? Math.round((latest.rm_kg - prev.rm_kg) * 10) / 10 : null
               const isOpen = openKey === g.key
-              const sel    = compareSel.find((c) => c.key === g.key)
+              const sel = compareSel.find((c) => c.key === g.key)
               return (
                 <div key={g.key}>
                   <div className="flex items-center gap-3 py-2.5">
@@ -1704,7 +1705,7 @@ function FuerzaTab({
                       onClick={() => toggleCompare(g.key)}
                       className={cn(
                         'h-3 w-3 shrink-0 rounded-full border transition-colors',
-                        sel ? 'border-transparent' : 'border-zinc-400 dark:border-zinc-600',
+                        sel ? 'border-transparent' : 'border-zinc-400 ',
                       )}
                       style={sel ? { background: palette[sel.slot] } : undefined}
                       title={sel ? 'Quitar del gráfico' : 'Ver en el gráfico'}
@@ -1727,7 +1728,7 @@ function FuerzaTab({
                         {delta > 0 ? `▲ +${delta} kg` : delta < 0 ? `▼ ${delta} kg` : '='}
                       </span>
                     ) : null}
-                    <span className="shrink-0 text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{latest.rm_kg} kg</span>
+                    <span className="shrink-0 text-base font-bold tabular-nums text-ink-primary ">{latest.rm_kg} kg</span>
                     <button
                       type="button"
                       onClick={() => setOpenKey(isOpen ? null : g.key)}
@@ -1779,10 +1780,10 @@ function FuerzaTab({
 
       {/* ── Progreso comparado ── */}
       {groups.length > 0 ? (
-        <section className="border-t border-zinc-200/55 pt-4 dark:border-zinc-800/60">
+        <section className="border-t border-surface-border/55 pt-4 ">
           <div className="mb-1 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-zinc-400" aria-hidden />
-            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Progreso de RM</h3>
+            <TrendingUp className="h-4 w-4 text-ink-muted" aria-hidden />
+            <h3 className="text-sm font-semibold text-ink-primary ">Progreso de RM</h3>
           </div>
           <p className="mb-3 text-[11px] text-ink-muted">
             Tocá el punto de color de cada ejercicio para sumarlo o quitarlo del gráfico (hasta {RM_MAX_COMPARE}).
@@ -1859,14 +1860,14 @@ function FuerzaTab({
 
       {/* ── Calculadora de % ── */}
       {groups.length > 0 ? (
-        <section className="border-t border-zinc-200/55 pt-4 dark:border-zinc-800/60">
+        <section className="border-t border-surface-border/55 pt-4 ">
           <div className="mb-3 flex items-center gap-2">
-            <Zap className="h-4 w-4 text-zinc-400" aria-hidden />
-            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Calculadora de porcentaje</h3>
+            <Zap className="h-4 w-4 text-ink-muted" aria-hidden />
+            <h3 className="text-sm font-semibold text-ink-primary dark:text-zinc-100">Calculadora de porcentaje</h3>
           </div>
           <div className="space-y-3">
             <select
-              className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+              className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-primary/60"
               value={calcKey}
               onChange={(e) => setCalcKey(e.target.value)}
             >
@@ -1891,10 +1892,10 @@ function FuerzaTab({
                     className="w-full accent-zinc-500 dark:accent-zinc-400"
                   />
                 </div>
-                <div className="flex items-center justify-between border border-zinc-200/80 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <div className="flex items-center justify-between border border-surface-border/80 bg-surface-elevated/60 px-4 py-3 ">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Peso estimado</p>
-                    <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{calcWeight} kg</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted ">Peso estimado</p>
+                    <p className="text-2xl font-bold tabular-nums text-ink-primary dark:text-zinc-50">{calcWeight} kg</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-ink-muted">1RM base</p>
@@ -1913,8 +1914,8 @@ function FuerzaTab({
                         className={cn(
                           'flex items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors',
                           isSelected
-                            ? 'border border-zinc-400 bg-white font-semibold text-zinc-900 ring-2 ring-zinc-300/80 dark:border-zinc-500 dark:bg-zinc-800 dark:text-white dark:ring-zinc-600/80'
-                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/90 dark:bg-zinc-900/55 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                            ? 'border border-zinc-400 bg-white font-semibold text-ink-primary ring-2 ring-surface-inputBorder/80 dark:border-zinc-500 dark:text-white '
+                            : 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/90 ',
                         )}
                       >
                         <span>{pct}%</span>
@@ -1951,16 +1952,16 @@ function AddRmModal({
   onClose: () => void
   onSave: (r: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) => Promise<void>
 }) {
-  const [exercises,   setExercises]   = useState<Pick<Exercise, 'id' | 'name'>[]>([])
-  const [exerciseId,  setExerciseId]  = useState('')
-  const [mode,        setMode]        = useState<AddMode>('test')
-  const [rmKg,        setRmKg]        = useState('')          // mode=test
-  const [epleyWeight, setEpleyWeight] = useState('')         // mode=epley
-  const [epleyReps,   setEpleyReps]   = useState('')         // mode=epley / percent
-  const [pctOfRm,     setPctOfRm]     = useState('80')       // mode=percent
-  const [testedAt,    setTestedAt]    = useState(new Date().toISOString().split('T')[0])
-  const [notes,       setNotes]       = useState('')
-  const [saving,      setSaving]      = useState(false)
+  const [exercises, setExercises] = useState<Pick<Exercise, 'id' | 'name'>[]>([])
+  const [exerciseId, setExerciseId] = useState('')
+  const [mode, setMode] = useState<AddMode>('test')
+  const [rmKg, setRmKg] = useState('') // mode=test
+  const [epleyWeight, setEpleyWeight] = useState('') // mode=epley
+  const [epleyReps, setEpleyReps] = useState('') // mode=epley / percent
+  const [pctOfRm, setPctOfRm] = useState('80') // mode=percent
+  const [testedAt, setTestedAt] = useState(new Date().toISOString().split('T')[0])
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     supabase.from('exercise_library').select('id, name').eq('is_active', true).order('name')
@@ -1997,169 +1998,166 @@ function AddRmModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-lg">
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
-          <h3 className="text-sm font-semibold text-ink-primary">Registrar 1RM</h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
-        </div>
+    <Modal open onClose={onClose} size="md" bare>
+    <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
+      <h3 className="text-sm font-semibold text-ink-primary">Registrar 1RM</h3>
+      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+    </div>
 
-        <div className="px-4 py-4 space-y-4">
-          {/* Ejercicio */}
-          <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Ejercicio *</label>
-            <select
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-              value={exerciseId}
-              onChange={(e) => setExerciseId(e.target.value)}
-            >
-              <option value="">Seleccioná un ejercicio...</option>
-              {exercises.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
-          </div>
+    <div className="px-4 py-4 space-y-4">
+      {/* Ejercicio */}
+      <div>
+        <label className="block text-xs font-medium text-ink-secondary mb-1">Ejercicio *</label>
+        <select
+          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none"
+          value={exerciseId}
+          onChange={(e) => setExerciseId(e.target.value)}
+        >
+          <option value="">Seleccioná un ejercicio...</option>
+          {exercises.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+        </select>
+      </div>
 
-          {/* Modo */}
-          <div className="flex gap-1 rounded-xl border border-zinc-200/90 bg-zinc-100/90 p-1 dark:border-zinc-800 dark:bg-zinc-900/60">
-            {([
-              { value: 'test',    label: 'RM real' },
-              { value: 'percent', label: 'Reps al %' },
-              { value: 'epley',   label: 'Epley' },
-            ] as { value: AddMode; label: string }[]).map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setMode(value)}
-                className={cn(
-                  'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                  mode === value
-                    ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/90 dark:bg-zinc-800 dark:text-zinc-50 dark:ring-zinc-700'
-                    : 'text-zinc-500 dark:text-zinc-500',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      {/* Modo */}
+      <div className="flex gap-1 rounded-xl border border-surface-border/90 bg-surface-elevated/90 p-1 ">
+        {([
+          { value: 'test', label: 'RM real' },
+          { value: 'percent', label: 'Reps al %' },
+          { value: 'epley', label: 'Epley' },
+        ] as { value: AddMode; label: string }[]).map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => setMode(value)}
+            className={cn(
+              'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
+              mode === value
+                ? 'bg-white text-ink-primary shadow-sm ring-1 ring-surface-border/90 '
+                : 'text-ink-muted dark:text-zinc-500',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-          {mode === 'percent' ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-ink-secondary mb-1">Peso (kg) *</label>
-                  <input
-                    type="number" min={0} step={0.5} placeholder="ej: 120"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                    value={epleyWeight}
-                    onChange={(e) => setEpleyWeight(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-ink-secondary mb-1">Reps</label>
-                  <input
-                    type="number" min={1} max={20} placeholder="ej: 5"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                    value={epleyReps}
-                    onChange={(e) => setEpleyReps(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-ink-secondary mb-1">% del RM *</label>
-                  <input
-                    type="number" min={30} max={100} step={1} placeholder="ej: 80"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                    value={pctOfRm}
-                    onChange={(e) => setPctOfRm(e.target.value)}
-                  />
-                </div>
-              </div>
-              {percentRm ? (
-                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/65">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">1RM aproximado</p>
-                    <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{percentRm} kg</p>
-                  </div>
-                  <p className="text-xs text-ink-muted text-right">
-                    {epleyWeight} kg es el {pctOfRm}%<br />
-                    <span className="font-mono">peso ÷ %</span>
-                  </p>
-                </div>
-              ) : null}
-              <p className="text-[10px] text-ink-muted">Si ya había un RM de este ejercicio, el anterior queda en el historial.</p>
-            </div>
-          ) : mode === 'test' ? (
+      {mode === 'percent' ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Peso (kg) *</label>
               <input
                 type="number" min={0} step={0.5} placeholder="ej: 120"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center font-bold"
-                value={rmKg}
-                onChange={(e) => setRmKg(e.target.value)}
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                value={epleyWeight}
+                onChange={(e) => setEpleyWeight(e.target.value)}
               />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-ink-secondary mb-1">Peso usado (kg) *</label>
-                  <input
-                    type="number" min={0} step={0.5} placeholder="ej: 100"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                    value={epleyWeight}
-                    onChange={(e) => setEpleyWeight(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-ink-secondary mb-1">Reps realizadas *</label>
-                  <input
-                    type="number" min={1} max={10} placeholder="ej: 5"
-                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                    value={epleyReps}
-                    onChange={(e) => setEpleyReps(e.target.value)}
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Reps</label>
+              <input
+                type="number" min={1} max={20} placeholder="ej: 5"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                value={epleyReps}
+                onChange={(e) => setEpleyReps(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">% del RM *</label>
+              <input
+                type="number" min={30} max={100} step={1} placeholder="ej: 80"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                value={pctOfRm}
+                onChange={(e) => setPctOfRm(e.target.value)}
+              />
+            </div>
+          </div>
+          {percentRm ? (
+            <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM aproximado</p>
+                <p className="text-2xl font-bold tabular-nums text-ink-primary ">{percentRm} kg</p>
               </div>
-              {estimatedRm && (
-                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/65">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">1RM estimado (Epley)</p>
-                    <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{estimatedRm} kg</p>
-                  </div>
-                  <p className="text-xs text-ink-muted text-right">
-                    Fórmula:<br />
-                    <span className="font-mono">peso × (1 + reps/30)</span>
-                  </p>
-                </div>
-              )}
-              <p className="text-[10px] text-ink-muted">La fórmula de Epley es más precisa con 1-6 repeticiones.</p>
+              <p className="text-xs text-ink-muted text-right">
+                {epleyWeight} kg es el {pctOfRm}%<br />
+                <span className="font-mono">peso ÷ %</span>
+              </p>
+            </div>
+          ) : null}
+          <p className="text-[10px] text-ink-muted">Si ya había un RM de este ejercicio, el anterior queda en el historial.</p>
+        </div>
+      ) : mode === 'test' ? (
+        <div>
+          <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
+          <input
+            type="number" min={0} step={0.5} placeholder="ej: 120"
+            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center font-bold"
+            value={rmKg}
+            onChange={(e) => setRmKg(e.target.value)}
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Peso usado (kg) *</label>
+              <input
+                type="number" min={0} step={0.5} placeholder="ej: 100"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                value={epleyWeight}
+                onChange={(e) => setEpleyWeight(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-secondary mb-1">Reps realizadas *</label>
+              <input
+                type="number" min={1} max={10} placeholder="ej: 5"
+                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                value={epleyReps}
+                onChange={(e) => setEpleyReps(e.target.value)}
+              />
+            </div>
+          </div>
+          {estimatedRm && (
+            <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM estimado (Epley)</p>
+                <p className="text-2xl font-bold tabular-nums text-ink-primary ">{estimatedRm} kg</p>
+              </div>
+              <p className="text-xs text-ink-muted text-right">
+                Fórmula:<br />
+                <span className="font-mono">peso × (1 + reps/30)</span>
+              </p>
             </div>
           )}
-
-          <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
-            <input
-              type="date"
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-              value={testedAt}
-              onChange={(e) => setTestedAt(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
-            <input
-              placeholder="ej: con cinturón, post competencia..."
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <Button className="w-full" variant="secondary" loading={saving} onClick={handleSave}>
-            Guardar registro
-          </Button>
+          <p className="text-[10px] text-ink-muted">La fórmula de Epley es más precisa con 1-6 repeticiones.</p>
         </div>
+      )}
+
+      <div>
+        <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
+        <input
+          type="date"
+          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none"
+          value={testedAt}
+          onChange={(e) => setTestedAt(e.target.value)}
+        />
       </div>
+
+      <div>
+        <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
+        <input
+          placeholder="ej: con cinturón, post competencia..."
+          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+
+      <Button className="w-full" variant="secondary" loading={saving} onClick={handleSave}>
+        Guardar registro
+      </Button>
     </div>
+    </Modal>
   )
 }
 
@@ -2175,12 +2173,12 @@ function QuickPayModal({
   onClose: () => void
 }) {
   const { user } = useAuthStore()
-  const [amount,  setAmount]  = useState('')
-  const [method,  setMethod]  = useState('efectivo_ars')
-  const [type,    setType]    = useState(INCOME_TYPES[0] ?? 'Otro')
-  const [date,    setDate]    = useState(new Date().toISOString().split('T')[0])
-  const [notes,   setNotes]   = useState('')
-  const [saving,  setSaving]  = useState(false)
+  const [amount, setAmount] = useState('')
+  const [method, setMethod] = useState('efectivo_ars')
+  const [type, setType] = useState(INCOME_TYPES[0] ?? 'Otro')
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
     if (!user) return
@@ -2246,90 +2244,87 @@ function QuickPayModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-lg">
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
-          <div>
-            <h3 className="text-sm font-semibold text-ink-primary">Registrar pago</h3>
-            <p className="text-xs text-ink-muted">{studentName}</p>
-          </div>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
-        </div>
+    <Modal open onClose={onClose} size="sm" bare>
+    <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
+      <div>
+        <h3 className="text-sm font-semibold text-ink-primary">Registrar pago</h3>
+        <p className="text-xs text-ink-muted">{studentName}</p>
+      </div>
+      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+    </div>
 
-        <div className="px-4 py-4 space-y-3">
-          {/* Monto */}
-          <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Monto *</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">$</span>
-              <input
-                type="number" min={0} step={100} placeholder="0"
-                className="w-full bg-surface-elevated text-ink-primary text-lg font-bold rounded-xl pl-7 pr-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                autoFocus
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {/* Tipo */}
-            <div>
-              <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
-              <select
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-                value={type} onChange={(e) => setType(e.target.value)}
-              >
-                {INCOME_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            {/* Método */}
-            <div>
-              <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
-              <select
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-                value={method} onChange={(e) => setMethod(e.target.value)}
-              >
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Fecha */}
-          <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
-            <input
-              type="date"
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-              value={date} onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-
-          {/* Notas */}
-          <div>
-            <label className="block text-xs font-medium text-ink-secondary mb-1">Notas libres (ej. cuotas)</label>
-            <input
-              placeholder="ej: quedan 2 cuotas, mes mayo…"
-              className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
-              value={notes} onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <Button
-            className="w-full"
-            variant="gradientSecondary"
-            loading={saving}
-            onClick={handleSave}
-          >
-            Confirmar pago
-          </Button>
+    <div className="px-4 py-4 space-y-3">
+      {/* Monto */}
+      <div>
+        <label className="block text-xs font-medium text-ink-secondary mb-1">Monto *</label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">$</span>
+          <input
+            type="number" min={0} step={100} placeholder="0"
+            className="w-full bg-surface-elevated text-ink-primary text-lg font-bold rounded-xl pl-7 pr-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            autoFocus
+          />
         </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {/* Tipo */}
+        <div>
+          <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
+          <select
+            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+            value={type} onChange={(e) => setType(e.target.value)}
+          >
+            {INCOME_TYPES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+        {/* Método */}
+        <div>
+          <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
+          <select
+            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+            value={method} onChange={(e) => setMethod(e.target.value)}
+          >
+            {PAYMENT_METHODS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Fecha */}
+      <div>
+        <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
+        <input
+          type="date"
+          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+          value={date} onChange={(e) => setDate(e.target.value)}
+        />
+      </div>
+
+      {/* Notas */}
+      <div>
+        <label className="block text-xs font-medium text-ink-secondary mb-1">Notas libres (ej. cuotas)</label>
+        <input
+          placeholder="ej: quedan 2 cuotas, mes mayo…"
+          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
+          value={notes} onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+
+      <Button
+        className="w-full"
+        variant="gradientSecondary"
+        loading={saving}
+        onClick={handleSave}
+      >
+        Confirmar pago
+      </Button>
     </div>
+    </Modal>
   )
 }

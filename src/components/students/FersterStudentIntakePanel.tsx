@@ -47,9 +47,9 @@ function Field({
 }) {
   if (value == null || value === '') return null
   return (
-    <div className={cn('border-b border-zinc-200/45 py-3 last:border-b-0 dark:border-zinc-800/65', className)}>
-      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
-      <div className="mt-1 break-words text-sm text-zinc-800 dark:text-zinc-100">{value}</div>
+    <div className={cn('border-b border-surface-border/45 py-3 last:border-b-0 ', className)}>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted ">{label}</p>
+      <div className="mt-1 break-words text-sm text-ink-primary dark:text-zinc-100">{value}</div>
     </div>
   )
 }
@@ -67,7 +67,7 @@ function Section({
     <section className="space-y-2">
       <div className="flex items-center gap-2 pb-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">{title}</h4>
+        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-ink-secondary ">{title}</h4>
       </div>
       <div>{children}</div>
     </section>
@@ -119,21 +119,21 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
   const i = intake
 
   return (
-    <div className="border-t border-zinc-200/55 pt-6 dark:border-zinc-800/70">
-      <div className="mb-6 flex flex-col gap-2 border-b border-zinc-200/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-800/60">
+    <div className="border-t border-surface-border/55 pt-6 ">
+      <div className="mb-6 flex flex-col gap-2 border-b border-surface-border/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between ">
         <div className="flex items-start gap-2">
-          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden />
+          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted dark:text-zinc-500" aria-hidden />
           <div>
-            <h3 className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 className="text-[13px] font-semibold text-ink-primary dark:text-zinc-100">
               Cuestionario de registro
             </h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Datos desde el formulario web (Ferster / form)</p>
+            <p className="text-[11px] text-ink-muted ">Datos desde el formulario web (Ferster / form)</p>
           </div>
         </div>
         {i?.submitted_at ? (
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 sm:text-right">
+          <p className="text-[11px] text-ink-muted sm:text-right">
             Enviado el{' '}
-            <span className="tabular-nums text-zinc-700 dark:text-zinc-300">
+            <span className="tabular-nums text-ink-secondary ">
               {formatDate(i.submitted_at.slice(0, 10))}
             </span>
           </p>
@@ -154,7 +154,7 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
                 student.email ? (
                   <a
                     href={`mailto:${student.email}`}
-                    className="inline-flex items-center gap-1 text-zinc-700 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                    className="inline-flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
                   >
                     <Mail className="h-3.5 w-3.5 shrink-0" />
                     {student.email}
@@ -168,7 +168,7 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
                 student.phone ? (
                   <a
                     href={`tel:${student.phone}`}
-                    className="inline-flex items-center gap-1 text-zinc-700 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                    className="inline-flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
                   >
                     <Phone className="h-3.5 w-3.5 shrink-0" />
                     {student.phone}
@@ -332,18 +332,18 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="group flex items-center gap-3 border-b border-zinc-200/50 py-3 transition-colors last:border-b-0 hover:border-zinc-300/70 dark:border-zinc-800/60"
+                      className="group flex items-center gap-3 border-b border-surface-border/50 py-3 transition-colors last:border-b-0 hover:border-surface-inputBorder/70"
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-zinc-200/65 bg-transparent text-zinc-500 dark:border-zinc-700/65 dark:text-zinc-400">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-surface-border/65 bg-transparent text-ink-muted">
                         {isImg ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                        <span className="block truncate text-sm font-medium text-ink-primary">
                           {uploadKeyLabel(key)}
                         </span>
-                        <span className="text-[10px] text-zinc-500">student-intake</span>
+                        <span className="text-[10px] text-ink-muted">student-intake</span>
                       </span>
-                      <ExternalLink className="h-4 w-4 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-200" />
+                      <ExternalLink className="h-4 w-4 shrink-0 text-ink-muted transition-colors group-hover:text-zinc-200" />
                     </a>
                   </li>
                 )

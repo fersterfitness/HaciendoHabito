@@ -9,8 +9,20 @@
     --sidebar-border: 226 226 236;
     --sidebar-icon-idle: 113 113 128;
     --sidebar-icon-hover: 39 39 42;
-    --shadow-panel: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+    --shadow-panel: 0 1px 2px 0 rgb(16 16 24 / 0.04), 0 4px 16px -4px rgb(16 16 24 / 0.08);
     --radius-shell: 1rem;
+
+    /* Elevación en capas: hairline + sombra difusa (estilo Linear/Vercel). */
+    --shadow-xs: 0 1px 2px 0 rgb(16 16 24 / 0.05);
+    --shadow-sm: 0 1px 2px 0 rgb(16 16 24 / 0.04), 0 2px 8px -2px rgb(16 16 24 / 0.06);
+    --shadow-md: 0 2px 4px -1px rgb(16 16 24 / 0.05), 0 8px 24px -6px rgb(16 16 24 / 0.10);
+    --shadow-lg: 0 4px 8px -2px rgb(16 16 24 / 0.06), 0 20px 48px -12px rgb(16 16 24 / 0.18);
+    /* Brillo interno superior de superficies (luz cenital). */
+    --highlight-top: inset 0 1px 0 0 rgb(255 255 255 / 0.7);
+
+    /* CTA de marca: degradé naranja cálido → naranja profundo. */
+    --brand-gradient: linear-gradient(135deg, #ff8a3d 0%, #ff5a0a 48%, #ec3d12 100%);
+    --brand-gradient-hover: linear-gradient(135deg, #ff9a52 0%, #ff6a1c 48%, #f2481c 100%);
 
     /* Densidad UI: comfortable (default) | compact */
     --density-page-y: 1.5rem;
@@ -24,14 +36,14 @@
     --brand-tertiary: 255 45 149;
     --brand-warm: 255 229 219;
 
-    /* Light mode — base blanca; cards/paneles con gris muy suave para separar del lienzo */
-    --surface-base: 255 255 255;
-    --surface-card: 250 250 252;
-    --surface-elevated: 244 244 248;
-    --surface-panel: 246 246 250;
+    /* Light mode — lienzo gris muy claro y tarjetas blancas: la tarjeta se separa sola. */
+    --surface-base: 247 247 249;
+    --surface-card: 255 255 255;
+    --surface-elevated: 243 243 246;
+    --surface-panel: 250 250 251;
     --surface-input: 255 255 255;
-    --surface-border: 226 226 236;
-    --surface-input-border: 206 206 218;
+    --surface-border: 228 228 234;
+    --surface-input-border: 214 214 222;
 
     --ink-primary: 15 15 35;
     /* Secundario un poco más oscuro: mejor lectura en listas largas */
@@ -62,15 +74,22 @@
     --sidebar-border: 255 255 255;
     --sidebar-icon-idle: 255 255 255;
     --sidebar-icon-hover: 255 255 255;
-    --shadow-panel: 0 1px 3px 0 rgb(0 0 0 / 0.28), 0 1px 2px -1px rgb(0 0 0 / 0.22);
+    --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 8px 24px -8px rgb(0 0 0 / 0.5);
 
-    --surface-base: 10 10 10;
-    --surface-card: 18 18 18;
-    --surface-elevated: 26 26 26;
-    --surface-panel: 34 34 34;
-    --surface-input: 18 18 18;
-    --surface-border: 40 40 40;
-    --surface-input-border: 52 52 52;
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.4), 0 10px 28px -8px rgb(0 0 0 / 0.55);
+    --shadow-lg: 0 4px 10px -2px rgb(0 0 0 / 0.45), 0 24px 56px -12px rgb(0 0 0 / 0.7);
+    --highlight-top: inset 0 1px 0 0 rgb(255 255 255 / 0.045);
+
+    /* Capas oscuras con un tinte cálido mínimo (no gris plano). */
+    --surface-base: 9 9 10;
+    --surface-card: 17 17 18;
+    --surface-elevated: 25 25 27;
+    --surface-panel: 31 31 34;
+    --surface-input: 14 14 15;
+    --surface-border: 38 38 41;
+    --surface-input-border: 50 50 54;
 
     --ink-primary: 250 250 250;
     --ink-secondary: 180 180 180;
@@ -132,18 +151,30 @@
 
   /* Scrollbar - light */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: rgb(var(--surface-elevated));
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgb(var(--surface-border));
-    border-radius: 2px;
+    background: rgb(var(--ink-muted) / 0.28);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--brand-primary));
+    background: rgb(var(--ink-muted) / 0.5);
+    background-clip: padding-box;
+  }
+
+  body {
+    background: rgb(var(--surface-base));
+    color: rgb(var(--ink-primary));
+  }
+
+  ::selection {
+    background: rgb(var(--brand-primary) / 0.22);
   }
 
   @media print {
@@ -311,6 +342,70 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  /** Superficie de marca (CTA principal): degradé + brillo superior + halo al hover. */
+  .bg-brand-gradient {
+    background-image: var(--brand-gradient);
+  }
+
+  .hh-cta {
+    position: relative;
+    isolation: isolate;
+    background-image: var(--brand-gradient);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.28),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.12),
+      0 1px 2px 0 rgb(180 50 0 / 0.25),
+      0 4px 14px -4px rgb(255 72 0 / 0.45);
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.12s ease,
+      filter 0.2s ease;
+  }
+
+  .hh-cta:hover {
+    background-image: var(--brand-gradient-hover);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.32),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.12),
+      0 1px 2px 0 rgb(180 50 0 / 0.3),
+      0 8px 24px -6px rgb(255 72 0 / 0.55);
+  }
+
+  .hh-cta:active {
+    transform: translateY(0.5px) scale(0.985);
+    filter: brightness(0.97);
+  }
+
+  /** Tarjeta: hairline + sombra en capas + luz superior. */
+  .hh-surface {
+    background: rgb(var(--surface-card));
+    border: 1px solid rgb(var(--surface-border) / 0.9);
+    box-shadow: var(--highlight-top), var(--shadow-sm);
+  }
+
+  /** Brillo «skeleton». */
+  @keyframes hh-shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+
+  .hh-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--surface-elevated)) 0%,
+      rgb(var(--surface-panel)) 40%,
+      rgb(var(--surface-elevated)) 80%
+    );
+    background-size: 200% 100%;
+    animation: hh-shimmer 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hh-shimmer {
+      animation: none;
+    }
   }
 
   .scrollbar-hide {

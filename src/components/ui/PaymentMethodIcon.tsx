@@ -107,9 +107,9 @@ function getMeta(method: Method): MethodMeta {
       }
     default:
       return {
-        icon: <HelpCircle className="h-3.5 w-3.5 text-zinc-400" />,
-        color: 'text-zinc-600 dark:text-zinc-400',
-        bg: 'bg-zinc-100 border-zinc-200 dark:bg-zinc-800/60 dark:border-zinc-700',
+        icon: <HelpCircle className="h-3.5 w-3.5 text-ink-muted" />,
+        color: 'text-ink-secondary',
+        bg: 'bg-surface-elevated border-surface-border',
       }
   }
 }

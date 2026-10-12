@@ -122,8 +122,8 @@ export function PesoTab({
   return (
     <div className="space-y-4">
       <section>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Historial de peso</h3>
+        <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 pb-3">
+          <h3 className="text-sm font-semibold text-ink-primary">Historial de peso</h3>
           <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowForm((v) => !v)}>
             Registrar
           </Button>
@@ -131,13 +131,13 @@ export function PesoTab({
 
         {/* Quick-add form */}
         {showForm && (
-          <div className="mt-4 space-y-3 border border-zinc-200/55 bg-zinc-50/50 p-3 dark:border-zinc-800/65 dark:bg-zinc-950/25">
+          <div className="mt-4 space-y-3 border border-surface-border/55 bg-surface-elevated/50 p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Peso (kg) *</label>
                 <input
                   type="number" min={0} step={0.1} placeholder="ej: 75.5"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center font-bold"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center font-bold"
                   value={weight} onChange={(e) => setWeight(e.target.value)}
                   autoFocus
                 />
@@ -146,7 +146,7 @@ export function PesoTab({
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Grasa corporal %</label>
                 <input
                   type="number" min={0} max={100} step={0.1} placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
                   value={fat} onChange={(e) => setFat(e.target.value)}
                 />
               </div>
@@ -156,7 +156,7 @@ export function PesoTab({
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Fecha</label>
                 <input
                   type="date"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
                   value={dateVal} onChange={(e) => setDateVal(e.target.value)}
                 />
               </div>
@@ -164,7 +164,7 @@ export function PesoTab({
                 <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Notas</label>
                 <input
                   placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none placeholder:text-ink-muted"
+                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
                   value={noteVal} onChange={(e) => setNoteVal(e.target.value)}
                 />
               </div>
@@ -214,7 +214,7 @@ export function PesoTab({
                       <p
                         className={cn(
                           'text-base font-bold tabular-nums',
-                          delta === 0 ? 'text-zinc-500' : 'text-zinc-800 dark:text-zinc-200',
+                          delta === 0 ? 'text-ink-muted' : 'text-ink-primary',
                         )}
                       >
                         {delta > 0 ? '+' : ''}{delta} kg
@@ -223,13 +223,13 @@ export function PesoTab({
                     {hasFat && last.body_fat_pct != null && (
                       <div>
                         <p className="text-[10px] text-ink-muted uppercase tracking-wide">% Grasa</p>
-                        <p className="text-base font-bold text-zinc-600 dark:text-zinc-400">{last.body_fat_pct}%</p>
+                        <p className="text-base font-bold text-ink-secondary">{last.body_fat_pct}%</p>
                       </div>
                     )}
                     {goal && (
                       <div>
                         <p className="text-[10px] text-ink-muted uppercase tracking-wide">Objetivo</p>
-                        <p className="text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{goal} kg</p>
+                        <p className="text-base font-bold tabular-nums text-ink-primary">{goal} kg</p>
                         {(() => {
                           const toGoal = Math.round((last.weight_kg - goal) * 10) / 10
                           return toGoal !== 0 && (
@@ -241,17 +241,17 @@ export function PesoTab({
                   </div>
                   {/* Barra progreso hacia objetivo */}
                   {goal && (() => {
-                    const start  = first.weight_kg
-                    const curr   = last.weight_kg
-                    const pct    = start === goal ? 100 : Math.min(100, Math.max(0, Math.round(Math.abs(start - curr) / Math.abs(start - goal) * 100)))
+                    const start = first.weight_kg
+                    const curr = last.weight_kg
+                    const pct = start === goal ? 100 : Math.min(100, Math.max(0, Math.round(Math.abs(start - curr) / Math.abs(start - goal) * 100)))
                     return (
                       <div className="mb-3 px-1">
                         <div className="flex justify-between text-[10px] text-ink-muted mb-1">
                           <span>Inicio: {start} kg</span>
-                          <span className="font-semibold text-zinc-600 dark:text-zinc-300">{pct}% completado</span>
+                          <span className="font-semibold text-ink-secondary ">{pct}% completado</span>
                           <span>Objetivo: {goal} kg</span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-surface-border ">
                           <div className="h-full rounded-full bg-zinc-500 transition-all dark:bg-zinc-400" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -283,7 +283,7 @@ export function PesoTab({
                               <p className="text-ink-muted mb-1">{label}</p>
                               <p className="font-bold text-ink-primary">{payload[0].value} kg</p>
                               {payload[1]?.value != null && (
-                                <p className="text-zinc-500">{payload[1].value}% grasa</p>
+                                <p className="text-ink-muted">{payload[1].value}% grasa</p>
                               )}
                             </div>
                           )
@@ -321,7 +321,7 @@ export function PesoTab({
                 <input
                   type="number" min={30} max={300} step={0.5} autoFocus
                   placeholder="Peso objetivo (kg)"
-                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
+                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
                   value={goalInput}
                   onChange={(e) => setGoalInput(e.target.value)}
                 />
@@ -334,28 +334,28 @@ export function PesoTab({
               <button
                 type="button"
                 onClick={() => { setGoalInput(String(goal ?? '')); setEditingGoal(true) }}
-                className="mb-4 flex w-full items-center gap-2 border-b border-dashed border-zinc-400/70 py-3 text-left text-xs text-zinc-500 transition-colors hover:border-zinc-500 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-200"
+                className="mb-4 flex w-full items-center gap-2 border-b border-dashed border-zinc-400/70 py-3 text-left text-xs text-ink-muted transition-colors hover:border-zinc-500 hover:text-ink-primary dark:border-zinc-600 "
               >
                 {goal ? `Objetivo: ${goal} kg — modificar` : 'Establecer peso objetivo'}
               </button>
             )}
 
             {/* Log list */}
-            <ul className="divide-y divide-zinc-200/50 dark:divide-zinc-800/55">
+            <ul className="divide-y divide-surface-border/50">
               {logs.map((l) => (
                 <li key={l.id} className="group flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{l.weight_kg} kg</span>
+                    <span className="text-sm font-semibold text-ink-primary">{l.weight_kg} kg</span>
                     {l.body_fat_pct != null && (
-                      <span className="ml-2 text-xs text-zinc-500">{l.body_fat_pct}% grasa</span>
+                      <span className="ml-2 text-xs text-ink-muted">{l.body_fat_pct}% grasa</span>
                     )}
-                    {l.notes && <p className="mt-0.5 truncate text-xs text-zinc-500">{l.notes}</p>}
+                    {l.notes && <p className="mt-0.5 truncate text-xs text-ink-muted">{l.notes}</p>}
                   </div>
-                  <span className="shrink-0 text-xs tabular-nums text-zinc-500">{l.logged_at}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-ink-muted">{l.logged_at}</span>
                   <button
                     type="button"
                     onClick={() => handleDelete(l.id)}
-                    className="text-zinc-500 opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100"
+                    className="text-ink-muted opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

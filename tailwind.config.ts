@@ -56,13 +56,22 @@ const config: Config = {
         xl: '0.75rem',
         '2xl': '1rem',
         '3xl': '1.5rem',
+        '4xl': '2rem',
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
-        'card-md': '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)',
-        'card-lg': '0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05)',
+        'xs': 'var(--shadow-xs)',
+        'card': 'var(--highlight-top), var(--shadow-sm)',
+        'card-md': 'var(--highlight-top), var(--shadow-md)',
+        'card-lg': 'var(--highlight-top), var(--shadow-lg)',
+        'pop': 'var(--shadow-lg)',
         'sidebar': '1px 0 0 0 rgb(var(--surface-border))',
         'panel': 'var(--shadow-panel)',
+        'glow': '0 0 0 1px rgb(var(--brand-primary) / 0.25), 0 8px 28px -8px rgb(var(--brand-primary) / 0.45)',
+        'inner-highlight': 'var(--highlight-top)',
+      },
+      transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       animation: {
         'fade-in': 'fadeIn 0.15s ease-out',
@@ -73,6 +82,9 @@ const config: Config = {
         'panel-soft': 'panelSoft 0.92s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'backdrop-soft': 'backdropSoft 0.92s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'spin-slow': 'spin 1.5s linear infinite',
+        'scale-in': 'scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'slide-up': 'slideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'overlay-in': 'overlayIn 0.2s ease-out both',
       },
       keyframes: {
         fadeIn: {
@@ -90,6 +102,18 @@ const config: Config = {
         panelSoft: {
           '0%': { opacity: '0', transform: 'translate3d(18px, 0, 0)' },
           '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'translateY(6px) scale(0.97)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        overlayIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
         backdropSoft: {
           '0%': { opacity: '0.35' },

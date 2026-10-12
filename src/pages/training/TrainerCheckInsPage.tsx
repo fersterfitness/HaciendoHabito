@@ -61,6 +61,7 @@ import { formatWeekRangeEs } from '@/lib/checkInWeek'
 import { ensureDefaultCheckInForms, remapCheckInResponsesForForm, syncCheckInSideEffects } from '@/lib/checkIn/ensureForms'
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
+import { confirmDialog } from '@/components/ui/dialogs'
 
 function defaultQuestions(): CheckInQuestion[] {
   return weeklyFormDefaults().questions
@@ -497,7 +498,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
   async function deleteCheckInSchedule(id: string) {
     if (!user) return
-    if (!window.confirm('¿Quitar este recordatorio?')) return
+    if (!(await confirmDialog({ title: '¿Quitar este recordatorio?', confirmLabel: 'Quitar' }))) return
     setScheduleBusy(true)
     const { error } = await supabase.from('check_in_send_schedules').delete().eq('id', id).eq('owner_id', user.id)
     setScheduleBusy(false)
@@ -570,7 +571,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   async function deleteForm(id: string, formTitle: string) {
     if (!user) return
     const label = formTitle.trim() ? `«${formTitle.trim()}»` : 'este formulario'
-    if (!window.confirm(`¿Eliminar ${label} y todas sus invitaciones y respuestas?`)) return
+    if (!(await confirmDialog({ title: `¿Eliminar ${label}?`, description: 'Se borran también todas sus invitaciones y respuestas.', confirmLabel: 'Eliminar' }))) return
     const { error } = await supabase.from('check_in_forms').delete().eq('id', id).eq('owner_id', user.id)
     if (error) {
       toast.error(error.message)
@@ -606,8 +607,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     })
   }
 
-  function applyWeeklyTemplate() {
-    if (questions.length && !window.confirm('Esto reemplaza las preguntas actuales por la plantilla semanal de Ferster. ¿Seguimos?')) {
+  async function applyWeeklyTemplate() {
+    if (questions.length && !(await confirmDialog({ title: '¿Aplicar la plantilla semanal?', description: 'Reemplaza las preguntas actuales por la plantilla semanal de Ferster.', confirmLabel: 'Aplicar', variant: 'warning' }))) {
       return
     }
     const weekly = weeklyFormDefaults()
@@ -617,8 +618,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     toast.success('Plantilla semanal aplicada. Guardá el formulario.')
   }
 
-  function applyMonthlyTemplate() {
-    if (questions.length && !window.confirm('Esto reemplaza las preguntas actuales por el feedback mensual. ¿Seguimos?')) {
+  async function applyMonthlyTemplate() {
+    if (questions.length && !(await confirmDialog({ title: '¿Aplicar el feedback mensual?', description: 'Reemplaza las preguntas actuales por la plantilla de feedback mensual.', confirmLabel: 'Aplicar', variant: 'warning' }))) {
       return
     }
     const monthly = monthlyFormDefaults()

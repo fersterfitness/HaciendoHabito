@@ -499,20 +499,20 @@ export function RoutineFormContent({
             {...register('plan_name')}
           />
           {!isEditing && (routineTemplates.length > 0 || templateBlueprintId) && (
-            <div className="rounded-2xl border border-dashed border-zinc-300/80 bg-zinc-50/80 p-4 space-y-4 dark:border-zinc-600/50 dark:bg-zinc-900/35">
+            <div className="rounded-2xl border border-dashed border-surface-inputBorder/80 bg-surface-elevated/80 p-4 space-y-4 ">
               <div className="flex items-center gap-2">
-                <Copy className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
-                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Copiar desde rutina existente</span>
-                <span className="ml-auto rounded-full bg-zinc-200/80 px-2 py-0.5 text-[10px] text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400">
+                <Copy className="h-4 w-4 shrink-0 text-ink-muted dark:text-zinc-400" />
+                <span className="text-sm font-semibold text-ink-primary ">Copiar desde rutina existente</span>
+                <span className="ml-auto rounded-full bg-surface-border/80 px-2 py-0.5 text-[10px] text-ink-secondary dark:bg-zinc-700/60 dark:text-zinc-400">
                   opcional
                 </span>
               </div>
               {templateBlueprintId ? (
-                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                <p className="text-xs leading-relaxed text-ink-secondary dark:text-zinc-400">
                   Esta rutina se va a armar con una variante de <strong>Rutinas preestablecidas</strong>.
                 </p>
               ) : (
-                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                <p className="text-xs leading-relaxed text-ink-secondary dark:text-zinc-400">
                   Copiá bloques, días y ejercicios de otra rutina ya creada. Las variantes preestablecidas se asignan desde la ficha del alumno o desde Base de datos.
                 </p>
               )}
@@ -528,9 +528,9 @@ export function RoutineFormContent({
                 </div>
               ) : null}
               {(templateBlueprintId || templateRoutineId) && (
-                <div className="flex items-center gap-2 rounded-xl border border-zinc-200/90 bg-zinc-100/90 px-3 py-2 dark:border-zinc-600/45 dark:bg-zinc-800/50">
-                  <Check className="h-3.5 w-3.5 shrink-0 text-zinc-600 dark:text-zinc-300" />
-                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <div className="flex items-center gap-2 rounded-xl border border-surface-border/90 bg-surface-elevated/90 px-3 py-2 ">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-ink-secondary dark:text-zinc-300" />
+                  <span className="text-xs font-medium text-ink-secondary dark:text-zinc-300">
                     Se copiarán bloques, días y ejercicios al crear la rutina
                   </span>
                 </div>
@@ -564,9 +564,9 @@ export function RoutineFormContent({
             />
           </div>
           {endDate && (
-            <div className="flex items-center gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50/90 px-3 py-2 dark:border-zinc-600/40 dark:bg-zinc-900/40">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Fecha de vencimiento:</span>
-              <span className="text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">{endDate}</span>
+            <div className="flex items-center gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/90 px-3 py-2 ">
+              <span className="text-xs text-ink-muted dark:text-zinc-400">Fecha de vencimiento:</span>
+              <span className="text-sm font-semibold tabular-nums text-ink-primary ">{endDate}</span>
             </div>
           )}
         </FormSection>
@@ -682,7 +682,7 @@ function PendingRoutineNotesBanner({ studentId }: { studentId?: string }) {
       </div>
       <ul className="space-y-1">
         {notes.map((n) => (
-          <li key={n.id} className="flex gap-2 text-[13px] text-zinc-800 dark:text-zinc-100">
+          <li key={n.id} className="flex gap-2 text-[13px] text-ink-primary">
             <span className="text-amber-500">•</span>
             <span>{n.content}</span>
           </li>

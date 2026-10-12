@@ -22,6 +22,7 @@ import {
 } from '@/lib/routine/blueprintFolders'
 import { ensureLibraryRoutineForBlueprint } from '@/lib/routine/libraryRoutine'
 import { BlueprintFromStudentRoutineModal } from '@/components/routines/BlueprintFromStudentRoutineModal'
+import { promptDialog } from '@/components/ui/dialogs'
 
 /** Lista de plantillas guardadas desde el detalle de rutina (pestaña dentro de Rutinas). */
 export function RoutineBlueprintsPanel() {
@@ -134,10 +135,10 @@ export function RoutineBlueprintsPanel() {
     current: string,
     matchCategory?: string,
   ) {
-    const next = window.prompt(
-      field === 'category' ? 'Nuevo nombre del macrociclo' : 'Nuevo nombre del mesociclo',
-      current,
-    )
+    const next = await promptDialog({
+      title: field === 'category' ? 'Renombrar macrociclo' : 'Renombrar mesociclo',
+      defaultValue: current,
+    })
     if (next == null) return
     const value = next.trim() || null
     let q = supabase.from('routine_blueprints').update({ [field]: value }).eq('owner_id', user!.id)
@@ -262,10 +263,10 @@ export function RoutineBlueprintsPanel() {
     if (!user) return
     const label =
       kind === 'macro'
-        ? window.prompt('Nombre del macrociclo (carpeta madre)')
+        ? await promptDialog({ title: 'Nuevo macrociclo', label: 'Nombre (carpeta madre)', placeholder: 'Ej: Fuerza e hipertrofia', confirmLabel: 'Crear' })
         : kind === 'meso'
-          ? window.prompt('Nombre del mesociclo')
-          : window.prompt('Nombre de la rutina (carpeta)')
+          ? await promptDialog({ title: 'Nuevo mesociclo', label: 'Nombre', placeholder: 'Ej: Adaptación neural', confirmLabel: 'Crear' })
+          : await promptDialog({ title: 'Nueva rutina', label: 'Nombre de la carpeta', confirmLabel: 'Crear' })
     const name = label?.trim()
     if (!name) return
     const category = kind === 'macro' ? name : (macroName ?? '').trim()
@@ -294,7 +295,7 @@ export function RoutineBlueprintsPanel() {
   }
 
   async function renameRoutineGroup(macroName: string, mesoName: string, current: string) {
-    const next = window.prompt('Nuevo nombre de la rutina (carpeta)', current)
+    const next = await promptDialog({ title: 'Renombrar rutina', defaultValue: current })
     if (next == null) return
     const value = next.trim()
     if (!value || !user) return
@@ -323,7 +324,7 @@ export function RoutineBlueprintsPanel() {
 
   async function createVariant(macroName: string, mesoName: string, rutinaName: string) {
     if (!user) return
-    const label = window.prompt('Nombre de la variante (ej. estándar, sin racks, principiantes)')
+    const label = await promptDialog({ title: 'Nueva variante', label: 'Nombre', placeholder: 'Ej: estándar, sin racks, principiantes', confirmLabel: 'Crear' })
     const name = label?.trim()
     if (!name) return
     const { data, error } = await supabase

@@ -67,7 +67,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
   const list = visible.length ? visible : rows.slice(0, compact ? 6 : rows.length)
 
   return (
-    <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/65">
+    <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <p className="text-sm font-semibold text-ink-primary">Abonos de rutinas</p>
         <span className="text-[11px] text-ink-muted">
@@ -83,7 +83,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
         {list.map((row) => (
           <li
             key={row.id}
-            className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200/60 bg-zinc-50/40 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950/50"
+            className="flex flex-wrap items-center gap-3 rounded-md border border-surface-border/60 bg-surface-elevated/40 px-3 py-2"
           >
             <div className="min-w-0 flex-1">
               <Link to={`/students/${row.student_id}`} className="truncate text-sm font-semibold text-ink-primary hover:underline">

@@ -5,7 +5,7 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 export function HabitsViewToolbar({ studentId }: { studentId: string }) {
   const navigate = useAppNavigate()
   const pillClass =
-    'inline-flex items-center gap-1.5 rounded-md border border-zinc-200/85 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900/80 dark:text-zinc-100 dark:hover:bg-zinc-800'
+    'inline-flex items-center gap-1.5 rounded-md border border-surface-border/85 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-ink-primary shadow-sm transition-colors hover:bg-surface-elevated/60 dark:bg-zinc-900/80 '
 
   return (
     <button

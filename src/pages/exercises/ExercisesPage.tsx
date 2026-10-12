@@ -53,9 +53,9 @@ function difficultyBadgeClass(difficulty: string): string {
     case 'intermedio':
       return cn(base, 'border-status-expiring/40 bg-status-expiring/10 text-status-expiring')
     case 'avanzado':
-      return cn(base, 'border-zinc-400/55 bg-zinc-500/10 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400')
+      return cn(base, 'border-zinc-400/55 bg-zinc-500/10 text-ink-primary dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400')
     default:
-      return cn(base, 'border-zinc-200/80 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400')
+      return cn(base, 'border-surface-border/80 text-ink-secondary')
   }
 }
 
@@ -183,13 +183,13 @@ export function ExercisesPage() {
             <Input
               ref={exercisesSearchRef}
               placeholder="Buscar por nombre, músculo o equipamiento… ( / para enfocar )"
-              leftIcon={<Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />}
+              leftIcon={<Search className="h-4 w-4 text-ink-muted dark:text-zinc-500" />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Buscar ejercicios"
               className={cn(
-                'h-10 rounded-md border-zinc-200/75 text-[14px] shadow-none dark:border-zinc-700/80',
-                'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50 dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
+                'h-10 rounded-md border-surface-border/75 text-[14px] shadow-none ',
+                'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50 ',
               )}
             />
           </div>
@@ -201,8 +201,8 @@ export function ExercisesPage() {
               icon={<Tags className="h-4 w-4" />}
               onClick={() => setShowCategoryPanel((v) => !v)}
               className={cn(
-                'h-10 shrink-0 rounded-md border-zinc-200/75 px-3.5 font-medium text-zinc-800',
-                'hover:border-zinc-300 hover:bg-zinc-50/90 dark:border-zinc-700/80 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/45',
+                'h-10 shrink-0 rounded-md border-surface-border/75 px-3.5 font-medium text-ink-primary',
+                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 dark:text-zinc-100 ',
               )}
             >
               <span className="hidden sm:inline">Nueva categoría</span>
@@ -230,11 +230,11 @@ export function ExercisesPage() {
                 'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
                 muscleFilter === null
                   ? 'border-zinc-700 bg-zinc-800 text-white dark:border-zinc-300 dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'border-zinc-200/80 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:bg-zinc-800',
+                  : 'border-surface-border/80 bg-surface-elevated/60 text-ink-secondary hover:bg-surface-elevated ',
               )}
             >
               Todos
-              {muscleFilter === null && <span className="ml-1.5 tabular-nums text-zinc-400 dark:text-zinc-500">{exercises.length}</span>}
+              {muscleFilter === null && <span className="ml-1.5 tabular-nums text-ink-muted dark:text-zinc-500">{exercises.length}</span>}
             </button>
 
             {muscleGroups
@@ -253,7 +253,7 @@ export function ExercisesPage() {
                       'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
                       isActive
                         ? cn(palette.bg, palette.border, palette.text, 'ring-1 ring-inset', palette.border)
-                        : 'border-zinc-200/80 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700/70 dark:bg-zinc-900/40 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                        : 'border-surface-border/80 bg-surface-elevated/60 text-ink-muted hover:bg-surface-elevated ',
                     )}
                   >
                     {/* Dot de color */}
@@ -262,7 +262,7 @@ export function ExercisesPage() {
                       style={{ backgroundColor: palette.dot }}
                     />
                     {g.name}
-                    <span className={cn('tabular-nums', isActive ? 'opacity-70' : 'text-zinc-400 dark:text-zinc-600')}>
+                    <span className={cn('tabular-nums', isActive ? 'opacity-70' : 'text-ink-muted dark:text-zinc-600')}>
                       {count}
                     </span>
                     {isActive && <X className="h-3 w-3 opacity-60" />}
@@ -273,7 +273,7 @@ export function ExercisesPage() {
         )}
 
         {showCategoryPanel && (
-          <div className="space-y-2 rounded-lg border border-zinc-200/75 bg-zinc-50/50 p-3 dark:border-zinc-700/75 dark:bg-zinc-950/40">
+          <div className="space-y-2 rounded-lg border border-surface-border/75 bg-surface-elevated/50 p-3 ">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Nueva categoría (grupo muscular)</p>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
@@ -331,9 +331,9 @@ export function ExercisesPage() {
             }
           />
         ) : (
-          <div className="w-full overflow-x-auto rounded-md border border-zinc-200/70 bg-surface-card dark:border-zinc-700/65">
+          <div className="w-full overflow-x-auto rounded-md border border-surface-border/70 bg-surface-card ">
             <table className="w-full border-collapse text-[13px] leading-snug">
-              <thead className="border-b border-zinc-200/55 bg-zinc-50/40 dark:border-zinc-800/80 dark:bg-zinc-950/35">
+              <thead className="border-b border-surface-border/55 bg-surface-elevated/40 dark:border-zinc-800/80 ">
                 <tr className="text-left">
                   <th className="w-[32%] px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Ejercicio</th>
                   <th className="hidden w-[18%] px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Músculo</th>
@@ -342,7 +342,7 @@ export function ExercisesPage() {
                   <th className="w-24 px-2 py-2 sm:w-28" aria-label="Acciones" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200/40 dark:divide-zinc-800/60">
+              <tbody className="divide-y divide-surface-border/40 ">
                 {filtered.map((exercise, rowIndex) => {
                   const colorIdx = exercise.muscle_group ? (muscleColorMap.get(exercise.muscle_group.id) ?? 0) : -1
                   const palette = colorIdx >= 0 ? getMuscleColor(colorIdx) : null
@@ -350,13 +350,13 @@ export function ExercisesPage() {
                     <tr
                       key={exercise.id}
                       style={tableRowEnterStyle(rowIndex)}
-                      className="transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/35"
+                      className="transition-colors hover:bg-surface-elevated/80 "
                     >
                       <td className="hh-row-drop-in px-3 py-2 sm:px-4">
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           <span className="font-semibold tracking-tight text-ink-primary">{exercise.name}</span>
                           {!exercise.is_active && (
-                            <span className="rounded border border-zinc-300/65 bg-zinc-500/[0.08] px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-zinc-600 dark:border-zinc-600 dark:text-zinc-400">
+                            <span className="rounded border border-surface-inputBorder/65 bg-zinc-500/[0.08] px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-ink-secondary ">
                               Inactivo
                             </span>
                           )}
@@ -397,7 +397,7 @@ export function ExercisesPage() {
                           <button
                             type="button"
                             onClick={() => navigate(`/exercises/${exercise.id}/edit`)}
-                            className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink-primary dark:hover:bg-zinc-800"
+                            className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
                             title="Editar"
                             aria-label={`Editar ${exercise.name}`}
                           >

@@ -79,7 +79,7 @@ function expenseTypePillClass(expenseType: string): string {
   if (expenseType === 'fijo') {
     return cn(
       base,
-      'border-zinc-400/55 bg-zinc-500/10 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400',
+      'border-zinc-400/55 bg-zinc-500/10 text-ink-primary dark:bg-zinc-600/15 ',
     )
   }
   return cn(
@@ -102,7 +102,7 @@ function MetricTile({
   return (
     <div
       className={cn(
-        'flex flex-col gap-1 rounded-md border border-zinc-200/70 bg-surface-card p-3 shadow-none dark:border-zinc-700/65 lg:p-3.5',
+        'flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 shadow-none lg:p-3.5',
         containerClassName,
       )}
     >
@@ -132,12 +132,12 @@ function AnnualIncomeTooltip({
   const safeLabel = label != null ? String(label) : '—'
 
   return (
-    <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg dark:border-zinc-600 dark:bg-zinc-950">
-      <p className="text-[11px] font-semibold text-zinc-900 dark:text-zinc-50">{safeLabel}</p>
+    <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-surface-border bg-white px-3 py-2 text-left shadow-lg dark:bg-zinc-950">
+      <p className="text-[11px] font-semibold text-ink-primary dark:text-zinc-50">{safeLabel}</p>
       <p className="mt-1 font-semibold tabular-nums leading-tight text-[13px] text-brand-tertiary">
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
-      <p className="mt-1.5 border-t border-zinc-200 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+      <p className="mt-1.5 border-t border-surface-border pt-1.5 text-[10px] font-medium uppercase tracking-wide text-ink-secondary ">
         Cobrado (ingresos)
       </p>
     </div>
@@ -396,7 +396,7 @@ export function FinancesPage() {
         </p>
 
         {scopeFilter === 'personal' && !loading && (
-          <div className="rounded-xl border border-surface-border/80 bg-surface-muted/25 px-4 py-3 dark:bg-zinc-950/40">
+          <div className="rounded-xl border border-surface-border/80 bg-surface-muted/25 px-4 py-3 ">
             <p className="text-[11px] font-semibold text-ink-primary">Caja personal · {MES_LABELS_FULL[now.getMonth()]} {now.getFullYear()}</p>
             <p className="mt-1 text-[10px] leading-relaxed text-ink-muted">
               <strong className="text-ink-secondary">Efectivo neto</strong> (ingresos en efectivo − gastos en efectivo) +{' '}
@@ -415,7 +415,7 @@ export function FinancesPage() {
                 containerClassName="lg:col-span-1"
               />
             </div>
-            <p className="mt-2 rounded-md bg-surface-card/80 px-2 py-1.5 text-center text-[11px] tabular-nums text-ink-secondary dark:bg-zinc-900/50">
+            <p className="mt-2 rounded-md bg-surface-card/80 px-2 py-1.5 text-center text-[11px] tabular-nums text-ink-secondary ">
               {formatCurrency(Math.round(personalCashTransferHint.efectivoNet))} + {formatCurrency(Math.round(personalCashTransferHint.gastosDni))} ={' '}
               <span className="font-semibold text-ink-primary">{formatCurrency(Math.round(personalCashTransferHint.totalATransferir))}</span>
               <span className="text-ink-muted"> · total referencia a transferir</span>
@@ -440,7 +440,7 @@ export function FinancesPage() {
 
         {/* Comparación mensual */}
         <div className="grid grid-cols-2 gap-2.5 lg:gap-3">
-          <div className="flex flex-col gap-1 rounded-md border border-zinc-200/70 bg-surface-card p-3 dark:border-zinc-700/65">
+          <div className="flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 ">
             <p className="text-[11px] font-medium text-ink-muted">
               {MES_LABELS[now.getMonth()]} cobrado
               {mesDelta !== null && (
@@ -461,7 +461,7 @@ export function FinancesPage() {
               {formatCurrency(animEsteMes)}
             </p>
           </div>
-          <div className="flex flex-col gap-1 rounded-md border border-zinc-200/70 bg-surface-card p-3 dark:border-zinc-700/65">
+          <div className="flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 ">
             <p className="text-[11px] font-medium text-ink-muted">{MES_LABELS[prevMonthDate.getMonth()]} cobrado</p>
             <p className="text-lg font-semibold tracking-tight text-ink-secondary tabular-nums sm:text-xl">
               {formatCurrency(animMesAnterior)}
@@ -470,15 +470,15 @@ export function FinancesPage() {
         </div>
 
         {/* Tabs (estilo rutinas / listados) */}
-        <div className="flex gap-2 border-b border-zinc-200/70 pt-1 dark:border-zinc-700/65">
+        <div className="flex gap-2 border-b border-surface-border/70 pt-1 ">
           <button
             type="button"
             onClick={() => switchTab('income')}
             className={cn(
               '-mb-px flex items-center gap-2 rounded-t-lg border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
               tab === 'income'
-                ? 'border-zinc-200/85 bg-surface-card text-ink-primary dark:border-zinc-700/80 dark:bg-zinc-950/50'
-                : 'border-transparent text-ink-muted hover:bg-zinc-50/80 hover:text-ink-secondary dark:hover:bg-zinc-900/40',
+                ? 'border-surface-border/85 bg-surface-card text-ink-primary '
+                : 'border-transparent text-ink-muted hover:bg-surface-elevated/80 hover:text-ink-secondary ',
             )}
           >
             <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
@@ -486,7 +486,7 @@ export function FinancesPage() {
             <span
               className={cn(
                 'rounded-md px-1.5 py-px text-[10px] font-bold tabular-nums',
-                tab === 'income' ? 'bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400',
+                tab === 'income' ? 'bg-surface-border/80 text-ink-primary dark:text-zinc-100' : 'bg-zinc-500/15 text-ink-secondary ',
               )}
             >
               {incomesFiltered.length}
@@ -498,8 +498,8 @@ export function FinancesPage() {
             className={cn(
               '-mb-px flex items-center gap-2 rounded-t-lg border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
               tab === 'expenses'
-                ? 'border-zinc-200/85 bg-surface-card text-ink-primary dark:border-zinc-700/80 dark:bg-zinc-950/50'
-                : 'border-transparent text-ink-muted hover:bg-zinc-50/80 hover:text-ink-secondary dark:hover:bg-zinc-900/40',
+                ? 'border-surface-border/85 bg-surface-card text-ink-primary '
+                : 'border-transparent text-ink-muted hover:bg-surface-elevated/80 hover:text-ink-secondary ',
             )}
           >
             <TrendingDown className="h-4 w-4 shrink-0" aria-hidden />
@@ -507,7 +507,7 @@ export function FinancesPage() {
             <span
               className={cn(
                 'rounded-md px-1.5 py-px text-[10px] font-bold tabular-nums',
-                tab === 'expenses' ? 'bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100' : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400',
+                tab === 'expenses' ? 'bg-surface-border/80 text-ink-primary dark:text-zinc-100' : 'bg-zinc-500/15 text-ink-secondary ',
               )}
             >
               {expensesFiltered.length}
@@ -525,13 +525,13 @@ export function FinancesPage() {
                   ? 'Buscar por alumno, tipo, categoría… ( / para enfocar )'
                   : 'Buscar por descripción o categoría… ( / para enfocar )'
               }
-              leftIcon={<Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />}
+              leftIcon={<Search className="h-4 w-4 text-ink-muted " />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label={tab === 'income' ? 'Buscar ingresos' : 'Buscar gastos'}
               className={cn(
-                'h-10 rounded-md border-zinc-200/75 text-[14px] shadow-none dark:border-zinc-700/80',
-                'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50 dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
+                'h-10 rounded-md border-surface-border/75 text-[14px] shadow-none ',
+                'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50 ',
               )}
             />
           </div>
@@ -541,9 +541,9 @@ export function FinancesPage() {
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value as 'all' | 'business' | 'personal')}
               className={cn(
-                'h-10 w-full appearance-none rounded-md border border-zinc-200/75 bg-surface-card',
+                'h-10 w-full appearance-none rounded-md border border-surface-border/75 bg-surface-card',
                 'pl-3 pr-9 text-sm text-ink-primary shadow-none outline-none transition-colors cursor-pointer',
-                'dark:border-zinc-700/80 dark:bg-zinc-900/50',
+                ' ',
                 'focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
               )}
             >
@@ -559,11 +559,11 @@ export function FinancesPage() {
               onClick={exportCSV}
               title="Exportar CSV"
               className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-zinc-200/75 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-                'hover:border-zinc-300 hover:bg-zinc-50/90 dark:border-zinc-700/80 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/45',
+                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-surface-border/75 px-3.5 text-sm font-medium text-ink-primary transition-colors',
+                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 dark:text-zinc-100 ',
               )}
             >
-              <Download className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+              <Download className="h-4 w-4 text-ink-muted " aria-hidden />
               CSV
             </button>
             <Button
@@ -608,7 +608,7 @@ export function FinancesPage() {
           if (entries.length === 0) return null
           const grandTotal = entries.reduce((s, [, v]) => s + v, 0)
           return (
-            <div className="rounded-md border border-zinc-200/70 bg-surface-card px-4 py-3 dark:border-zinc-700/65">
+            <div className="rounded-md border border-surface-border/70 bg-surface-card px-4 py-3 ">
               <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
                 {tab === 'income' ? 'Ingresos cobrados' : 'Gastos registrados'} por método de pago
               </p>
@@ -619,13 +619,13 @@ export function FinancesPage() {
                 {entries.map(([method, total]) => (
                   <div
                     key={method}
-                    className="flex min-w-[9.5rem] flex-1 flex-col gap-1 rounded-lg border border-zinc-200/60 bg-zinc-50/60 px-3 py-2 dark:border-zinc-700/55 dark:bg-zinc-900/40 sm:min-w-0 sm:flex-initial sm:flex-row sm:items-center"
+                    className="flex min-w-[9.5rem] flex-1 flex-col gap-1 rounded-lg border border-surface-border/60 bg-surface-elevated/60 px-3 py-2 sm:min-w-0 sm:flex-initial sm:flex-row sm:items-center"
                   >
                     <PaymentMethodBadge method={method as Income['payment_method']} />
                     <span className="text-sm font-semibold tabular-nums text-ink-primary">{formatCurrency(total)}</span>
                   </div>
                 ))}
-                <div className="flex min-w-[9.5rem] flex-1 flex-col gap-0.5 rounded-lg border border-zinc-300/50 bg-zinc-100/60 px-3 py-2 dark:border-zinc-600/40 dark:bg-zinc-800/35 sm:flex-initial sm:justify-center">
+                <div className="flex min-w-[9.5rem] flex-1 flex-col gap-0.5 rounded-lg border border-surface-inputBorder/50 bg-surface-elevated/60 px-3 py-2 sm:flex-initial sm:justify-center">
                   <span className="text-[11px] font-medium text-ink-muted">Total ({entries.length} {entries.length === 1 ? 'medio' : 'medios'})</span>
                   <span className="text-sm font-bold tabular-nums text-ink-primary">{formatCurrency(grandTotal)}</span>
                 </div>
@@ -648,14 +648,14 @@ export function FinancesPage() {
               action={{ label: 'Nuevo ingreso', onClick: () => navigate('/finances/income/new'), icon: <Plus className="h-4 w-4" /> }}
             />
           ) : (
-            <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card shadow-none dark:border-zinc-700/65">
-              <div className="border-b border-zinc-200/55 bg-zinc-50/35 px-3 py-2 dark:border-zinc-800/80 dark:bg-zinc-950/40">
+            <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card shadow-none ">
+              <div className="border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2 ">
                 <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
                 <p className="truncate text-[11px] text-ink-muted">{filteredIncomes.length === 1 ? '1 movimiento' : `${filteredIncomes.length} movimientos`}</p>
               </div>
               <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
                 <table className="w-full min-w-[900px] border-collapse text-[13px] leading-snug">
-                  <thead className="sticky top-0 z-[1] border-b border-zinc-200/55 bg-surface-card/95 backdrop-blur-[2px] dark:border-zinc-800/85 dark:bg-zinc-950/95">
+                  <thead className="sticky top-0 z-[1] border-b border-surface-border/55 bg-surface-card/95 backdrop-blur-[2px] dark:bg-zinc-950/95">
                     <tr className="text-left">
                       <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
                       <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Concepto</th>
@@ -666,12 +666,12 @@ export function FinancesPage() {
                       <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-200/40 dark:divide-zinc-800/65">
+                  <tbody className="divide-y divide-surface-border/40 ">
                     {filteredIncomes.map((income, rowIndex) => (
                       <tr
                         key={income.id}
                         style={tableRowEnterStyle(rowIndex)}
-                        className="transition-colors hover:bg-zinc-50/85 dark:hover:bg-zinc-900/40"
+                        className="transition-colors hover:bg-surface-elevated/85 "
                       >
                         <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(income.income_date)}</td>
                         <td className="hh-row-drop-in max-w-[12rem] px-3 py-2 sm:max-w-none sm:px-4">
@@ -709,7 +709,7 @@ export function FinancesPage() {
                             <button
                               type="button"
                               onClick={() => navigate(`/finances/income/${income.id}/edit`)}
-                              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink-primary dark:hover:bg-zinc-800"
+                              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
                               title="Editar"
                               aria-label="Editar"
                             >
@@ -741,14 +741,14 @@ export function FinancesPage() {
             action={{ label: 'Nuevo gasto', onClick: () => navigate('/finances/expenses/new'), icon: <Plus className="h-4 w-4" /> }}
           />
         ) : (
-          <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card shadow-none dark:border-zinc-700/65">
-            <div className="border-b border-zinc-200/55 bg-zinc-50/35 px-3 py-2 dark:border-zinc-800/80 dark:bg-zinc-950/40">
+          <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card shadow-none ">
+            <div className="border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2 ">
               <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
               <p className="truncate text-[11px] text-ink-muted">{filteredExpenses.length === 1 ? '1 gasto' : `${filteredExpenses.length} gastos`}</p>
             </div>
             <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
               <table className="w-full min-w-[760px] border-collapse text-[13px] leading-snug">
-                <thead className="sticky top-0 z-[1] border-b border-zinc-200/55 bg-surface-card/95 backdrop-blur-[2px] dark:border-zinc-800/85 dark:bg-zinc-950/95">
+                <thead className="sticky top-0 z-[1] border-b border-surface-border/55 bg-surface-card/95 backdrop-blur-[2px] dark:bg-zinc-950/95">
                   <tr className="text-left">
                     <th className="whitespace-nowrap px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
                     <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Descripción</th>
@@ -759,12 +759,12 @@ export function FinancesPage() {
                     <th className="whitespace-nowrap px-3 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200/40 dark:divide-zinc-800/65">
+                <tbody className="divide-y divide-surface-border/40 ">
                   {filteredExpenses.map((expense, rowIndex) => (
                     <tr
                       key={expense.id}
                       style={tableRowEnterStyle(rowIndex)}
-                      className="transition-colors hover:bg-zinc-50/85 dark:hover:bg-zinc-900/40"
+                      className="transition-colors hover:bg-surface-elevated/85 "
                     >
                       <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(expense.expense_date)}</td>
                       <td className="hh-row-drop-in max-w-[14rem] px-3 py-2 sm:max-w-none sm:px-4">
@@ -803,7 +803,7 @@ export function FinancesPage() {
                           <button
                             type="button"
                             onClick={() => navigate(`/finances/expenses/${expense.id}/edit`)}
-                            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-zinc-100 hover:text-ink-primary dark:hover:bg-zinc-800"
+                            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
                             title="Editar"
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -829,7 +829,7 @@ export function FinancesPage() {
         {/* Cuotas pendientes — tonos contenidos */}
         <RoutinePaymentsPanel />
         {deudores.length > 0 && (
-          <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/65">
+          <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4 ">
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
@@ -843,7 +843,7 @@ export function FinancesPage() {
                 return (
                   <div
                     key={student.id}
-                    className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200/60 bg-zinc-50/40 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950/50"
+                    className="flex flex-wrap items-center gap-3 rounded-md border border-surface-border/60 bg-surface-elevated/40 px-3 py-2 "
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink-primary">{student.full_name}</p>
@@ -859,7 +859,7 @@ export function FinancesPage() {
                         href={waUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-300/70 bg-transparent px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-zinc-400 hover:bg-zinc-100 hover:text-ink-primary dark:border-zinc-600 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-surface-inputBorder/70 bg-transparent px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-surface-inputBorder hover:bg-surface-elevated hover:text-ink-primary "
                       >
                         <MessageCircle className="h-3.5 w-3.5" aria-hidden />
                         Recordar
@@ -875,7 +875,7 @@ export function FinancesPage() {
         )}
 
         {/* Gráfico anual */}
-        <section className="overflow-hidden rounded-md border border-zinc-200/70 bg-surface-card p-4 dark:border-zinc-700/65">
+        <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4 ">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
           <ResponsiveContainer width="100%" height={168}>
             <BarChart data={annualChartData} margin={{ top: 6, right: 8, bottom: 2, left: -16 }}>

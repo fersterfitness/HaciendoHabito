@@ -17,10 +17,9 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
   return (
     <div
       className={cn(
-        'bg-surface-card rounded-2xl border border-surface-border/80',
-        'shadow-card',
+        'rounded-2xl border border-surface-border/90 bg-surface-card shadow-card',
         hover &&
-          'hover:border-surface-border hover:bg-surface-elevated/30 hover:shadow-card-md transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out motion-safe:hover:-translate-y-px cursor-pointer',
+          'cursor-pointer transition-[border-color,box-shadow,transform] duration-300 ease-out-expo hover:border-surface-inputBorder hover:shadow-card-md motion-safe:hover:-translate-y-0.5',
         paddingStyles[padding],
         className
       )}
@@ -41,7 +40,7 @@ export function CardHeader({ className, children, ...props }: HTMLAttributes<HTM
 
 export function CardTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={cn('text-sm font-semibold text-ink-primary', className)} {...props}>
+    <h3 className={cn('text-sm font-semibold tracking-tight text-ink-primary', className)} {...props}>
       {children}
     </h3>
   )

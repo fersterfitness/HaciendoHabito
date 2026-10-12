@@ -24,14 +24,14 @@ function Field({
   return (
     <div
       className={cn(
-        'border-b border-zinc-200/45 py-3 last:border-b-0 dark:border-zinc-800/65',
+        'border-b border-surface-border/45 py-3 last:border-b-0',
         className,
       )}
     >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">
         {label}
       </p>
-      <div className="mt-1 whitespace-pre-wrap break-words text-sm text-zinc-800 dark:text-zinc-100">
+      <div className="mt-1 whitespace-pre-wrap break-words text-sm text-ink-primary">
         {value}
       </div>
     </div>
@@ -43,7 +43,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   if (!hasContent) return null
   return (
     <section className="space-y-1">
-      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-ink-secondary">
         {title}
       </h4>
       <div>{children}</div>
@@ -113,7 +113,7 @@ export function NutritionWebIntakePanel({ student }: { student: Student }) {
 
   return (
     <div className="rounded-2xl border border-surface-border/80 bg-surface-elevated/20 p-5 sm:p-6">
-      <div className="mb-6 flex flex-col gap-2 border-b border-zinc-200/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-800/60">
+      <div className="mb-6 flex flex-col gap-2 border-b border-surface-border/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between">
         <div className="flex items-start gap-2">
           <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary dark:text-brand-primary" aria-hidden />
           <div>
@@ -151,26 +151,26 @@ export function NutritionWebIntakePanel({ student }: { student: Student }) {
 
         {foodRows.length > 0 ? (
           <Section title="Frecuencia de alimentos">
-            <div className="overflow-x-auto rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+            <div className="overflow-x-auto rounded-xl border border-surface-border/60">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-zinc-200/60 bg-zinc-50/80 dark:border-zinc-700/60 dark:bg-zinc-900/50">
-                    <th className="px-3 py-2 font-semibold text-zinc-600 dark:text-zinc-400">Alimento</th>
-                    <th className="px-3 py-2 font-semibold text-zinc-600 dark:text-zinc-400">Tipo</th>
-                    <th className="px-3 py-2 font-semibold text-zinc-600 dark:text-zinc-400">Frecuencia</th>
-                    <th className="px-3 py-2 font-semibold text-zinc-600 dark:text-zinc-400">Cantidad</th>
+                  <tr className="border-b border-surface-border/60 bg-surface-elevated/80">
+                    <th className="px-3 py-2 font-semibold text-ink-secondary">Alimento</th>
+                    <th className="px-3 py-2 font-semibold text-ink-secondary">Tipo</th>
+                    <th className="px-3 py-2 font-semibold text-ink-secondary">Frecuencia</th>
+                    <th className="px-3 py-2 font-semibold text-ink-secondary">Cantidad</th>
                   </tr>
                 </thead>
                 <tbody>
                   {foodRows.map((row) => (
                     <tr
                       key={row.label}
-                      className="border-b border-zinc-100 last:border-0 dark:border-zinc-800/80"
+                      className="border-b border-surface-border/70 last:border-0"
                     >
-                      <td className="px-3 py-2 text-zinc-800 dark:text-zinc-200">{row.label}</td>
-                      <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{row.tipo || '—'}</td>
-                      <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{row.frecuencia || '—'}</td>
-                      <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{row.cantidad || '—'}</td>
+                      <td className="px-3 py-2 text-ink-primary">{row.label}</td>
+                      <td className="px-3 py-2 text-ink-secondary">{row.tipo || '—'}</td>
+                      <td className="px-3 py-2 text-ink-secondary">{row.frecuencia || '—'}</td>
+                      <td className="px-3 py-2 text-ink-secondary">{row.cantidad || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

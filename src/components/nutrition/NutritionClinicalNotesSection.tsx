@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import type { NutritionClinicalNote } from '@/types/database'
 import toast from 'react-hot-toast'
+import { confirmDialog } from '@/components/ui/dialogs'
 
 export function NutritionClinicalNotesSection({
   ownerId,
@@ -70,7 +71,7 @@ export function NutritionClinicalNotesSection({
   }
 
   async function remove(id: string) {
-    if (!window.confirm('¿Eliminar esta nota del historial?')) return
+    if (!(await confirmDialog({ title: '¿Eliminar esta nota del historial?', confirmLabel: 'Eliminar' }))) return
     const { error } = await supabase.from('nutrition_clinical_notes').delete().eq('id', id).eq('owner_id', ownerId)
     if (error) {
       toast.error(error.message)

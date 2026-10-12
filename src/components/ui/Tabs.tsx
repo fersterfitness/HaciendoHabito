@@ -1,4 +1,5 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useId } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 
@@ -17,8 +18,10 @@ interface TabsProps {
   ariaLabel?: string
 }
 
-/** Pestañas minimalistas: subrayado integrado, sin pastilla superpuesta. */
+/** Pestañas con subrayado que se desliza a la pestaña activa. */
 export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps) {
+  const indicatorId = useId()
+  const reduceMotion = useReducedMotion()
   return (
     <div
       role="tablist"
@@ -41,19 +44,24 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'relative shrink-0 inline-flex items-center gap-2 px-3 sm:px-3.5 py-2.5 text-sm font-medium transition-colors duration-150',
-              'border-b-2 -mb-px',
+              'relative -mb-px inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200 sm:px-3.5',
               appFocusRingClassName,
-              isActive
-                ? 'border-brand-secondary text-brand-secondary'
-                : 'border-transparent text-ink-muted hover:text-ink-secondary',
+              isActive ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-secondary',
             )}
           >
+            {isActive ? (
+              <motion.span
+                layoutId={indicatorId}
+                aria-hidden
+                className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-brand-gradient"
+                transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
+              />
+            ) : null}
             {tab.icon ? (
               <span
                 className={cn(
                   'shrink-0 [&_svg]:h-4 [&_svg]:w-4',
-                  isActive ? 'text-brand-secondary' : 'text-ink-muted',
+                  isActive ? 'text-brand-primary' : 'text-ink-muted',
                 )}
               >
                 {tab.icon}
@@ -65,8 +73,8 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
                 className={cn(
                   'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md text-[10px] font-semibold tabular-nums',
                   isActive
-                    ? 'bg-surface-elevated text-ink-secondary'
-                    : 'bg-surface-elevated/80 text-ink-muted',
+                    ? 'bg-brand-primary/12 text-brand-primary'
+                    : 'bg-surface-elevated text-ink-muted',
                 )}
               >
                 {tab.count}

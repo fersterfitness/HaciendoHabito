@@ -86,7 +86,7 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
     <section className="rounded-2xl border border-amber-300/50 bg-amber-50/50 p-4 dark:border-amber-700/40 dark:bg-amber-950/15">
       <div className="mb-3 flex items-center gap-2">
         <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+        <h3 className="text-sm font-semibold text-ink-primary">
           Notas para la próxima rutina
           {pending.length > 0 && (
             <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
@@ -107,7 +107,7 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
             }
           }}
           placeholder="ej: trabajar movilidad lumbo-pélvica…"
-          className="flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-amber-500 dark:border-amber-700/50 dark:bg-zinc-900 dark:text-zinc-100"
+          className="flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-amber-500 dark:border-amber-700/50 dark:bg-zinc-900"
         />
         <Button size="sm" variant="secondary" loading={saving} icon={<Plus className="h-3.5 w-3.5" />} onClick={() => void addNote()}>
           Anotar
@@ -117,7 +117,7 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
       {loading ? (
         <div className="flex justify-center py-4"><Spinner size="sm" /></div>
       ) : notes.length === 0 ? (
-        <p className="py-2 text-center text-xs text-zinc-500">Sin notas. Anotá lo que quieras trabajar en la próxima rutina.</p>
+        <p className="py-2 text-center text-xs text-ink-muted">Sin notas. Anotá lo que quieras trabajar en la próxima rutina.</p>
       ) : (
         <ul className="space-y-1.5">
           {notes.map((n) => (
@@ -139,15 +139,15 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
                 {n.is_done && <Check className="h-3 w-3" />}
               </button>
               <div className="min-w-0 flex-1">
-                <p className={'text-[13px] leading-snug ' + (n.is_done ? 'text-zinc-400 line-through dark:text-zinc-600' : 'text-zinc-800 dark:text-zinc-100')}>
+                <p className={'text-[13px] leading-snug ' + (n.is_done ? 'text-ink-muted line-through' : 'text-ink-primary')}>
                   {n.content}
                 </p>
-                <p className="text-[10px] text-zinc-400">{formatDate(n.created_at.slice(0, 10))}</p>
+                <p className="text-[10px] text-ink-muted">{formatDate(n.created_at.slice(0, 10))}</p>
               </div>
               <button
                 type="button"
                 onClick={() => void remove(n.id)}
-                className="mt-0.5 shrink-0 text-zinc-400 transition-colors hover:text-red-500"
+                className="mt-0.5 shrink-0 text-ink-muted transition-colors hover:text-red-500"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

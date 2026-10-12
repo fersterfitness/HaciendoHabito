@@ -68,6 +68,7 @@ import type {
   Json,
 } from '@/types/database'
 import toast from 'react-hot-toast'
+import { confirmDialog } from '@/components/ui/dialogs'
 
 type DocCategoryConfig = {
   key: NutritionDocumentCategory
@@ -467,7 +468,7 @@ export function NutritionPatientDetailView({
 
   async function deleteDocument(doc: NutritionPatientDocument) {
     if (!user) return
-    const ok = window.confirm(`¿Eliminar "${doc.title}"?`)
+    const ok = await confirmDialog({ title: `¿Eliminar «${doc.title}»?`, confirmLabel: 'Eliminar' })
     if (!ok) return
 
     setDeletingDocId(doc.id)

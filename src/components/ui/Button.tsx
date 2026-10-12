@@ -2,7 +2,6 @@ import { cloneElement, forwardRef, isValidElement, type ButtonHTMLAttributes, ty
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
-import { primaryGradientCtaClassName, secondaryGradientCtaClassName } from '@/lib/primaryGradientCtaClasses'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?:
@@ -11,32 +10,48 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     | 'ghost'
     | 'danger'
     | 'outline'
+    | 'soft'
+    /** @deprecated usar `primary` (mismo degradé de marca). */
     | 'gradientPrimary'
+    /** @deprecated usar `soft`. */
     | 'gradientSecondary'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   loading?: boolean
   icon?: ReactNode
   iconPosition?: 'left' | 'right'
+  asChild?: boolean
 }
 
 const variantStyles = {
-  primary:
-    'bg-brand-primary text-white font-semibold shadow-none hover:bg-brand-hover',
-  secondary:
-    'bg-surface-card border border-surface-border/80 text-ink-primary shadow-none hover:bg-surface-elevated/50 hover:border-surface-border',
-  ghost:
-    'bg-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated/50',
-  danger:
-    'bg-status-expired/14 text-status-expired border border-status-expired/45 hover:bg-status-expired/20',
-  outline:
-    'bg-transparent border border-surface-border/80 text-ink-secondary hover:bg-surface-elevated/40 hover:text-ink-primary',
+  /** Acción principal: degradé de marca con brillo y halo (ver `.hh-cta`). */
+  primary: 'hh-cta text-white font-semibold',
+  secondary: cn(
+    'bg-surface-card text-ink-primary font-medium border border-surface-border',
+    'shadow-[var(--highlight-top),var(--shadow-xs)]',
+    'hover:bg-surface-elevated hover:border-surface-inputBorder',
+  ),
+  ghost: 'bg-transparent text-ink-secondary font-medium hover:text-ink-primary hover:bg-surface-elevated',
+  danger: cn(
+    'bg-status-expired/10 text-status-expired font-semibold border border-status-expired/30',
+    'hover:bg-status-expired/15 hover:border-status-expired/45',
+  ),
+  outline: cn(
+    'bg-transparent text-ink-secondary font-medium border border-surface-border',
+    'hover:bg-surface-elevated/60 hover:text-ink-primary hover:border-surface-inputBorder',
+  ),
+  /** Variante «suave» con tinte de marca (acciones de listado, menos peso que primary). */
+  soft: cn(
+    'bg-brand-primary/10 text-brand-primary font-semibold border border-brand-primary/20',
+    'hover:bg-brand-primary/15 hover:border-brand-primary/35',
+    'dark:text-[#ff8a4d]',
+  ),
 }
 
 const sizeStyles = {
-  sm: 'h-8 px-3 text-xs gap-1.5',
-  md: 'h-9 px-4 text-sm gap-2',
-  lg: 'h-11 px-6 text-base gap-2',
-  icon: 'h-9 w-9 p-0',
+  sm: 'h-8 px-3 text-xs gap-1.5 rounded-lg',
+  md: 'h-9 px-4 text-sm gap-2 rounded-xl',
+  lg: 'h-11 px-5 text-[15px] gap-2 rounded-xl',
+  icon: 'h-9 w-9 p-0 rounded-xl',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -55,24 +70,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const gradientClass =
-      variant === 'gradientPrimary'
-        ? primaryGradientCtaClassName
-        : variant === 'gradientSecondary'
-          ? secondaryGradientCtaClassName
-          : null
+    const resolved = variant === 'gradientPrimary' ? 'primary' : variant === 'gradientSecondary' ? 'soft' : variant
 
     const composedClassName = cn(
-      'inline-flex items-center justify-center',
-      gradientClass
-        ? cn('outline-none disabled:opacity-50 disabled:pointer-events-none', gradientClass)
-        : cn(
-            'rounded-xl transition-colors duration-150',
-            appFocusRingClassName,
-            'disabled:opacity-50 disabled:pointer-events-none',
-            variantStyles[variant],
-            sizeStyles[size],
-          ),
+      'inline-flex select-none items-center justify-center whitespace-nowrap',
+      'transition-[background-color,border-color,color,box-shadow,transform,filter] duration-200 ease-out-expo',
+      'active:scale-[0.98] motion-reduce:active:scale-100',
+      appFocusRingClassName,
+      'disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none',
+      variantStyles[resolved],
+      sizeStyles[size],
       className,
     )
 

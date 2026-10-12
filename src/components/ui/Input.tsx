@@ -1,6 +1,5 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
-import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
@@ -24,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          <label htmlFor={inputId} className="text-xs font-medium text-ink-secondary">
             {label}
             {props.required && (
               <span className={cn('ml-1', trainerCtaAccentTextClassName)}>*</span>
@@ -43,15 +42,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             className={cn(
-              'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
+              'w-full rounded-xl border border-surface-inputBorder bg-surface-input shadow-xs',
               'text-ink-primary placeholder:text-ink-muted text-sm',
               'px-3 py-2.5 h-10',
-              'transition-colors duration-150',
-              appFocusRingClassName,
-              'focus-visible:border-brand-secondary',
+              'transition-[border-color,box-shadow] duration-200',
+              'hover:border-ink-muted/50',
+              'focus:outline-none focus-visible:border-brand-primary/70 focus-visible:ring-4 focus-visible:ring-brand-primary/15',
               'disabled:opacity-50 disabled:cursor-not-allowed',
               error &&
-                'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/25',
+                'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/15',
               leftIcon && 'pl-9',
               rightIcon && 'pr-9',
               className
@@ -99,7 +98,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          <label htmlFor={inputId} className="text-xs font-medium text-ink-secondary">
             {label}
             {props.required && (
               <span className={cn('ml-1', trainerCtaAccentTextClassName)}>*</span>
@@ -110,15 +109,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
+            'w-full rounded-xl border border-surface-inputBorder bg-surface-input shadow-xs',
             'text-ink-primary placeholder:text-ink-muted text-sm',
             'px-3 py-2.5 min-h-[80px] resize-y',
-            'transition-colors duration-150',
-            appFocusRingClassName,
-            'focus-visible:border-brand-secondary',
+            'transition-[border-color,box-shadow] duration-200',
+            'hover:border-ink-muted/50',
+            'focus:outline-none focus-visible:border-brand-primary/70 focus-visible:ring-4 focus-visible:ring-brand-primary/15',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error &&
-              'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/25',
+              'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/15',
             className
           )}
           {...props}
@@ -148,7 +147,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+          <label htmlFor={inputId} className="text-xs font-medium text-ink-secondary">
             {label}
             {props.required && (
               <span className={cn('ml-1', trainerCtaAccentTextClassName)}>*</span>
@@ -160,15 +159,15 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              'w-full rounded-xl bg-surface-input border border-surface-inputBorder/85',
+              'w-full rounded-xl border border-surface-inputBorder bg-surface-input shadow-xs',
               'text-ink-primary text-sm',
               'pl-3 pr-10 py-2.5 h-10',
-              'transition-colors duration-150 appearance-none cursor-pointer',
-              appFocusRingClassName,
-              'focus-visible:border-brand-secondary',
+              'transition-[border-color,box-shadow] duration-200 appearance-none cursor-pointer',
+              'hover:border-ink-muted/50',
+              'focus:outline-none focus-visible:border-brand-primary/70 focus-visible:ring-4 focus-visible:ring-brand-primary/15',
               'disabled:opacity-50 disabled:cursor-not-allowed',
               error &&
-                'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/25',
+                'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/15',
               className
             )}
             {...props}

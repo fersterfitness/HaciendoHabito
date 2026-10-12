@@ -49,7 +49,7 @@ function BlockExerciseRows({
   onJumpWeek?: (weekIdx: number) => void
 }) {
   const labelCol = (
-    <div className="flex w-[4.75rem] shrink-0 items-center justify-center border-r border-black/15 px-0.5 text-center text-[7px] font-bold uppercase leading-tight text-zinc-600 dark:border-white/15 dark:text-zinc-300">
+    <div className="flex w-[4.75rem] shrink-0 items-center justify-center border-r border-black/15 px-0.5 text-center text-[7px] font-bold uppercase leading-tight text-ink-secondary dark:border-white/15">
       {DATA_LABEL}
     </div>
   )
@@ -57,7 +57,7 @@ function BlockExerciseRows({
   return (
     <>
       {block.exercises.map((row, exIdx) => (
-        <tr key={row.key} className="bg-zinc-100 dark:bg-zinc-900">
+        <tr key={row.key} className="bg-surface-elevated">
           <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 align-middle text-[11px] font-semibold uppercase leading-tight text-white">
             {row.exerciseName}
           </td>
@@ -86,7 +86,7 @@ function BlockExerciseRows({
                     : {})}
                 >
                   {exIdx === 0 ? labelCol : <div className="w-[4.75rem] shrink-0 border-r border-black/15 dark:border-white/15" aria-hidden />}
-                  <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                  <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-1.5 text-center text-[11px] font-semibold tabular-nums text-ink-primary">
                     {cell?.trim() || ''}
                   </div>
                 </div>
@@ -133,7 +133,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
             <h2 id="progression-guide-title" className="truncate text-base font-bold text-white">
               Guía semanal — {routineName}
             </h2>
-            <p className="mt-0.5 text-xs text-zinc-400">
+            <p className="mt-0.5 text-xs text-ink-muted">
               Días y semanas · CIRCUITO o INDIVIDUAL · aclaración/descanso · series/reps/peso.
               {onJumpToWeek ? ' Tocá una celda para corregir esa semana en la rutina.' : ''}
             </p>
@@ -154,7 +154,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-zinc-700 p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              className="rounded-lg border border-zinc-700 p-2 text-ink-muted hover:bg-zinc-800 hover:text-white"
               aria-label="Cerrar guía"
             >
               <X className="h-5 w-5" />
@@ -164,7 +164,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
 
         <div className="min-h-0 flex-1 overflow-auto p-2 sm:p-4 space-y-8">
           {sections.length === 0 ? (
-            <p className="text-sm text-zinc-400">Agregá semanas y días para ver la guía.</p>
+            <p className="text-sm text-ink-muted">Agregá semanas y días para ver la guía.</p>
           ) : (
             sections.map((section) => {
               const jumpWeek = onJumpToWeek
@@ -222,7 +222,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                                 key={i}
                                 className={cn(
                                   'border-b border-zinc-700 px-2 py-2 text-center text-[10px] font-semibold uppercase leading-snug',
-                                  i % 2 === 0 ? 'bg-zinc-400 text-zinc-900' : 'bg-brand-primary/75 text-white',
+                                  i % 2 === 0 ? 'bg-zinc-400 text-ink-primary' : 'bg-brand-primary/75 text-white',
                                 )}
                               >
                                 {note?.trim() || ''}

@@ -177,14 +177,14 @@ function RoutinesFiltersDropdown({
             type="button"
             onClick={onClick}
             className={cn(
-              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-zinc-800 transition-colors',
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-ink-primary transition-colors',
               activeCount > 0
-                ? 'border-zinc-300/90 bg-zinc-100/80 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100'
-                : 'border-zinc-200/70 bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+                ? 'border-surface-inputBorder/90 bg-surface-elevated/80 dark:text-zinc-100'
+                : 'border-surface-border/70 bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 dark:text-zinc-200 ',
             )}
             {...a11y}
           >
-            <Filter className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            <Filter className="h-4 w-4 text-ink-muted " aria-hidden />
             Filtrar
             {activeCount > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
@@ -196,7 +196,7 @@ function RoutinesFiltersDropdown({
         )}
       >
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Nivel</p>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted ">Nivel</p>
             {(['', 'inicial', 'intermedio', 'avanzado'] as RoutineLevelFilter[]).map((v) => (
               <button
                 key={v || 'all-nivel'}
@@ -205,8 +205,8 @@ function RoutinesFiltersDropdown({
                 className={cn(
                   'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                   filterLevel === v
-                    ? 'bg-slate-500/12 font-medium text-zinc-900 dark:bg-slate-400/14 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                    ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14 dark:text-zinc-50'
+                    : 'text-ink-secondary hover:bg-surface-elevated/60 ',
                 )}
               >
                 {v === '' ? 'Todos' : LEVEL_LABELS[v]}
@@ -214,8 +214,8 @@ function RoutinesFiltersDropdown({
             ))}
           </div>
 
-          <div className="border-t border-zinc-200/65 pt-2 dark:border-zinc-800/80">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Estado rutina</p>
+          <div className="border-t border-surface-border/65 pt-2 ">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Estado rutina</p>
             {([{ value: '' as RoutineStatusFilter, label: 'Todos' }, ...ROUTINE_STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))]).map(
               (opt) => (
                 <button
@@ -225,8 +225,8 @@ function RoutinesFiltersDropdown({
                   className={cn(
                     'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                     filterStatus === opt.value
-                      ? 'bg-slate-500/12 font-medium text-zinc-900 dark:bg-slate-400/14 dark:text-zinc-50'
-                      : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                      ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14 dark:text-zinc-50'
+                      : 'text-ink-secondary hover:bg-surface-elevated/60 ',
                   )}
                 >
                   {opt.label}
@@ -243,7 +243,7 @@ function RoutinesFiltersDropdown({
                 setFilterStatus('')
                 setOpen(false)
               }}
-              className="flex w-full items-center justify-center gap-1 border-t border-zinc-200/65 pt-2 text-xs text-zinc-500 transition-colors hover:text-rose-600 dark:border-zinc-800/80 dark:hover:text-rose-400"
+              className="flex w-full items-center justify-center gap-1 border-t border-surface-border/65 pt-2 text-xs text-ink-muted transition-colors hover:text-rose-600 dark:hover:text-rose-400"
             >
               <X className="h-3 w-3" />
               Limpiar filtros
@@ -273,18 +273,18 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
             title={selectedLabel}
             onClick={onClick}
             className={cn(
-              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200/70 px-3.5 text-sm font-medium text-zinc-800 transition-colors',
-              'bg-transparent hover:border-zinc-300 hover:bg-zinc-50/80 dark:border-zinc-700/80 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40',
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-surface-border/70 px-3.5 text-sm font-medium text-ink-primary transition-colors',
+              'bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 ',
             )}
             {...a11y}
           >
-            <ArrowDownUp className="h-4 w-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+            <ArrowDownUp className="h-4 w-4 text-ink-muted " aria-hidden />
             Ordenar
             <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')} />
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Orden del listado</p>
+          <p className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Orden del listado</p>
           {ROUTINE_SORT_OPTS.map((opt) => (
             <button
               key={opt.value}
@@ -296,8 +296,8 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
               className={cn(
                 'w-full rounded-md px-2.5 py-2 text-left text-xs transition-colors',
                 opt.value === value
-                  ? 'bg-zinc-200/85 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                  : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60',
+                  ? 'bg-surface-border/85 font-medium text-ink-primary dark:text-zinc-50'
+                  : 'text-ink-secondary hover:bg-surface-elevated/60 ',
               )}
             >
               {opt.label}
@@ -615,7 +615,7 @@ export function RoutinesPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
               <div className="relative min-h-10 min-w-0 flex-1">
                 <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
-                  <Search className="h-4 w-4 text-zinc-400 dark:text-zinc-500" aria-hidden />
+                  <Search className="h-4 w-4 text-ink-muted " aria-hidden />
                 </span>
                 <input
                   ref={searchRef}
@@ -627,11 +627,11 @@ export function RoutinesPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className={cn(
-                    'h-10 w-full rounded-md border border-zinc-200/75 bg-transparent pl-10 pr-3 text-[14px] text-zinc-900 outline-none shadow-none',
-                    'placeholder:text-zinc-400',
-                    'focus-visible:border-zinc-300 focus-visible:ring-1 focus-visible:ring-zinc-300/50',
-                    'dark:border-zinc-700/80 dark:text-zinc-100 dark:placeholder:text-zinc-500',
-                    'dark:focus-visible:border-zinc-600 dark:focus-visible:ring-zinc-600/35',
+                    'h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-[14px] text-ink-primary outline-none shadow-none',
+                    'placeholder:text-ink-muted',
+                    'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50',
+                    ' dark:text-zinc-100 ',
+                    ' ',
                   )}
                 />
               </div>
@@ -646,11 +646,11 @@ export function RoutinesPage() {
                 <RoutinesSortDropdown value={tableSort} onChange={setTableSort} />
 
                 {filterLevel && (
-                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary dark:text-zinc-100">
                     {LEVEL_LABELS[filterLevel]}
                     <button
                       type="button"
-                      className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                      className="text-ink-muted hover:text-ink-primary "
                       aria-label="Quitar filtro nivel"
                       onClick={() => setFilterLevel('')}
                     >
@@ -659,11 +659,11 @@ export function RoutinesPage() {
                   </span>
                 )}
                 {filterStatus && (
-                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-zinc-200/75 px-2.5 text-xs font-medium text-zinc-900 dark:border-zinc-700/80 dark:text-zinc-100">
+                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary dark:text-zinc-100">
                     {phraseRoutineStatus(filterStatus)}
                     <button
                       type="button"
-                      className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                      className="text-ink-muted hover:text-ink-primary "
                       aria-label="Quitar filtro estado"
                       onClick={() => setFilterStatus('')}
                     >

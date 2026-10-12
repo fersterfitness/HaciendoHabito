@@ -337,7 +337,7 @@ export function StudentHabitsPanel({
           type="button"
           onClick={() => setShowLibrary(true)}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border border-zinc-200/80 bg-zinc-50/80 px-2.5 py-1.5 text-xs font-medium text-zinc-800 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:hover:bg-zinc-800',
+            'inline-flex items-center gap-1.5 rounded-md border border-surface-border/80 bg-surface-elevated/80 px-2.5 py-1.5 text-xs font-medium text-ink-primary transition-colors hover:bg-surface-elevated dark:text-zinc-100 ',
             !toolbarLeading && 'ml-auto',
           )}
         >
@@ -351,36 +351,36 @@ export function StudentHabitsPanel({
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-lg border border-zinc-200/75 bg-zinc-50/50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950/40">
+          <div className="flex items-center justify-between rounded-lg border border-surface-border/75 bg-surface-elevated/50 px-3 py-2 ">
             <button
               type="button"
               onClick={prevMonth}
-              className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
               aria-label="Mes anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold capitalize text-zinc-900 dark:text-zinc-50">{monthLabel(year, month)}</span>
+            <span className="text-sm font-semibold capitalize text-ink-primary dark:text-zinc-50">{monthLabel(year, month)}</span>
             <button
               type="button"
               onClick={nextMonth}
-              className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
               aria-label="Mes siguiente"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/75 bg-surface-card p-4 dark:border-zinc-700/65">
+          <div className="rounded-2xl border border-surface-border/75 bg-surface-card p-4 ">
             <CheckInHabitsCharts studentId={studentId} />
           </div>
 
           <details
             open={evolutionOpen}
             onToggle={(e) => setEvolutionOpen(e.currentTarget.open)}
-            className="group overflow-hidden rounded-xl border border-zinc-200/75 bg-surface-card dark:border-zinc-700/65"
+            className="group overflow-hidden rounded-xl border border-surface-border/75 bg-surface-card "
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-elevated/80 [&::-webkit-details-marker]:hidden">
               <div className="flex min-w-0 items-center gap-2">
                 <TrendingUp className="h-4 w-4 shrink-0 text-brand-tertiary" aria-hidden />
                 <div className="min-w-0">
@@ -395,9 +395,9 @@ export function StudentHabitsPanel({
             </summary>
 
             {/* ── 2-column layout: chart left · changes right ── */}
-            <div className="grid gap-0 border-t border-zinc-200/60 dark:border-zinc-800/80 md:grid-cols-2">
+            <div className="grid gap-0 border-t border-surface-border/60 md:grid-cols-2">
               {/* Left: bar chart */}
-              <div className="px-4 pb-4 pt-3 md:border-r md:border-zinc-200/60 md:dark:border-zinc-800/80">
+              <div className="px-4 pb-4 pt-3 md:border-r md:border-surface-border/60 ">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                   Promedio mensual (12 meses)
                 </p>
@@ -435,12 +435,12 @@ export function StudentHabitsPanel({
                           if (!active || !payload?.length) return null
                           const p = payload[0].payload as (typeof evolutionMonthly)[number]
                           return (
-                            <div className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-left text-xs shadow-lg dark:border-zinc-600 dark:bg-zinc-950">
-                              <p className="font-semibold text-zinc-900 dark:text-zinc-50">{p.labelShort}</p>
-                              <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                                Hábitos activos: <span className="font-medium text-zinc-800 dark:text-zinc-200">{p.activeCount}</span>
+                            <div className="rounded-md border border-surface-border bg-white px-3 py-2 text-left text-xs shadow-lg dark:bg-zinc-950">
+                              <p className="font-semibold text-ink-primary dark:text-zinc-50">{p.labelShort}</p>
+                              <p className="mt-1 text-ink-secondary ">
+                                Hábitos activos: <span className="font-medium text-ink-primary ">{p.activeCount}</span>
                               </p>
-                              <p className="text-zinc-600 dark:text-zinc-400">
+                              <p className="text-ink-secondary ">
                                 Promedio:{' '}
                                 <span className="tabular-nums font-medium text-brand-secondary">
                                   {p.avgPct != null ? `${p.avgPct}%` : '—'}
@@ -468,14 +468,14 @@ export function StudentHabitsPanel({
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                   Últimos cambios (alta / baja)
                 </p>
-                <div className="flex-1 overflow-y-auto rounded-lg border border-zinc-200/70 dark:border-zinc-800" style={{ maxHeight: '13rem' }}>
+                <div className="flex-1 overflow-y-auto rounded-lg border border-surface-border/70 " style={{ maxHeight: '13rem' }}>
                   {evolutionEventsSortedDesc.length === 0 ? (
                     <p className="p-4 text-xs leading-relaxed text-ink-muted">
                       Todavía no hay altas ni bajas registradas desde esta versión.
                     </p>
                   ) : (
                     <table className="w-full text-xs">
-                      <thead className="sticky top-0 z-10 bg-zinc-50/95 text-zinc-600 backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-400">
+                      <thead className="sticky top-0 z-10 bg-surface-elevated/95 text-ink-secondary backdrop-blur-sm ">
                         <tr>
                           <th className="px-3 py-2 text-left font-semibold">Fecha</th>
                           <th className="px-3 py-2 text-left font-semibold">Cambio</th>
@@ -486,7 +486,7 @@ export function StudentHabitsPanel({
                         {evolutionEventsSortedDesc.slice(0, 40).map((ev) => {
                           const habit = habits.find((h) => h.id === ev.habit_id)
                           return (
-                            <tr key={ev.id} className="border-t border-zinc-200/55 dark:border-zinc-800/80">
+                            <tr key={ev.id} className="border-t border-surface-border/55 ">
                               <td className="whitespace-nowrap px-3 py-2 tabular-nums text-ink-muted">
                                 {formatDate(ev.created_at, 'dd/MM/yyyy HH:mm')}
                               </td>
@@ -522,7 +522,7 @@ export function StudentHabitsPanel({
           </details>
 
           {activeHabits.length === 0 ? (
-            <div className="space-y-3 rounded-lg border border-zinc-200/75 bg-zinc-50/40 p-6 text-center dark:border-zinc-700 dark:bg-zinc-950/40">
+            <div className="space-y-3 rounded-lg border border-surface-border/75 bg-surface-elevated/40 p-6 text-center dark:bg-zinc-950/40">
               <p className="text-2xl" aria-hidden>
                 📋
               </p>
@@ -571,7 +571,7 @@ export function StudentHabitsPanel({
                   )}>
                     {overallPct}%
                   </p>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-border ">
                     <div
                       className={cn('h-full rounded-full transition-all', overallPct >= 70 ? 'bg-emerald-500' : overallPct >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
                       style={{ width: `${overallPct}%` }}
@@ -582,7 +582,7 @@ export function StudentHabitsPanel({
 
                 {/* Per-habit tiles */}
                 {stats.map(({ habit, done, total, pct: p }) => (
-                  <div key={habit.id} className="flex flex-col gap-2 rounded-xl border border-zinc-200/75 bg-surface-card p-4 dark:border-zinc-700/65">
+                  <div key={habit.id} className="flex flex-col gap-2 rounded-xl border border-surface-border/75 bg-surface-card p-4 ">
                     <div className="flex items-center justify-between">
                       <p className="truncate text-[11px] font-medium text-ink-secondary">{habit.name}</p>
                       <HabitIcon name={habit.emoji} className="shrink-0 text-ink-muted" />
@@ -593,7 +593,7 @@ export function StudentHabitsPanel({
                     )}>
                       {p}%
                     </p>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-border ">
                       <div
                         className={cn('h-full rounded-full transition-all', p >= 70 ? 'bg-emerald-500' : p >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
                         style={{ width: `${p}%` }}
@@ -604,12 +604,12 @@ export function StudentHabitsPanel({
                 ))}
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-zinc-200/75 dark:border-zinc-700">
+              <div className="overflow-hidden rounded-lg border border-surface-border/75 ">
                 <div className="overflow-x-auto">
                   <table className="min-w-full border-collapse">
                     <thead>
                       <tr>
-                        <th className="sticky left-0 z-10 min-w-[130px] border-b border-r border-zinc-200/70 bg-zinc-100 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                        <th className="sticky left-0 z-10 min-w-[130px] border-b border-r border-surface-border/70 bg-surface-elevated px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-secondary ">
                           Hábito
                         </th>
                         {dayNums.map((d) => {
@@ -618,26 +618,26 @@ export function StudentHabitsPanel({
                             <th
                               key={d}
                               className={cn(
-                                'min-w-[28px] border-b border-zinc-200/70 px-0 py-2 text-center text-[10px] font-medium dark:border-zinc-700',
-                                isToday ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-950 dark:text-zinc-500',
+                                'min-w-[28px] border-b border-surface-border/70 px-0 py-2 text-center text-[10px] font-medium ',
+                                isToday ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-surface-elevated/60 text-ink-muted ',
                               )}
                             >
                               {d}
                             </th>
                           )
                         })}
-                        <th className="min-w-[52px] border-b border-l border-zinc-200/70 bg-zinc-50 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
+                        <th className="min-w-[52px] border-b border-l border-surface-border/70 bg-surface-elevated/60 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-ink-muted ">
                           %
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {stats.map(({ habit, pct: p }, rowIdx) => (
-                        <tr key={habit.id} className={rowIdx % 2 === 0 ? 'bg-white dark:bg-zinc-950/30' : 'bg-zinc-50/70 dark:bg-zinc-900/25'}>
+                        <tr key={habit.id} className={rowIdx % 2 === 0 ? 'bg-white ' : 'bg-surface-elevated/70 '}>
                           <td
                             className={cn(
-                              'sticky left-0 z-10 max-w-[130px] truncate border-r border-zinc-200/70 px-3 py-1.5 text-xs font-medium dark:border-zinc-700',
-                              rowIdx % 2 === 0 ? 'bg-white dark:bg-zinc-950/30' : 'bg-zinc-50/90 dark:bg-zinc-900/25',
+                              'sticky left-0 z-10 max-w-[130px] truncate border-r border-surface-border/70 px-3 py-1.5 text-xs font-medium ',
+                              rowIdx % 2 === 0 ? 'bg-white ' : 'bg-surface-elevated/90 ',
                             )}
                           >
                             <HabitIcon name={habit.emoji} className="mr-1.5 shrink-0 text-ink-muted" />
@@ -657,7 +657,7 @@ export function StudentHabitsPanel({
                                     'mx-auto flex h-5 w-5 items-center justify-center rounded-md transition-all',
                                     doneCell
                                       ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
-                                      : 'border border-zinc-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 dark:border-zinc-600',
+                                      : 'border border-surface-inputBorder hover:border-emerald-500/50 hover:bg-emerald-500/10 ',
                                   )}
                                   aria-label={doneCell ? 'Quitar día' : 'Marcar día'}
                                 >
@@ -666,7 +666,7 @@ export function StudentHabitsPanel({
                               </td>
                             )
                           })}
-                          <td className="border-l border-zinc-200/70 px-2 py-1.5 text-center dark:border-zinc-700">
+                          <td className="border-l border-surface-border/70 px-2 py-1.5 text-center ">
                             <span
                               className={cn(
                                 'text-xs font-bold tabular-nums',
@@ -683,7 +683,7 @@ export function StudentHabitsPanel({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-200/75 p-4 dark:border-zinc-700/65">
+              <div className="rounded-xl border border-surface-border/75 p-4 ">
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Detalle del mes · {monthLabel(year, month)}</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {stats.map(({ habit, done, total, pct: p }) => (
@@ -699,7 +699,7 @@ export function StudentHabitsPanel({
                             {done}/{total}
                           </span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                        <div className="h-2 overflow-hidden rounded-full bg-surface-border ">
                           <div
                             className={cn('h-full rounded-full transition-all duration-500', p >= 70 ? 'bg-emerald-500' : p >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
                             style={{ width: `${p}%` }}
@@ -843,8 +843,8 @@ function HabitLibraryModal({
   return (
     <div className="fixed inset-0 z-[10050] flex items-end justify-center sm:items-center">
       <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Cerrar" onClick={onClose} />
-      <div className="relative flex max-h-[80vh] w-full flex-col rounded-t-2xl border border-zinc-200 bg-surface-card shadow-lg sm:max-w-md sm:rounded-2xl dark:border-zinc-700 dark:shadow-xl">
-        <div className="flex items-center justify-between border-b border-zinc-200/80 px-4 pb-3 pt-4 dark:border-zinc-800">
+      <div className="relative flex max-h-[80vh] w-full flex-col rounded-t-2xl border border-surface-border bg-surface-card shadow-lg sm:max-w-md sm:rounded-2xl dark:shadow-xl">
+        <div className="flex items-center justify-between border-b border-surface-border/80 px-4 pb-3 pt-4 ">
           <h3 className="text-sm font-semibold text-ink-primary">Gestionar hábitos</h3>
           <button type="button" onClick={onClose} className="text-ink-muted hover:text-ink-primary">
             <X className="h-4 w-4" />
@@ -859,13 +859,13 @@ function HabitLibraryModal({
             const isSel = selectedIds.has(h.id)
             const tol = toggling === h.id
             return (
-              <div key={h.id} className="flex min-w-0 items-stretch rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+              <div key={h.id} className="flex min-w-0 items-stretch rounded-lg bg-surface-elevated/60 ">
                 <button
                   type="button"
                   onClick={() => toggleSelection(h.id)}
                   disabled={tol}
                   className={cn(
-                    'flex min-w-0 flex-1 items-center gap-3 rounded-l-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100/80 disabled:opacity-60 dark:hover:bg-zinc-800/50',
+                    'flex min-w-0 flex-1 items-center gap-3 rounded-l-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-elevated/80 disabled:opacity-60 ',
                   )}
                   aria-pressed={isSel}
                   aria-label={isSel ? `Quitar a ${h.name} del alumno` : `Agregar ${h.name} al alumno`}
@@ -873,7 +873,7 @@ function HabitLibraryModal({
                   <span
                     className={cn(
                       'pointer-events-none flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors',
-                      isSel ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-zinc-300 dark:border-zinc-600',
+                      isSel ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-surface-inputBorder ',
                     )}
                     aria-hidden
                   >
@@ -886,7 +886,7 @@ function HabitLibraryModal({
                 <button
                   type="button"
                   onClick={() => deleteHabit(h.id)}
-                  className="shrink-0 rounded-r-lg border-l border-zinc-200/80 px-3 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500 dark:border-zinc-700/80"
+                  className="shrink-0 rounded-r-lg border-l border-surface-border/80 px-3 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500 "
                   aria-label={`Eliminar hábito ${h.name} de la biblioteca`}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -896,7 +896,7 @@ function HabitLibraryModal({
           })}
         </div>
 
-        <div className="space-y-3 border-t border-zinc-200/80 px-4 py-3 dark:border-zinc-800">
+        <div className="space-y-3 border-t border-surface-border/80 px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Nuevo hábito</p>
           {/* Icon picker grid */}
           <div className="grid grid-cols-10 gap-1">
@@ -912,7 +912,7 @@ function HabitLibraryModal({
                     'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors',
                     newEmoji === iconName
                       ? 'border-brand-secondary/40 bg-brand-secondary/10 text-brand-secondary'
-                      : 'border-zinc-200 bg-zinc-50 text-ink-muted hover:border-zinc-300 hover:text-ink-primary dark:border-zinc-700 dark:bg-zinc-900/50',
+                      : 'border-surface-border bg-surface-elevated/60 text-ink-muted hover:border-surface-inputBorder hover:text-ink-primary',
                   )}
                 >
                   {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -923,7 +923,7 @@ function HabitLibraryModal({
           <div className="flex gap-2">
             <input
               placeholder="Nombre del hábito…"
-              className="flex-1 rounded-xl border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus:border-emerald-500 dark:border-zinc-600 dark:bg-zinc-900"
+              className="flex-1 rounded-xl border border-surface-inputBorder bg-surface-elevated/60 px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus:border-emerald-500"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {

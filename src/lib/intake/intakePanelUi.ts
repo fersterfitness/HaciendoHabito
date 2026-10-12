@@ -23,7 +23,7 @@ export function intakePanelSurfaceClass(theme: 'light' | 'dark') {
 export function intakePanelSegmentSelectedClass(theme: 'light' | 'dark') {
   return theme === 'dark'
     ? cn('!text-white border-white/25 bg-white/[0.08] font-semibold ring-1 ring-white/15')
-    : cn('border-surface-border bg-surface-elevated font-semibold text-ink-primary ring-1 ring-zinc-300/60')
+    : cn('border-surface-border bg-surface-elevated font-semibold text-ink-primary ring-1 ring-surface-inputBorder/60')
 }
 
 export function intakePanelSegmentIdleClass(theme: 'light' | 'dark') {

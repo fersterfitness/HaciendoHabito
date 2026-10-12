@@ -47,6 +47,7 @@ import {
   webPlanFullSubcategoryLabel,
   webPlanSegmentMismatchHint,
 } from '@/lib/webPlanFullSubcategory'
+import { confirmDialog } from '@/components/ui/dialogs'
 
 type EditableWebPlan = Pick<
   WebPlan,
@@ -709,9 +710,11 @@ export function WebPlansSettingsPage() {
       toast.error('Esta oferta forma parte del catálogo base de /form (7 planes). Podés editarla, no borrarla.')
       return
     }
-    const ok = window.confirm(
-      `¿Borrar la oferta «${slug}» de la base? No se puede deshacer. Si un alumno tenía este plan asignado, quedará sin plan (la referencia se limpia).`,
-    )
+    const ok = await confirmDialog({
+      title: `¿Borrar la oferta «${slug}»?`,
+      description: 'No se puede deshacer. Si un alumno tenía este plan asignado, quedará sin plan (la referencia se limpia).',
+      confirmLabel: 'Borrar',
+    })
     if (!ok) return
     setDeletingSlug(slug)
     try {

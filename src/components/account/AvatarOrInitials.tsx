@@ -43,7 +43,7 @@ export function AvatarOrInitials({
         'relative inline-flex shrink-0 items-center justify-center overflow-hidden font-bold uppercase tracking-tight',
         rounded === 'full' ? 'rounded-full' : 'rounded-xl',
         sizeClasses[size],
-        showImg ? 'bg-black/5 dark:bg-white/10' : cn('bg-zinc-300 text-zinc-900 dark:bg-white/12 dark:text-white', fallbackClassName),
+        showImg ? 'bg-black/5 dark:bg-white/10' : cn('bg-zinc-300 text-ink-primary dark:bg-white/12 dark:text-white', fallbackClassName),
         className,
       )}
     >

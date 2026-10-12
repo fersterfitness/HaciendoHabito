@@ -289,7 +289,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
       </div>
 
       {canManage ? (
-        <div className="flex flex-wrap items-end gap-3 border-b border-zinc-200/45 border-dashed pb-4 dark:border-zinc-700/65">
+        <div className="flex flex-wrap items-end gap-3 border-b border-surface-border/45 border-dashed pb-4 ">
           <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted shrink-0">
             Mes
             <input
@@ -317,7 +317,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
             loading={uploading}
             disabled={uploading}
             variant="outline"
-            className="border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800/45"
+            className="border-surface-inputBorder text-ink-secondary hover:bg-surface-elevated/60 dark:text-zinc-200 "
             onClick={() => fileInputRef.current?.click()}
           >
             Seleccionar foto
@@ -339,13 +339,13 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
             const monthUrls: string[] = []
             return (
               <div key={ym}>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{formatYmLabel(ym)}</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-ink-muted ">{formatYmLabel(ym)}</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                   {rows.map((ph, photoIdx) => {
                     return (
                       <figure
                         key={ph.id}
-                        className="relative group aspect-[3/4] overflow-hidden rounded-xl border border-zinc-200/55 bg-zinc-100/20 dark:border-zinc-800/65 dark:bg-zinc-950/40 cursor-pointer"
+                        className="relative group aspect-[3/4] overflow-hidden rounded-xl border border-surface-border/55 bg-surface-elevated/20 cursor-pointer"
                       >
                         {ph.storage_path ? (
                           <ProgressPhotoImage

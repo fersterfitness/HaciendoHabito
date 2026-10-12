@@ -49,7 +49,7 @@ export function HabitsPage() {
           </label>
           <select
             id="habits-alumno"
-            className="w-full max-w-md rounded-md border border-zinc-200/80 bg-transparent px-3 py-2.5 text-sm text-ink-primary outline-none focus-visible:border-emerald-500/50 dark:border-zinc-700 dark:focus-visible:border-emerald-500/40"
+            className="w-full max-w-md rounded-md border border-surface-border/80 bg-transparent px-3 py-2.5 text-sm text-ink-primary outline-none focus-visible:border-emerald-500/50 dark:focus-visible:border-emerald-500/40"
             value={selectedStudent}
             onChange={(e) => {
               const v = e.target.value

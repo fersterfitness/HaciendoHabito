@@ -20,8 +20,8 @@ export function incomeLedgerStatusClass(status: string): string {
     case 'pendiente':
       return 'text-status-expiring'
     case 'anulado':
-      return 'text-zinc-500 line-through dark:text-zinc-500'
+      return 'text-ink-muted line-through'
     default:
-      return 'text-zinc-500'
+      return 'text-ink-muted'
   }
 }

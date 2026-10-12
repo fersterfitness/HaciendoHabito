@@ -55,6 +55,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
 import type { Json, Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MuscleGroup, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
 import toast from 'react-hot-toast'
+import { Modal } from '@/components/ui/Modal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1579,64 +1580,61 @@ export function RoutineDetailPage() {
       )}
 
       {blueprintModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBlueprintModalOpen(false)} />
-          <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-ink-primary">Guardar variante preestablecida</h3>
-              <button type="button" onClick={() => setBlueprintModalOpen(false)} className="text-ink-muted hover:text-ink-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-xs text-ink-secondary mb-3">
-              Se guarda la estructura de semanas, días y ejercicios. Después la asignás a un alumno desde su ficha (macrociclo → mesociclo → variante).
-            </p>
-            <div className="space-y-2">
-              <Input
-                label="Nombre de la variante *"
-                placeholder="Ej: Empuje 4 días"
-                value={blueprintName}
-                onChange={(e) => setBlueprintName(e.target.value)}
-                className="text-sm"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  label="Macrociclo"
-                  placeholder="Ej: Hipertrofia 12 semanas"
-                  value={blueprintCategory}
-                  onChange={(e) => setBlueprintCategory(e.target.value)}
-                  className="text-sm"
-                />
-                <Input
-                  label="Mesociclo"
-                  placeholder="Ej: Acumulación"
-                  value={blueprintSubcategory}
-                  onChange={(e) => setBlueprintSubcategory(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-              <Textarea
-                label="Nota (opcional)"
-                placeholder="Cuándo usarla, recordatorios…"
-                value={blueprintDesc}
-                onChange={(e) => setBlueprintDesc(e.target.value)}
-                rows={2}
-                className="text-xs"
-              />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button type="button" variant="secondary" className="flex-1" onClick={() => setBlueprintModalOpen(false)}>Cancelar</Button>
-              <Button
-                className="flex-1"
-                loading={savingBlueprint}
-                disabled={!blueprintName.trim() || totalExercises === 0}
-                onClick={saveRoutineAsBlueprint}
-              >
-                Guardar variante
-              </Button>
-            </div>
-          </div>
+        <Modal open onClose={() => setBlueprintModalOpen(false)} size="md" bare className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-ink-primary">Guardar variante preestablecida</h3>
+          <button type="button" onClick={() => setBlueprintModalOpen(false)} className="text-ink-muted hover:text-ink-primary">
+            <X className="h-4 w-4" />
+          </button>
         </div>
+        <p className="text-xs text-ink-secondary mb-3">
+          Se guarda la estructura de semanas, días y ejercicios. Después la asignás a un alumno desde su ficha (macrociclo → mesociclo → variante).
+        </p>
+        <div className="space-y-2">
+          <Input
+            label="Nombre de la variante *"
+            placeholder="Ej: Empuje 4 días"
+            value={blueprintName}
+            onChange={(e) => setBlueprintName(e.target.value)}
+            className="text-sm"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              label="Macrociclo"
+              placeholder="Ej: Hipertrofia 12 semanas"
+              value={blueprintCategory}
+              onChange={(e) => setBlueprintCategory(e.target.value)}
+              className="text-sm"
+            />
+            <Input
+              label="Mesociclo"
+              placeholder="Ej: Acumulación"
+              value={blueprintSubcategory}
+              onChange={(e) => setBlueprintSubcategory(e.target.value)}
+              className="text-sm"
+            />
+          </div>
+          <Textarea
+            label="Nota (opcional)"
+            placeholder="Cuándo usarla, recordatorios…"
+            value={blueprintDesc}
+            onChange={(e) => setBlueprintDesc(e.target.value)}
+            rows={2}
+            className="text-xs"
+          />
+        </div>
+        <div className="flex gap-2 mt-4">
+          <Button type="button" variant="secondary" className="flex-1" onClick={() => setBlueprintModalOpen(false)}>Cancelar</Button>
+          <Button
+            className="flex-1"
+            loading={savingBlueprint}
+            disabled={!blueprintName.trim() || totalExercises === 0}
+            onClick={saveRoutineAsBlueprint}
+          >
+            Guardar variante
+          </Button>
+        </div>
+        </Modal>
       )}
 
       <RoutineProgressionGuidePanel
@@ -3029,136 +3027,133 @@ function ExercisePicker({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[80vh] flex flex-col shadow-lg">
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
-          <div>
-            <h3 className="text-sm font-semibold text-ink-primary">{title}</h3>
-            {subtitle ? <p className="text-[11px] text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
-          </div>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-primary shrink-0"><X className="h-4 w-4" /></button>
+    <Modal open onClose={onClose} size="lg" bare className="max-h-[80vh] flex flex-col">
+    <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
+      <div>
+        <h3 className="text-sm font-semibold text-ink-primary">{title}</h3>
+        {subtitle ? <p className="text-[11px] text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
+      </div>
+      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary shrink-0"><X className="h-4 w-4" /></button>
+    </div>
+    <div className="px-4 py-3">
+      <input
+        autoFocus
+        placeholder="Buscar por nombre o grupo muscular..."
+        className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+    </div>
+    <div className="overflow-y-auto flex-1 px-4 pb-2">
+      {loading ? (
+        <div className="flex justify-center py-8"><Spinner /></div>
+      ) : filtered !== null ? (
+        filtered.length === 0
+          ? <p className="text-center text-ink-muted text-sm py-8">Sin resultados para "{search}"</p>
+          : <div className="space-y-1">{filtered.map((ex) => <ExerciseItem key={ex.id} ex={ex} onSelect={onSelect} />)}</div>
+      ) : (
+        <div className="space-y-1.5">
+          {groups.map((group) => (
+            <div key={group.id} className="border border-surface-border rounded-xl overflow-hidden">
+              <button
+                onClick={() =>
+                  setOpenGroups((prev) => {
+                    const next = new Set(prev)
+                    if (next.has(group.id)) next.delete(group.id)
+                    else next.add(group.id)
+                    return next
+                  })
+                }
+                className="w-full flex items-center justify-between px-3 py-2.5 bg-surface-elevated hover:bg-surface-card transition-colors"
+              >
+                <span className="text-xs font-semibold text-ink-primary">{group.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-ink-muted">{group.exercises.length}</span>
+                  {openGroups.has(group.id) ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
+                </div>
+              </button>
+              {openGroups.has(group.id) && (
+                <div className="divide-y divide-surface-border">
+                  {group.exercises.map((ex) => <ExerciseItem key={ex.id} ex={ex} onSelect={onSelect} inGroup />)}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-        <div className="px-4 py-3">
+      )}
+    </div>
+    <div className="border-t border-surface-border px-4 py-3">
+      {showNewForm === null ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowNewForm('exercise')}
+            className="flex-1 flex items-center justify-center gap-2 text-xs text-brand-primary hover:text-brand-primary/80 py-2 border border-dashed border-brand-primary/30 rounded-xl hover:border-brand-primary/60 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" /> Crear ejercicio nuevo
+          </button>
+          <button
+            onClick={() => setShowNewForm('category')}
+            className="flex-1 flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-ink-primary py-2 border border-dashed border-surface-border rounded-xl hover:border-surface-border/80 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" /> Nueva categoría
+          </button>
+        </div>
+      ) : showNewForm === 'exercise' ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-ink-primary">Nuevo ejercicio</span>
+            <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+          </div>
           <input
             autoFocus
-            placeholder="Buscar por nombre o grupo muscular..."
-            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nombre del ejercicio *"
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
           />
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+              value={newGroupId}
+              onChange={(e) => setNewGroupId(e.target.value)}
+            >
+              <option value="">Grupo muscular *</option>
+              {muscleGroupOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+            <select
+              className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+              value={newDifficulty}
+              onChange={(e) => setNewDifficulty(e.target.value as 'basico' | 'intermedio' | 'avanzado')}
+            >
+              <option value="basico">Básico</option>
+              <option value="intermedio">Intermedio</option>
+              <option value="avanzado">Avanzado</option>
+            </select>
+          </div>
+          <Button className="w-full" size="sm" loading={creating} disabled={!newName.trim() || !newGroupId} onClick={createExercise}>
+            Crear y agregar
+          </Button>
         </div>
-        <div className="overflow-y-auto flex-1 px-4 pb-2">
-          {loading ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
-          ) : filtered !== null ? (
-            filtered.length === 0
-              ? <p className="text-center text-ink-muted text-sm py-8">Sin resultados para "{search}"</p>
-              : <div className="space-y-1">{filtered.map((ex) => <ExerciseItem key={ex.id} ex={ex} onSelect={onSelect} />)}</div>
-          ) : (
-            <div className="space-y-1.5">
-              {groups.map((group) => (
-                <div key={group.id} className="border border-surface-border rounded-xl overflow-hidden">
-                  <button
-                    onClick={() =>
-                      setOpenGroups((prev) => {
-                        const next = new Set(prev)
-                        if (next.has(group.id)) next.delete(group.id)
-                        else next.add(group.id)
-                        return next
-                      })
-                    }
-                    className="w-full flex items-center justify-between px-3 py-2.5 bg-surface-elevated hover:bg-surface-card transition-colors"
-                  >
-                    <span className="text-xs font-semibold text-ink-primary">{group.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-ink-muted">{group.exercises.length}</span>
-                      {openGroups.has(group.id) ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
-                    </div>
-                  </button>
-                  {openGroups.has(group.id) && (
-                    <div className="divide-y divide-surface-border">
-                      {group.exercises.map((ex) => <ExerciseItem key={ex.id} ex={ex} onSelect={onSelect} inGroup />)}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-ink-primary">Nueva categoría</span>
+            <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+          </div>
+          <input
+            autoFocus
+            placeholder="Nombre de la categoría *"
+            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+          />
+          <Button className="w-full" size="sm" loading={creatingCategory} disabled={!newCategoryName.trim()} onClick={createCategory}>
+            Crear categoría
+          </Button>
         </div>
-        <div className="border-t border-surface-border px-4 py-3">
-          {showNewForm === null ? (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowNewForm('exercise')}
-                className="flex-1 flex items-center justify-center gap-2 text-xs text-brand-primary hover:text-brand-primary/80 py-2 border border-dashed border-brand-primary/30 rounded-xl hover:border-brand-primary/60 transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" /> Crear ejercicio nuevo
-              </button>
-              <button
-                onClick={() => setShowNewForm('category')}
-                className="flex-1 flex items-center justify-center gap-2 text-xs text-ink-muted hover:text-ink-primary py-2 border border-dashed border-surface-border rounded-xl hover:border-surface-border/80 transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" /> Nueva categoría
-              </button>
-            </div>
-          ) : showNewForm === 'exercise' ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-ink-primary">Nuevo ejercicio</span>
-                <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
-              </div>
-              <input
-                autoFocus
-                placeholder="Nombre del ejercicio *"
-                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
-                  value={newGroupId}
-                  onChange={(e) => setNewGroupId(e.target.value)}
-                >
-                  <option value="">Grupo muscular *</option>
-                  {muscleGroupOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
-                <select
-                  className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
-                  value={newDifficulty}
-                  onChange={(e) => setNewDifficulty(e.target.value as 'basico' | 'intermedio' | 'avanzado')}
-                >
-                  <option value="basico">Básico</option>
-                  <option value="intermedio">Intermedio</option>
-                  <option value="avanzado">Avanzado</option>
-                </select>
-              </div>
-              <Button className="w-full" size="sm" loading={creating} disabled={!newName.trim() || !newGroupId} onClick={createExercise}>
-                Crear y agregar
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-ink-primary">Nueva categoría</span>
-                <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
-              </div>
-              <input
-                autoFocus
-                placeholder="Nombre de la categoría *"
-                className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-              />
-              <Button className="w-full" size="sm" loading={creatingCategory} disabled={!newCategoryName.trim()} onClick={createCategory}>
-                Crear categoría
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
+    </Modal>
   )
 }
 

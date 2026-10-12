@@ -8,6 +8,7 @@ import { RoutineSourcePicker, type RoutineSourceOption } from '@/components/rout
 import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
 import { withBlueprintMeta } from '@/lib/routine/blueprintFolders'
 import type { RoutineBlueprint } from '@/types/database'
+import { Modal } from '@/components/ui/Modal'
 
 type BlocksForBlueprint = Parameters<typeof serializeBlocksToBlueprint>[0]
 
@@ -131,68 +132,65 @@ export function BlueprintFromStudentRoutineModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border border-surface-border bg-surface-card p-4 shadow-lg sm:max-w-lg sm:rounded-2xl">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
-        <h3 className="mt-1 text-sm font-semibold text-ink-primary">Copiar desde rutina de un alumno</h3>
-        <p className="mt-1 text-[11px] text-ink-secondary">
-          Elegí la rutina, ubicala en una carpeta y se abre el editor para modificarla. La rutina del alumno no cambia.
-        </p>
+    <Modal open onClose={onClose} size="lg" bare className="max-h-[92vh] overflow-y-auto p-4">
+    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
+    <h3 className="mt-1 text-sm font-semibold text-ink-primary">Copiar desde rutina de un alumno</h3>
+    <p className="mt-1 text-[11px] text-ink-secondary">
+      Elegí la rutina, ubicala en una carpeta y se abre el editor para modificarla. La rutina del alumno no cambia.
+    </p>
 
-        <div className="mt-4">
-          {loading ? (
-            <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
-          ) : (
-            <RoutineSourcePicker routines={routines} value={routineId} onChange={pick} includeLibrary={false} />
-          )}
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label className="text-[11px] font-medium text-ink-secondary sm:col-span-2">
-            Nombre de la variante
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: estándar" className={inputCls} />
-          </label>
-          <label className="text-[11px] font-medium text-ink-secondary">
-            Macrociclo (carpeta)
-            <input list="bp-from-student-categories" value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} />
-          </label>
-          <label className="text-[11px] font-medium text-ink-secondary">
-            Mesociclo
-            <input list="bp-from-student-subcategories" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={inputCls} />
-          </label>
-          <label className="text-[11px] font-medium text-ink-secondary sm:col-span-2">
-            Rutina (carpeta, opcional)
-            <input value={routineGroup} onChange={(e) => setRoutineGroup(e.target.value)} className={inputCls} />
-          </label>
-        </div>
-        <datalist id="bp-from-student-categories">
-          {knownCategories.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-        <datalist id="bp-from-student-subcategories">
-          {knownSubcategories.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-
-        <div className="mt-4 flex gap-2">
-          <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            className="flex-1"
-            disabled={!routineId || !name.trim() || saving}
-            loading={saving}
-            icon={<Copy className="h-3.5 w-3.5" />}
-            onClick={() => void save()}
-          >
-            Copiar y editar
-          </Button>
-        </div>
-      </div>
+    <div className="mt-4">
+      {loading ? (
+        <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
+      ) : (
+        <RoutineSourcePicker routines={routines} value={routineId} onChange={pick} includeLibrary={false} />
+      )}
     </div>
+
+    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <label className="text-[11px] font-medium text-ink-secondary sm:col-span-2">
+        Nombre de la variante
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: estándar" className={inputCls} />
+      </label>
+      <label className="text-[11px] font-medium text-ink-secondary">
+        Macrociclo (carpeta)
+        <input list="bp-from-student-categories" value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} />
+      </label>
+      <label className="text-[11px] font-medium text-ink-secondary">
+        Mesociclo
+        <input list="bp-from-student-subcategories" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={inputCls} />
+      </label>
+      <label className="text-[11px] font-medium text-ink-secondary sm:col-span-2">
+        Rutina (carpeta, opcional)
+        <input value={routineGroup} onChange={(e) => setRoutineGroup(e.target.value)} className={inputCls} />
+      </label>
+    </div>
+    <datalist id="bp-from-student-categories">
+      {knownCategories.map((c) => (
+        <option key={c} value={c} />
+      ))}
+    </datalist>
+    <datalist id="bp-from-student-subcategories">
+      {knownSubcategories.map((c) => (
+        <option key={c} value={c} />
+      ))}
+    </datalist>
+
+    <div className="mt-4 flex gap-2">
+      <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
+        Cancelar
+      </Button>
+      <Button
+        type="button"
+        className="flex-1"
+        disabled={!routineId || !name.trim() || saving}
+        loading={saving}
+        icon={<Copy className="h-3.5 w-3.5" />}
+        onClick={() => void save()}
+      >
+        Copiar y editar
+      </Button>
+    </div>
+    </Modal>
   )
 }

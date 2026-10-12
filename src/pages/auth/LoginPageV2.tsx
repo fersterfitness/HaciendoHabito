@@ -143,7 +143,7 @@ export function LoginPageV2() {
   }
 
   return (
-    <div className="loginv2-root relative min-h-screen overflow-hidden bg-zinc-200 dark:bg-zinc-900">
+    <div className="loginv2-root relative min-h-screen overflow-hidden bg-surface-border ">
       {/* Keyframes locales — no contaminan el global */}
       <style>{`
         @keyframes loginv2-mesh-a { 0%,100% { transform: translate(-12%, -8%) scale(1) } 50% { transform: translate(8%, 6%) scale(1.18) } }
@@ -354,7 +354,7 @@ export function LoginPageV2() {
                 onClick={toggleTheme}
                 className={cn(
                   'flex h-9 w-9 items-center justify-center rounded-full border',
-                  'border-zinc-200 text-zinc-500 transition-colors hover:border-zinc-400 hover:text-zinc-800',
+                  'border-surface-border text-ink-muted transition-colors hover:border-surface-inputBorder hover:text-ink-primary',
                   'dark:border-white/10 dark:text-white/55 dark:hover:border-white/25 dark:hover:text-white',
                 )}
                 title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
@@ -383,10 +383,10 @@ export function LoginPageV2() {
                   />
                 </div>
 
-                <h1 className="loginv2-fade-up loginv2-d3 text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+                <h1 className="loginv2-fade-up loginv2-d3 text-4xl font-extrabold tracking-tight text-ink-primary dark:text-white sm:text-5xl">
                   Bienvenido
                 </h1>
-                <p className="loginv2-fade-up loginv2-d4 mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="loginv2-fade-up loginv2-d4 mt-2 text-sm text-ink-muted">
                   Accedé a tu panel de entrenamiento y nutrición
                 </p>
 
@@ -414,7 +414,7 @@ export function LoginPageV2() {
                         <button
                           type="button"
                           onClick={() => setShowPassword((v) => !v)}
-                          className="text-zinc-400 transition-colors hover:text-zinc-700 dark:hover:text-white"
+                          className="text-ink-muted transition-colors hover:text-ink-secondary dark:hover:text-white"
                           aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -439,7 +439,7 @@ export function LoginPageV2() {
                   </div>
                 </form>
 
-                <p className="loginv2-fade-up loginv2-d6 mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="loginv2-fade-up loginv2-d6 mt-6 text-center text-sm text-ink-muted">
                   ¿Querés ser parte del equipo?{' '}
                   <Link
                     to="/v2/form"
@@ -451,7 +451,7 @@ export function LoginPageV2() {
               </div>
             </div>
 
-            <p className="mt-auto pt-4 text-center text-[10px] text-zinc-400 dark:text-zinc-600">
+            <p className="mt-auto pt-4 text-center text-[10px] text-ink-muted">
               {new Date().getFullYear()} Haciéndolo Hábito
             </p>
           </div>

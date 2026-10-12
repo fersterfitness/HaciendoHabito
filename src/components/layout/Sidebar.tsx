@@ -52,7 +52,7 @@ const railFocusRing = cn(
 )
 
 const railNavIdleClassName = cn(
-  'text-zinc-500 hover:text-zinc-900',
+  'text-ink-muted hover:text-ink-primary',
   'dark:text-white/40 dark:hover:text-white/90',
 )
 
@@ -305,7 +305,7 @@ function RailIconButton({
           'transition-colors duration-150',
           railFocusRing,
           danger
-            ? 'text-zinc-400 hover:bg-status-expired/10 hover:text-status-expired dark:text-white/35 dark:hover:bg-status-expired/12'
+            ? 'text-ink-muted hover:bg-status-expired/10 hover:text-status-expired dark:text-white/35 dark:hover:bg-status-expired/12'
             : railNavIdleClassName,
         )}
       >
@@ -350,7 +350,7 @@ export function Sidebar() {
             to="/dashboard"
             className={cn(
               'relative z-[1] flex size-9 shrink-0 items-center justify-center rounded-lg outline-none transition-colors',
-              'hover:bg-zinc-200/80 dark:hover:bg-white/8',
+              'hover:bg-surface-border/80 dark:hover:bg-white/8',
               railFocusRing,
             )}
             aria-label="Inicio"

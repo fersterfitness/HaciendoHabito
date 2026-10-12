@@ -82,7 +82,7 @@ async function syncAppointmentGoogleCalendar(appointmentId: string): Promise<str
           <p className="text-xs text-ink-secondary leading-relaxed">{body}</p>
           <button
             type="button"
-            className="self-end px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-400"
+            className="self-end px-2 py-1 text-xs font-medium text-ink-secondary"
             onClick={() => toast.dismiss(toastId.id)}
           >
             Entendido
@@ -147,7 +147,7 @@ const STATUS_LABEL_ES: Record<AppointmentStatus, string> = {
 /** Badges: gris base + tintes suaves por estado (legible sin gritar). */
 const STATUS_BADGE: Record<AppointmentStatus, string> = {
   scheduled:
-    'border-zinc-300/65 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/50 dark:bg-zinc-500/[0.12] dark:text-zinc-200',
+    'border-surface-inputBorder/65 bg-zinc-500/[0.08] text-ink-primary dark:bg-zinc-500/[0.12]',
   confirmed:
     'bg-brand-primary/[0.1] text-ink-primary dark:text-brand-primary/95 border-brand-primary/30',
   completed:
@@ -704,7 +704,7 @@ export function AppointmentsPage() {
                   Para pedir confirmación por WhatsApp (primera fecha de la serie), agregá el teléfono del alumno en su ficha.
                   <button
                     type="button"
-                    className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                    className="mt-2 text-xs font-medium text-ink-secondary underline-offset-2 hover:underline "
                     onClick={() => toast.dismiss(t.id)}
                   >
                     Entendido
@@ -801,7 +801,7 @@ export function AppointmentsPage() {
               Para pedir confirmación por WhatsApp, agregá el teléfono del alumno en su ficha.
               <button
                 type="button"
-                className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                className="mt-2 text-xs font-medium text-ink-secondary underline-offset-2 hover:underline "
                 onClick={() => toast.dismiss(t.id)}
               >
                 Entendido
@@ -960,7 +960,7 @@ export function AppointmentsPage() {
               Sesión marcada como completada. Para pedir feedback por WhatsApp, cargá el teléfono en la ficha del alumno.
               <button
                 type="button"
-                className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                className="mt-2 text-xs font-medium text-ink-secondary underline-offset-2 hover:underline "
                 onClick={() => toast.dismiss(t.id)}
               >
                 Entendido
@@ -986,7 +986,7 @@ export function AppointmentsPage() {
               Turno confirmado. Para enviar el mensaje de preparación por WhatsApp, cargá el teléfono en la ficha del alumno.
               <button
                 type="button"
-                className="mt-2 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-400"
+                className="mt-2 text-xs font-medium text-ink-secondary underline-offset-2 hover:underline "
                 onClick={() => toast.dismiss(t.id)}
               >
                 Entendido
@@ -1112,7 +1112,7 @@ export function AppointmentsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 border-zinc-300/80 px-3 text-xs text-zinc-800 hover:border-zinc-400/90 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/80"
+                  className="h-8 border-surface-inputBorder/80 px-3 text-xs text-ink-primary hover:border-surface-inputBorder/90 hover:bg-surface-elevated "
                   onClick={handleGoToday}
                 >
                   Hoy
@@ -1178,7 +1178,7 @@ export function AppointmentsPage() {
                       value={upcomingStatusFilter}
                       onChange={(e) => setUpcomingStatusFilter(e.target.value as 'all' | 'scheduled' | 'confirmed')}
                       aria-labelledby="appt-status-label"
-                      className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 dark:border-zinc-600 dark:bg-zinc-900/40"
+                      className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 dark:bg-zinc-900/40"
                     >
                       <option value="all">Programado o confirmado</option>
                       <option value="scheduled">Solo programados</option>
@@ -1189,7 +1189,7 @@ export function AppointmentsPage() {
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted leading-none">
                       Videollamada
                     </span>
-                    <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary dark:border-zinc-600 dark:bg-zinc-900/40">
+                    <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary dark:bg-zinc-900/40">
                       <input
                         type="checkbox"
                         checked={studentVideoOnly}
@@ -1211,7 +1211,7 @@ export function AppointmentsPage() {
                     variant="outline"
                     size="sm"
                     icon={<Download className="h-3.5 w-3.5" aria-hidden />}
-                    className="h-9 w-full whitespace-nowrap border-zinc-300/80 px-3 text-xs sm:w-auto dark:border-zinc-600"
+                    className="h-9 w-full whitespace-nowrap border-surface-inputBorder/80 px-3 text-xs sm:w-auto "
                     onClick={exportVisibleWeekToIcs}
                   >
                     Exportar .ics
@@ -1219,7 +1219,7 @@ export function AppointmentsPage() {
                 </div>
               )}
             </div>
-            <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-[10px] leading-relaxed text-ink-muted dark:border-zinc-700/80">
+            <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-[10px] leading-relaxed text-ink-muted ">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500/85" aria-hidden />
               <span>
                 <span className="font-medium text-ink-secondary">Tip:</span>{' '}
@@ -1281,7 +1281,7 @@ export function AppointmentsPage() {
                         <span className={cn(
                           'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold mb-1',
                           today
-                            ? 'bg-zinc-500/[0.12] text-zinc-900 ring-2 ring-zinc-400/45 dark:bg-zinc-500/[0.2] dark:text-zinc-100 dark:ring-zinc-500/40'
+                            ? 'bg-zinc-500/[0.12] text-ink-primary ring-2 ring-zinc-400/45 dark:bg-zinc-500/[0.2] dark:ring-zinc-500/40'
                             : 'text-ink-secondary',
                         )}>
                           {format(day, 'd')}
@@ -1302,7 +1302,7 @@ export function AppointmentsPage() {
                                         ? 'border-brand-primary/35 bg-brand-primary/[0.14] text-ink-primary dark:text-brand-primary/95'
                                         : a.status === 'scheduled'
                                           ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
-                                          : 'border-zinc-300/70 bg-zinc-500/[0.08] text-zinc-900 dark:border-zinc-600/55 dark:bg-zinc-500/[0.14] dark:text-zinc-200',
+                                          : 'border-surface-inputBorder/70 bg-zinc-500/[0.08] text-ink-primary dark:bg-zinc-500/[0.14] ',
                                     )}
                                   >
                                     {format(parseISO(a.starts_at), 'HH:mm')}{' '}
@@ -1351,14 +1351,14 @@ export function AppointmentsPage() {
                       className={cn(
                         'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
                         dayIsToday
-                          ? 'border-zinc-300/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:border-zinc-600 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
+                          ? 'border-surface-inputBorder/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
                           : 'border-surface-border bg-surface-elevated/50',
                       )}
                     >
                       <p
                         className={cn(
                           'text-[11px] uppercase tracking-wide',
-                          dayIsToday ? 'font-semibold text-zinc-800 dark:text-zinc-300' : 'text-ink-secondary',
+                          dayIsToday ? 'font-semibold text-ink-primary dark:text-zinc-300' : 'text-ink-secondary',
                         )}
                       >
                         {format(day, 'EEE', { locale: es })}
@@ -1368,7 +1368,7 @@ export function AppointmentsPage() {
                           </span>
                         ) : null}
                       </p>
-                      <p className={cn('text-sm font-semibold', dayIsToday ? 'text-zinc-950 dark:text-zinc-50' : 'text-ink-primary')}>
+                      <p className={cn('text-sm font-semibold', dayIsToday ? 'text-ink-primary ' : 'text-ink-primary')}>
                         {format(day, 'd')}
                       </p>
                       <div className="mt-2 space-y-1.5">
@@ -1440,14 +1440,14 @@ export function AppointmentsPage() {
                     className={cn(
                       'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
                       dayIsToday
-                        ? 'border-zinc-300/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:border-zinc-600 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
+                        ? 'border-surface-inputBorder/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
                         : 'border-surface-border bg-surface-elevated/50',
                     )}
                   >
                     <p
                       className={cn(
                         'text-[11px] uppercase tracking-wide',
-                        dayIsToday ? 'font-semibold text-zinc-800 dark:text-zinc-300' : 'text-ink-secondary',
+                        dayIsToday ? 'font-semibold text-ink-primary dark:text-zinc-300' : 'text-ink-secondary',
                       )}
                     >
                       {format(day, 'EEE', { locale: es })}
@@ -1457,7 +1457,7 @@ export function AppointmentsPage() {
                         </span>
                       ) : null}
                     </p>
-                    <p className={cn('text-sm font-semibold', dayIsToday ? 'text-zinc-950 dark:text-zinc-50' : 'text-ink-primary')}>
+                    <p className={cn('text-sm font-semibold', dayIsToday ? 'text-ink-primary ' : 'text-ink-primary')}>
                       {format(day, 'd')}
                     </p>
                     <div className="mt-2 space-y-1.5">
@@ -1486,7 +1486,7 @@ export function AppointmentsPage() {
                                     ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
                                     : a.status === 'scheduled'
                                       ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
-                                      : 'border border-zinc-200/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-zinc-600/75 dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
+                                      : 'border border-surface-border/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
                                 )}
                                 {...a11y}
                               >
@@ -1878,7 +1878,7 @@ export function AppointmentsPage() {
             <Button
               variant="secondary"
               size="sm"
-              className="border-zinc-200/90 bg-zinc-100/80 font-semibold text-zinc-900 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/70 dark:text-zinc-50 dark:hover:bg-zinc-800"
+              className="border-surface-border/90 bg-surface-elevated/80 font-semibold text-ink-primary hover:bg-surface-elevated "
               onClick={() => void createAppointment()}
               loading={creating}
             >

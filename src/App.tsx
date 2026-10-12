@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { DialogHost } from '@/components/ui/dialogs'
 import { useAuthInit } from '@/hooks/useAuth'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/stores/authStore'
@@ -365,6 +366,7 @@ export default function App() {
       >
         <AppRoutes />
         <ThemedToaster />
+        <DialogHost />
       </BrowserRouter>
     </ThemeProvider>
   )

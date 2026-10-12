@@ -69,7 +69,7 @@ export function PagosTab({
   const now           = new Date()
   const thisMonthKey  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
-  const ultimoPago    = payments.find((p) => p.status === 'cobrado')
+  const ultimoPago = payments.find((p) => p.status === 'cobrado')
 
   const METHOD_LABEL: Record<string, string> = Object.fromEntries(
     PAYMENT_METHODS.map((m) => [m.value, m.label]),
@@ -78,14 +78,14 @@ export function PagosTab({
   return (
     <div className="space-y-4">
       {/* ── Cuota mensual ── */}
-      <div className="border-b border-zinc-200/60 pb-4 dark:border-zinc-800/60">
+      <div className="border-b border-surface-border/60 pb-4 dark:border-zinc-800/60">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <p className="text-xs font-semibold text-zinc-600 uppercase tracking-wide dark:text-zinc-400">Plan de cuota mensual</p>
+          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide ">Plan de cuota mensual</p>
           {!editingCuota && (
             <button
               type="button"
               onClick={() => { setCuotaInput(String(cuota ?? '')); setEditingCuota(true) }}
-              className="text-[11px] font-semibold text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+              className="text-[11px] font-semibold text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline "
             >
               {cuota ? 'Modificar' : 'Configurar'}
             </button>
@@ -103,7 +103,7 @@ export function PagosTab({
               onChange={(e) => setCuotaInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && saveCuota()}
               placeholder="Ej: 15000"
-              className="w-36 rounded-xl border border-zinc-300 bg-zinc-50 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-400/40 dark:border-zinc-600 dark:bg-zinc-950/50"
+              className="w-36 rounded-xl border border-surface-inputBorder bg-surface-elevated/60 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-400/40 "
             />
             <Button size="sm" variant="secondary" loading={savingCuota} onClick={() => void saveCuota()}>
               Guardar
@@ -112,12 +112,12 @@ export function PagosTab({
           </div>
         ) : cuota ? (
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(cuota)}<span className="ml-1 text-sm font-normal text-zinc-500">/ mes</span></p>
+            <p className="text-2xl font-bold text-ink-primary dark:text-zinc-50">{formatCurrency(cuota)}<span className="ml-1 text-sm font-normal text-ink-muted">/ mes</span></p>
             {(() => {
               const now = new Date()
               const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
               const pagadoEsteMes = payments.some((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
-              const totalEsteMes  = payments.filter((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey)).reduce((s, p) => s + p.amount, 0)
+              const totalEsteMes = payments.filter((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey)).reduce((s, p) => s + p.amount, 0)
               return (
                 <div className="text-right">
                   {pagadoEsteMes ? (
@@ -138,13 +138,13 @@ export function PagosTab({
       </div>
 
       {/* Estado de cuenta */}
-      <div className="grid grid-cols-3 gap-px border border-zinc-200/70 bg-zinc-200/70 dark:border-zinc-800 dark:bg-zinc-800">
-        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Total cobrado</p>
-          <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(totalCobrado)}</p>
+      <div className="grid grid-cols-3 gap-px border border-surface-border/70 bg-surface-border/70 ">
+        <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Total cobrado</p>
+          <p className="text-lg font-bold text-ink-primary ">{formatCurrency(totalCobrado)}</p>
         </div>
-        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Este mes</p>
+        <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Este mes</p>
           <p
             className={cn(
               'text-sm font-medium',
@@ -154,15 +154,15 @@ export function PagosTab({
             {pagadoEsteMes ? 'Al día' : 'Pendiente'}
           </p>
         </div>
-        <div className="bg-zinc-50 px-3 py-3 text-center dark:bg-zinc-950/50">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Último pago</p>
-          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
+        <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Último pago</p>
+          <p className="text-sm font-semibold text-ink-primary ">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
         </div>
       </div>
 
       <section>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/50">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Historial de pagos</h3>
+        <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 pb-3 ">
+          <h3 className="text-sm font-semibold text-ink-primary ">Historial de pagos</h3>
           <Button
             size="sm"
             variant="gradientSecondary"
@@ -181,15 +181,15 @@ export function PagosTab({
             description={`${studentName} todavía no tiene pagos cargados.`}
           />
         ) : (
-          <ul className="divide-y divide-zinc-200/55 dark:divide-zinc-800/60">
+          <ul className="divide-y divide-surface-border/55">
             {payments.map((p) => (
               <li key={p.id} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(p.amount)}</p>
-                  <p className="text-xs text-zinc-500">{p.income_type} · {METHOD_LABEL[p.payment_method] ?? p.payment_method}</p>
+                  <p className="text-sm font-semibold text-ink-primary">{formatCurrency(p.amount)}</p>
+                  <p className="text-xs text-ink-muted">{p.income_type} · {METHOD_LABEL[p.payment_method] ?? p.payment_method}</p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{formatDate(p.income_date)}</p>
+                  <p className="text-xs font-medium text-ink-secondary">{formatDate(p.income_date)}</p>
                   <p className={cn('text-[11px] font-medium', incomeLedgerStatusClass(p.status))}>
                     {incomeStatusPhrase(p.status)}
                   </p>

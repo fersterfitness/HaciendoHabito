@@ -87,7 +87,7 @@ export function NewRoutineModal({
             aria-labelledby="new-routine-modal-title"
             className={cn(
               'fixed z-[10051] flex flex-col overflow-hidden rounded-2xl',
-              'border border-zinc-200/90 dark:border-zinc-600/55',
+              'border border-surface-border/90',
               'shadow-[0_16px_48px_-10px_rgba(15,23,42,0.12)] dark:shadow-[0_20px_52px_-16px_rgba(0,0,0,0.5)]',
               'inset-3 sm:inset-auto',
               'sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-3xl',
@@ -101,19 +101,19 @@ export function NewRoutineModal({
             exit="leave"
           >
             <div
-              className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-200/75 dark:border-zinc-600/45 px-6 py-5 sm:px-10 sm:py-6"
+              className="flex shrink-0 items-start justify-between gap-4 border-b border-surface-border/75 px-6 py-5 sm:px-10 sm:py-6"
               style={modalPanelBg}
             >
               <h2
                 id="new-routine-modal-title"
-                className="pt-0.5 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+                className="pt-0.5 text-xl font-semibold tracking-tight text-ink-primary"
               >
                 {title}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100"
+                className="rounded-xl p-2 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
                 aria-label="Cerrar"
               >
                 <X className="h-5 w-5" />

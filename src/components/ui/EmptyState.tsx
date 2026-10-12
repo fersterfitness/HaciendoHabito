@@ -12,7 +12,7 @@ interface EmptyStateProps {
     icon?: ReactNode
   }
   /** CTA del estado vacío: acento secondary o `outline`. */
-  actionVariant?: 'gradientSecondary' | 'outline'
+  actionVariant?: 'gradientSecondary' | 'soft' | 'primary' | 'outline'
   className?: string
 }
 
@@ -21,22 +21,25 @@ export function EmptyState({
   title,
   description,
   action,
-  actionVariant = 'gradientSecondary',
+  actionVariant = 'soft',
   className,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center py-16 px-6 text-center',
+        'flex animate-slide-up flex-col items-center justify-center px-6 py-16 text-center',
         className
       )}
     >
       {icon && (
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-secondary/25 bg-brand-secondary/10 text-brand-secondary dark:border-brand-secondary/20 dark:bg-brand-secondary/12 [&_svg]:text-brand-secondary">
-          {icon}
+        <div className="relative mb-5">
+          <div aria-hidden className="absolute inset-0 -z-10 scale-150 rounded-full bg-brand-primary/10 blur-2xl" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-surface-border bg-surface-card text-brand-primary shadow-card [&_svg]:h-6 [&_svg]:w-6">
+            {icon}
+          </div>
         </div>
       )}
-      <h3 className="text-base font-semibold text-ink-primary mb-1">{title}</h3>
+      <h3 className="mb-1 text-base font-semibold tracking-tight text-ink-primary">{title}</h3>
       {description && (
         <p className="max-w-sm text-sm leading-relaxed text-ink-secondary">{description}</p>
       )}

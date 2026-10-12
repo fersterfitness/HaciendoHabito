@@ -6,6 +6,6 @@ import { cn } from '@/lib/utils'
  */
 export const appFocusRingClassName = cn(
   'focus:outline-none',
-  'focus-visible:ring-2 focus-visible:ring-brand-secondary/45 focus-visible:ring-offset-2',
-  'focus-visible:ring-offset-[rgb(var(--surface-base))] dark:focus-visible:ring-offset-zinc-900',
+  'focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2',
+  'focus-visible:ring-offset-[rgb(var(--surface-base))]',
 )
