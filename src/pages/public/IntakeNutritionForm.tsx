@@ -374,11 +374,11 @@ export function IntakeNutritionForm({
               <FieldLabel>Tabaquismo</FieldLabel>
               <div className="flex gap-4 mt-1">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-zinc-600 dark:accent-zinc-500" {...register('smoking')} />
+                  <input type="radio" value="no" className="" {...register('smoking')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="si" className="accent-zinc-600 dark:accent-zinc-500" {...register('smoking')} />
+                  <input type="radio" value="si" className="" {...register('smoking')} />
                   Sí
                 </label>
               </div>
@@ -430,11 +430,11 @@ export function IntakeNutritionForm({
               <FieldLabel>¿Realizás actividad física?</FieldLabel>
               <div className="flex gap-4 mt-1">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-zinc-600 dark:accent-zinc-500" {...register('has_physical_activity')} />
+                  <input type="radio" value="no" className="" {...register('has_physical_activity')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="si" className="accent-zinc-600 dark:accent-zinc-500" {...register('has_physical_activity')} />
+                  <input type="radio" value="si" className="" {...register('has_physical_activity')} />
                   Sí
                 </label>
               </div>
@@ -698,7 +698,7 @@ export function IntakeNutritionForm({
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input accent-zinc-600 focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card dark:accent-zinc-500"
+                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card dark:"
                 {...register('accept_privacy')}
               />
               <span className="text-sm text-ink-secondary leading-snug">

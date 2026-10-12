@@ -23,7 +23,7 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
           <input
             type="radio"
             value="mercadopago"
-            className="accent-zinc-600 shrink-0 dark:accent-zinc-500"
+            className=" shrink-0 dark:"
             {...register('payment_preference')}
           />
           <img
@@ -36,7 +36,7 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
           <span>Mercado Pago</span>
         </label>
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-secondary">
-          <input type="radio" value="cash" className="accent-zinc-600 shrink-0 dark:accent-zinc-500" {...register('payment_preference')} />
+          <input type="radio" value="cash" className=" shrink-0 dark:" {...register('payment_preference')} />
           <img
             src="/pago-efectivo-mark.png"
             alt=""

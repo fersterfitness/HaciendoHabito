@@ -506,11 +506,11 @@ export function IntakeFersterForm({
               <FieldLabel required>¿Patología o medicamentos?</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-zinc-600 dark:accent-zinc-500" {...register('pathology')} />
+                  <input type="radio" value="no" className="" {...register('pathology')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="yes" className="accent-zinc-600 dark:accent-zinc-500" {...register('pathology')} />
+                  <input type="radio" value="yes" className="" {...register('pathology')} />
                   Sí (detallar abajo y adjuntar estudios en el último paso)
                 </label>
               </div>
@@ -571,11 +571,11 @@ export function IntakeFersterForm({
               <FieldLabel required>¿Consumís suplementos?</FieldLabel>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="no" className="accent-zinc-600 dark:accent-zinc-500" {...register('supplements')} />
+                  <input type="radio" value="no" className="" {...register('supplements')} />
                   No
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" value="yes" className="accent-zinc-600 dark:accent-zinc-500" {...register('supplements')} />
+                  <input type="radio" value="yes" className="" {...register('supplements')} />
                   Sí
                 </label>
               </div>
@@ -712,7 +712,7 @@ export function IntakeFersterForm({
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input accent-zinc-600 focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card dark:accent-zinc-500"
+                className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface-input focus:ring-2 focus:ring-offset-0 focus:ring-offset-surface-card dark:"
                 {...register('accept_privacy')}
               />
               <span className="text-sm text-ink-secondary leading-snug">

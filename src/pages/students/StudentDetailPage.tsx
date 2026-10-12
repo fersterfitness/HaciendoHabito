@@ -1889,7 +1889,7 @@ function FuerzaTab({
                     type="range" min={50} max={100} step={5}
                     value={calcPercent}
                     onChange={(e) => setCalcPercent(Number(e.target.value))}
-                    className="w-full accent-zinc-500 dark:accent-zinc-400"
+                    className="w-full"
                   />
                 </div>
                 <div className="flex items-center justify-between border border-surface-border/80 bg-surface-elevated/60 px-4 py-3 ">

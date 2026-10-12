@@ -2255,7 +2255,7 @@ export function NutritionPlanningPage() {
                 type="checkbox"
                 checked={mealDistribution.includeMidMorning}
                 onChange={(e) => patchMeal('includeMidMorning', e.target.checked)}
-                className="size-4 rounded border-surface-inputBorder text-ink-secondary accent-zinc-600 focus:ring-2 focus:ring-zinc-400/30 dark:accent-zinc-500 "
+                className="size-4 rounded border-surface-inputBorder text-ink-secondary focus:ring-2 focus:ring-zinc-400/30 dark: "
               />
               Incluir media mañana
             </label>
@@ -2264,7 +2264,7 @@ export function NutritionPlanningPage() {
                 type="checkbox"
                 checked={mealDistribution.includeMidAfternoon}
                 onChange={(e) => patchMeal('includeMidAfternoon', e.target.checked)}
-                className="size-4 rounded border-surface-inputBorder text-ink-secondary accent-zinc-600 focus:ring-2 focus:ring-zinc-400/30 dark:accent-zinc-500 "
+                className="size-4 rounded border-surface-inputBorder text-ink-secondary focus:ring-2 focus:ring-zinc-400/30 dark: "
               />
               Incluir media tarde
             </label>

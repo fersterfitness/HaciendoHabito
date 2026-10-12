@@ -1194,7 +1194,7 @@ export function AppointmentsPage() {
                         type="checkbox"
                         checked={studentVideoOnly}
                         onChange={(e) => setStudentVideoOnly(e.target.checked)}
-                        className="h-4 w-4 rounded border-surface-border accent-zinc-600 dark:accent-zinc-500"
+                        className="h-4 w-4 rounded border-surface-border"
                       />
                       Solo con enlace
                     </label>
@@ -1857,7 +1857,7 @@ export function AppointmentsPage() {
                   type="checkbox"
                   checked={recurring}
                   onChange={(e) => setRecurring(e.target.checked)}
-                  className="h-4 w-4 rounded border-surface-border accent-zinc-600 dark:accent-zinc-500"
+                  className="h-4 w-4 rounded border-surface-border"
                 />
                 Repetir semanalmente
               </label>

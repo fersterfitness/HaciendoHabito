@@ -591,7 +591,7 @@ function AddCycleModal({
           type="range" min={21} max={35} step={1}
           value={cycleLen}
           onChange={(e) => setCycleLen(Number(e.target.value))}
-          className="w-full accent-zinc-500 dark:accent-zinc-400"
+          className="w-full"
         />
         <div className="flex justify-between text-3xs text-ink-muted mt-0.5">
           <span>21</span><span>28</span><span>35</span>

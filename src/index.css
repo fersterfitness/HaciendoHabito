@@ -177,6 +177,27 @@
     background: rgb(var(--brand-primary) / 0.22);
   }
 
+  /*
+   * Controles nativos sueltos (selects, inputs, checkboxes armados a mano en páginas):
+   * mismo foco y acento de marca que los componentes. `:where` = especificidad 0,
+   * así cualquier clase Tailwind de la página sigue mandando.
+   */
+  :where(input, select, textarea) {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  :where(input:not([type='checkbox']):not([type='radio']):not([type='range']), select, textarea):focus-visible {
+    outline: none;
+    border-color: rgb(var(--brand-primary) / 0.6);
+    box-shadow: 0 0 0 4px rgb(var(--brand-primary) / 0.14);
+  }
+
+  :where(input[type='checkbox'], input[type='radio'], input[type='range'], progress) {
+    accent-color: rgb(var(--brand-primary));
+  }
+
   @media print {
     body {
       background: white !important;
@@ -350,8 +371,6 @@
   }
 
   .hh-cta {
-    position: relative;
-    isolation: isolate;
     background-image: var(--brand-gradient);
     box-shadow:
       inset 0 1px 0 0 rgb(255 255 255 / 0.28),
