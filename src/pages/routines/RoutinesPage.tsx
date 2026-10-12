@@ -110,9 +110,15 @@ const ROUTINE_SORT_SUBTITLE: Record<RoutineTableSort, string> = {
   end_desc: 'Fin período · lejano primero',
 }
 
+/** Nombre del alumno; si fue eliminado, el que quedó guardado en la rutina. */
+function routineStudentName(r: RoutineWithStudent): string {
+  if (r.student?.full_name) return r.student.full_name
+  return r.former_student_name ? `${r.former_student_name} (eliminado)` : ''
+}
+
 function sortRoutinesList(list: RoutineWithStudent[], sort: RoutineTableSort): RoutineWithStudent[] {
   const copy = [...list]
-  const studentName = (r: RoutineWithStudent) => r.student?.full_name ?? ''
+  const studentName = (r: RoutineWithStudent) => routineStudentName(r)
   const activeRank = (r: RoutineWithStudent) => (r.status === 'activa' || r.status === 'por_vencer' ? 0 : 1)
   const endCmp = (a: RoutineWithStudent, b: RoutineWithStudent) => a.end_date.localeCompare(b.end_date)
   const nameR = (a: RoutineWithStudent, b: RoutineWithStudent) => a.name.localeCompare(b.name, 'es')
@@ -527,7 +533,7 @@ export function RoutinesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return list.filter((r) => {
-      const nm = r.student?.full_name?.toLowerCase() ?? ''
+      const nm = routineStudentName(r).toLowerCase()
       const rn = r.name.toLowerCase()
       if (q && !nm.includes(q) && !rn.includes(q)) return false
       // Las completadas viven en el historial: no se mezclan con activas salvo que se filtre por ese estado.
@@ -745,7 +751,7 @@ export function RoutinesPage() {
                     </thead>
                     <tbody className="divide-y divide-surface-border/70 bg-surface-card">
                       {filteredSorted.map((r, rowIndex) => {
-                        const ci = strColorIdx(r.student?.full_name ?? r.id)
+                        const ci = strColorIdx(routineStudentName(r) || r.id)
                         const colors = ROUTINE_COLORS[ci]
                         return (
                         <tr
@@ -803,15 +809,15 @@ export function RoutinesPage() {
                             className={cn(
                               'hh-row-drop-in max-w-[13rem] px-4 py-2.5 text-[13px] font-normal text-ink-secondary sm:max-w-[15rem] sm:px-5',
                             )}
-                            title={r.student?.full_name ?? undefined}
+                            title={routineStudentName(r) || undefined}
                           >
                             <div className="flex items-center gap-2">
                               <StudentAvatarThumb
                                 storagePath={(r.student as RoutineWithStudent['student'])?.avatar_path}
-                                name={r.student?.full_name ?? '?'}
+                                name={routineStudentName(r) || '?'}
                                 fallbackClassName={cn('text-[10px] font-bold', colors.avatar)}
                               />
-                              <span className="truncate">{r.student?.full_name ?? '—'}</span>
+                              <span className="truncate">{routineStudentName(r) || '—'}</span>
                             </div>
                           </td>
                           <td className={cn('hh-row-drop-in whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5')}>

@@ -20,6 +20,7 @@ import { AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { isMonthlyTemplate, parseQuestions } from '@/lib/checkIn/questions'
 import { monthlyFeedbackInviteMessage, normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
+import { RoutineSourcePicker, type RoutineSourceOption } from '@/components/routines/RoutineSourcePicker'
 
 const schema = z.object({
   student_id: z.string().optional().or(z.literal('')),
@@ -55,7 +56,7 @@ export function RoutineFormContent({
   const { user } = useAuthStore()
   const { createRoutine, updateRoutine } = useRoutines()
   const [students, setStudents] = useState<Student[]>([])
-  const [routineTemplates, setRoutineTemplates] = useState<Array<{ id: string; name: string; student_name?: string | null }>>([])
+  const [routineTemplates, setRoutineTemplates] = useState<RoutineSourceOption[]>([])
   const [templateRoutineId, setTemplateRoutineId] = useState('')
   const [templateBlueprintId, setTemplateBlueprintId] = useState('')
   const [endDate, setEndDate] = useState<string>('')
@@ -135,15 +136,20 @@ export function RoutineFormContent({
     supabase.from('students').select('id, full_name, level').eq('owner_id', user.id).eq('status', 'activo').order('full_name').then(({ data }) => setStudents((data as Student[]) ?? []))
     supabase
       .from('routines')
-      .select('id, name, student:students(full_name)')
+      .select('*, student:students(full_name)')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(500)
       .then(({ data }) => {
-        const items = ((data as Array<{ id: string; name: string; student?: { full_name?: string | null } | null }>) ?? []).map((r) => ({
+        type Row = Omit<RoutineSourceOption, 'student_name'> & { student?: { full_name?: string | null } | null }
+        const items = ((data as Row[]) ?? []).map((r) => ({
           id: r.id,
           name: r.name,
+          student_id: r.student_id,
           student_name: r.student?.full_name ?? null,
+          former_student_name: r.former_student_name ?? null,
+          start_date: r.start_date,
+          created_at: r.created_at,
         }))
         setRoutineTemplates(items)
       })
@@ -513,18 +519,12 @@ export function RoutineFormContent({
               {routineTemplates.length > 0 && !templateBlueprintId ? (
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-ink-primary">Rutina a copiar</label>
-                  <select
+                  <RoutineSourcePicker
+                    routines={routineTemplates}
                     value={templateRoutineId}
-                    onChange={(e) => setTemplateRoutineId(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-200/90 bg-surface-card px-3 py-2.5 text-sm text-ink-primary outline-none focus:border-zinc-400 dark:border-zinc-600/80 dark:focus:border-zinc-500"
-                  >
-                    <option value="">— No copiar —</option>
-                    {routineTemplates.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}{r.student_name ? ` · ${r.student_name}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setTemplateRoutineId}
+                    emptyLabel="No copiar"
+                  />
                 </div>
               ) : null}
               {(templateBlueprintId || templateRoutineId) && (

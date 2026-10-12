@@ -11,8 +11,11 @@ export type LatestWeekStatus = {
 
 const EMPTY: LatestWeekStatus = { finished: false, weekNumber: null, lastWeek: false, submittedAt: null }
 
-/** Último check-in semanal del alumno (ignora feedback mensual). */
-export async function loadLatestWeekStatusForStudent(studentId: string): Promise<LatestWeekStatus> {
+/**
+ * Último check-in semanal del alumno (ignora feedback mensual).
+ * `since`: alta de la rutina; los check-ins previos son de la rutina anterior y no cuentan.
+ */
+export async function loadLatestWeekStatusForStudent(studentId: string, since?: string): Promise<LatestWeekStatus> {
   const { data: invites } = await supabase
     .from('check_in_invites')
     .select('id, form:check_in_forms(questions)')
@@ -38,6 +41,7 @@ export async function loadLatestWeekStatusForStudent(studentId: string): Promise
 
   for (const row of resp ?? []) {
     const r = row as { invite_id: string; submitted_at: string; responses: Json }
+    if (since && new Date(r.submitted_at) < new Date(since)) break
     const qs = questionsByInvite.get(r.invite_id) ?? []
     const obj =
       r.responses && typeof r.responses === 'object' && !Array.isArray(r.responses)

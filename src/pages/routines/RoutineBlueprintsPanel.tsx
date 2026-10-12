@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { ArrowRight, Check, FolderOpen, Library, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { ArrowRight, Check, Copy, FolderOpen, Library, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
@@ -21,6 +21,7 @@ import {
   withBlueprintMeta,
 } from '@/lib/routine/blueprintFolders'
 import { ensureLibraryRoutineForBlueprint } from '@/lib/routine/libraryRoutine'
+import { BlueprintFromStudentRoutineModal } from '@/components/routines/BlueprintFromStudentRoutineModal'
 
 /** Lista de plantillas guardadas desde el detalle de rutina (pestaña dentro de Rutinas). */
 export function RoutineBlueprintsPanel() {
@@ -35,6 +36,8 @@ export function RoutineBlueprintsPanel() {
   const [editSub, setEditSub] = useState('')
   const [savingCat, setSavingCat] = useState(false)
   const [openingId, setOpeningId] = useState<string | null>(null)
+  /** Copiar una rutina de alumno a preestablecidas; `defaults` precarga la carpeta destino. */
+  const [fromStudent, setFromStudent] = useState<{ category?: string; subcategory?: string; routineGroup?: string } | null>(null)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -374,6 +377,9 @@ export function RoutineBlueprintsPanel() {
           <Button size="sm" variant="secondary" icon={<FolderOpen className="h-4 w-4" />} onClick={() => void createFolder('macro')}>
             Nueva carpeta
           </Button>
+          <Button size="sm" variant="secondary" icon={<Copy className="h-4 w-4" />} onClick={() => setFromStudent({})}>
+            Desde rutina de alumno
+          </Button>
           <Button
             size="sm"
             variant="gradientSecondary"
@@ -493,6 +499,16 @@ export function RoutineBlueprintsPanel() {
                                       + Variante
                                     </button>
                                   ) : null}
+                                  {isReal && sub ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setFromStudent({ category: cat, subcategory: sub, routineGroup: rut })}
+                                      className="rounded-lg border border-surface-border px-2 py-0.5 text-[10px] font-semibold text-ink-secondary hover:text-ink-primary"
+                                      title="Copiar una rutina ya asignada a un alumno como variante"
+                                    >
+                                      + Desde alumno
+                                    </button>
+                                  ) : null}
                                 </div>
                               ) : null}
                               <ul className="space-y-2">{realBlueprints(bps).map(renderBlueprint)}</ul>
@@ -518,6 +534,18 @@ export function RoutineBlueprintsPanel() {
           <option key={c} value={c} />
         ))}
       </datalist>
+
+      <BlueprintFromStudentRoutineModal
+        open={!!fromStudent}
+        defaults={fromStudent ?? undefined}
+        knownCategories={knownCategories}
+        knownSubcategories={knownSubcategories}
+        onClose={() => setFromStudent(null)}
+        onCreated={(bp) => {
+          setFromStudent(null)
+          void openLibraryEditor(bp)
+        }}
+      />
 
       <ConfirmDialog
         open={!!deleteId}

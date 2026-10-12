@@ -20,7 +20,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { generateRoutinePdf } from '@/lib/pdf/generateRoutinePdf'
 import { recoverStaleRoutinePdfs } from '@/lib/pdf/routinePdfRecovery'
 import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
-import { formatDate, daysUntil, cn } from '@/lib/utils'
+import { formatDate, cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { ROUTINE_STATUSES } from '@/lib/constants'
 import {
@@ -222,7 +222,7 @@ export function RoutineDetailPage() {
       if (routineData?.student_id) {
         await loadRmLookup(routineData.student_id)
         const student = routineData.student as Student | undefined
-        const weekStatus = await loadLatestWeekStatusForStudent(routineData.student_id)
+        const weekStatus = await loadLatestWeekStatusForStudent(routineData.student_id, routineData.created_at)
         setCheckInWeek(weekStatus)
         if (student?.gender === 'F') {
           const { data: cycleRow } = await supabase
@@ -1166,14 +1166,16 @@ export function RoutineDetailPage() {
     </div>
   )
 
-  const days = daysUntil(routine.end_date)
   const totalExercises = blocks.reduce((sum, b) => sum + b.days.reduce((s, d) => s + d.exercises.length, 0), 0)
-  const isLibrary = !routine.student_id
+  // Sin alumno y sin alumno eliminado = preestablecida.
+  const isLibrary = !routine.student_id && !routine.former_student_name
+  const studentLabel = routine.student?.full_name
+    ?? (routine.former_student_name ? `${routine.former_student_name} (eliminado)` : null)
 
   return (
     <div>
       <Header
-        title={isLibrary ? routine.name : (routine.student?.full_name ?? 'Rutina')}
+        title={isLibrary ? routine.name : (studentLabel ?? 'Rutina')}
         showBack
         actions={
           <div className="flex items-center gap-1.5">
@@ -1340,7 +1342,7 @@ export function RoutineDetailPage() {
                 {isLibrary ? 'Rutina preestablecida' : routine.name}
               </p>
               <h2 className="text-lg font-bold text-ink-primary truncate">
-                {isLibrary ? routine.name : (routine.student?.full_name ?? '—')}
+                {isLibrary ? routine.name : (studentLabel ?? '—')}
               </h2>
             </div>
             <Badge status={routine.status} size="md" />
@@ -1352,35 +1354,28 @@ export function RoutineDetailPage() {
               <span className="text-[10px] text-ink-muted">Inicio</span>
               <span className="text-xs font-semibold text-ink-primary">{formatDate(routine.start_date)}</span>
             </div>
-            <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
-              <Calendar className="h-3.5 w-3.5 text-ink-muted mb-0.5" />
-              <span className="text-[10px] text-ink-muted">Vence</span>
-              <span className="text-xs font-semibold text-ink-primary">{formatDate(routine.end_date)}</span>
-            </div>
             <div className={cn(
               'flex flex-col items-center gap-0.5 rounded-xl p-2.5',
-              days <= 0 ? 'bg-status-expired/10' :
-              days <= 7 ? 'bg-status-expiring/10' : 'bg-surface-elevated'
+              checkInWeek.lastWeek ? 'bg-status-expired/10' : 'bg-surface-elevated',
             )}>
-              <Clock className={cn(
-                'h-3.5 w-3.5 mb-0.5',
-                days <= 0 ? 'text-status-expired' :
-                days <= 7 ? 'text-status-expiring' : 'text-ink-muted'
-              )} />
-              <span className="text-[10px] text-ink-muted">Restantes</span>
-              <span className={cn(
-                'text-xs font-semibold',
-                days <= 0 ? 'text-status-expired' :
-                days <= 7 ? 'text-status-expiring' : 'text-ink-primary'
-              )}>
-                {checkInWeek.lastWeek
-                  ? 'Última sem.'
-                  : checkInWeek.finished
-                    ? 'Cerrada'
-                    : days <= 0
-                      ? 'Revisar fecha'
-                      : `${days}d`}
+              <Clock className={cn('h-3.5 w-3.5 mb-0.5', checkInWeek.lastWeek ? 'text-status-expired' : 'text-ink-muted')} />
+              <span className="text-[10px] text-ink-muted">Semana</span>
+              <span className={cn('text-xs font-semibold', checkInWeek.lastWeek ? 'text-status-expired' : 'text-ink-primary')}>
+                {isLibrary
+                  ? '—'
+                  : checkInWeek.lastWeek
+                    ? 'Última sem.'
+                    : checkInWeek.finished
+                      ? 'Cerrada'
+                      : checkInWeek.weekNumber
+                        ? `${checkInWeek.weekNumber} de ${blocks.length || '?'}`
+                        : 'Sin check-in'}
               </span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
+              <Calendar className="h-3.5 w-3.5 text-ink-muted mb-0.5" />
+              <span className="text-[10px] text-ink-muted">Semanas</span>
+              <span className="text-xs font-semibold text-ink-primary">{blocks.length}</span>
             </div>
             <div className="flex flex-col items-center gap-0.5 bg-surface-elevated rounded-xl p-2.5">
               <span className="text-[10px] text-ink-muted mt-1">Ejercicios</span>

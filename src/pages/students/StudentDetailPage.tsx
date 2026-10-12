@@ -17,7 +17,12 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, formatDate, daysUntil } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
+import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
+import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
+import { loadBlockCountsByRoutine } from '@/lib/checkIn/routineWeekProgress'
+import { loadRmTestWeeksForStudent, markRmTestReminderRead, RM_TEST_EVERY_WEEKS } from '@/lib/checkIn/rmTestReminder'
+import { useTheme } from '@/contexts/ThemeContext'
 import { CicloTab } from './CicloTab'
 import { StudentRoutineNotesPanel } from '@/components/students/StudentRoutineNotesPanel'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
@@ -484,6 +489,54 @@ export function StudentDetailView({
     toast.success('Notas guardadas')
   }
 
+  // Semana de la rutina activa según el formulario semanal (no por fecha de vencimiento).
+  const activeRoutineForWeek = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
+  const [activeRoutineWeek, setActiveRoutineWeek] = useState<{ status: LatestWeekStatus; totalWeeks: number } | null>(null)
+  useEffect(() => {
+    if (!id || !activeRoutineForWeek) {
+      setActiveRoutineWeek(null)
+      return
+    }
+    let cancelled = false
+    void Promise.all([
+      loadLatestWeekStatusForStudent(id, activeRoutineForWeek.created_at),
+      loadBlockCountsByRoutine([activeRoutineForWeek.id]),
+    ]).then(([status, counts]) => {
+      if (!cancelled) setActiveRoutineWeek({ status, totalWeeks: counts.get(activeRoutineForWeek.id) ?? 0 })
+    })
+    return () => {
+      cancelled = true
+    }
+    // Solo recargar cuando cambia la rutina / la base del conteo, no en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, activeRoutineForWeek?.id, activeRoutineForWeek?.created_at])
+
+  // Aviso TESTEAR RM: semanas de rutina desde el último test o «leído».
+  const lastRmTestedAt = rmRecords.reduce<string | null>((max, r) => (!max || r.tested_at > max ? r.tested_at : max), null)
+  const [rmTestWeeks, setRmTestWeeks] = useState<number | null>(null)
+  useEffect(() => {
+    if (!id || !student) return
+    let cancelled = false
+    void loadRmTestWeeksForStudent(id, student.rm_test_reset_at, lastRmTestedAt)
+      .then((w) => { if (!cancelled) setRmTestWeeks(w) })
+      .catch(() => { if (!cancelled) setRmTestWeeks(null) })
+    return () => {
+      cancelled = true
+    }
+    // Solo recargar cuando cambia la rutina / la base del conteo, no en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, student?.rm_test_reset_at, lastRmTestedAt])
+
+  async function markRmTestRead() {
+    if (!id) return
+    const err = await markRmTestReminderRead(id)
+    if (err) { toast.error(err); return }
+    const now = new Date().toISOString()
+    setStudent((prev) => (prev ? { ...prev, rm_test_reset_at: now } : prev))
+    setRmTestWeeks(0)
+    toast.success('Listo: la cuenta de 12 semanas vuelve a cero')
+  }
+
   function startEditNotes() {
     setNotesValue(student?.notes ?? '')
     setEditingNotes(true)
@@ -901,12 +954,10 @@ export function StudentDetailView({
           ].filter(Boolean) as { label: string }[] : []
 
           // Progreso barra rutina activa
-          const routineProgressPct = activeRoutine?.start_date && activeRoutine?.end_date
-            ? Math.min(100, Math.max(0, (
-                (Date.now() - new Date(activeRoutine.start_date).getTime()) /
-                (new Date(activeRoutine.end_date).getTime() - new Date(activeRoutine.start_date).getTime())
-              ) * 100))
-            : 0
+          const weekSt = activeRoutineWeek?.status
+          const weekTotal = activeRoutineWeek?.totalWeeks ?? 0
+          const weekCurrent = weekSt?.finished || weekSt?.lastWeek ? weekTotal : weekSt?.weekNumber ?? 0
+          const routineProgressPct = weekTotal > 0 ? Math.min(100, (weekCurrent / weekTotal) * 100) : 0
 
           // Semanas de duración de una rutina
           function routineWeeks(r: Routine): number | null {
@@ -959,16 +1010,29 @@ export function StudentDetailView({
                       <dd className="mt-1 text-sm tabular-nums text-zinc-700 dark:text-zinc-300">{formatDate(activeRoutine.start_date)}</dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Vencimiento</dt>
-                      <dd className="mt-1 text-sm tabular-nums font-medium text-zinc-700 dark:text-zinc-300">{formatDate(activeRoutine.end_date)}</dd>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Semana</dt>
+                      <dd className="mt-1">
+                        <RoutineWeekSquares
+                          totalWeeks={weekTotal}
+                          currentWeek={weekSt?.weekNumber ?? null}
+                          finished={!!weekSt?.finished}
+                          lastWeek={!!weekSt?.lastWeek}
+                        />
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">Semanas restantes</dt>
                       <dd className={cn(
                         'mt-1 text-sm tabular-nums font-semibold',
-                        daysUntil(activeRoutine.end_date) <= 7 ? 'text-status-expired' : 'text-zinc-900 dark:text-zinc-50',
+                        weekSt?.lastWeek ? 'text-status-expired' : 'text-zinc-900 dark:text-zinc-50',
                       )}>
-                        {Math.max(0, Math.ceil(daysUntil(activeRoutine.end_date) / 7))}
+                        {weekSt?.lastWeek
+                          ? 'Última semana'
+                          : weekSt?.finished
+                            ? 'Cerrada'
+                            : weekTotal > 0
+                              ? Math.max(0, weekTotal - weekCurrent)
+                              : '—'}
                       </dd>
                     </div>
                   </dl>
@@ -1381,7 +1445,13 @@ export function StudentDetailView({
             )}
 
             {seguimientoTab === 'fuerza' && (
-              <FuerzaTab records={rmRecords} onAdd={addRmRecord} onDelete={deleteRmRecord} />
+              <FuerzaTab
+                records={rmRecords}
+                onAdd={addRmRecord}
+                onDelete={deleteRmRecord}
+                rmTestWeeks={rmTestWeeks}
+                onRmTestRead={markRmTestRead}
+              />
             )}
           </div>
         )}
@@ -1406,7 +1476,7 @@ export function StudentDetailView({
         onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
         title={`¿Eliminar ${entitySingular}?`}
-        description="Esta acción no se puede deshacer."
+        description="Esta acción no se puede deshacer. Se borran sus datos; sus rutinas se conservan."
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
@@ -1463,66 +1533,355 @@ export function StudentDetailPage() {
 
 // ─── FuerzaTab ────────────────────────────────────────────────────────────────
 
+/** Paleta categórica validada (claro / oscuro); el color sigue al ejercicio, no al orden. */
+const RM_SERIES_COLORS = {
+  light: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100'],
+  dark: ['#3987e5', '#d95926', '#199e70', '#c98500'],
+}
+const RM_MAX_COMPARE = RM_SERIES_COLORS.light.length
+
+/** Mismo ejercicio aunque esté cargado dos veces en la biblioteca («Sentadilla con barra»). */
+function rmExerciseKey(r: StudentRmRecord): string {
+  const name = r.exercise?.name?.trim()
+  if (!name) return `id:${r.exercise_id}`
+  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
+}
+
+type RmGroup = {
+  key: string
+  name: string
+  /** Del más nuevo al más viejo. */
+  history: StudentRmRecord[]
+}
+
 function FuerzaTab({
   records,
   onAdd,
   onDelete,
+  rmTestWeeks,
+  onRmTestRead,
 }: {
   records: StudentRmRecord[]
   onAdd: (r: Omit<StudentRmRecord, 'id' | 'owner_id' | 'student_id' | 'created_at' | 'exercise'>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  /** Semanas desde el último test (null = cargando). */
+  rmTestWeeks: number | null
+  onRmTestRead: () => Promise<void>
 }) {
-  // Latest RM per exercise
-  const latestByExercise = useMemo(() => {
-    const map = new Map<string, StudentRmRecord>()
-    for (const r of records) {
-      if (!map.has(r.exercise_id)) map.set(r.exercise_id, r)
+  const { theme } = useTheme()
+  const palette = theme === 'dark' ? RM_SERIES_COLORS.dark : RM_SERIES_COLORS.light
+
+  const groups = useMemo((): RmGroup[] => {
+    const map = new Map<string, RmGroup>()
+    const sorted = [...records].sort(
+      (a, b) => b.tested_at.localeCompare(a.tested_at) || b.created_at.localeCompare(a.created_at),
+    )
+    for (const r of sorted) {
+      const key = rmExerciseKey(r)
+      if (!map.has(key)) map.set(key, { key, name: r.exercise?.name ?? '—', history: [] })
+      map.get(key)!.history.push(r)
     }
-    return Array.from(map.values())
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'es'))
   }, [records])
 
-  const [showAddForm,    setShowAddForm]    = useState(false)
-  const [calcExerciseId, setCalcExerciseId] = useState('')
-  const [calcPercent,    setCalcPercent]    = useState(80)
-  const [showHistory,    setShowHistory]    = useState<string | null>(null)
+  const [showAddForm,  setShowAddForm]  = useState(false)
+  const [calcKey,      setCalcKey]      = useState('')
+  const [calcPercent,  setCalcPercent]  = useState(80)
+  const [openKey,      setOpenKey]      = useState<string | null>(null)
+  const [markingRead,  setMarkingRead]  = useState(false)
+  /** Ejercicios en el gráfico comparativo, cada uno con su color fijo. */
+  const [compare, setCompare] = useState<{ key: string; slot: number }[] | null>(null)
 
-  const calcRecord  = latestByExercise.find((r) => r.exercise_id === calcExerciseId)
-  const calcWeight  = calcRecord ? Math.round(calcRecord.rm_kg * (calcPercent / 100) * 10) / 10 : null
+  // Por defecto: los ejercicios con más tests (hasta 4).
+  const compareSel = useMemo(() => {
+    if (compare) return compare.filter((c) => groups.some((g) => g.key === c.key))
+    return [...groups]
+      .sort((a, b) => b.history.length - a.history.length || a.name.localeCompare(b.name, 'es'))
+      .slice(0, RM_MAX_COMPARE)
+      .map((g, i) => ({ key: g.key, slot: i }))
+  }, [compare, groups])
+
+  function toggleCompare(key: string) {
+    const cur = compareSel
+    if (cur.some((c) => c.key === key)) {
+      setCompare(cur.filter((c) => c.key !== key))
+      return
+    }
+    if (cur.length >= RM_MAX_COMPARE) {
+      toast(`Hasta ${RM_MAX_COMPARE} ejercicios a la vez en el gráfico`)
+      return
+    }
+    const used = new Set(cur.map((c) => c.slot))
+    const slot = [...Array(RM_MAX_COMPARE).keys()].find((i) => !used.has(i)) ?? 0
+    setCompare([...cur, { key, slot }])
+  }
+
+  const compareData = useMemo(() => {
+    const byDate = new Map<string, Record<string, number | string>>()
+    for (const sel of compareSel) {
+      const g = groups.find((x) => x.key === sel.key)
+      if (!g) continue
+      for (const h of g.history) {
+        const d = h.tested_at.slice(0, 10)
+        if (!byDate.has(d)) byDate.set(d, { date: d })
+        const row = byDate.get(d)!
+        // Dos tests el mismo día: queda el mayor.
+        row[sel.key] = Math.max(Number(row[sel.key] ?? 0), h.rm_kg)
+      }
+    }
+    return [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+  }, [compareSel, groups])
+
+  const calcGroup  = groups.find((g) => g.key === calcKey)
+  const calcRm     = calcGroup?.history[0]?.rm_kg ?? null
+  const calcWeight = calcRm != null ? Math.round(calcRm * (calcPercent / 100) * 10) / 10 : null
+
+  const rmDue = rmTestWeeks != null && rmTestWeeks >= RM_TEST_EVERY_WEEKS
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
 
-      {/* ── Calculadora de % ── */}
-      <section className="border-b border-zinc-200/55 pb-5 dark:border-zinc-800/60">
-        <div className="mb-3 flex items-center gap-2">
-          <Zap className="h-4 w-4 text-zinc-400" aria-hidden />
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Calculadora de porcentaje</h3>
+      {/* ── Aviso TESTEAR RM ── */}
+      {rmTestWeeks != null ? (
+        rmDue ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/[0.08] px-4 py-3">
+            <Dumbbell className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold uppercase tracking-wide text-ink-primary">Testear RM en la próxima rutina</p>
+              <p className="text-[11px] text-ink-secondary">
+                {rmTestWeeks} semanas de rutina desde el último test. Al marcarlo como leído la cuenta vuelve a cero.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={markingRead}
+              icon={<Check className="h-3.5 w-3.5" />}
+              onClick={async () => {
+                setMarkingRead(true)
+                await onRmTestRead()
+                setMarkingRead(false)
+              }}
+            >
+              Leído
+            </Button>
+          </div>
+        ) : (
+          <p className="text-[11px] text-ink-muted">
+            Próximo test de RM: {rmTestWeeks} de {RM_TEST_EVERY_WEEKS} semanas de rutina.
+          </p>
+        )
+      ) : null}
+
+      {/* ── Registros por ejercicio ── */}
+      <section>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">RM por ejercicio</h3>
+          <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
+            Cargar RM
+          </Button>
         </div>
 
-        {latestByExercise.length === 0 ? (
-          <p className="text-xs text-ink-muted">Registrá el 1RM de al menos un ejercicio para usar la calculadora.</p>
+        {groups.length === 0 ? (
+          <EmptyState
+            icon={<Dumbbell className="h-6 w-6" />}
+            title="Sin registros"
+            description="Cargá el RM de cada ejercicio. Cada test nuevo se suma al historial para ver el progreso."
+          />
         ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">Ejercicio</label>
-              <select
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none"
-                value={calcExerciseId}
-                onChange={(e) => setCalcExerciseId(e.target.value)}
-              >
-                <option value="">Seleccioná un ejercicio...</option>
-                {latestByExercise.map((r) => (
-                  <option key={r.exercise_id} value={r.exercise_id}>
-                    {r.exercise?.name ?? r.exercise_id} — 1RM: {r.rm_kg} kg
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="divide-y divide-zinc-200/40 dark:divide-zinc-800/50">
+            {groups.map((g) => {
+              const latest = g.history[0]
+              const prev   = g.history[1]
+              const delta  = prev ? Math.round((latest.rm_kg - prev.rm_kg) * 10) / 10 : null
+              const isOpen = openKey === g.key
+              const sel    = compareSel.find((c) => c.key === g.key)
+              return (
+                <div key={g.key}>
+                  <div className="flex items-center gap-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleCompare(g.key)}
+                      className={cn(
+                        'h-3 w-3 shrink-0 rounded-full border transition-colors',
+                        sel ? 'border-transparent' : 'border-zinc-400 dark:border-zinc-600',
+                      )}
+                      style={sel ? { background: palette[sel.slot] } : undefined}
+                      title={sel ? 'Quitar del gráfico' : 'Ver en el gráfico'}
+                      aria-pressed={!!sel}
+                    />
+                    <button type="button" onClick={() => setOpenKey(isOpen ? null : g.key)} className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-sm font-semibold text-ink-primary">{g.name}</p>
+                      <p className="text-[10px] text-ink-muted">
+                        {formatDate(latest.tested_at)} · {g.history.length} {g.history.length === 1 ? 'test' : 'tests'}
+                      </p>
+                    </button>
+                    {delta != null && prev ? (
+                      <span
+                        className={cn(
+                          'shrink-0 text-[11px] font-semibold tabular-nums',
+                          delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-status-expired' : 'text-ink-muted',
+                        )}
+                        title={`Antes: ${prev.rm_kg} kg (${formatDate(prev.tested_at)})`}
+                      >
+                        {delta > 0 ? `▲ +${delta} kg` : delta < 0 ? `▼ ${delta} kg` : '='}
+                      </span>
+                    ) : null}
+                    <span className="shrink-0 text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{latest.rm_kg} kg</span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenKey(isOpen ? null : g.key)}
+                      className="text-ink-muted transition-colors hover:text-ink-primary"
+                      aria-label="Ver historial"
+                    >
+                      <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
+                    </button>
+                  </div>
 
-            {calcRecord && (
+                  {isOpen ? (
+                    <ul className="mb-2 divide-y divide-surface-border/40 rounded-lg border border-surface-border bg-surface-elevated/30">
+                      {g.history.map((h, i) => {
+                        const older = g.history[i + 1]
+                        const d = older ? Math.round((h.rm_kg - older.rm_kg) * 10) / 10 : null
+                        return (
+                          <li key={h.id} className="flex items-center gap-2 px-3 py-1.5">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-ink-secondary">
+                                {formatDate(h.tested_at)} · {h.source === 'epley' ? 'Estimado (Epley)' : 'Testeado'}
+                              </p>
+                              {h.notes ? <p className="truncate text-[10px] text-ink-muted">{h.notes}</p> : null}
+                            </div>
+                            {d != null && d !== 0 ? (
+                              <span className={cn('text-[10px] tabular-nums', d > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
+                                {d > 0 ? `+${d}` : d}
+                              </span>
+                            ) : null}
+                            <span className="text-xs font-semibold tabular-nums text-ink-primary">{h.rm_kg} kg</span>
+                            <button
+                              type="button"
+                              onClick={() => void onDelete(h.id)}
+                              className="text-ink-muted transition-colors hover:text-status-expired"
+                              aria-label="Borrar registro"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Progreso comparado ── */}
+      {groups.length > 0 ? (
+        <section className="border-t border-zinc-200/55 pt-4 dark:border-zinc-800/60">
+          <div className="mb-1 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-zinc-400" aria-hidden />
+            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Progreso de RM</h3>
+          </div>
+          <p className="mb-3 text-[11px] text-ink-muted">
+            Tocá el punto de color de cada ejercicio para sumarlo o quitarlo del gráfico (hasta {RM_MAX_COMPARE}).
+          </p>
+          {compareSel.length === 0 ? (
+            <p className="py-6 text-center text-xs text-ink-muted">Elegí al menos un ejercicio.</p>
+          ) : (
+            <>
+              <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
+                {compareSel.map((c) => (
+                  <span key={c.key} className="inline-flex items-center gap-1.5 text-[11px] text-ink-secondary">
+                    <span className="h-2 w-2 rounded-full" style={{ background: palette[c.slot] }} />
+                    {groups.find((g) => g.key === c.key)?.name}
+                  </span>
+                ))}
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={compareData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                  <CartesianGrid vertical={false} stroke="rgb(var(--surface-border))" strokeOpacity={0.6} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(d: string) => formatDate(d)}
+                    tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={16}
+                  />
+                  <YAxis
+                    domain={[(min: number) => Math.max(0, Math.floor((min - 10) / 10) * 10), (max: number) => Math.ceil((max + 10) / 10) * 10]}
+                    allowDecimals={false}
+                    tickCount={5}
+                    tickFormatter={(v: number) => `${Math.round(v)} kg`}
+                    tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={52}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: 'rgb(var(--ink-muted))', strokeOpacity: 0.4 }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null
+                      return (
+                        <div className="rounded-lg border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-[11px] shadow-md">
+                          <p className="mb-1 text-ink-muted">{formatDate(String(label))}</p>
+                          {payload.map((p) => (
+                            <p key={String(p.dataKey)} className="flex items-center gap-1.5 text-ink-primary">
+                              <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+                              {groups.find((g) => g.key === p.dataKey)?.name}: <strong>{String(p.value)} kg</strong>
+                            </p>
+                          ))}
+                        </div>
+                      )
+                    }}
+                  />
+                  {compareSel.map((c) => (
+                    <Line
+                      key={c.key}
+                      type="monotone"
+                      dataKey={c.key}
+                      stroke={palette[c.slot]}
+                      strokeWidth={2}
+                      connectNulls
+                      dot={{ r: 4, fill: palette[c.slot], stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                      activeDot={{ r: 5 }}
+                      isAnimationActive={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </>
+          )}
+        </section>
+      ) : null}
+
+      {/* ── Calculadora de % ── */}
+      {groups.length > 0 ? (
+        <section className="border-t border-zinc-200/55 pt-4 dark:border-zinc-800/60">
+          <div className="mb-3 flex items-center gap-2">
+            <Zap className="h-4 w-4 text-zinc-400" aria-hidden />
+            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Calculadora de porcentaje</h3>
+          </div>
+          <div className="space-y-3">
+            <select
+              className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+              value={calcKey}
+              onChange={(e) => setCalcKey(e.target.value)}
+            >
+              <option value="">Seleccioná un ejercicio...</option>
+              {groups.map((g) => (
+                <option key={g.key} value={g.key}>
+                  {g.name} — 1RM: {g.history[0].rm_kg} kg
+                </option>
+              ))}
+            </select>
+
+            {calcRm != null && (
               <>
                 <div>
-                  <label className="block text-[10px] text-ink-muted uppercase tracking-wide mb-1">
+                  <label className="mb-1 block text-[10px] uppercase tracking-wide text-ink-muted">
                     Porcentaje: {calcPercent}%
                   </label>
                   <input
@@ -1532,8 +1891,6 @@ function FuerzaTab({
                     className="w-full accent-zinc-500 dark:accent-zinc-400"
                   />
                 </div>
-
-                {/* Resultado destacado */}
                 <div className="flex items-center justify-between border border-zinc-200/80 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Peso estimado</p>
@@ -1541,22 +1898,20 @@ function FuerzaTab({
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-ink-muted">1RM base</p>
-                    <p className="text-sm font-semibold text-ink-primary">{calcRecord.rm_kg} kg</p>
-                    <p className="text-[10px] text-ink-muted mt-1">al {calcPercent}%</p>
+                    <p className="text-sm font-semibold text-ink-primary">{calcRm} kg</p>
+                    <p className="mt-1 text-[10px] text-ink-muted">al {calcPercent}%</p>
                   </div>
                 </div>
-
-                {/* Tabla completa de porcentajes */}
                 <div className="grid grid-cols-3 gap-1.5">
                   {RM_PERCENTS.map((pct) => {
-                    const w = Math.round(calcRecord.rm_kg * (pct / 100) * 10) / 10
+                    const w = Math.round(calcRm * (pct / 100) * 10) / 10
                     const isSelected = pct === calcPercent
                     return (
                       <button
                         key={pct}
                         onClick={() => setCalcPercent(pct)}
                         className={cn(
-                          'flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-colors',
+                          'flex items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors',
                           isSelected
                             ? 'border border-zinc-400 bg-white font-semibold text-zinc-900 ring-2 ring-zinc-300/80 dark:border-zinc-500 dark:bg-zinc-800 dark:text-white dark:ring-zinc-600/80'
                             : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/90 dark:bg-zinc-900/55 dark:text-zinc-400 dark:hover:bg-zinc-800',
@@ -1571,100 +1926,8 @@ function FuerzaTab({
               </>
             )}
           </div>
-        )}
-      </section>
-
-      {/* ── Registros de 1RM ── */}
-      <section>
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200/50 pb-3 dark:border-zinc-800/55">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Registros de 1RM</h3>
-          <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
-            Agregar
-          </Button>
-        </div>
-
-        {latestByExercise.length === 0 ? (
-          <EmptyState
-            icon={<Dumbbell className="h-6 w-6" />}
-            title="Sin registros"
-            description="Agregá el 1RM de cada ejercicio para calcular porcentajes."
-          />
-        ) : (
-          <div className="space-y-2">
-            {latestByExercise.map((r) => {
-              const history = records.filter((x) => x.exercise_id === r.exercise_id)
-              const isOpen  = showHistory === r.exercise_id
-              return (
-                <div key={r.exercise_id} className="overflow-hidden border-b border-zinc-200/40 last:border-0 dark:border-zinc-800/50">
-                  <div className="flex items-center gap-3 py-2.5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink-primary truncate">{r.exercise?.name ?? '—'}</p>
-                      <p className="text-[10px] text-ink-muted">
-                        {formatDate(r.tested_at)} · {r.source === 'epley' ? 'Estimado (Epley)' : 'Testeado'}
-                      </p>
-                    </div>
-                    <span className="text-base font-bold shrink-0 text-zinc-900 dark:text-zinc-100">{r.rm_kg} kg</span>
-                    {history.length > 1 && (
-                      <button
-                        onClick={() => setShowHistory(isOpen ? null : r.exercise_id)}
-                        className="text-ink-muted hover:text-ink-primary transition-colors"
-                      >
-                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
-                      </button>
-                    )}
-                    <button onClick={() => onDelete(r.id)} className="text-ink-muted hover:text-status-expired transition-colors">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                  {isOpen && history.length > 1 && (() => {
-                    const rmChartData = [...history].reverse().map((h) => ({
-                      date: formatDate(h.tested_at),
-                      rm: h.rm_kg,
-                      source: h.source === 'epley' ? 'Epley' : 'Test',
-                    }))
-                    const minRm = Math.min(...rmChartData.map(d => d.rm))
-                    const maxRm = Math.max(...rmChartData.map(d => d.rm))
-                    return (
-                      <div className="border-t border-surface-border px-3 pt-3 pb-2">
-                        <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-2">Progresión 1RM</p>
-                        <ResponsiveContainer width="100%" height={90}>
-                          <LineChart data={rmChartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                            <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--color-ink-muted)' }} tickLine={false} axisLine={false} />
-                            <YAxis domain={[Math.max(0, minRm - 5), maxRm + 5]} tick={{ fontSize: 9, fill: 'var(--color-ink-muted)' }} tickLine={false} axisLine={false} />
-                            <Tooltip
-                              contentStyle={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-surface-border)', borderRadius: 8, fontSize: 11 }}
-                              labelStyle={{ color: 'var(--color-ink-muted)', marginBottom: 2 }}
-                              formatter={(value: number, _name: string, props: { payload?: { source?: string } }) => [`${value} kg (${props.payload?.source ?? ''})`, '1RM']}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="rm"
-                              stroke="#a1a1aa"
-                              strokeWidth={2}
-                              dot={{ r: 3, fill: '#a1a1aa' }}
-                              activeDot={{ r: 4 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                        <div className="mt-1 divide-y divide-surface-border/40">
-                          {history.slice(1).map((h) => (
-                            <div key={h.id} className="flex items-center justify-between py-1.5">
-                              <span className="text-xs text-ink-muted">{formatDate(h.tested_at)} · {h.source === 'epley' ? 'Epley' : 'Test'}</span>
-                              <span className="text-xs font-medium text-ink-secondary">{h.rm_kg} kg</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </section>
+        </section>
+      ) : null}
 
       {/* ── Add form modal ── */}
       {showAddForm && (
@@ -1679,7 +1942,7 @@ function FuerzaTab({
 
 // ─── AddRmModal ───────────────────────────────────────────────────────────────
 
-type AddMode = 'test' | 'epley'
+type AddMode = 'test' | 'percent' | 'epley'
 
 function AddRmModal({
   onClose,
@@ -1693,7 +1956,8 @@ function AddRmModal({
   const [mode,        setMode]        = useState<AddMode>('test')
   const [rmKg,        setRmKg]        = useState('')          // mode=test
   const [epleyWeight, setEpleyWeight] = useState('')         // mode=epley
-  const [epleyReps,   setEpleyReps]   = useState('')         // mode=epley
+  const [epleyReps,   setEpleyReps]   = useState('')         // mode=epley / percent
+  const [pctOfRm,     setPctOfRm]     = useState('80')       // mode=percent
   const [testedAt,    setTestedAt]    = useState(new Date().toISOString().split('T')[0])
   const [notes,       setNotes]       = useState('')
   const [saving,      setSaving]      = useState(false)
@@ -1706,18 +1970,28 @@ function AddRmModal({
   const estimatedRm = mode === 'epley' && epleyWeight && epleyReps
     ? epley1RM(Number(epleyWeight), Number(epleyReps))
     : null
+  // El peso usado es el X% del RM → RM = peso / X%.
+  const percentRm = mode === 'percent' && epleyWeight && Number(pctOfRm) > 0
+    ? Math.round((Number(epleyWeight) / (Number(pctOfRm) / 100)) * 10) / 10
+    : null
 
   async function handleSave() {
     if (!exerciseId) { toast.error('Seleccioná un ejercicio'); return }
-    const finalRm = mode === 'test' ? Number(rmKg) : estimatedRm
+    const finalRm = mode === 'test' ? Number(rmKg) : mode === 'percent' ? percentRm : estimatedRm
     if (!finalRm || finalRm <= 0) { toast.error('Ingresá los datos del RM'); return }
+    const detail =
+      mode === 'percent'
+        ? `${epleyReps ? `${epleyReps} reps × ` : ''}${epleyWeight} kg al ${pctOfRm}%`
+        : mode === 'epley'
+          ? `${epleyReps} reps × ${epleyWeight} kg`
+          : ''
     setSaving(true)
     await onSave({
       exercise_id: exerciseId,
       rm_kg: finalRm,
       tested_at: testedAt,
-      source: mode,
-      notes: notes || null,
+      source: mode === 'epley' ? 'epley' : 'test',
+      notes: [detail, notes.trim()].filter(Boolean).join(' · ') || null,
     })
     setSaving(false)
   }
@@ -1748,8 +2022,9 @@ function AddRmModal({
           {/* Modo */}
           <div className="flex gap-1 rounded-xl border border-zinc-200/90 bg-zinc-100/90 p-1 dark:border-zinc-800 dark:bg-zinc-900/60">
             {([
-              { value: 'test',   label: 'RM real (testeado)' },
-              { value: 'epley',  label: 'Estimar con Epley' },
+              { value: 'test',    label: 'RM real' },
+              { value: 'percent', label: 'Reps al %' },
+              { value: 'epley',   label: 'Epley' },
             ] as { value: AddMode; label: string }[]).map(({ value, label }) => (
               <button
                 key={value}
@@ -1766,7 +2041,52 @@ function AddRmModal({
             ))}
           </div>
 
-          {mode === 'test' ? (
+          {mode === 'percent' ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-ink-secondary mb-1">Peso (kg) *</label>
+                  <input
+                    type="number" min={0} step={0.5} placeholder="ej: 120"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
+                    value={epleyWeight}
+                    onChange={(e) => setEpleyWeight(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-secondary mb-1">Reps</label>
+                  <input
+                    type="number" min={1} max={20} placeholder="ej: 5"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
+                    value={epleyReps}
+                    onChange={(e) => setEpleyReps(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-secondary mb-1">% del RM *</label>
+                  <input
+                    type="number" min={30} max={100} step={1} placeholder="ej: 80"
+                    className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-zinc-500 dark:focus:border-zinc-400 outline-none text-center"
+                    value={pctOfRm}
+                    onChange={(e) => setPctOfRm(e.target.value)}
+                  />
+                </div>
+              </div>
+              {percentRm ? (
+                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/65">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">1RM aproximado</p>
+                    <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{percentRm} kg</p>
+                  </div>
+                  <p className="text-xs text-ink-muted text-right">
+                    {epleyWeight} kg es el {pctOfRm}%<br />
+                    <span className="font-mono">peso ÷ %</span>
+                  </p>
+                </div>
+              ) : null}
+              <p className="text-[10px] text-ink-muted">Si ya había un RM de este ejercicio, el anterior queda en el historial.</p>
+            </div>
+          ) : mode === 'test' ? (
             <div>
               <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
               <input

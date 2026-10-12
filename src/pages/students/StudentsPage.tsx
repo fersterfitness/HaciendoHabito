@@ -45,6 +45,7 @@ import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
 import { loadBlockCountsByRoutine, loadWeekStatusByOwner, weekStatusOrEmpty } from '@/lib/checkIn/routineWeekProgress'
+import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS } from '@/lib/checkIn/rmTestReminder'
 import type { LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
@@ -531,6 +532,7 @@ export function StudentsPage() {
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
   const [weekByStudent, setWeekByStudent] = useState<Map<string, LatestWeekStatus>>(() => new Map())
   const [weeksByStudent, setWeeksByStudent] = useState<Map<string, number>>(() => new Map())
+  const [rmTestDueIds, setRmTestDueIds] = useState<Set<string>>(() => new Set())
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
   const [currentPlanByStudent, setCurrentPlanByStudent] = useState<Record<string, import('@/types/database').StudentPlanAssignment>>({})
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
@@ -540,6 +542,9 @@ export function StudentsPage() {
   useEffect(() => {
     fetchStudents()
     if (!user) return
+    void loadRmTestWeeksByOwner(user.id)
+      .then((rows) => setRmTestDueIds(new Set(rows.filter((r) => r.weeks >= RM_TEST_EVERY_WEEKS).map((r) => r.id))))
+      .catch(() => setRmTestDueIds(new Set()))
     supabase
       .from('routines')
       .select('id, student_id, status')
@@ -878,6 +883,7 @@ export function StudentsPage() {
               activeRoutineStudentIds={activeRoutineStudentIds}
               weekByStudent={weekByStudent}
               weeksByStudent={weeksByStudent}
+              rmTestDueIds={rmTestDueIds}
               hasMealPlanStudentIds={hasMealPlanStudentIds}
               currentPlanByStudent={currentPlanByStudent}
               onRowClick={(studentId) => setSelectedStudentId(studentId)}
@@ -950,7 +956,7 @@ export function StudentsPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title={`¿Eliminar a ${deleteTarget?.full_name}?`}
-        description={`Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al ${entityLabelSingular}.`}
+        description={`Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al ${entityLabelSingular}; sus rutinas se conservan.`}
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
@@ -973,6 +979,7 @@ function StudentDirectoryTable({
   activeRoutineStudentIds,
   weekByStudent,
   weeksByStudent,
+  rmTestDueIds,
   hasMealPlanStudentIds,
   currentPlanByStudent,
 }: {
@@ -990,6 +997,8 @@ function StudentDirectoryTable({
   activeRoutineStudentIds: Set<string>
   weekByStudent: Map<string, LatestWeekStatus>
   weeksByStudent: Map<string, number>
+  /** Alumnos con 12+ semanas desde el último test de RM. */
+  rmTestDueIds: Set<string>
   hasMealPlanStudentIds: Set<string>
   currentPlanByStudent: Record<string, StudentPlanAssignment>
 }) {
@@ -1067,6 +1076,14 @@ function StudentDirectoryTable({
                       finished={weekStatusOrEmpty(weekByStudent, student.id).finished}
                       lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
                     />
+                  ) : null}
+                  {rmTestDueIds.has(student.id) ? (
+                    <span
+                      className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                      title="12 semanas de rutina desde el último test de RM"
+                    >
+                      Testear RM
+                    </span>
                   ) : null}
                   {currentPlanByStudent[student.id] ? (() => {
                     const a = currentPlanByStudent[student.id]
@@ -1224,6 +1241,14 @@ function StudentDirectoryTable({
                       ) : (
                         <span className="text-[11px] text-ink-muted/50">—</span>
                       )}
+                      {rmTestDueIds.has(student.id) ? (
+                        <span
+                          className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                          title="12 semanas de rutina desde el último test de RM"
+                        >
+                          Testear RM
+                        </span>
+                      ) : null}
                       {currentPlanByStudent[student.id] ? (() => {
                         const a = currentPlanByStudent[student.id]
                         const eff = effectivePaymentStatus(a)

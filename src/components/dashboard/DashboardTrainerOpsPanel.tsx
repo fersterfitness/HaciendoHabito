@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { BellRing, CalendarClock, ChevronDown, Copy, ExternalLink } from 'lucide-react'
+import { BellRing, CalendarClock, Check, ChevronDown, Copy, Dumbbell, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -21,6 +21,7 @@ import {
 } from '@/lib/dashboard/dashboardTrainerOps'
 import { copyWhatsAppMessage, WHATSAPP_CLIPBOARD_PASTE_HINT } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
+import { markRmTestReminderRead, type RmTestWeeksRow } from '@/lib/checkIn/rmTestReminder'
 
 type DueCheckInSchedule = {
   id: string
@@ -59,6 +60,9 @@ type Props = {
   missingCheckInStudents: DashboardMissingCheckInStudent[]
   lastWeekStudents: DashboardLastWeekStudent[]
   monthlyFeedbackUrl: string | null
+  /** Alumnos que llegaron a 12 semanas sin testear RM. */
+  rmTestDueStudents: RmTestWeeksRow[]
+  onRmTestRead: (studentId: string) => void
 }
 
 function QuickActionRow({
@@ -94,11 +98,26 @@ export function DashboardTrainerOpsPanel({
   missingCheckInStudents,
   lastWeekStudents,
   monthlyFeedbackUrl,
+  rmTestDueStudents,
+  onRmTestRead,
 }: Props) {
   const navigate = useAppNavigate()
   const [guideOpen, setGuideOpen] = useState(false)
   const [missingOpen, setMissingOpen] = useState(false)
   const [lastWeekOpen, setLastWeekOpen] = useState(true)
+  const [rmOpen, setRmOpen] = useState(true)
+  const [rmMarkingId, setRmMarkingId] = useState<string | null>(null)
+
+  async function markRmRead(studentId: string) {
+    setRmMarkingId(studentId)
+    const err = await markRmTestReminderRead(studentId)
+    setRmMarkingId(null)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    onRmTestRead(studentId)
+  }
 
   const fridayHighlight = TRAINER_WEEKLY_REMINDERS.some((r) => isTrainerReminderHighlightedToday(r))
 
@@ -243,6 +262,55 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         )}
       </div>
+
+      {rmTestDueStudents.length > 0 ? (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/[0.08]">
+          <button
+            type="button"
+            onClick={() => setRmOpen((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+            aria-expanded={rmOpen}
+          >
+            <Dumbbell className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
+            <span className="flex-1 text-[11px] font-semibold text-ink-primary">
+              TESTEAR RM en la próxima rutina ({rmTestDueStudents.length})
+            </span>
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', rmOpen && 'rotate-180')}
+              aria-hidden
+            />
+          </button>
+          {rmOpen ? (
+            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-amber-500/20 px-2 py-2">
+              {rmTestDueStudents.map((st) => (
+                <li
+                  key={st.id}
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] hover:bg-amber-500/10"
+                >
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/students/${st.id}`)}
+                    className="min-w-0 truncate text-left font-medium text-ink-primary hover:underline"
+                  >
+                    {st.full_name}
+                  </button>
+                  <span className="ml-auto shrink-0 tabular-nums text-[10px] text-ink-muted">{st.weeks} sem.</span>
+                  <button
+                    type="button"
+                    disabled={rmMarkingId === st.id}
+                    onClick={() => void markRmRead(st.id)}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-amber-600/35 px-2 py-0.5 text-[10px] font-medium text-amber-800 hover:bg-amber-500/10 disabled:opacity-45 dark:text-amber-300"
+                    title="Marcar como leído: la cuenta de 12 semanas vuelve a cero"
+                  >
+                    <Check className="h-3 w-3" />
+                    Leído
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       {lastWeekStudents.length > 0 ? (
         <div className="rounded-xl border border-rose-500/35 bg-rose-500/[0.07]">

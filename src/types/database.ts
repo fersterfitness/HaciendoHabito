@@ -539,6 +539,8 @@ export interface Student {
   monthly_fee_amount: number | null
   /** Peso objetivo en kg (seguimiento). */
   target_weight_kg: number | null
+  /** Último «leído» del aviso TESTEAR RM (reinicia la cuenta de 12 semanas). */
+  rm_test_reset_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -595,6 +597,9 @@ export interface Routine {
   notes: string | null
   last_status_change: string | null
   completed_at: string | null
+  /** Alumno eliminado: la rutina se conserva con su nombre (student_id queda NULL). */
+  former_student_id?: string | null
+  former_student_name?: string | null
   created_at: string
   updated_at: string
   student?: Student

@@ -52,6 +52,7 @@ import {
   type DashboardResourceQuickSend,
 } from '@/lib/dashboard/dashboardTrainerOps'
 import type { Routine, Notification, CheckInSendSchedule, TrainerResourceSendSchedule } from '@/types/database'
+import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS, type RmTestWeeksRow } from '@/lib/checkIn/rmTestReminder'
 
 interface RecentIncomeRow {
   id: string
@@ -550,6 +551,7 @@ export function DashboardPage() {
   const [resourceQuickSends, setResourceQuickSends] = useState<DashboardResourceQuickSend[]>([])
   const [missingCheckInStudents, setMissingCheckInStudents] = useState<DashboardMissingCheckInStudent[]>([])
   const [lastWeekStudents, setLastWeekStudents] = useState<DashboardLastWeekStudent[]>([])
+  const [rmTestDueStudents, setRmTestDueStudents] = useState<RmTestWeeksRow[]>([])
   const [monthlyFeedbackUrl, setMonthlyFeedbackUrl] = useState<string | null>(null)
 
   const animatedIncome = useCountUp(stats.currentMonthIncome, {
@@ -563,8 +565,9 @@ export function DashboardPage() {
     const items: MergedExpiringItem[] = []
     for (const r of expiring) {
       const days = daysUntil(r.end_date)
+      // La rutina avisa solo cuando el alumno marca «última semana» en el formulario, no por fecha.
       const lastWeek = r.student_id ? lastWeekStudentIds.has(r.student_id) : false
-      if (days < 0 && !lastWeek) continue
+      if (!lastWeek) continue
       items.push({
         kind: 'routine',
         id: r.id,
@@ -765,7 +768,7 @@ export function DashboardPage() {
           ? supabase.from('nutrition_patient_documents').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id)
           : Promise.resolve({ count: 0 } as { count: number | null }),
         canSeeTraining
-          ? supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).not('student_id', 'is', null).lte('end_date', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]).order('end_date', { ascending: true }).limit(5)
+          ? supabase.from('routines').select('*, student:students(full_name)').eq('owner_id', user!.id).in('status', ['activa', 'por_vencer']).not('student_id', 'is', null).order('end_date', { ascending: true })
           : Promise.resolve({ data: [] } as { data: unknown[] }),
         supabase.from('notifications').select('*').eq('user_id', user!.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
         canSeeFinances
@@ -1068,12 +1071,18 @@ export function DashboardPage() {
           setDueResourceSchedules([])
         }
 
-        const [quickSends, missing, lastWeek, monthlyToken] = await Promise.all([
+        const [quickSends, missing, lastWeek, monthlyToken, rmWeeks] = await Promise.all([
           loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
           loadStudentsMissingCheckIn(user!.id, weeklyPeriodMondayUtc(loadWeeklyPeriodStartYmd(user!.id))),
           loadStudentsInLastWeek(user!.id),
           loadMonthlyFeedbackPublicToken(user!.id),
+          loadRmTestWeeksByOwner(user!.id).catch(() => [] as RmTestWeeksRow[]),
         ])
+        setRmTestDueStudents(
+          rmWeeks
+            .filter((s) => s.weeks >= RM_TEST_EVERY_WEEKS)
+            .sort((a, b) => b.weeks - a.weeks || a.full_name.localeCompare(b.full_name, 'es')),
+        )
         setCheckInQuickSends(quickSends.checkInSends)
         setResourceQuickSends(quickSends.resourceSends)
         setMissingCheckInStudents(missing)
@@ -1087,6 +1096,7 @@ export function DashboardPage() {
         setResourceQuickSends([])
         setMissingCheckInStudents([])
         setLastWeekStudents([])
+        setRmTestDueStudents([])
         setMonthlyFeedbackUrl(null)
       }
 
@@ -1156,6 +1166,8 @@ export function DashboardPage() {
             missingCheckInStudents={missingCheckInStudents}
             lastWeekStudents={lastWeekStudents}
             monthlyFeedbackUrl={monthlyFeedbackUrl}
+            rmTestDueStudents={rmTestDueStudents}
+            onRmTestRead={(studentId) => setRmTestDueStudents((prev) => prev.filter((s) => s.id !== studentId))}
           />
         ) : null}
 
@@ -1652,7 +1664,7 @@ export function DashboardPage() {
             <CardHeader className="mb-2 items-start gap-x-3 gap-y-1 sm:items-center">
               <div className="min-w-0 leading-tight">
                 <CardTitle className="text-[13px] font-semibold leading-snug">Próximos vencimientos</CardTitle>
-                <p className="text-[10px] text-ink-muted">Rutinas y planes · 14 días</p>
+                <p className="text-[10px] text-ink-muted">Rutinas en última semana · planes 14 días</p>
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-0.5 sm:ml-auto">
                 {canSeeTraining && (

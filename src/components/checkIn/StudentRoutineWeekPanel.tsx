@@ -57,7 +57,7 @@ export function StudentRoutineWeekPanel() {
         supabase.from('students').select('id, full_name, phone').eq('owner_id', user!.id).eq('status', 'activo').order('full_name'),
         supabase
           .from('routines')
-          .select('id, student_id, status, updated_at, routine_blocks(id, sort_order)')
+          .select('id, student_id, status, created_at, updated_at, routine_blocks(id, sort_order)')
           .eq('owner_id', user!.id)
           .in('status', ['activa', 'por_vencer'])
           .not('student_id', 'is', null),
@@ -66,7 +66,7 @@ export function StudentRoutineWeekPanel() {
       if (cancelled) return
 
       const students = (stRes.data ?? []) as { id: string; full_name: string; phone: string | null }[]
-      type Rt = { id: string; student_id: string; status: string; updated_at: string; routine_blocks: { id: string; sort_order: number }[] | null }
+      type Rt = { id: string; student_id: string; status: string; created_at: string; updated_at: string; routine_blocks: { id: string; sort_order: number }[] | null }
       const routines = (rtRes.data ?? []) as Rt[]
       const forms = (formRes.data ?? []) as { id: string; public_token?: string; questions: Json }[]
 
@@ -115,6 +115,9 @@ export function StudentRoutineWeekPanel() {
       for (const resp of responses) {
         const inv = inviteById.get(resp.invite_id)
         if (!inv || latestByStudent.has(inv.student_id)) continue
+        // Check-ins previos a la rutina vigente son de la rutina anterior.
+        const routineStart = latestRoutine.get(inv.student_id)?.created_at
+        if (routineStart && new Date(resp.submitted_at) < new Date(routineStart)) continue
         const qs = questionsByForm.get(inv.form_id) ?? []
         const obj =
           resp.responses && typeof resp.responses === 'object' && !Array.isArray(resp.responses)
