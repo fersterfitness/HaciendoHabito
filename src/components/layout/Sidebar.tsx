@@ -32,16 +32,14 @@ const railShellClass = cn(
 const railPanelClass = cn(
   RAIL_W,
   'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl',
-  'border border-surface-border/75 bg-[rgb(var(--surface-sidebar))]',
-  'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06),0_8px_28px_-6px_rgba(0,0,0,0.1)]',
-  'dark:border-white/[0.07]',
-  'dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.45),0_12px_40px_-8px_rgba(0,0,0,0.65)]',
+  'border border-surface-border/80 bg-[rgb(var(--surface-sidebar))] shadow-card-md',
+  'dark:border-white/[0.06]',
 )
 
-/** Pastilla activa: negro + ícono blanco en light; blanco + ícono oscuro en dark. */
-const railActivePillClass = 'rounded-lg bg-zinc-900 shadow-sm dark:bg-zinc-100 dark:shadow-none'
+/** Pastilla activa: degradé de marca con halo suave (ícono blanco). */
+const railActivePillClass = 'rounded-lg hh-cta'
 
-const railNavActiveClassName = 'text-white dark:text-zinc-900'
+const railNavActiveClassName = 'text-white'
 
 /** Rebote suave tipo gelatina al cambiar de ítem. */
 const railSpring = { type: 'spring' as const, stiffness: 360, damping: 26, mass: 0.82 }

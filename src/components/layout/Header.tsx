@@ -33,8 +33,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
     <header
       className={cn(
         'sticky top-0 z-30 flex items-center h-14 sm:h-16 px-4 lg:px-6 gap-3',
-        'border-b bg-surface-base/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/75',
-        'border-surface-border/70',
+        'border-b border-surface-border/60 bg-surface-base/80 backdrop-blur-xl supports-[backdrop-filter]:bg-surface-base/65',
         className,
       )}
     >
@@ -52,7 +51,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         </button>
       )}
 
-      <h1 className="flex-1 text-lg font-semibold tracking-tight text-ink-primary truncate">{title}</h1>
+      <h1 className="flex-1 truncate text-lg font-semibold tracking-tight text-ink-primary sm:text-xl">{title}</h1>
 
       <div className="flex items-center gap-1.5">
         {actions}

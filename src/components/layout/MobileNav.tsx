@@ -109,7 +109,7 @@ export function MobileNav() {
   return (
     <>
       {/* Bottom bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card border-t border-surface-border pb-[env(safe-area-inset-bottom)] print:hidden">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-surface-border/80 bg-surface-card/85 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] backdrop-blur-xl supports-[backdrop-filter]:bg-surface-card/75 print:hidden">
         <div className="flex items-center justify-around h-16 px-1">
           {primaryItems.map((item) => {
             const Icon = item.icon
@@ -169,13 +169,13 @@ export function MobileNav() {
             transition={{ duration: 0.2 }}
           >
             <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-black/50 backdrop-blur-[6px]"
               aria-hidden
               onClick={() => setDrawerOpen(false)}
             />
 
             <motion.div
-              className="relative z-10 min-h-0 rounded-t-3xl bg-surface-card border-t border-surface-border shadow-lg dark:shadow-xl max-h-[85dvh] flex flex-col overflow-hidden"
+              className="relative z-10 flex max-h-[85dvh] min-h-0 flex-col overflow-hidden rounded-t-3xl border-t border-surface-border bg-surface-card shadow-pop"
               initial={reduceMotion ? false : { y: '100%' }}
               animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
               transition={

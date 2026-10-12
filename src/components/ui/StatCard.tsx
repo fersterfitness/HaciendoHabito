@@ -24,12 +24,7 @@ export const statCardGradientTitleClass =
   'font-semibold uppercase tracking-wider leading-snug text-ink-muted'
 
 /** Borde suave + sombra flotante (KPI / resumen del mes). */
-const statCardFloatClass = cn(
-  'border-surface-border/40 bg-surface-card',
-  'shadow-[0_2px_8px_-2px_rgba(15,15,35,0.07),0_10px_28px_-8px_rgba(15,15,35,0.11)]',
-  'dark:border-white/[0.07]',
-  'dark:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.42),0_12px_36px_-10px_rgba(0,0,0,0.55)]',
-)
+const statCardFloatClass = cn('border-surface-border/90 bg-surface-card shadow-card')
 
 const TONE_CARD: Record<StatCardTone, string> = {
   neutral: statCardFloatClass,
@@ -191,9 +186,8 @@ function GradientIconPod({
   compact: boolean
 }) {
   const podClass = cn(
-    'flex shrink-0 items-center justify-center rounded-xl border',
-    'border-brand-secondary/18 bg-brand-secondary/6',
-    compact ? 'h-8 w-8' : 'h-8 w-8',
+    'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+    'bg-brand-primary/10 ring-1 ring-inset ring-brand-primary/15',
   )
 
   if (kpiId) {
@@ -203,7 +197,7 @@ function GradientIconPod({
           id={kpiId}
           size={compact ? 16 : 17}
           strokeWidth={1.5}
-          className="text-brand-secondary/65 opacity-90"
+          className="text-brand-primary"
         />
       </div>
     )
@@ -213,13 +207,13 @@ function GradientIconPod({
     const Lucide = lucideIcon
     return (
       <div className={podClass}>
-        <Lucide className="h-5 w-5 text-brand-secondary" strokeWidth={1.75} />
+        <Lucide className="h-4 w-4 text-brand-primary" strokeWidth={1.75} />
       </div>
     )
   }
 
   if (icon) {
-    return <div className={cn(podClass, 'text-brand-secondary [&_svg]:h-5 [&_svg]:w-5')}>{icon}</div>
+    return <div className={cn(podClass, 'text-brand-primary [&_svg]:h-4 [&_svg]:w-4')}>{icon}</div>
   }
 
   return null
@@ -318,15 +312,17 @@ function StatCardGradient({
       }
       className={cn(
         'group relative flex h-full flex-col rounded-2xl border',
-        statCardFloatClass,
         showHero || footerLine ? 'overflow-visible' : 'overflow-hidden',
-        compact ? 'min-h-0 p-2.5' : 'min-h-0 p-3',
+        compact ? 'min-h-0 p-3' : 'min-h-0 p-4',
         showHero && !compact && 'pr-[36%] sm:pr-[32%]',
         featured
-          ? 'border-orange-500 bg-gradient-to-br from-orange-500 via-orange-500 to-fuchsia-500'
-          : 'bg-gradient-to-br from-brand-secondary/9 via-surface-card to-surface-card',
+          ? 'hh-cta border-transparent text-white'
+          : cn(statCardFloatClass, 'bg-[radial-gradient(120%_90%_at_100%_0%,rgb(var(--brand-primary)/0.09),transparent_55%)]'),
         onClick &&
-          'cursor-pointer transition-all duration-200 hover:border-surface-border/55 hover:shadow-[0_4px_14px_-2px_rgba(15,15,35,0.1),0_14px_32px_-8px_rgba(15,15,35,0.14)] dark:hover:border-white/[0.1]',
+          cn(
+            'cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out-expo motion-safe:hover:-translate-y-0.5',
+            !featured && 'hover:border-surface-inputBorder hover:shadow-card-md',
+          ),
         className,
       )}
     >
@@ -334,8 +330,8 @@ function StatCardGradient({
         className={cn(
           'pointer-events-none absolute rounded-full blur-2xl',
           featured
-            ? 'bg-white/25 -right-5 -top-5 h-24 w-24'
-            : 'bg-brand-secondary/20 -right-6 -top-6 h-16 w-16 opacity-80',
+            ? 'bg-white/30 -right-6 -top-6 h-28 w-28'
+            : 'bg-brand-primary/15 -right-8 -top-8 h-20 w-20 opacity-0 transition-opacity duration-500 group-hover:opacity-100',
         )}
         aria-hidden
       />
@@ -354,7 +350,7 @@ function StatCardGradient({
           className={cn(
             'min-w-0 flex-1 line-clamp-2',
             statCardGradientTitleClass,
-            compact ? 'text-3xs' : 'text-3xs sm:text-[0.6875rem]',
+            compact ? 'text-3xs' : 'text-3xs sm:text-2xs',
             featured && 'text-white/90',
           )}
         >
@@ -368,7 +364,7 @@ function StatCardGradient({
               e.stopPropagation()
               action.onClick()
             }}
-            className="relative z-10 shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-secondary/30 bg-surface-card/60 text-ink-secondary hover:bg-brand-secondary/15 transition-colors"
+            className="relative z-10 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-border bg-surface-card/70 text-ink-secondary backdrop-blur transition-colors hover:border-brand-primary/30 hover:bg-brand-primary/10 hover:text-brand-primary"
           >
             <Plus className="h-4 w-4" strokeWidth={2.25} />
           </button>
@@ -379,7 +375,7 @@ function StatCardGradient({
         className={cn(
           'relative mt-1.5 font-semibold tabular-nums leading-none tracking-tight',
           featured ? 'text-white' : 'text-ink-primary',
-          compact ? 'text-lg' : 'text-[22px] sm:text-2xl',
+          compact ? 'text-xl' : 'text-2xl sm:text-[1.75rem]',
           !compact && GRADIENT_VALUE_MIN_H,
           !compact &&
             typeof displayValue === 'string' &&
