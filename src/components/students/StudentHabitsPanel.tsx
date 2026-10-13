@@ -410,10 +410,10 @@ export function StudentHabitsPanel({
                       }))}
                       margin={{ top: 4, right: 8, bottom: 24, left: -16 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#71717a" strokeOpacity={0.15} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--surface-border))" />
                       <XAxis
                         dataKey="labelShort"
-                        tick={{ fontSize: 9, fill: '#71717a' }}
+                        tick={{ fontSize: 9, fill: 'rgb(var(--ink-muted))' }}
                         interval={0}
                         angle={-35}
                         textAnchor="end"
@@ -423,7 +423,7 @@ export function StudentHabitsPanel({
                       />
                       <YAxis
                         domain={[0, 100]}
-                        tick={{ fontSize: 10, fill: '#71717a' }}
+                        tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
                         tickFormatter={(v) => `${v}%`}
                         width={36}
                         axisLine={false}

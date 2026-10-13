@@ -408,7 +408,7 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
 function CustomXTick({ x, y, payload }: any) {
   const d = payload.value as string
   return (
-    <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="rgba(148,163,184,0.9)" fontWeight={600}>
+    <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="rgb(var(--ink-muted))" fontWeight={600}>
       {d}
     </text>
   )
@@ -437,7 +437,7 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
         <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
           <CartesianGrid
             vertical={false}
-            stroke="rgba(113,113,122,0.14)"
+            stroke="rgb(var(--surface-border))"
             strokeDasharray="4 4"
           />
 
@@ -465,7 +465,7 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
 
           <RechartsTooltip
             content={<ExpenseScopesTooltip />}
-            cursor={{ stroke: 'rgba(148,163,184,0.28)', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.55 }}
+            cursor={{ stroke: 'rgb(var(--ink-muted))', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.55 }}
           />
 
           {model.series.map((s) => (
@@ -477,7 +477,7 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
               stroke={s.color}
               strokeWidth={1.35}
               dot={false}
-              activeDot={{ r: 4, fill: s.color, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 2 }}
+              activeDot={{ r: 4, fill: s.color, stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
               isAnimationActive={false}
             />
           ))}

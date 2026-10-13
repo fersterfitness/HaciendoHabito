@@ -3113,7 +3113,7 @@ function ExercisePicker({
           />
           <div className="grid grid-cols-2 gap-2">
             <select
-              className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+              className="w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 py-2 text-xs text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
               value={newGroupId}
               onChange={(e) => setNewGroupId(e.target.value)}
             >
@@ -3121,7 +3121,7 @@ function ExercisePicker({
               {muscleGroupOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
             <select
-              className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none"
+              className="w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 py-2 text-xs text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
               value={newDifficulty}
               onChange={(e) => setNewDifficulty(e.target.value as 'basico' | 'intermedio' | 'avanzado')}
             >

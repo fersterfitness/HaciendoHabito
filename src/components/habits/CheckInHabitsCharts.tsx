@@ -19,6 +19,7 @@ import { buildAdherenceTimeline } from '@/lib/checkIn/adherence'
 import { parseQuestions } from '@/lib/checkIn/questions'
 import { brandHex } from '@/theme/brandColors'
 import type { Json } from '@/types/database'
+import { controlSmClassName } from '@/lib/formControlClasses'
 
 const PERIODS: { id: CheckInHabitChartPeriod | 'compare' | 'evolucion'; label: string }[] = [
   { id: 'weekly', label: 'Semanal' },
@@ -199,8 +200,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
     )
   }
 
-  const selectClass =
-    'mt-1 block w-full rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-1.5 text-2xs text-ink-primary outline-none focus:border-brand-secondary/50'
+  const selectClass = cn('mt-1 block w-full', controlSmClassName)
 
   return (
     <div className="space-y-4">

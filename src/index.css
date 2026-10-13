@@ -198,6 +198,26 @@
     accent-color: rgb(var(--brand-primary));
   }
 
+  /*
+   * Botones y links sueltos (los ~400 armados a mano en páginas): transición suave
+   * y anillo de foco visible con teclado. Especificidad 0: las clases de cada botón mandan.
+   */
+  :where(button, [role='button'], a) {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+  }
+
+  :where(button, [role='button'], a, summary):focus-visible {
+    outline: 2px solid rgb(var(--brand-primary) / 0.5);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  :where(button:disabled) {
+    cursor: not-allowed;
+  }
+
   @media print {
     body {
       background: white !important;

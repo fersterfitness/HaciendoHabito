@@ -409,10 +409,10 @@ export function FinancesPage() {
     toast.success(n === 1 ? 'CSV descargado (1 fila)' : `CSV descargado (${n} filas)`)
   }
 
-  /** Rejilla neutra · barras en verdes (actual un poco más intenso) */
-  const chartGridStroke = 'rgba(113, 113, 122, 0.18)'
-  const barFillDefault = 'rgba(255, 79, 234, 0.70)' // brand.tertiary
-  const barFillCurrent = 'rgba(255, 79, 234, 0.95)' // brand.tertiary (current)
+  /** Rejilla neutra · barras naranja de marca (mes actual más intenso) */
+  const chartGridStroke = 'rgb(var(--surface-border))'
+  const barFillDefault = 'rgb(var(--brand-primary) / 0.35)' // meses anteriores
+  const barFillCurrent = 'rgb(var(--brand-primary))' // mes actual
 
   return (
     <div>
@@ -887,9 +887,9 @@ export function FinancesPage() {
           <ResponsiveContainer width="100%" height={168}>
             <BarChart data={annualChartData} margin={{ top: 6, right: 8, bottom: 2, left: -16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} vertical={false} />
-              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }} tickLine={false} axisLine={false} />
               <YAxis
-                tick={{ fontSize: 10, fill: '#71717a' }}
+                tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}

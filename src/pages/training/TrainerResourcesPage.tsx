@@ -928,7 +928,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <div className="space-y-1 min-w-[8rem]">
               <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted">Día</label>
               <select
-                className="w-full text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2"
+                className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
                 value={newResSchedDow}
                 onChange={(e) => setNewResSchedDow(Number(e.target.value))}
               >
@@ -942,7 +942,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <div className="space-y-1 flex-1 min-w-[10rem]">
               <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted">Zona horaria</label>
               <select
-                className="w-full text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2"
+                className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
                 value={newResSchedTz}
                 onChange={(e) => setNewResSchedTz(e.target.value)}
               >

@@ -7,12 +7,12 @@ import {
   type CheckInQuestion,
   type CheckInQuestionType,
 } from '@/lib/checkIn/questions'
+import { controlSmClassName } from '@/lib/formControlClasses'
 
 const rowClass =
   'flex flex-col gap-2.5 rounded-2xl border border-surface-border/70 bg-surface-card/70 p-3 shadow-sm transition-colors hover:border-brand-secondary/30'
 
-const selectClass =
-  'text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2 outline-none transition-colors focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20'
+const selectClass = controlSmClassName
 
 export function CheckInQuestionEditor({
   question,

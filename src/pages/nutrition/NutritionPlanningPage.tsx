@@ -97,10 +97,10 @@ import {
   mifflinStJeorBmrMale,
   tdeeFromBmr,
 } from '@/lib/nutrition/tdeeCalculator'
+import { controlMdClassName } from '@/lib/formControlClasses'
 
 /** Campos zinc — evita tinte brand (naranja) en selects / textareas. */
-const PLAN_FIELD_SELECT =
-  'flex h-10 w-full rounded-md border border-surface-border/80 bg-surface-input px-3 text-sm text-ink-primary outline-none transition-colors focus:border-brand-primary/60 focus:ring-2 focus:ring-zinc-400/20'
+const PLAN_FIELD_SELECT = cn('flex w-full', controlMdClassName)
 
 const PLAN_FIELD_TEXTAREA_FOCUS =
   'rounded-md border border-surface-border/80 bg-surface-input text-ink-primary outline-none placeholder:text-ink-muted focus:border-brand-primary/60 focus:ring-2 focus:ring-zinc-400/20'

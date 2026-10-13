@@ -262,7 +262,7 @@ export function PresetBlocksPage() {
               <label className="block text-xs font-medium text-ink-secondary">
                 Categoría
                 <select
-                  className="mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary"
+                  className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs hover:border-ink-muted/50"
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                 >
@@ -276,7 +276,7 @@ export function PresetBlocksPage() {
               <label className="block text-xs font-medium text-ink-secondary">
                 Tipo
                 <select
-                  className="mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary"
+                  className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs hover:border-ink-muted/50"
                   value={kind}
                   onChange={(e) => setKind(e.target.value as 'circuit' | 'individual')}
                 >
@@ -306,7 +306,7 @@ export function PresetBlocksPage() {
                   <div key={i} className="rounded-xl border border-surface-border bg-surface-elevated/40 p-2.5 space-y-2">
                     <div className="flex items-center gap-2">
                       <select
-                        className="flex-1 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary"
+                        className="flex-1 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1.5 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
                         value={ex.exercise_id ?? ''}
                         onChange={(e) => {
                           const lib = library.find((l) => l.id === e.target.value)

@@ -2281,7 +2281,7 @@ function QuickPayModal({
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
           <select
-            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+            className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
             value={type} onChange={(e) => setType(e.target.value)}
           >
             {INCOME_TYPES.map((t) => (
@@ -2293,7 +2293,7 @@ function QuickPayModal({
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
           <select
-            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+            className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
             value={method} onChange={(e) => setMethod(e.target.value)}
           >
             {PAYMENT_METHODS.map((m) => (
@@ -2308,7 +2308,7 @@ function QuickPayModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
         <input
           type="date"
-          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+          className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
           value={date} onChange={(e) => setDate(e.target.value)}
         />
       </div>

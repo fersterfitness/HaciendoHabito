@@ -248,7 +248,7 @@ export function TrainingMethodsPage() {
             <label className="block text-xs font-medium text-ink-secondary">
               Categoría
               <select
-                className="mt-1 w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary"
+                className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs hover:border-ink-muted/50"
                 value={methodCategoryId}
                 onChange={(e) => setMethodCategoryId(e.target.value)}
               >

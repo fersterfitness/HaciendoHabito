@@ -260,17 +260,17 @@ export function PesoTab({
 
                   <ResponsiveContainer width="100%" height={160}>
                     <LineChart data={rechartsData} margin={{ top: 5, right: 8, bottom: 0, left: -20 }}>
-                      <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+                      <CartesianGrid vertical={false} stroke="rgb(var(--surface-border))" strokeOpacity={0.7} strokeDasharray="4 4" />
                       <XAxis
                         dataKey="date"
-                        tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.35)' }}
+                        tick={{ fontSize: 9, fill: 'rgb(var(--ink-muted))' }}
                         axisLine={false}
                         tickLine={false}
                         interval="preserveStartEnd"
                       />
                       <YAxis
                         domain={['auto', 'auto']}
-                        tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.25)' }}
+                        tick={{ fontSize: 9, fill: 'rgb(var(--ink-muted))' }}
                         axisLine={false}
                         tickLine={false}
                         width={36}
@@ -292,20 +292,20 @@ export function PesoTab({
                       <Line
                         type="monotone"
                         dataKey="weight"
-                        stroke="#a1a1aa"
+                        stroke="rgb(var(--brand-primary))"
                         strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#a1a1aa', stroke: '#a1a1aa', strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: '#d4d4d8' }}
+                        dot={{ r: 3.5, fill: 'rgb(var(--brand-primary))', stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                        activeDot={{ r: 5, fill: 'rgb(var(--brand-primary))' }}
                       />
                       {hasFat && (
                         <Line
                           type="monotone"
                           dataKey="fat"
-                          stroke="#71717a"
+                          stroke="rgb(var(--ink-muted))"
                           strokeWidth={1.25}
                           strokeDasharray="4 2"
                           dot={false}
-                          activeDot={{ r: 4, fill: '#71717a' }}
+                          activeDot={{ r: 4, fill: 'rgb(var(--ink-muted))' }}
                           connectNulls
                         />
                       )}

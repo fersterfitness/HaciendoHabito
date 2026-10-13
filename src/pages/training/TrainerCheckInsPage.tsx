@@ -63,6 +63,7 @@ import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/da
 import toast from 'react-hot-toast'
 import { confirmDialog } from '@/components/ui/dialogs'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { controlSmClassName } from '@/lib/formControlClasses'
 
 function defaultQuestions(): CheckInQuestion[] {
   return weeklyFormDefaults().questions
@@ -110,8 +111,7 @@ const checkInFormTileActiveClass =
 const checkInFormTileIdleClass =
   'border-surface-border/80 bg-surface-elevated/25 text-ink-secondary hover:border-brand-secondary/35 hover:bg-brand-secondary/10 hover:text-ink-primary'
 
-const checkInFieldSelectClass =
-  'text-xs rounded-xl border border-surface-border/80 bg-surface-input px-2.5 py-2 outline-none transition-colors focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20'
+const checkInFieldSelectClass = controlSmClassName
 
 const checkInCheckboxClass = 'rounded border-surface-border accent-brand-secondary'
 
