@@ -231,9 +231,9 @@ export function useAuthInit() {
           .select('*')
           .eq('id', session.user.id)
           .single()
-        if (mounted && data) setProfile(data)
+        if (mounted) setProfile(data ?? null)
       } catch {
-        // non-fatal
+        if (mounted) setProfile(null)
       }
     }
 

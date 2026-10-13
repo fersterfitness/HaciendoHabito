@@ -211,10 +211,10 @@ export function StudentRoutineWeekPanel() {
   ]
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-brand-secondary/20 bg-gradient-to-br from-brand-secondary/[0.10] via-surface-card to-surface-card shadow-card">
+    <div className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card bg-[radial-gradient(90%_70%_at_0%_0%,rgb(var(--brand-primary)/0.08),transparent_60%)] shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4">
         <div>
-          <p className="text-3xs font-bold uppercase tracking-[0.14em] text-brand-secondary">Seguimiento</p>
+          <p className="text-3xs font-bold uppercase tracking-[0.14em] text-brand-primary">Seguimiento</p>
           <h3 className="text-base font-semibold tracking-tight text-ink-primary">Semana de rutina</h3>
           <p className="mt-0.5 max-w-prose text-2xs leading-relaxed text-ink-muted">
             Según el último check-in. {inWeekCount} en curso
@@ -244,15 +244,15 @@ export function StudentRoutineWeekPanel() {
         </div>
       </div>
       {loading ? (
-        <div className="space-y-2 px-4 pb-4">
+        <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2 xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-[4.5rem] animate-pulse rounded-2xl bg-surface-elevated/70" />
+            <div key={i} className="hh-shimmer h-[4.5rem] rounded-xl" />
           ))}
         </div>
       ) : visible.length === 0 ? (
         <p className="px-4 pb-5 text-center text-xs text-ink-muted">Nada para mostrar en este filtro.</p>
       ) : (
-        <ul className="max-h-[28rem] space-y-2 overflow-y-auto px-3 pb-4">
+        <ul className="grid max-h-[26rem] gap-2 overflow-y-auto px-3 pb-4 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((row) => {
             const effectiveWeek = row.finished
               ? row.totalWeeks
@@ -262,26 +262,26 @@ export function StudentRoutineWeekPanel() {
               <li
                 key={row.studentId}
                 className={cn(
-                  'rounded-2xl border px-3 py-3 shadow-sm',
+                  'rounded-xl border px-3 py-2.5 transition-colors',
                   row.lastWeek
-                    ? 'border-rose-500/45 bg-rose-500/[0.07]'
-                    : 'border-surface-border/60 bg-surface-card/80',
+                    ? 'border-rose-500/35 bg-rose-500/[0.06]'
+                    : 'border-surface-border/80 bg-surface-elevated/40 hover:border-surface-inputBorder',
                 )}
               >
                 <div className="flex items-start gap-3">
                   <span
                     className={cn(
-                      'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-2xs font-bold',
+                      'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-3xs font-bold',
                       row.lastWeek
                         ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
-                        : 'bg-brand-secondary/15 text-brand-secondary',
+                        : 'bg-brand-primary/12 text-brand-primary',
                     )}
                   >
                     {initials(row.name)}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="text-sm font-semibold text-ink-primary">{row.name}</p>
+                      <p className="min-w-0 truncate text-body-sm font-semibold text-ink-primary">{row.name}</p>
                       <p
                         className={cn(
                           'text-3xs font-medium tabular-nums',
@@ -306,11 +306,11 @@ export function StudentRoutineWeekPanel() {
                     ) : null}
                     {row.totalWeeks > 0 ? (
                       <>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-elevated">
+                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-border/70">
                           <div
                             className={cn(
                               'h-full rounded-full transition-all',
-                              row.finished ? 'bg-emerald-500' : row.lastWeek ? 'bg-rose-500' : 'bg-brand-primary',
+                              row.finished ? 'bg-emerald-500' : row.lastWeek ? 'bg-rose-500' : 'bg-brand-gradient',
                             )}
                             style={{ width: `${Math.min(100, pct)}%` }}
                           />
@@ -325,16 +325,16 @@ export function StudentRoutineWeekPanel() {
                                 key={n}
                                 title={`Semana ${n}`}
                                 className={cn(
-                                  'inline-flex h-6 min-w-6 items-center justify-center rounded-lg px-1 text-3xs font-bold tabular-nums',
+                                  'inline-flex h-5 min-w-5 items-center justify-center rounded-md px-0.5 text-3xs font-bold tabular-nums',
                                   done
                                     ? row.lastWeek
                                       ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
                                       : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                    : 'bg-surface-elevated text-ink-muted',
-                                  current && (row.lastWeek ? 'ring-2 ring-rose-500/60' : 'ring-2 ring-brand-primary/50'),
+                                    : 'bg-surface-card text-ink-muted ring-1 ring-inset ring-surface-border',
+                                  current && (row.lastWeek ? 'ring-1 ring-inset ring-rose-500/60' : 'ring-1 ring-inset ring-brand-primary/60'),
                                 )}
                               >
-                                {done ? <Check className="h-3 w-3" strokeWidth={2.6} /> : n}
+                                {done ? <Check className="h-2.5 w-2.5" strokeWidth={2.6} /> : n}
                               </span>
                             )
                           })}

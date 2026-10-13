@@ -32,7 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
+            <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-ink-muted">
               {leftIcon}
             </span>
           )}
@@ -60,7 +60,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {rightIcon && (
             <span
               className={cn(
-                'absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted',
+                'absolute right-3 top-1/2 z-10 -translate-y-1/2 text-ink-muted',
                 rightIconInteractive && 'pointer-events-auto',
               )}
             >

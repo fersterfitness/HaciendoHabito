@@ -78,7 +78,7 @@ export function SettingsPage() {
   return (
     <div>
       <Header title="Configuración" />
-      <div className="page-shell-x page-shell-y max-w-lg space-y-6">
+      <div className="page-shell-x page-shell-y max-w-5xl columns-1 gap-6 lg:columns-2 [&>*]:mb-6 [&>*]:break-inside-avoid">
 
         {/* Apariencia */}
         <Card>

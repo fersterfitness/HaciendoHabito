@@ -7,6 +7,8 @@ interface AuthState {
   user: User | null
   session: Session | null
   profile: Profile | null
+  /** Ya se intentó traer el perfil (con o sin éxito). Hasta entonces el rol es desconocido. */
+  profileChecked: boolean
   loading: boolean
   setUser: (user: User | null) => void
   setSession: (session: Session | null) => void
@@ -27,12 +29,13 @@ function createStore(): AuthStore {
     user: null,
     session: null,
     profile: null,
+    profileChecked: false,
     loading: hasStoredSession,
     setUser: (user) => set({ user }),
     setSession: (session) => set({ session }),
-    setProfile: (profile) => set({ profile }),
+    setProfile: (profile) => set({ profile, profileChecked: true }),
     setLoading: (loading) => set({ loading }),
-    reset: () => set({ user: null, session: null, profile: null, loading: false }),
+    reset: () => set({ user: null, session: null, profile: null, profileChecked: false, loading: false }),
   }))
 }
 

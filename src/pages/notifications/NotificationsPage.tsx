@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Check, CheckCircle2, ChevronRight, Trash2 } from 'lucide-react'
+import { Bell, Check, ChevronRight, ClipboardCheck, Clock, FileText, KeyRound, MessageCircle, Send, Trash2, Wallet, type LucideIcon } from 'lucide-react'
 import { deleteNotification, notificationHref } from '@/lib/notifications'
 import { subscribeNotificationChanges } from '@/lib/notificationsRealtime'
 import { NOTIFICATION_TYPE_LABELS } from '@/lib/notificationLabels'
@@ -15,6 +15,20 @@ import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 
 const HISTORY_LIMIT = 100
+
+
+/** Ícono y tono por tipo: la lista se lee de un vistazo. */
+const TYPE_STYLE: Record<string, { icon: LucideIcon; tone: string }> = {
+  rutina_por_vencer: { icon: Clock, tone: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' },
+  form_recibido: { icon: ClipboardCheck, tone: 'bg-brand-primary/12 text-brand-primary' },
+  pdf_generado: { icon: FileText, tone: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
+  consulta_recibida: { icon: MessageCircle, tone: 'bg-violet-500/12 text-violet-600 dark:text-violet-400' },
+  feedback_enviado: { icon: Send, tone: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
+  pago_pendiente: { icon: Wallet, tone: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' },
+  pago_registrado: { icon: Wallet, tone: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
+  intake_acceso_solicitado: { icon: KeyRound, tone: 'bg-brand-primary/12 text-brand-primary' },
+}
+const DEFAULT_TYPE_STYLE = { icon: Bell, tone: 'bg-surface-elevated text-ink-muted' }
 
 export function NotificationsPage() {
   const navigate = useNavigate()
@@ -118,25 +132,34 @@ export function NotificationsPage() {
                 const href = notificationHref(n)
                 const typeLabel = NOTIFICATION_TYPE_LABELS[n.type as keyof typeof NOTIFICATION_TYPE_LABELS] ?? n.type
                 const isDeleting = deletingId === n.id
+                const typeStyle = TYPE_STYLE[n.type] ?? DEFAULT_TYPE_STYLE
+                const TypeIcon = typeStyle.icon
 
                 return (
                   <li
                     key={n.id}
                     className={cn(
-                      'group flex items-center gap-2 px-2.5 py-2 transition-colors',
-                      'hover:bg-surface-elevated/30',
+                      'group relative flex items-center gap-3 px-3 py-2.5 transition-colors',
+                      'hover:bg-surface-elevated/40',
+                      !n.is_read && 'bg-brand-primary/[0.04]',
                       isDeleting && 'opacity-50 pointer-events-none',
                     )}
                   >
-                    <span className="flex w-4 shrink-0 justify-center" aria-hidden>
-                      {n.is_read ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.25} />
-                      ) : (
-                        <span
-                          className="size-2 rounded-full bg-ink-muted/50 ring-2 ring-ink-muted/15"
-                          title="Sin leer"
-                        />
+                    {!n.is_read ? (
+                      <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand-gradient" />
+                    ) : null}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+                        typeStyle.tone,
+                        n.is_read && 'opacity-60',
                       )}
+                    >
+                      <TypeIcon className="h-4 w-4" strokeWidth={2} />
+                      {!n.is_read ? (
+                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-brand-primary ring-2 ring-surface-card" title="Sin leer" />
+                      ) : null}
                     </span>
 
                     <button

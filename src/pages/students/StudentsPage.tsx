@@ -124,10 +124,13 @@ function StatusToggle({
   student,
   onChanged,
   remainingWeeks,
+  hidePlanDays = false,
 }: {
   student: Student
   onChanged: (id: string, status: StudentStatus) => void
   remainingWeeks?: number
+  /** Con rutina en curso el avance lo muestra la columna Semana: no repetir fechas ni semanas. */
+  hidePlanDays?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -185,7 +188,7 @@ function StatusToggle({
           ))}
         </div>
       </Popover>
-      {student.plan_end_date && (
+      {student.plan_end_date && !hidePlanDays && (
         <PlanDaysChip date={student.plan_end_date} remainingWeeks={remainingWeeks} />
       )}
     </div>
@@ -1002,21 +1005,17 @@ function StudentDirectoryTable({
   hasMealPlanStudentIds: Set<string>
   currentPlanByStudent: Record<string, StudentPlanAssignment>
 }) {
-  const iconWrapBase =
-    'relative inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-surface-elevated/25'
-  const iconStrike =
-    "after:content-[''] after:absolute after:left-1/2 after:top-1/2 after:h-[2px] after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-[-35deg] after:bg-current after:opacity-55"
-
-  function remainingWeeksOf(studentId: string): number | undefined {
-    const total = weeksByStudent.get(studentId)
-    if (total == null) return undefined
-    const st = weekByStudent.get(studentId)
-    if (st?.finished) return 0
-    if (st?.lastWeek) return 1
-    const current = st?.weekNumber ?? 0
-    return Math.max(0, total - current)
-  }
-
+  const iconWrapBase = 'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-colors'
+  /** Indicador presente (color) / ausente (tenue): sin tachado, que ensuciaba la fila. */
+  const indicatorClass = (on: boolean, tone: 'routine' | 'plan') =>
+    cn(
+      iconWrapBase,
+      on
+        ? tone === 'routine'
+          ? 'bg-brand-primary/12 text-brand-primary ring-1 ring-inset ring-brand-primary/20'
+          : 'bg-brand-tertiary/12 text-brand-tertiary ring-1 ring-inset ring-brand-tertiary/20'
+        : 'text-ink-muted/35',
+    )
   const tableHeader = (
     <div className="flex items-center justify-between gap-3 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-2.5 sm:py-3">
       <div className="min-w-0 flex items-baseline gap-2">
@@ -1068,7 +1067,7 @@ function StudentDirectoryTable({
                   )}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <StatusToggle student={student} onChanged={onStatusChanged} remainingWeeks={remainingWeeksOf(student.id)} />
+                  <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine} />
                   {activeRoutineStudentIds.has(student.id) ? (
                     <RoutineWeekSquares
                       totalWeeks={weeksByStudent.get(student.id) ?? 0}
@@ -1105,12 +1104,12 @@ function StudentDirectoryTable({
                   <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
                     <span className="text-2xs text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
                     <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
-                      <span className={cn(iconWrapBase, 'h-5 w-5', hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
+                      <span className={indicatorClass(hasRoutine, 'routine')}>
                         <Dumbbell className="h-2.5 w-2.5" />
                       </span>
                     </Tooltip>
                     <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
-                      <span className={cn(iconWrapBase, 'h-5 w-5', hasPlan ? 'border-surface-border/75 text-brand-tertiary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasPlan && iconStrike)}>
+                      <span className={indicatorClass(hasPlan, 'plan')}>
                         <Utensils className="h-2.5 w-2.5" />
                       </span>
                     </Tooltip>
@@ -1157,7 +1156,7 @@ function StudentDirectoryTable({
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>
               <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5">Nivel</th>
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
+              <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
               <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5">Email</th>
               <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
@@ -1174,15 +1173,15 @@ function StudentDirectoryTable({
                   onClick={() => onRowClick(student.id)}
                   style={tableRowEnterStyle(rowIndex)}
                   className={cn(
-                    'group cursor-pointer transition-colors outline-none',
-                    'hover:bg-surface-elevated/35 focus-within:bg-surface-elevated/35',
-                    isSelected && 'bg-surface-elevated/45',
+                    'group cursor-pointer align-middle transition-colors outline-none',
+                    'hover:bg-surface-elevated/50 focus-within:bg-surface-elevated/50',
+                    isSelected && 'bg-brand-primary/[0.05]',
                   )}
                 >
                   <td
                     className={cn(
                       'hh-row-drop-in px-4 py-2.5 sm:px-5',
-                      isSelected ? 'border-l-[3px] border-l-zinc-400 pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
+                      isSelected ? 'border-l-[3px] border-l-brand-primary pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -1202,24 +1201,38 @@ function StudentDirectoryTable({
                           {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{age}a</span>}
                           <div className="flex shrink-0 items-center gap-1">
                             <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
-                              <span className={cn(iconWrapBase, hasRoutine ? 'border-surface-border/75 text-brand-secondary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasRoutine && iconStrike)}>
+                              <span className={indicatorClass(hasRoutine, 'routine')}>
                                 <Dumbbell className="h-3 w-3" />
                               </span>
                             </Tooltip>
                             <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
-                              <span className={cn(iconWrapBase, hasPlan ? 'border-surface-border/75 text-brand-tertiary' : 'border-dashed border-surface-border/80 text-ink-muted', !hasPlan && iconStrike)}>
+                              <span className={indicatorClass(hasPlan, 'plan')}>
                                 <Utensils className="h-3 w-3" />
                               </span>
                             </Tooltip>
                           </div>
                         </div>
                         {student.email ? <span className="truncate text-2xs text-ink-muted lg:hidden">{student.email}</span> : null}
-                        <StudentTagChips
-                          student={student}
-                          maxVisible={2}
-                          onTagClick={onFilterTag}
-                          className="mt-0.5"
-                        />
+                        <div className="flex flex-wrap items-center gap-1 empty:hidden">
+                          {currentPlanByStudent[student.id] ? (() => {
+                            const a = currentPlanByStudent[student.id]
+                            const eff = effectivePaymentStatus(a)
+                            const cls =
+                              eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
+                              eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
+                              eff === 'cancelled' ? 'bg-zinc-500/15 text-ink-secondary ring-zinc-500/25' :
+                              'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25'
+                            return (
+                              <span
+                                title={`${a.plan_name_snapshot} · ${PAYMENT_STATUS_LABELS[eff]}`}
+                                className={cn('inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full px-2 py-0.5 text-3xs font-semibold ring-1', cls)}
+                              >
+                                <span className="truncate">{a.plan_name_snapshot}</span>
+                              </span>
+                            )
+                          })() : null}
+                          <StudentTagChips student={student} maxVisible={2} onTagClick={onFilterTag} />
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -1227,10 +1240,10 @@ function StudentDirectoryTable({
                     <span className="text-xs">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
-                    <StatusToggle student={student} onChanged={onStatusChanged} remainingWeeks={remainingWeeksOf(student.id)} />
+                    <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine} />
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex flex-col items-start gap-1">
+                    <div className="flex flex-col items-start gap-1 whitespace-nowrap">
                       {hasRoutine ? (
                         <RoutineWeekSquares
                           totalWeeks={weeksByStudent.get(student.id) ?? 0}
@@ -1249,23 +1262,7 @@ function StudentDirectoryTable({
                           Testear RM
                         </span>
                       ) : null}
-                      {currentPlanByStudent[student.id] ? (() => {
-                        const a = currentPlanByStudent[student.id]
-                        const eff = effectivePaymentStatus(a)
-                        const cls =
-                          eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
-                          eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
-                          eff === 'cancelled' ? 'bg-zinc-500/15 text-ink-secondary ring-zinc-500/25' :
-                          'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25'
-                        return (
-                          <span
-                            title={`${a.plan_name_snapshot} · ${PAYMENT_STATUS_LABELS[eff]}`}
-                            className={cn('inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full px-2 py-0.5 text-3xs font-semibold ring-1', cls)}
-                          >
-                            <span className="truncate">{a.plan_name_snapshot}</span>
-                          </span>
-                        )
-                      })() : null}
+
                     </div>
                   </td>
                   <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
@@ -1276,7 +1273,7 @@ function StudentDirectoryTable({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onRowClick(student.id) }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-elevated/40 px-2 py-1 text-2xs font-medium text-ink-secondary opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand-secondary/40 hover:text-brand-secondary"
+                        className="inline-flex items-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1 text-2xs font-medium text-ink-secondary opacity-0 shadow-xs transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand-primary/40 hover:text-brand-primary"
                         title="Abrir ficha"
                       >
                         Abrir <ChevronRight className="h-3 w-3" />

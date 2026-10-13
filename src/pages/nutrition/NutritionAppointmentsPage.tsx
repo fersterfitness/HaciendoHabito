@@ -1150,7 +1150,7 @@ export function AppointmentsPage() {
                   Buscar
                 </label>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" aria-hidden />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" aria-hidden />
                   <Input
                     id="appt-search"
                     value={listQuery}
@@ -1351,7 +1351,7 @@ export function AppointmentsPage() {
                       className={cn(
                         'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
                         dayIsToday
-                          ? 'border-surface-inputBorder/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
+                          ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
                           : 'border-surface-border bg-surface-elevated/50',
                       )}
                     >
@@ -1363,7 +1363,7 @@ export function AppointmentsPage() {
                       >
                         {format(day, 'EEE', { locale: es })}
                         {dayIsToday ? (
-                          <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
+                          <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-brand-primary">
                             · Hoy
                           </span>
                         ) : null}
@@ -1440,7 +1440,7 @@ export function AppointmentsPage() {
                     className={cn(
                       'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
                       dayIsToday
-                        ? 'border-surface-inputBorder/85 bg-zinc-500/[0.06] shadow-sm shadow-black/[0.06] ring-1 ring-amber-400/25 dark:bg-zinc-500/[0.1] dark:shadow-black/20 dark:ring-amber-500/20'
+                        ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
                         : 'border-surface-border bg-surface-elevated/50',
                     )}
                   >
@@ -1452,7 +1452,7 @@ export function AppointmentsPage() {
                     >
                       {format(day, 'EEE', { locale: es })}
                       {dayIsToday ? (
-                        <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400/90">
+                        <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-brand-primary">
                           · Hoy
                         </span>
                       ) : null}

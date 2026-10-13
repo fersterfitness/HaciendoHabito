@@ -260,9 +260,10 @@ function renderLoggedInRoutes({
 
 function AppRoutes() {
   useAuthInit()
-  const { user, profile, loading } = useAuthStore()
+  const { user, profile, profileChecked, loading } = useAuthStore()
   const role = profile?.role
-  const profilePending = Boolean(user && !profile && !loading)
+  // Sesión restaurada pero el perfil (rol) todavía no llegó: no decidir permisos aún.
+  const profilePending = Boolean(user && !profile && (loading || !profileChecked))
   const canSeeTraining = profilePending ? false : role === 'admin' || role === 'trainer'
   const canSeeNutrition = profilePending ? false : role === 'admin' || role === 'nutritionist'
   const canSeeFinances =
@@ -301,7 +302,10 @@ function AppRoutes() {
       <Route path="/v2/form" element={<Navigate to="/form" replace />} />
 
       <Route element={<AuthGuard />}>
-        <Route element={<AppLayout />}>{renderLoggedInRoutes(loggedInProps)}</Route>
+        <Route element={<AppLayout />}>
+          {/* Sin rol todavía, las rutas con permiso redirigirían a /dashboard: esperar con el esqueleto. */}
+          {profilePending ? <Route path="*" element={<PageRouteFallback />} /> : renderLoggedInRoutes(loggedInProps)}
+        </Route>
       </Route>
 
       <Route path="*" element={withPageSuspense(<NotFoundPage />)} />
