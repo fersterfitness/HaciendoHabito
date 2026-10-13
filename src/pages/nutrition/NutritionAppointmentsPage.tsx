@@ -1178,7 +1178,7 @@ export function AppointmentsPage() {
                       value={upcomingStatusFilter}
                       onChange={(e) => setUpcomingStatusFilter(e.target.value as 'all' | 'scheduled' | 'confirmed')}
                       aria-labelledby="appt-status-label"
-                      className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 dark:bg-zinc-900/40"
+                      className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 "
                     >
                       <option value="all">Programado o confirmado</option>
                       <option value="scheduled">Solo programados</option>
@@ -1189,7 +1189,7 @@ export function AppointmentsPage() {
                     <span className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none">
                       Videollamada
                     </span>
-                    <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary dark:bg-zinc-900/40">
+                    <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary ">
                       <input
                         type="checkbox"
                         checked={studentVideoOnly}
@@ -1358,7 +1358,7 @@ export function AppointmentsPage() {
                       <p
                         className={cn(
                           'text-2xs uppercase tracking-wide',
-                          dayIsToday ? 'font-semibold text-ink-primary dark:text-zinc-300' : 'text-ink-secondary',
+                          dayIsToday ? 'font-semibold text-ink-primary ' : 'text-ink-secondary',
                         )}
                       >
                         {format(day, 'EEE', { locale: es })}
@@ -1447,7 +1447,7 @@ export function AppointmentsPage() {
                     <p
                       className={cn(
                         'text-2xs uppercase tracking-wide',
-                        dayIsToday ? 'font-semibold text-ink-primary dark:text-zinc-300' : 'text-ink-secondary',
+                        dayIsToday ? 'font-semibold text-ink-primary ' : 'text-ink-secondary',
                       )}
                     >
                       {format(day, 'EEE', { locale: es })}
@@ -1486,7 +1486,7 @@ export function AppointmentsPage() {
                                     ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
                                     : a.status === 'scheduled'
                                       ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
-                                      : 'border border-surface-border/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-l-zinc-500 dark:bg-zinc-500/[0.1] dark:hover:bg-zinc-500/[0.16]',
+                                      : 'border border-surface-border/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-l-zinc-500 dark:hover:bg-zinc-500/[0.16]',
                                 )}
                                 {...a11y}
                               >

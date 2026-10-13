@@ -131,7 +131,7 @@ export function PlansOverviewPage() {
                       'rounded-full px-2 py-0.5 text-3xs font-semibold ring-1',
                       eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
                       eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
-                      eff === 'cancelled' ? 'bg-zinc-500/15 text-ink-secondary ring-zinc-500/25' :
+                      eff === 'cancelled' ? 'bg-ink-muted/15 text-ink-secondary ring-ink-muted/25' :
                       'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25',
                     )}>
                       {PAYMENT_STATUS_LABELS[eff]}

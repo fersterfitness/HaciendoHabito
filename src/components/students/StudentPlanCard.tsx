@@ -42,7 +42,7 @@ function paymentStatusClasses(status: PlanAssignmentPaymentStatus): string {
   switch (status) {
     case 'paid': return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 ring-emerald-500/30'
     case 'overdue': return 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/30'
-    case 'cancelled': return 'bg-zinc-500/15 text-ink-secondary ring-zinc-500/30'
+    case 'cancelled': return 'bg-ink-muted/15 text-ink-secondary ring-ink-muted/30'
     default: return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/30'
   }
 }
@@ -160,7 +160,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
                     active
                       ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 ring-emerald-500/30'
                       : effStatus === 'cancelled'
-                        ? 'bg-zinc-500/15 text-ink-secondary ring-zinc-500/30'
+                        ? 'bg-ink-muted/15 text-ink-secondary ring-ink-muted/30'
                         : 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/30',
                   )}
                 >

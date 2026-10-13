@@ -49,7 +49,7 @@ function Field({
   return (
     <div className={cn('border-b border-surface-border/45 py-3 last:border-b-0 ', className)}>
       <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted ">{label}</p>
-      <div className="mt-1 break-words text-sm text-ink-primary dark:text-zinc-100">{value}</div>
+      <div className="mt-1 break-words text-sm text-ink-primary ">{value}</div>
     </div>
   )
 }
@@ -122,9 +122,9 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
     <div className="border-t border-surface-border/55 pt-6 ">
       <div className="mb-6 flex flex-col gap-2 border-b border-surface-border/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between ">
         <div className="flex items-start gap-2">
-          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted dark:text-zinc-500" aria-hidden />
+          <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted " aria-hidden />
           <div>
-            <h3 className="text-body-sm font-semibold text-ink-primary dark:text-zinc-100">
+            <h3 className="text-body-sm font-semibold text-ink-primary ">
               Cuestionario de registro
             </h3>
             <p className="text-2xs text-ink-muted ">Datos desde el formulario web (Ferster / form)</p>

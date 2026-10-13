@@ -86,7 +86,7 @@ export function HeaderMoonIcon({
 }
 
 const headerActionBtnClass =
-  'inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface-elevated text-ink-secondary hover:text-ink-primary hover:bg-surface-border/50 transition-colors'
+  'inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface-card text-ink-secondary shadow-[var(--highlight-top),var(--shadow-xs)] transition-colors hover:border-surface-inputBorder hover:bg-surface-elevated hover:text-ink-primary'
 
 /** Botón de acción del header; `renderIcon` recibe hover para animar en todo el botón. */
 export function HeaderActionButton({

@@ -239,7 +239,7 @@ function MealPlansSortDropdown({ value, onChange }: { value: MealPlanTableSort; 
               className={cn(
                 'w-full rounded-md px-2.5 py-2 text-left text-xs transition-colors',
                 opt.value === value
-                  ? 'bg-surface-border/85 font-medium text-ink-primary dark:text-zinc-50'
+                  ? 'bg-surface-border/85 font-medium text-ink-primary '
                   : 'text-ink-secondary hover:bg-surface-elevated/60 ',
               )}
             >
@@ -425,7 +425,7 @@ export function MealPlansPage() {
                 'h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-sm text-ink-primary outline-none shadow-none',
                 'placeholder:text-ink-muted',
                 'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50',
-                ' dark:text-zinc-100 ',
+                ' ',
                 ' ',
               )}
             />
@@ -436,7 +436,7 @@ export function MealPlansPage() {
             <MealPlansSortDropdown value={tableSort} onChange={setTableSort} />
 
             {filterOrigin && (
-              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary dark:text-zinc-100">
+              <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary ">
                 {filterOrigin === 'from_template' ? 'Desde plantilla' : 'Asignación directa'}
                 <button
                   type="button"

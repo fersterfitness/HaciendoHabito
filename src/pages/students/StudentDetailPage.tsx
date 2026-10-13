@@ -138,7 +138,7 @@ function studentAccountStatusChipClass(status: string): string {
         'border-status-expiring/40 bg-status-expiring/10 text-status-expiring',
       )
     case 'inactivo':
-      return cn(base, 'border-zinc-400/55 bg-zinc-500/12 text-ink-secondary dark:border-zinc-600 dark:bg-zinc-700/25')
+      return cn(base, 'border-zinc-400/55 bg-ink-muted/12 text-ink-secondary dark:border-zinc-600')
     case 'baja':
       return cn(base, 'border-rose-400/40 bg-rose-500/10 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-400')
     default:
@@ -691,16 +691,16 @@ export function StudentDetailView({
         <section className="pb-2">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="order-2 min-w-0 flex-1 sm:order-1">
-              <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{student.full_name}</h2>
+              <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary ">{student.full_name}</h2>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium uppercase tracking-wider">
                 <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
-                <span className="text-zinc-300 " aria-hidden>
+                <span className="text-ink-muted/50 " aria-hidden>
                   ·
                 </span>
                 {student.level ? (
                   <>
                     <span className="text-ink-muted ">{DETAIL_LEVEL_LABEL[student.level] ?? student.level}</span>
-                    <span className="text-zinc-300 " aria-hidden>
+                    <span className="text-ink-muted/50 " aria-hidden>
                       ·
                     </span>
                   </>
@@ -755,7 +755,7 @@ export function StudentDetailView({
                     className={cn(
                       'inline-flex h-8 max-w-[12rem] items-center gap-1.5 rounded-xl border px-3 text-xs font-medium',
                       'border-surface-border/80 bg-surface-card text-ink-primary shadow-none',
-                      'dark:bg-zinc-800/40',
+                      '',
                     )}
                   >
                     <span className="truncate">{t}</span>
@@ -794,7 +794,7 @@ export function StudentDetailView({
                         'h-8 w-36 rounded-xl border border-surface-border/80 bg-surface-card px-3 text-xs text-ink-primary',
                         'outline-none placeholder:text-ink-muted',
                         'focus:border-brand-secondary/35 focus:ring-2 focus:ring-brand-secondary/15',
-                        ' dark:bg-zinc-900/60',
+                        ' ',
                       )}
                     />
                     <Button
@@ -858,7 +858,7 @@ export function StudentDetailView({
             <button
               type="button"
               onClick={() => setShowDelete(true)}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-muted transition-colors hover:text-zinc-300"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-muted transition-colors hover:text-ink-secondary"
             >
               <Trash2 className="h-3.5 w-3.5" /> Eliminar
             </button>
@@ -883,7 +883,7 @@ export function StudentDetailView({
 
             {/* Notas / observaciones */}
             {editingNotes ? (
-              <div className="space-y-3 border-t border-surface-border/60 pt-4 dark:border-zinc-800/60">
+              <div className="space-y-3 border-t border-surface-border/60 pt-4 ">
                 <div className="flex items-center gap-2">
                   <StickyNote className="h-4 w-4 text-brand-secondary" aria-hidden />
                   <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
@@ -1004,7 +1004,7 @@ export function StudentDetailView({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted ">Rutina activa</p>
-                      <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{activeRoutine.name}</p>
+                      <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-primary ">{activeRoutine.name}</p>
                       {activeRoutine.objective?.trim() ? (
                         <p className="mt-1 max-w-lg text-body-sm leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
                       ) : null}
@@ -1014,11 +1014,11 @@ export function StudentDetailView({
 
                   <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-surface-border/60 pt-4 ">
                     <div>
-                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Inicio</dt>
+                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted ">Inicio</dt>
                       <dd className="mt-1 text-sm tabular-nums text-ink-secondary ">{formatDate(activeRoutine.start_date)}</dd>
                     </div>
                     <div>
-                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semana</dt>
+                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted ">Semana</dt>
                       <dd className="mt-1">
                         <RoutineWeekSquares
                           totalWeeks={weekTotal}
@@ -1029,10 +1029,10 @@ export function StudentDetailView({
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted dark:text-zinc-500">Semanas restantes</dt>
+                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted ">Semanas restantes</dt>
                       <dd className={cn(
                         'mt-1 text-sm tabular-nums font-semibold',
-                        weekSt?.lastWeek ? 'text-status-expired' : 'text-ink-primary dark:text-zinc-50',
+                        weekSt?.lastWeek ? 'text-status-expired' : 'text-ink-primary ',
                       )}>
                         {weekSt?.lastWeek
                           ? 'Última semana'
@@ -1046,7 +1046,7 @@ export function StudentDetailView({
                   </dl>
 
                   <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-surface-border/60 pt-4 ">
-                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary dark:text-zinc-100">
+                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary ">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
@@ -1068,7 +1068,7 @@ export function StudentDetailView({
                         onBlur={() => {
                           if (activeRoutine.is_paid) void saveRoutinePaid(activeRoutine.id, true)
                         }}
-                        className="mt-1 w-28 rounded-lg border border-surface-border bg-white px-2 py-1 text-sm tabular-nums text-ink-primary dark:bg-zinc-900 dark:text-zinc-100"
+                        className="mt-1 w-28 rounded-lg border border-surface-border bg-white px-2 py-1 text-sm tabular-nums text-ink-primary dark:bg-zinc-900 "
                       />
                     </label>
                     {activeRoutine.is_paid ? (
@@ -1080,7 +1080,7 @@ export function StudentDetailView({
                         Pendiente
                       </span>
                     )}
-                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary dark:text-zinc-100">
+                    <label className="inline-flex items-center gap-2 text-body-sm font-medium text-ink-primary ">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-surface-border accent-brand-secondary"
@@ -1137,13 +1137,13 @@ export function StudentDetailView({
               <div className="rounded-xl border border-dashed border-surface-inputBorder/80 overflow-hidden">
                 <div className="flex items-stretch">
                   {/* Acento izquierdo */}
-                  <div className="w-1 shrink-0 bg-zinc-300/60 dark:bg-zinc-700/60" />
+                  <div className="w-1 shrink-0 bg-zinc-300/60 " />
                   <div className="flex-1 px-5 py-6">
-                    <p className="text-3xs font-semibold uppercase tracking-[0.16em] text-ink-muted dark:text-zinc-500">Sin rutina activa</p>
-                    <p className="mt-2 text-[15px] font-semibold text-ink-primary dark:text-zinc-100">
+                    <p className="text-3xs font-semibold uppercase tracking-[0.16em] text-ink-muted ">Sin rutina activa</p>
+                    <p className="mt-2 text-[15px] font-semibold text-ink-primary ">
                       {student.full_name.split(' ')[0]} no tiene una rutina asignada
                     </p>
-                    <p className="mt-1.5 max-w-sm text-body-sm leading-relaxed text-ink-muted dark:text-zinc-500">
+                    <p className="mt-1.5 max-w-sm text-body-sm leading-relaxed text-ink-muted ">
                       {rutinaHistorialVacío
                         ? 'Creá la primera rutina para este alumno.'
                         : 'Tiene rutinas en el historial. Podés abrirlas para renovar o activar un período.'}
@@ -1196,7 +1196,7 @@ export function StudentDetailView({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border/55 pb-3 ">
                 <div>
                   <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted ">Historial</p>
-                  <h3 className="mt-0.5 text-sm font-semibold text-ink-primary dark:text-zinc-50">Rutinas anteriores</h3>
+                  <h3 className="mt-0.5 text-sm font-semibold text-ink-primary ">Rutinas anteriores</h3>
                 </div>
                 <Button
                   variant="ghost"
@@ -1242,7 +1242,7 @@ export function StudentDetailView({
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <span className={routineStatusPillClass(r.status, true)}>{intakeRoutinePhrase(r.status)}</span>
-                            <span className="text-zinc-300 transition-colors group-hover:text-ink-muted dark:text-zinc-700 ">›</span>
+                            <span className="text-ink-muted/50 transition-colors group-hover:text-ink-muted ">›</span>
                           </div>
                         </button>
                       </li>
@@ -1272,7 +1272,7 @@ export function StudentDetailView({
                           className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-body-sm font-semibold text-ink-primary dark:text-zinc-50">{r.name}</p>
+                            <p className="truncate text-body-sm font-semibold text-ink-primary ">{r.name}</p>
                             <p className="mt-0.5 flex items-center gap-2 text-2xs tabular-nums text-ink-muted">
                               <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
                               {r.completed_at && (
@@ -1285,7 +1285,7 @@ export function StudentDetailView({
                               )}
                             </p>
                           </div>
-                          <span className="text-zinc-300 transition-colors group-hover:text-ink-muted dark:text-zinc-700 ">›</span>
+                          <span className="text-ink-muted/50 transition-colors group-hover:text-ink-muted ">›</span>
                         </button>
                       </li>
                     )
@@ -1301,7 +1301,7 @@ export function StudentDetailView({
         {sheetTab === 'nutricion' && showNutritionTab && (
           <section>
             <div className="border-b border-surface-border/50 pb-4 ">
-              <div className="flex items-center gap-2 text-ink-primary dark:text-zinc-100">
+              <div className="flex items-center gap-2 text-ink-primary ">
                 <ClipboardList className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
                 <h3 className="text-sm font-semibold">Planes de alimentación</h3>
               </div>
@@ -1335,7 +1335,7 @@ export function StudentDetailView({
                 const renderPlan = (p: TrainerStudentMealPlan) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-ink-primary dark:text-zinc-50">{p.title}</p>
+                      <p className="truncate text-sm font-medium text-ink-primary ">{p.title}</p>
                       <p className="text-2xs text-ink-muted">
                         {p.start_date || p.end_date ? (
                           <span className="mr-2 font-medium text-ink-secondary ">
@@ -1417,7 +1417,7 @@ export function StudentDetailView({
                   className={cn(
                     '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold uppercase tracking-wide transition-colors sm:text-xs',
                     seguimientoTab === value
-                      ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 dark:text-zinc-50'
+                      ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 '
                       : 'border-transparent text-ink-muted hover:text-ink-primary ',
                   )}
                 >
@@ -1870,7 +1870,7 @@ function FuerzaTab({
         <section className="border-t border-surface-border/55 pt-4 ">
           <div className="mb-3 flex items-center gap-2">
             <Zap className="h-4 w-4 text-ink-muted" aria-hidden />
-            <h3 className="text-sm font-semibold text-ink-primary dark:text-zinc-100">Calculadora de porcentaje</h3>
+            <h3 className="text-sm font-semibold text-ink-primary ">Calculadora de porcentaje</h3>
           </div>
           <div className="space-y-3">
             <select
@@ -1902,7 +1902,7 @@ function FuerzaTab({
                 <div className="flex items-center justify-between border border-surface-border/80 bg-surface-elevated/60 px-4 py-3 ">
                   <div>
                     <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">Peso estimado</p>
-                    <p className="text-2xl font-bold tabular-nums text-ink-primary dark:text-zinc-50">{calcWeight} kg</p>
+                    <p className="text-2xl font-bold tabular-nums text-ink-primary ">{calcWeight} kg</p>
                   </div>
                   <div className="text-right">
                     <p className="text-3xs text-ink-muted">1RM base</p>
@@ -1921,7 +1921,7 @@ function FuerzaTab({
                         className={cn(
                           'flex items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors',
                           isSelected
-                            ? 'border border-zinc-400 bg-white font-semibold text-ink-primary ring-2 ring-surface-inputBorder/80 dark:border-zinc-500 dark:text-white '
+                            ? 'border border-zinc-400 bg-white font-semibold text-ink-primary ring-2 ring-surface-inputBorder/80 dark:text-white '
                             : 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/90 ',
                         )}
                       >
@@ -2039,7 +2039,7 @@ function AddRmModal({
               'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
               mode === value
                 ? 'bg-white text-ink-primary shadow-sm ring-1 ring-surface-border/90 '
-                : 'text-ink-muted dark:text-zinc-500',
+                : 'text-ink-muted ',
             )}
           >
             {label}
@@ -2081,7 +2081,7 @@ function AddRmModal({
           {percentRm ? (
             <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
               <div>
-                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM aproximado</p>
+                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">1RM aproximado</p>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary ">{percentRm} kg</p>
               </div>
               <p className="text-xs text-ink-muted text-right">
@@ -2127,7 +2127,7 @@ function AddRmModal({
           {estimatedRm && (
             <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
               <div>
-                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">1RM estimado (Epley)</p>
+                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">1RM estimado (Epley)</p>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary ">{estimatedRm} kg</p>
               </div>
               <p className="text-xs text-ink-muted text-right">

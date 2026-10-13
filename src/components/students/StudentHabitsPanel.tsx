@@ -337,7 +337,7 @@ export function StudentHabitsPanel({
           type="button"
           onClick={() => setShowLibrary(true)}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border border-surface-border/80 bg-surface-elevated/80 px-2.5 py-1.5 text-xs font-medium text-ink-primary transition-colors hover:bg-surface-elevated dark:text-zinc-100 ',
+            'inline-flex items-center gap-1.5 rounded-md border border-surface-border/80 bg-surface-elevated/80 px-2.5 py-1.5 text-xs font-medium text-ink-primary transition-colors hover:bg-surface-elevated ',
             !toolbarLeading && 'ml-auto',
           )}
         >
@@ -360,7 +360,7 @@ export function StudentHabitsPanel({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold capitalize text-ink-primary dark:text-zinc-50">{monthLabel(year, month)}</span>
+            <span className="text-sm font-semibold capitalize text-ink-primary ">{monthLabel(year, month)}</span>
             <button
               type="button"
               onClick={nextMonth}
@@ -436,7 +436,7 @@ export function StudentHabitsPanel({
                           const p = payload[0].payload as (typeof evolutionMonthly)[number]
                           return (
                             <div className="rounded-md border border-surface-border bg-white px-3 py-2 text-left text-xs shadow-lg dark:bg-zinc-950">
-                              <p className="font-semibold text-ink-primary dark:text-zinc-50">{p.labelShort}</p>
+                              <p className="font-semibold text-ink-primary ">{p.labelShort}</p>
                               <p className="mt-1 text-ink-secondary ">
                                 Hábitos activos: <span className="font-medium text-ink-primary ">{p.activeCount}</span>
                               </p>
@@ -522,7 +522,7 @@ export function StudentHabitsPanel({
           </details>
 
           {activeHabits.length === 0 ? (
-            <div className="space-y-3 rounded-lg border border-surface-border/75 bg-surface-elevated/40 p-6 text-center dark:bg-zinc-950/40">
+            <div className="space-y-3 rounded-lg border border-surface-border/75 bg-surface-elevated/40 p-6 text-center ">
               <p className="text-2xl" aria-hidden>
                 📋
               </p>

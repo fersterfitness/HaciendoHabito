@@ -83,7 +83,7 @@ function expenseTypePillClass(expenseType: string): string {
   if (expenseType === 'fijo') {
     return cn(
       base,
-      'border-zinc-400/55 bg-zinc-500/10 text-ink-primary dark:bg-zinc-600/15 ',
+      'border-zinc-400/55 bg-ink-muted/10 text-ink-primary ',
     )
   }
   return cn(
@@ -177,8 +177,8 @@ function AnnualIncomeTooltip({
   const safeLabel = label != null ? String(label) : '—'
 
   return (
-    <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-surface-border bg-white px-3 py-2 text-left shadow-lg dark:bg-zinc-950">
-      <p className="text-2xs font-semibold text-ink-primary dark:text-zinc-50">{safeLabel}</p>
+    <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-surface-border bg-white px-3 py-2 text-left shadow-lg ">
+      <p className="text-2xs font-semibold text-ink-primary ">{safeLabel}</p>
       <p className="mt-1 font-semibold tabular-nums leading-tight text-body-sm text-brand-tertiary">
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
@@ -567,7 +567,7 @@ export function FinancesPage() {
               title="Exportar CSV"
               className={cn(
                 'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-surface-border/75 px-3.5 text-sm font-medium text-ink-primary transition-colors',
-                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 dark:text-zinc-100 ',
+                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 ',
               )}
             >
               <Download className="h-4 w-4 text-ink-muted " aria-hidden />

@@ -230,11 +230,11 @@ export function CicloTab({ studentId }: { studentId: string }) {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="mb-0.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted">Fase actual</p>
-                <p className="text-lg font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{PHASE_META[cycleInfo.phase].label}</p>
+                <p className="text-lg font-semibold tracking-tight text-ink-primary ">{PHASE_META[cycleInfo.phase].label}</p>
                 <p className="mt-2 text-xs leading-relaxed text-ink-secondary ">{PHASE_META[cycleInfo.phase].desc}</p>
               </div>
               <div className="min-w-[60px] shrink-0 border border-surface-border/70 px-3 py-2 text-center ">
-                <p className="text-2xl font-bold tabular-nums text-ink-primary dark:text-zinc-50">{Math.max(cycleInfo.dayInCycle, 1)}</p>
+                <p className="text-2xl font-bold tabular-nums text-ink-primary ">{Math.max(cycleInfo.dayInCycle, 1)}</p>
                 <p className="text-3xs text-ink-muted">
                   día {cycleInfo.dayInCycle > cycleInfo.cycleLen ? '(pasado)' : `/ ${cycleInfo.cycleLen}`}
                 </p>
@@ -291,7 +291,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
       {/* Registrar nuevo ciclo */}
       <section>
         <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 pb-3 ">
-          <h3 className="text-sm font-semibold text-ink-primary dark:text-zinc-100">Historial de ciclos</h3>
+          <h3 className="text-sm font-semibold text-ink-primary ">Historial de ciclos</h3>
           <Button
             size="sm"
             variant="gradientSecondary"
@@ -313,7 +313,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
                 <li key={c.id} className="flex items-center gap-3 py-2.5">
                   <span className="h-2 w-2 shrink-0 bg-zinc-400 dark:bg-zinc-500" aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-ink-primary dark:text-zinc-50">{formatDate(c.cycle_start_date)}</p>
+                    <p className="text-sm font-medium text-ink-primary ">{formatDate(c.cycle_start_date)}</p>
                     <p className="text-3xs text-ink-muted">
                       {c.cycle_length} días · hasta {formatDate(end.toISOString().split('T')[0])}
                       {c.notes && ` · ${c.notes}`}
@@ -323,7 +323,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
                     type="button"
                     onClick={() => deleteCycle(c.id)}
                     disabled={deleting === c.id}
-                    className="text-ink-muted transition-colors hover:text-zinc-300"
+                    className="text-ink-muted transition-colors hover:text-ink-secondary"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -420,7 +420,7 @@ function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
           <Legend
             wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
             formatter={(value) => (
-              <span className={isDark ? 'text-zinc-300 capitalize' : 'text-ink-secondary capitalize'}>{value}</span>
+              <span className={isDark ? 'text-ink-muted/50 capitalize' : 'text-ink-secondary capitalize'}>{value}</span>
             )}
           />
 

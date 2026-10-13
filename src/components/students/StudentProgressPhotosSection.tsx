@@ -317,7 +317,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
             loading={uploading}
             disabled={uploading}
             variant="outline"
-            className="border-surface-inputBorder text-ink-secondary hover:bg-surface-elevated/60 dark:text-zinc-200 "
+            className="border-surface-inputBorder text-ink-secondary hover:bg-surface-elevated/60 "
             onClick={() => fileInputRef.current?.click()}
           >
             Seleccionar foto

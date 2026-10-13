@@ -78,7 +78,7 @@ export function PagosTab({
   return (
     <div className="space-y-4">
       {/* ── Cuota mensual ── */}
-      <div className="border-b border-surface-border/60 pb-4 dark:border-zinc-800/60">
+      <div className="border-b border-surface-border/60 pb-4 ">
         <div className="flex items-center justify-between gap-2 mb-2">
           <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide ">Plan de cuota mensual</p>
           {!editingCuota && (
@@ -112,7 +112,7 @@ export function PagosTab({
           </div>
         ) : cuota ? (
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-ink-primary dark:text-zinc-50">{formatCurrency(cuota)}<span className="ml-1 text-sm font-normal text-ink-muted">/ mes</span></p>
+            <p className="text-2xl font-bold text-ink-primary ">{formatCurrency(cuota)}<span className="ml-1 text-sm font-normal text-ink-muted">/ mes</span></p>
             {(() => {
               const now = new Date()
               const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`

@@ -252,7 +252,7 @@ export function PesoTab({
                           <span>Objetivo: {goal} kg</span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-surface-border ">
-                          <div className="h-full rounded-full bg-zinc-500 transition-all dark:bg-zinc-400" style={{ width: `${pct}%` }} />
+                          <div className="h-full rounded-full bg-zinc-500 transition-all " style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     )
@@ -334,7 +334,7 @@ export function PesoTab({
               <button
                 type="button"
                 onClick={() => { setGoalInput(String(goal ?? '')); setEditingGoal(true) }}
-                className="mb-4 flex w-full items-center gap-2 border-b border-dashed border-zinc-400/70 py-3 text-left text-xs text-ink-muted transition-colors hover:border-zinc-500 hover:text-ink-primary dark:border-zinc-600 "
+                className="mb-4 flex w-full items-center gap-2 border-b border-dashed border-zinc-400/70 py-3 text-left text-xs text-ink-muted transition-colors hover:border-zinc-500 hover:text-ink-primary "
               >
                 {goal ? `Objetivo: ${goal} kg — modificar` : 'Establecer peso objetivo'}
               </button>
@@ -355,7 +355,7 @@ export function PesoTab({
                   <button
                     type="button"
                     onClick={() => handleDelete(l.id)}
-                    className="text-ink-muted opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100"
+                    className="text-ink-muted opacity-0 transition-opacity hover:text-ink-secondary group-hover:opacity-100"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

@@ -501,18 +501,18 @@ export function RoutineFormContent({
           {!isEditing && (routineTemplates.length > 0 || templateBlueprintId) && (
             <div className="rounded-2xl border border-dashed border-surface-inputBorder/80 bg-surface-elevated/80 p-4 space-y-4 ">
               <div className="flex items-center gap-2">
-                <Copy className="h-4 w-4 shrink-0 text-ink-muted dark:text-zinc-400" />
+                <Copy className="h-4 w-4 shrink-0 text-ink-muted " />
                 <span className="text-sm font-semibold text-ink-primary ">Copiar desde rutina existente</span>
-                <span className="ml-auto rounded-full bg-surface-border/80 px-2 py-0.5 text-3xs text-ink-secondary dark:bg-zinc-700/60 dark:text-zinc-400">
+                <span className="ml-auto rounded-full bg-surface-border/80 px-2 py-0.5 text-3xs text-ink-secondary ">
                   opcional
                 </span>
               </div>
               {templateBlueprintId ? (
-                <p className="text-xs leading-relaxed text-ink-secondary dark:text-zinc-400">
+                <p className="text-xs leading-relaxed text-ink-secondary ">
                   Esta rutina se va a armar con una variante de <strong>Rutinas preestablecidas</strong>.
                 </p>
               ) : (
-                <p className="text-xs leading-relaxed text-ink-secondary dark:text-zinc-400">
+                <p className="text-xs leading-relaxed text-ink-secondary ">
                   Copiá bloques, días y ejercicios de otra rutina ya creada. Las variantes preestablecidas se asignan desde la ficha del alumno o desde Base de datos.
                 </p>
               )}
@@ -529,8 +529,8 @@ export function RoutineFormContent({
               ) : null}
               {(templateBlueprintId || templateRoutineId) && (
                 <div className="flex items-center gap-2 rounded-xl border border-surface-border/90 bg-surface-elevated/90 px-3 py-2 ">
-                  <Check className="h-3.5 w-3.5 shrink-0 text-ink-secondary dark:text-zinc-300" />
-                  <span className="text-xs font-medium text-ink-secondary dark:text-zinc-300">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-ink-secondary " />
+                  <span className="text-xs font-medium text-ink-secondary ">
                     Se copiarán bloques, días y ejercicios al crear la rutina
                   </span>
                 </div>
@@ -565,7 +565,7 @@ export function RoutineFormContent({
           </div>
           {endDate && (
             <div className="flex items-center gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/90 px-3 py-2 ">
-              <span className="text-xs text-ink-muted dark:text-zinc-400">Fecha de vencimiento:</span>
+              <span className="text-xs text-ink-muted ">Fecha de vencimiento:</span>
               <span className="text-sm font-semibold tabular-nums text-ink-primary ">{endDate}</span>
             </div>
           )}

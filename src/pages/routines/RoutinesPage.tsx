@@ -180,15 +180,15 @@ function RoutinesFiltersDropdown({
             className={cn(
               'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-ink-primary transition-colors',
               activeCount > 0
-                ? 'border-surface-inputBorder/90 bg-surface-elevated/80 dark:text-zinc-100'
-                : 'border-surface-border/70 bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 dark:text-zinc-200 ',
+                ? 'border-surface-inputBorder/90 bg-surface-elevated/80 '
+                : 'border-surface-border/70 bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 ',
             )}
             {...a11y}
           >
             <Filter className="h-4 w-4 text-ink-muted " aria-hidden />
             Filtrar
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-3xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-3xs font-bold text-white ">
                 {activeCount}
               </span>
             )}
@@ -206,7 +206,7 @@ function RoutinesFiltersDropdown({
                 className={cn(
                   'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                   filterLevel === v
-                    ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14 dark:text-zinc-50'
+                    ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14 '
                     : 'text-ink-secondary hover:bg-surface-elevated/60 ',
                 )}
               >
@@ -226,7 +226,7 @@ function RoutinesFiltersDropdown({
                   className={cn(
                     'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
                     filterStatus === opt.value
-                      ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14 dark:text-zinc-50'
+                      ? 'bg-slate-500/12 font-medium text-ink-primary dark:bg-slate-400/14 '
                       : 'text-ink-secondary hover:bg-surface-elevated/60 ',
                   )}
                 >
@@ -297,7 +297,7 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
               className={cn(
                 'w-full rounded-md px-2.5 py-2 text-left text-xs transition-colors',
                 opt.value === value
-                  ? 'bg-surface-border/85 font-medium text-ink-primary dark:text-zinc-50'
+                  ? 'bg-surface-border/85 font-medium text-ink-primary '
                   : 'text-ink-secondary hover:bg-surface-elevated/60 ',
               )}
             >
@@ -620,7 +620,7 @@ export function RoutinesPage() {
                     'h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-sm text-ink-primary outline-none shadow-none',
                     'placeholder:text-ink-muted',
                     'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50',
-                    ' dark:text-zinc-100 ',
+                    ' ',
                     ' ',
                   )}
                 />
@@ -636,7 +636,7 @@ export function RoutinesPage() {
                 <RoutinesSortDropdown value={tableSort} onChange={setTableSort} />
 
                 {filterLevel && (
-                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary dark:text-zinc-100">
+                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary ">
                     {LEVEL_LABELS[filterLevel]}
                     <button
                       type="button"
@@ -649,7 +649,7 @@ export function RoutinesPage() {
                   </span>
                 )}
                 {filterStatus && (
-                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary dark:text-zinc-100">
+                  <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary ">
                     {phraseRoutineStatus(filterStatus)}
                     <button
                       type="button"

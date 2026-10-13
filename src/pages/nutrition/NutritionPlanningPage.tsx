@@ -188,10 +188,10 @@ function LiveMacroCell({
 
   return (
     <div className="min-w-0 rounded-md border border-surface-border/75 bg-white/95 px-2 py-2 text-center dark:bg-zinc-950/45 sm:px-2.5">
-      <p className="text-3xs font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-500 sm:text-3xs">{abbr}</p>
-      <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-ink-primary dark:text-zinc-100 sm:text-xl">
+      <p className="text-3xs font-bold uppercase tracking-wide text-ink-muted sm:text-3xs">{abbr}</p>
+      <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-ink-primary sm:text-xl">
         {fmt1(intakeG)}
-        <span className="ml-0.5 text-3xs font-semibold text-ink-muted dark:text-zinc-500">g</span>
+        <span className="ml-0.5 text-3xs font-semibold text-ink-muted ">g</span>
       </p>
       <p className="mt-1 text-3xs tabular-nums leading-tight text-ink-secondary ">
         Meta {hasGoal ? `${fmt1(goalG)} g` : '—'}
@@ -199,7 +199,7 @@ function LiveMacroCell({
       <p
         className={cn(
           'mt-0.5 text-3xs font-bold tabular-nums leading-tight sm:text-2xs',
-          !hasGoal ? 'text-ink-muted dark:text-zinc-600' : over ? 'text-status-expiring' : 'text-ink-secondary ',
+          !hasGoal ? 'text-ink-muted ' : over ? 'text-status-expiring' : 'text-ink-secondary ',
         )}
       >
         Rest {hasGoal ? `${fmt1(remainderG)} g` : '—'}
@@ -210,7 +210,7 @@ function LiveMacroCell({
       {hasGoal ? (
         <div className="mx-auto mt-1.5 h-1.5 max-w-[5.5rem] overflow-hidden rounded-full bg-surface-border ">
           <div
-            className="h-full rounded-full bg-zinc-600 transition-[width] duration-300 ease-out dark:bg-zinc-400"
+            className="h-full rounded-full bg-zinc-600 transition-[width] duration-300 ease-out "
             style={{ width: `${barPct}%` }}
           />
         </div>
@@ -2056,7 +2056,7 @@ export function NutritionPlanningPage() {
 
           {/* Kcal + macros en vivo (sticky) */}
           <div className="sticky top-2 z-20">
-            <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:border-zinc-800/80 dark:bg-surface-card/95">
+            <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:bg-surface-card/95">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="shrink-0 text-3xs font-bold uppercase tracking-wide text-ink-muted">
@@ -2101,7 +2101,7 @@ export function NutritionPlanningPage() {
               </div>
 
               <div
-                className="rounded-lg border border-surface-border bg-surface-muted/50 px-2 py-2 dark:bg-zinc-900/35 sm:py-2.5"
+                className="rounded-lg border border-surface-border bg-surface-muted/50 px-2 py-2 sm:py-2.5"
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
@@ -2116,7 +2116,7 @@ export function NutritionPlanningPage() {
               </div>
 
               {targetKcal > 0 ? (
-                <div className="h-2 overflow-hidden rounded-full border border-surface-border bg-surface-muted dark:bg-zinc-800/80">
+                <div className="h-2 overflow-hidden rounded-full border border-surface-border bg-surface-muted ">
                   <div
                     className="h-full rounded-full bg-ink-primary/55 transition-[width] duration-300 ease-out dark:bg-ink-secondary/80"
                     style={{
@@ -2143,7 +2143,7 @@ export function NutritionPlanningPage() {
               role="status"
               className="rounded-md border border-surface-inputBorder/75 bg-surface-elevated/60 px-3 py-2.5 text-sm text-ink-secondary "
             >
-              <p className="font-medium text-ink-primary dark:text-zinc-100">
+              <p className="font-medium text-ink-primary ">
                 Tenés gramos en «Alimentos personalizados» que todavía no agregaste a un momento del día.
               </p>
               <p className="text-xs text-ink-muted mt-1 leading-relaxed">
@@ -2290,10 +2290,10 @@ export function NutritionPlanningPage() {
                     key={key}
                     role="region"
                     aria-labelledby={`meal-slot-title-${key}`}
-                    className="overflow-hidden rounded-xl border border-surface-border bg-surface-card text-sm shadow-sm dark:border-zinc-800/75 dark:bg-surface-card"
+                    className="overflow-hidden rounded-xl border border-surface-border bg-surface-card text-sm shadow-sm dark:bg-surface-card"
                   >
                     {/* Cabecera de momento — alineada al PDF (franja + título) */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 dark:bg-zinc-900/45">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 ">
                       <span
                         id={`meal-slot-title-${key}`}
                         className="text-3xs font-bold uppercase tracking-[0.14em] text-ink-muted"
@@ -2316,7 +2316,7 @@ export function NutritionPlanningPage() {
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[520px] border-collapse text-sm">
                             <thead>
-                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-3xs font-semibold uppercase tracking-wide text-ink-muted dark:bg-zinc-900/40">
+                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">
                                 <th className="min-w-0 px-3 py-2 text-left">Alimento</th>
                                 <th className="hidden px-2 py-2 text-left md:table-cell" title="Macronutrientes orientativos de esta porción">
                                   Macros
@@ -2361,8 +2361,8 @@ export function NutritionPlanningPage() {
                                       className={cn(
                                         'border-b border-surface-border align-top',
                                         rowIdx % 2 === 0
-                                          ? 'bg-surface-card dark:bg-zinc-950/35'
-                                          : 'bg-surface-muted/45 dark:bg-zinc-900/22',
+                                          ? 'bg-surface-card '
+                                          : 'bg-surface-muted/45 ',
                                       )}
                                     >
                                       <td className="min-w-0 max-w-[40%] px-3 py-2.5 align-top">
@@ -2526,7 +2526,7 @@ export function NutritionPlanningPage() {
                                         </button>
                                       </td>
                                     </tr>
-                                    <tr className="border-b border-surface-border bg-surface-muted/55 dark:bg-zinc-900/35">
+                                    <tr className="border-b border-surface-border bg-surface-muted/55 ">
                                       <td colSpan={5} className="border-t border-surface-border/70 px-3 py-2.5">
                                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
                                           <button

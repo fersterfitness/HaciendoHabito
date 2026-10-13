@@ -53,7 +53,7 @@ function difficultyBadgeClass(difficulty: string): string {
     case 'intermedio':
       return cn(base, 'border-status-expiring/40 bg-status-expiring/10 text-status-expiring')
     case 'avanzado':
-      return cn(base, 'border-zinc-400/55 bg-zinc-500/10 text-ink-primary dark:border-zinc-600 dark:bg-zinc-600/15 dark:text-zinc-400')
+      return cn(base, 'border-zinc-400/55 bg-ink-muted/10 text-ink-primary dark:border-zinc-600')
     default:
       return cn(base, 'border-surface-border/80 text-ink-secondary')
   }
@@ -183,7 +183,7 @@ export function ExercisesPage() {
             <Input
               ref={exercisesSearchRef}
               placeholder="Buscar por nombre, músculo o equipamiento… ( / para enfocar )"
-              leftIcon={<Search className="h-4 w-4 text-ink-muted dark:text-zinc-500" />}
+              leftIcon={<Search className="h-4 w-4 text-ink-muted " />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Buscar ejercicios"
@@ -202,7 +202,7 @@ export function ExercisesPage() {
               onClick={() => setShowCategoryPanel((v) => !v)}
               className={cn(
                 'h-10 shrink-0 rounded-md border-surface-border/75 px-3.5 font-medium text-ink-primary',
-                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 dark:text-zinc-100 ',
+                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 ',
               )}
             >
               <span className="hidden sm:inline">Nueva categoría</span>
@@ -229,12 +229,12 @@ export function ExercisesPage() {
               className={cn(
                 'inline-flex items-center rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                 muscleFilter === null
-                  ? 'border-zinc-700 bg-zinc-800 text-white dark:border-zinc-300 dark:bg-zinc-100 dark:text-zinc-900'
+                  ? 'border-zinc-700 bg-zinc-800 text-white '
                   : 'border-surface-border/80 bg-surface-elevated/60 text-ink-secondary hover:bg-surface-elevated ',
               )}
             >
               Todos
-              {muscleFilter === null && <span className="ml-1.5 tabular-nums text-ink-muted dark:text-zinc-500">{exercises.length}</span>}
+              {muscleFilter === null && <span className="ml-1.5 tabular-nums text-ink-muted ">{exercises.length}</span>}
             </button>
 
             {muscleGroups
@@ -262,7 +262,7 @@ export function ExercisesPage() {
                       style={{ backgroundColor: palette.dot }}
                     />
                     {g.name}
-                    <span className={cn('tabular-nums', isActive ? 'opacity-70' : 'text-ink-muted dark:text-zinc-600')}>
+                    <span className={cn('tabular-nums', isActive ? 'opacity-70' : 'text-ink-muted ')}>
                       {count}
                     </span>
                     {isActive && <X className="h-3 w-3 opacity-60" />}

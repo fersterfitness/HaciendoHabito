@@ -1435,7 +1435,7 @@ export function RoutineDetailPage() {
                   if (e.key === 'Enter') { e.preventDefault(); void addCompletionNote() }
                 }}
                 placeholder="ej: trabajar movilidad lumbo-pélvica…"
-                className="flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-amber-500 dark:border-amber-700/50 dark:bg-zinc-900"
+                className="flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-amber-500 dark:border-amber-700/50 "
               />
               <Button size="sm" variant="secondary" loading={savingCompletionNote} onClick={() => void addCompletionNote()}>
                 Guardar nota
