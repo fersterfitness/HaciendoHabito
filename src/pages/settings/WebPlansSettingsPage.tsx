@@ -1498,7 +1498,7 @@ export function WebPlansSettingsPage() {
                     {(() => {
                       const hint = webPlanSegmentMismatchHint(plan.catalog_segment, plan.slug, plan.title)
                       return hint ? (
-                        <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-2xs leading-snug text-amber-900 dark:text-amber-100">
+                        <p className="mt-2 rounded-lg hh-alert hh-alert-warning px-3 py-2 text-2xs leading-snug text-amber-900 dark:text-amber-100">
                           {hint}
                         </p>
                       ) : null

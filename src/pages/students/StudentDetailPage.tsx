@@ -1652,7 +1652,7 @@ function FuerzaTab({
       {/* ── Aviso TESTEAR RM ── */}
       {rmTestWeeks != null ? (
         rmDue ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/[0.08] px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl hh-alert hh-alert-warning px-4 py-3">
             <Dumbbell className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold uppercase tracking-wide text-ink-primary">Testear RM en la próxima rutina</p>

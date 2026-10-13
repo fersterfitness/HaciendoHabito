@@ -29,7 +29,7 @@ export function OffContextPage() {
       <Header title="Saliendo de contexto" />
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 lg:px-6">
         {wednesday ? (
-          <p className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+          <p className="rounded-xl hh-alert hh-alert-warning px-3 py-2 text-sm font-medium text-amber-800 dark:text-amber-200">
             Hoy es miércoles: es el día de mandar el hilo al grupo.
           </p>
         ) : (

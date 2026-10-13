@@ -264,16 +264,22 @@ export function DashboardTrainerOpsPanel({
       </div>
 
       {rmTestDueStudents.length > 0 ? (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/[0.08]">
+        <div className="rounded-xl hh-alert hh-alert-warning">
           <button
             type="button"
             onClick={() => setRmOpen((v) => !v)}
-            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
             aria-expanded={rmOpen}
           >
-            <Dumbbell className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
-            <span className="flex-1 text-2xs font-semibold text-ink-primary">
-              TESTEAR RM en la próxima rutina ({rmTestDueStudents.length})
+            <span className="hh-alert-icon h-7 w-7 shrink-0" aria-hidden>
+              <Dumbbell className="h-3.5 w-3.5" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-xs font-semibold text-ink-primary">Testear RM</span>
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+                {rmTestDueStudents.length}
+              </span>
+              <span className="text-2xs text-ink-muted">en la próxima rutina</span>
             </span>
             <ChevronDown
               className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', rmOpen && 'rotate-180')}
@@ -281,11 +287,11 @@ export function DashboardTrainerOpsPanel({
             />
           </button>
           {rmOpen ? (
-            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-amber-500/20 px-2 py-2">
+            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-surface-border/70 px-2 py-2">
               {rmTestDueStudents.map((st) => (
                 <li
                   key={st.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-amber-500/10"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-surface-elevated/60"
                 >
                   <button
                     type="button"
@@ -299,7 +305,7 @@ export function DashboardTrainerOpsPanel({
                     type="button"
                     disabled={rmMarkingId === st.id}
                     onClick={() => void markRmRead(st.id)}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-amber-600/35 px-2 py-0.5 text-3xs font-medium text-amber-800 hover:bg-amber-500/10 disabled:opacity-45 dark:text-amber-300"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-surface-border bg-surface-card px-2 py-0.5 text-3xs font-medium text-ink-secondary shadow-xs hover:border-surface-inputBorder hover:text-ink-primary disabled:opacity-45"
                     title="Marcar como leído: la cuenta de 12 semanas vuelve a cero"
                   >
                     <Check className="h-3 w-3" />
@@ -313,16 +319,22 @@ export function DashboardTrainerOpsPanel({
       ) : null}
 
       {lastWeekStudents.length > 0 ? (
-        <div className="rounded-xl border border-rose-500/35 bg-rose-500/[0.07]">
+        <div className="rounded-xl hh-alert hh-alert-danger">
           <button
             type="button"
             onClick={() => setLastWeekOpen((v) => !v)}
-            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
             aria-expanded={lastWeekOpen}
           >
-            <BellRing className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-300" aria-hidden />
-            <span className="flex-1 text-2xs font-semibold text-ink-primary">
-              Última semana ({lastWeekStudents.length}) — enviar feedback mensual
+            <span className="hh-alert-icon h-7 w-7 shrink-0" aria-hidden>
+              <BellRing className="h-3.5 w-3.5" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-xs font-semibold text-ink-primary">Última semana</span>
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+                {lastWeekStudents.length}
+              </span>
+              <span className="text-2xs text-ink-muted">enviar feedback mensual</span>
             </span>
             <ChevronDown
               className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', lastWeekOpen && 'rotate-180')}
@@ -330,11 +342,11 @@ export function DashboardTrainerOpsPanel({
             />
           </button>
           {lastWeekOpen ? (
-            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-rose-500/20 px-2 py-2">
+            <ul className="max-h-52 space-y-1 overflow-y-auto border-t border-surface-border/70 px-2 py-2">
               {lastWeekStudents.map((st) => (
                 <li
                   key={st.id}
-                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-rose-500/10"
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-surface-elevated/60"
                 >
                   <span className="min-w-0 truncate font-medium text-ink-primary">{st.full_name}</span>
                   <button
@@ -365,16 +377,22 @@ export function DashboardTrainerOpsPanel({
       ) : null}
 
       {missingCheckInStudents.length > 0 ? (
-        <div className="rounded-xl border border-surface-border bg-surface-card">
+        <div className="rounded-xl border border-surface-border/90 bg-surface-card shadow-[var(--highlight-top),var(--shadow-xs)]">
           <button
             type="button"
             onClick={() => setMissingOpen((v) => !v)}
-            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
             aria-expanded={missingOpen}
           >
-            <CalendarClock className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
-            <span className="flex-1 text-2xs font-semibold text-ink-primary">
-              Sin feedback semanal de esta ronda ({missingCheckInStudents.length}) — recordales por WhatsApp
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-ink-secondary" aria-hidden>
+              <CalendarClock className="h-3.5 w-3.5" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-xs font-semibold text-ink-primary">Sin feedback semanal</span>
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+                {missingCheckInStudents.length}
+              </span>
+              <span className="text-2xs text-ink-muted">recordales por WhatsApp</span>
             </span>
             <ChevronDown
               className={cn('h-3.5 w-3.5 text-ink-muted transition-transform', missingOpen && 'rotate-180')}

@@ -437,6 +437,47 @@
     white-space: nowrap;
   }
 
+  /**
+   * Alerta / aviso: tarjeta neutra + barra de acento + degradé suave del tono.
+   * Reemplaza los bloques con fondo y borde teñidos (estilo pesado / antiguo).
+   */
+  .hh-alert {
+    --tone: var(--brand-primary);
+    position: relative;
+    border: 1px solid rgb(var(--surface-border) / 0.9);
+    background-color: rgb(var(--surface-card));
+    background-image: linear-gradient(90deg, rgb(var(--tone) / 0.08) 0%, rgb(var(--tone) / 0.02) 35%, transparent 70%);
+    box-shadow: var(--highlight-top), var(--shadow-xs);
+  }
+
+  .hh-alert::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: rgb(var(--tone));
+    pointer-events: none;
+  }
+
+  .hh-alert-danger { --tone: 244 63 94; }
+  .hh-alert-warning { --tone: 245 158 11; }
+  .hh-alert-success { --tone: 16 185 129; }
+  .hh-alert-info { --tone: 59 130 246; }
+  .hh-alert-violet { --tone: 139 92 246; }
+
+  /** Ícono de alerta en «pastilla» del tono. */
+  .hh-alert-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: rgb(var(--tone) / 0.12);
+    color: rgb(var(--tone));
+  }
+
   /** Brillo «skeleton». */
   @keyframes hh-shimmer {
     from { background-position: -200% 0; }

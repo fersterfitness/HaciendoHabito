@@ -698,7 +698,7 @@ export function NutritionAnthropometryHubPage() {
                             Interpretando la evolución del paciente…
                           </div>
                         ) : aiError ? (
-                          <div className="flex items-start gap-2 rounded-xl border border-status-expired/30 bg-status-expired/5 px-3 py-2.5 text-sm text-ink-secondary">
+                          <div className="flex items-start gap-2 rounded-xl hh-alert hh-alert-danger px-3 py-2.5 text-sm text-ink-secondary">
                             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-expired" aria-hidden />
                             <span>{aiError}</span>
                           </div>

@@ -1327,7 +1327,7 @@ export function DashboardPage() {
 
 
         {canSeeTraining && checkInRecentCount > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-2xs">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg hh-alert hh-alert-warning px-3 py-2 text-2xs">
             <ClipboardCheck className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
             <span className="text-amber-900 dark:text-amber-200">
               {checkInRecentCount === 1
@@ -1382,7 +1382,7 @@ export function DashboardPage() {
                   key={`exp-${row.id}`}
                   type="button"
                   onClick={() => navigate(row.href)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-status-expired/25 bg-status-expired/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expired/15 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl hh-alert hh-alert-danger px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-status-expired/15 transition-colors"
                 >
                   <AlertTriangle className="h-3.5 w-3.5 text-status-expired shrink-0" />
                   <span>{row.title} · {row.lastWeek ? 'Última sem.' : row.days < 0 ? 'Revisar' : row.days === 0 ? 'Vence hoy' : `${row.days}d`}</span>
@@ -1392,7 +1392,7 @@ export function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/finances')}
-                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-amber-500/15 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl hh-alert hh-alert-warning px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-amber-500/15 transition-colors"
                 >
                   <Wallet className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                   <span>{formatCurrency(pendingIncomeTotal)} pendiente de cobro</span>

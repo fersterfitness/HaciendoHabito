@@ -1460,7 +1460,7 @@ export function RoutineDetailPage() {
         ) : null}
 
         {checkInWeek.lastWeek ? (
-          <p className="rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-2xs font-medium text-rose-700 dark:text-rose-300">
+          <p className="rounded-xl hh-alert hh-alert-danger px-3 py-2 text-2xs font-medium text-rose-700 dark:text-rose-300">
             Última semana · renovar rutina
             {checkInWeek.weekNumber != null ? ` (va por la semana ${checkInWeek.weekNumber}).` : '.'}
           </p>
@@ -1717,19 +1717,19 @@ export function RoutineDetailPage() {
 const CYCLE_PHASE_CLASSES: Record<CyclePhaseColor, { chip: string; panel: string }> = {
   red: {
     chip: 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300',
-    panel: 'border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-100',
+    panel: 'hh-alert hh-alert-danger text-ink-primary',
   },
   amber: {
     chip: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    panel: 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100',
+    panel: 'hh-alert hh-alert-warning text-ink-primary',
   },
   violet: {
     chip: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-    panel: 'border-violet-500/30 bg-violet-500/10 text-violet-900 dark:text-violet-100',
+    panel: 'hh-alert hh-alert-violet text-ink-primary',
   },
   sky: {
     chip: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    panel: 'border-sky-500/30 bg-sky-500/10 text-sky-900 dark:text-sky-100',
+    panel: 'hh-alert hh-alert-info text-ink-primary',
   },
 }
 
@@ -1913,7 +1913,7 @@ function BlockCard({
                 <div
                   key={p.phase}
                   className={cn(
-                    'flex gap-2 rounded-xl border px-3 py-2.5 text-xs',
+                    'flex gap-2 rounded-xl px-3 py-2.5 text-xs',
                     CYCLE_PHASE_CLASSES[p.color].panel,
                   )}
                 >

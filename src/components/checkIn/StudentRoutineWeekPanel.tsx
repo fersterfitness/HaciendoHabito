@@ -264,7 +264,7 @@ export function StudentRoutineWeekPanel() {
                 className={cn(
                   'rounded-xl border px-3 py-2.5 transition-colors',
                   row.lastWeek
-                    ? 'border-rose-500/35 bg-rose-500/[0.06]'
+                    ? 'hh-alert hh-alert-danger'
                     : 'border-surface-border/80 bg-surface-elevated/40 hover:border-surface-inputBorder',
                 )}
               >

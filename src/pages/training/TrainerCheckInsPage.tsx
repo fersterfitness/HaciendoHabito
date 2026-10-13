@@ -1665,7 +1665,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                   <p className="text-2xs text-ink-muted">
                     El link personal se reutiliza todas las semanas. Quien respondió la semana pasada puede volver a completar.
                   </p>
-                  <p className="text-2xs text-ink-secondary rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2">
+                  <p className="text-2xs text-ink-secondary rounded-lg hh-alert hh-alert-warning px-2.5 py-2">
                     No compartas los links en grupos públicos: son como una clave. Si un formulario queda pausado, el link deja de aceptar respuestas
                     nuevas.
                   </p>

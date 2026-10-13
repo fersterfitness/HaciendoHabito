@@ -551,10 +551,10 @@ export function StudentHabitsPanel({
                 <div className={cn(
                   'flex flex-col gap-2 rounded-xl border p-4',
                   overallPct >= 70
-                    ? 'border-emerald-500/30 bg-emerald-500/[0.08] dark:bg-emerald-500/[0.1]'
+                    ? 'hh-alert hh-alert-success'
                     : overallPct >= 40
-                    ? 'border-amber-500/30 bg-amber-500/[0.08] dark:bg-amber-500/[0.1]'
-                    : 'border-rose-500/25 bg-rose-500/[0.06] dark:bg-rose-500/[0.08]',
+                    ? 'hh-alert hh-alert-warning'
+                    : 'hh-alert hh-alert-danger',
                 )}>
                   <div className="flex items-center justify-between">
                     <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">Promedio</p>

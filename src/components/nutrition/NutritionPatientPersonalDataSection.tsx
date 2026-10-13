@@ -151,7 +151,7 @@ export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdate
   return (
     <div className="space-y-6">
       {missingPersonalFromForm ? (
-        <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-xs text-ink-secondary leading-relaxed">
+        <p className="rounded-xl hh-alert hh-alert-warning px-4 py-3 text-xs text-ink-secondary leading-relaxed">
           Parte de lo que completaste en el registro web está en las secciones de abajo (
           <strong className="font-semibold text-ink-primary">Cuestionario nutricional del registro</strong>
           {student.intake_ferster ? (
