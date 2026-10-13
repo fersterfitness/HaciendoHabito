@@ -54,6 +54,7 @@ import { supabase } from '@/lib/supabase'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import toast from 'react-hot-toast'
 import type { Student, StudentStatus } from '@/types/database'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 const LEVEL_LABELS: Record<string, string> = {
   inicial: 'Inicial',
@@ -737,27 +738,17 @@ export function StudentsPage() {
         {filterGender === 'F' ? (
           <WomenCycleOverview students={filtered} weekByStudent={weekByStudent} />
         ) : null}
-        <div className="flex flex-wrap gap-1">
-          {([
-            { id: '' as const, label: 'Todos' },
-            { id: 'F' as const, label: 'Mujeres' },
-            { id: 'M' as const, label: 'Hombres' },
-          ]).map((opt) => (
-            <button
-              key={opt.id || 'all-g'}
-              type="button"
-              onClick={() => setFilterGender(opt.id)}
-              className={cn(
-                'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
-                filterGender === opt.id
-                  ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
-                  : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Filtrar por sexo"
+          value={filterGender || 'all'}
+          onChange={(id) => setFilterGender(id === 'all' ? '' : (id as 'F' | 'M'))}
+          items={[
+            { id: 'all', label: 'Todos' },
+            { id: 'F', label: 'Mujeres' },
+            { id: 'M', label: 'Hombres' },
+          ]}
+        />
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="min-w-0 flex-1 max-w-xl">
             <Input
@@ -1046,7 +1037,7 @@ function StudentDirectoryTable({
               onClick={() => onRowClick(student.id)}
               style={tableRowEnterStyle(rowIndex)}
               className={cn(
-                'hh-row-drop-in flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
+                'hh-row-drop-in flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
                 'outline-none focus-within:bg-surface-elevated/35',
                 isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-brand-primary' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
               )}
@@ -1060,15 +1051,22 @@ function StudentDirectoryTable({
                 onPathChange={() => onAvatarUpdated()}
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-semibold text-sm leading-snug text-ink-primary">{student.full_name}</span>
-                  {age !== null && (
-                    <span className="shrink-0 text-2xs text-ink-muted">{age}a</span>
-                  )}
+                {/* 1: nombre + indicadores · 2: estado + semanas · 3: nivel, plan y etiquetas */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-sm font-semibold leading-snug text-ink-primary">{student.full_name}</span>
+                  {age !== null && <span className="shrink-0 text-2xs tabular-nums text-ink-muted">{age}a</span>}
+                  <span className="ml-0.5 inline-flex shrink-0 items-center gap-1">
+                    <span className={indicatorClass(hasRoutine, 'routine')} title={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
+                      <Dumbbell className="h-2.5 w-2.5" />
+                    </span>
+                    <span className={indicatorClass(hasPlan, 'plan')} title={hasPlan ? 'Con plan' : 'Sin plan'}>
+                      <Utensils className="h-2.5 w-2.5" />
+                    </span>
+                  </span>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine} />
-                  {activeRoutineStudentIds.has(student.id) ? (
+                  {hasRoutine ? (
                     <RoutineWeekSquares
                       totalWeeks={weeksByStudent.get(student.id) ?? 0}
                       currentWeek={weekStatusOrEmpty(weekByStudent, student.id).weekNumber}
@@ -1076,6 +1074,9 @@ function StudentDirectoryTable({
                       lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
                     />
                   ) : null}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-2xs text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   {rmTestDueIds.has(student.id) ? (
                     <span
                       className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
@@ -1101,28 +1102,10 @@ function StudentDirectoryTable({
                       </span>
                     )
                   })() : null}
-                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-                    <span className="text-2xs text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
-                    <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
-                      <span className={indicatorClass(hasRoutine, 'routine')}>
-                        <Dumbbell className="h-2.5 w-2.5" />
-                      </span>
-                    </Tooltip>
-                    <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
-                      <span className={indicatorClass(hasPlan, 'plan')}>
-                        <Utensils className="h-2.5 w-2.5" />
-                      </span>
-                    </Tooltip>
-                  </span>
+                  <StudentTagChips student={student} maxVisible={2} onTagClick={onFilterTag} />
                 </div>
-                <StudentTagChips
-                  student={student}
-                  maxVisible={2}
-                  onTagClick={onFilterTag}
-                  className="mt-1"
-                />
               </div>
-              <div className="flex shrink-0 items-center gap-0.5">
+              <div className="flex shrink-0 items-center self-start">
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
@@ -1150,7 +1133,7 @@ function StudentDirectoryTable({
 
       {/* ── Desktop table (≥ sm) ─────────────────────────────────── */}
       <div className="hidden sm:block max-h-[min(68vh,36rem)] overflow-auto">
-        <table className="w-full border-collapse text-body-sm leading-snug">
+        <table className="w-full border-collapse text-body-sm leading-snug hh-table">
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>

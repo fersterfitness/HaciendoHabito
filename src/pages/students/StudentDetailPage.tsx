@@ -55,6 +55,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts'
 import { Modal } from '@/components/ui/Modal'
+import { motion } from 'motion/react'
 
 /** Pestañas dentro de Seguimiento (peso, fuerza, pagos, ciclo). */
 type SeguimientoTab = 'peso' | 'fuerza' | 'pagos' | 'ciclo'
@@ -654,22 +655,28 @@ export function StudentDetailView({
                     title={label}
                     onClick={() => setSheetTab(key)}
                     className={cn(
-                      'relative -mb-px flex min-w-0 flex-1 items-center justify-center gap-2',
-                      'rounded-t-2xl border px-2 py-3 sm:px-4 text-xs font-semibold transition-colors',
-                      active
-                        ? 'border-surface-border/80 bg-surface-card text-ink-primary shadow-card'
-                        : 'border-transparent bg-transparent text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/25',
+                      'relative -mb-px flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-t-lg px-1 pb-2.5 pt-2',
+                      'text-3xs font-semibold transition-colors sm:flex-row sm:gap-2 sm:px-4 sm:py-3 sm:text-xs',
+                      active ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
                     )}
                   >
+                    {active ? (
+                      <motion.span
+                        layoutId="student-sheet-tab"
+                        aria-hidden
+                        className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-brand-gradient"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      />
+                    ) : null}
                     <span
                       className={cn(
                         'shrink-0 [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-3.5 sm:[&>svg]:w-3.5',
-                        active ? 'text-ink-secondary' : 'text-ink-muted',
+                        active ? 'text-brand-primary' : 'text-ink-muted',
                       )}
                     >
                       {icon}
                     </span>
-                    <span className="hidden min-w-0 truncate sm:inline">{label}</span>
+                    <span className="max-w-full truncate">{label}</span>
                   </button>
                 )
               })}
@@ -681,7 +688,7 @@ export function StudentDetailView({
         {sheetTab === 'ficha' && (
           <>
         {/* Perfil: sin tarjeta contenedora, tipografía y líneas */}
-        <section className="border-b border-surface-border/60 pb-6 ">
+        <section className="pb-2">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="order-2 min-w-0 flex-1 sm:order-1">
               <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary dark:text-zinc-50">{student.full_name}</h2>

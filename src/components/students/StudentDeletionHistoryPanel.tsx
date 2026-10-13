@@ -137,7 +137,7 @@ export function StudentDeletionHistoryPanel({
             </p>
           ) : (
             <div className="max-h-[min(40vh,20rem)] overflow-auto">
-              <table className="w-full border-collapse text-body-sm leading-snug">
+              <table className="w-full border-collapse text-body-sm leading-snug hh-table">
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
                     <th

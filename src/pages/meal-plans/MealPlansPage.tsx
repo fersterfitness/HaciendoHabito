@@ -509,7 +509,7 @@ export function MealPlansPage() {
             </div>
 
             <div className="max-h-[min(72vh,40rem)] overflow-auto">
-              <table className="w-full min-w-[860px] border-collapse text-body-sm leading-snug">
+              <table className="w-full min-w-[860px] border-collapse text-body-sm leading-snug hh-table">
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
                     <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Plan</th>

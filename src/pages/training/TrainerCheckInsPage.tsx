@@ -62,6 +62,7 @@ import { ensureDefaultCheckInForms, remapCheckInResponsesForForm, syncCheckInSid
 import type { CheckInForm, CheckInSendSchedule, Json, Student } from '@/types/database'
 import toast from 'react-hot-toast'
 import { confirmDialog } from '@/components/ui/dialogs'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 function defaultQuestions(): CheckInQuestion[] {
   return weeklyFormDefaults().questions
@@ -945,71 +946,35 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
           }
         />
 
-        <div
-          className="flex w-full max-w-md gap-1 rounded-xl border border-surface-border bg-surface-elevated/40 p-1"
-          role="tablist"
-          aria-label="Vista de check-ins"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={checkInView === 'student'}
-            onClick={() => setCheckInView('student')}
-            className={cn(
-              'flex flex-1 min-h-9 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
-              checkInView === 'student'
-                ? 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
-                : 'border-transparent text-ink-secondary hover:bg-surface-elevated',
-            )}
-          >
-            <Users className="h-4 w-4 shrink-0" aria-hidden />
-            Por alumno
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={checkInView === 'form'}
-            onClick={() => setCheckInView('form')}
-            className={cn(
-              'flex flex-1 min-h-9 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
-              checkInView === 'form'
-                ? 'border-surface-border bg-surface-card text-ink-primary shadow-sm'
-                : 'border-transparent text-ink-secondary hover:bg-surface-elevated',
-            )}
-          >
-            <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden />
-            Por formulario
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Vista de check-ins"
+          fullWidth
+          className="max-w-md"
+          value={checkInView}
+          onChange={(id) => setCheckInView(id as typeof checkInView)}
+          items={[
+            { id: 'student', label: 'Por alumno', icon: Users },
+            { id: 'form', label: 'Por formulario', icon: ClipboardCheck },
+          ]}
+        />
 
         {checkInView === 'student' ? (
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Vista por alumno">
-              {([
-                { id: 'seguimiento' as const, label: 'Seguimiento' },
-                { id: 'sin_respuesta' as const, label: 'Sin respuesta' },
-                { id: 'feedbacks' as const, label: 'Feedbacks general' },
-              ]).map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={studentPanel === opt.id}
-                  onClick={() => setStudentPanel(opt.id)}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-2xs font-semibold transition-colors',
-                    studentPanel === opt.id
-                      ? 'border-brand-secondary/40 bg-brand-secondary/12 text-ink-primary'
-                      : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
-                  )}
-                >
-                  {opt.label}
-                  {opt.id === 'sin_respuesta' && missingStudents.length > 0 ? (
-                    <span className="ml-1 tabular-nums opacity-70">{missingStudents.length}</span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Vista por alumno"
+              value={studentPanel}
+              onChange={(id) => setStudentPanel(id as typeof studentPanel)}
+              items={[
+                { id: 'seguimiento', label: 'Seguimiento' },
+                {
+                  id: 'sin_respuesta',
+                  label: 'Sin respuesta',
+                  count: missingStudents.length > 0 ? missingStudents.length : undefined,
+                },
+                { id: 'feedbacks', label: 'Feedbacks general' },
+              ]}
+            />
 
             {studentPanel === 'sin_respuesta' ? (
               <Card padding="lg" className="space-y-3 border-amber-500/30">

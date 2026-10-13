@@ -185,7 +185,8 @@ export function MobileNav() {
               }
             >
             {/* Handle + header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-surface-border/60 shrink-0">
+            <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-ink-muted/30" />
+            <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-surface-border/60 shrink-0">
               <div className="flex items-center gap-3">
                 <AvatarOrInitials
                   fullName={profile?.full_name ?? '?'}

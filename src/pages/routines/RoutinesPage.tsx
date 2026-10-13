@@ -42,6 +42,7 @@ import type { Routine, RoutineStatus, Student } from '@/types/database'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 type RoutineWithStudent = Routine & {
   student?: { full_name: string; level?: string; status?: string; avatar_path?: string | null } | null
@@ -559,10 +560,16 @@ export function RoutinesPage() {
         <AdvisoriesSectionNav />
       </div>
 
-      <div className="flex gap-2 border-b border-surface-border px-4 lg:px-6">
-        <button
-          type="button"
-          onClick={() =>
+      <div className="px-4 lg:px-6">
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Rutinas"
+          value={tabPdfs ? 'pdfs' : 'mine'}
+          onChange={(id) => {
+            if (id === 'pdfs') {
+              setSearchParams({ tab: 'pdfs' }, { replace: true })
+              return
+            }
             setSearchParams(
               (prev) => {
                 const next = new URLSearchParams(prev)
@@ -571,29 +578,12 @@ export function RoutinesPage() {
               },
               { replace: true },
             )
-          }
-          className={cn(
-            '-mb-px rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
-            !tabPdfs
-              ? 'border-surface-border bg-surface-card text-ink-primary'
-              : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
-          )}
-        >
-          Mis rutinas
-        </button>
-        <button
-          type="button"
-          onClick={() => setSearchParams({ tab: 'pdfs' }, { replace: true })}
-          className={cn(
-            'flex items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors -mb-px',
-            tabPdfs
-              ? 'border-surface-border bg-surface-card text-ink-primary'
-              : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
-          )}
-        >
-          <FileText className="h-4 w-4 shrink-0" aria-hidden />
-          PDFs
-        </button>
+          }}
+          items={[
+            { id: 'mine', label: 'Mis rutinas' },
+            { id: 'pdfs', label: 'PDFs', icon: FileText },
+          ]}
+        />
       </div>
 
       <div className="space-y-4 px-4 py-6 lg:px-6 lg:py-8">
@@ -735,7 +725,7 @@ export function RoutinesPage() {
                 </div>
 
                 <div className="max-h-[min(72vh,40rem)] overflow-auto">
-                  <table className="w-full min-w-[980px] border-collapse text-body-sm leading-snug">
+                  <table className="w-full min-w-[980px] border-collapse text-body-sm leading-snug hh-table">
                     <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                       <tr className="text-left">
                         <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Rutina</th>

@@ -457,10 +457,10 @@ function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
               if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(0)}k`
               return `${sign}$${Math.round(abs)}`
             }}
-            tick={{ fontSize: 9, fill: 'rgba(148,163,184,0.75)' }}
+            tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
             axisLine={false}
             tickLine={false}
-            width={36}
+            width={50}
           />
 
           <RechartsTooltip

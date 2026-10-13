@@ -13,6 +13,9 @@ import {
   MessageCircle,
   AlertCircle,
   ChevronDown,
+  Scale,
+  Clock,
+  type LucideIcon,
 } from 'lucide-react'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
 import { supabase } from '@/lib/supabase'
@@ -33,6 +36,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
 type Tab = 'income' | 'expenses'
@@ -88,26 +92,67 @@ function expenseTypePillClass(expenseType: string): string {
   )
 }
 
+type MetricTone = 'default' | 'featured' | 'warning' | 'negative'
+
+/** Tarjeta de métrica (mismo lenguaje que los KPIs del Inicio). */
 function MetricTile({
   label,
   value,
   valueClassName,
   containerClassName,
+  tone = 'default',
+  icon: Icon,
 }: {
   label: string
   value: string
   valueClassName?: string
   containerClassName?: string
+  tone?: MetricTone
+  icon?: LucideIcon
 }) {
+  const featured = tone === 'featured'
   return (
     <div
       className={cn(
-        'flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 shadow-none lg:p-3.5',
+        'group relative flex flex-col gap-1.5 overflow-hidden rounded-2xl border p-4',
+        'transition-[transform,box-shadow] duration-300 ease-out-expo motion-safe:hover:-translate-y-0.5',
+        featured
+          ? 'hh-cta border-transparent text-white'
+          : 'border-surface-border/90 bg-surface-card shadow-card hover:shadow-card-md bg-[radial-gradient(120%_90%_at_100%_0%,rgb(var(--brand-primary)/0.06),transparent_55%)]',
         containerClassName,
       )}
     >
-      <p className="text-2xs font-medium text-ink-muted">{label}</p>
-      <p className={cn('text-lg font-semibold tracking-tight tabular-nums sm:text-xl', valueClassName ?? 'text-ink-primary')}>
+      {featured ? (
+        <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
+      ) : null}
+      <div className="relative flex items-center gap-2">
+        {Icon ? (
+          <span
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-lg',
+              featured ? 'bg-white/20 text-white' : 'bg-brand-primary/10 text-brand-primary ring-1 ring-inset ring-brand-primary/15',
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+          </span>
+        ) : null}
+        <p className={cn('text-2xs font-semibold uppercase tracking-wider', featured ? 'text-white/85' : 'text-ink-muted')}>
+          {label}
+        </p>
+      </div>
+      <p
+        className={cn(
+          'relative text-xl font-semibold tracking-tight tabular-nums sm:text-2xl',
+          valueClassName ??
+            (featured
+              ? 'text-white'
+              : tone === 'warning'
+                ? 'text-status-expiring'
+                : tone === 'negative'
+                  ? 'text-status-expired'
+                  : 'text-ink-primary'),
+        )}
+      >
         {value}
       </p>
     </div>
@@ -375,15 +420,11 @@ export function FinancesPage() {
 
       <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
         {/* KPI */}
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3">
-          <MetricTile
-            label="Balance neto"
-            value={formatCurrency(animBalance)}
-            valueClassName="text-brand-tertiary"
-          />
-          <MetricTile label="Cobrado total" value={formatCurrency(animCobradoTotal)} />
-          <MetricTile label="Pendiente" value={formatCurrency(animPendiente)} />
-          <MetricTile label="Total gastos" value={formatCurrency(animGastos)} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          <MetricTile label="Balance neto" value={formatCurrency(animBalance)} tone="featured" icon={Scale} />
+          <MetricTile label="Cobrado total" value={formatCurrency(animCobradoTotal)} icon={TrendingUp} />
+          <MetricTile label="Pendiente" value={formatCurrency(animPendiente)} tone={animPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
+          <MetricTile label="Total gastos" value={formatCurrency(animGastos)} icon={TrendingDown} />
         </div>
         <p className="text-2xs leading-relaxed text-ink-muted">
           Los montos siguen el filtro &ldquo;
@@ -439,8 +480,8 @@ export function FinancesPage() {
         )}
 
         {/* Comparación mensual */}
-        <div className="grid grid-cols-2 gap-2.5 lg:gap-3">
-          <div className="flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 ">
+        <div className="grid grid-cols-2 gap-3 lg:gap-4">
+          <div className="flex flex-col gap-1 rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
             <p className="text-2xs font-medium text-ink-muted">
               {MES_LABELS[now.getMonth()]} cobrado
               {mesDelta !== null && (
@@ -461,7 +502,7 @@ export function FinancesPage() {
               {formatCurrency(animEsteMes)}
             </p>
           </div>
-          <div className="flex flex-col gap-1 rounded-md border border-surface-border/70 bg-surface-card p-3 ">
+          <div className="flex flex-col gap-1 rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
             <p className="text-2xs font-medium text-ink-muted">{MES_LABELS[prevMonthDate.getMonth()]} cobrado</p>
             <p className="text-lg font-semibold tracking-tight text-ink-secondary tabular-nums sm:text-xl">
               {formatCurrency(animMesAnterior)}
@@ -470,50 +511,16 @@ export function FinancesPage() {
         </div>
 
         {/* Tabs (estilo rutinas / listados) */}
-        <div className="flex gap-2 border-b border-surface-border/70 pt-1 ">
-          <button
-            type="button"
-            onClick={() => switchTab('income')}
-            className={cn(
-              '-mb-px flex items-center gap-2 rounded-t-lg border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
-              tab === 'income'
-                ? 'border-surface-border/85 bg-surface-card text-ink-primary '
-                : 'border-transparent text-ink-muted hover:bg-surface-elevated/80 hover:text-ink-secondary ',
-            )}
-          >
-            <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
-            Ingresos
-            <span
-              className={cn(
-                'rounded-md px-1.5 py-px text-3xs font-bold tabular-nums',
-                tab === 'income' ? 'bg-surface-border/80 text-ink-primary dark:text-zinc-100' : 'bg-zinc-500/15 text-ink-secondary ',
-              )}
-            >
-              {incomesFiltered.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => switchTab('expenses')}
-            className={cn(
-              '-mb-px flex items-center gap-2 rounded-t-lg border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
-              tab === 'expenses'
-                ? 'border-surface-border/85 bg-surface-card text-ink-primary '
-                : 'border-transparent text-ink-muted hover:bg-surface-elevated/80 hover:text-ink-secondary ',
-            )}
-          >
-            <TrendingDown className="h-4 w-4 shrink-0" aria-hidden />
-            Gastos
-            <span
-              className={cn(
-                'rounded-md px-1.5 py-px text-3xs font-bold tabular-nums',
-                tab === 'expenses' ? 'bg-surface-border/80 text-ink-primary dark:text-zinc-100' : 'bg-zinc-500/15 text-ink-secondary ',
-              )}
-            >
-              {expensesFiltered.length}
-            </span>
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Movimientos"
+          className="mt-1"
+          value={tab}
+          onChange={(id) => switchTab(id as typeof tab)}
+          items={[
+            { id: 'income', label: 'Ingresos', icon: TrendingUp, count: incomesFiltered.length },
+            { id: 'expenses', label: 'Gastos', icon: TrendingDown, count: expensesFiltered.length },
+          ]}
+        />
 
         {/* Búsqueda + acciones (como otros módulos) */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
@@ -654,19 +661,19 @@ export function FinancesPage() {
                 <p className="truncate text-2xs text-ink-muted">{filteredIncomes.length === 1 ? '1 movimiento' : `${filteredIncomes.length} movimientos`}</p>
               </div>
               <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
-                <table className="w-full min-w-[900px] border-collapse text-body-sm leading-snug">
-                  <thead className="sticky top-0 z-[1] border-b border-surface-border/55 bg-surface-card/95 backdrop-blur-[2px] dark:bg-zinc-950/95">
+                <table className="w-full min-w-[900px] border-collapse text-body-sm leading-snug hh-table">
+                  <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                     <tr className="text-left">
-                      <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
-                      <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Concepto</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
+                      <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Concepto</th>
                       <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
-                      <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
+                      <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-surface-border/40 ">
+                  <tbody className="divide-y divide-surface-border/70 bg-surface-card">
                     {filteredIncomes.map((income, rowIndex) => (
                       <tr
                         key={income.id}
@@ -747,19 +754,19 @@ export function FinancesPage() {
               <p className="truncate text-2xs text-ink-muted">{filteredExpenses.length === 1 ? '1 gasto' : `${filteredExpenses.length} gastos`}</p>
             </div>
             <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
-              <table className="w-full min-w-[760px] border-collapse text-body-sm leading-snug">
-                <thead className="sticky top-0 z-[1] border-b border-surface-border/55 bg-surface-card/95 backdrop-blur-[2px] dark:bg-zinc-950/95">
+              <table className="w-full min-w-[760px] border-collapse text-body-sm leading-snug hh-table">
+                <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
-                    <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
-                    <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Descripción</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
+                    <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Descripción</th>
                     <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Categoría</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
-                    <th className="px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
+                    <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-border/40 ">
+                <tbody className="divide-y divide-surface-border/70 bg-surface-card">
                   {filteredExpenses.map((expense, rowIndex) => (
                     <tr
                       key={expense.id}

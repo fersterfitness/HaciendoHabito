@@ -332,17 +332,17 @@ export function ExercisesPage() {
           />
         ) : (
           <div className="w-full overflow-x-auto rounded-md border border-surface-border/70 bg-surface-card ">
-            <table className="w-full border-collapse text-body-sm leading-snug">
-              <thead className="border-b border-surface-border/55 bg-surface-elevated/40 dark:border-zinc-800/80 ">
+            <table className="w-full border-collapse text-body-sm leading-snug hh-table">
+              <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                 <tr className="text-left">
-                  <th className="w-[32%] px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Ejercicio</th>
+                  <th className="w-[32%] px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Ejercicio</th>
                   <th className="hidden w-[18%] px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Músculo</th>
-                  <th className="w-[13%] px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Nivel</th>
+                  <th className="w-[13%] px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Nivel</th>
                   <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted lg:table-cell lg:px-4">Equipo</th>
                   <th className="w-24 px-2 py-2 sm:w-28" aria-label="Acciones" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-border/40 ">
+              <tbody className="divide-y divide-surface-border/70 bg-surface-card">
                 {filtered.map((exercise, rowIndex) => {
                   const colorIdx = exercise.muscle_group ? (muscleColorMap.get(exercise.muscle_group.id) ?? 0) : -1
                   const palette = colorIdx >= 0 ? getMuscleColor(colorIdx) : null

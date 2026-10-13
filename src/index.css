@@ -404,6 +404,19 @@
     box-shadow: var(--highlight-top), var(--shadow-sm);
   }
 
+  /** Tablas de listado: mismo hover y transición en todas (Alumnos, Rutinas, Finanzas, Ejercicios…). */
+  .hh-table > tbody > tr {
+    transition: background-color 0.15s ease;
+  }
+
+  .hh-table > tbody > tr:hover {
+    background-color: rgb(var(--surface-elevated) / 0.55);
+  }
+
+  .hh-table > thead th {
+    white-space: nowrap;
+  }
+
   /** Brillo «skeleton». */
   @keyframes hh-shimmer {
     from { background-position: -200% 0; }

@@ -83,7 +83,7 @@ export function Modal({
         className={cn(
           'relative flex max-h-[92vh] w-full flex-col outline-none',
           bare ? 'overflow-y-auto' : 'overflow-hidden',
-          'rounded-t-3xl border border-surface-border bg-surface-card sm:rounded-2xl',
+          'rounded-t-3xl border border-surface-border bg-surface-card pb-[env(safe-area-inset-bottom)] sm:rounded-2xl sm:pb-0',
           'shadow-[var(--highlight-top),var(--shadow-lg)] animate-scale-in',
           SIZE[size],
           className,

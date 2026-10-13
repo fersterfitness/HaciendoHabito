@@ -3,7 +3,7 @@ import { ClipboardCheck, Share2 } from 'lucide-react'
 import { TrainerCheckInsPage } from '@/pages/training/TrainerCheckInsPage'
 import { TrainerResourcesPage } from '@/pages/training/TrainerResourcesPage'
 import { Header } from '@/components/layout/Header'
-import { cn } from '@/lib/utils'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 /**
  * "Formulario de consulta semanal" (antes "Devoluciones").
@@ -49,42 +49,17 @@ export function FeedbackPage() {
       <Header title="Formulario de consulta semanal" />
 
       <div className="px-4 lg:px-6 pt-4">
-        <div
-          className="flex w-full max-w-md gap-1 rounded-xl border border-surface-border bg-surface-elevated/40 p-1"
-          role="tablist"
-          aria-label="Sección"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainSection === 'checkins'}
-            onClick={() => setMainSection('checkins')}
-            className={cn(
-              'flex flex-1 min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
-              mainSection === 'checkins'
-                ? 'border-surface-border bg-surface-card text-ink-primary shadow-sm ring-1 ring-inset ring-brand-secondary/25'
-                : 'border-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
-            )}
-          >
-            <ClipboardCheck className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-            Check-ins
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainSection === 'recursos'}
-            onClick={() => setMainSection('recursos')}
-            className={cn(
-              'flex flex-1 min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
-              mainSection === 'recursos'
-                ? 'border-surface-border bg-surface-card text-ink-primary shadow-sm ring-1 ring-inset ring-brand-tertiary/20'
-                : 'border-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
-            )}
-          >
-            <Share2 className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-            Recursos
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Sección"
+          fullWidth
+          className="max-w-md"
+          value={mainSection}
+          onChange={(id) => setMainSection(id as typeof mainSection)}
+          items={[
+            { id: 'checkins', label: 'Check-ins', icon: ClipboardCheck },
+            { id: 'recursos', label: 'Recursos', icon: Share2 },
+          ]}
+        />
       </div>
 
       {mainSection === 'checkins' ? <TrainerCheckInsPage embedded /> : null}
