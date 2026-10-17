@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   CalendarDays,
@@ -19,6 +19,7 @@ import {
   YAxis,
 } from 'recharts'
 import { format, parseISO } from 'date-fns'
+import { supabase } from '@/lib/supabase'
 import { es } from 'date-fns/locale'
 import { ChartSizedContainer } from '@/components/charts/ChartSizedContainer'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -117,6 +118,7 @@ export function NutritionResumenDashboard({
   return (
     <div className="space-y-6">
       <NextConsultationBanner
+        studentId={student?.id ?? ''}
         followup={followup}
         onManageAppointments={onManageAppointments}
       />
@@ -330,38 +332,79 @@ export function NutritionResumenDashboard({
   )
 }
 
+/** Próximo turno agendado (scheduled / confirmed) del paciente, desde la agenda. */
+function useNextAppointment(studentId: string) {
+  const [next, setNext] = useState<{ starts_at: string } | null>(null)
+  useEffect(() => {
+    if (!studentId) return
+    let cancelled = false
+    void supabase
+      .from('appointments')
+      .select('starts_at')
+      .eq('student_id', studentId)
+      .in('status', ['scheduled', 'confirmed'])
+      .gte('starts_at', new Date().toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setNext((data as { starts_at: string } | null) ?? null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [studentId])
+  return next
+}
+
+/**
+ * Próxima consulta: manda el turno real de la agenda. La fecha cargada a mano en el
+ * seguimiento queda solo como sugerida cuando todavía no hay turno.
+ */
 function NextConsultationBanner({
+  studentId,
   followup,
   onManageAppointments,
 }: {
+  studentId: string
   followup: NutritionPatientFollowup | null
   onManageAppointments: () => void
 }) {
-  const hasNext = !!followup?.next_consultation_date
+  const appointment = useNextAppointment(studentId)
+  const suggested = followup?.next_consultation_date ?? null
 
   return (
-    <div className="rounded-2xl border border-surface-border/80 bg-surface-card px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-2xl border border-surface-border/80 bg-surface-card px-4 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-card">
       <div className="flex items-center gap-3 min-w-0">
-        <span className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-elevated text-ink-muted">
+        <span
+          className={
+            appointment
+              ? 'shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-brand-primary/10 text-brand-primary'
+              : 'shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-elevated text-ink-muted'
+          }
+        >
           <CalendarDays className="h-4 w-4" />
         </span>
         <div className="min-w-0">
-          <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted">
-            Próxima consulta
-          </p>
-          {hasNext ? (
+          <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted">Próxima consulta</p>
+          {appointment ? (
             <p className="text-sm font-semibold text-ink-primary capitalize truncate">
-              {format(parseISO(followup!.next_consultation_date!), "EEEE d 'de' MMMM yyyy", {
-                locale: es,
-              })}
+              {format(parseISO(appointment.starts_at), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
+            </p>
+          ) : suggested ? (
+            <p className="text-sm text-ink-secondary truncate">
+              <span className="capitalize">
+                {format(parseISO(suggested), "EEEE d 'de' MMMM", { locale: es })}
+              </span>{' '}
+              <span className="text-ink-muted">· sugerida, sin turno agendado</span>
             </p>
           ) : (
             <p className="text-sm text-ink-secondary">Sin turno agendado</p>
           )}
         </div>
       </div>
-      <Button type="button" size="sm" variant="outline" onClick={onManageAppointments}>
-        {hasNext ? 'Gestionar turnos' : 'Agendar consulta'}
+      <Button type="button" size="sm" variant={appointment ? 'outline' : 'soft'} onClick={onManageAppointments}>
+        {appointment ? 'Gestionar turnos' : 'Agendar consulta'}
       </Button>
     </div>
   )

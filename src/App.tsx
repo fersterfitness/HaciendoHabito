@@ -133,7 +133,7 @@ function renderLoggedInRoutes({
       <Route
         path="students/:id/meal-plan/:planId"
         element={
-          role === 'trainer' || role === 'admin' ? (
+          role === 'trainer' || role === 'admin' || role === 'nutritionist' ? (
             withPageSuspense(<TrainerStudentMealPlanPage />)
           ) : (
             <Navigate to="/dashboard" replace />

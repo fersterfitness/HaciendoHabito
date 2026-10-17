@@ -468,6 +468,8 @@
   .hh-alert-info { --tone: 59 130 246; }
   .hh-alert-violet { --tone: 139 92 246; }
 
+  :where(.hh-alert-icon) { --tone: var(--brand-primary); }
+
   /** Ícono de alerta en «pastilla» del tono. */
   .hh-alert-icon {
     display: inline-flex;

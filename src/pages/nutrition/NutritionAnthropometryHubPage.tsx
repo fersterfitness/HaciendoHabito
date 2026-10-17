@@ -4,9 +4,11 @@ import {
   AlertCircle,
   ArrowRight,
   CalendarDays,
+  Check,
   History,
   Loader2,
   RotateCcw,
+  Save,
   Scale,
   Search,
   Sparkles,
@@ -15,6 +17,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
+import { Button } from '@/components/ui/Button'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import {
@@ -41,6 +44,7 @@ import type {
   Student,
 } from '@/types/database'
 import toast from 'react-hot-toast'
+import { useSearchParams } from 'react-router-dom'
 
 type MetricKey = 'weight_kg' | 'body_fat_pct' | 'bmi' | 'muscle_mass_kg'
 
@@ -181,11 +185,16 @@ export function NutritionAnthropometryHubPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loadingStudents, setLoadingStudents] = useState(true)
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // `?student=<id>`: abierto desde otra pantalla con el paciente ya elegido.
+  const [searchParams] = useSearchParams()
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get('student'))
   const [measurements, setMeasurements] = useState<NutritionMeasurement[]>([])
   const [loadingMeasurements, setLoadingMeasurements] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | null>(null)
+  /** El análisis ya se guardó como nota en la historia clínica del paciente. */
+  const [aiSaved, setAiSaved] = useState(false)
+  const [aiSaving, setAiSaving] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -245,6 +254,7 @@ export function NutritionAnthropometryHubPage() {
   useEffect(() => {
     // Reset de análisis IA e historial al cambiar de paciente.
     setAiResult(null)
+    setAiSaved(false)
     setAiError(null)
     setAiLoading(false)
     setConfirmDeleteId(null)
@@ -270,6 +280,7 @@ export function NutritionAnthropometryHubPage() {
     }
     toast.success('Antropometría eliminada')
     setAiResult(null)
+    setAiSaved(false)
     await loadMeasurements()
     if (showDeleted) await loadDeletionLog()
   }
@@ -284,6 +295,7 @@ export function NutritionAnthropometryHubPage() {
     }
     toast.success('Antropometría restaurada')
     setAiResult(null)
+    setAiSaved(false)
     await Promise.all([loadMeasurements(), loadDeletionLog()])
   }
 
@@ -292,6 +304,26 @@ export function NutritionAnthropometryHubPage() {
     if (!q) return students
     return students.filter((s) => s.full_name.toLowerCase().includes(q))
   }, [students, query])
+
+  /** Guarda el análisis de IA como nota en la historia clínica (pestaña Historia de la ficha). */
+  async function saveAiToHistory() {
+    if (!user || !selectedId || !aiResult || aiSaved) return
+    setAiSaving(true)
+    const { error } = await supabase.from('nutrition_clinical_notes').insert({
+      owner_id: user.id,
+      student_id: selectedId,
+      occurred_at: new Date().toISOString().slice(0, 10),
+      title: 'Análisis antropométrico (IA)',
+      body: aiResult,
+    })
+    setAiSaving(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setAiSaved(true)
+    toast.success('Guardado en la historia clínica del paciente')
+  }
 
   const selected = useMemo(
     () => students.find((s) => s.id === selectedId) ?? null,
@@ -309,6 +341,7 @@ export function NutritionAnthropometryHubPage() {
     setAiLoading(true)
     setAiError(null)
     setAiResult(null)
+    setAiSaved(false)
     try {
       const metrics = METRICS.map((m) => {
         const lv = latest ? latest[m.key] : null
@@ -327,7 +360,8 @@ export function NutritionAnthropometryHubPage() {
 
       const { data, error } = await supabase.functions.invoke('anthropometry-ai-analysis', {
         body: {
-          patientName: selected.full_name,
+          // Sin datos identificatorios: el análisis solo necesita las mediciones.
+          patientName: 'Paciente',
           controls: measurements.length,
           firstDate: first ? formatDate(first.measured_at) : undefined,
           lastDate: latest ? formatDate(latest.measured_at) : undefined,
@@ -705,10 +739,22 @@ export function NutritionAnthropometryHubPage() {
                         ) : aiResult ? (
                           <>
                             <AiMarkdown text={aiResult} />
-                            <p className="mt-4 border-t border-surface-border/60 pt-3 text-3xs leading-snug text-ink-muted">
-                              Generado por IA a partir de los controles cargados. Es una ayuda orientativa, no
-                              reemplaza el criterio profesional.
-                            </p>
+                            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-surface-border/60 pt-3">
+                              <p className="min-w-0 flex-1 text-3xs leading-snug text-ink-muted">
+                                Generado por IA a partir de los controles cargados. Es una ayuda orientativa, no
+                                reemplaza el criterio profesional.
+                              </p>
+                              <Button
+                                size="sm"
+                                variant={aiSaved ? 'ghost' : 'secondary'}
+                                loading={aiSaving}
+                                disabled={aiSaved}
+                                icon={aiSaved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+                                onClick={() => void saveAiToHistory()}
+                              >
+                                {aiSaved ? 'Guardado en historia' : 'Guardar en historia clínica'}
+                              </Button>
+                            </div>
                           </>
                         ) : null}
                       </div>

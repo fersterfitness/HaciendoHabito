@@ -24,6 +24,7 @@ import {
   type AnthropometryComparison,
 } from '@/lib/nutrition/anthropometryParser'
 import toast from 'react-hot-toast'
+import { useSearchParams } from 'react-router-dom'
 
 function buildSafePdfName(fileName: string): string {
   const clean = fileName.replace(/\.pdf$/i, '')
@@ -61,7 +62,9 @@ export function NutritionComparativePage() {
   const [students, setStudents] = useState<Student[]>([])
   const [docs, setDocs] = useState<NutritionPatientDocument[]>([])
   const [measurements, setMeasurements] = useState<NutritionMeasurement[]>([])
-  const [studentId, setStudentId] = useState('')
+  // `?student=<id>`: abierto desde la ficha del paciente → ya elegido.
+  const [searchParams] = useSearchParams()
+  const [studentId, setStudentId] = useState(() => searchParams.get('student') ?? '')
   const [fromDocId, setFromDocId] = useState('')
   const [toDocId, setToDocId] = useState('')
   const [fromMeasurementId, setFromMeasurementId] = useState('')

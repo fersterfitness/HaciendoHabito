@@ -69,6 +69,7 @@ import type {
 } from '@/types/database'
 import toast from 'react-hot-toast'
 import { confirmDialog } from '@/components/ui/dialogs'
+import { NutritionAssignedPlansCard } from '@/components/nutrition/NutritionAssignedPlansCard'
 
 type DocCategoryConfig = {
   key: NutritionDocumentCategory
@@ -679,7 +680,7 @@ export function NutritionPatientDetailView({
         size="sm"
         variant="secondary"
         icon={<Sparkles className="h-4 w-4" />}
-        onClick={() => navigate('/nutrition-pdfs')}
+        onClick={() => navigate(`/nutrition-pdfs?student=${student.id}`)}
       >
         Comparar 2 PDFs
       </Button>
@@ -968,10 +969,12 @@ export function NutritionPatientDetailView({
         {/* ───────────── PLAN ───────────── */}
         <TabPanel id="plan" active={activeTab}>
           <div className="space-y-6">
+            <NutritionAssignedPlansCard student={student} />
             <Card>
-              <CardTitle className="mb-1">Plan de alimentación</CardTitle>
+              <CardTitle className="mb-1">Plan semanal (PDF)</CardTitle>
               <p className="text-sm text-ink-muted mb-4">
-                Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño.
+                Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño. Este plan se entrega
+                en PDF; para que el paciente lo vea en su cuenta, usá «Armar plan» y asignalo (arriba).
               </p>
               <NutritionWeeklyPlanSection student={student} measurements={measurements} />
               <div className="border-t border-surface-border pt-6 mt-8 space-y-2">

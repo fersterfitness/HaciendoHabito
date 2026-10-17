@@ -53,6 +53,7 @@ import {
 } from '@/lib/dashboard/dashboardTrainerOps'
 import type { Routine, Notification, CheckInSendSchedule, TrainerResourceSendSchedule } from '@/types/database'
 import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS, type RmTestWeeksRow } from '@/lib/checkIn/rmTestReminder'
+import { NutritionistOpsPanel } from '@/components/dashboard/NutritionistOpsPanel'
 
 interface RecentIncomeRow {
   id: string
@@ -1169,6 +1170,13 @@ export function DashboardPage() {
             rmTestDueStudents={rmTestDueStudents}
             onRmTestRead={(studentId) => setRmTestDueStudents((prev) => prev.filter((s) => s.id !== studentId))}
           />
+        ) : null}
+
+        {role === 'nutritionist' && user ? (
+          <section className="space-y-2">
+            <PageSectionTitle title="Seguimiento de pacientes" />
+            <NutritionistOpsPanel ownerId={user.id} />
+          </section>
         ) : null}
 
         {canSeeTraining && birthdays.length > 0 ? (

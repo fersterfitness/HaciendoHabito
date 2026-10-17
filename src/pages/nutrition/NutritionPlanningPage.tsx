@@ -429,8 +429,12 @@ export function NutritionPlanningPage() {
     void refreshFullWorkbookTemplates()
   }, [refreshFullWorkbookTemplates])
 
-  const canAssignToStudent = profile?.role === 'trainer' || profile?.role === 'admin'
+  // El nutricionista también asigna: el plan llega al paciente en «Mi plan de alimentación».
+  const canAssignToStudent =
+    profile?.role === 'trainer' || profile?.role === 'admin' || profile?.role === 'nutritionist'
   const referenceEntityLabel = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
+  /** `?student=<id>`: se abrió desde la ficha del paciente; queda preseleccionado al asignar. */
+  const presetStudentId = searchParams.get('student')
 
   useEffect(() => {
     if (!user?.id) {
@@ -1250,7 +1254,7 @@ export function NutritionPlanningPage() {
 
   async function handleAssignToStudent() {
     if (!assignStudentId || !user?.id) {
-      toast.error('Elegí un alumno.')
+      toast.error(`Elegí un ${referenceEntityLabel}.`)
       return
     }
     setAssignSaving(true)
@@ -1267,7 +1271,10 @@ export function NutritionPlanningPage() {
       toast.error(error.message)
       return
     }
-    toastNutritionPlanSuccess('Plan asignado. El alumno lo ve en «Mi plan de alimentación» si tiene la cuenta vinculada.', 'plan-assigned')
+    toastNutritionPlanSuccess(
+      `Plan asignado. El ${referenceEntityLabel} lo ve en «Mi plan de alimentación» si tiene la cuenta vinculada.`,
+      'plan-assigned',
+    )
     setAssignOpen(false)
   }
 
@@ -1429,9 +1436,9 @@ export function NutritionPlanningPage() {
                 onClick={() => {
                   const now = new Date()
                   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-                  const first = assignStudents[0]
+                  const first = assignStudents.find((s) => s.id === presetStudentId) ?? assignStudents[0]
                   const firstName = first?.full_name.split(' ')[0] ?? ''
-                  setAssignStudentId(first?.id ?? '')
+                  setAssignStudentId(first?.id ?? presetStudentId ?? '')
                   setAssignTitle(firstName ? `Plan ${MONTHS[now.getMonth()]} · ${firstName}` : `Plan ${MONTHS[now.getMonth()]}`)
                   setAssignOpen(true)
                 }}
@@ -3305,11 +3312,13 @@ export function NutritionPlanningPage() {
             onClick={() => !assignSaving && setAssignOpen(false)}
           />
           <div className="relative w-full max-w-md rounded-xl border border-surface-border/80 bg-surface-card p-5 shadow-md ">
-            <h3 className="text-base font-semibold text-ink-primary">Asignar plan a un alumno</h3>
+            <h3 className="text-base font-semibold text-ink-primary">Asignar plan a un {referenceEntityLabel}</h3>
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
-              Se guarda una copia del contenido actual del plan. El alumno la ve en su cuenta si su usuario está vinculado en la ficha.
+              Se guarda una copia del contenido actual del plan. El {referenceEntityLabel} la ve en su cuenta («Mi plan de alimentación») si su usuario está vinculado en la ficha.
             </p>
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Alumno</label>
+            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">
+              {referenceEntityLabel === 'paciente' ? 'Paciente' : 'Alumno'}
+            </label>
             <select
               className={cn(selectPlanClasses, 'mb-4')}
               value={assignStudentId}
@@ -3325,7 +3334,7 @@ export function NutritionPlanningPage() {
               }}
             >
               {assignStudents.length === 0 ? (
-                <option value="">No hay alumnos cargados</option>
+                <option value="">No hay {referenceEntityLabel}s cargados</option>
               ) : (
                 assignStudents.map((s) => (
                   <option key={s.id} value={s.id}>
