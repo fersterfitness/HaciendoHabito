@@ -5,7 +5,7 @@ import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Check,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
   UserPlus,
-  Table2, Droplets, ClipboardList, CheckCircle2, Boxes, CopyPlus,
+  Table2, BarChart3, Droplets, ClipboardList, CheckCircle2, Boxes, CopyPlus,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -48,6 +48,7 @@ import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
 import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProgressLogPdf'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
+import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { cyclePhasesForWeekBlock, type CyclePhaseInfo, type CyclePhaseColor } from '@/lib/routine/menstrualCyclePlanning'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { RoutineMonthlyFeedbackSection } from '@/components/checkIn/RoutineMonthlyFeedbackSection'
@@ -184,6 +185,7 @@ export function RoutineDetailPage() {
     setRmLookup(await fetchStudentRmLookup(studentId))
   }, [])
   const [showProgressionGuide, setShowProgressionGuide] = useState(false)
+  const [showVolume, setShowVolume] = useState(false)
   const [lastMenstrualCycle, setLastMenstrualCycle] = useState<MenstrualCycle | null>(null)
   const [checkInWeek, setCheckInWeek] = useState<LatestWeekStatus>({
     finished: false,
@@ -1190,6 +1192,16 @@ export function RoutineDetailPage() {
               <Table2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Guía semanal</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setShowVolume(true)}
+              disabled={blocks.length === 0}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
+              title="Volumen semanal por músculo (solo entrenador)"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Volumen</span>
+            </button>
             {!isLibrary ? (
             <button
               type="button"
@@ -1636,6 +1648,14 @@ export function RoutineDetailPage() {
         </div>
         </Modal>
       )}
+
+      <RoutineVolumePanel
+        open={showVolume}
+        onClose={() => setShowVolume(false)}
+        routineName={routine.name}
+        blocks={blocks}
+        onRefresh={refreshBlocks}
+      />
 
       <RoutineProgressionGuidePanel
         open={showProgressionGuide}

@@ -77,8 +77,8 @@ function Delta({ value, suffix = '', goodWhenUp = true, digits = 0 }: { value: n
       className={cn(
         'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-3xs font-semibold tabular-nums',
         good == null && 'bg-surface-elevated text-ink-muted',
-        good === true && 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
-        good === false && 'bg-rose-500/12 text-rose-600 dark:text-rose-400',
+        good === true && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        good === false && 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
       )}
     >
       <Icon className="h-3 w-3" aria-hidden />

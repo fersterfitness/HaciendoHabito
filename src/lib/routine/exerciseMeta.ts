@@ -15,6 +15,8 @@ export interface ExerciseMeta {
   circuitNote?: string
   /** Multiarticulares: plan serie por serie (index = serie 1..N). */
   seriesPlan?: SeriesPlanEntry[]
+  /** Contador de volumen: técnica elegida a mano (dropset, burns…); si falta, se detecta. */
+  volumeTechnique?: string
 }
 
 export function seriesPlanHasData(plan: SeriesPlanEntry[] | undefined): boolean {
@@ -89,7 +91,7 @@ export function parseExerciseMeta(
 export function buildExerciseTechnicalNotes(userNotes: string, meta: ExerciseMeta): string {
   if (meta.seriesPlan && !seriesPlanHasData(meta.seriesPlan)) delete meta.seriesPlan
   const hasMeta = Boolean(
-    meta.restText || meta.rpeText || meta.percent1rm || meta.circuitNote || meta.seriesPlan,
+    meta.restText || meta.rpeText || meta.percent1rm || meta.circuitNote || meta.seriesPlan || meta.volumeTechnique,
   )
   const cleanUserNotes = userNotes.trim()
   if (!hasMeta) return cleanUserNotes
