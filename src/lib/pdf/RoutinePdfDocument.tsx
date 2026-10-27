@@ -8,7 +8,7 @@ import {
   Link,
 } from '@react-pdf/renderer'
 import type { Routine, Student, RoutineBlock, RoutineDay, RoutineExercise, Exercise } from '@/types/database'
-import { parseExerciseMeta, pdfExerciseDisplay } from '@/lib/routine/exerciseMeta'
+import { parseExerciseMeta, pdfExerciseDisplay, type PdfExerciseRowDisplay } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -820,6 +820,58 @@ function clampPdfLine(raw: string, maxChars: number): string {
   return `${t.slice(0, Math.max(0, maxChars - 1))}…`
 }
 
+const ss = StyleSheet.create({
+  stack: { flex: 0.72, alignItems: 'center' },
+  line: { flexDirection: 'row', alignItems: 'baseline', marginVertical: 0.6 },
+  num: { fontSize: 5.5, fontFamily: 'Helvetica-Bold', color: C.brand, marginRight: 2 },
+  val: { fontSize: 7.5, color: C.body },
+})
+
+/** Columna con una línea por serie, cada una con su número chico (S1, S2…) para no leerlas todas juntas. */
+function SeriesStack({ values }: { values: string[] }) {
+  return (
+    <View style={ss.stack}>
+      {values.map((v, i) => (
+        <View key={i} style={ss.line}>
+          <Text style={ss.num}>{`S${i + 1}`}</Text>
+          <Text style={ss.val}>{v || '—'}</Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/** Reps por serie: del plan de multiarticulares o del esquema separado por comas (`4-6,4-6`). */
+function seriesReps(ex: ExerciseFull, row: PdfExerciseRowDisplay): string[] | null {
+  if (row.seriesRows?.some((r) => r.reps)) return row.seriesRows.map((r) => r.reps)
+  const parts = (ex.reps_scheme ?? '').split(/\s*[,;]\s*/).filter(Boolean)
+  return parts.length > 1 ? parts : null
+}
+
+/** Celdas SERIES…RIR de un ejercicio; con plan por serie, peso/reps/RPE van numerados. */
+function ExerciseCells({ ex, row }: { ex: ExerciseFull; row: PdfExerciseRowDisplay }) {
+  const reps = seriesReps(ex, row)
+  const kgs = row.seriesRows?.some((r) => r.kg) ? row.seriesRows.map((r) => r.kg) : null
+  const efforts = row.seriesRows?.some((r) => r.effort) ? row.seriesRows.map((r) => r.effort) : null
+  return (
+    <>
+      <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
+      {reps ? <SeriesStack values={reps} /> : <Text style={s.tdSmall}>{formatReps(ex)}</Text>}
+      {kgs ? <SeriesStack values={kgs} /> : <Text style={s.tdSmall}>{row.weightCell}</Text>}
+      <Text style={s.tdSmall}>{row.restDisplay}</Text>
+      {efforts ? <SeriesStack values={efforts} /> : <Text style={s.tdSmall}>{row.rpeDisplay}</Text>}
+      <Text style={s.tdSmall}>{row.rirDisplay}</Text>
+    </>
+  )
+}
+
+/** Nota chica con el % de cada serie y el 1RM usado para calcular los kg. */
+function seriesPctLine(row: PdfExerciseRowDisplay, rmKg?: number): string | null {
+  if (!row.seriesRows?.some((r) => r.pct)) return null
+  const pcts = row.seriesRows.map((r) => `S${r.n} ${r.pct || '—'}`).join(' · ')
+  return rmKg ? `% 1RM: ${pcts} (1RM ${String(rmKg).replace('.', ',')} kg)` : `% 1RM: ${pcts}`
+}
+
 /** Solo http(s): mostramos URL como texto (sin Link: menos trabajo para el layout). */
 function exerciseDemoVideoUrl(ex: ExerciseFull): string | null {
   const raw = (ex.video_url || ex.exercise?.video_url || '').trim()
@@ -867,17 +919,10 @@ function ExerciseTable({
           return (
             <View key={group.exercise.id} style={[s.tableRow, idx % 2 === 1 ? s.tableRowAlt : {}]}>
               <Text style={s.tdName}>{clampPdfLine(group.exercise.exercise?.name ?? '—', 85)}</Text>
-              <Text style={s.tdSmall}>{group.exercise.sets ?? '—'}</Text>
-              <Text style={s.tdSmall}>{formatReps(group.exercise)}</Text>
-              <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
-              <Text style={s.tdSmall}>{pdfRow.restDisplay}</Text>
-              <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
-              <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
+              <ExerciseCells ex={group.exercise} row={pdfRow} />
               <View style={s.tdNotes}>
-                {pdfRow.seriesPlanLine ? (
-                  <Text style={{ marginBottom: 2, fontFamily: 'Helvetica-Bold' }}>
-                    {clampPdfLine(pdfRow.seriesPlanLine, 220)}
-                  </Text>
+                {seriesPctLine(pdfRow, rmKg) ? (
+                  <Text style={{ marginBottom: 2, fontSize: 6.5 }}>{seriesPctLine(pdfRow, rmKg)}</Text>
                 ) : null}
                 <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                 {videoUrl ? (
@@ -915,13 +960,11 @@ function ExerciseTable({
               return (
                 <View key={ex.id} style={[sc.circuitRow, i % 2 === 1 ? sc.circuitRowAlt : {}]}>
                   <Text style={s.tdName}>{clampPdfLine(ex.exercise?.name ?? '—', 85)}</Text>
-                  <Text style={s.tdSmall}>{ex.sets ?? '—'}</Text>
-                  <Text style={s.tdSmall}>{formatReps(ex)}</Text>
-                  <Text style={s.tdSmall}>{pdfRow.weightCell}</Text>
-                  <Text style={s.tdSmall}>{pdfRow.restDisplay}</Text>
-                  <Text style={s.tdSmall}>{pdfRow.rpeDisplay}</Text>
-                  <Text style={s.tdSmall}>{pdfRow.rirDisplay}</Text>
+                  <ExerciseCells ex={ex} row={pdfRow} />
                   <View style={s.tdNotes}>
+                    {seriesPctLine(pdfRow, rmKg) ? (
+                      <Text style={{ marginBottom: 2, fontSize: 6.5 }}>{seriesPctLine(pdfRow, rmKg)}</Text>
+                    ) : null}
                     <Text>{clampPdfLine(pdfRow.notesClean, 500)}</Text>
                     {videoUrl ? (
                       <Text style={{ marginTop: 3, fontSize: 6.5, color: C.muted }}>

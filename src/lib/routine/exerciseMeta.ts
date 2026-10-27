@@ -21,7 +21,20 @@ export function seriesPlanHasData(plan: SeriesPlanEntry[] | undefined): boolean 
   return !!plan?.some((s) => s.pct?.trim() || s.reps?.trim() || s.rpeRir?.trim())
 }
 
-/** Línea compacta por serie: `S1 94,5kg (70%) ×5 · RPE 6o7 | S2 …`. */
+/**
+ * Esfuerzo con notación de arroba: `8` / `RPE 8` → `@8`, `RPE 7-8` → `@7-8`.
+ * Si es RIR (o texto libre) se deja como está.
+ */
+export function formatEffortAt(raw: string | number | null | undefined): string | null {
+  const t = raw == null ? '' : String(raw).trim()
+  if (!t) return null
+  if (/rir/i.test(t) || t.startsWith('@')) return t
+  const m = /^rpe\s*[:.]?\s*(.+)$/i.exec(t)
+  const v = (m ? m[1] : t).trim()
+  return /^\d/.test(v) ? `@${v}` : t
+}
+
+/** Línea compacta por serie: `S1 94,5kg (70%) ×5 · @6o7 | S2 …`. */
 export function formatSeriesPlanLine(plan: SeriesPlanEntry[] | undefined): string | null {
   if (!seriesPlanHasData(plan)) return null
   const parts = (plan ?? []).map((s, i) => {
@@ -29,7 +42,8 @@ export function formatSeriesPlanLine(plan: SeriesPlanEntry[] | undefined): strin
     if (s.kg?.trim()) bits.push(`${s.kg.trim()} kg`)
     if (s.pct?.trim()) bits.push(`(${s.pct.trim()}%)`)
     if (s.reps?.trim()) bits.push(`×${s.reps.trim()}`)
-    if (s.rpeRir?.trim()) bits.push(`· ${s.rpeRir.trim()}`)
+    const effort = formatEffortAt(s.rpeRir)
+    if (effort) bits.push(`· ${effort}`)
     if (bits.length === 0) return null
     return `S${i + 1} ${bits.join(' ')}`
   })
@@ -106,6 +120,36 @@ export interface PdfExerciseRowDisplay {
   rirDisplay: string
   /** Multiarticulares: detalle serie por serie (kg/%/reps/RPE-RIR); null si no hay plan. */
   seriesPlanLine: string | null
+  /** Multiarticulares: una fila por serie (n = 1..N) para mostrarlas numeradas en columnas. */
+  seriesRows: PdfSeriesRow[] | null
+}
+
+export interface PdfSeriesRow {
+  n: number
+  /** `118,9 kg` (recalculado con el 1RM vigente si hay %); '' si no hay. */
+  kg: string
+  pct: string
+  reps: string
+  /** `@8` o el texto de RIR tal cual. */
+  effort: string
+}
+
+/** Serie por serie: si hay % y 1RM, el kg se recalcula con el RM vigente (no el guardado al editar). */
+export function buildPdfSeriesRows(plan: SeriesPlanEntry[] | undefined, rmKg?: number | null): PdfSeriesRow[] | null {
+  if (!seriesPlanHasData(plan)) return null
+  const rmOk = rmKg != null && rmKg > 0
+  return (plan ?? []).map((s, i) => {
+    const pct = parsePercentValue(s.pct)
+    const storedKg = parsePercentValue(s.kg)
+    const kgNum = pct !== null && rmOk ? Math.round(((rmKg as number) * pct) / 100 * 10) / 10 : storedKg
+    return {
+      n: i + 1,
+      kg: kgNum !== null ? `${fmtKg(kgNum).replace('.', ',')} kg` : '',
+      pct: pct !== null ? `${pct}%` : '',
+      reps: s.reps?.trim() ?? '',
+      effort: formatEffortAt(s.rpeRir) ?? '',
+    }
+  })
 }
 
 /** PDF / informes: peso visible en kg; notas sin bloque META. */
@@ -129,9 +173,8 @@ export function pdfExerciseDisplay(
 
   let weightCell = '—'
 
-  if (seriesPlanLine) {
-    weightCell = 'Por serie →'
-  } else if (exercise.weight_kg != null) {
+  // Con plan por serie, el PDF muestra los kg de cada serie en la columna (ver seriesRows).
+  if (exercise.weight_kg != null) {
     weightCell = `${fmtKg(exercise.weight_kg)} kg`
     if (pct !== null) weightCell += ` (${pct}% 1RM)`
   } else if (computedKg !== null) {
@@ -153,7 +196,7 @@ export function pdfExerciseDisplay(
     return Number.isFinite(n) ? String(n) : null
   })()
 
-  const rpeDisplay = meta.rpeText?.trim() || rpeFromCol || '—'
+  const rpeDisplay = formatEffortAt(meta.rpeText) || formatEffortAt(rpeFromCol) || '—'
 
   const rirFromCol = (() => {
     const raw = exercise.rir as unknown
@@ -171,5 +214,6 @@ export function pdfExerciseDisplay(
     rpeDisplay,
     rirDisplay,
     seriesPlanLine,
+    seriesRows: buildPdfSeriesRows(meta.seriesPlan, rmKg),
   }
 }

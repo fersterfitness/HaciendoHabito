@@ -2,6 +2,7 @@ import { pdf } from '@react-pdf/renderer'
 import { createElement, type ReactElement } from 'react'
 import { supabase } from '@/lib/supabase'
 import { defaultBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
+import { fetchStudentRmLookup, resolveRmKgForExercise } from '@/lib/routine/studentRmLookup'
 import { RoutinePdfDocument } from './RoutinePdfDocument'
 import type { BlockFull, RoutineFull } from './RoutinePdfDocument'
 
@@ -62,17 +63,19 @@ export async function generateRoutinePdf(routineId: string, pdfId: string): Prom
 
     if (blocksError) throw new Error(blocksError.message)
 
+    // Mismo criterio que el editor: último 1RM testeado, buscando por id y por nombre del ejercicio.
     const studentId = (routine as { student_id?: string }).student_id
     const rmByExerciseId: Record<string, number> = {}
     if (studentId) {
-      const { data: rmRows } = await supabase
-        .from('student_rm_records')
-        .select('exercise_id, rm_kg, tested_at')
-        .eq('student_id', studentId)
-        .order('tested_at', { ascending: false })
-      for (const row of rmRows ?? []) {
-        const r = row as { exercise_id: string; rm_kg: number }
-        if (!(r.exercise_id in rmByExerciseId)) rmByExerciseId[r.exercise_id] = r.rm_kg
+      const lookup = await fetchStudentRmLookup(studentId)
+      for (const block of blocks ?? []) {
+        for (const day of block.days ?? []) {
+          for (const ex of day.exercises ?? []) {
+            const e = ex as { exercise_id: string; exercise?: { name?: string } | null }
+            const kg = resolveRmKgForExercise(lookup, e.exercise_id, e.exercise?.name)
+            if (kg != null) rmByExerciseId[e.exercise_id] = kg
+          }
+        }
       }
     }
 

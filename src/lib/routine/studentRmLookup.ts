@@ -23,6 +23,7 @@ export async function fetchStudentRmLookup(studentId: string): Promise<StudentRm
     .select('exercise_id, rm_kg, tested_at, exercise:exercise_library(id, name)')
     .eq('student_id', studentId)
     .order('tested_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) {
     if (import.meta.env.DEV) console.warn('[studentRmLookup]', error.message)
@@ -48,11 +49,10 @@ export function resolveRmKgForExercise(
   exerciseId: string,
   exerciseName?: string | null,
 ): number | undefined {
-  const direct = lookup.byExerciseId.get(exerciseId)
-  if (direct != null) return direct
+  // Por nombre primero: si el ejercicio está duplicado en la biblioteca, gana el test más reciente de cualquiera.
   if (exerciseName) {
     const byName = lookup.byExerciseName.get(normalizeExerciseName(exerciseName))
     if (byName != null) return byName
   }
-  return undefined
+  return lookup.byExerciseId.get(exerciseId)
 }
