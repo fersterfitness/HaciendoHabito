@@ -1,0 +1,159 @@
+import { supabase } from '@/lib/supabase'
+import type { Income, PaymentMethod } from '@/types/database'
+
+export const FINANCE_SQL_HINT =
+  'Falta un cambio en la base: corré el SQL 20261027120000_finance_payment_window (Finanzas v2).'
+
+function isMissingColumn(err: { code?: string; message?: string } | null): boolean {
+  return !!err && (err.code === '42703' || /routine_id|payment_day/.test(err.message ?? ''))
+}
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/** Al asignar una rutina con precio: queda un cobro «pendiente» en Haciéndolo hábito. */
+export async function createRoutinePendingIncome(opts: {
+  ownerId: string
+  routineId: string
+  routineName: string
+  studentId: string
+  amount: number
+  date?: string
+}): Promise<string | null> {
+  if (!(opts.amount > 0)) return null
+  const { error } = await supabase.from('income').insert({
+    owner_id: opts.ownerId,
+    student_id: opts.studentId,
+    routine_id: opts.routineId,
+    amount: opts.amount,
+    payment_method: 'transferencia',
+    income_type: 'Rutina',
+    category: 'Entrenamiento',
+    description: opts.routineName,
+    income_date: opts.date ?? today(),
+    status: 'pendiente',
+    scope: 'business',
+    notes: null,
+  })
+  if (!error) return null
+  return isMissingColumn(error) ? FINANCE_SQL_HINT : error.message
+}
+
+/**
+ * «Abonó»: la rutina queda paga y su cobro pasa a «cobrado» con el medio elegido.
+ * Si la rutina no tenía cobro (rutinas viejas), se crea uno ya cobrado.
+ */
+export async function markRoutinePaid(opts: {
+  ownerId: string
+  routineId: string
+  routineName: string
+  studentId: string
+  amount: number
+  method: PaymentMethod
+  date?: string
+}): Promise<string | null> {
+  const date = opts.date ?? today()
+  const { error: rErr } = await supabase
+    .from('routines')
+    .update({ is_paid: true, price: opts.amount > 0 ? opts.amount : null })
+    .eq('id', opts.routineId)
+  if (rErr) return rErr.message
+
+  const { data: existing, error: findErr } = await supabase
+    .from('income')
+    .select('id')
+    .eq('routine_id', opts.routineId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (findErr && !isMissingColumn(findErr)) return findErr.message
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('income')
+      .update({ status: 'cobrado', payment_method: opts.method, amount: opts.amount, income_date: date })
+      .eq('id', existing.id)
+    return error?.message ?? null
+  }
+  if (!(opts.amount > 0)) return null
+  const row: Record<string, unknown> = {
+    owner_id: opts.ownerId,
+    student_id: opts.studentId,
+    amount: opts.amount,
+    payment_method: opts.method,
+    income_type: 'Rutina',
+    category: 'Entrenamiento',
+    description: opts.routineName,
+    income_date: date,
+    status: 'cobrado',
+    scope: 'business',
+    notes: null,
+  }
+  if (!isMissingColumn(findErr)) row.routine_id = opts.routineId
+  const { error } = await supabase.from('income').insert(row)
+  return error?.message ?? null
+}
+
+/** Desmarcar «Abonó»: la rutina vuelve a impaga y su cobro a «pendiente». */
+export async function unmarkRoutinePaid(routineId: string): Promise<string | null> {
+  const { error: rErr } = await supabase.from('routines').update({ is_paid: false }).eq('id', routineId)
+  if (rErr) return rErr.message
+  const { error } = await supabase.from('income').update({ status: 'pendiente' }).eq('routine_id', routineId)
+  if (error && !isMissingColumn(error)) return error.message
+  return null
+}
+
+/**
+ * Cobro desde el tablero mensual: si el alumno tiene cobros pendientes (rutinas), pasan a cobrados
+ * con el medio elegido; si no, se registra un cobro nuevo por el monto indicado (cuota del mes).
+ */
+export async function registerStudentPayment(opts: {
+  ownerId: string
+  studentId: string
+  studentName: string
+  amount: number
+  method: PaymentMethod
+  date: string
+  pendingIncomeIds: string[]
+}): Promise<string | null> {
+  if (opts.pendingIncomeIds.length) {
+    const { data, error } = await supabase
+      .from('income')
+      .update({ status: 'cobrado', payment_method: opts.method, income_date: opts.date })
+      .in('id', opts.pendingIncomeIds)
+      .select('routine_id')
+    if (error) return error.message
+    const routineIds = ((data ?? []) as Pick<Income, 'routine_id'>[]).map((r) => r.routine_id).filter(Boolean) as string[]
+    if (routineIds.length) {
+      const { error: rErr } = await supabase.from('routines').update({ is_paid: true }).in('id', routineIds)
+      if (rErr) return rErr.message
+    }
+    return null
+  }
+  if (!(opts.amount > 0)) return 'Ingresá un monto mayor a cero'
+  const { error } = await supabase.from('income').insert({
+    owner_id: opts.ownerId,
+    student_id: opts.studentId,
+    amount: opts.amount,
+    payment_method: opts.method,
+    income_type: 'Cuota mensual',
+    category: 'Entrenamiento',
+    description: `Pago de ${opts.studentName}`,
+    income_date: opts.date,
+    status: 'cobrado',
+    scope: 'business',
+    notes: null,
+  })
+  return error?.message ?? null
+}
+
+/** Ventana de pago del alumno (días del mes). */
+export async function saveStudentPaymentWindow(studentId: string, from: number | null, to: number | null): Promise<string | null> {
+  const { error } = await supabase
+    .from('students')
+    .update({ payment_day_from: from, payment_day_to: to })
+    .eq('id', studentId)
+  if (!error) return null
+  return isMissingColumn(error) ? FINANCE_SQL_HINT : error.message
+}

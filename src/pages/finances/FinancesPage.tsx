@@ -35,7 +35,7 @@ import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
-import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
+import { PaymentsBoard } from '@/components/finances/PaymentsBoard'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
@@ -314,23 +314,12 @@ export function FinancesPage() {
 
   const now = new Date()
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`
   const MES_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  const thisMesTotal = incomesForAggregates
-    .filter((i) => i.status === 'cobrado' && i.income_date.startsWith(thisMonthKey))
-    .reduce((s, i) => s + i.amount, 0)
-  const prevMesTotal = incomesForAggregates
-    .filter((i) => i.status === 'cobrado' && i.income_date.startsWith(prevMonthKey))
-    .reduce((s, i) => s + i.amount, 0)
-  const mesDelta = prevMesTotal > 0 ? Math.round(((thisMesTotal - prevMesTotal) / prevMesTotal) * 100) : null
 
   const animBalance = useCountUp(Math.round(balance), { duration: 2600, enabled: !loading })
   const animCobradoTotal = useCountUp(Math.round(totalIngresos), { duration: 2200, enabled: !loading })
   const animPendiente = useCountUp(Math.round(totalPendiente), { duration: 2200, enabled: !loading })
   const animGastos = useCountUp(Math.round(totalGastos), { duration: 2200, enabled: !loading })
-  const animEsteMes = useCountUp(Math.round(thisMesTotal), { duration: 2200, enabled: !loading })
-  const animMesAnterior = useCountUp(Math.round(prevMesTotal), { duration: 2200, enabled: !loading })
 
   /** Caja práctica (feedback entrenador): efectivo neto del mes + gastos Cuenta DNI → sugerencia «a transferir». Solo ámbito personal. */
   const personalCashTransferHint = useMemo(() => {
@@ -479,36 +468,9 @@ export function FinancesPage() {
           </div>
         )}
 
-        {/* Comparación mensual */}
-        <div className="grid grid-cols-2 gap-3 lg:gap-4">
-          <div className="flex flex-col gap-1 rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
-            <p className="text-2xs font-medium text-ink-muted">
-              {MES_LABELS[now.getMonth()]} cobrado
-              {mesDelta !== null && (
-                <span
-                  className={cn(
-                    'ml-2 font-semibold tabular-nums',
-                    mesDelta >= 0
-                      ? 'text-status-generated'
-                      : 'text-status-expired',
-                  )}
-                >
-                  {mesDelta >= 0 ? '+' : ''}
-                  {mesDelta}%
-                </span>
-              )}
-            </p>
-            <p className="text-lg font-semibold tracking-tight text-ink-primary tabular-nums sm:text-xl">
-              {formatCurrency(animEsteMes)}
-            </p>
-          </div>
-          <div className="flex flex-col gap-1 rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
-            <p className="text-2xs font-medium text-ink-muted">{MES_LABELS[prevMonthDate.getMonth()]} cobrado</p>
-            <p className="text-lg font-semibold tracking-tight text-ink-secondary tabular-nums sm:text-xl">
-              {formatCurrency(animMesAnterior)}
-            </p>
-          </div>
-        </div>
+
+        {/* Cobros de alumnos por mes: quién pagó, cuánto, por qué medio; vencidos con WhatsApp */}
+        {scopeFilter !== 'personal' ? <PaymentsBoard onChanged={() => void fetchAll()} /> : null}
 
         {/* Tabs (estilo rutinas / listados) */}
         <SegmentedControl
@@ -833,8 +795,6 @@ export function FinancesPage() {
           </section>
         )}
 
-        {/* Cuotas pendientes — tonos contenidos */}
-        <RoutinePaymentsPanel />
         {deudores.length > 0 && (
           <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4 ">
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">

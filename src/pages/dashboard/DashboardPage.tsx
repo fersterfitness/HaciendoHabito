@@ -54,6 +54,7 @@ import {
 import type { Routine, Notification, CheckInSendSchedule, TrainerResourceSendSchedule } from '@/types/database'
 import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS, type RmTestWeeksRow } from '@/lib/checkIn/rmTestReminder'
 import { NutritionistOpsPanel } from '@/components/dashboard/NutritionistOpsPanel'
+import { OverduePaymentsAlert } from '@/components/dashboard/OverduePaymentsAlert'
 
 interface RecentIncomeRow {
   id: string
@@ -1171,6 +1172,8 @@ export function DashboardPage() {
             onRmTestRead={(studentId) => setRmTestDueStudents((prev) => prev.filter((s) => s.id !== studentId))}
           />
         ) : null}
+
+        {canSeeFinances && user ? <OverduePaymentsAlert ownerId={user.id} /> : null}
 
         {role === 'nutritionist' && user ? (
           <section className="space-y-2">

@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { loadBlockCountsByRoutine } from '@/lib/checkIn/routineWeekProgress'
@@ -56,6 +56,8 @@ import {
 } from 'recharts'
 import { Modal } from '@/components/ui/Modal'
 import { motion } from 'motion/react'
+import { MarkPaidModal } from '@/components/finances/MarkPaidModal'
+import { markRoutinePaid, unmarkRoutinePaid } from '@/lib/finance/routineIncome'
 
 /** Pestañas dentro de Seguimiento (peso, fuerza, pagos, ciclo). */
 type SeguimientoTab = 'peso' | 'fuerza' | 'pagos' | 'ciclo'
@@ -198,8 +200,7 @@ export function StudentDetailView({
   const [assignPlanOpen, setAssignPlanOpen] = useState(false)
   const [assignPresetOpen, setAssignPresetOpen] = useState(false)
   const [savingRoutinePaid, setSavingRoutinePaid] = useState(false)
-  const [paidAmountDraft, setPaidAmountDraft] = useState('')
-  const [editPlanAssignment, setEditPlanAssignment] = useState<import('@/types/database').StudentPlanAssignment | null>(null)
+    const [editPlanAssignment, setEditPlanAssignment] = useState<import('@/types/database').StudentPlanAssignment | null>(null)
   const [planRefreshKey, setPlanRefreshKey] = useState(0)
 
   async function persistTags(next: string[], rollback: string[]) {
@@ -257,34 +258,47 @@ export function StudentDetailView({
   const [mealPlansLoading, setMealPlansLoading] = useState(false)
   const [mealPlanPdfBusy, setMealPlanPdfBusy] = useState<string | null>(null)
 
-  useEffect(() => {
-    const active = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
-    setPaidAmountDraft(active?.price && active.price > 0 ? String(active.price) : '')
-  }, [routines])
+  /** Rutina a la que se le está registrando el cobro (modal de medio y monto). */
+  const [payingRoutine, setPayingRoutine] = useState<Routine | null>(null)
 
   async function saveRoutinePaid(routineId: string, isPaid: boolean) {
-    const amount = paidAmountDraft.trim() ? Number(paidAmountDraft.replace(',', '.')) : null
+    const routine = routines.find((r) => r.id === routineId)
+    if (!routine) return
+    if (isPaid) {
+      setPayingRoutine(routine)
+      return
+    }
     setSavingRoutinePaid(true)
-    const { error } = await supabase
-      .from('routines')
-      .update({
-        is_paid: isPaid,
-        price: isPaid && Number.isFinite(amount) ? amount : isPaid ? 0 : null,
-      })
-      .eq('id', routineId)
+    const err = await unmarkRoutinePaid(routineId)
     setSavingRoutinePaid(false)
-    if (error) {
-      toast.error(error.message)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    setRoutines((prev) => prev.map((r) => (r.id === routineId ? { ...r, is_paid: false } : r)))
+    toast.success('Abono desmarcado: el cobro vuelve a pendiente')
+  }
+
+  async function confirmRoutinePaid(values: { amount: number; method: Income['payment_method']; date: string }) {
+    if (!user || !id || !payingRoutine) return
+    const err = await markRoutinePaid({
+      ownerId: user.id,
+      routineId: payingRoutine.id,
+      routineName: payingRoutine.name,
+      studentId: id,
+      amount: values.amount,
+      method: values.method,
+      date: values.date,
+    })
+    if (err) {
+      toast.error(err)
       return
     }
     setRoutines((prev) =>
-      prev.map((r) =>
-        r.id === routineId
-          ? { ...r, is_paid: isPaid, price: isPaid && Number.isFinite(amount) ? amount : isPaid ? 0 : null }
-          : r,
-      ),
+      prev.map((r) => (r.id === payingRoutine.id ? { ...r, is_paid: true, price: values.amount || r.price } : r)),
     )
-    toast.success(isPaid ? 'Rutina marcada como abonada' : 'Abono desmarcado')
+    setPayingRoutine(null)
+    toast.success('Cobro registrado en Finanzas')
   }
 
   async function savePaidOtherProfessional(routineId: string, paid: boolean) {
@@ -1056,21 +1070,9 @@ export function StudentDetailView({
                       />
                       ¿Abonó?
                     </label>
-                    <label className="text-2xs font-medium text-ink-muted">
-                      Monto (opcional)
-                      <input
-                        type="number"
-                        min={0}
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={paidAmountDraft}
-                        onChange={(e) => setPaidAmountDraft(e.target.value)}
-                        onBlur={() => {
-                          if (activeRoutine.is_paid) void saveRoutinePaid(activeRoutine.id, true)
-                        }}
-                        className="mt-1 w-28 rounded-lg border border-surface-border bg-white px-2 py-1 text-sm tabular-nums text-ink-primary dark:bg-zinc-900 "
-                      />
-                    </label>
+{activeRoutine.price ? (
+                      <span className="text-xs tabular-nums text-ink-secondary">{formatCurrency(activeRoutine.price)}</span>
+                    ) : null}
                     {activeRoutine.is_paid ? (
                       <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-semibold text-emerald-700 dark:text-emerald-300">
                         Abonada
@@ -1436,6 +1438,8 @@ export function StudentDetailView({
                   if (id) onStudentPatch?.({ id, monthly_fee_amount: amount })
                 }}
                 onRegisterPago={() => setShowPayModal(true)}
+                paymentDayFrom={student.payment_day_from ?? null}
+                paymentDayTo={student.payment_day_to ?? null}
               />
             )}
 
@@ -1478,6 +1482,15 @@ export function StudentDetailView({
           </div>
         )}
       </div>
+
+      <MarkPaidModal
+        open={!!payingRoutine}
+        title={student.full_name}
+        subtitle={payingRoutine?.name}
+        defaultAmount={payingRoutine?.price ?? null}
+        onClose={() => setPayingRoutine(null)}
+        onConfirm={confirmRoutinePaid}
+      />
 
       <ConfirmDialog
         open={showDelete}

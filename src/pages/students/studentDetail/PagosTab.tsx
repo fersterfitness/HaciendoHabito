@@ -11,6 +11,8 @@ import { updateStudentTrainerPrefs } from '@/lib/students/studentTrainerPrefs'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import type { Income } from '@/types/database'
 import { incomeLedgerStatusClass, incomeStatusPhrase } from '@/pages/students/studentDetail/incomeUi'
+import { saveStudentPaymentWindow } from '@/lib/finance/routineIncome'
+import { paymentWindowLabel } from '@/lib/finance/studentPayments'
 
 export function PagosTab({
   studentId,
@@ -18,12 +20,17 @@ export function PagosTab({
   monthlyFee,
   onMonthlyFeeChange,
   onRegisterPago,
+  paymentDayFrom = null,
+  paymentDayTo = null,
 }: {
   studentId: string
   studentName: string
   monthlyFee: number | null
   onMonthlyFeeChange: (amount: number | null) => void
   onRegisterPago: () => void
+  /** Ventana de pago mensual (ej. del 1 al 5). */
+  paymentDayFrom?: number | null
+  paymentDayTo?: number | null
 }) {
   const { user } = useAuthStore()
   const [payments, setPayments] = useState<Income[]>([])
@@ -33,6 +40,33 @@ export function PagosTab({
   const [editingCuota, setEditingCuota] = useState(false)
   const [cuotaInput, setCuotaInput] = useState('')
   const [savingCuota, setSavingCuota] = useState(false)
+
+  const [dayFrom, setDayFrom] = useState<number | null>(paymentDayFrom)
+  const [dayTo, setDayTo] = useState<number | null>(paymentDayTo)
+  const [editingWindow, setEditingWindow] = useState(false)
+  const [fromInput, setFromInput] = useState('')
+  const [toInput, setToInput] = useState('')
+  const [savingWindow, setSavingWindow] = useState(false)
+
+  async function saveWindow() {
+    const parse = (v: string) => {
+      const n = Math.round(Number(v))
+      return v.trim() && n >= 1 && n <= 31 ? n : null
+    }
+    const f = parse(fromInput)
+    const t = parse(toInput) ?? f
+    setSavingWindow(true)
+    const err = await saveStudentPaymentWindow(studentId, f, t)
+    setSavingWindow(false)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    setDayFrom(f)
+    setDayTo(t)
+    setEditingWindow(false)
+    toast.success('Días de pago guardados')
+  }
 
   useEffect(() => {
     setCuota(monthlyFee)
@@ -134,6 +168,64 @@ export function PagosTab({
           </div>
         ) : (
           <p className="text-sm text-ink-muted">Sin cuota configurada — establecé el monto mensual para seguimiento automático.</p>
+        )}
+      </div>
+
+      {/* Días de pago: pasado el último sin cobro, figura vencido en Finanzas */}
+      <div className="border-b border-surface-border/60 pb-4">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Días de pago</p>
+          {!editingWindow ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFromInput(dayFrom != null ? String(dayFrom) : '')
+                setToInput(dayTo != null ? String(dayTo) : '')
+                setEditingWindow(true)
+              }}
+              className="text-2xs font-semibold text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline"
+            >
+              {dayFrom != null || dayTo != null ? 'Modificar' : 'Configurar'}
+            </button>
+          ) : null}
+        </div>
+        {editingWindow ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-secondary">
+            Del
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={fromInput}
+              onChange={(e) => setFromInput(e.target.value)}
+              className="w-16 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1 text-sm tabular-nums text-ink-primary"
+            />
+            al
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={toInput}
+              onChange={(e) => setToInput(e.target.value)}
+              className="w-16 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1 text-sm tabular-nums text-ink-primary"
+            />
+            de cada mes
+            <Button size="sm" variant="secondary" loading={savingWindow} onClick={() => void saveWindow()}>
+              Guardar
+            </Button>
+            <button type="button" onClick={() => setEditingWindow(false)} className="text-xs text-ink-muted hover:text-ink-secondary">
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-ink-primary">
+            {paymentWindowLabel(dayFrom, dayTo)}
+            {dayFrom == null && dayTo == null ? (
+              <span className="ml-1 text-ink-muted">— configurala para que Finanzas te avise si se vence.</span>
+            ) : (
+              <span className="ml-1 text-ink-muted">de cada mes</span>
+            )}
+          </p>
         )}
       </div>
 

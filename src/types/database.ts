@@ -537,6 +537,9 @@ export interface Student {
   trainer_tags: string[]
   /** Cuota mensual de referencia (ARS). */
   monthly_fee_amount: number | null
+  /** Ventana de pago mensual (día del mes); pasado `payment_day_to` sin cobro → vencido. */
+  payment_day_from?: number | null
+  payment_day_to?: number | null
   /** Peso objetivo en kg (seguimiento). */
   target_weight_kg: number | null
   /** Último «leído» del aviso TESTEAR RM (reinicia la cuenta de 12 semanas). */
@@ -1188,6 +1191,8 @@ export interface Income {
   scope: FinanceScope
   status: IncomeStatus
   receipt_path: string | null
+  /** Rutina que generó el cobro (pendiente al asignarla, cobrado al marcar «Abonó»). */
+  routine_id?: string | null
   notes: string | null
   created_at: string
   updated_at: string

@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { formatCurrency } from '@/lib/utils'
 import type { Routine } from '@/types/database'
+import { MarkPaidModal } from '@/components/finances/MarkPaidModal'
+import { markRoutinePaid, unmarkRoutinePaid } from '@/lib/finance/routineIncome'
 
 type Row = Pick<Routine, 'id' | 'name' | 'is_paid' | 'paid_other_professional' | 'price' | 'student_id'> & {
   student_name: string
@@ -14,6 +16,8 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
   const { user } = useAuthStore()
   const [rows, setRows] = useState<Row[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
+  /** Rutina a la que se le está registrando el cobro (modal de medio y monto). */
+  const [paying, setPaying] = useState<Row | null>(null)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -50,6 +54,22 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
   }, [load])
 
   async function toggle(row: Row, field: 'is_paid' | 'paid_other_professional', value: boolean) {
+    // «Abonó» registra el cobro con medio y monto (y lo sincroniza con Finanzas).
+    if (field === 'is_paid') {
+      if (value) {
+        setPaying(row)
+        return
+      }
+      setBusyId(row.id)
+      const err = await unmarkRoutinePaid(row.id)
+      setBusyId(null)
+      if (err) {
+        toast.error(err)
+        return
+      }
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_paid: false } : r)))
+      return
+    }
     setBusyId(row.id)
     const { error } = await supabase.from('routines').update({ [field]: value }).eq('id', row.id)
     setBusyId(null)
@@ -58,6 +78,26 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
       return
     }
     setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, [field]: value } : r)))
+  }
+
+  async function confirmPaid(values: { amount: number; method: import('@/types/database').PaymentMethod; date: string }) {
+    if (!user || !paying) return
+    const err = await markRoutinePaid({
+      ownerId: user.id,
+      routineId: paying.id,
+      routineName: paying.name,
+      studentId: paying.student_id ?? '',
+      amount: values.amount,
+      method: values.method,
+      date: values.date,
+    })
+    if (err) {
+      toast.error(err)
+      return
+    }
+    setRows((prev) => prev.map((r) => (r.id === paying.id ? { ...r, is_paid: true, price: values.amount || r.price } : r)))
+    toast.success('Cobro registrado')
+    setPaying(null)
   }
 
   if (rows.length === 0) return null
@@ -117,6 +157,14 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
           </li>
         ))}
       </ul>
+      <MarkPaidModal
+        open={!!paying}
+        title={paying?.student_name ?? ''}
+        subtitle={paying?.name}
+        defaultAmount={paying?.price ?? null}
+        onClose={() => setPaying(null)}
+        onConfirm={confirmPaid}
+      />
     </section>
   )
 }

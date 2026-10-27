@@ -21,6 +21,7 @@ import toast from 'react-hot-toast'
 import { isMonthlyTemplate, parseQuestions } from '@/lib/checkIn/questions'
 import { monthlyFeedbackInviteMessage, normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
 import { RoutineSourcePicker, type RoutineSourceOption } from '@/components/routines/RoutineSourcePicker'
+import { createRoutinePendingIncome } from '@/lib/finance/routineIncome'
 
 const schema = z.object({
   student_id: z.string().optional().or(z.literal('')),
@@ -30,6 +31,8 @@ const schema = z.object({
   level: z.enum(['inicial', 'intermedio', 'avanzado']),
   objective: z.string().min(3, 'Ingresá el objetivo del coach'),
   notes: z.string().optional().or(z.literal('')),
+  /** Precio de la rutina: genera un cobro «pendiente» en Finanzas (Haciéndolo hábito). */
+  price: z.string().optional().or(z.literal('')),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -367,6 +370,20 @@ export function RoutineFormContent({
         notes: values.notes || undefined,
       })
       if (result) {
+        const price = Number(String(values.price ?? '').replace(',', '.'))
+        if (user && values.student_id && Number.isFinite(price) && price > 0) {
+          await supabase.from('routines').update({ price }).eq('id', result.id)
+          const err = await createRoutinePendingIncome({
+            ownerId: user.id,
+            routineId: result.id,
+            routineName: values.plan_name,
+            studentId: values.student_id,
+            amount: price,
+            date: values.start_date,
+          })
+          if (err) toast.error(`Rutina creada, pero no se registró el cobro: ${err}`)
+          else toast.success('Cobro pendiente registrado en Finanzas')
+        }
         if (templateBlueprintId) {
           const loadingId = toast.loading('Copiando rutina preestablecida...')
           try {
@@ -563,9 +580,20 @@ export function RoutineFormContent({
               }}
             />
           </div>
+          {!isEditing && !saveAsPreset && !editingLibrary ? (
+            <Input
+              label="Precio de la rutina (opcional)"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              placeholder="Ej: 37500"
+              hint="Queda como cobro pendiente en Finanzas; al marcar «Abonó» pasa a cobrado."
+              {...register('price')}
+            />
+          ) : null}
           {endDate && (
             <div className="flex items-center gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/90 px-3 py-2 ">
-              <span className="text-xs text-ink-muted ">Fecha de vencimiento:</span>
+              <span className="text-xs text-ink-muted ">Termina:</span>
               <span className="text-sm font-semibold tabular-nums text-ink-primary ">{endDate}</span>
             </div>
           )}
