@@ -7,7 +7,7 @@ import {
   Mail, Phone, Calendar, Zap, X, ChevronDown,
   StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag,
   Maximize2, UserRound, UtensilsCrossed, TrendingUp,
-  CalendarCheck, Trophy,
+  CalendarCheck, Trophy, CalendarRange, ChevronRight,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
@@ -36,6 +36,7 @@ import { StudentProgressPhotosSection } from '@/components/students/StudentProgr
 import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
 import { StudentEngagementStatsPanel } from '@/components/students/StudentEngagementStatsPanel'
 import { StudentProgressPanel } from '@/components/students/StudentProgressPanel'
+import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, Exercise, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
@@ -383,6 +384,18 @@ export function StudentDetailView({
   const showNutritionTab = profile?.role === 'trainer' || profile?.role === 'admin'
   const showHabitsTab = canSeeTraining(profile?.role)
   const showRoutineTab = canSeeTraining(profile?.role)
+  const [macroOpen, setMacroOpen] = useState(false)
+
+  async function reloadRoutines() {
+    if (!id || !user) return
+    const { data } = await supabase
+      .from('routines')
+      .select('*')
+      .eq('student_id', id)
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+    if (data) setRoutines(data)
+  }
 
   useEffect(() => {
     if (!showNutritionTab && sheetTab === 'nutricion') setSheetTab('ficha')
@@ -995,6 +1008,22 @@ export function StudentDetailView({
           return (
           <div className="space-y-8">
 
+            {/* ── Calendario anual del macrociclo (solo entrenador) ── */}
+            <button
+              type="button"
+              onClick={() => setMacroOpen(true)}
+              className="group flex w-full items-center gap-3 rounded-xl border border-surface-border/80 bg-surface-card px-4 py-3 text-left shadow-xs transition-colors hover:border-brand-primary/40"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+                <CalendarRange className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-ink-primary">Calendario anual del macrociclo</span>
+                <span className="block text-2xs text-ink-muted">Bloques del año como barras: mover, copiar y ver alertas de volumen. Solo vos lo ves.</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5" />
+            </button>
+
             {/* ── Notas para la próxima rutina ── */}
             {id ? <StudentRoutineNotesPanel studentId={id} /> : null}
 
@@ -1471,6 +1500,16 @@ export function StudentDetailView({
             )}
           </div>
         )}
+
+        {id && showRoutineTab ? (
+          <MacrocycleCalendarPanel
+            open={macroOpen}
+            onClose={() => setMacroOpen(false)}
+            studentId={id}
+            studentName={student.full_name}
+            onChanged={() => void reloadRoutines()}
+          />
+        ) : null}
 
         {sheetTab === 'progreso' && showHabitsTab && (
           <StudentProgressPanel studentId={id!} studentName={student.full_name} rmRecords={rmRecords} />
