@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  Area,
+  AreaChart,
+} from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/lib/utils'
 import {
   availableMonthOptions,
@@ -20,6 +29,7 @@ import { parseQuestions } from '@/lib/checkIn/questions'
 import { brandHex } from '@/theme/brandColors'
 import type { Json } from '@/types/database'
 import { controlSmClassName } from '@/lib/formControlClasses'
+import { ChartAreaGradient, ChartTooltip, chartActiveDot, chartAxis, chartBarCursor, chartBarRadius, chartCursor, chartGrid } from '@/components/charts/chartKit'
 
 const PERIODS: { id: CheckInHabitChartPeriod | 'compare' | 'evolucion'; label: string }[] = [
   { id: 'weekly', label: 'Semanal' },
@@ -29,7 +39,7 @@ const PERIODS: { id: CheckInHabitChartPeriod | 'compare' | 'evolucion'; label: s
   { id: 'compare', label: 'Comparar' },
 ]
 
-function ChartCard({ series, tick, isDark }: { series: HabitChartSeries; tick: string; isDark: boolean }) {
+function ChartCard({ series }: { series: HabitChartSeries }) {
   const data = habitChartBarRows(series)
   return (
     <div className="rounded-2xl border border-surface-border/70 bg-surface-elevated/30 p-3.5">
@@ -37,20 +47,20 @@ function ChartCard({ series, tick, isDark }: { series: HabitChartSeries; tick: s
       <div className="h-44 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 6, right: 6, left: -22, bottom: 0 }} barCategoryGap="28%">
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#3f3f46' : '#e4e4e7'} />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: tick }} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: tick }} axisLine={false} tickLine={false} />
-            <Tooltip
-              cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}
-              contentStyle={{
-                fontSize: 11,
-                borderRadius: 12,
-                border: '1px solid rgb(var(--surface-border))',
-                background: 'rgb(var(--surface-card))',
-              }}
-            />
-            {series.buckets[0]?.segments.map((seg) => (
-              <Bar key={seg.optionId} dataKey={seg.optionId} stackId="a" fill={seg.color} name={seg.label} radius={[3, 3, 0, 0]} />
+            <CartesianGrid {...chartGrid} />
+            <XAxis dataKey="label" {...chartAxis} />
+            <YAxis allowDecimals={false} {...chartAxis} width={28} />
+            <Tooltip cursor={chartBarCursor} content={<ChartTooltip formatValue={(v) => `${v} sem.`} />} />
+            {series.buckets[0]?.segments.map((seg, i, all) => (
+              <Bar
+                key={seg.optionId}
+                dataKey={seg.optionId}
+                stackId="a"
+                fill={seg.color}
+                name={seg.label}
+                radius={i === all.length - 1 ? chartBarRadius : [0, 0, 0, 0]}
+                maxBarSize={36}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -69,9 +79,6 @@ function ChartCard({ series, tick, isDark }: { series: HabitChartSeries; tick: s
 
 export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
   const { user } = useAuthStore()
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-  const tick = isDark ? '#a1a1aa' : '#52525b'
   const [period, setPeriod] = useState<CheckInHabitChartPeriod | 'compare' | 'evolucion'>('weekly')
   const [points, setPoints] = useState<CheckInResponsePoint[]>([])
   const [loading, setLoading] = useState(true)
@@ -236,21 +243,24 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
           <div className="space-y-3 rounded-2xl border border-surface-border/70 bg-surface-elevated/30 p-3.5">
             <div className="h-48 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={adherence} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#3f3f46' : '#e4e4e7'} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: tick }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: tick }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    formatter={(value) => [`${value ?? '—'}%`, 'Adherencia']}
-                    contentStyle={{
-                      fontSize: 11,
-                      borderRadius: 12,
-                      border: '1px solid rgb(var(--surface-border))',
-                      background: 'rgb(var(--surface-card))',
-                    }}
+                <AreaChart data={adherence} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <ChartAreaGradient id="adherence-fill" color={brandHex('primary')} />
+                  <CartesianGrid {...chartGrid} />
+                  <XAxis dataKey="label" {...chartAxis} />
+                  <YAxis domain={[0, 100]} {...chartAxis} width={36} tickFormatter={(v: number) => `${v}%`} />
+                  <Tooltip cursor={chartCursor} content={<ChartTooltip formatValue={(v) => `${v}%`} />} />
+                  <Area
+                    type="monotone"
+                    dataKey="score"
+                    name="Adherencia"
+                    stroke={brandHex('primary')}
+                    strokeWidth={2.4}
+                    fill="url(#adherence-fill)"
+                    dot={{ r: 3.5, fill: brandHex('primary'), stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                    activeDot={chartActiveDot(brandHex('primary'))}
+                    connectNulls={false}
                   />
-                  <Line type="monotone" dataKey="score" stroke={brandHex('primary')} strokeWidth={2.4} dot={{ r: 4 }} connectNulls={false} />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
             <ul className="flex flex-wrap gap-2">
@@ -338,18 +348,18 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <p className="text-2xs font-semibold text-ink-primary">Período A</p>
-              {seriesA.length ? seriesA.map((s) => <ChartCard key={`a-${s.key}`} series={s} tick={tick} isDark={isDark} />) : <p className="text-2xs text-ink-muted">Sin datos en A.</p>}
+              {seriesA.length ? seriesA.map((s) => <ChartCard key={`a-${s.key}`} series={s} />) : <p className="text-2xs text-ink-muted">Sin datos en A.</p>}
             </div>
             <div className="space-y-2">
               <p className="text-2xs font-semibold text-ink-primary">Período B</p>
-              {seriesB.length ? seriesB.map((s) => <ChartCard key={`b-${s.key}`} series={s} tick={tick} isDark={isDark} />) : <p className="text-2xs text-ink-muted">Sin datos en B.</p>}
+              {seriesB.length ? seriesB.map((s) => <ChartCard key={`b-${s.key}`} series={s} />) : <p className="text-2xs text-ink-muted">Sin datos en B.</p>}
             </div>
           </div>
         </div>
       ) : series.length ? (
         <div className="grid gap-3 md:grid-cols-2">
           {series.map((s) => (
-            <ChartCard key={s.key} series={s} tick={tick} isDark={isDark} />
+            <ChartCard key={s.key} series={s} />
           ))}
         </div>
       ) : (

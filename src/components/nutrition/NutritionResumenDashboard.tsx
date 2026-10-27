@@ -33,6 +33,7 @@ import {
 } from '@/lib/nutrition/measurementDerivatives'
 import type { NutritionMeasurement, NutritionPatientFollowup, Student } from '@/types/database'
 import { differenceInYears } from 'date-fns'
+import { ChartTooltip, chartActiveDot, chartAxis, chartCursor, chartGrid } from '@/components/charts/chartKit'
 
 interface Props {
   student?: Student | null
@@ -247,36 +248,23 @@ export function NutritionResumenDashboard({
               <AreaChart data={heroData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="resumen-peso-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgb(var(--ink-muted))" stopOpacity={0.22} />
-                    <stop offset="100%" stopColor="rgb(var(--ink-muted))" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#ff5a0a" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#ff5a0a" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-surface-border" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  className="fill-ink-muted"
-                />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={['auto', 'auto']}
-                  width={36}
-                  className="fill-ink-muted"
-                />
-                <Tooltip
-                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                  formatter={(v: unknown) => [`${v} kg`, 'Peso']}
-                />
+                <CartesianGrid {...chartGrid} />
+                <XAxis dataKey="label" {...chartAxis} />
+                <YAxis {...chartAxis} domain={['auto', 'auto']} width={36} />
+                <Tooltip cursor={chartCursor} content={<ChartTooltip formatValue={(v) => `${v} kg`} />} />
                 <Area
                   type="monotone"
                   dataKey="peso"
-                  stroke="rgb(var(--ink-secondary))"
-                  strokeWidth={2}
+                  name="Peso"
+                  stroke="#ff5a0a"
+                  strokeWidth={2.4}
                   fill="url(#resumen-peso-fill)"
+                  dot={{ r: 3, fill: '#ff5a0a', stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                  activeDot={chartActiveDot('#ff5a0a')}
                   isAnimationActive={false}
                 />
               </AreaChart>

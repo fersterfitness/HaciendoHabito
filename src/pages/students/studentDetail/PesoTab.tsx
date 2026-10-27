@@ -2,14 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Scale, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
+import { ChartAreaGradient, ChartTooltip, chartActiveDot, chartAxis, chartCursor, chartGrid } from '@/components/charts/chartKit'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
@@ -258,58 +261,53 @@ export function PesoTab({
                     )
                   })()}
 
-                  <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={rechartsData} margin={{ top: 5, right: 8, bottom: 0, left: -20 }}>
-                      <CartesianGrid vertical={false} stroke="rgb(var(--surface-border))" strokeOpacity={0.7} strokeDasharray="4 4" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 9, fill: 'rgb(var(--ink-muted))' }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        domain={['auto', 'auto']}
-                        tick={{ fontSize: 9, fill: 'rgb(var(--ink-muted))' }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={36}
-                      />
+                  <ResponsiveContainer width="100%" height={190}>
+                    <ComposedChart data={rechartsData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                      <ChartAreaGradient id="peso-fill" color="#ff5a0a" opacity={0.3} />
+                      <CartesianGrid {...chartGrid} />
+                      <XAxis dataKey="date" {...chartAxis} interval="preserveStartEnd" />
+                      <YAxis domain={['auto', 'auto']} {...chartAxis} width={36} />
+                      {goal ? (
+                        <ReferenceLine
+                          y={goal}
+                          stroke="#10b981"
+                          strokeDasharray="5 4"
+                          strokeOpacity={0.8}
+                          label={{ value: `Meta ${goal} kg`, position: 'insideTopRight', fontSize: 10, fill: '#10b981' }}
+                        />
+                      ) : null}
                       <Tooltip
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload?.length) return null
-                          return (
-                            <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg">
-                              <p className="text-ink-muted mb-1">{label}</p>
-                              <p className="font-bold text-ink-primary">{payload[0].value} kg</p>
-                              {payload[1]?.value != null && (
-                                <p className="text-ink-muted">{payload[1].value}% grasa</p>
-                              )}
-                            </div>
-                          )
-                        }}
+                        cursor={chartCursor}
+                        content={
+                          <ChartTooltip
+                            formatValue={(v, e) => (e.dataKey === 'fat' ? `${v}%` : `${v} kg`)}
+                          />
+                        }
                       />
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey="weight"
-                        stroke="rgb(var(--brand-primary))"
+                        name="Peso"
+                        stroke="#ff5a0a"
                         strokeWidth={2.5}
-                        dot={{ r: 3.5, fill: 'rgb(var(--brand-primary))', stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
-                        activeDot={{ r: 5, fill: 'rgb(var(--brand-primary))' }}
+                        fill="url(#peso-fill)"
+                        dot={{ r: 3, fill: '#ff5a0a', stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                        activeDot={chartActiveDot('#ff5a0a')}
                       />
                       {hasFat && (
                         <Line
                           type="monotone"
                           dataKey="fat"
+                          name="% grasa"
                           stroke="rgb(var(--ink-muted))"
-                          strokeWidth={1.25}
-                          strokeDasharray="4 2"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
                           dot={false}
-                          activeDot={{ r: 4, fill: 'rgb(var(--ink-muted))' }}
+                          activeDot={chartActiveDot('rgb(var(--ink-muted))')}
                           connectNulls
                         />
                       )}
-                    </LineChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               )

@@ -12,9 +12,10 @@ import {
   Wallet,
 } from 'lucide-react'
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis,
-  Tooltip as RechartsTooltip, CartesianGrid,
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+  Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine,
 } from 'recharts'
+import { chartActiveDot, chartAxis, chartCursor, chartGrid, compactCurrency } from '@/components/charts/chartKit'
 import { supabase } from '@/lib/supabase'
 import { accessibleStudentsSelect } from '@/lib/students/studentAccess'
 import { useAuthStore } from '@/stores/authStore'
@@ -347,7 +348,7 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
   const detail = (raw.__detail as Record<string, ScopeMonthDetail>) ?? {}
 
   return (
-    <div className="bg-surface-card border border-surface-border rounded-xl px-3 py-2 text-xs shadow-lg max-w-[260px]">
+    <div className="max-w-[260px] rounded-xl border border-surface-border bg-surface-card/95 px-3 py-2 text-xs shadow-pop backdrop-blur">
       <p className="font-semibold text-ink-primary">{label}</p>
       <div className="mt-1.5 space-y-2">
         {series.map((s) => {
@@ -433,57 +434,44 @@ function expenseChartRechartsData(model: ExpenseChartModel) {
 
 function ExpenseScopesLineChart({ model }: { model: ExpenseChartModel }) {
   const data = expenseChartRechartsData(model)
+  const hasNegative = data.some((row) => model.series.some((s) => Number(row[s.key] ?? 0) < 0))
   return (
     <div className="w-full px-1 pb-2">
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-          <CartesianGrid
-            vertical={false}
-            stroke="rgb(var(--surface-border))"
-            strokeDasharray="4 4"
-          />
-
-          <XAxis
-            dataKey="label"
-            tick={<CustomXTick />}
-            axisLine={false}
-            tickLine={false}
-            height={24}
-          />
-
+      <ResponsiveContainer width="100%" height={220}>
+        <AreaChart data={data} margin={{ top: 12, right: 10, bottom: 0, left: 0 }}>
+          <defs>
+            {model.series.map((s) => (
+              <linearGradient key={s.key} id={`scope-fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.color} stopOpacity={0.28} />
+                <stop offset="95%" stopColor={s.color} stopOpacity={0} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid {...chartGrid} />
+          <XAxis dataKey="label" tick={<CustomXTick />} axisLine={false} tickLine={false} height={24} />
           <YAxis
-            tickFormatter={(v) => {
-              if (v === 0) return ''
-              const sign = v < 0 ? '−' : ''
-              const abs = Math.abs(v)
-              if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(0)}k`
-              return `${sign}$${Math.round(abs)}`
-            }}
-            tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
-            axisLine={false}
-            tickLine={false}
-            width={50}
+            {...chartAxis}
+            tickFormatter={(v: number) => (v === 0 ? '' : compactCurrency(v))}
+            width={52}
           />
-
-          <RechartsTooltip
-            content={<ExpenseScopesTooltip />}
-            cursor={{ stroke: 'rgb(var(--ink-muted))', strokeWidth: 1, strokeDasharray: '4 3', strokeOpacity: 0.55 }}
-          />
-
+          {hasNegative ? <ReferenceLine y={0} stroke="rgb(var(--ink-muted))" strokeOpacity={0.35} /> : null}
+          <RechartsTooltip content={<ExpenseScopesTooltip />} cursor={chartCursor} />
           {model.series.map((s) => (
-            <Line
+            <Area
               key={s.key}
               type="monotone"
               dataKey={s.key}
               name={s.label}
               stroke={s.color}
-              strokeWidth={1.35}
+              strokeWidth={2.25}
+              fill={`url(#scope-fill-${s.key})`}
               dot={false}
-              activeDot={{ r: 4, fill: s.color, stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
-              isAnimationActive={false}
+              activeDot={chartActiveDot(s.color)}
+              isAnimationActive
+              animationDuration={700}
             />
           ))}
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   )

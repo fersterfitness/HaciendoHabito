@@ -54,6 +54,7 @@ import { CheckInHabitsCharts } from '@/components/habits/CheckInHabitsCharts'
 import type { Habit, HabitLog, StudentHabitSelectionEvent } from '@/types/database'
 import { brandHex } from '@/theme/brandColors'
 import toast from 'react-hot-toast'
+import { chartGrid } from '@/components/charts/chartKit'
 
 const HABIT_CHART_STROKE = brandHex('secondary')
 
@@ -410,7 +411,7 @@ export function StudentHabitsPanel({
                       }))}
                       margin={{ top: 4, right: 8, bottom: 24, left: -16 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--surface-border))" />
+                      <CartesianGrid {...chartGrid} />
                       <XAxis
                         dataKey="labelShort"
                         tick={{ fontSize: 9, fill: 'rgb(var(--ink-muted))' }}

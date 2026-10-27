@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts'
 import { TrendingUp, MessageCircle, Plus, X, Copy } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { MonthlyFeedbackAnswers } from '@/components/checkIn/MonthlyFeedbackAnswers'
 import { formatDate } from '@/lib/utils'
@@ -21,6 +28,7 @@ import {
 } from '@/lib/checkIn/monthlyFeedback'
 import type { Routine, StudentTestimonial } from '@/types/database'
 import toast from 'react-hot-toast'
+import { ChartBarGradient, ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
 
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -46,8 +54,6 @@ export function StudentEngagementStatsPanel({
   routines: Routine[]
 }) {
   const { user } = useAuthStore()
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
   const [testimonials, setTestimonials] = useState<StudentTestimonial[]>([])
   const [monthlyRows, setMonthlyRows] = useState<MonthlyFeedbackRow[]>([])
   const [monthlyUrl, setMonthlyUrl] = useState<string | null>(null)
@@ -160,7 +166,6 @@ export function StudentEngagementStatsPanel({
     if (res.copied) toast.success(WHATSAPP_DIRECT_PASTE_HINT)
   }
 
-  const tick = isDark ? '#a1a1aa' : '#52525b'
 
   return (
     <div className="space-y-5">
@@ -188,15 +193,14 @@ export function StudentEngagementStatsPanel({
         <p className="mb-1 mt-4 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
           Rutinas iniciadas por mes (últimos 12)
         </p>
-        <ResponsiveContainer width="100%" height={120}>
-          <BarChart data={stats.byMonth} margin={{ top: 4, right: 4, bottom: 0, left: -32 }}>
-            <XAxis dataKey="label" tick={{ fontSize: 9, fill: tick }} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 9, fill: tick }} axisLine={false} tickLine={false} />
-            <Tooltip
-              cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}
-              contentStyle={{ fontSize: 11, borderRadius: 8 }}
-            />
-            <Bar dataKey="rutinas" fill="#f97316" radius={[3, 3, 0, 0]} />
+        <ResponsiveContainer width="100%" height={150}>
+          <BarChart data={stats.byMonth} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
+            <ChartBarGradient id="engagement-bar" color="#ff5a0a" />
+            <CartesianGrid {...chartGrid} />
+            <XAxis dataKey="label" {...chartAxis} />
+            <YAxis allowDecimals={false} {...chartAxis} width={24} />
+            <Tooltip cursor={chartBarCursor} content={<ChartTooltip formatValue={(v) => `${v} rutina${v === 1 ? '' : 's'}`} />} />
+            <Bar dataKey="rutinas" name="Rutinas" fill="url(#engagement-bar)" radius={chartBarRadius} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>
       </section>

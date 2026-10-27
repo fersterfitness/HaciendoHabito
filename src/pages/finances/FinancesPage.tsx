@@ -33,6 +33,7 @@ import type { Income, Expense, Student } from '@/types/database'
 import { studentMonthlyFeeAmount } from '@/lib/students/studentTrainerPrefs'
 import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts'
+import { chartAxis, chartBarCursor, chartBarRadius, chartGrid, compactCurrency } from '@/components/charts/chartKit'
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { PaymentsBoard } from '@/components/finances/PaymentsBoard'
@@ -177,9 +178,9 @@ function AnnualIncomeTooltip({
   const safeLabel = label != null ? String(label) : '—'
 
   return (
-    <div className="pointer-events-none min-w-[7.5rem] rounded-md border border-surface-border bg-white px-3 py-2 text-left shadow-lg ">
-      <p className="text-2xs font-semibold text-ink-primary ">{safeLabel}</p>
-      <p className="mt-1 font-semibold tabular-nums leading-tight text-body-sm text-brand-tertiary">
+    <div className="pointer-events-none min-w-[7.5rem] rounded-xl border border-surface-border bg-surface-card/95 px-3 py-2 text-left shadow-pop backdrop-blur">
+      <p className="text-2xs font-semibold text-ink-primary">{safeLabel}</p>
+      <p className="mt-1 font-semibold tabular-nums leading-tight text-body-sm text-brand-primary">
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
       <p className="mt-1.5 border-t border-surface-border pt-1.5 text-3xs font-medium uppercase tracking-wide text-ink-secondary ">
@@ -399,9 +400,7 @@ export function FinancesPage() {
   }
 
   /** Rejilla neutra · barras naranja de marca (mes actual más intenso) */
-  const chartGridStroke = 'rgb(var(--surface-border))'
-  const barFillDefault = 'rgb(var(--brand-primary) / 0.35)' // meses anteriores
-  const barFillCurrent = 'rgb(var(--brand-primary))' // mes actual
+  const barFillDefault = 'rgb(var(--brand-primary) / 0.28)' // meses anteriores (el actual va con degradé)
 
   return (
     <div>
@@ -842,22 +841,37 @@ export function FinancesPage() {
         )}
 
         {/* Gráfico anual */}
-        <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4 ">
-          <p className="mb-3 text-2xs font-semibold uppercase tracking-wide text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
-          <ResponsiveContainer width="100%" height={168}>
-            <BarChart data={annualChartData} margin={{ top: 6, right: 8, bottom: 2, left: -16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} vertical={false} />
-              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }} tickLine={false} axisLine={false} />
-              <YAxis
-                tick={{ fontSize: 10, fill: 'rgb(var(--ink-muted))' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
-              />
-              <Tooltip content={<AnnualIncomeTooltip />} cursor={false} wrapperStyle={{ outline: 'none' }} />
-              <Bar dataKey="total" radius={[5, 5, 0, 0]} maxBarSize={32}>
+        <section className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
+          {(() => {
+            const total = annualChartData.reduce((acc, d) => acc + d.total, 0)
+            const withData = annualChartData.filter((d) => d.total > 0).length
+            return (
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
+                  <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-ink-primary">{formatCurrency(total)}</p>
+                </div>
+                <p className="text-2xs text-ink-muted">
+                  Promedio {formatCurrency(withData ? Math.round(total / withData) : 0)} / mes con cobros
+                </p>
+              </div>
+            )
+          })()}
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={annualChartData} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="annual-current" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ff8a3d" />
+                  <stop offset="100%" stopColor="#ec3d12" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid {...chartGrid} />
+              <XAxis dataKey="mes" {...chartAxis} />
+              <YAxis {...chartAxis} width={44} tickFormatter={(v: number) => (v === 0 ? '' : compactCurrency(v))} />
+              <Tooltip content={<AnnualIncomeTooltip />} cursor={chartBarCursor} wrapperStyle={{ outline: 'none' }} />
+              <Bar dataKey="total" radius={chartBarRadius} maxBarSize={30}>
                 {annualChartData.map((entry, index) => (
-                  <Cell key={index} fill={entry.isCurrent ? barFillCurrent : barFillDefault} />
+                  <Cell key={index} fill={entry.isCurrent ? 'url(#annual-current)' : barFillDefault} />
                 ))}
               </Bar>
             </BarChart>
