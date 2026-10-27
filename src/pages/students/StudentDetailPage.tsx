@@ -7,7 +7,7 @@ import {
   Mail, Phone, Calendar, Zap, X, ChevronDown,
   StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag,
   Maximize2, UserRound, UtensilsCrossed, TrendingUp,
-  CalendarCheck,
+  CalendarCheck, Trophy,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
@@ -35,6 +35,7 @@ import { PsychologistStudentIntakePanel } from '@/components/students/Psychologi
 import { StudentProgressPhotosSection } from '@/components/students/StudentProgressPhotosSection'
 import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
 import { StudentEngagementStatsPanel } from '@/components/students/StudentEngagementStatsPanel'
+import { StudentProgressPanel } from '@/components/students/StudentProgressPanel'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, Exercise, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
@@ -63,7 +64,7 @@ import { markRoutinePaid, unmarkRoutinePaid } from '@/lib/finance/routineIncome'
 type SeguimientoTab = 'peso' | 'fuerza' | 'pagos' | 'ciclo'
 
 /** Solapas principales de la ficha / panel lateral. */
-type SheetTab = 'ficha' | 'rutina' | 'nutricion' | 'seguimiento' | 'habitos'
+type SheetTab = 'ficha' | 'rutina' | 'nutricion' | 'seguimiento' | 'progreso' | 'habitos'
 
 const DETAIL_LEVEL_LABEL: Record<string, string> = {
   inicial: 'Inicial',
@@ -388,7 +389,7 @@ export function StudentDetailView({
   }, [showNutritionTab, sheetTab])
 
   useEffect(() => {
-    if (!showHabitsTab && sheetTab === 'habitos') setSheetTab('ficha')
+    if (!showHabitsTab && (sheetTab === 'habitos' || sheetTab === 'progreso')) setSheetTab('ficha')
   }, [showHabitsTab, sheetTab])
 
   useEffect(() => {
@@ -592,7 +593,10 @@ export function StudentDetailView({
       icon: <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden />,
     },
     ...(showHabitsTab
-      ? [{ key: 'habitos' as const, label: 'Hábitos', icon: <CalendarCheck className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
+      ? [
+          { key: 'progreso' as const, label: 'Progreso', icon: <Trophy className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
+          { key: 'habitos' as const, label: 'Hábitos', icon: <CalendarCheck className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
+        ]
       : []),
   ]
 
@@ -1466,6 +1470,10 @@ export function StudentDetailView({
               />
             )}
           </div>
+        )}
+
+        {sheetTab === 'progreso' && showHabitsTab && (
+          <StudentProgressPanel studentId={id!} studentName={student.full_name} rmRecords={rmRecords} />
         )}
 
         {sheetTab === 'habitos' && showHabitsTab && (

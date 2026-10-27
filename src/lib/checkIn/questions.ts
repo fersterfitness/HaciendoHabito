@@ -28,6 +28,8 @@ export type CheckInQuestion = {
   helperText?: string
   /** Clave estable para gráficos / lógica (week_status, mood, …). */
   key?: string
+  /** Escala 1–5: qué significa cada punta (se muestra debajo del 1 y del 5). */
+  scaleHint?: { min: string; max: string }
 }
 
 export type CheckInAnswerDraft = {
@@ -73,6 +75,10 @@ export function parseQuestions(raw: unknown): CheckInQuestion[] {
     if (typeof o.key === 'string' && o.key.trim()) q.key = o.key.trim()
     if (typeof o.helperText === 'string' && o.helperText.trim()) q.helperText = o.helperText.trim()
     if (o.visibleIfGender === 'F') q.visibleIfGender = 'F'
+    const hint = o.scaleHint as Record<string, unknown> | undefined
+    if (type === 'scale' && hint && typeof hint.min === 'string' && typeof hint.max === 'string') {
+      q.scaleHint = { min: hint.min, max: hint.max }
+    }
     if (o.allowNote === true || (type === 'choice' && o.allowNote !== false)) q.allowNote = true
     if (type === 'choice') {
       q.options = parseOptions(o.options)
@@ -258,7 +264,8 @@ function questionCatalogSig(q: CheckInQuestion): string {
   const opts = (q.options ?? [])
     .map((o) => `${o.id}\t${o.label}\t${o.color}\t${o.extra && o.extra !== 'none' ? o.extra : ''}`)
     .join('\n')
-  return [q.id, q.key ?? '', q.label, q.helperText ?? '', q.type, q.allowNote ? '1' : '0', q.visibleIfGender ?? '', opts].join('|')
+  const hint = q.scaleHint ? `${q.scaleHint.min}~${q.scaleHint.max}` : ''
+  return [q.id, q.key ?? '', q.label, q.helperText ?? '', q.type, q.allowNote ? '1' : '0', q.visibleIfGender ?? '', hint, opts].join('|')
 }
 
 /** Aplica la plantilla conservando los id de pregunta (y de opción) para no invalidar respuestas ya guardadas. */
@@ -307,6 +314,7 @@ export function syncWeeklyQuestionCatalog(questions: CheckInQuestion[]): {
       type: tpl.type,
       allowNote: tpl.allowNote,
       visibleIfGender: tpl.visibleIfGender,
+      scaleHint: tpl.scaleHint,
       options: tpl.options?.map((o) => ({ ...o })),
     }
     if (questionCatalogSig(patched) !== questionCatalogSig(q)) {
@@ -315,7 +323,27 @@ export function syncWeeklyQuestionCatalog(questions: CheckInQuestion[]): {
     }
     return q
   })
-  return { questions: next, changed }
+  const added = addMissingWellbeingQuestions(next)
+  if (added !== next) changed = true
+  return { questions: added, changed }
+}
+
+/** Preguntas de bienestar y NEAT (escalas 1–5 + pasos) que se sumaron al catálogo semanal. */
+export const WELLBEING_KEYS = ['sleep', 'energy', 'stress', 'hunger'] as const
+export const WEEKLY_PROGRESS_KEYS = [...WELLBEING_KEYS, 'steps'] as const
+
+/**
+ * Formularios semanales creados antes de las preguntas de bienestar: las agrega una sola vez
+ * (antes de «Hidratación» o al final). Si el entrenador ya tiene alguna, no toca nada.
+ */
+export function addMissingWellbeingQuestions(questions: CheckInQuestion[]): CheckInQuestion[] {
+  if (questions.some((q) => q.key && (WEEKLY_PROGRESS_KEYS as readonly string[]).includes(q.key))) return questions
+  const extra = createWeeklyCheckInQuestions().filter(
+    (q) => q.key && (WEEKLY_PROGRESS_KEYS as readonly string[]).includes(q.key),
+  )
+  const at = questions.findIndex((q) => q.key === 'hydration')
+  const idx = at >= 0 ? at + 1 : questions.length
+  return [...questions.slice(0, idx), ...extra, ...questions.slice(idx)]
 }
 
 /** Copia respuestas de ids viejos a ids nuevos cuando la pregunta tiene la misma `key`. */
@@ -537,6 +565,48 @@ export function createWeeklyCheckInQuestions(): CheckInQuestion[] {
         opt('a', 'Me hidraté correctamente', COLOR_A),
         opt('b', 'Me hidraté poco', COLOR_B),
         opt('c', 'Me hidraté pero no con agua 🍺🍷', COLOR_C),
+      ],
+    },
+    {
+      id: crypto.randomUUID(),
+      key: 'sleep',
+      label: '¿Cómo dormiste esta semana?',
+      type: 'scale',
+      scaleHint: { min: 'Muy mal', max: 'Excelente' },
+    },
+    {
+      id: crypto.randomUUID(),
+      key: 'energy',
+      label: '¿Cómo estuvo tu nivel de energía?',
+      type: 'scale',
+      scaleHint: { min: 'Sin energía', max: 'Con mucha energía' },
+    },
+    {
+      id: crypto.randomUUID(),
+      key: 'stress',
+      label: '¿Cuánto estrés tuviste?',
+      type: 'scale',
+      scaleHint: { min: 'Nada', max: 'Muchísimo' },
+    },
+    {
+      id: crypto.randomUUID(),
+      key: 'hunger',
+      label: '¿Cuánta hambre sentiste en el día?',
+      type: 'scale',
+      scaleHint: { min: 'Casi nada', max: 'Mucha' },
+    },
+    {
+      id: crypto.randomUUID(),
+      key: 'steps',
+      label: '¿Cuántos pasos hiciste por día, en promedio?',
+      helperText: 'Mirá el contador del celular o del reloj. Si no lo sabés, elegí lo que más se acerque.',
+      type: 'choice',
+      allowNote: true,
+      options: [
+        opt('lt5k', 'Menos de 5.000', COLOR_C),
+        opt('5k_7k', 'Entre 5.000 y 7.500', COLOR_B),
+        opt('7k_10k', 'Entre 7.500 y 10.000', '#0ea5e9'),
+        opt('gt10k', 'Más de 10.000', COLOR_A),
       ],
     },
   ]

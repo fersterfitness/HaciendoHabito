@@ -32,7 +32,7 @@ export type HabitChartSeries = {
   buckets: HabitChartBucket[]
 }
 
-const HABIT_KEYS = ['pain', 'mood', 'cycle', 'training', 'meals', 'weights', 'activity', 'hydration'] as const
+const HABIT_KEYS = ['pain', 'mood', 'cycle', 'training', 'meals', 'weights', 'activity', 'hydration', 'steps'] as const
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -51,7 +51,7 @@ function argentinaParts(iso: string): { y: number; m: number; d: number } {
 }
 
 /** Lunes de esa fecha (Argentina, calendario). */
-function mondayKey(iso: string): string {
+export function mondayKey(iso: string): string {
   const { y, m, d } = argentinaParts(iso)
   const utc = Date.UTC(y, m - 1, d)
   const dow = new Date(utc).getUTCDay()

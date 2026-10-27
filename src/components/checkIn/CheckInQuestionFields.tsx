@@ -62,6 +62,12 @@ export function CheckInQuestionFields({
           })}
         </div>
       ) : null}
+      {question.type === 'scale' && question.scaleHint ? (
+        <div className="mt-1.5 flex justify-between gap-3 px-1 text-3xs font-medium text-ink-muted">
+          <span>1 · {question.scaleHint.min}</span>
+          <span className="text-right">5 · {question.scaleHint.max}</span>
+        </div>
+      ) : null}
 
       {question.type === 'choice' ? (
         <div className="mt-4 space-y-2" role="radiogroup" aria-label={question.label}>
