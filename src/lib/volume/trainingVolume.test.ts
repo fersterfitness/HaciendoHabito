@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildSessionVolume,
   computeWeekVolume,
   defaultMuscleFactors,
   detectTechnique,
@@ -126,3 +127,24 @@ describe('rangos', () => {
 function round(n: number) {
   return Math.round(n * 10) / 10
 }
+
+describe('buildSessionVolume', () => {
+  it('suma las series de toda la sesión por semana (ejemplo Día A: 21 → 16 → 11)', () => {
+    const names = ['Estocada', 'Rotaciones landmine', 'Sentadilla', 'Caídas al cajón', 'Sentadilla landmine', 'Saltos laterales', 'Plancha']
+    const day = (week: number, sets: number[]) => ({
+      id: `a${week}`,
+      day_name: 'Día A (piernas) + cadena ant',
+      exercises: names.map((name, i) => ex({ id: `${week}-${i}`, name, slug: 'otros', sets: sets[i] })),
+    })
+    const other = (week: number) => ({ id: `b${week}`, day_name: 'Día B', exercises: [ex({ name: 'Remo', sets: 4 })] })
+    const weeks = [
+      computeWeekVolume([day(1, [3, 3, 3, 3, 3, 3, 3]), other(1)], ctx()),
+      computeWeekVolume([day(2, [2, 2, 3, 3, 2, 2, 2]), other(2)], ctx()),
+      computeWeekVolume([day(3, [2, 2, 2, 2, 1, 1, 1])], ctx()),
+    ]
+    const rows = buildSessionVolume(weeks)
+    expect(rows[0]).toMatchObject({ name: 'Día A (piernas) + cadena ant', perWeek: [21, 16, 11] })
+    expect(rows[1]).toMatchObject({ name: 'Día B', perWeek: [4, 4, null] })
+    expect(weeks.map((w) => w.totalSets)).toEqual([25, 20, 11])
+  })
+})

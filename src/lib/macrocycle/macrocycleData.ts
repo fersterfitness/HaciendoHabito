@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { dayInsertPayload, exerciseInsertPayload } from '@/lib/routine/copyRoutineDay'
 import { dayOffset, shiftRoutineDates, shiftYmd, type DatePatch } from '@/lib/macrocycle/macrocycle'
+import { fetchRoutineDeletionLog } from '@/lib/routines/routineAccess'
 import type { Exercise, Routine, RoutineBlock, RoutineDay, RoutineExercise } from '@/types/database'
 
 export type MacroExercise = RoutineExercise & {
@@ -163,4 +164,76 @@ export async function updateRoutineCalendarMeta(
   const { error } = await supabase.from('routines').update(patch).eq('id', routineId)
   if (!error) return null
   return /block_type|calendar_color|schema cache/i.test(error.message) ? MACROCYCLE_SQL_HINT : error.message
+}
+
+// ─── Bloques marcados por el entrenador (planificación libre) ────────────────
+
+export type PlanBlock = {
+  id: string
+  student_id: string
+  title: string
+  block_type: string | null
+  color: string | null
+  start_date: string
+  end_date: string
+  notes: string | null
+}
+
+export const PLAN_SQL_HINT =
+  'Falta ejecutar la migración 20261029120000_macrocycle_plan_blocks.sql en Supabase para guardar bloques del calendario.'
+
+function planError(message: string): string {
+  return /macrocycle_plan_blocks|does not exist|schema cache/i.test(message) ? PLAN_SQL_HINT : message
+}
+
+export async function loadPlanBlocks(studentId: string): Promise<{ blocks: PlanBlock[]; ready: boolean }> {
+  const { data, error } = await supabase
+    .from('macrocycle_plan_blocks')
+    .select('id, student_id, title, block_type, color, start_date, end_date, notes')
+    .eq('student_id', studentId)
+    .order('start_date')
+  if (error) return { blocks: [], ready: false }
+  return { blocks: (data ?? []) as PlanBlock[], ready: true }
+}
+
+/** Crea (sin id) o actualiza un bloque. Devuelve el id guardado. */
+export async function savePlanBlock(
+  block: Omit<PlanBlock, 'id'> & { id?: string },
+): Promise<{ id: string | null; error: string | null }> {
+  const payload = {
+    student_id: block.student_id,
+    title: block.title.trim() || 'Bloque',
+    block_type: block.block_type,
+    color: block.color,
+    start_date: block.start_date <= block.end_date ? block.start_date : block.end_date,
+    end_date: block.start_date <= block.end_date ? block.end_date : block.start_date,
+    notes: block.notes?.trim() || null,
+    updated_at: new Date().toISOString(),
+  }
+  const res = block.id
+    ? await supabase.from('macrocycle_plan_blocks').update(payload).eq('id', block.id).select('id').single()
+    : await supabase.from('macrocycle_plan_blocks').insert(payload).select('id').single()
+  if (res.error) return { id: null, error: planError(res.error.message) }
+  return { id: (res.data as { id: string }).id, error: null }
+}
+
+export async function deletePlanBlock(id: string): Promise<string | null> {
+  const { error } = await supabase.from('macrocycle_plan_blocks').delete().eq('id', id)
+  return error ? planError(error.message) : null
+}
+
+/** Rutinas eliminadas del alumno: quedan en el calendario como historial (solo lectura). */
+export type DeletedRoutine = { id: string; name: string; start_date: string; end_date: string; deleted_at: string }
+
+export async function loadDeletedRoutines(userId: string, studentId: string): Promise<DeletedRoutine[]> {
+  const { data } = await fetchRoutineDeletionLog({ userId })
+  return data
+    .filter((r) => r.student_id === studentId && r.start_date && r.end_date)
+    .map((r) => ({
+      id: `deleted-${r.id}`,
+      name: r.routine_name,
+      start_date: r.start_date!,
+      end_date: r.end_date! < r.start_date! ? r.start_date! : r.end_date!,
+      deleted_at: r.deleted_at,
+    }))
 }

@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, BarChart3, RotateCcw, Settings2, X } from 'lucide-react'
+import { AlertTriangle, BarChart3, Settings2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
@@ -20,8 +20,8 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
 import { controlSmClassName } from '@/lib/formControlClasses'
 import {
+  buildSessionVolume,
   computeWeekVolume,
-  defaultMuscleFactors,
   MUSCLE_IDS,
   muscleTarget,
   round1,
@@ -29,7 +29,7 @@ import {
   VOLUME_MUSCLES,
   VOLUME_STATUS_COLOR,
   volumeStatus,
-  type MuscleFactors,
+  type SessionVolumeRow,
   type MuscleId,
   type TechniqueId,
   type VolumeContext,
@@ -42,7 +42,6 @@ import {
   deleteVolumeProfile,
   FACTORY_PROFILE,
   loadVolumeData,
-  saveExerciseFactors,
   saveRoutineExerciseTechnique,
   saveVolumeProfile,
   VOLUME_SQL_HINT,
@@ -205,13 +204,11 @@ function MesocycleTable({
 function CounterTable({
   week,
   settings,
-  onEditFactors,
   onTechnique,
   savingId,
 }: {
   week: WeekVolume
   settings: VolumeSettings
-  onEditFactors: (row: VolumeRow) => void
   onTechnique: (row: VolumeRow, technique: TechniqueId | null) => void
   savingId: string | null
 }) {
@@ -237,7 +234,12 @@ function CounterTable({
             <Fragment key={day.id}>
               <tr>
                 <td colSpan={4 + MUSCLE_IDS.length} className="border-t border-surface-border bg-brand-primary/10 px-2 py-1.5 text-3xs font-bold uppercase tracking-widest text-brand-primary">
-                  {day.name || 'Día'}
+                  <span className="sticky left-2">
+                    {day.name || 'Día'}
+                    <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 normal-case tracking-normal">
+                      {day.totalSets} series en la sesión
+                    </span>
+                  </span>
                 </td>
               </tr>
               {day.rows.length === 0 ? (
@@ -252,16 +254,21 @@ function CounterTable({
                 return (
                   <tr key={r.routineExerciseId} className="hover:bg-surface-elevated/40">
                     <td className="sticky left-0 z-10 border-t border-surface-border/60 bg-surface-card px-2 py-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onEditFactors(r)}
+                      <a
+                        href={`/exercises/${r.exerciseId}/edit`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="group flex w-full items-center gap-1.5 text-left font-semibold text-ink-primary"
-                        title="Editar implicación muscular de este ejercicio"
+                        title="Cargar el volumen por músculo en la biblioteca de ejercicios (se abre en otra pestaña)"
                       >
                         <span className="truncate group-hover:underline">{r.name}</span>
                         {unmapped ? <span className="shrink-0 rounded bg-amber-500/15 px-1 text-3xs font-semibold text-amber-600 dark:text-amber-300">asignar</span> : null}
-                        {r.customFactors ? <span className="shrink-0 rounded bg-brand-primary/15 px-1 text-3xs font-semibold text-brand-primary">ajustado</span> : null}
-                      </button>
+                        {!unmapped && !r.customFactors ? (
+                          <span className="shrink-0 rounded bg-surface-elevated px-1 text-3xs font-medium text-ink-muted" title="Valores sugeridos por el nombre; cargalos en la biblioteca">
+                            sugerido
+                          </span>
+                        ) : null}
+                      </a>
                     </td>
                     <td className="border-t border-surface-border/60 px-1.5 py-1.5 text-center tabular-nums text-ink-secondary">{r.sets || '–'}</td>
                     <td className="border-t border-surface-border/60 px-1.5 py-1">
@@ -345,84 +352,78 @@ function CounterTable({
   )
 }
 
-// ─── Editor de implicación muscular ──────────────────────────────────────────
+// ─── Volumen total por sesión ───────────────────────────────────────────────
 
-function FactorEditor({
-  row,
-  groupSlug,
-  onClose,
-  onSave,
+function SessionTable({
+  sessions,
+  labels,
+  totals,
+  selected,
+  onSelect,
 }: {
-  row: VolumeRow | null
-  groupSlug: string | null
-  onClose: () => void
-  onSave: (exerciseId: string, factors: MuscleFactors | null) => Promise<void>
+  sessions: SessionVolumeRow[]
+  labels: string[]
+  totals: number[]
+  selected: number
+  onSelect: (i: number) => void
 }) {
-  const [draft, setDraft] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (!row) return
-    setDraft(Object.fromEntries(MUSCLE_IDS.map((id) => [id, row.factors[id] ? String(row.factors[id]) : ''])))
-  }, [row])
-
-  if (!row) return null
-  const suggested = defaultMuscleFactors(row.name, groupSlug)
-
-  async function save(reset: boolean) {
-    if (!row) return
-    setSaving(true)
-    const factors: MuscleFactors = {}
-    for (const id of MUSCLE_IDS) {
-      const v = Number(String(draft[id] ?? '').replace(',', '.'))
-      if (Number.isFinite(v) && v > 0) factors[id] = Math.min(1.5, v)
-    }
-    await onSave(row.exerciseId, reset ? null : factors)
-    setSaving(false)
-  }
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      eyebrow="Implicación muscular"
-      title={row.name}
-      description="1 = músculo objetivo · 0,5 = sinérgico · vacío = no participa. Vale para este ejercicio en todas tus rutinas."
-      size="lg"
-      footer={
-        <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={() => void save(true)} disabled={saving}>
-            <RotateCcw className="h-3.5 w-3.5" /> Volver al sugerido
-          </Button>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="button" size="sm" loading={saving} onClick={() => void save(false)}>
-              Guardar
-            </Button>
-          </div>
+  const max = Math.max(1, ...sessions.flatMap((s) => s.perWeek.map((v) => v ?? 0)))
+  const cell = (v: number | null, i: number) => (
+    <td key={i} className={cn('border-t border-surface-border/60 px-2 py-1.5', i === selected && 'bg-brand-primary/5')}>
+      {v == null ? (
+        <span className="text-ink-muted/40">–</span>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="w-7 text-right font-semibold tabular-nums text-ink-primary">{v}</span>
+          <span className="h-1.5 min-w-[3rem] flex-1 overflow-hidden rounded-full bg-surface-elevated">
+            <span className="block h-full rounded-full bg-brand-primary/70" style={{ width: `${(v / max) * 100}%` }} />
+          </span>
         </div>
-      }
-    >
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {VOLUME_MUSCLES.map((m) => (
-          <label key={m.id} className="flex items-center justify-between gap-2 rounded-xl border border-surface-border/80 px-2.5 py-1.5">
-            <span className="text-xs text-ink-secondary">
-              {m.label}
-              {suggested[m.id] ? <span className="ml-1 text-3xs text-ink-muted">(sug. {String(suggested[m.id]).replace('.', ',')})</span> : null}
-            </span>
-            <input
-              inputMode="decimal"
-              value={draft[m.id] ?? ''}
-              onChange={(e) => setDraft((d) => ({ ...d, [m.id]: e.target.value }))}
-              placeholder="0"
-              className={cn(controlSmClassName, 'h-7 w-14 text-center')}
-            />
-          </label>
-        ))}
-      </div>
-    </Modal>
+      )}
+    </td>
+  )
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[560px] border-separate border-spacing-0 text-2xs">
+        <thead>
+          <tr>
+            <th className="sticky left-0 bg-surface-card px-2 py-1.5 text-left font-semibold uppercase tracking-wide text-ink-muted">Sesión</th>
+            {labels.map((l, i) => (
+              <th key={i} className="px-2 py-1.5 text-left">
+                <button
+                  type="button"
+                  onClick={() => onSelect(i)}
+                  className={cn(
+                    'rounded-md px-2 py-0.5 font-semibold uppercase tracking-wide transition-colors',
+                    i === selected ? 'bg-brand-primary text-white' : 'text-ink-muted hover:bg-surface-elevated hover:text-ink-primary',
+                  )}
+                >
+                  {l}
+                </button>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sessions.map((s) => (
+            <tr key={s.key}>
+              <td className="sticky left-0 max-w-[16rem] truncate border-t border-surface-border/60 bg-surface-card px-2 py-1.5 font-medium text-ink-secondary" title={s.name}>
+                {s.name}
+              </td>
+              {s.perWeek.map(cell)}
+            </tr>
+          ))}
+          <tr>
+            <td className="sticky left-0 border-t border-surface-border bg-surface-card px-2 py-1.5 font-bold uppercase tracking-wide text-ink-primary">Total semana</td>
+            {totals.map((t, i) => (
+              <td key={i} className={cn('border-t border-surface-border px-2 py-1.5 font-bold tabular-nums text-ink-primary', i === selected && 'bg-brand-primary/5')}>
+                {t} series
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -637,7 +638,6 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
   const [data, setData] = useState<VolumeData | null>(null)
   const [profileId, setProfileId] = useState<string>('')
   const [weekIdx, setWeekIdx] = useState(0)
-  const [editing, setEditing] = useState<VolumeRow | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
 
@@ -653,6 +653,14 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
 
   useEffect(() => {
     if (open) void reload()
+  }, [open, reload])
+
+  // Al volver de la biblioteca (otra pestaña), recalcular con los valores nuevos.
+  useEffect(() => {
+    if (!open) return
+    const onFocus = () => void reload()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [open, reload])
 
   const sortedBlocks = useMemo(() => [...blocks].sort((a, b) => a.sort_order - b.sort_order), [blocks])
@@ -671,11 +679,7 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
   const safeIdx = Math.min(weekIdx, Math.max(0, weeks.length - 1))
   const week = weeks[safeIdx]
 
-  const groupSlugByExercise = useMemo(() => {
-    const map = new Map<string, string | null>()
-    for (const b of blocks) for (const d of b.days) for (const e of d.exercises) map.set(e.exercise_id, e.exercise?.muscle_group?.slug ?? null)
-    return map
-  }, [blocks])
+  const sessions = useMemo(() => buildSessionVolume(weeks), [weeks])
 
   const notesById = useMemo(() => {
     const map = new Map<string, string | null>()
@@ -689,17 +693,6 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
     if (error) toast.error(error)
     else await onRefresh?.()
     setSavingId(null)
-  }
-
-  async function handleFactors(exerciseId: string, factors: MuscleFactors | null) {
-    const err = await saveExerciseFactors(exerciseId, factors)
-    if (err) {
-      toast.error(err)
-      return
-    }
-    toast.success(factors ? 'Implicación guardada' : 'Volvió al sugerido')
-    setEditing(null)
-    await reload()
   }
 
   if (!open) return null
@@ -802,7 +795,7 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
                   </span>
                   <span>
                     {week.unmapped.length} ejercicio{week.unmapped.length === 1 ? '' : 's'} sin músculo asignado (no suman):{' '}
-                    {[...new Set(week.unmapped.map((r) => r.name))].join(', ')}. Tocá el nombre en la tabla para asignarlo.
+                    {[...new Set(week.unmapped.map((r) => r.name))].join(', ')}. Tocá el nombre en la tabla para cargar su volumen en la biblioteca.
                   </span>
                 </div>
               ) : null}
@@ -823,17 +816,24 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
                 </section>
               </div>
 
+              <section className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-ink-primary">Volumen total por sesión</h3>
+                  <p className="text-3xs text-ink-muted">Suma de todas las series de la sesión (todos los músculos), semana a semana.</p>
+                </div>
+                <SessionTable sessions={sessions} labels={labels} totals={weeks.map((w) => w.totalSets)} selected={safeIdx} onSelect={setWeekIdx} />
+              </section>
+
               <section className="space-y-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="text-sm font-semibold text-ink-primary">Contabilizador por grupo muscular</h3>
                   <p className="text-3xs text-ink-muted">
-                    Valores ponderados (entre paréntesis las brutas si difieren). Tocá un ejercicio para ajustar su implicación.
+                    Valores ponderados (entre paréntesis las brutas si difieren). El volumen de cada ejercicio se carga en la biblioteca: tocá el nombre.
                   </p>
                 </div>
                 <CounterTable
                   week={week}
                   settings={settings}
-                  onEditFactors={setEditing}
                   onTechnique={(r, t) => void handleTechnique(r, t)}
                   savingId={savingId}
                 />
@@ -843,12 +843,6 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
         </div>
       </div>
 
-      <FactorEditor
-        row={editing}
-        groupSlug={editing ? (groupSlugByExercise.get(editing.exerciseId) ?? null) : null}
-        onClose={() => setEditing(null)}
-        onSave={handleFactors}
-      />
       <SettingsModal
         open={settingsOpen}
         profile={profile}

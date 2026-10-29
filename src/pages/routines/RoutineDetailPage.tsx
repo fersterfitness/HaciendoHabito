@@ -5,7 +5,7 @@ import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Check,
   Copy, X, Pencil, FileText, Calendar, Clock, Link2, Unlink, ArrowUp, ArrowDown, Library, ExternalLink, RefreshCw,
   UserPlus,
-  Table2, BarChart3, Droplets, ClipboardList, CheckCircle2, Boxes, CopyPlus,
+  Table2, BarChart3, CalendarRange, Droplets, ClipboardList, CheckCircle2, Boxes, CopyPlus,
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
@@ -49,6 +49,7 @@ import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProg
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
+import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { cyclePhasesForWeekBlock, type CyclePhaseInfo, type CyclePhaseColor } from '@/lib/routine/menstrualCyclePlanning'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { RoutineMonthlyFeedbackSection } from '@/components/checkIn/RoutineMonthlyFeedbackSection'
@@ -186,6 +187,7 @@ export function RoutineDetailPage() {
   }, [])
   const [showProgressionGuide, setShowProgressionGuide] = useState(false)
   const [showVolume, setShowVolume] = useState(false)
+  const [showMacro, setShowMacro] = useState(false)
   const [lastMenstrualCycle, setLastMenstrualCycle] = useState<MenstrualCycle | null>(null)
   const [checkInWeek, setCheckInWeek] = useState<LatestWeekStatus>({
     finished: false,
@@ -1202,6 +1204,17 @@ export function RoutineDetailPage() {
               <BarChart3 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Volumen</span>
             </button>
+            {routine.student_id ? (
+              <button
+                type="button"
+                onClick={() => setShowMacro(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
+                title="Calendario anual del macrociclo del alumno (solo entrenador)"
+              >
+                <CalendarRange className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Calendario</span>
+              </button>
+            ) : null}
             {!isLibrary ? (
             <button
               type="button"
@@ -1648,6 +1661,16 @@ export function RoutineDetailPage() {
         </div>
         </Modal>
       )}
+
+      {routine.student_id ? (
+        <MacrocycleCalendarPanel
+          open={showMacro}
+          onClose={() => setShowMacro(false)}
+          studentId={routine.student_id}
+          studentName={routine.student?.full_name ?? routine.name}
+          onChanged={() => void fetchData()}
+        />
+      ) : null}
 
       <RoutineVolumePanel
         open={showVolume}

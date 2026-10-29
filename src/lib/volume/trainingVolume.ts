@@ -323,7 +323,13 @@ export function computeExerciseVolume(ex: VolumeExerciseInput, ctx: VolumeContex
   }
 }
 
-export type VolumeDay = { id: string; name: string; rows: VolumeRow[] }
+export type VolumeDay = {
+  id: string
+  name: string
+  rows: VolumeRow[]
+  /** Volumen total de la sesión: suma de las series de todos sus ejercicios. */
+  totalSets: number
+}
 
 export type WeekVolume = {
   days: VolumeDay[]
@@ -331,6 +337,8 @@ export type WeekVolume = {
   weighted: Record<MuscleId, number>
   /** Ejercicios sin ningún músculo asignado (no suman). */
   unmapped: VolumeRow[]
+  /** Series totales de la semana (todas las sesiones, todos los músculos). */
+  totalSets: number
 }
 
 function zeroTotals(): Record<MuscleId, number> {
@@ -357,13 +365,50 @@ export function computeWeekVolume(
         weighted[id] += r.weighted[id] ?? 0
       }
     }
-    return { id: d.id, name: d.day_name, rows }
+    return { id: d.id, name: d.day_name, rows, totalSets: rows.reduce((acc, r) => acc + r.sets, 0) }
   })
   for (const id of MUSCLE_IDS) {
     raw[id] = round1(raw[id])
     weighted[id] = round1(weighted[id])
   }
-  return { days: outDays, raw, weighted, unmapped }
+  return { days: outDays, raw, weighted, unmapped, totalSets: outDays.reduce((acc, d) => acc + d.totalSets, 0) }
+}
+
+function dayKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+export type SessionVolumeRow = {
+  key: string
+  name: string
+  /** Series totales de esa sesión en cada semana (null = la sesión no existe esa semana). */
+  perWeek: (number | null)[]
+}
+
+/**
+ * Volumen total por sesión a lo largo del mesociclo: misma sesión (por nombre del día)
+ * en cada semana, para dosificar y ver cuánto volumen total tolera el alumno.
+ */
+export function buildSessionVolume(weeks: WeekVolume[]): SessionVolumeRow[] {
+  const order: string[] = []
+  const names = new Map<string, string>()
+  for (const w of weeks) {
+    w.days.forEach((d, di) => {
+      const key = dayKey(d.name) || `dia-${di + 1}`
+      if (!names.has(key)) {
+        names.set(key, d.name.trim() || `Día ${di + 1}`)
+        order.push(key)
+      }
+    })
+  }
+  return order.map((key) => ({
+    key,
+    name: names.get(key)!,
+    perWeek: weeks.map((w) => {
+      const matches = w.days.filter((d, di) => (dayKey(d.name) || `dia-${di + 1}`) === key)
+      return matches.length ? matches.reduce((acc, d) => acc + d.totalSets, 0) : null
+    }),
+  }))
 }
 
 /** Músculos de una semana fuera del rango sostenible (por encima del máximo). */

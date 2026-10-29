@@ -16,6 +16,10 @@ import { cn, slugify } from '@/lib/utils'
 import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
 import type { MuscleGroup } from '@/types/database'
 import toast from 'react-hot-toast'
+import { ExerciseVolumeFactorsField } from '@/components/exercises/ExerciseVolumeFactorsField'
+import { draftToFactors, factorsToDraft, type FactorsDraft } from '@/lib/volume/factorsDraft'
+import { cleanFactors, defaultMuscleFactors } from '@/lib/volume/trainingVolume'
+import { saveExerciseFactors } from '@/lib/volume/volumeData'
 
 const schema = z.object({
   name: z.string().min(2, 'Ingresá el nombre del ejercicio'),
@@ -42,10 +46,40 @@ export function ExerciseFormPage() {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [creatingCategory, setCreatingCategory] = useState(false)
 
-  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { difficulty: 'basico', is_active: true },
   })
+  /** Volumen por músculo: lo guardado por el entrenador o, si no hay, la sugerencia por nombre. */
+  const [factors, setFactors] = useState<FactorsDraft>({})
+  const [factorsSaved, setFactorsSaved] = useState(false)
+  const [factorsTouched, setFactorsTouched] = useState(false)
+  const watchedName = watch('name')
+  const watchedGroupId = watch('muscle_group_id')
+  const groupSlug = muscleGroups.find((g) => g.id === watchedGroupId)?.slug ?? null
+  const suggestedFactors = defaultMuscleFactors(watchedName, groupSlug)
+
+  useEffect(() => {
+    if (!isEditing || !id) return
+    supabase
+      .from('exercise_volume_factors')
+      .select('factors')
+      .eq('exercise_id', id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.factors) {
+          setFactors(factorsToDraft(cleanFactors(data.factors)))
+          setFactorsSaved(true)
+        }
+      })
+  }, [id, isEditing])
+
+  // Mientras no haya valores propios, mostrar la sugerencia (se actualiza con el nombre y el grupo).
+  const suggestionKey = JSON.stringify(suggestedFactors)
+  useEffect(() => {
+    if (factorsSaved || factorsTouched) return
+    setFactors(factorsToDraft(JSON.parse(suggestionKey)))
+  }, [suggestionKey, factorsSaved, factorsTouched])
 
   useEffect(() => {
     supabase.from('muscle_groups').select('*').order('sort_order').then(({ data }) => setMuscleGroups(data ?? []))
@@ -92,13 +126,31 @@ export function ExerciseFormPage() {
         .eq('id', id)
         .eq('owner_id', user.id)   // ← solo el dueño puede editar
       if (error) { toast.error(error.message); return }
+      if (!(await saveFactorsFor(id!))) return
       toast.success('Ejercicio actualizado')
     } else {
-      const { error } = await supabase.from('exercise_library').insert({ ...payload, owner_id: user.id, is_system: false, is_active: values.is_active })
+      const { data: created, error } = await supabase
+        .from('exercise_library')
+        .insert({ ...payload, owner_id: user.id, is_system: false, is_active: values.is_active })
+        .select('id')
+        .single()
       if (error) { toast.error(error.message); return }
+      if (created && !(await saveFactorsFor((created as { id: string }).id))) return
       toast.success('Ejercicio creado')
     }
     navigate('/exercises')
+  }
+
+  /** Guarda el volumen por músculo si el entrenador lo cargó o lo cambió. */
+  async function saveFactorsFor(exerciseId: string): Promise<boolean> {
+    if (!factorsTouched) return true
+    const parsed = draftToFactors(factors)
+    const err = await saveExerciseFactors(exerciseId, Object.keys(parsed).length ? parsed : null)
+    if (err) {
+      toast.error(err)
+      return false
+    }
+    return true
   }
 
   async function createMuscleCategory() {
@@ -238,6 +290,18 @@ export function ExerciseFormPage() {
               placeholder="Errores frecuentes a corregir..."
               rows={3}
               {...register('common_errors')}
+            />
+          </FormSection>
+
+          <FormSection title="Volumen por músculo">
+            <ExerciseVolumeFactorsField
+              value={factors}
+              onChange={(next) => {
+                setFactors(next)
+                setFactorsTouched(true)
+              }}
+              suggested={suggestedFactors}
+              isSuggestion={!factorsSaved && !factorsTouched}
             />
           </FormSection>
 
