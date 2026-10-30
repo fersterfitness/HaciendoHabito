@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Trash2, Download, Users,
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { checkInRepo } from '@/data/checkIns'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
@@ -168,13 +168,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     if (!user) return
     setLoading(true)
     const [fRes, sRes, schRes] = await Promise.all([
-      supabase.from('check_in_forms').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
-      supabase.from('students').select('*').eq('owner_id', user.id).eq('status', 'activo').order('full_name'),
-      supabase
-        .from('check_in_send_schedules')
-        .select('*, form:check_in_forms(title)')
-        .eq('owner_id', user.id)
-        .order('day_of_week', { ascending: true }),
+      checkInRepo.listForms(user.id),
+      checkInRepo.listActiveStudents(user.id),
+      checkInRepo.listSchedules(user.id),
     ])
     setLoading(false)
     if (fRes.error) toast.error(fRes.error.message)
@@ -206,11 +202,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
   useEffect(() => {
     if (!user) return
-    void supabase
-      .from('routines')
-      .select('id, student_id, name, start_date, end_date')
-      .eq('owner_id', user.id)
-      .not('student_id', 'is', null)
+    void checkInRepo
+      .listStudentRoutines(user.id)
       .then(({ data }) => setStudentRoutines((data ?? []) as RoutineDateRange[]))
   }, [user])
 
@@ -227,10 +220,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     }
     setStudentHistoryLoading(true)
     const formIds = forms.map((f) => f.id)
-    const { data: invData, error: invErr } = await supabase
-      .from('check_in_invites')
-      .select('id, form_id, student_id, student:students(full_name), form:check_in_forms(title)')
-      .in('form_id', formIds)
+    const { data: invData, error: invErr } = await checkInRepo.invitesForForms(formIds)
     if (invErr) {
       toast.error(invErr.message)
       setStudentHistory([])
@@ -250,13 +240,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       setStudentHistoryLoading(false)
       return
     }
-    const { data: respData, error: respErr } = await supabase
-      .from('check_in_responses')
-      .select(
-        'id, invite_id, submitted_at, responses, testimonial_consent, responder_email, email_verified, trainer_replied_at, trainer_note',
-      )
-      .in('invite_id', inviteIds)
-      .order('submitted_at', { ascending: false })
+    const { data: respData, error: respErr } = await checkInRepo.responsesForInvites(inviteIds, true)
     if (respErr) {
       toast.error(respErr.message)
       setStudentHistory([])
@@ -396,10 +380,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const savedForm = useMemo(() => (activeFormId ? forms.find((f) => f.id === activeFormId) ?? null : null), [forms, activeFormId])
 
   const loadInvitesAndResponses = useCallback(async (formId: string) => {
-    const { data: invData, error: invErr } = await supabase
-      .from('check_in_invites')
-      .select('id, token, student_id, student:students(full_name, email)')
-      .eq('form_id', formId)
+    const { data: invData, error: invErr } = await checkInRepo.invitesForForm(formId)
     if (invErr) {
       toast.error(invErr.message)
       return
@@ -411,10 +392,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       setResponses([])
       return
     }
-    const { data: respData, error: respErr } = await supabase
-      .from('check_in_responses')
-      .select('id, invite_id, submitted_at, responses, testimonial_consent, responder_email, email_verified, trainer_replied_at, trainer_note')
-      .in('invite_id', inviteIds)
+    const { data: respData, error: respErr } = await checkInRepo.responsesForInvites(inviteIds)
     if (respErr) toast.error(respErr.message)
     else setResponses((respData as ResponseRow[]) ?? [])
   }, [])
@@ -479,7 +457,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       return
     }
     setScheduleBusy(true)
-    const { error } = await supabase.from('check_in_send_schedules').insert({
+    const { error } = await checkInRepo.createSchedule({
       owner_id: user.id,
       form_id: activeFormId,
       day_of_week: newScheduleDow,
@@ -502,7 +480,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     if (!user) return
     if (!(await confirmDialog({ title: '¿Quitar este recordatorio?', confirmLabel: 'Quitar' }))) return
     setScheduleBusy(true)
-    const { error } = await supabase.from('check_in_send_schedules').delete().eq('id', id).eq('owner_id', user.id)
+    const { error } = await checkInRepo.deleteSchedule(id, user.id)
     setScheduleBusy(false)
     if (error) {
       toast.error(error.message)
@@ -513,11 +491,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
   async function toggleCheckInSchedule(row: ScheduleRow, enabled: boolean) {
     if (!user) return
-    const { error } = await supabase
-      .from('check_in_send_schedules')
-      .update({ is_enabled: enabled })
-      .eq('id', row.id)
-      .eq('owner_id', user.id)
+    const { error } = await checkInRepo.setScheduleEnabled(row.id, user.id, enabled)
     if (error) toast.error(error.message)
     else {
       setSchedules((prev) => prev.map((s) => (s.id === row.id ? { ...s, is_enabled: enabled } : s)))
@@ -541,7 +515,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     }
     if (activeFormId) {
       const oldQuestions = parseQuestions(forms.find((f) => f.id === activeFormId)?.questions)
-      const { error } = await supabase.from('check_in_forms').update(payload).eq('id', activeFormId).eq('owner_id', user.id)
+      const { error } = await checkInRepo.updateForm(activeFormId, user.id, payload)
       if (error) {
         setSaving(false)
         toast.error(error.message)
@@ -557,7 +531,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       toast.success(remapped > 0 ? 'Formulario actualizado. Se conservaron las respuestas ya cargadas.' : 'Formulario actualizado')
       if (remapped > 0) void loadInvitesAndResponses(activeFormId)
     } else {
-      const { data, error } = await supabase.from('check_in_forms').insert(payload).select('*').single()
+      const { data, error } = await checkInRepo.createForm(payload)
       setSaving(false)
       if (error) {
         toast.error(error.message)
@@ -574,7 +548,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     if (!user) return
     const label = formTitle.trim() ? `«${formTitle.trim()}»` : 'este formulario'
     if (!(await confirmDialog({ title: `¿Eliminar ${label}?`, description: 'Se borran también todas sus invitaciones y respuestas.', confirmLabel: 'Eliminar' }))) return
-    const { error } = await supabase.from('check_in_forms').delete().eq('id', id).eq('owner_id', user.id)
+    const { error } = await checkInRepo.deleteForm(id, user.id)
     if (error) {
       toast.error(error.message)
       return
@@ -648,11 +622,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       return
     }
     setInviteBusy(true)
-    const { data: existingRows, error: qErr } = await supabase
-      .from('check_in_invites')
-      .select('student_id')
-      .eq('form_id', activeFormId)
-      .in('student_id', ids)
+    const { data: existingRows, error: qErr } = await checkInRepo.invitedStudentIds(activeFormId, ids)
     if (qErr) {
       setInviteBusy(false)
       toast.error(qErr.message)
@@ -669,7 +639,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
       return
     }
     const rows = toCreate.map((student_id) => ({ form_id: activeFormId, student_id }))
-    const { error } = await supabase.from('check_in_invites').insert(rows)
+    const { error } = await checkInRepo.createInvites(rows)
     setInviteBusy(false)
     if (error) {
       if (error.message.includes('duplicate key') || error.code === '23505') {
@@ -843,11 +813,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     async (response: ResponseRow, replied: boolean, noteOverride?: string) => {
       const note = noteOverride !== undefined ? noteOverride : noteDraftFor(response)
       setSavingFlag(response.id, true)
-      const { data, error } = await supabase.rpc('set_check_in_response_trainer_status', {
-        p_response_id: response.id,
-        p_replied: replied,
-        p_note: note,
-      })
+      const { data, error } = await checkInRepo.setResponseTrainerStatus(response.id, replied, note)
       setSavingFlag(response.id, false)
       if (error) {
         toast.error(error.message)

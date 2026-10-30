@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWorkbookReadonlyView'
-import { supabase } from '@/lib/supabase'
+import { mealPlanRepo } from '@/data/mealPlans'
 import { useAuthStore } from '@/stores/authStore'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
 import type { PlanningWorkbookStateV1 } from '@/lib/nutrition/planningWorkbookTypes'
@@ -35,13 +35,7 @@ export function TrainerStudentMealPlanPage() {
     if (!user?.id || !planId || !studentId) return
     let cancelled = false
     ;(async () => {
-      const { data, error } = await supabase
-        .from('trainer_student_meal_plans')
-        .select('*, student:students(full_name)')
-        .eq('id', planId)
-        .eq('student_id', studentId)
-        .eq('owner_id', user.id)
-        .maybeSingle()
+      const { data, error } = await mealPlanRepo.getForOwner(planId, studentId, user.id)
       if (cancelled) return
       if (error || !data) {
         setWb(null)

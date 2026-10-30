@@ -9,6 +9,7 @@ import {
   Maximize2, UserRound, UtensilsCrossed, TrendingUp,
   CalendarCheck, Trophy, CalendarRange, ChevronRight,
 } from 'lucide-react'
+import { mealPlanRepo } from '@/data/mealPlans'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
 import { useAuthStore } from '@/stores/authStore'
@@ -365,12 +366,7 @@ export function StudentDetailView({
     setMealPlansLoading(true)
     ;(async () => {
       try {
-        const { data } = await supabase
-          .from('trainer_student_meal_plans')
-          .select('*')
-          .eq('student_id', id)
-          .eq('owner_id', user.id)
-          .order('updated_at', { ascending: false })
+        const { data } = await mealPlanRepo.listForStudentByOwner(id, user.id)
         if (!cancelled) setMealPlans((data ?? []) as TrainerStudentMealPlan[])
       } finally {
         if (!cancelled) setMealPlansLoading(false)
@@ -432,10 +428,7 @@ export function StudentDetailView({
   /** Marca / desmarca el plan de alimentación como completado (queda en el historial del alumno). */
   async function toggleMealPlanCompleted(plan: TrainerStudentMealPlan) {
     const completed_at = plan.completed_at ? null : new Date().toISOString()
-    const { error } = await supabase
-      .from('trainer_student_meal_plans')
-      .update({ completed_at })
-      .eq('id', plan.id)
+    const { error } = await mealPlanRepo.setCompleted(plan.id, completed_at)
     if (error) {
       toast.error(error.message)
       return
@@ -446,17 +439,13 @@ export function StudentDetailView({
 
   async function cloneMealPlan(plan: TrainerStudentMealPlan) {
     if (!user?.id || !id) return
-    const { data, error } = await supabase
-      .from('trainer_student_meal_plans')
-      .insert({
-        owner_id: user.id,
-        student_id: id,
-        title: `Copia · ${plan.title}`.slice(0, 200),
-        data: plan.data,
-        cloned_from_id: plan.id,
-      })
-      .select('*')
-      .single()
+    const { data, error } = await mealPlanRepo.create({
+      owner_id: user.id,
+      student_id: id,
+      title: `Copia · ${plan.title}`.slice(0, 200),
+      data: plan.data,
+      cloned_from_id: plan.id,
+    })
     if (error) {
       toast.error(error.message)
       return

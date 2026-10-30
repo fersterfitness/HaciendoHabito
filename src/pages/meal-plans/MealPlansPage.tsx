@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Popover } from '@/components/ui/Popover'
 import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWorkbookReadonlyView'
 import { TrainerMealPlansSectionNav } from '@/components/nutrition/TrainerMealPlansSectionNav'
-import { supabase } from '@/lib/supabase'
+import { mealPlanRepo } from '@/data/mealPlans'
 import { useAuthStore } from '@/stores/authStore'
 import { cn, formatDate } from '@/lib/utils'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
@@ -281,11 +281,7 @@ export function MealPlansPage() {
   const fetchPlans = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data, error } = await supabase
-      .from('trainer_student_meal_plans')
-      .select('*, student:students(full_name, avatar_path, intake_ferster, intake_nutrition)')
-      .eq('owner_id', user.id)
-      .order('updated_at', { ascending: false })
+    const { data, error } = await mealPlanRepo.listByOwner(user.id)
     setLoading(false)
     if (error) {
       console.error(error)
@@ -360,11 +356,7 @@ export function MealPlansPage() {
     if (!deleteTarget || !user?.id) return
     setDeleting(true)
     const deletedId = deleteTarget.id
-    const { error } = await supabase
-      .from('trainer_student_meal_plans')
-      .delete()
-      .eq('id', deletedId)
-      .eq('owner_id', user.id)
+    const { error } = await mealPlanRepo.remove(deletedId, user.id)
     setDeleting(false)
     if (error) {
       toast.error(error.message)
@@ -386,11 +378,7 @@ export function MealPlansPage() {
   async function commitRename(id: string) {
     const trimmed = renameValue.trim()
     if (!trimmed || !user?.id) { setRenamingId(null); return }
-    const { error } = await supabase
-      .from('trainer_student_meal_plans')
-      .update({ title: trimmed })
-      .eq('id', id)
-      .eq('owner_id', user.id)
+    const { error } = await mealPlanRepo.rename(id, user.id, trimmed)
     if (error) { toast.error(error.message); return }
     setPlans((prev) => prev.map((p) => p.id === id ? { ...p, title: trimmed } : p))
     setRenamingId(null)

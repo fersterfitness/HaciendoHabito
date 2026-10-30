@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { PlanningWorkbookReadonlyView } from '@/components/nutrition/PlanningWorkbookReadonlyView'
 import { downloadTrainerStudentMealPlanPdf } from '@/lib/nutrition/downloadTrainerStudentMealPlanPdf'
+import { mealPlanRepo } from '@/data/mealPlans'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
@@ -36,12 +37,7 @@ export function StudentMealPlanDetailPage() {
         setLoading(false)
         return
       }
-      const { data, error } = await supabase
-        .from('trainer_student_meal_plans')
-        .select('*')
-        .eq('id', planId)
-        .eq('student_id', st.id)
-        .maybeSingle()
+      const { data, error } = await mealPlanRepo.getForStudent(planId, st.id)
       if (cancelled) return
       if (error || !data) {
         setWb(null)

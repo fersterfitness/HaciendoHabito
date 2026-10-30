@@ -4,6 +4,7 @@ import { ClipboardList } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { mealPlanRepo } from '@/data/mealPlans'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { TrainerStudentMealPlan } from '@/types/database'
@@ -28,11 +29,7 @@ export function StudentMealPlansPage() {
         return
       }
       setStudentId(st.id)
-      const { data } = await supabase
-        .from('trainer_student_meal_plans')
-        .select('*')
-        .eq('student_id', st.id)
-        .order('updated_at', { ascending: false })
+      const { data } = await mealPlanRepo.listForStudent(st.id)
       if (!cancelled) setPlans((data ?? []) as TrainerStudentMealPlan[])
       setLoading(false)
     })()

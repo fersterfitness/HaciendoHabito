@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ClipboardList, ExternalLink, Plus, Trash2, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { supabase } from '@/lib/supabase'
+import { mealPlanRepo } from '@/data/mealPlans'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -22,11 +22,7 @@ export function NutritionAssignedPlansCard({ student }: { student: Pick<Student,
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('trainer_student_meal_plans')
-      .select('id, title, start_date, end_date, completed_at, updated_at')
-      .eq('student_id', student.id)
-      .order('created_at', { ascending: false })
+    const { data, error } = await mealPlanRepo.summaryForStudent(student.id)
     setLoading(false)
     if (error) {
       toast.error(error.message)
@@ -46,7 +42,7 @@ export function NutritionAssignedPlansCard({ student }: { student: Pick<Student,
       confirmLabel: 'Quitar',
     })
     if (!ok) return
-    const { error } = await supabase.from('trainer_student_meal_plans').delete().eq('id', row.id)
+    const { error } = await mealPlanRepo.remove(row.id)
     if (error) {
       toast.error(error.message)
       return
