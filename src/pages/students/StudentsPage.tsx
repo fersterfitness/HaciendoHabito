@@ -520,7 +520,7 @@ export function StudentsPage() {
     )
   }, [setSearchParams])
 
-  const { students, loading, fetchStudents, deleteStudent } = useStudents()
+  const { students, loading, fetchStudents, filterStudents, deleteStudent } = useStudents()
   const [localStudents, setLocalStudents] = useState<Student[]>([])
   const [search, setSearch] = useState('')
   const [filterLevel,  setFilterLevel]  = useState<LevelFilter>('')
@@ -650,9 +650,9 @@ export function StudentsPage() {
   const handleSearch = useCallback(
     (value: string) => {
       setSearch(value)
-      fetchStudents(value)
+      filterStudents(value)
     },
-    [fetchStudents]
+    [filterStudents]
   )
 
   async function handleDelete() {

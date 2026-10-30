@@ -1,73 +1,113 @@
-import { useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/authStore'
-import type { Student } from '@/types/database'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { useAuthStore } from '@/stores/authStore'
+import { filterAccessibleStudents } from '@/lib/students/studentAccess'
 import {
-  deleteOwnedStudent,
-  fetchAccessibleStudents,
-  filterAccessibleStudents,
-  updateAccessibleStudent,
-} from '@/lib/students/studentAccess'
+  fetchStudentList,
+  insertStudent,
+  invalidateStudents,
+  patchStudent,
+  removeStudent,
+  studentKeys,
+  type NewStudentPayload,
+} from '@/data/students'
+import type { Student } from '@/types/database'
 
-/** Columnas con valor por defecto en la base: opcionales al crear un alumno. */
-type StudentDefaultedColumns = 'selected_web_plan_slug' | 'intake_psychologist' | 'trainer_tags' | 'monthly_fee_amount' | 'target_weight_kg'
-export type NewStudentPayload = Omit<Student, 'id' | 'owner_id' | 'created_at' | 'updated_at' | StudentDefaultedColumns> &
-  Partial<Pick<Student, StudentDefaultedColumns>>
+export type { NewStudentPayload } from '@/data/students'
 
+/**
+ * Alumnos del profesional. La lista vive en la caché de TanStack Query: al volver a la
+ * pantalla se ve al instante y se revalida en segundo plano. Solo se pide cuando alguien
+ * llama a `fetchStudents` (las pantallas que solo editan no la descargan).
+ */
 export function useStudents() {
   const { user } = useAuthStore()
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [active, setActive] = useState(false)
+  const activeRef = useRef(false)
+  const [search, setSearch] = useState<string | undefined>()
 
-  const fetchStudents = useCallback(
-    async (search?: string) => {
-      if (!user) return
-      setLoading(true)
-      setError(null)
+  const query = useQuery({
+    queryKey: studentKeys.list(user?.id),
+    queryFn: fetchStudentList,
+    enabled: Boolean(user) && active,
+  })
 
-      const { data, error } = await fetchAccessibleStudents()
-      if (error) { setError(error) }
-      else { setStudents(filterAccessibleStudents(data, { search })) }
-      setLoading(false)
-    },
-    [user]
+  const students = useMemo(
+    () => filterAccessibleStudents(query.data ?? [], { search }),
+    [query.data, search],
   )
 
+  // Identidad estable: las pantallas lo usan en efectos.
+  const fetchStudents = useCallback(async (nextSearch?: string) => {
+    setSearch(nextSearch)
+    if (!activeRef.current) {
+      activeRef.current = true
+      setActive(true)
+      return
+    }
+    await invalidateStudents()
+  }, [])
+
+  /** Búsqueda: filtra la lista en memoria, sin volver a pedirla. */
+  const filterStudents = useCallback((nextSearch: string) => setSearch(nextSearch), [])
+
   const createStudent = useCallback(
-    async (payload: NewStudentPayload) => {
+    async (payload: NewStudentPayload): Promise<Student | null> => {
       if (!user) return null
-      const { data, error } = await supabase
-        .from('students')
-        .insert({ ...payload, owner_id: user.id })
-        .select()
-        .single()
-      if (error) { toast.error(error.message); return null }
-      toast.success('Alumno creado')
-      return data
+      try {
+        const created = await insertStudent(user.id, payload)
+        toast.success('Alumno creado')
+        void invalidateStudents()
+        return created
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'No se pudo crear el alumno')
+        return null
+      }
     },
-    [user]
+    [user],
   )
 
   const updateStudent = useCallback(
-    async (id: string, payload: Partial<Student>) => {
+    async (id: string, payload: Partial<Student>): Promise<Student | null> => {
       if (!user) return null
-      const { data, error } = await updateAccessibleStudent(id, payload).select().single()
-      if (error) { toast.error(error.message); return null }
-      toast.success('Alumno actualizado')
-      return data
+      try {
+        const updated = await patchStudent(id, payload)
+        toast.success('Alumno actualizado')
+        void invalidateStudents()
+        return updated
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'No se pudo actualizar el alumno')
+        return null
+      }
     },
-    [user]
+    [user],
   )
 
-  const deleteStudent = useCallback(async (id: string) => {
-    if (!user) return false
-    const { error } = await deleteOwnedStudent(id, user.id)
-    if (error) { toast.error(error.message); return false }
-    toast.success('Alumno eliminado')
-    return true
-  }, [user])
+  const deleteStudent = useCallback(
+    async (id: string) => {
+      if (!user) return false
+      try {
+        await removeStudent(id, user.id)
+        toast.success('Alumno eliminado')
+        void invalidateStudents()
+        return true
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'No se pudo eliminar el alumno')
+        return false
+      }
+    },
+    [user],
+  )
 
-  return { students, loading, error, fetchStudents, createStudent, updateStudent, deleteStudent }
+  return {
+    students,
+    loading: active && query.isPending,
+    error: query.error ? query.error.message : null,
+    fetchStudents,
+    filterStudents,
+    createStudent,
+    updateStudent,
+    deleteStudent,
+  }
 }

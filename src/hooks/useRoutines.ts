@@ -1,42 +1,43 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { Routine } from '@/types/database'
 import toast from 'react-hot-toast'
 import { addDays, format } from 'date-fns'
+import { fetchRoutineList, invalidateRoutines, routineKeys } from '@/data/routines'
 
+/**
+ * Rutinas del entrenador. El listado vive en la caché (se ve al instante al volver y se
+ * revalida); solo se pide cuando alguien llama a `fetchRoutines`.
+ */
 export function useRoutines() {
   const { user } = useAuthStore()
-  const [routines, setRoutines] = useState<Routine[]>([])
-  const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState<{ active: boolean; studentId?: string }>({ active: false })
+  const activeRef = useRef(false)
 
-  const fetchRoutines = useCallback(
-    async (studentId?: string) => {
-      if (!user) return
-      setLoading(true)
-      const build = (includeFormerStudents: boolean) => {
-        let query = supabase
-          .from('routines')
-          .select('*, student:students(full_name, level, status, avatar_path)')
-          .eq('owner_id', user.id)
-          .order('created_at', { ascending: false })
-        if (studentId) return query.eq('student_id', studentId)
-        // Rutinas de alumnos eliminados siguen en el listado; las preestablecidas no.
-        query = includeFormerStudents
-          ? query.or('student_id.not.is.null,former_student_id.not.is.null')
-          : query.not('student_id', 'is', null)
-        return query
-      }
+  const query = useQuery({
+    queryKey: routineKeys.list(user?.id, filter.studentId),
+    queryFn: () => fetchRoutineList(user!.id, filter.studentId),
+    enabled: Boolean(user) && filter.active,
+  })
+  const routines = query.data ?? []
+  const loading = filter.active && query.isPending
 
-      let { data, error } = await build(true)
-      // Sin la migración 20261012120000 la columna former_student_id no existe.
-      if (error?.code === '42703') ({ data, error } = await build(false))
-      if (error) toast.error(error.message)
-      else setRoutines((data as unknown as Routine[]) ?? [])
-      setLoading(false)
-    },
-    [user]
-  )
+  useEffect(() => {
+    if (query.error) toast.error(query.error.message)
+  }, [query.error])
+
+  // Identidad estable: las pantallas lo usan en efectos.
+  const fetchRoutines = useCallback(async (studentId?: string) => {
+    if (!activeRef.current) {
+      activeRef.current = true
+      setFilter({ active: true, studentId })
+      return
+    }
+    setFilter((prev) => (prev.studentId === studentId ? prev : { active: true, studentId }))
+    await invalidateRoutines()
+  }, [])
 
   const createRoutine = useCallback(
     async (payload: {
@@ -69,6 +70,7 @@ export function useRoutines() {
         .single()
       if (error) { toast.error(error.message); return null }
       toast.success('Rutina creada')
+      void invalidateRoutines()
       return data
     },
     [user]
@@ -85,6 +87,7 @@ export function useRoutines() {
       .single()
     if (error) { toast.error(error.message); return null }
     toast.success('Rutina actualizada')
+    void invalidateRoutines()
     return data
   }, [user])
 
@@ -97,6 +100,7 @@ export function useRoutines() {
       .eq('owner_id', user.id)
     if (error) { toast.error(error.message); return false }
     toast.success('Rutina eliminada')
+    void invalidateRoutines()
     return true
   }, [user])
 
