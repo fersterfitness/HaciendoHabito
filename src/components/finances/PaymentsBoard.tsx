@@ -17,22 +17,22 @@ import { MarkPaidModal, type MarkPaidValues } from '@/components/finances/MarkPa
 import {
   buildPaymentBoard,
   monthKey,
-  overduePaymentMessage,
   paymentWindowLabel,
+  reminderMessage,
   type PaymentState,
   type StudentPaymentRow,
 } from '@/lib/finance/studentPayments'
 import { registerStudentPayment, saveStudentPaymentWindow } from '@/lib/finance/routineIncome'
-import { buildWhatsAppUrl, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
+import { normalizePhoneForWhatsApp, shareToWhatsApp, WHATSAPP_DIRECT_PASTE_HINT } from '@/lib/whatsapp'
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { PAYMENT_METHODS } from '@/lib/constants'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Income } from '@/types/database'
 
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
-  pagado: { label: 'Pagó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: '#10b981' },
+  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: '#10b981' },
   parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: '#3b82f6' },
-  pendiente: { label: 'Pendiente', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: '#f59e0b' },
+  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: '#f59e0b' },
   vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: '#f43f5e' },
   sin_cargo: { label: 'Sin cargo', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
 }
@@ -65,13 +65,15 @@ export function PaymentsBoard() {
   const [windowFor, setWindowFor] = useState<StudentPaymentRow | null>(null)
 
   const load = () => Promise.all([invalidateFinance(), invalidateStudents()])
+  /** En meses cerrados se puede registrar lo adeudado, pero no hace falta si no debe nada. */
+  const isPastMonthRow = (r: StudentPaymentRow) => isPastMonth && r.expected <= r.paid
 
   const today = new Date()
   const isCurrentMonth = monthKey(month) === monthKey(today)
   const isPastMonth = month < new Date(today.getFullYear(), today.getMonth(), 1)
 
   const rows = useMemo(
-    () => buildPaymentBoard({ students, incomes, month, today }).filter((r) => r.state !== 'sin_cargo' || r.dayTo != null),
+    () => buildPaymentBoard({ students, incomes, month, today }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [students, incomes, month],
   )
@@ -138,9 +140,10 @@ export function PaymentsBoard() {
     await load()
   }
 
-  function waUrl(r: StudentPaymentRow): string | null {
-    const digits = normalizePhoneForWhatsApp(r.phone)
-    return digits ? buildWhatsAppUrl(digits, overduePaymentMessage(r.fullName)) : null
+  async function remind(r: StudentPaymentRow, digits: string) {
+    const kind = r.reminder ?? (r.state === 'vencido' ? 'overdue' : 'due')
+    const res = await shareToWhatsApp({ message: reminderMessage(kind, r.fullName), phoneDigits: digits })
+    if (res.mode === 'clipboard') toast.success(WHATSAPP_DIRECT_PASTE_HINT, { duration: 6000 })
   }
 
   return (
@@ -214,14 +217,14 @@ export function PaymentsBoard() {
               { id: 'vencido', label: 'Vencidos', count: totals.vencidos },
               {
                 id: 'pendiente',
-                label: 'Pendientes',
+                label: 'Falta pagar',
                 count: rows.filter((r) => r.state === 'pendiente' || r.state === 'parcial').length,
               },
-              { id: 'pagado', label: 'Pagaron', count: totals.pagados },
+              { id: 'pagado', label: 'Abonaron', count: totals.pagados },
             ]}
           />
           <p className="ml-auto text-3xs text-ink-muted">
-            Lo esperado sale de las rutinas con precio pendientes o, si no hay, de la cuota mensual del alumno.
+            Todos tus alumnos activos. Lo esperado sale de la rutina con precio o de la cuota mensual; $0 = bonificada.
           </p>
         </div>
 
@@ -234,7 +237,7 @@ export function PaymentsBoard() {
         ) : visible.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-ink-muted">
             {rows.length === 0
-              ? 'Cargá la cuota mensual o el precio de la rutina de tus alumnos para ver los cobros acá.'
+              ? 'No hay alumnos activos en este mes.'
               : 'Nada en este filtro.'}
           </p>
         ) : (
@@ -242,7 +245,7 @@ export function PaymentsBoard() {
             <table className="hh-table w-full min-w-[760px] border-collapse text-body-sm">
               <thead className="border-b border-surface-border/70">
                 <tr className="text-left">
-                  {['Alumno', 'Paga', 'Debe', 'Cobrado', 'Estado', ''].map((h, i) => (
+                  {['Alumno', 'Día de pago', 'Debe', 'Cobrado', 'Estado', ''].map((h, i) => (
                     <th
                       key={h || i}
                       className={cn(
@@ -258,7 +261,7 @@ export function PaymentsBoard() {
               <tbody className="divide-y divide-surface-border/70">
                 {visible.map((r) => {
                   const debt = Math.max(0, r.expected - r.paid)
-                  const wa = r.state === 'vencido' || r.state === 'pendiente' || r.state === 'parcial' ? waUrl(r) : null
+                  const wa = r.state === 'vencido' || r.state === 'pendiente' || r.state === 'parcial' ? normalizePhoneForWhatsApp(r.phone) : null
                   return (
                     <tr key={r.studentId}>
                       <td className="px-4 py-2.5">
@@ -274,7 +277,7 @@ export function PaymentsBoard() {
                           type="button"
                           onClick={() => setWindowFor(r)}
                           className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
-                          title="Configurar días de pago"
+                          title="Cambiar el día de pago"
                         >
                           {paymentWindowLabel(r.dayFrom, r.dayTo)}
                           <Settings2 className="h-3 w-3 opacity-60" />
@@ -296,24 +299,25 @@ export function PaymentsBoard() {
                       <td className="px-4 py-2.5">
                         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', STATE_META[r.state].chip)}>
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                          {STATE_META[r.state].label}
+                          {r.gifted ? 'Bonificado' : STATE_META[r.state].label}
                         </span>
+                        {r.reminder === 'due' ? <p className="mt-0.5 text-3xs text-ink-muted">Llegó su fecha</p> : null}
+                        {r.reminder === 'overdue' ? <p className="mt-0.5 text-3xs text-status-expired">+7 días hábiles</p> : null}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1.5">
                           {wa ? (
-                            <a
-                              href={wa}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => void remind(r, wa)}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-600/30 px-2.5 text-2xs font-semibold text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
                               title="Recordar el pago por WhatsApp"
                             >
                               <WhatsAppIcon className="h-3.5 w-3.5" />
                               Recordar
-                            </a>
+                            </button>
                           ) : null}
-                          {debt > 0 ? (
+                          {r.state !== 'pagado' && !isPastMonthRow(r) ? (
                             <Button size="sm" variant="soft" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)}>
                               Marcar pagado
                             </Button>
@@ -479,7 +483,7 @@ function DonutWithLegend({
   )
 }
 
-/** Días del mes en que el alumno paga; pasado el último sin cobro, figura vencido. */
+/** Día del mes en que paga el alumno: ese día sale el aviso y a los 7 días hábiles, el segundo. */
 function PaymentWindowModal({
   row,
   onClose,
@@ -489,14 +493,12 @@ function PaymentWindowModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
+  const [day, setDay] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!row) return
-    setFrom(row.dayFrom != null ? String(row.dayFrom) : '')
-    setTo(row.dayTo != null ? String(row.dayTo) : '')
+    setDay(row.dueDay != null ? String(row.dueDay) : '')
   }, [row])
 
   const toDay = (v: string) => {
@@ -507,13 +509,14 @@ function PaymentWindowModal({
   async function save() {
     if (!row) return
     setSaving(true)
-    const err = await saveStudentPaymentWindow(row.studentId, toDay(from), toDay(to) ?? toDay(from))
+    const d = toDay(day)
+    const err = await saveStudentPaymentWindow(row.studentId, d, d)
     setSaving(false)
     if (err) {
       toast.error(err)
       return
     }
-    toast.success('Días de pago guardados')
+    toast.success(toDay(day) == null ? 'Día de pago quitado' : 'Día de pago guardado')
     onSaved()
   }
 
@@ -522,9 +525,9 @@ function PaymentWindowModal({
       open={!!row}
       onClose={onClose}
       size="sm"
-      eyebrow="Días de pago"
+      eyebrow="Día de pago"
       title={row?.fullName}
-      description="Ej: del 1 al 5 de cada mes. Si pasa el último día sin cobro registrado, aparece como vencido con el aviso por WhatsApp."
+      description="El día del mes que acordaron (se puede cambiar cuando quieras). Ese día, si no figura el abono, aparece el aviso en Inicio; a los 7 días hábiles sin pago, el segundo aviso."
       footer={
         <>
           <Button variant="secondary" className="flex-1" onClick={onClose}>
@@ -536,16 +539,20 @@ function PaymentWindowModal({
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-3">
-        <label className="text-xs font-medium text-ink-secondary">
-          Desde el día
-          <input type="number" min={1} max={31} value={from} onChange={(e) => setFrom(e.target.value)} className={cn(controlMdClassName, 'mt-1 w-full')} />
-        </label>
-        <label className="text-xs font-medium text-ink-secondary">
-          Hasta el día
-          <input type="number" min={1} max={31} value={to} onChange={(e) => setTo(e.target.value)} className={cn(controlMdClassName, 'mt-1 w-full')} />
-        </label>
-      </div>
+      <label className="block text-xs font-medium text-ink-secondary">
+        Día de pago (1 a 31)
+        <input
+          type="number"
+          min={1}
+          max={31}
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+          placeholder="Ej: 30"
+          className={cn(controlMdClassName, 'mt-1 w-full')}
+          autoFocus
+        />
+        <span className="mt-1 block text-3xs font-normal text-ink-muted">Si el mes es más corto (ej. 31 en noviembre), se toma el último día.</span>
+      </label>
     </Modal>
   )
 }

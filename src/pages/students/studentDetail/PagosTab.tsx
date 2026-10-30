@@ -45,7 +45,6 @@ export function PagosTab({
   const [dayTo, setDayTo] = useState<number | null>(paymentDayTo)
   const [editingWindow, setEditingWindow] = useState(false)
   const [fromInput, setFromInput] = useState('')
-  const [toInput, setToInput] = useState('')
   const [savingWindow, setSavingWindow] = useState(false)
 
   async function saveWindow() {
@@ -53,8 +52,9 @@ export function PagosTab({
       const n = Math.round(Number(v))
       return v.trim() && n >= 1 && n <= 31 ? n : null
     }
+    // Un solo día de pago (se guarda como ventana de un día).
     const f = parse(fromInput)
-    const t = parse(toInput) ?? f
+    const t = f
     setSavingWindow(true)
     const err = await saveStudentPaymentWindow(studentId, f, t)
     setSavingWindow(false)
@@ -65,7 +65,7 @@ export function PagosTab({
     setDayFrom(f)
     setDayTo(t)
     setEditingWindow(false)
-    toast.success('Días de pago guardados')
+    toast.success(f == null ? 'Día de pago quitado' : 'Día de pago guardado')
   }
 
   useEffect(() => {
@@ -171,16 +171,15 @@ export function PagosTab({
         )}
       </div>
 
-      {/* Días de pago: pasado el último sin cobro, figura vencido en Finanzas */}
+      {/* Día de pago: ese día sale el aviso en Inicio y a los 7 días hábiles sin pago, el segundo */}
       <div className="border-b border-surface-border/60 pb-4">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Días de pago</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Día de pago</p>
           {!editingWindow ? (
             <button
               type="button"
               onClick={() => {
-                setFromInput(dayFrom != null ? String(dayFrom) : '')
-                setToInput(dayTo != null ? String(dayTo) : '')
+                setFromInput(dayFrom != null ? String(dayFrom) : dayTo != null ? String(dayTo) : '')
                 setEditingWindow(true)
               }}
               className="text-2xs font-semibold text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline"
@@ -191,7 +190,7 @@ export function PagosTab({
         </div>
         {editingWindow ? (
           <div className="flex flex-wrap items-center gap-2 text-sm text-ink-secondary">
-            Del
+            El día
             <input
               type="number"
               min={1}
@@ -199,15 +198,7 @@ export function PagosTab({
               value={fromInput}
               onChange={(e) => setFromInput(e.target.value)}
               className="w-16 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1 text-sm tabular-nums text-ink-primary"
-            />
-            al
-            <input
-              type="number"
-              min={1}
-              max={31}
-              value={toInput}
-              onChange={(e) => setToInput(e.target.value)}
-              className="w-16 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1 text-sm tabular-nums text-ink-primary"
+              autoFocus
             />
             de cada mes
             <Button size="sm" variant="secondary" loading={savingWindow} onClick={() => void saveWindow()}>
@@ -221,7 +212,7 @@ export function PagosTab({
           <p className="text-sm text-ink-primary">
             {paymentWindowLabel(dayFrom, dayTo)}
             {dayFrom == null && dayTo == null ? (
-              <span className="ml-1 text-ink-muted">— configurala para que Finanzas te avise si se vence.</span>
+              <span className="ml-1 text-ink-muted">— cargalo para que Inicio te avise cuando le toca pagar.</span>
             ) : (
               <span className="ml-1 text-ink-muted">de cada mes</span>
             )}

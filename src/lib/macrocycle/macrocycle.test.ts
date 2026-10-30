@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
+import { phaseBlockTitle,
   assignLanes,
   blockColor,
   durationWeeks,
@@ -65,5 +65,20 @@ describe('weekStartDates / durationWeeks / blockColor', () => {
     expect(durationWeeks('2026-09-14', '2026-10-11')).toBe(4)
     expect(blockColor('descarga', null)).toBe('#34d399')
     expect(blockColor('descarga', '#112233')).toBe('#112233')
+  })
+})
+
+describe('phaseBlockTitle', () => {
+  const block = (type: string, title: string, start: string, end: string) => ({ block_type: type, title, start_date: start, end_date: end })
+  it('numera las semanas seguidas de la misma fase', () => {
+    expect(phaseBlockTitle('intensificacion', '2026-10-05', [])).toBe('Intensificación 1')
+    expect(phaseBlockTitle('intensificacion', '2026-10-12', [block('intensificacion', 'Intensificación 1', '2026-10-05', '2026-10-11')])).toBe(
+      'Intensificación 2',
+    )
+    // Otra fase en el medio, o un hueco largo: vuelve a 1.
+    expect(phaseBlockTitle('intensificacion', '2026-10-19', [block('descarga', 'Descarga 1', '2026-10-12', '2026-10-18')])).toBe('Intensificación 1')
+    expect(phaseBlockTitle('intensificacion', '2026-11-02', [block('intensificacion', 'Intensificación 1', '2026-10-05', '2026-10-11')])).toBe(
+      'Intensificación 1',
+    )
   })
 })

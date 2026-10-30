@@ -40,6 +40,8 @@ export function MarkPaidModal({
   }, [open, defaultAmount])
 
   const amountNum = Number(amount.replace(',', '.'))
+  /** 0 es válido: asesoría bonificada (queda registrada como pagada). */
+  const amountValid = amount.trim() !== '' && Number.isFinite(amountNum) && amountNum >= 0
 
   async function confirm() {
     setSaving(true)
@@ -63,7 +65,7 @@ export function MarkPaidModal({
           <Button
             className="flex-1"
             loading={saving}
-            disabled={!amountLocked && !(amountNum > 0)}
+            disabled={!amountLocked && !amountValid}
             icon={<Check className="h-4 w-4" />}
             onClick={() => void confirm()}
           >
@@ -85,6 +87,11 @@ export function MarkPaidModal({
             placeholder="0"
             className={cn(controlMdClassName, 'mt-1 w-full tabular-nums disabled:opacity-70')}
           />
+          {!amountLocked ? (
+            <span className="mt-1 block text-3xs font-normal text-ink-muted">
+              {amountValid && amountNum === 0 ? 'Queda registrada como asesoría bonificada ($0).' : 'Poné 0 si la asesoría es bonificada.'}
+            </span>
+          ) : null}
         </label>
         <div>
           <p className="mb-1.5 text-xs font-medium text-ink-secondary">Medio de pago</p>

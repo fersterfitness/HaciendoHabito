@@ -140,3 +140,22 @@ export function fmtShort(date: string): string {
   const [, m, d] = date.split('-')
   return `${d}/${m}`
 }
+
+/**
+ * Título del bloque que genera una semana con fase: «Intensificación 1», y si la semana anterior
+ * (pegada) ya era de la misma fase, sigue la numeración: «Intensificación 2».
+ */
+export function phaseBlockTitle(
+  type: BlockTypeId,
+  start: string,
+  plans: { block_type: string | null; title: string; start_date: string; end_date: string }[],
+): string {
+  const label = blockTypeLabel(type) ?? 'Bloque'
+  const earliest = shiftYmd(start, -3)!
+  const prev = plans
+    .filter((p) => p.end_date < start && p.end_date >= earliest)
+    .sort((a, b) => b.end_date.localeCompare(a.end_date))[0]
+  if (!prev || prev.block_type !== type) return `${label} 1`
+  const n = Number(/(\d+)\s*$/.exec(prev.title.trim())?.[1])
+  return `${label} ${Number.isFinite(n) && n > 0 ? n + 1 : 2}`
+}

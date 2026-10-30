@@ -472,10 +472,11 @@ export function createWeeklyCheckInQuestions(): CheckInQuestion[] {
       id: crypto.randomUUID(),
       key: 'pain',
       label: '¿Tuviste molestias o algún dolor puntual?',
+      helperText: 'Si fue un dolor puntual, marcá qué día fue y contá en qué zona.',
       type: 'choice',
       allowNote: true,
       options: [
-        opt('a', 'Sí', COLOR_C),
+        opt('a', 'Sí', COLOR_C, 'date'),
         opt('b', 'No', COLOR_A),
         opt('c', 'Dolores normales del propio entrenamiento', COLOR_B),
       ],
@@ -696,6 +697,9 @@ export function validateDrafts(
       }
       if (optSel.extra === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(d.extra.trim())) {
         return `Indicá la fecha en: ${q.label}`
+      }
+      if (q.key === 'pain' && optSel.extra === 'date' && !d.note.trim()) {
+        return `Contá en qué zona fue el dolor en: ${q.label}`
       }
       if (d.note.length > CHECK_IN_NOTE_MAX) return `Aclaración demasiado larga en: ${q.label}`
     } else {

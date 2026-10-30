@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { dayInsertPayload, exerciseInsertPayload } from '@/lib/routine/copyRoutineDay'
-import { dayOffset, shiftRoutineDates, shiftYmd, type DatePatch } from '@/lib/macrocycle/macrocycle'
+import { dayOffset, phaseBlockTitle, shiftRoutineDates, shiftYmd, type BlockTypeId, type DatePatch } from '@/lib/macrocycle/macrocycle'
 import { fetchRoutineDeletionLog } from '@/lib/routines/routineAccess'
 import type { Exercise, Routine, RoutineBlock, RoutineDay, RoutineExercise } from '@/types/database'
 
@@ -177,6 +177,8 @@ export type PlanBlock = {
   start_date: string
   end_date: string
   notes: string | null
+  /** Semana de rutina que generó el bloque (fase elegida en la rutina). */
+  routine_block_id?: string | null
 }
 
 export const PLAN_SQL_HINT =
@@ -187,13 +189,13 @@ function planError(message: string): string {
 }
 
 export async function loadPlanBlocks(studentId: string): Promise<{ blocks: PlanBlock[]; ready: boolean }> {
-  const { data, error } = await supabase
-    .from('macrocycle_plan_blocks')
-    .select('id, student_id, title, block_type, color, start_date, end_date, notes')
-    .eq('student_id', studentId)
-    .order('start_date')
+  const cols = 'id, student_id, title, block_type, color, start_date, end_date, notes'
+  const query = (select: string) => supabase.from('macrocycle_plan_blocks').select(select).eq('student_id', studentId).order('start_date')
+  let { data, error } = await query(`${cols}, routine_block_id`)
+  // Sin la migración oct5 todavía no existe routine_block_id: se cargan igual.
+  if (error) ({ data, error } = await query(cols))
   if (error) return { blocks: [], ready: false }
-  return { blocks: (data ?? []) as PlanBlock[], ready: true }
+  return { blocks: (data ?? []) as unknown as PlanBlock[], ready: true }
 }
 
 /** Crea (sin id) o actualiza un bloque. Devuelve el id guardado. */
@@ -220,6 +222,64 @@ export async function savePlanBlock(
 export async function deletePlanBlock(id: string): Promise<string | null> {
   const { error } = await supabase.from('macrocycle_plan_blocks').delete().eq('id', id)
   return error ? planError(error.message) : null
+}
+
+export async function deletePlanBlocks(ids: string[]): Promise<string | null> {
+  if (!ids.length) return null
+  const { error } = await supabase.from('macrocycle_plan_blocks').delete().in('id', ids)
+  return error ? planError(error.message) : null
+}
+
+export const PHASE_SQL_HINT =
+  'Falta ejecutar la migración 20261030160000_oct5_calendario_volumen_finanzas.sql en Supabase para guardar la fase de la semana.'
+
+/**
+ * Fase del macrociclo elegida en una semana de la rutina: se guarda en la semana y se refleja como
+ * bloque en el calendario («Intensificación 1», «Intensificación 2»…). Sin fase, el bloque generado se quita;
+ * los que el entrenador editó a mano en el calendario siguen siendo suyos (título, notas).
+ */
+export async function setWeekPhase(opts: {
+  studentId: string | null
+  week: { id: string; start_date: string | null; end_date: string | null }
+  phase: BlockTypeId | null
+}): Promise<{ error: string | null; warning: string | null }> {
+  const { studentId, week, phase } = opts
+  const { error: wErr } = await supabase.from('routine_blocks').update({ phase_type: phase }).eq('id', week.id)
+  if (wErr) return { error: /phase_type|schema cache/i.test(wErr.message) ? PHASE_SQL_HINT : wErr.message, warning: null }
+  if (!studentId) return { error: null, warning: 'La rutina no tiene alumno: la fase no se marca en el calendario.' }
+
+  const { data: linked, error: lErr } = await supabase
+    .from('macrocycle_plan_blocks')
+    .select('id, block_type')
+    .eq('routine_block_id', week.id)
+    .maybeSingle()
+  if (lErr) return { error: /routine_block_id|schema cache/i.test(lErr.message) ? PHASE_SQL_HINT : planError(lErr.message), warning: null }
+
+  if (!phase) {
+    if (linked) return { error: await deletePlanBlock(linked.id), warning: null }
+    return { error: null, warning: null }
+  }
+  if (!week.start_date || !week.end_date) {
+    return { error: null, warning: 'Cargá las fechas de la semana para ubicar la fase en el calendario.' }
+  }
+  if (linked?.block_type === phase) return { error: null, warning: null }
+
+  const { blocks } = await loadPlanBlocks(studentId)
+  const title = phaseBlockTitle(phase, week.start_date, blocks.filter((b) => b.id !== linked?.id))
+  const payload = {
+    student_id: studentId,
+    title,
+    block_type: phase,
+    color: null,
+    start_date: week.start_date,
+    end_date: week.end_date < week.start_date ? week.start_date : week.end_date,
+    routine_block_id: week.id,
+    updated_at: new Date().toISOString(),
+  }
+  const res = linked
+    ? await supabase.from('macrocycle_plan_blocks').update(payload).eq('id', linked.id)
+    : await supabase.from('macrocycle_plan_blocks').insert(payload)
+  return { error: res.error ? planError(res.error.message) : null, warning: null }
 }
 
 /** Rutinas eliminadas del alumno: quedan en el calendario como historial (solo lectura). */

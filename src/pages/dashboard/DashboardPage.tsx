@@ -29,6 +29,7 @@ import type { Notification } from '@/types/database'
 import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS, type RmTestWeeksRow } from '@/lib/checkIn/rmTestReminder'
 import { NutritionistOpsPanel } from '@/components/dashboard/NutritionistOpsPanel'
 import { OverduePaymentsAlert } from '@/components/dashboard/OverduePaymentsAlert'
+import { PriceIncreaseNotice } from '@/components/dashboard/PriceIncreaseNotice'
 import { type RecentIncomeRow, type DueCheckInScheduleRow, type DueResourceScheduleRow, LEVEL_META, BRAND_ROW_ACCENT_PAIR, LEVEL_BRAND_ACCENT, GOAL_META, type Stats, type ExpiringRoutine, type ExpiringPlan, type MergedExpiringItem, monthBoundsISO, type DashboardExpenseRow, type DashboardIncomeScopeRow, type ExpenseChartModel, buildFinanceScopeChartModel } from './dashboardShared'
 import { ExpenseScopesLineChart } from './ExpenseScopesChart'
 
@@ -713,6 +714,7 @@ export function DashboardPage() {
         ) : null}
 
         {canSeeFinances && user ? <OverduePaymentsAlert ownerId={user.id} /> : null}
+        {canSeeFinances ? <PriceIncreaseNotice /> : null}
 
         {role === 'nutritionist' && user ? (
           <section className="space-y-2">

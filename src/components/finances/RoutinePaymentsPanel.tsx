@@ -10,6 +10,8 @@ import { markRoutinePaid, unmarkRoutinePaid } from '@/lib/finance/routineIncome'
 
 type Row = Pick<Routine, 'id' | 'name' | 'is_paid' | 'paid_other_professional' | 'price' | 'student_id'> & {
   student_name: string
+  /** Cuota mensual del alumno: monto sugerido si la rutina no tiene precio. */
+  monthly_fee: number | null
 }
 
 export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean }) {
@@ -23,7 +25,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
     if (!user) return
     const { data, error } = await supabase
       .from('routines')
-      .select('id, name, is_paid, paid_other_professional, price, student_id, student:students(full_name)')
+      .select('id, name, is_paid, paid_other_professional, price, student_id, student:students(full_name, monthly_fee_amount)')
       .eq('owner_id', user.id)
       .in('status', ['activa', 'por_vencer'])
       .not('student_id', 'is', null)
@@ -34,8 +36,10 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
     }
     setRows(
       (data ?? []).map((r) => {
-        const student = r.student as { full_name?: string } | { full_name?: string }[] | null
-        const name = Array.isArray(student) ? student[0]?.full_name : student?.full_name
+        type S = { full_name?: string; monthly_fee_amount?: number | null }
+        const raw = r.student as S | S[] | null
+        const student = Array.isArray(raw) ? raw[0] : raw
+        const name = student?.full_name
         return {
           id: r.id as string,
           name: r.name as string,
@@ -44,6 +48,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
           price: (r.price as number | null) ?? null,
           student_id: r.student_id as string,
           student_name: name ?? 'Alumno',
+          monthly_fee: student?.monthly_fee_amount ?? null,
         }
       }),
     )
@@ -161,7 +166,7 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
         open={!!paying}
         title={paying?.student_name ?? ''}
         subtitle={paying?.name}
-        defaultAmount={paying?.price ?? null}
+        defaultAmount={paying?.price ?? paying?.monthly_fee ?? null}
         onClose={() => setPaying(null)}
         onConfirm={confirmPaid}
       />

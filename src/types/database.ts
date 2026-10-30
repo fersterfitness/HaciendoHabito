@@ -616,6 +616,8 @@ export interface RoutineBlock {
   notes: string | null
   start_date: string | null
   end_date: string | null
+  /** Fase del macrociclo (solo entrenador): adaptacion, intensificacion… */
+  phase_type?: string | null
 }
 
 export interface RoutineDay {

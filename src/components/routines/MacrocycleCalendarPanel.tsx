@@ -14,6 +14,7 @@ import {
   StickyNote,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -22,6 +23,8 @@ import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Spinner } from '@/components/ui/Spinner'
 import { Button } from '@/components/ui/Button'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { confirmDialog } from '@/components/ui/dialogs'
+import { loadPainEvents, type PainEvent } from '@/lib/checkIn/painEvents'
 import { controlSmClassName } from '@/lib/formControlClasses'
 import {
   assignLanes,
@@ -40,6 +43,7 @@ import {
 } from '@/lib/macrocycle/macrocycle'
 import {
   deletePlanBlock,
+  deletePlanBlocks,
   duplicateRoutineAt,
   loadDeletedRoutines,
   loadMacrocycle,
@@ -114,6 +118,8 @@ function PlanEditor({
   onCancel,
   onDelete,
   onCopyNext,
+  overlapCount = 0,
+  onDeleteOverlapping,
 }: {
   draft: Draft
   saving: boolean
@@ -122,6 +128,9 @@ function PlanEditor({
   onCancel: () => void
   onDelete?: () => void
   onCopyNext?: () => void
+  /** Bloques ya marcados dentro de los días seleccionados (para borrarlos de una). */
+  overlapCount?: number
+  onDeleteOverlapping?: () => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const color = blockColor(draft.block_type, draft.color)
@@ -227,6 +236,11 @@ function PlanEditor({
               </Button>
             )
           ) : null}
+          {!draft.id && overlapCount > 0 && onDeleteOverlapping ? (
+            <Button type="button" size="sm" variant="ghost" onClick={onDeleteOverlapping} disabled={saving}>
+              <Trash2 className="h-3.5 w-3.5" /> Borrar {overlapCount === 1 ? 'el bloque' : `los ${overlapCount} bloques`} de estos días
+            </Button>
+          ) : null}
           {onCopyNext ? (
             <Button type="button" size="sm" variant="secondary" onClick={onCopyNext} disabled={saving}>
               <Copy className="h-3.5 w-3.5" /> Copiar a continuación
@@ -262,6 +276,9 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
   const [plans, setPlans] = useState<PlanBlock[]>([])
   const [plansReady, setPlansReady] = useState(true)
   const [deleted, setDeleted] = useState<DeletedRoutine[]>([])
+  const [pains, setPains] = useState<PainEvent[]>([])
+  /** Bloques propios marcados con Ctrl/Shift + clic para borrarlos juntos. */
+  const [checked, setChecked] = useState<Set<string>>(new Set())
   const [alerts, setAlerts] = useState<Map<string, WeekAlert[]>>(new Map())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -279,13 +296,16 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
 
   const reload = useCallback(async () => {
     try {
-      const [list, volume, planRes, deletedList] = await Promise.all([
+      const [list, volume, planRes, deletedList, painList] = await Promise.all([
         loadMacrocycle(studentId),
-        loadVolumeData(),
+        loadVolumeData(studentId),
         loadPlanBlocks(studentId),
         user ? loadDeletedRoutines(user.id, studentId) : Promise.resolve([]),
+        loadPainEvents(studentId).catch(() => [] as PainEvent[]),
       ])
       setRoutines(list)
+      setPains(painList)
+      setChecked((prev) => new Set([...prev].filter((id) => planRes.blocks.some((b) => b.id === id))))
       setPlans(planRes.blocks)
       setPlansReady(planRes.ready)
       setDeleted(deletedList)
@@ -393,6 +413,12 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
     paint(routineItems, 0.22)
     return map
   }, [planItems, routineItems])
+
+  const painByDay = useMemo(() => {
+    const map = new Map<string, PainEvent[]>()
+    for (const p of pains) map.set(p.date, [...(map.get(p.date) ?? []), p])
+    return map
+  }, [pains])
 
   const alertDays = useMemo(() => {
     const set = new Set<string>()
@@ -521,6 +547,39 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
     await reload()
   }
 
+  async function removePlans(ids: string[]) {
+    if (!ids.length) return
+    const ok = await confirmDialog({
+      title: ids.length === 1 ? '¿Borrar este bloque del calendario?' : `¿Borrar ${ids.length} bloques del calendario?`,
+      description: 'Las rutinas no se tocan. Si el bloque salió de la fase de una semana, la semana conserva su fase.',
+      confirmLabel: 'Borrar',
+    })
+    if (!ok) return
+    setBusy(true)
+    const err = await deletePlanBlocks(ids)
+    setBusy(false)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    toast.success(ids.length === 1 ? 'Bloque borrado' : `${ids.length} bloques borrados`)
+    setChecked(new Set())
+    if (draft?.id && ids.includes(draft.id)) {
+      setDraft(null)
+      setSelectedId(null)
+    }
+    await reload()
+  }
+
+  function toggleChecked(id: string) {
+    setChecked((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   async function copyPlan(p: PlanBlock, newStart: string) {
     const len = dayOffset(p.start_date, p.end_date)
     setBusy(true)
@@ -640,7 +699,8 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
     const d = drag
     setDrag(null)
     if (Math.abs(d.dx) < 5) {
-      selectItem(item)
+      if (item.kind === 'plan' && (e.ctrlKey || e.metaKey || e.shiftKey)) toggleChecked(item.id)
+      else selectItem(item)
       return
     }
     if (d.mode !== 'move') {
@@ -735,6 +795,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
             isDeleted ? 'cursor-pointer border-dashed text-ink-muted' : 'cursor-grab text-zinc-900 active:cursor-grabbing',
             faded && 'opacity-55',
             selectedId === item.id && 'ring-2 ring-brand-primary ring-offset-1 ring-offset-surface-card',
+            checked.has(item.id) && 'ring-2 ring-rose-500 ring-offset-1 ring-offset-surface-card',
             isDrag && 'z-10 shadow-pop',
           )}
           style={{
@@ -760,6 +821,22 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
           {hasNotes ? <StickyNote className="h-3 w-3 shrink-0 opacity-70" aria-label="Tiene anotaciones" /> : null}
           {blockAlerts ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-700" aria-label="Volumen por encima del rango" /> : null}
           {overlaps.has(item.id) ? <span className="shrink-0 rounded bg-black/15 px-1 text-3xs">se pisa</span> : null}
+          {item.kind === 'plan' && visWidth >= 72 ? (
+            <button
+              type="button"
+              title="Borrar bloque"
+              aria-label={`Borrar ${item.title}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                void removePlans([item.id])
+              }}
+              className="absolute right-1.5 top-1/2 z-10 hidden -translate-y-1/2 rounded bg-black/30 p-0.5 text-white hover:bg-black/50 group-hover:block"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          ) : null}
           {item.kind === 'plan' ? (
             <span
               className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize opacity-0 transition-opacity group-hover:opacity-100"
@@ -869,6 +946,12 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                   <span className="inline-flex items-center gap-1.5 text-2xs text-ink-secondary">
                     <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Volumen por encima del rango
                   </span>
+                  <span className="inline-flex items-center gap-1.5 text-2xs text-ink-secondary">
+                    <span className="rounded-full bg-amber-400 p-[1px] text-zinc-900">
+                      <Zap className="h-2 w-2" />
+                    </span>
+                    Molestia del check-in
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-2xs text-ink-muted">
                   Arrastrar barras para
@@ -883,6 +966,24 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                   />
                 </div>
               </div>
+
+              {checked.size > 0 ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-ink-primary">
+                  <span className="font-semibold">
+                    {checked.size} bloque{checked.size === 1 ? '' : 's'} seleccionado{checked.size === 1 ? '' : 's'}
+                  </span>
+                  <Button type="button" size="sm" variant="danger" disabled={busy} onClick={() => void removePlans([...checked])}>
+                    <Trash2 className="h-3.5 w-3.5" /> Borrar seleccionados
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setChecked(new Set())}>
+                    Cancelar
+                  </Button>
+                </div>
+              ) : visiblePlans.length > 1 ? (
+                <p className="text-3xs text-ink-muted">
+                  Para borrar varios bloques juntos: Ctrl (o Shift) + clic en cada uno, o arrastrá sobre sus días y tocá «Borrar». En los bloques largos, la X lo borra; en los cortos, tocalo y usá «Eliminar».
+                </p>
+              ) : null}
 
               <div ref={scrollRef} className="overflow-x-auto rounded-2xl border border-surface-border/90 bg-surface-card shadow-card">
                 <div style={{ width: gridWidth }} className="select-none pb-2" onPointerMove={onGridPointerMove}>
@@ -954,6 +1055,17 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                           >
                             {Number(d.slice(8))}
                             {alertDays.has(d) && cov ? <span className="absolute right-0.5 top-0.5 h-1 w-1 rounded-full bg-rose-500" /> : null}
+                            {painByDay.has(d) ? (
+                              <span
+                                className="absolute -left-0.5 -top-0.5 z-[1] rounded-full bg-amber-400 p-[1px] text-zinc-900 shadow-xs"
+                                title={painByDay
+                                  .get(d)!
+                                  .map((p) => `Molestia${p.approximate ? ' (día del check-in)' : ''}: ${p.note || 'sin aclaración'}`)
+                                  .join('\n')}
+                              >
+                                <Zap className="h-2 w-2" aria-label="Molestia reportada" />
+                              </span>
+                            ) : null}
                           </div>
                         )
                       })}
@@ -998,6 +1110,10 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                     setSelectedId(null)
                   }}
                   onDelete={draft.id ? () => void removePlan(draft.id!) : undefined}
+                  overlapCount={draft.id ? 0 : plans.filter((p) => p.start_date <= draftEnd! && p.end_date >= draftStart!).length}
+                  onDeleteOverlapping={() =>
+                    void removePlans(plans.filter((p) => p.start_date <= draftEnd! && p.end_date >= draftStart!).map((p) => p.id))
+                  }
                   onCopyNext={
                     draft.id
                       ? () => {
@@ -1129,6 +1245,39 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                     {fmtLong(selected.start)} → {fmtLong(selected.end)} · rutina eliminada el {fmtLong(selected.deleted.deleted_at.slice(0, 10))}. Queda en el calendario como historial; se puede
                     restaurar desde Rutinas › Eliminadas.
                   </p>
+                </section>
+              ) : null}
+
+              {pains.length ? (
+                <section className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
+                    <Zap className="h-4 w-4 text-amber-500" /> Molestias reportadas en el check-in
+                  </h3>
+                  <p className="mb-3 text-2xs text-ink-muted">Lo que contó el alumno, con el día y la rutina en la que cayó. Tocá una para verla en el calendario.</p>
+                  <ul className="divide-y divide-surface-border/60">
+                    {[...pains].reverse().map((p) => {
+                      const hit = routineItems.find((i) => i.kind === 'routine' && p.date >= i.start && p.date <= i.end)
+                      return (
+                        <li key={`${p.submittedAt}-${p.date}`}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setYear(Number(p.date.slice(0, 4)))
+                              if (hit) selectItem(hit)
+                            }}
+                            className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-1 py-2 text-left hover:bg-surface-elevated/50"
+                          >
+                            <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-primary">
+                              {fmtLong(p.date)}
+                              {p.approximate ? <span className="ml-1 text-3xs font-normal text-ink-muted">(día del check-in)</span> : null}
+                            </span>
+                            <span className="min-w-0 flex-1 text-xs text-ink-secondary">{p.note || 'Sin aclaración'}</span>
+                            {hit ? <span className="shrink-0 text-3xs text-ink-muted">{hit.title}</span> : null}
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
                 </section>
               ) : null}
 

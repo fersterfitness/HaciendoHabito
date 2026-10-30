@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/Input'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
+import { BLOCK_TYPES, blockColor, blockTypeLabel, type BlockTypeId } from '@/lib/macrocycle/macrocycle'
 import type { StudentRmLookup } from '@/lib/routine/studentRmLookup'
 import type { CyclePhaseInfo } from '@/lib/routine/menstrualCyclePlanning'
 import type { RoutineBlock, RoutineDay, RoutineExercise, TrainingMethod } from '@/types/database'
@@ -16,7 +17,7 @@ export function BlockCard({
   checkInWeekNumber = null, checkInFinished = false,
   onToggle, onToggleDay, onUpdateBlock, onCascadeWeekStart, onDeleteBlock, onMoveBlock, onAddDay,
   onUpdateDay, onDeleteDay, onDuplicateDay, onCopyDayToWeek, onMoveDay, onAddExercise, onPastePreset, onReplaceExercise, onUpdateExercise, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onCircuitNoteChange, onDeleteExercise, onMoveExercise,
-  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup,
+  onOpenCopyMenu, onCloseCopyMenu, onCopyTo, onCopyDayPrescription, rmLookup, onPhaseChange,
 }: {
   block: BlockWithDays; allBlocks: BlockWithDays[]; expanded: boolean
   /** Color de fondo alternado por semana (0 = gris, 1 = naranja suave). */
@@ -46,6 +47,8 @@ export function BlockCard({
   onOpenCopyMenu: () => void; onCloseCopyMenu: () => void; onCopyTo: (targetId: string) => void
   onCopyDayPrescription: (sourceDayId: string, targetDayIds: string[], includeDayMeta: boolean) => void | Promise<void>
   rmLookup: StudentRmLookup
+  /** Fase del macrociclo de la semana (se refleja en el calendario; el alumno no la ve). */
+  onPhaseChange?: (phase: BlockTypeId | null) => void | Promise<void>
 }) {
   const [showDelete, setShowDelete] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -56,6 +59,8 @@ export function BlockCard({
   const weekN = (stripeIndex ?? 0) + 1
   const weekDone = checkInFinished || (checkInWeekNumber != null && weekN <= checkInWeekNumber)
   const weekCurrent = !checkInFinished && checkInWeekNumber === weekN
+  const phaseLabel = blockTypeLabel(block.phase_type)
+  const phaseColor = phaseLabel ? blockColor(block.phase_type, null) : null
 
   useEffect(() => {
     setBlockNotes(block.notes ?? '')
@@ -70,6 +75,7 @@ export function BlockCard({
           ? 'border-slate-200/95 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40'
           : 'border-emerald-200/85 bg-emerald-50/60 dark:border-emerald-900/45 dark:bg-emerald-950/30',
       )}
+      style={phaseColor ? { borderLeftColor: phaseColor, borderLeftWidth: 4 } : undefined}
     >
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors"
@@ -106,6 +112,16 @@ export function BlockCard({
             >
               {block.name}
             </span>
+            {phaseLabel && phaseColor ? (
+              <span
+                className="ml-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-3xs font-semibold text-ink-secondary"
+                style={{ borderColor: phaseColor }}
+                title="Fase del macrociclo (solo vos la ves)"
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: phaseColor }} aria-hidden />
+                {phaseLabel}
+              </span>
+            ) : null}
             {weekCurrent ? (
               <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-brand-primary">
                 Semana actual
@@ -113,9 +129,9 @@ export function BlockCard({
             ) : null}
             {(block.start_date || block.end_date) && (
               <p className="text-3xs text-ink-muted mt-0.5">
-                {block.start_date ? new Date(block.start_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
+                {block.start_date ? new Date(`${block.start_date}T12:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
                 {' → '}
-                {block.end_date ? new Date(block.end_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
+                {block.end_date ? new Date(`${block.end_date}T12:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
               </p>
             )}
             {cyclePhases.length > 0 ? (
@@ -240,6 +256,36 @@ export function BlockCard({
             </div>
           </div>
 
+          {onPhaseChange ? (
+            <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+              <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Fase del macrociclo · se marca en el calendario (el alumno no la ve)</label>
+              <div className="flex flex-wrap gap-1.5">
+                {BLOCK_TYPES.map((t) => {
+                  const active = block.phase_type === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => void onPhaseChange(active ? null : t.id)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors',
+                        active ? 'font-semibold text-ink-primary' : 'border-surface-border text-ink-secondary hover:text-ink-primary',
+                        appFocusRingClassName,
+                      )}
+                      style={active ? { borderColor: t.color, background: `${t.color}26` } : undefined}
+                      aria-pressed={active}
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ background: t.color }} aria-hidden />
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Aclaración general: reemplazada por la fase; se muestra solo si la semana ya tenía texto. */}
+          {blockNotes || block.notes ? (
           <div className="pt-1" onClick={(e) => e.stopPropagation()}>
             <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Aclaración general del bloque</label>
             <Textarea
@@ -254,6 +300,7 @@ export function BlockCard({
               className="min-h-[6.5rem] resize-y text-xs leading-relaxed whitespace-pre-wrap"
             />
           </div>
+          ) : null}
 
           {block.days.map((day) => (
             <DayCard

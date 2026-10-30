@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, BarChart3, Settings2, X } from 'lucide-react'
+import { AlertTriangle, BarChart3, Settings2, UserCog, X, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
@@ -19,9 +19,13 @@ import { Modal } from '@/components/ui/Modal'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
 import { controlSmClassName } from '@/lib/formControlClasses'
+import { ExerciseVolumeFactorsField } from '@/components/exercises/ExerciseVolumeFactorsField'
+import { draftToFactors, factorsToDraft, type FactorsDraft } from '@/lib/volume/factorsDraft'
+import { loadPainEvents, painInRange, type PainEvent } from '@/lib/checkIn/painEvents'
 import {
   buildSessionVolume,
   computeWeekVolume,
+  defaultMuscleFactors,
   MUSCLE_IDS,
   muscleTarget,
   round1,
@@ -43,6 +47,7 @@ import {
   FACTORY_PROFILE,
   loadVolumeData,
   saveRoutineExerciseTechnique,
+  saveStudentExerciseFactors,
   saveVolumeProfile,
   VOLUME_SQL_HINT,
   type VolumeData,
@@ -61,6 +66,9 @@ type Props = {
   blocks: Block[]
   /** Recarga la rutina (tras cambiar la técnica de un ejercicio). */
   onRefresh?: () => void | Promise<void>
+  /** Alumno de la rutina: permite ajustar el volumen de un ejercicio solo para él y ver sus molestias. */
+  studentId?: string | null
+  studentName?: string | null
 }
 
 const STATUS_COLOR = VOLUME_STATUS_COLOR
@@ -206,11 +214,19 @@ function CounterTable({
   settings,
   onTechnique,
   savingId,
+  studentFactorIds,
+  onAdjust,
+  studentFirstName,
 }: {
   week: WeekVolume
   settings: VolumeSettings
   onTechnique: (row: VolumeRow, technique: TechniqueId | null) => void
   savingId: string | null
+  /** Ejercicios con volumen propio de este alumno. */
+  studentFactorIds: Set<string>
+  /** Ajustar el volumen del ejercicio solo para este alumno. */
+  onAdjust?: (row: VolumeRow) => void
+  studentFirstName?: string
 }) {
   const head = 'px-1.5 py-2 text-center text-3xs font-bold uppercase tracking-wide text-ink-muted'
   return (
@@ -251,9 +267,11 @@ function CounterTable({
               ) : null}
               {day.rows.map((r) => {
                 const unmapped = !Object.keys(r.factors).length
+                const ownStudent = studentFactorIds.has(r.exerciseId)
                 return (
                   <tr key={r.routineExerciseId} className="hover:bg-surface-elevated/40">
                     <td className="sticky left-0 z-10 border-t border-surface-border/60 bg-surface-card px-2 py-1.5">
+                      <div className="flex items-center gap-1">
                       <a
                         href={`/exercises/${r.exerciseId}/edit`}
                         target="_blank"
@@ -263,12 +281,34 @@ function CounterTable({
                       >
                         <span className="truncate group-hover:underline">{r.name}</span>
                         {unmapped ? <span className="shrink-0 rounded bg-amber-500/15 px-1 text-3xs font-semibold text-amber-600 dark:text-amber-300">asignar</span> : null}
-                        {!unmapped && !r.customFactors ? (
+                        {ownStudent ? (
+                          <span
+                            className="shrink-0 rounded bg-violet-500/15 px-1 text-3xs font-semibold text-violet-700 dark:text-violet-300"
+                            title={`Volumen ajustado solo para ${studentFirstName ?? 'este alumno'}`}
+                          >
+                            {studentFirstName ?? 'alumno'}
+                          </span>
+                        ) : !unmapped && !r.customFactors ? (
                           <span className="shrink-0 rounded bg-surface-elevated px-1 text-3xs font-medium text-ink-muted" title="Valores sugeridos por el nombre; cargalos en la biblioteca">
                             sugerido
                           </span>
                         ) : null}
                       </a>
+                      {onAdjust ? (
+                        <button
+                          type="button"
+                          onClick={() => onAdjust(r)}
+                          className={cn(
+                            'ml-auto shrink-0 rounded-md p-1 transition-colors hover:bg-surface-elevated hover:text-brand-primary',
+                            ownStudent ? 'text-violet-600 dark:text-violet-300' : 'text-ink-muted',
+                          )}
+                          title={`Ajustar los músculos de este ejercicio solo para ${studentFirstName ?? 'este alumno'} (palancas, estructura)`}
+                          aria-label={`Ajustar volumen de ${r.name} para el alumno`}
+                        >
+                          <UserCog className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                      </div>
                     </td>
                     <td className="border-t border-surface-border/60 px-1.5 py-1.5 text-center tabular-nums text-ink-secondary">{r.sets || '–'}</td>
                     <td className="border-t border-surface-border/60 px-1.5 py-1">
@@ -631,25 +671,102 @@ function SettingsModal({
   )
 }
 
+// ─── Volumen de un ejercicio solo para este alumno ──────────────────────────
+
+function StudentFactorsModal({
+  row,
+  studentId,
+  studentFirstName,
+  hasOwn,
+  base,
+  onClose,
+  onSaved,
+}: {
+  row: VolumeRow
+  studentId: string
+  studentFirstName: string
+  hasOwn: boolean
+  /** Implicación de la biblioteca (o la sugerida por el nombre). */
+  base: Record<string, number>
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [draft, setDraft] = useState<FactorsDraft>(() => factorsToDraft(row.factors))
+  const [saving, setSaving] = useState(false)
+
+  async function save(reset: boolean) {
+    setSaving(true)
+    const err = await saveStudentExerciseFactors(studentId, row.exerciseId, reset ? null : draftToFactors(draft))
+    setSaving(false)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    toast.success(reset ? 'Vuelve a usar el volumen de la biblioteca' : `Volumen ajustado para ${studentFirstName}`)
+    onSaved()
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="md"
+      eyebrow={`Solo para ${studentFirstName}`}
+      title={row.name}
+      description="Por palancas o estructura, en este alumno el ejercicio puede cargar más otros músculos. No cambia la biblioteca ni las rutinas de otros alumnos."
+      footer={
+        <>
+          {hasOwn ? (
+            <Button variant="ghost" onClick={() => void save(true)} disabled={saving}>
+              Usar la biblioteca
+            </Button>
+          ) : null}
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button loading={saving} onClick={() => void save(false)}>
+            Guardar
+          </Button>
+        </>
+      }
+    >
+      <ExerciseVolumeFactorsField
+        value={draft}
+        onChange={setDraft}
+        suggested={base}
+        isSuggestion={false}
+        scopeText={`Solo cuenta en las rutinas de ${studentFirstName}.`}
+      />
+    </Modal>
+  )
+}
+
 // ─── Panel principal ─────────────────────────────────────────────────────────
 
 /** Contador inteligente de series efectivas por músculo y semana (solo entrenador). */
-export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefresh }: Props) {
+export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefresh, studentId = null, studentName = null }: Props) {
   const [data, setData] = useState<VolumeData | null>(null)
+  const [pains, setPains] = useState<PainEvent[]>([])
+  const [adjusting, setAdjusting] = useState<VolumeRow | null>(null)
+  const studentFirstName = studentName?.trim().split(/\s+/)[0] || undefined
   const [profileId, setProfileId] = useState<string>('')
   const [weekIdx, setWeekIdx] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
 
   const reload = useCallback(async (selectId?: string) => {
-    const next = await loadVolumeData()
+    const [next, painList] = await Promise.all([
+      loadVolumeData(studentId),
+      studentId ? loadPainEvents(studentId).catch(() => [] as PainEvent[]) : Promise.resolve([] as PainEvent[]),
+    ])
     setData(next)
+    setPains(painList)
     setProfileId((prev) => {
       const wanted = selectId ?? prev
       if (wanted && next.profiles.some((p) => p.id === wanted)) return wanted
       return (next.profiles.find((p) => p.is_default) ?? next.profiles[0] ?? FACTORY_PROFILE).id
     })
-  }, [])
+  }, [studentId])
 
   useEffect(() => {
     if (open) void reload()
@@ -675,7 +792,14 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
     () => (ctx ? sortedBlocks.map((b) => computeWeekVolume([...b.days].sort((a, c) => a.sort_order - c.sort_order), ctx)) : []),
     [sortedBlocks, ctx],
   )
-  const labels = sortedBlocks.map((b, i) => b.name?.trim() || `Semana ${i + 1}`)
+  const weekPains = useMemo(() => sortedBlocks.map((b) => painInRange(pains, b.start_date, b.end_date)), [sortedBlocks, pains])
+  // ⚡ = el alumno reportó una molestia esa semana (check-in).
+  const labels = sortedBlocks.map((b, i) => `${b.name?.trim() || `Semana ${i + 1}`}${weekPains[i]?.length ? ' ⚡' : ''}`)
+  const groupSlugById = useMemo(() => {
+    const map = new Map<string, string | null>()
+    for (const b of blocks) for (const d of b.days) for (const e of d.exercises) map.set(e.exercise_id, e.exercise?.muscle_group?.slug ?? null)
+    return map
+  }, [blocks])
   const safeIdx = Math.min(weekIdx, Math.max(0, weeks.length - 1))
   const week = weeks[safeIdx]
 
@@ -788,6 +912,25 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
                 ) : null}
               </div>
 
+              {weekPains[safeIdx]?.length ? (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs text-ink-secondary">
+                  <span className="mt-0.5 rounded-full bg-amber-400 p-1 text-zinc-900" aria-hidden>
+                    <Zap className="h-3 w-3" />
+                  </span>
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-ink-primary">
+                      {studentFirstName ?? 'El alumno'} reportó {weekPains[safeIdx]!.length === 1 ? 'una molestia' : `${weekPains[safeIdx]!.length} molestias`} esta semana
+                    </p>
+                    {weekPains[safeIdx]!.map((p) => (
+                      <p key={`${p.submittedAt}-${p.date}`}>
+                        <span className="tabular-nums">{p.date.slice(8, 10)}/{p.date.slice(5, 7)}</span>
+                        {p.approximate ? ' (día del check-in)' : ''} · {p.note || 'sin aclaración'}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {week.unmapped.length ? (
                 <div className="hh-alert hh-alert-warning flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs text-ink-secondary">
                   <span className="hh-alert-icon h-7 w-7 shrink-0" aria-hidden>
@@ -836,12 +979,30 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
                   settings={settings}
                   onTechnique={(r, t) => void handleTechnique(r, t)}
                   savingId={savingId}
+                  studentFactorIds={data.studentFactorIds}
+                  onAdjust={studentId ? setAdjusting : undefined}
+                  studentFirstName={studentFirstName}
                 />
               </section>
             </>
           )}
         </div>
       </div>
+
+      {studentId && adjusting && data ? (
+        <StudentFactorsModal
+          row={adjusting}
+          studentId={studentId}
+          studentFirstName={studentFirstName ?? 'el alumno'}
+          hasOwn={data.studentFactorIds.has(adjusting.exerciseId)}
+          base={data.libraryFactors.get(adjusting.exerciseId) ?? defaultMuscleFactors(adjusting.name, groupSlugById.get(adjusting.exerciseId))}
+          onClose={() => setAdjusting(null)}
+          onSaved={() => {
+            setAdjusting(null)
+            void reload()
+          }}
+        />
+      ) : null}
 
       <SettingsModal
         open={settingsOpen}

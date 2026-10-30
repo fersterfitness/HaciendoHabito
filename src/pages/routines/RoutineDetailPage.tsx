@@ -28,6 +28,8 @@ import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProg
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
+import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
+import type { BlockTypeId } from '@/lib/macrocycle/macrocycle'
 import { cyclePhasesForWeekBlock } from '@/lib/routine/menstrualCyclePlanning'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { RoutineMonthlyFeedbackSection } from '@/components/checkIn/RoutineMonthlyFeedbackSection'
@@ -392,6 +394,20 @@ export function RoutineDetailPage() {
   async function updateBlock(blockId: string, patch: Partial<RoutineBlock>) {
     await supabase.from('routine_blocks').update(patch).eq('id', blockId)
     setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, ...patch } : b))
+  }
+
+  /** Fase del macrociclo de la semana: queda en la semana y como bloque en el calendario. */
+  async function changeWeekPhase(block: RoutineBlock, phase: BlockTypeId | null) {
+    const prev = block.phase_type ?? null
+    setBlocks((list) => list.map((b) => (b.id === block.id ? { ...b, phase_type: phase } : b)))
+    const { error, warning } = await setWeekPhase({ studentId: routine?.student_id ?? null, week: block, phase })
+    if (error) {
+      setBlocks((list) => list.map((b) => (b.id === block.id ? { ...b, phase_type: prev } : b)))
+      toast.error(error)
+      return
+    }
+    if (warning) toast(warning)
+    else if (phase && routine?.student_id) toast.success('Fase marcada en el calendario')
   }
 
   /** Inicio de semana → fin +6 días y semanas siguientes en cadena (editable manual después). */
@@ -1433,6 +1449,7 @@ export function RoutineDetailPage() {
               return next
             })}
             onUpdateBlock={(patch) => updateBlock(block.id, patch)}
+            onPhaseChange={(phase) => changeWeekPhase(block, phase)}
             onCascadeWeekStart={(start) => void cascadeBlockWeekDates(block.id, start)}
             onDeleteBlock={() => deleteBlock(block.id)}
             onMoveBlock={(direction) => moveBlock(block.id, direction)}
@@ -1567,6 +1584,8 @@ export function RoutineDetailPage() {
         routineName={routine.name}
         blocks={blocks}
         onRefresh={refreshBlocks}
+        studentId={routine.student_id}
+        studentName={routine.student?.full_name ?? null}
       />
 
       <RoutineProgressionGuidePanel

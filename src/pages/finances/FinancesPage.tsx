@@ -37,6 +37,7 @@ import { chartAxis, chartBarCursor, chartBarRadius, chartGrid, compactCurrency }
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { PaymentsBoard } from '@/components/finances/PaymentsBoard'
+import { PriceIncreasePanel } from '@/components/finances/PriceIncreasePanel'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
 type Tab = 'income' | 'expenses'
@@ -456,6 +457,7 @@ export function FinancesPage() {
 
         {/* Cobros de alumnos por mes: quién pagó, cuánto, por qué medio; vencidos con WhatsApp */}
         {scopeFilter !== 'personal' ? <PaymentsBoard /> : null}
+        {scopeFilter !== 'personal' ? <PriceIncreasePanel /> : null}
 
         {/* Tabs (estilo rutinas / listados) */}
         <SegmentedControl

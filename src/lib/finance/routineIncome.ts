@@ -11,6 +11,16 @@ function isMissingColumn(err: { code?: string; message?: string } | null): boole
   return !!err && (err.code === '42703' || /routine_id|payment_day/.test(err.message ?? ''))
 }
 
+export const GIFT_SQL_HINT =
+  'Para registrar asesorías bonificadas ($0) falta ejecutar la migración 20261030160000_oct5_calendario_volumen_finanzas.sql.'
+
+/** Cobros de $0 rechazados por la regla vieja de la base (monto > 0). */
+function zeroAmountError(err: { code?: string; message?: string } | null, amount: number): string | null {
+  if (!err) return null
+  if (amount === 0 && (err.code === '23514' || /check constraint/i.test(err.message ?? ''))) return GIFT_SQL_HINT
+  return err.message ?? 'Error'
+}
+
 function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -77,9 +87,10 @@ async function markRoutinePaidImpl(opts: {
       .from('income')
       .update({ status: 'cobrado', payment_method: opts.method, amount: opts.amount, income_date: date })
       .eq('id', existing.id)
-    return error?.message ?? null
+    return zeroAmountError(error, opts.amount)
   }
-  if (!(opts.amount > 0)) return null
+  // También con $0 (asesoría bonificada): así el mes figura como pagado en Finanzas.
+  if (!(opts.amount >= 0)) return null
   const row: Record<string, unknown> = {
     owner_id: opts.ownerId,
     student_id: opts.studentId,
@@ -95,7 +106,7 @@ async function markRoutinePaidImpl(opts: {
   }
   if (!isMissingColumn(findErr)) row.routine_id = opts.routineId
   const { error } = await supabase.from('income').insert(row)
-  return error?.message ?? null
+  return zeroAmountError(error, opts.amount)
 }
 
 /** Desmarcar «Abonó»: la rutina vuelve a impaga y su cobro a «pendiente». */
@@ -134,7 +145,7 @@ async function registerStudentPaymentImpl(opts: {
     }
     return null
   }
-  if (!(opts.amount > 0)) return 'Ingresá un monto mayor a cero'
+  if (!(opts.amount >= 0)) return 'Ingresá un monto válido (0 si es bonificada)'
   const { error } = await supabase.from('income').insert({
     owner_id: opts.ownerId,
     student_id: opts.studentId,
@@ -142,13 +153,13 @@ async function registerStudentPaymentImpl(opts: {
     payment_method: opts.method,
     income_type: 'Cuota mensual',
     category: 'Entrenamiento',
-    description: `Pago de ${opts.studentName}`,
+    description: opts.amount === 0 ? `Asesoría bonificada de ${opts.studentName}` : `Pago de ${opts.studentName}`,
     income_date: opts.date,
     status: 'cobrado',
     scope: 'business',
     notes: null,
   })
-  return error?.message ?? null
+  return zeroAmountError(error, opts.amount)
 }
 
 /** Ventana de pago del alumno (días del mes). */

@@ -24,6 +24,8 @@ export function CheckInQuestionFields({
   onChange: (next: CheckInAnswerDraft) => void
 }) {
   const selected = question.options?.find((o) => o.id === draft.optionId)
+  /** Dolor puntual: fecha y zona (el entrenador lo ve en el calendario y en el volumen). */
+  const painYes = question.key === 'pain' && selected?.extra === 'date'
   return (
     <section className="rounded-3xl border border-surface-border/70 bg-surface-card/80 p-4 shadow-card sm:p-5">
       <p className="text-[15px] font-semibold leading-snug text-ink-primary">
@@ -139,7 +141,7 @@ export function CheckInQuestionFields({
           {selected?.extra === 'date' ? (
             <label className="block space-y-1.5 rounded-2xl border border-violet-500/30 bg-violet-500/8 p-3 pt-2">
               <span className="text-2xs font-medium text-violet-800 dark:text-violet-200">
-                Fecha de tu última menstruación — registrala en cada ciclo
+                {painYes ? '¿Qué día fue?' : 'Fecha de tu última menstruación — registrala en cada ciclo'}
               </span>
               <input
                 type="date"
@@ -166,13 +168,13 @@ export function CheckInQuestionFields({
 
       {question.allowNote && draft.optionId ? (
         <label className="mt-3 block space-y-1.5">
-          <span className="text-2xs text-ink-muted">¿Querés aclarar algo? (opcional)</span>
+          <span className="text-2xs text-ink-muted">{painYes ? '¿En qué zona? ¿Con qué ejercicio o movimiento?' : '¿Querés aclarar algo? (opcional)'}</span>
           <textarea
             rows={2}
             maxLength={CHECK_IN_NOTE_MAX}
             value={draft.note}
             onChange={(e) => onChange({ ...draft, note: e.target.value })}
-            placeholder="Contame un poco más si querés…"
+            placeholder={painYes ? 'Ej: rodilla derecha en la sentadilla búlgara' : 'Contame un poco más si querés…'}
             className={cn(
               fieldClass,
               'resize-y border-dashed bg-surface-elevated/30',

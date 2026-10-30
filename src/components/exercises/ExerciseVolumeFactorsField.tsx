@@ -13,19 +13,22 @@ export function ExerciseVolumeFactorsField({
   onChange,
   suggested,
   isSuggestion,
+  scopeText = 'Lo usa el contador de volumen de todas tus rutinas.',
 }: {
   value: FactorsDraft
   onChange: (next: FactorsDraft) => void
   suggested: MuscleFactors
   /** true = los valores mostrados son la sugerencia automática (todavía no guardados). */
   isSuggestion: boolean
+  /** A quién aplica (biblioteca = todas las rutinas; o un alumno puntual). */
+  scopeText?: string
 }) {
   const hasSuggestion = Object.keys(suggested).length > 0
   return (
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-ink-muted">
         Cuánto participa cada músculo en una serie de este ejercicio. <b className="text-ink-secondary">1</b> = músculo objetivo,{' '}
-        <b className="text-ink-secondary">0,5</b> = sinérgico, vacío = no participa. Lo usa el contador de volumen de todas tus rutinas.
+        <b className="text-ink-secondary">0,5</b> = sinérgico, vacío = no participa. {scopeText}
       </p>
       {isSuggestion && hasSuggestion ? (
         <p className="flex items-center gap-1.5 rounded-lg bg-brand-primary/10 px-2.5 py-1.5 text-2xs font-medium text-brand-primary">

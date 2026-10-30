@@ -100,6 +100,19 @@ export function RoutineFormContent({
   // Recordamos el último nombre autogenerado para no pisar uno escrito a mano.
   const autoNameRef = useRef('')
 
+  // Precio por defecto: la cuota mensual del alumno (sigue a los aumentos programados de Finanzas).
+  const autoPriceRef = useRef('')
+  useEffect(() => {
+    if (isEditing || !watchStudentId) return
+    const fee = students.find((s) => s.id === watchStudentId)?.monthly_fee_amount
+    const current = String(watch('price') ?? '').trim()
+    if (!current || current === autoPriceRef.current) {
+      autoPriceRef.current = fee && fee > 0 ? String(fee) : ''
+      setValue('price', autoPriceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchStudentId, students, isEditing])
+
   // Nombre por defecto: "Nombre Apellido + N° de rutina" (ej. "Agustín Peluffo 2").
   useEffect(() => {
     if (isEditing || !watchStudentId || !user) return
@@ -136,7 +149,7 @@ export function RoutineFormContent({
 
   useEffect(() => {
     if (!user) return
-    supabase.from('students').select('id, full_name, level').eq('owner_id', user.id).eq('status', 'activo').order('full_name').then(({ data }) => setStudents((data as Student[]) ?? []))
+    supabase.from('students').select('id, full_name, level, monthly_fee_amount').eq('owner_id', user.id).eq('status', 'activo').order('full_name').then(({ data }) => setStudents((data as Student[]) ?? []))
     supabase
       .from('routines')
       .select('*, student:students(full_name)')

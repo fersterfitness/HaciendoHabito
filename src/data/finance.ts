@@ -78,3 +78,35 @@ export function useActiveStudents() {
   const { user } = useAuthStore()
   return useQuery({ queryKey: financeKeys.activeStudents(user?.id), queryFn: () => fetchActiveStudents(user!.id), enabled: Boolean(user) })
 }
+
+// ─── Recordatorios de pago enviados (día de pago y a los 7 días hábiles) ───────
+
+export type SentReminder = { student_id: string; period: string; kind: 'due' | 'overdue' }
+
+export const REMINDERS_SQL_HINT =
+  'Falta ejecutar la migración 20261030160000_oct5_calendario_volumen_finanzas.sql para recordar qué avisos ya mandaste.'
+
+/** Avisos ya mandados en un mes (`YYYY-MM`). Sin la migración devuelve null (se muestran todos). */
+export async function fetchSentReminders(period: string): Promise<SentReminder[] | null> {
+  const { data, error } = await supabase.from('student_payment_reminders').select('student_id, period, kind').eq('period', period)
+  if (error) return null
+  return (data ?? []) as SentReminder[]
+}
+
+export function useSentReminders(period: string) {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['finance', 'reminders', user?.id ?? 'anon', period],
+    queryFn: () => fetchSentReminders(period),
+    enabled: Boolean(user),
+  })
+}
+
+export async function markReminderSent(r: SentReminder): Promise<string | null> {
+  const { error } = await supabase
+    .from('student_payment_reminders')
+    .upsert({ ...r, sent_at: new Date().toISOString() }, { onConflict: 'owner_id,student_id,period,kind' })
+  if (error) return /does not exist|schema cache/i.test(error.message) ? REMINDERS_SQL_HINT : error.message
+  void invalidateFinance()
+  return null
+}
