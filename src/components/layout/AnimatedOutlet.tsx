@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 /**
  * Entrada suave del contenido al navegar (solo pathname; no reacciona a ?query).
@@ -20,7 +21,10 @@ export function AnimatedOutlet() {
         ease: [0.16, 1, 0.3, 1],
       }}
     >
-      <Outlet />
+      {/* Un error en una pantalla no tumba el menú; al navegar se reinicia (key). */}
+      <ErrorBoundary key={pathname}>
+        <Outlet />
+      </ErrorBoundary>
     </motion.div>
   )
 }
