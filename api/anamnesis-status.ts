@@ -163,6 +163,15 @@ export default async function handler(request: Request): Promise<Response> {
     public_link_issued_at?: string | null
   } | null
 
+  // Sin secreto configurado el link no lleva firma: solo vale si el nutricionista lo emitió desde la app.
+  if (!requireToken && !row?.public_link_issued_at) {
+    return Response.json({
+      accessible: false,
+      reason: 'link_no_emitido',
+      message: 'Este enlace no fue generado por tu nutricionista. Pedile el link desde la app.',
+    })
+  }
+
   if (row?.public_submitted_at) {
     return Response.json({
       accessible: false,

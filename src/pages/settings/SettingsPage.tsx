@@ -54,19 +54,17 @@ export function SettingsPage() {
 
   async function onSubmit(values: FormValues) {
     if (!profile) return
-    const isAdminProfile = profile.role === 'admin'
-    const nextRole: AppRole = isAdminProfile
-      ? 'admin'
-      : values.role === 'nutritionist'
-      ? 'nutritionist'
-      : 'trainer'
+    // Solo entrenador ↔ nutricionista se elige acá; el resto de los roles los cambia un admin
+    // (la base lo valida igual con el trigger guard_profile_role).
+    const canPickRole = profile.role === 'trainer' || profile.role === 'nutritionist'
+    const nextRole: AppRole = values.role === 'nutritionist' ? 'nutritionist' : 'trainer'
     const { data, error } = await supabase
       .from('profiles')
       .update({
         full_name: values.full_name,
         phone: values.phone || null,
         bio: values.bio || null,
-        role: nextRole,
+        ...(canPickRole ? { role: nextRole } : {}),
       })
       .eq('id', profile.id)
       .select()
@@ -212,6 +210,7 @@ export function SettingsPage() {
               <Input label="Nombre completo" required error={errors.full_name?.message} {...register('full_name')} />
               <Input label="Teléfono" type="tel" {...register('phone')} />
               <Input label="Bio / Descripción" {...register('bio')} />
+              {profile?.role === 'trainer' || profile?.role === 'nutritionist' || profile?.role === 'admin' ? (
               <Select
                 label="Perfil profesional"
                 options={[
@@ -226,6 +225,7 @@ export function SettingsPage() {
                 disabled={profile?.role === 'admin'}
                 {...register('role')}
               />
+              ) : null}
             </FormSection>
             <Button type="submit" variant="gradientSecondary" loading={isSubmitting}>
               Guardar cambios

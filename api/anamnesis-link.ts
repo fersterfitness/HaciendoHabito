@@ -15,8 +15,11 @@ function signStudentToken(studentId: string, secret: string): string {
 }
 
 function appOrigin(req: Request, fromBody?: string): string {
+  // El dominio del link solo puede venir del cliente si coincide con el origen real del pedido
+  // (evita armar links de anamnesis que apunten a otro sitio).
   const trimmed = (fromBody ?? '').trim().replace(/\/$/, '')
-  if (trimmed && /^https?:\/\//i.test(trimmed)) return trimmed
+  const reqOrigin = (req.headers.get('origin') ?? '').replace(/\/$/, '')
+  if (trimmed && /^https?:\/\//i.test(trimmed) && trimmed === reqOrigin) return trimmed
   const fromEnv = process.env.VITE_APP_URL ?? process.env.VERCEL_URL
   if (fromEnv) {
     const base = fromEnv.startsWith('http') ? fromEnv : `https://${fromEnv}`
