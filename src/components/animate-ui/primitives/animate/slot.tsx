@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 type AnyProps = Record<string, unknown>;
 
-type DOMMotionProps<T extends HTMLElement = HTMLElement> = Omit<
+type DOMMotionProps<_T extends HTMLElement = HTMLElement> = Omit<
   HTMLMotionProps<keyof HTMLElementTagNameMap>,
   'ref'
 >;
@@ -16,7 +16,6 @@ type WithAsChild<Base extends object> =
   | (Base & { asChild?: false | undefined });
 
 type SlotProps<T extends HTMLElement = HTMLElement> = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children?: React.ReactElement;
 } & DOMMotionProps<T>;
 
@@ -29,7 +28,7 @@ function mergeRefs<T>(
       if (typeof ref === 'function') {
         ref(node);
       } else {
-        (ref as React.RefObject<T | null>).current = node;
+        (ref as React.MutableRefObject<T | null>).current = node;
       }
     });
   };
@@ -62,20 +61,22 @@ const Slot = React.forwardRef(function Slot<T extends HTMLElement = HTMLElement>
   { children, ...props }: SlotProps<T>,
   ref: React.ForwardedRef<T>,
 ) {
-  if (!React.isValidElement(children)) return null;
-
+  // El hook va antes de cualquier return: React exige el mismo orden en cada render.
+  const childType = React.isValidElement(children) ? children.type : null;
   const isAlreadyMotion =
-    typeof children.type === 'object' &&
-    children.type !== null &&
-    isMotionComponent(children.type);
+    typeof childType === 'object' && childType !== null && isMotionComponent(childType);
 
   const Base = React.useMemo(
     () =>
-      isAlreadyMotion
-        ? (children.type as React.ElementType)
-        : motion.create(children.type as React.ElementType),
-    [isAlreadyMotion, children.type],
+      childType == null
+        ? null
+        : isAlreadyMotion
+          ? (childType as React.ElementType)
+          : motion.create(childType as React.ElementType),
+    [isAlreadyMotion, childType],
   );
+
+  if (!React.isValidElement(children) || !Base) return null;
 
   const { ref: childRef, ...childProps } = children.props as AnyProps;
   const mergedProps = mergeProps(childProps, props);

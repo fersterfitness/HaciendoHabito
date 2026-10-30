@@ -4,7 +4,6 @@ import { differenceInYears } from 'date-fns'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
-import { supabase } from '@/lib/supabase'
 import { updateAccessibleStudent } from '@/lib/students/studentAccess'
 import { personalPatchFromIntakeSnapshot } from '@/lib/students/personalFromIntakeSnapshot'
 import type { Student } from '@/types/database'
@@ -70,7 +69,7 @@ function ageFromBirth(birth: string): string | null {
   }
 }
 
-export function NutritionPatientPersonalDataSection({ student, ownerId, onUpdated }: Props) {
+export function NutritionPatientPersonalDataSection({ student, onUpdated }: Props) {
   const [form, setForm] = useState<FormState>(() => fromStudent(student))
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)

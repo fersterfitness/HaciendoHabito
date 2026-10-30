@@ -1,5 +1,3 @@
-import { cn } from '@/lib/utils'
-
 export function incomeStatusPhrase(status: string): string {
   switch (status) {
     case 'cobrado':

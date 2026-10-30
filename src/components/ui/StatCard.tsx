@@ -176,7 +176,6 @@ function GradientIconPod({
   kpiId,
   lucideIcon,
   icon,
-  iconVariant,
   compact,
 }: {
   kpiId?: Kpi3dIconId

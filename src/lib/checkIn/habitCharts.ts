@@ -70,7 +70,7 @@ function bucketKey(iso: string, period: CheckInHabitChartPeriod): { key: string;
     return { key: `${y}-${pad(m)}`, label }
   }
   const key = mondayKey(iso)
-  const [yy, mm, dd] = key.split('-')
+  const [, mm, dd] = key.split('-')
   return { key, label: `${dd}/${mm}` }
 }
 
@@ -81,7 +81,7 @@ export function buildCheckInHabitCharts(
   const byKey = new Map<string, { title: string; question: CheckInQuestion; buckets: Map<string, Map<string, number>> }>()
 
   for (const p of points) {
-    const { key: bKey, label: bLabel } = bucketKey(p.submittedAt, period)
+    const { key: bKey } = bucketKey(p.submittedAt, period)
     for (const q of p.questions) {
       if (!q.key || !HABIT_KEYS.includes(q.key as (typeof HABIT_KEYS)[number])) continue
       if (q.type !== 'choice') continue

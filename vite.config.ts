@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // React propio en su chunk: si no, Rollup lo mete en el de animaciones y todo depende de él.
+          if (/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom|@remix-run)\//.test(id)) return 'react-vendor'
+          // Utilidades chicas que usan la app y las librerías: si quedan dentro de recharts, la entrada lo arrastra entero.
+          if (/node_modules\/(clsx|tailwind-merge)\//.test(id)) return 'utils-vendor'
           if (id.includes('node_modules/recharts')) return 'recharts'
           if (id.includes('node_modules/@react-pdf')) return 'react-pdf'
           if (id.includes('node_modules/pdfjs-dist')) return 'pdfjs'

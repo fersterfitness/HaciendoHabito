@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { LayoutGroup, motion } from 'framer-motion'
+import { LayoutGroup, motion } from 'motion/react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { IntakeProAvatarFocus } from '@/components/public/intake/IntakeProAvatar'

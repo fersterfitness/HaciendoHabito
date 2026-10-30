@@ -404,14 +404,14 @@ function AnimateIcon({
 
   const content = asChild ? (
     <Slot
-      ref={inViewRef}
+      ref={inViewRef as unknown as React.ForwardedRef<HTMLSpanElement>}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
-      {...props}
+      {...(props as Omit<typeof props, 'ref'>)}
     >
-      {children}
+      {children as React.ReactElement}
     </Slot>
   ) : (
     <motion.span

@@ -861,7 +861,7 @@ export function DashboardPage() {
       const c3m  = new Date(now.getFullYear(), now.getMonth() - 3,  now.getDate())
       const c6m  = new Date(now.getFullYear(), now.getMonth() - 6,  now.getDate())
       const c12m = new Date(now.getFullYear() - 1, now.getMonth(),  now.getDate())
-      const dates = (studentDates ?? []) as { created_at: string }[]
+      const dates = (studentDates ?? []) as unknown as { created_at: string }[]
       setRetention({
         m3:  dates.filter((d) => new Date(d.created_at) <= c3m).length,
         m6:  dates.filter((d) => new Date(d.created_at) <= c6m).length,
@@ -946,7 +946,7 @@ export function DashboardPage() {
       }))
       setRecentIncome(recentRows)
 
-      const levels = (studentDates ?? []) as { level: string }[]
+      const levels = (studentDates ?? []) as unknown as { level: string }[]
       const totalLevels = levels.length
       const dist = LEVEL_META.map((m) => {
         const count = levels.filter((l) => l.level === m.key).length
@@ -954,7 +954,7 @@ export function DashboardPage() {
       })
       setLevelDist(dist)
 
-      const allStudents = ((studentDates ?? []) as { id: string; full_name: string; birth_date: string | null; created_at: string; avatar_path: string | null }[])
+      const allStudents = ((studentDates ?? []) as unknown as { id: string; full_name: string; birth_date: string | null; created_at: string; avatar_path: string | null }[])
       const studentIds = allStudents.map((s) => s.id)
       const now3 = new Date()
       const monthStartStr = `${now3.getFullYear()}-${String(now3.getMonth() + 1).padStart(2, '0')}-01`
@@ -1038,7 +1038,7 @@ export function DashboardPage() {
           )
           .eq('owner_id', user!.id)
           .eq('is_enabled', true)
-        const srows = (schRes.data ?? []) as DueCheckInScheduleRow[]
+        const srows = (schRes.data ?? []) as unknown as DueCheckInScheduleRow[]
         const dueCheckIns = srows.filter((s) => scheduleMatchesToday(s))
         setDueCheckInSchedules(dueCheckIns)
         let dueResources: DueResourceScheduleRow[] = []
@@ -1051,7 +1051,7 @@ export function DashboardPage() {
             .eq('owner_id', user!.id)
             .eq('is_enabled', true)
           if (!resSchRes.error) {
-            dueResources = (resSchRes.data ?? []) as DueResourceScheduleRow[]
+            dueResources = (resSchRes.data ?? []) as unknown as DueResourceScheduleRow[]
             dueResources = dueResources.filter((s) => scheduleMatchesToday(s))
             setDueResourceSchedules(dueResources)
           } else {

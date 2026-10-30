@@ -255,8 +255,8 @@ export function IntakeNutritionForm({
                 type="tel"
                 autoComplete="tel"
                 className={inputClass(errors.phone?.message)}
+                onFocus={() => setPhoneFocused(true)}
                 {...register('phone', {
-                  onFocus: () => setPhoneFocused(true),
                   onBlur: (e) => {
                     setPhoneFocused(false)
                     const digits = e.target.value.replace(/\D/g, '')

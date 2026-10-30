@@ -10,6 +10,11 @@ import {
   updateAccessibleStudent,
 } from '@/lib/students/studentAccess'
 
+/** Columnas con valor por defecto en la base: opcionales al crear un alumno. */
+type StudentDefaultedColumns = 'selected_web_plan_slug' | 'intake_psychologist' | 'trainer_tags' | 'monthly_fee_amount' | 'target_weight_kg'
+export type NewStudentPayload = Omit<Student, 'id' | 'owner_id' | 'created_at' | 'updated_at' | StudentDefaultedColumns> &
+  Partial<Pick<Student, StudentDefaultedColumns>>
+
 export function useStudents() {
   const { user } = useAuthStore()
   const [students, setStudents] = useState<Student[]>([])
@@ -31,7 +36,7 @@ export function useStudents() {
   )
 
   const createStudent = useCallback(
-    async (payload: Omit<Student, 'id' | 'owner_id' | 'created_at' | 'updated_at'>) => {
+    async (payload: NewStudentPayload) => {
       if (!user) return null
       const { data, error } = await supabase
         .from('students')

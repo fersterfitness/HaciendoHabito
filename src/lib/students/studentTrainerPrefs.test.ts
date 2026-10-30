@@ -29,6 +29,7 @@ const baseStudent = {
   intake_nutrition: null,
   avatar_path: null,
   plan_end_date: null,
+  intake_psychologist: null,
   trainer_tags: [],
   monthly_fee_amount: null,
   target_weight_kg: null,

@@ -4,7 +4,7 @@ import {
   type PlanningWorkbookStateV1,
 } from '@/lib/nutrition/planningWorkbookTypes'
 import type { NutritionFoodLibrary } from '@/types/database'
-import { parseLocaleNumber, parseLocaleNumberOrZero } from '@/lib/formUtils'
+import { parseLocaleNumberOrZero } from '@/lib/formUtils'
 
 export { parseLocaleNumber, parseLocaleNumberOrZero } from '@/lib/formUtils'
 

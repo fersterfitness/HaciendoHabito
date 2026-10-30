@@ -10,12 +10,13 @@ import { AuthGuard } from '@/components/layout/AuthGuard'
 import { PageRouteFallback } from '@/components/layout/PageRouteFallback'
 import { LoginPageV2 as LoginPage } from '@/pages/auth/LoginPageV2'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
-import { DashboardPage } from '@/pages/dashboard/DashboardPage'
-import { StudentsPage } from '@/pages/students/StudentsPage'
 import { canSeePsychologistWorkspace } from '@/config/navigation'
 import type { AppRole } from '@/types/database'
 import { brandHex } from '@/theme/brandColors'
 
+/** Inicio y Alumnos también a demanda: traen gráficos y PDF, que no hacen falta para el login. */
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const StudentsPage = lazy(() => import('@/pages/students/StudentsPage').then((m) => ({ default: m.StudentsPage })))
 const StudentFormPage = lazy(() => import('@/pages/students/StudentFormPage').then((m) => ({ default: m.StudentFormPage })))
 const StudentDetailPage = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })))
 const PlansOverviewPage = lazy(() => import('@/pages/plans/PlansOverviewPage').then((m) => ({ default: m.PlansOverviewPage })))
@@ -125,10 +126,10 @@ function renderLoggedInRoutes({
   return (
     <>
       <Route index element={<Navigate to="/dashboard" replace />} />
-      <Route path="dashboard" element={<DashboardPage />} />
+      <Route path="dashboard" element={withPageSuspense(<DashboardPage />)} />
 
       {/* Alumnos */}
-      <Route path="students" element={<StudentsPage />} />
+      <Route path="students" element={withPageSuspense(<StudentsPage />)} />
       <Route path="students/new" element={<Navigate to="/students?create=1" replace />} />
       <Route
         path="students/:id/meal-plan/:planId"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -357,7 +357,7 @@ export function AppointmentsPage() {
 
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students])
 
-  const listMotion = useMemo(() => {
+  const listMotion = useMemo((): { parent: Variants; item: Variants } => {
     if (reduceMotion) {
       return {
         parent: { hidden: {}, visible: {} },

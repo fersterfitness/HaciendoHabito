@@ -35,8 +35,8 @@ export function withBlueprintMeta(
 ): Json {
   const base =
     payload && typeof payload === 'object' && !Array.isArray(payload)
-      ? { ...(payload as Record<string, unknown>) }
-      : {}
+      ? { ...(payload as Record<string, Json | undefined>) }
+      : ({} as Record<string, Json | undefined>)
   if (meta.routine_group != null) base.routine_group = meta.routine_group
   if (meta.objective != null) base.objective = meta.objective
   if (meta.audience != null) base.audience = meta.audience

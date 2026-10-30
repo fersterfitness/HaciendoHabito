@@ -336,7 +336,6 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
       ) : (
         <div className="space-y-6">
           {byMonth.map(([ym, rows]) => {
-            const monthUrls: string[] = []
             return (
               <div key={ym}>
                 <p className="mb-2 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">{formatYmLabel(ym)}</p>

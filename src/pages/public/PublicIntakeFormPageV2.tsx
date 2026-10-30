@@ -12,7 +12,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight, ArrowLeft, Check, CheckCircle2, Sparkles,
-  Calendar, Moon, Sun, BadgeCheck,
+  Moon, Sun, BadgeCheck,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/contexts/ThemeContext'

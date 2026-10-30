@@ -380,8 +380,8 @@ export function IntakeFullForm({
                 type="tel"
                 autoComplete="tel"
                 className={inputClass(errors.phone?.message)}
+                onFocus={() => setPhoneFocused(true)}
                 {...register('phone', {
-                  onFocus: () => setPhoneFocused(true),
                   onBlur: (e) => {
                     setPhoneFocused(false)
                     const formatted = formatArgPhoneInput(e.target.value)

@@ -80,12 +80,6 @@ export function PlansOverviewPage() {
     return { active, expiring, expired, cancelled }
   }, [rows])
 
-  const totalPaidAmount = useMemo(() => {
-    return rows
-      .filter((r) => r.payment_status === 'paid' && r.amount)
-      .reduce((sum, r) => sum + (r.amount ?? 0), 0)
-  }, [rows])
-
   const pendingAmount = useMemo(() => {
     return rows
       .filter((r) => {
@@ -155,11 +149,10 @@ export function PlansOverviewPage() {
 
   return (
     <div className="flex flex-col">
-      <Header />
+      <Header title="Planes" />
       <div className="mx-auto w-full max-w-5xl px-4 py-6">
         <div className="mb-6 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-ink-primary">Planes</h1>
             <p className="text-sm text-ink-muted">Vista global de planes asignados, vencimientos y pagos.</p>
           </div>
           <Button

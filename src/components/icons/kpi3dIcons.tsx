@@ -30,7 +30,10 @@ export type Kpi3dIconId =
 /** Alias histórico (StatCard usa `kpiFigmaIcon`). */
 export type KpiFigmaIconId = Kpi3dIconId
 
-type KpiAnimatedIcon = ComponentType<IconProps<string>>
+/** Props que usamos de los íconos animados (cada uno tipa su propio nombre de animación). */
+type KpiAnimatedIcon = ComponentType<
+  Pick<IconProps<string>, 'size' | 'strokeWidth' | 'className'> & { animateOnHover?: boolean; animateOnView?: boolean }
+>
 
 const KPI_ANIMATED_ICON: Record<Kpi3dIconId, KpiAnimatedIcon> = {
   patients: Users,

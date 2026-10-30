@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { pdf } from '@react-pdf/renderer'
-import { createElement } from 'react'
+import { createElement, type ReactElement } from 'react'
+import type { DocumentProps } from '@react-pdf/renderer'
 import { describe, expect, it } from 'vitest'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
@@ -40,7 +41,7 @@ function pdfLatin1(data: Uint8Array): string {
 
 function pageCount(data: Uint8Array): number {
   const matches = [...pdfLatin1(data).matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s+(\d+)/g)]
-  const last = matches.at(-1)
+  const last = matches[matches.length - 1]
   return last ? Number(last[1]) : 0
 }
 
@@ -75,7 +76,7 @@ describe('NutritionMealPlanPdfDocument layout', () => {
       mergeWeekends: false,
       grid: sampleGrid(),
     })
-    const blob = await pdf(element).toBlob()
+    const blob = await pdf(element as ReactElement<DocumentProps>).toBlob()
     const data = new Uint8Array(await blob.arrayBuffer())
 
     expect(pageCount(data)).toBe(1)
@@ -92,7 +93,7 @@ describe('NutritionMealPlanPdfDocument layout', () => {
       mergeWeekends: false,
       grid: fiveMealGrid(),
     })
-    const blob = await pdf(element).toBlob()
+    const blob = await pdf(element as ReactElement<DocumentProps>).toBlob()
     const data = new Uint8Array(await blob.arrayBuffer())
 
     expect(pageCount(data)).toBeGreaterThanOrEqual(2)

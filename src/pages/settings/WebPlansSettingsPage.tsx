@@ -252,7 +252,6 @@ export function WebPlansSettingsPage() {
   const [modalityLabelPsychologist, setModalityLabelPsychologist] = useState('')
   const [modalityLabelFullTrio, setModalityLabelFullTrio] = useState('')
   const [assetsSaving, setAssetsSaving] = useState(false)
-  const [sortOrderSaving, setSortOrderSaving] = useState(false)
   const sortPersistTimer = useRef<number | null>(null)
   const plansForSortPersistRef = useRef(plans)
   plansForSortPersistRef.current = plans
@@ -570,7 +569,6 @@ export function WebPlansSettingsPage() {
       toast.error('Guardá primero las ofertas nuevas antes de reordenarlas.')
       return
     }
-    setSortOrderSaving(true)
     try {
       const results = await Promise.all(
         toSave.map((plan) =>
@@ -583,8 +581,8 @@ export function WebPlansSettingsPage() {
         return
       }
       toast.success('Orden guardado')
-    } finally {
-      setSortOrderSaving(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo guardar el orden')
     }
   }
 
@@ -761,12 +759,12 @@ export function WebPlansSettingsPage() {
       if (cred && cred.length > LIMITS.credentialLine) {
         return `La línea de credencial libre de la oferta «${plan.slug}» supera ${LIMITS.credentialLine} caracteres.`
       }
-      const includeCount = totalIncludeItemCount(plan.includes_sections)
+      const includeCount = totalIncludeItemCount((plan.includes_sections ?? []))
       if (includeCount === 0 || plan.gifts_items.length === 0) {
         return 'Cada oferta necesita al menos un ítem en Incluye (por profesional) y De regalo.'
       }
       if (includeCount > 16) return 'Máximo 16 ítems en total en «Incluye» (sumando todas las secciones).'
-      const flatIncludes = flattenIncludeSections(plan.includes_sections)
+      const flatIncludes = flattenIncludeSections((plan.includes_sections ?? []))
       if (flatIncludes.some((item) => item.length > LIMITS.item) || plan.gifts_items.some((item) => item.length > LIMITS.item)) {
         return 'Hay ítems muy largos; límite 180 caracteres por línea.'
       }
@@ -790,8 +788,8 @@ export function WebPlansSettingsPage() {
       price_6m_label: plan.price_6m_label?.trim() ? plan.price_6m_label.trim().slice(0, LIMITS.price) : null,
       short_description: plan.short_description.trim(),
       intro_text: plan.intro_text.trim(),
-      includes_sections: plan.includes_sections,
-      includes_items: flattenIncludeSections(plan.includes_sections),
+      includes_sections: (plan.includes_sections ?? []),
+      includes_items: flattenIncludeSections((plan.includes_sections ?? [])),
       gifts_items: plan.gifts_items,
       sort_order: plan.sort_order,
       is_active: plan.is_active,
@@ -1473,9 +1471,9 @@ export function WebPlansSettingsPage() {
                         ) as WebPlanCatalogSegment
                         const defaultPro = defaultProfessionalForSegment(catalog_segment)
                         const includes_sections =
-                          plan.includes_sections.length === 1
-                            ? [{ ...plan.includes_sections[0]!, professional: defaultPro }]
-                            : plan.includes_sections
+                          (plan.includes_sections ?? []).length === 1
+                            ? [{ ...(plan.includes_sections ?? [])[0]!, professional: defaultPro }]
+                            : (plan.includes_sections ?? [])
                         updatePlan(plan.slug, {
                           catalog_segment,
                           includes_sections,
@@ -1600,7 +1598,7 @@ export function WebPlansSettingsPage() {
                       Incluye — por profesional
                     </p>
                     <WebPlanIncludesSectionsEditor
-                      sections={plan.includes_sections}
+                      sections={(plan.includes_sections ?? [])}
                       itemMaxLength={LIMITS.item}
                       onChange={(includes_sections: WebPlanIncludeSection[]) => {
                         updatePlan(plan.slug, {

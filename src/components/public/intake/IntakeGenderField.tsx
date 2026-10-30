@@ -1,4 +1,4 @@
-import type { FieldErrors, UseFormRegister } from 'react-hook-form'
+import type { FieldErrors, UseFormRegisterReturn } from 'react-hook-form'
 import { cn } from '@/lib/utils'
 import { intakeFormFieldLabelClass, intakeFormInputClass } from '@/lib/intake/intakeFormUi'
 
@@ -9,7 +9,8 @@ const GENDER_OPTIONS = [
 ] as const
 
 type IntakeGenderFieldProps = {
-  register: UseFormRegister<{ gender: string; gender_other?: string }>
+  /** El `register` de cualquier formulario que tenga `gender` y `gender_other`. */
+  register: (name: 'gender' | 'gender_other') => UseFormRegisterReturn
   gender: string
   errors: Pick<FieldErrors<{ gender?: string; gender_other?: string }>, 'gender' | 'gender_other'>
   inputClass?: (err?: string) => string

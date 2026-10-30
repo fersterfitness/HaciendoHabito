@@ -24,6 +24,15 @@ export function prefetchRouteChunkByHref(href: string): void {
   const raw = href.split('?')[0]
   const path = raw.replace(/\/+$/, '') || '/'
 
+  if (path === '/dashboard') {
+    runOnce('dashboard', () => void import('@/pages/dashboard/DashboardPage'))
+    return
+  }
+  if (path === '/students') {
+    runOnce('students', () => void import('@/pages/students/StudentsPage'))
+    return
+  }
+
   if (path.startsWith('/finances')) {
     runOnce('finances', () => {
       void import('@/pages/finances/FinancesPage')

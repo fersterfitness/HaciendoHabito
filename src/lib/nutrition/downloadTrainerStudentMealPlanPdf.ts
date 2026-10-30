@@ -1,5 +1,4 @@
 import type { Json, TrainerStudentMealPlan } from '@/types/database'
-import { downloadPlanningWorkbookPdf } from '@/lib/nutrition/downloadPlanningWorkbookPdf'
 import { createInitialPlanningWorkbook } from '@/lib/nutrition/planningWorkbookFactory'
 import { parsePlanningData } from '@/lib/nutrition/planningWorkbookTypes'
 
@@ -9,6 +8,8 @@ export async function downloadTrainerStudentMealPlanPdf(
   options?: { professionalName?: string | null; studentName?: string | null },
 ): Promise<void> {
   const wb = parsePlanningData(plan.data as Json) ?? createInitialPlanningWorkbook()
+  // El generador de PDF (@react-pdf, ~1,4 MB) se carga recién al descargar.
+  const { downloadPlanningWorkbookPdf } = await import('@/lib/nutrition/downloadPlanningWorkbookPdf')
   const safe = plan.title.replace(/\s+/g, '-').replace(/[^\w\s\-_.áéíóúÁÉÍÓÚñÑ]/g, '').trim().slice(0, 60)
   await downloadPlanningWorkbookPdf(wb, {
     professionalName: options?.professionalName,

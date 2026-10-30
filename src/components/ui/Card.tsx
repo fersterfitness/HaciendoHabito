@@ -1,4 +1,4 @@
-import { type HTMLAttributes } from 'react'
+import { forwardRef, type HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -13,9 +13,13 @@ const paddingStyles = {
   lg: 'p-6',
 }
 
-export function Card({ hover = false, padding = 'md', className, children, ...props }: CardProps) {
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+  { hover = false, padding = 'md', className, children, ...props },
+  ref,
+) {
   return (
     <div
+      ref={ref}
       className={cn(
         'rounded-2xl border border-surface-border/90 bg-surface-card shadow-card',
         hover &&
@@ -28,7 +32,7 @@ export function Card({ hover = false, padding = 'md', className, children, ...pr
       {children}
     </div>
   )
-}
+})
 
 export function CardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (

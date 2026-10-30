@@ -135,7 +135,7 @@ export function Popover({
     <>
       {trigger({
         ref: (el) => {
-          triggerRef.current = el
+          ;(triggerRef as React.MutableRefObject<HTMLElement | null>).current = el
         },
         onClick: (e) => {
           e.stopPropagation()

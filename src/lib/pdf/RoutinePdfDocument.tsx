@@ -69,6 +69,8 @@ const R = 3
 
 const C = {
   brand: '#FF8C00',
+  brandMid: '#FFC680',
+  brandLight: '#FFF4E6',
   ink: '#0F172A',
   heading: '#1E293B',
   body: '#475569',

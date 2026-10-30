@@ -1,3 +1,4 @@
+import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -918,7 +919,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `check-in-${savedForm.title.replace(/[^\w\-]+/g, '_').slice(0, 40) || 'respuestas'}.csv`
+    a.download = `check-in-${savedForm.title.replace(/[^\w-]+/g, '_').slice(0, 40) || 'respuestas'}.csv`
     a.click()
     URL.revokeObjectURL(url)
     toast.success('CSV descargado')

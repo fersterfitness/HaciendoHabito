@@ -366,7 +366,7 @@ export function LoginPageV2() {
             {/* Logo centrado debajo del toggle — solo desktop (en mobile usa el del form) */}
             <div className="hidden justify-center pt-2 lg:flex">
               <BrandLogo
-                size="xl"
+                size="md"
                 decorative
                 className="h-40 w-40 drop-shadow-[0_6px_24px_rgba(255,72,0,0.40)] sm:h-48 sm:w-48"
               />
@@ -378,7 +378,7 @@ export function LoginPageV2() {
                 {/* Mobile logo (en lg desaparece porque el panel izquierdo lo cubre) */}
                 <div className="loginv2-fade-up loginv2-d2 mb-6 flex justify-center lg:hidden">
                   <BrandLogo
-                    size="xl"
+                    size="md"
                     className="h-36 w-auto drop-shadow-[0_6px_18px_rgba(255,72,0,0.32)] sm:h-44"
                   />
                 </div>

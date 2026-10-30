@@ -19,8 +19,9 @@ export function useUnreadNotificationCount(): number {
 
     let cancelled = false
 
+    const uid = userId
     async function refresh() {
-      const unread = await fetchUnreadNotificationCount(userId)
+      const unread = await fetchUnreadNotificationCount(uid)
       if (!cancelled) setCount(unread)
     }
 

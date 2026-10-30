@@ -742,8 +742,8 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             ) : (
               <>
                 <div className="rounded-lg border border-surface-border bg-surface-elevated/30 px-3 py-2 text-xs space-y-1">
-                  <p className="font-semibold text-ink-primary">{selectedResource.title}</p>
-                  <p className="text-ink-muted font-mono break-all">{selectedResource.url}</p>
+                  <p className="font-semibold text-ink-primary">{selectedResource?.title ?? 'Elegí un recurso'}</p>
+                  <p className="text-ink-muted font-mono break-all">{selectedResource?.url}</p>
                 </div>
                 {templates.length > 0 ? (
                   <label className="block space-y-1">
@@ -851,8 +851,8 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     variant="secondary"
                     size="sm"
                     loading={logSendPending}
-                    onClick={() => void logSends(selectedResource.id, [...selectedStudentIds])}
-                    disabled={selectedStudentIds.size === 0 || logSendPending}
+                    onClick={() => selectedResource && void logSends(selectedResource.id, [...selectedStudentIds])}
+                    disabled={!selectedResource || selectedStudentIds.size === 0 || logSendPending}
                   >
                     Registrar envío en historial
                   </Button>
@@ -873,7 +873,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                           size="sm"
                           variant="outline"
                           className="shrink-0 text-2xs h-7"
-                          onClick={() => void openWaForStudent(st, selectedResource)}
+                          onClick={() => selectedResource && void openWaForStudent(st, selectedResource)}
                         >
                           WhatsApp
                         </Button>

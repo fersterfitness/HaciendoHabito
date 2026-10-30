@@ -121,7 +121,6 @@ export function DashboardTrainerOpsPanel({
 
   const fridayHighlight = TRAINER_WEEKLY_REMINDERS.some((r) => isTrainerReminderHighlightedToday(r))
 
-  const dueCheckInFormIds = new Set(dueCheckInSchedules.map((s) => s.form_id))
   const dueResourceScheduleIds = new Set(dueResourceSchedules.map((s) => s.id))
 
   const primaryCheckIn = checkInQuickSends[0] ?? null

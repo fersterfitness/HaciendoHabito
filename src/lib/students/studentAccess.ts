@@ -21,7 +21,7 @@ export async function fetchAccessibleStudents(): Promise<{ data: Student[]; erro
     ascending: true,
   })
   if (fallbackError) return { data: [], error: fallbackError.message }
-  return { data: (fallback ?? []) as Student[], error: null }
+  return { data: (fallback ?? []) as unknown as Student[], error: null }
 }
 
 function isAccessibleStudentRow(row: Student | null | undefined): row is Student {
@@ -55,7 +55,7 @@ export async function fetchAccessibleStudentById(
   const { data: fallback, error: fallbackError } = await accessibleStudentById(id)
   if (fallbackError) return { data: null, error: fallbackError.message }
   if (isAccessibleStudentRow(fallback as Student | null)) {
-    const s = fallback as Student
+    const s = fallback as unknown as Student
     if (!s.avatar_path) {
       const linked = await linkStudentAvatarIfFileExists(s.id, null)
       if (linked) return { data: { ...s, avatar_path: linked }, error: null }
@@ -107,7 +107,7 @@ export async function fetchStudentDeletionLog(opts: {
 }> {
   const { userId, role } = opts
 
-  let rows: Record<string, unknown>[] | null = null
+  let rows: DeletionLogListRow[] | null = null
   let tableError = null as { code?: string; message: string } | null
 
   const richSelect = await supabase
@@ -121,7 +121,7 @@ export async function fetchStudentDeletionLog(opts: {
     .limit(200)
 
   if (!richSelect.error) {
-    rows = richSelect.data
+    rows = richSelect.data as unknown as DeletionLogListRow[]
   } else if (richSelect.error.code === '42703') {
     const basicSelect = await supabase
       .from('student_deletion_log')
@@ -131,7 +131,7 @@ export async function fetchStudentDeletionLog(opts: {
       .not('deleted_by', 'is', null)
       .order('deleted_at', { ascending: false })
       .limit(200)
-    rows = basicSelect.data
+    rows = basicSelect.data as unknown as DeletionLogListRow[]
     tableError = basicSelect.error
   } else {
     tableError = richSelect.error
@@ -163,8 +163,9 @@ export async function fetchStudentDeletionLog(opts: {
     tableError?.message.includes('schema cache')
 
   if (tableMissing) {
-    const { data, error } = await supabase.rpc('list_my_student_deletions')
+    const { data: rpcData, error } = await supabase.rpc('list_my_student_deletions')
     if (!error) {
+      const data = (rpcData ?? []) as DeletionLogListRow[]
       return {
         data: (data ?? []).map((row) =>
           enrichDeletionLogRow(
@@ -197,23 +198,26 @@ export async function fetchStudentDeletionLog(opts: {
   return { data: [], error: tableError?.message ?? 'No se pudo cargar el historial' }
 }
 
+/** Fila del listado de eliminaciones (tabla o RPC list_my_student_deletions). */
+type DeletionLogListRow = {
+  id: string
+  student_id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  status: string | null
+  deleted_at: string
+  deleted_by: string | null
+  primary_owner_id: string | null
+  snapshot?: unknown
+  restored_at?: string | null
+  can_restore?: boolean
+  deleted_by_name?: string | null
+  primary_owner_name?: string | null
+}
+
 function enrichDeletionLogRow(
-  row: {
-    id: string
-    student_id: string
-    full_name: string
-    email: string | null
-    phone: string | null
-    status: string | null
-    deleted_at: string
-    deleted_by: string | null
-    primary_owner_id: string | null
-    snapshot?: unknown
-    restored_at?: string | null
-    can_restore?: boolean
-    deleted_by_name?: string | null
-    primary_owner_name?: string | null
-  },
+  row: DeletionLogListRow,
   userId: string,
   role: AppRole | undefined,
   namesById: Map<string, string>,

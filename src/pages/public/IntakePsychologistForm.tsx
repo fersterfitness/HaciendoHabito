@@ -99,12 +99,12 @@ export function IntakePsychologistForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <FieldLabel required>Nombre</FieldLabel>
-            <input className={inputClass(errors.first_name)} {...register('first_name')} autoComplete="given-name" />
+            <input className={inputClass(errors.first_name?.message)} {...register('first_name')} autoComplete="given-name" />
             {errors.first_name ? <p className="mt-1 text-xs text-red-600">{errors.first_name.message}</p> : null}
           </div>
           <div>
             <FieldLabel required>Apellido</FieldLabel>
-            <input className={inputClass(errors.last_name)} {...register('last_name')} autoComplete="family-name" />
+            <input className={inputClass(errors.last_name?.message)} {...register('last_name')} autoComplete="family-name" />
             {errors.last_name ? <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p> : null}
           </div>
         </div>
@@ -112,7 +112,7 @@ export function IntakePsychologistForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <FieldLabel required>Fecha de nacimiento</FieldLabel>
-            <input type="date" className={inputClass(errors.birth_date)} {...register('birth_date')} />
+            <input type="date" className={inputClass(errors.birth_date?.message)} {...register('birth_date')} />
             <p className="mt-1 text-2xs text-zinc-500 dark:text-zinc-400">Para registrar tu edad.</p>
             {errors.birth_date ? <p className="mt-1 text-xs text-red-600">{errors.birth_date.message}</p> : null}
           </div>
@@ -120,7 +120,7 @@ export function IntakePsychologistForm({
             <FieldLabel required>Email</FieldLabel>
             <input
               type="email"
-              className={inputClass(errors.email)}
+              className={inputClass(errors.email?.message)}
               {...register('email')}
               autoComplete="email"
             />
@@ -132,7 +132,7 @@ export function IntakePsychologistForm({
           <FieldLabel required>Teléfono de contacto</FieldLabel>
           <input
             type="tel"
-            className={inputClass(errors.phone)}
+            className={inputClass(errors.phone?.message)}
             placeholder={PHONE_HINT}
             {...register('phone')}
             autoComplete="tel"
@@ -143,7 +143,7 @@ export function IntakePsychologistForm({
         <div>
           <FieldLabel required>Lugar de residencia</FieldLabel>
           <input
-            className={inputClass(errors.residence)}
+            className={inputClass(errors.residence?.message)}
             placeholder="Ciudad, barrio o localidad"
             {...register('residence')}
             autoComplete="address-level2"
@@ -154,7 +154,7 @@ export function IntakePsychologistForm({
         <div>
           <FieldLabel required>Deporte que practicás</FieldLabel>
           <input
-            className={inputClass(errors.sport_practiced)}
+            className={inputClass(errors.sport_practiced?.message)}
             placeholder="Ej. fútbol, running, gym…"
             {...register('sport_practiced')}
           />
@@ -166,7 +166,7 @@ export function IntakePsychologistForm({
         <div>
           <FieldLabel required>Contacto de emergencia</FieldLabel>
           <textarea
-            className={cn(inputClass(errors.emergency_contact), 'min-h-[72px] resize-y')}
+            className={cn(inputClass(errors.emergency_contact?.message), 'min-h-[72px] resize-y')}
             placeholder="Nombre completo y teléfono de la persona a contactar"
             {...register('emergency_contact')}
           />
@@ -175,7 +175,7 @@ export function IntakePsychologistForm({
           ) : null}
         </div>
 
-        <IntakePaymentPreferenceFields register={register} errors={errors} />
+        <IntakePaymentPreferenceFields register={register} error={errors.payment_preference?.message} />
 
         <label className="flex cursor-pointer items-start gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
           <input

@@ -288,7 +288,7 @@ export function mergePublicIntakePlansFromDb(dbPlans: PublicIntakePlanDetail[]):
   const nutrition =
     extraWithNutritionist.length > 0
       ? extraWithNutritionist
-      : [overlayIntakeOfferFromDb(INTAKE_NUTRITION_OFFER, dbById)]
+      : [overlayIntakeOfferFromDb(INTAKE_NUTRITION_OFFER, dbById.get(INTAKE_NUTRITION_OFFER.id))]
   return [
     ...ferster,
     ...extraSolo,

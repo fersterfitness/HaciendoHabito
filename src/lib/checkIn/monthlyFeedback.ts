@@ -12,7 +12,7 @@ export type RoutineDateRange = {
   name: string
   start_date: string
   end_date: string
-  student_id?: string
+  student_id?: string | null
 }
 
 export type MonthlyFeedbackRow = {

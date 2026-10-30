@@ -59,7 +59,7 @@ export function buildAdherenceTimeline(
   let lastScore: number | null = null
   for (const key of keys) {
     const score = byWeek.get(key)?.score ?? null
-    const [y, m, d] = key.split('-')
+    const [, m, d] = key.split('-')
     points.push({
       weekKey: key,
       label: `${d}/${m}`,
