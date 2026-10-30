@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type { Income, PaymentMethod } from '@/types/database'
+import { invalidateFinance } from '@/data/finance'
+import { invalidateRoutines } from '@/data/routines'
+import { invalidateStudents } from '@/data/students'
 
 export const FINANCE_SQL_HINT =
   'Falta un cambio en la base: corré el SQL 20261027120000_finance_payment_window (Finanzas v2).'
@@ -13,7 +16,7 @@ function today(): string {
 }
 
 /** Al asignar una rutina con precio: queda un cobro «pendiente» en Haciéndolo hábito. */
-export async function createRoutinePendingIncome(opts: {
+async function createRoutinePendingIncomeImpl(opts: {
   ownerId: string
   routineId: string
   routineName: string
@@ -44,7 +47,7 @@ export async function createRoutinePendingIncome(opts: {
  * «Abonó»: la rutina queda paga y su cobro pasa a «cobrado» con el medio elegido.
  * Si la rutina no tenía cobro (rutinas viejas), se crea uno ya cobrado.
  */
-export async function markRoutinePaid(opts: {
+async function markRoutinePaidImpl(opts: {
   ownerId: string
   routineId: string
   routineName: string
@@ -96,7 +99,7 @@ export async function markRoutinePaid(opts: {
 }
 
 /** Desmarcar «Abonó»: la rutina vuelve a impaga y su cobro a «pendiente». */
-export async function unmarkRoutinePaid(routineId: string): Promise<string | null> {
+async function unmarkRoutinePaidImpl(routineId: string): Promise<string | null> {
   const { error: rErr } = await supabase.from('routines').update({ is_paid: false }).eq('id', routineId)
   if (rErr) return rErr.message
   const { error } = await supabase.from('income').update({ status: 'pendiente' }).eq('routine_id', routineId)
@@ -108,7 +111,7 @@ export async function unmarkRoutinePaid(routineId: string): Promise<string | nul
  * Cobro desde el tablero mensual: si el alumno tiene cobros pendientes (rutinas), pasan a cobrados
  * con el medio elegido; si no, se registra un cobro nuevo por el monto indicado (cuota del mes).
  */
-export async function registerStudentPayment(opts: {
+async function registerStudentPaymentImpl(opts: {
   ownerId: string
   studentId: string
   studentName: string
@@ -149,7 +152,7 @@ export async function registerStudentPayment(opts: {
 }
 
 /** Ventana de pago del alumno (días del mes). */
-export async function saveStudentPaymentWindow(studentId: string, from: number | null, to: number | null): Promise<string | null> {
+async function saveStudentPaymentWindowImpl(studentId: string, from: number | null, to: number | null): Promise<string | null> {
   const { error } = await supabase
     .from('students')
     .update({ payment_day_from: from, payment_day_to: to })
@@ -157,3 +160,18 @@ export async function saveStudentPaymentWindow(studentId: string, from: number |
   if (!error) return null
   return isMissingColumn(error) ? FINANCE_SQL_HINT : error.message
 }
+
+/** Después de cualquier cobro, las pantallas que muestran plata, rutinas o alumnos se refrescan. */
+function refreshing<A extends unknown[]>(fn: (...args: A) => Promise<string | null>) {
+  return async (...args: A): Promise<string | null> => {
+    const err = await fn(...args)
+    if (!err) void Promise.all([invalidateFinance(), invalidateRoutines(), invalidateStudents()])
+    return err
+  }
+}
+
+export const createRoutinePendingIncome = refreshing(createRoutinePendingIncomeImpl)
+export const markRoutinePaid = refreshing(markRoutinePaidImpl)
+export const unmarkRoutinePaid = refreshing(unmarkRoutinePaidImpl)
+export const registerStudentPayment = refreshing(registerStudentPaymentImpl)
+export const saveStudentPaymentWindow = refreshing(saveStudentPaymentWindowImpl)

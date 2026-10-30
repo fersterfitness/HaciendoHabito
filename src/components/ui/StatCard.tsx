@@ -50,6 +50,8 @@ interface StatCardProps {
   title: string
   value: string | number
   countUp?: boolean
+  /** Formato del número animado (p. ej. moneda). */
+  formatValue?: (n: number) => string
   subtitle?: string
   icon?: ReactNode
   lucideIcon?: LucideIcon
@@ -397,6 +399,7 @@ export function StatCard({
   title,
   value,
   countUp = false,
+  formatValue,
   subtitle,
   icon,
   lucideIcon,
@@ -419,7 +422,8 @@ export function StatCard({
     duration: 2200,
     enabled: countUp && typeof value === 'number',
   })
-  const displayValue = countUp && typeof value === 'number' ? animated : value
+  const shown = countUp && typeof value === 'number' ? animated : value
+  const displayValue = formatValue && typeof shown === 'number' ? formatValue(shown) : shown
 
   const comparison = useMemo(() => {
     if (!monthOverMonth) return null

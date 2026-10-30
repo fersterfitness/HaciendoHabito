@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, type ReactNode } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { useCountUp } from '@/hooks/useCountUp'
+import { CountUp } from '@/components/ui/CountUp'
 import {
   Plus,
   TrendingUp,
@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
-import { supabase } from '@/lib/supabase'
+import { deleteExpense, deleteIncome, useActiveStudents, useExpenses, useIncomes, type IncomeWithStudent } from '@/data/finance'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Input } from '@/components/ui/Input'
@@ -39,8 +39,8 @@ import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { PaymentsBoard } from '@/components/finances/PaymentsBoard'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
-type IncomeWithStudent = Income & { student?: Pick<Student, 'full_name'> }
 type Tab = 'income' | 'expenses'
+const MES_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 const MES_LABELS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -105,7 +105,7 @@ function MetricTile({
   icon: Icon,
 }: {
   label: string
-  value: string
+  value: ReactNode
   valueClassName?: string
   containerClassName?: string
   tone?: MetricTone
@@ -196,61 +196,51 @@ export function FinancesPage() {
   const { user } = useAuthStore()
 
   const [tab, setTab] = useState<Tab>((searchParams.get('tab') as Tab) === 'expenses' ? 'expenses' : 'income')
-  const [incomes, setIncomes] = useState<IncomeWithStudent[]>([])
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading, setLoading] = useState(true)
+  const incomesQuery = useIncomes()
+  const expensesQuery = useExpenses()
+  const studentsQuery = useActiveStudents()
+  const incomes = useMemo(() => incomesQuery.data ?? [], [incomesQuery.data])
+  const expenses = useMemo(() => expensesQuery.data ?? [], [expensesQuery.data])
+  const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data])
+  const loading = incomesQuery.isPending || expensesQuery.isPending
   const [search, setSearch] = useState('')
   const [scopeFilter, setScopeFilter] = useState<'all' | 'business' | 'personal'>('business')
 
   const [deleteIncomeTarget, setDeleteIncomeTarget] = useState<IncomeWithStudent | null>(null)
   const [deleteExpenseTarget, setDeleteExpenseTarget] = useState<Expense | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [dataUpdatedAt, setDataUpdatedAt] = useState<Date | null>(null)
+  const dataUpdatedAt = incomesQuery.dataUpdatedAt ? new Date(incomesQuery.dataUpdatedAt) : null
   const financesSearchRef = useRef<HTMLInputElement>(null)
 
-  const fetchAll = useCallback(async () => {
-    if (!user) return
-    setLoading(true)
-    try {
-      const [
-        { data: incomeData, error: incomeErr },
-        { data: expenseData, error: expenseErr },
-        { data: studentData },
-      ] = await Promise.all([
-        supabase.from('income').select('*, student:students(full_name)').eq('owner_id', user.id).order('income_date', { ascending: false }),
-        supabase.from('expenses').select('*').eq('owner_id', user.id).order('expense_date', { ascending: false }),
-        supabase.from('students').select('id, full_name, phone, status').eq('owner_id', user.id).eq('status', 'activo'),
-      ])
-      if (incomeErr) toast.error(incomeErr.message)
-      else setIncomes((incomeData as unknown as IncomeWithStudent[]) ?? [])
-      if (expenseErr) toast.error(expenseErr.message)
-      else setExpenses(expenseData ?? [])
-      setStudents((studentData as Student[]) ?? [])
-    } finally {
-      setLoading(false)
-      setDataUpdatedAt(new Date())
-    }
-  }, [user])
+  useEffect(() => {
+    const err = incomesQuery.error ?? expensesQuery.error
+    if (err) toast.error(err.message)
+  }, [incomesQuery.error, expensesQuery.error])
 
   useSlashSearchFocus(financesSearchRef)
 
-  const incomesFiltered = incomes.filter((i) => {
-    if (scopeFilter === 'all') return true
-    return (i.scope ?? 'business') === scopeFilter
-  })
+  // Listas memorizadas: los contadores animados re-renderizan la página en cada cuadro y
+  // recharts reinicia su animación si el array del gráfico cambia de referencia (bucle infinito).
+  const incomesFiltered = useMemo(
+    () => incomes.filter((i) => scopeFilter === 'all' || (i.scope ?? 'business') === scopeFilter),
+    [incomes, scopeFilter],
+  )
 
   const expensesFiltered = expenses.filter((e) => {
     if (scopeFilter === 'all') return true
     return (e.scope ?? 'business') === scopeFilter
   })
 
-  const filteredIncomes = incomesFiltered.filter(
-    (i) =>
-      i.description.toLowerCase().includes(search.toLowerCase()) ||
-      (i.student?.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      i.category.toLowerCase().includes(search.toLowerCase()) ||
-      i.income_type.toLowerCase().includes(search.toLowerCase()),
+  const filteredIncomes = useMemo(
+    () =>
+      incomesFiltered.filter(
+        (i) =>
+          i.description.toLowerCase().includes(search.toLowerCase()) ||
+          (i.student?.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+          i.category.toLowerCase().includes(search.toLowerCase()) ||
+          i.income_type.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [incomesFiltered, search],
   )
   const filteredExpenses = expensesFiltered.filter(
     (e) =>
@@ -266,10 +256,6 @@ export function FinancesPage() {
   const businessIncomesOnly = incomes.filter((i) => (i.scope ?? 'business') === 'business')
 
   useEffect(() => {
-    fetchAll()
-  }, [fetchAll])
-
-  useEffect(() => {
     const t = searchParams.get('tab')
     if (t === 'expenses' || t === 'income') setTab(t)
   }, [searchParams])
@@ -283,29 +269,31 @@ export function FinancesPage() {
   async function handleDeleteIncome() {
     if (!deleteIncomeTarget || !user) return
     setDeleting(true)
-    const { error } = await supabase.from('income').delete().eq('id', deleteIncomeTarget.id).eq('owner_id', user.id)
-    setDeleting(false)
-    if (error) {
-      toast.error(error.message)
+    try {
+      await deleteIncome(deleteIncomeTarget.id, user.id)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo eliminar')
       return
+    } finally {
+      setDeleting(false)
     }
     toast.success('Ingreso eliminado')
     setDeleteIncomeTarget(null)
-    fetchAll()
   }
 
   async function handleDeleteExpense() {
     if (!deleteExpenseTarget || !user) return
     setDeleting(true)
-    const { error } = await supabase.from('expenses').delete().eq('id', deleteExpenseTarget.id).eq('owner_id', user.id)
-    setDeleting(false)
-    if (error) {
-      toast.error(error.message)
+    try {
+      await deleteExpense(deleteExpenseTarget.id, user.id)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo eliminar')
       return
+    } finally {
+      setDeleting(false)
     }
     toast.success('Gasto eliminado')
     setDeleteExpenseTarget(null)
-    fetchAll()
   }
 
   const totalIngresos = incomesForAggregates.filter((i) => i.status === 'cobrado').reduce((s, i) => s + i.amount, 0)
@@ -315,12 +303,7 @@ export function FinancesPage() {
 
   const now = new Date()
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const MES_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-  const animBalance = useCountUp(Math.round(balance), { duration: 2600, enabled: !loading })
-  const animCobradoTotal = useCountUp(Math.round(totalIngresos), { duration: 2200, enabled: !loading })
-  const animPendiente = useCountUp(Math.round(totalPendiente), { duration: 2200, enabled: !loading })
-  const animGastos = useCountUp(Math.round(totalGastos), { duration: 2200, enabled: !loading })
 
   /** Caja práctica (feedback entrenador): efectivo neto del mes + gastos Cuenta DNI → sugerencia «a transferir». Solo ámbito personal. */
   const personalCashTransferHint = useMemo(() => {
@@ -348,14 +331,17 @@ export function FinancesPage() {
     })
     .filter(Boolean) as { student: Student; cuota: number; paid: number; pending: number }[]
 
-  const annualChartData = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const total = incomesForAggregates
-      .filter((inc) => inc.status === 'cobrado' && inc.income_date.startsWith(key))
-      .reduce((s, inc) => s + inc.amount, 0)
-    return { mes: MES_LABELS[d.getMonth()], total, isCurrent: key === thisMonthKey }
-  })
+  const annualChartData = useMemo(() => {
+    const base = new Date()
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(base.getFullYear(), base.getMonth() - 11 + i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const total = incomesForAggregates
+        .filter((inc) => inc.status === 'cobrado' && inc.income_date.startsWith(key))
+        .reduce((s, inc) => s + inc.amount, 0)
+      return { mes: MES_LABELS[d.getMonth()], total, isCurrent: key === thisMonthKey }
+    })
+  }, [incomesForAggregates, thisMonthKey])
 
   function exportCSV() {
     const isIncome = tab === 'income'
@@ -409,10 +395,10 @@ export function FinancesPage() {
       <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
         {/* KPI */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <MetricTile label="Balance neto" value={formatCurrency(animBalance)} tone="featured" icon={Scale} />
-          <MetricTile label="Cobrado total" value={formatCurrency(animCobradoTotal)} icon={TrendingUp} />
-          <MetricTile label="Pendiente" value={formatCurrency(animPendiente)} tone={animPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
-          <MetricTile label="Total gastos" value={formatCurrency(animGastos)} icon={TrendingDown} />
+          <MetricTile label="Balance neto" value={<CountUp value={balance} format={formatCurrency} duration={2600} enabled={!loading} />} tone="featured" icon={Scale} />
+          <MetricTile label="Cobrado total" value={<CountUp value={totalIngresos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingUp} />
+          <MetricTile label="Pendiente" value={<CountUp value={totalPendiente} format={formatCurrency} duration={2200} enabled={!loading} />} tone={totalPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
+          <MetricTile label="Total gastos" value={<CountUp value={totalGastos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingDown} />
         </div>
         <p className="text-2xs leading-relaxed text-ink-muted">
           Los montos siguen el filtro &ldquo;
@@ -469,7 +455,7 @@ export function FinancesPage() {
 
 
         {/* Cobros de alumnos por mes: quién pagó, cuánto, por qué medio; vencidos con WhatsApp */}
-        {scopeFilter !== 'personal' ? <PaymentsBoard onChanged={() => void fetchAll()} /> : null}
+        {scopeFilter !== 'personal' ? <PaymentsBoard /> : null}
 
         {/* Tabs (estilo rutinas / listados) */}
         <SegmentedControl

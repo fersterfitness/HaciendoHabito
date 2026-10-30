@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { useCountUp } from '@/hooks/useCountUp'
 import {
   Calendar,
   BarChart3,
@@ -544,10 +543,6 @@ export function DashboardPage() {
   const [rmTestDueStudents, setRmTestDueStudents] = useState<RmTestWeeksRow[]>([])
   const [monthlyFeedbackUrl, setMonthlyFeedbackUrl] = useState<string | null>(null)
 
-  const animatedIncome = useCountUp(stats.currentMonthIncome, {
-    duration: 2600,
-    enabled: !loading,
-  })
 
   const lastWeekStudentIds = useMemo(() => new Set(lastWeekStudents.map((s) => s.id)), [lastWeekStudents])
 
@@ -1241,7 +1236,9 @@ export function DashboardPage() {
               />
               <StatCard
                 title="Ingresos · este mes"
-                value={formatCurrency(animatedIncome)}
+                value={stats.currentMonthIncome}
+                countUp={!loading}
+                formatValue={formatCurrency}
                 surface="gradient"
                 kpiFigmaIcon="income"
                 iconVariant="3d"
@@ -1309,7 +1306,9 @@ export function DashboardPage() {
               />
               <StatCard
                 title="Ingresos · este mes"
-                value={formatCurrency(animatedIncome)}
+                value={stats.currentMonthIncome}
+                countUp={!loading}
+                formatValue={formatCurrency}
                 surface="gradient"
                 kpiFigmaIcon="income"
                 iconVariant="3d"

@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addMonths, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Check, ChevronLeft, ChevronRight, Lock, Settings2 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import toast from 'react-hot-toast'
-import { supabase } from '@/lib/supabase'
+import { invalidateFinance, useActiveStudents, useIncomes } from '@/data/finance'
+import { invalidateStudents } from '@/data/students'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -26,7 +27,7 @@ import { buildWhatsAppUrl, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { PAYMENT_METHODS } from '@/lib/constants'
 import { cn, formatCurrency } from '@/lib/utils'
-import type { Income, Student } from '@/types/database'
+import type { Income } from '@/types/database'
 
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
   pagado: { label: 'Pagó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: '#10b981' },
@@ -46,40 +47,24 @@ type Filter = 'all' | 'vencido' | 'pendiente' | 'pagado'
  * Cobros del mes por alumno: quién pagó, cuánto y por qué medio; vencidos con WhatsApp directo.
  * Navegar a meses anteriores muestra el mes «cerrado» con lo que se generó.
  */
-export function PaymentsBoard({ onChanged }: { onChanged?: () => void }) {
+/** Tablero de cobros del mes. Comparte la caché de finanzas con el resto de la app. */
+export function PaymentsBoard() {
   const { user } = useAuthStore()
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
-  const [students, setStudents] = useState<Student[]>([])
-  const [incomes, setIncomes] = useState<Income[]>([])
-  const [loading, setLoading] = useState(true)
+  const studentsQuery = useActiveStudents()
+  const incomesQuery = useIncomes()
+  const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data])
+  /** Cuotas: solo cobros del negocio asociados a un alumno. */
+  const incomes = useMemo<Income[]>(
+    () => (incomesQuery.data ?? []).filter((i) => (i.scope ?? 'business') === 'business' && i.student_id),
+    [incomesQuery.data],
+  )
+  const loading = studentsQuery.isPending || incomesQuery.isPending
   const [filter, setFilter] = useState<Filter>('all')
   const [paying, setPaying] = useState<StudentPaymentRow | null>(null)
   const [windowFor, setWindowFor] = useState<StudentPaymentRow | null>(null)
 
-  const load = useCallback(async () => {
-    if (!user) return
-    setLoading(true)
-    const [stuRes, incRes] = await Promise.all([
-      supabase.from('students').select('*').eq('owner_id', user.id).eq('status', 'activo').order('full_name'),
-      supabase
-        .from('income')
-        .select('id, student_id, amount, status, income_date, payment_method, scope')
-        .eq('owner_id', user.id)
-        .eq('scope', 'business')
-        .not('student_id', 'is', null),
-    ])
-    setLoading(false)
-    if (stuRes.error || incRes.error) {
-      toast.error((stuRes.error ?? incRes.error)!.message)
-      return
-    }
-    setStudents((stuRes.data ?? []) as Student[])
-    setIncomes((incRes.data ?? []) as Income[])
-  }, [user])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const load = () => Promise.all([invalidateFinance(), invalidateStudents()])
 
   const today = new Date()
   const isCurrentMonth = monthKey(month) === monthKey(today)
@@ -102,9 +87,14 @@ export function PaymentsBoard({ onChanged }: { onChanged?: () => void }) {
     filter === 'all' ? true : filter === 'pendiente' ? r.state === 'pendiente' || r.state === 'parcial' : r.state === filter,
   )
 
-  const stateChart = (['pagado', 'parcial', 'pendiente', 'vencido'] as PaymentState[])
-    .map((s) => ({ name: STATE_META[s].label, value: rows.filter((r) => r.state === s).length, color: STATE_META[s].color }))
-    .filter((d) => d.value > 0)
+  // Datos de gráficos memorizados: recharts reanima (y re-renderiza) si cambia la referencia en cada render.
+  const stateChart = useMemo(
+    () =>
+      (['pagado', 'parcial', 'pendiente', 'vencido'] as PaymentState[])
+        .map((s) => ({ name: STATE_META[s].label, value: rows.filter((r) => r.state === s).length, color: STATE_META[s].color }))
+        .filter((d) => d.value > 0),
+    [rows],
+  )
 
   const methodChart = useMemo(() => {
     const key = monthKey(month)
@@ -118,11 +108,15 @@ export function PaymentsBoard({ onChanged }: { onChanged?: () => void }) {
       .map(([m, v], idx) => ({ name: METHOD_LABEL[m] ?? m, value: v, color: METHOD_COLORS[idx % METHOD_COLORS.length] }))
   }, [incomes, month])
 
-  const debtChart = rows
-    .filter((r) => r.expected > r.paid)
-    .map((r) => ({ name: r.fullName.split(' ')[0], full: r.fullName, value: r.expected - r.paid, state: r.state }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10)
+  const debtChart = useMemo(
+    () =>
+      rows
+        .filter((r) => r.expected > r.paid)
+        .map((r) => ({ name: r.fullName.split(' ')[0], full: r.fullName, value: r.expected - r.paid, state: r.state }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10),
+    [rows],
+  )
 
   async function confirmPayment(values: MarkPaidValues) {
     if (!user || !paying) return
@@ -142,7 +136,6 @@ export function PaymentsBoard({ onChanged }: { onChanged?: () => void }) {
     toast.success(`Cobro de ${paying.fullName.split(' ')[0]} registrado`)
     setPaying(null)
     await load()
-    onChanged?.()
   }
 
   function waUrl(r: StudentPaymentRow): string | null {
