@@ -30,6 +30,7 @@ import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS, type RmTestWeeksRow } from
 import { NutritionistOpsPanel } from '@/components/dashboard/NutritionistOpsPanel'
 import { OverduePaymentsAlert } from '@/components/dashboard/OverduePaymentsAlert'
 import { PriceIncreaseNotice } from '@/components/dashboard/PriceIncreaseNotice'
+import { MobileFold, MobileHomeHero } from '@/components/dashboard/MobileHomeHero'
 import { type RecentIncomeRow, type DueCheckInScheduleRow, type DueResourceScheduleRow, LEVEL_META, BRAND_ROW_ACCENT_PAIR, LEVEL_BRAND_ACCENT, GOAL_META, type Stats, type ExpiringRoutine, type ExpiringPlan, type MergedExpiringItem, monthBoundsISO, type DashboardExpenseRow, type DashboardIncomeScopeRow, type ExpenseChartModel, buildFinanceScopeChartModel } from './dashboardShared'
 import { ExpenseScopesLineChart } from './ExpenseScopesChart'
 
@@ -678,12 +679,25 @@ export function DashboardPage() {
     <div>
       <Header title="Inicio" />
       {dataUpdatedAt && !loading && (
-        <p className="px-4 pt-1 text-3xs text-ink-muted tabular-nums lg:px-6" aria-live="polite">
+        <p className="hidden px-4 pt-1 text-3xs text-ink-muted tabular-nums sm:block lg:px-6" aria-live="polite">
           Datos del tablero actualizados · {formatDate(dataUpdatedAt, 'dd/MM/yyyy HH:mm')}
         </p>
       )}
 
-      <div className="page-shell-x page-shell-y space-y-6">
+      {/* Flex con `order`: en el celu lo de hoy sube arriba sin tocar el orden de escritorio. */}
+      <div className="page-shell-x page-shell-y flex flex-col gap-6">
+
+        <div className="order-first lg:hidden">
+          <MobileHomeHero
+            firstName={(profile?.full_name ?? '').trim().split(/\s+/)[0] ?? ''}
+            todayAppointments={todayApps.length}
+            missingFeedback={missingCheckInStudents.length}
+            expiringSoon={mergedExpiring.filter((r) => r.days >= 0 && r.days <= 7).length}
+            pendingIncome={pendingIncomeTotal}
+            showTraining={canSeeTraining}
+            showFinances={canSeeFinances}
+          />
+        </div>
 
         {isPsychologist ? (
           <div className="flex flex-wrap gap-2">
@@ -903,8 +917,12 @@ export function DashboardPage() {
 
         {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
         {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (
-          <div className="rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3">
-            <p className="text-3xs font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">{todayLabel}</p>
+          <div className="-order-1 rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3 lg:order-none">
+            <p className="text-3xs font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">
+              {/* En el celu la fecha ya está en el saludo de arriba. */}
+              <span className="lg:hidden">Para hoy</span>
+              <span className="hidden lg:inline">{todayLabel}</span>
+            </p>
             <div className="flex flex-wrap gap-2">
               {todayApps.map((a) => (
                 <button
@@ -958,6 +976,7 @@ export function DashboardPage() {
           </div>
         )}
 
+        <MobileFold title="Estadísticas del mes" subtitle="Gráfico por ámbito, últimos cobros, niveles y adherencia">
         {/* ── Por ámbito · 6 meses (un neto por línea; sin punteados) ─────────── */}
         {canSeeFinances && (
           <Card className="overflow-hidden p-0">
@@ -1178,6 +1197,8 @@ export function DashboardPage() {
 
           </div>
         )}
+
+        </MobileFold>
 
         {/* ── Alumnos sin rutina activa ─────────────────────────────── */}
         {canSeeTraining && studentsWithoutRoutine.length > 0 && (

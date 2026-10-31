@@ -610,7 +610,7 @@ export function RoutinesPage() {
                 <input
                   ref={searchRef}
                   type="search"
-                  placeholder="Buscar por alumno o rutina… ( / para enfocar )"
+                  placeholder="Buscar por alumno o rutina…"
                   autoComplete="off"
                   spellCheck={false}
                   aria-label="Buscar rutinas"

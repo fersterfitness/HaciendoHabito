@@ -32,7 +32,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
   const initialMeta = parseExerciseMeta(exercise.technical_notes)
   const [restText, setRestText]   = useState(initialMeta.meta.restText ?? (exercise.rest_seconds !== null ? String(exercise.rest_seconds) : ''))
   const [weight, setWeight]       = useState<number | null>(exercise.weight_kg ?? null)
-  const [rpeText, setRpeText]     = useState(initialMeta.meta.rpeText ?? (exercise.rpe !== null ? String(exercise.rpe) : ''))
+  const [rpeText, setRpeText]     = useState(initialMeta.meta.rpeText ?? (exercise.rpe != null ? String(exercise.rpe) : ''))
   const [percent1rm, setPercent1rm] = useState(initialMeta.meta.percent1rm ?? '')
   const [seriesPlan, setSeriesPlan] = useState<SeriesPlanEntry[]>(initialMeta.meta.seriesPlan ?? [])
   const [notes, setNotes]         = useState(initialMeta.userNotes)

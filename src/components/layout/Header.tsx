@@ -64,10 +64,10 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           renderIcon={(hovered) => <HeaderSearchIcon animate={hovered} />}
         />
 
-        {/* Con acciones propias de la página, en el celu el tema queda en Ajustes para que entre el título. */}
+        {/* En el celu el tema está en «Más»: la cabecera queda con lo justo. */}
         <HeaderActionButton
           onClick={toggleTheme}
-          className={actions ? 'hidden sm:inline-flex' : undefined}
+          className="hidden sm:inline-flex"
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           renderIcon={(hovered) =>
             theme === 'dark' ? (

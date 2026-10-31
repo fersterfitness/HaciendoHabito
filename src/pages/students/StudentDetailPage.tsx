@@ -61,6 +61,12 @@ export interface StudentDetailViewProps {
 const MAX_TRAINER_TAGS = 20
 const MAX_TAG_LENGTH = 24
 
+/** Contacto: en el celu son botones fáciles de tocar; en escritorio, links de texto. */
+const contactLinkClassName = cn(
+  'flex items-center gap-1.5 rounded-full border border-surface-border/80 bg-surface-card px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:text-ink-primary',
+  'sm:gap-1 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:font-normal sm:underline-offset-4 sm:hover:underline',
+)
+
 export function StudentDetailView({
   studentId: id,
   variant = 'page',
@@ -608,8 +614,8 @@ export function StudentDetailView({
           <>
         {/* Perfil: sin tarjeta contenedora, tipografía y líneas */}
         <section className="pb-2">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-            <div className="order-2 min-w-0 flex-1 sm:order-1">
+          <div className="flex flex-row items-start justify-between gap-4 sm:gap-6">
+            <div className="min-w-0 flex-1">
               <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary ">{student.full_name}</h2>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium uppercase tracking-wider">
                 <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
@@ -626,29 +632,33 @@ export function StudentDetailView({
                 ) : null}
                 <span className="text-ink-muted ">{selectedPlanLabel ?? 'Sin plan web'}</span>
               </p>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+              <div className="mt-3 flex flex-wrap gap-2 text-xs sm:gap-x-4 sm:gap-y-1.5">
                 {student.email && (
                   <a
                     href={`mailto:${student.email}`}
-                    className="flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
+                    className={contactLinkClassName}
                   >
-                    <Mail className="h-3 w-3 opacity-70" aria-hidden />{student.email}
+                    <Mail className="h-3 w-3 opacity-70" aria-hidden />
+                    <span className="sm:hidden">Mail</span>
+                    <span className="hidden sm:inline">{student.email}</span>
                   </a>
                 )}
                 {student.phone && (
                   <>
                     <a
                       href={`tel:${student.phone}`}
-                      className="flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
+                      className={contactLinkClassName}
                     >
-                      <Phone className="h-3 w-3 opacity-70" aria-hidden />{student.phone}
+                      <Phone className="h-3 w-3 opacity-70" aria-hidden />
+                      <span className="sm:hidden">Llamar</span>
+                      <span className="hidden sm:inline">{student.phone}</span>
                     </a>
                     <a
                       href={`https://wa.me/${student.phone.replace(/\D/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 text-ink-secondary underline-offset-4 transition-colors hover:text-ink-primary hover:underline "
+                      className={contactLinkClassName}
                     >
                       <MessageCircle className="h-3 w-3 opacity-70" aria-hidden />
                       WhatsApp
@@ -656,7 +666,7 @@ export function StudentDetailView({
                   </>
                 )}
                 {student.birth_date && (
-                  <span className="flex items-center gap-1 text-ink-secondary ">
+                  <span className="flex items-center gap-1 px-1 text-ink-secondary sm:px-0">
                     <Calendar className="h-3 w-3 opacity-70" aria-hidden />{formatDate(student.birth_date)}
                   </span>
                 )}
@@ -750,7 +760,18 @@ export function StudentDetailView({
                 )}
               </div>
             </div>
-            <div className="order-1 flex shrink-0 justify-center sm:order-2 sm:justify-end">
+            {/* En el celu la foto va chica al lado del nombre (antes ocupaba media pantalla arriba). */}
+            <div className="flex shrink-0 justify-end sm:hidden">
+              <StudentAvatar
+                studentId={student.id}
+                fullName={student.full_name}
+                avatarPath={student.avatar_path ?? null}
+                size="md"
+                allowRemove
+                onPathChange={(path) => setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))}
+              />
+            </div>
+            <div className="hidden shrink-0 justify-end sm:flex">
               <StudentAvatar
                 studentId={student.id}
                 fullName={student.full_name}

@@ -189,9 +189,9 @@ export function PaymentsBoard() {
         <SummaryTile label="Cobrado" value={formatCurrency(totals.cobrado)} tone="success" />
         <SummaryTile label="Por cobrar" value={formatCurrency(totals.pendiente)} tone={totals.pendiente > 0 ? 'warning' : 'neutral'} />
         <SummaryTile label="Vencidos" value={String(totals.vencidos)} tone={totals.vencidos > 0 ? 'danger' : 'neutral'} />
-        <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
-          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">Cumplimiento</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums text-ink-primary sm:text-2xl">
+        <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-3 shadow-card sm:p-4">
+          <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:text-2xs">Cumplimiento</p>
+          <p className="mt-0.5 text-lg font-semibold tabular-nums text-ink-primary sm:mt-1 sm:text-2xl">
             {totals.esperado > 0 ? Math.round((totals.cobrado / totals.esperado) * 100) : 0}%
           </p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-border/70">
@@ -243,7 +243,68 @@ export function PaymentsBoard() {
               : 'Nada en este filtro.'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Celu: una tarjeta por alumno con lo que debe y las acciones a mano (la tabla obligaba a deslizar). */}
+          <ul className="divide-y divide-surface-border/70 sm:hidden">
+            {visible.map((r) => {
+              const debt = Math.max(0, r.expected - r.paid)
+              const wa = r.state === 'vencido' || r.state === 'pendiente' || r.state === 'parcial' ? normalizePhoneForWhatsApp(r.phone) : null
+              const canPay = r.state !== 'pagado' && !isPastMonthRow(r)
+              return (
+                <li key={r.studentId} className="px-4 py-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/students/${r.studentId}`} className="block truncate text-sm font-semibold text-ink-primary">
+                        {r.fullName}
+                      </Link>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', STATE_META[r.state].chip)}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+                          {r.gifted ? 'Bonificado' : STATE_META[r.state].label}
+                        </span>
+                        {r.reminder === 'overdue' ? <span className="text-3xs text-status-expired">+7 días hábiles</span> : null}
+                        {r.reminder === 'due' ? <span className="text-3xs text-ink-muted">Llegó su fecha</span> : null}
+                        <button
+                          type="button"
+                          onClick={() => setWindowFor(r)}
+                          className="inline-flex items-center gap-1 text-3xs text-ink-muted underline-offset-2 hover:underline"
+                          title="Cambiar el día de pago"
+                        >
+                          {paymentWindowLabel(r.dayFrom, r.dayTo)}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={cn('text-sm font-semibold tabular-nums', debt > 0 ? 'text-ink-primary' : 'text-ink-muted')}>
+                        {debt > 0 ? formatCurrency(debt) : r.paid > 0 || r.gifted ? formatCurrency(r.paid) : '—'}
+                      </p>
+                      <p className="text-3xs text-ink-muted">{debt > 0 ? 'debe' : r.paid > 0 || r.gifted ? 'abonó' : ''}</p>
+                    </div>
+                  </div>
+                  {wa || canPay ? (
+                    <div className="mt-2.5 grid grid-cols-2 gap-2">
+                      {wa ? (
+                        <button
+                          type="button"
+                          onClick={() => void remind(r, wa)}
+                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 text-2xs font-semibold text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                        >
+                          <WhatsAppIcon className="h-3.5 w-3.5" />
+                          Recordar
+                        </button>
+                      ) : null}
+                      {canPay ? (
+                        <Button size="sm" variant="soft" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)} className={cn('h-9', !wa && 'col-span-2')}>
+                          Marcar pagado
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="hh-table w-full min-w-[760px] border-collapse text-body-sm">
               <thead className="border-b border-surface-border/70">
                 <tr className="text-left">
@@ -332,6 +393,7 @@ export function PaymentsBoard() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -415,11 +477,11 @@ export function PaymentsBoard() {
 
 function SummaryTile({ label, value, tone }: { label: string; value: string; tone: 'success' | 'warning' | 'danger' | 'neutral' }) {
   return (
-    <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
-      <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">{label}</p>
+    <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-3 shadow-card sm:p-4">
+      <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:text-2xs">{label}</p>
       <p
         className={cn(
-          'mt-1 text-xl font-semibold tabular-nums sm:text-2xl',
+          'mt-0.5 text-lg font-semibold tabular-nums sm:mt-1 sm:text-2xl',
           tone === 'success' && 'text-emerald-600 dark:text-emerald-400',
           tone === 'warning' && 'text-status-expiring',
           tone === 'danger' && 'text-status-expired',

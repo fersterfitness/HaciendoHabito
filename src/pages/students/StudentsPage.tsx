@@ -754,7 +754,7 @@ export function StudentsPage() {
             <Input
               ref={searchRef}
               type="search"
-              placeholder={`Buscar ${entityLabelSingular} por nombre, email… ( / para enfocar )`}
+              placeholder={`Buscar ${entityLabelSingular} por nombre o email…`}
               autoComplete="off"
               spellCheck={false}
               aria-label={`Buscar ${entityLabelSingular}`}
@@ -770,7 +770,7 @@ export function StudentsPage() {
               onClick={() => exportStudentsCSV(filtered)}
               title="Exportar lista a CSV"
               aria-label="Exportar lista a CSV"
-              className={directoryToolbarBtnClassName}
+              className={cn(directoryToolbarBtnClassName, 'hidden sm:inline-flex')}
             >
               <Download className="h-4 w-4 opacity-70" aria-hidden />
               <span className="hidden sm:inline">Exportar</span>
@@ -1037,7 +1037,7 @@ function StudentDirectoryTable({
               onClick={() => onRowClick(student.id)}
               style={tableRowEnterStyle(rowIndex)}
               className={cn(
-                'hh-row-drop-in flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
+                'hh-row-drop-in flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors active:bg-surface-elevated/50',
                 'outline-none focus-within:bg-surface-elevated/35',
                 isSelected ? 'bg-surface-elevated/50 border-l-[3px] border-l-brand-primary' : 'hover:bg-surface-elevated/30 border-l-[3px] border-l-transparent',
               )}
@@ -1051,18 +1051,10 @@ function StudentDirectoryTable({
                 onPathChange={() => onAvatarUpdated()}
               />
               <div className="min-w-0 flex-1">
-                {/* 1: nombre + indicadores · 2: estado + semanas · 3: nivel, plan y etiquetas */}
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate text-sm font-semibold leading-snug text-ink-primary">{student.full_name}</span>
-                  {age !== null && <span className="shrink-0 text-2xs tabular-nums text-ink-muted">{age}a</span>}
-                  <span className="ml-0.5 inline-flex shrink-0 items-center gap-1">
-                    <span className={indicatorClass(hasRoutine, 'routine')} title={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
-                      <Dumbbell className="h-2.5 w-2.5" />
-                    </span>
-                    <span className={indicatorClass(hasPlan, 'plan')} title={hasPlan ? 'Con plan' : 'Sin plan'}>
-                      <Utensils className="h-2.5 w-2.5" />
-                    </span>
-                  </span>
+                {/* 1: nombre · 2: estado + rutina · 3: nivel, edad, plan y etiquetas. Editar/eliminar están en la ficha. */}
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-snug text-ink-primary">{student.full_name}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine} />
@@ -1073,10 +1065,20 @@ function StudentDirectoryTable({
                       finished={weekStatusOrEmpty(weekByStudent, student.id).finished}
                       lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
                     />
+                  ) : (
+                    <span className="text-3xs font-medium text-ink-muted">Sin rutina</span>
+                  )}
+                  {hasPlan ? (
+                    <span className="rounded-full bg-emerald-500/12 px-2 py-0.5 text-3xs font-semibold text-emerald-700 dark:text-emerald-300">
+                      Plan alim.
+                    </span>
                   ) : null}
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-2xs text-ink-muted">{LEVEL_LABELS[student.level] ?? student.level}</span>
+                  <span className="text-2xs text-ink-muted">
+                    {LEVEL_LABELS[student.level] ?? student.level}
+                    {age !== null ? ` · ${age} años` : ''}
+                  </span>
                   {rmTestDueIds.has(student.id) ? (
                     <span
                       className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
@@ -1104,27 +1106,6 @@ function StudentDirectoryTable({
                   })() : null}
                   <StudentTagChips student={student} maxVisible={2} onTagClick={onFilterTag} />
                 </div>
-              </div>
-              <div className="flex shrink-0 items-center self-start">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-elevated/60 transition-colors"
-                  title="Editar"
-                  aria-label="Editar"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onDelete(student) }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:text-status-expired hover:bg-surface-elevated/60 transition-colors"
-                  title="Eliminar"
-                  aria-label="Eliminar"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-                <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
               </div>
             </div>
           )

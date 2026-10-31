@@ -182,7 +182,7 @@ export function ExercisesPage() {
           <div className="min-h-10 min-w-0 flex-1">
             <Input
               ref={exercisesSearchRef}
-              placeholder="Buscar por nombre, músculo o equipamiento… ( / para enfocar )"
+              placeholder="Buscar por nombre, músculo o equipamiento…"
               leftIcon={<Search className="h-4 w-4 text-ink-muted " />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}

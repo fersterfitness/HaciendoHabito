@@ -116,7 +116,7 @@ function MetricTile({
   return (
     <div
       className={cn(
-        'group relative flex flex-col gap-1.5 overflow-hidden rounded-2xl border p-4',
+        'group relative flex flex-col gap-1.5 overflow-hidden rounded-2xl border p-3 sm:p-4',
         'transition-[transform,box-shadow] duration-300 ease-out-expo motion-safe:hover:-translate-y-0.5',
         featured
           ? 'hh-cta border-transparent text-white'
@@ -144,7 +144,7 @@ function MetricTile({
       </div>
       <p
         className={cn(
-          'relative text-xl font-semibold tracking-tight tabular-nums sm:text-2xl',
+          'relative text-lg font-semibold tracking-tight tabular-nums sm:text-2xl',
           valueClassName ??
             (featured
               ? 'text-white'
@@ -478,8 +478,8 @@ export function FinancesPage() {
               ref={financesSearchRef}
               placeholder={
                 tab === 'income'
-                  ? 'Buscar por alumno, tipo, categoría… ( / para enfocar )'
-                  : 'Buscar por descripción o categoría… ( / para enfocar )'
+                  ? 'Buscar por alumno, tipo, categoría…'
+                  : 'Buscar por descripción o categoría…'
               }
               leftIcon={<Search className="h-4 w-4 text-ink-muted " />}
               value={search}

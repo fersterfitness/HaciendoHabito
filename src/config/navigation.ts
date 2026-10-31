@@ -13,6 +13,12 @@ import {
   UtensilsCrossed,
   Ruler,
   Sparkles,
+  UserPlus,
+  Dumbbell,
+  HandCoins,
+  CalendarPlus,
+  Send,
+  Receipt,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -248,11 +254,28 @@ export function getMobileNavPrimaryItems(role: AppRole | undefined): NavItem[] {
   if (role === 'admin') {
     return [NAV_HOME, NAV_APPOINTMENTS, NAV_TRAINING_CORE[0]!, NAV_NUTRITION_PATIENT_ANTHRO[0]!]
   }
+  // Entrenador: Turnos y Finanzas quedan a un toque en «Más»; lo nuevo se crea desde el «+» central.
+  return [NAV_HOME, NAV_TRAINING_CORE[0]!, NAV_TRAINING_CORE[1]!]
+}
+
+export type QuickAction = {
+  label: string
+  /** Una línea corta debajo del nombre. */
+  hint: string
+  href: string
+  icon: LucideIcon
+}
+
+/** Accesos del «+» de la barra inferior (celu). Vacío = el rol no tiene botón «+». */
+export function getMobileQuickActions(role: AppRole | undefined): QuickAction[] {
+  if (role !== 'trainer' && role !== 'admin') return []
   return [
-    NAV_HOME,
-    NAV_APPOINTMENTS,
-    NAV_TRAINING_CORE[0]!,
-    NAV_TRAINING_CORE[1]!,
+    { label: 'Nuevo alumno', hint: 'Alta con sus datos', href: '/students?create=1', icon: UserPlus },
+    { label: 'Nueva rutina', hint: 'Armar y asignar', href: '/routines?create=1', icon: Dumbbell },
+    { label: 'Registrar cobro', hint: 'Pago de un alumno', href: '/finances/income/new', icon: HandCoins },
+    { label: 'Registrar gasto', hint: 'Fijo o variable', href: '/finances/expenses/new', icon: Receipt },
+    { label: 'Enviar check-in', hint: 'Consulta semanal', href: '/feedback?tab=checkins', icon: Send },
+    { label: 'Turnos', hint: 'Agenda del día', href: '/appointments', icon: CalendarPlus },
   ]
 }
 

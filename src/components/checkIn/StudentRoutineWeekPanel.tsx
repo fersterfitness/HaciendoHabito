@@ -1,3 +1,4 @@
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { useEffect, useMemo, useState } from 'react'
 import { Check, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -222,26 +223,13 @@ export function StudentRoutineWeekPanel() {
             {finishedCount > 0 ? ` · ${finishedCount} cerró el mes` : ''}.
           </p>
         </div>
-        <div className="flex rounded-full border border-surface-border/80 bg-surface-card/80 p-0.5">
-          {filters.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={cn(
-                'rounded-full px-2.5 py-1 text-3xs font-semibold transition-colors',
-                filter === f.id
-                  ? 'bg-ink-primary text-surface-card'
-                  : 'text-ink-muted hover:text-ink-primary',
-              )}
-            >
-              {f.label}
-              {typeof f.count === 'number' ? (
-                <span className="ml-1 tabular-nums opacity-70">{f.count}</span>
-              ) : null}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Filtrar por semana"
+          value={filter}
+          onChange={(id) => setFilter(id as FilterId)}
+          items={filters}
+        />
       </div>
       {loading ? (
         <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2 xl:grid-cols-3">

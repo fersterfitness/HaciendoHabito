@@ -403,7 +403,7 @@ export function MealPlansPage() {
             <input
               ref={searchRef}
               type="search"
-              placeholder={`Buscar por título del plan o ${entityColumn.toLowerCase()}… ( / para enfocar )`}
+              placeholder={`Buscar por título del plan o ${entityColumn.toLowerCase()}…`}
               autoComplete="off"
               spellCheck={false}
               aria-label="Buscar planes de alimentación"

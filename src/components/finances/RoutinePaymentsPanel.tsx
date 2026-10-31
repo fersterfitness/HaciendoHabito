@@ -130,7 +130,8 @@ export function RoutinePaymentsPanel({ compact = false }: { compact?: boolean })
             key={row.id}
             className="flex flex-wrap items-center gap-3 rounded-md border border-surface-border/60 bg-surface-elevated/40 px-3 py-2"
           >
-            <div className="min-w-0 flex-1">
+            {/* Con ancho mínimo: en el celu los checks bajan a otra línea en vez de pisar el nombre. */}
+            <div className="min-w-[11rem] flex-1">
               <Link to={`/students/${row.student_id}`} className="truncate text-sm font-semibold text-ink-primary hover:underline">
                 {row.student_name}
               </Link>
