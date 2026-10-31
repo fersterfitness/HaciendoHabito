@@ -47,12 +47,12 @@ const config: Config = {
         sans: [...appFontFamilyStack],
       },
       fontSize: {
-        /** Escala chica (solo tamaño; el interlineado lo hereda). 9px y menos no se usan: no se leen. */
-        '3xs': '0.625rem',
-        '2xs': '0.6875rem',
-        caption: ['0.625rem', { lineHeight: '0.875rem' }],
-        label: ['0.6875rem', { lineHeight: '1rem' }],
-        'table-head': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.08em' }],
+        /** Escala chica (solo tamaño; el interlineado lo hereda). Piso de 11px: con 10px la letra se perdía en el celu. */
+        '3xs': '0.6875rem',
+        '2xs': '0.75rem',
+        caption: ['0.6875rem', { lineHeight: '1rem' }],
+        label: ['0.75rem', { lineHeight: '1rem' }],
+        'table-head': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.06em' }],
         'body-sm': ['0.8125rem', { lineHeight: '1.25rem' }],
       },
       borderRadius: {

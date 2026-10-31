@@ -1,5 +1,5 @@
 /** Fuente UI global — cambiar aquí y en `index.html` (Google Fonts). */
-export const APP_FONT_FAMILY_NAME = 'Nunito Sans'
+export const APP_FONT_FAMILY_NAME = 'Inter'
 
 export const appFontFamilyStack = [
   APP_FONT_FAMILY_NAME,
