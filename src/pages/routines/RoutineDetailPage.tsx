@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Plus, Trash2, Copy, X, Pencil, FileText, Calendar, Clock, Library, RefreshCw, UserPlus, Table2, BarChart3, CalendarRange, ClipboardList, CheckCircle2 } from 'lucide-react'
+import { Plus, X, Calendar, Clock, CheckCircle2 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
 import { useRoutines } from '@/hooks/useRoutines'
@@ -33,13 +33,12 @@ import type { BlockTypeId } from '@/lib/macrocycle/macrocycle'
 import { cyclePhasesForWeekBlock } from '@/lib/routine/menstrualCyclePlanning'
 import { loadLatestWeekStatusForStudent, type LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { RoutineMonthlyFeedbackSection } from '@/components/checkIn/RoutineMonthlyFeedbackSection'
-import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
-import { TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
 import type { Json, Routine, RoutineBlock, RoutineDay, RoutineExercise, Exercise, Student, MenstrualCycle, TrainingMethod, PresetBlock } from '@/types/database'
 import toast from 'react-hot-toast'
 import { Modal } from '@/components/ui/Modal'
 import { type ExWithExercise, type DayWithEx, type BlockWithDays, type RoutineFull, applyCircuitNoteToBlocks } from './detail/routineDetailShared'
 import { BlockCard } from './detail/BlockCard'
+import { RoutineHeaderActions } from './detail/RoutineHeaderActions'
 import { ExercisePicker } from './detail/ExercisePicker'
 
 export function RoutineDetailPage() {
@@ -1082,183 +1081,54 @@ export function RoutineDetailPage() {
   const studentLabel = routine.student?.full_name
     ?? (routine.former_student_name ? `${routine.former_student_name} (eliminado)` : null)
 
+  /** Preestablecida: sincroniza el blueprint antes de abrir el alta con él. */
+  function assignLibraryRoutine() {
+    void (async () => {
+      if (libraryBlueprintId) {
+        try {
+          libraryPayloadRef.current = await syncLibraryBlueprintPayload(
+            libraryBlueprintId,
+            blocksRef.current,
+            libraryPayloadRef.current,
+          )
+        } catch {
+          /* igual dejamos asignar desde la rutina de biblioteca */
+        }
+        navigate(`/routines?create=1&blueprint=${libraryBlueprintId}`)
+        return
+      }
+      navigate('/routines?create=1')
+    })()
+  }
+
   return (
     <div>
       <Header
         title={isLibrary ? routine.name : (studentLabel ?? 'Rutina')}
         showBack
         actions={
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setShowProgressionGuide(true)}
-              disabled={blocks.length === 0}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
-              title="Guía semanal de progresión (solo entrenador)"
-            >
-              <Table2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Guía semanal</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowVolume(true)}
-              disabled={blocks.length === 0}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
-              title="Volumen semanal por músculo (solo entrenador)"
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Volumen</span>
-            </button>
-            {routine.student_id ? (
-              <button
-                type="button"
-                onClick={() => setShowMacro(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
-                title="Calendario anual del macrociclo del alumno (solo entrenador)"
-              >
-                <CalendarRange className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Calendario</span>
-              </button>
-            ) : null}
-            {!isLibrary ? (
-            <button
-              type="button"
-              onClick={() => void handleDownloadProgressLog()}
-              disabled={exportingProgressLog || blocks.length === 0}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors disabled:opacity-50"
-              title="PDF imprimible para que el alumno registre pesos y sensaciones"
-            >
-              {exportingProgressLog ? (
-                <Spinner className="h-3.5 w-3.5" />
-              ) : (
-                <ClipboardList className="h-3.5 w-3.5" />
-              )}
-              <span className="hidden sm:inline">
-                {exportingProgressLog ? 'Generando…' : 'Registro de progreso'}
-              </span>
-            </button>
-            ) : null}
-            {!isLibrary && (routine.status !== 'completada' ? (
-              <button
-                type="button"
-                onClick={() => void handleStatusChange('completada')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
-                title="Marcar como realizada y mover al historial del alumno"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Rutina realizada</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleStatusChange('activa')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors bg-surface-elevated text-ink-secondary hover:text-ink-primary"
-                title="Reactivar: volver a rutinas activas"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Reactivar</span>
-              </button>
-            ))}
-            <button
-              onClick={() => navigate(`/routines/${id}/edit`)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
-              title="Editar datos de la rutina"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Editar datos</span>
-            </button>
-            {!isLibrary ? (
-            <button
-              onClick={duplicateRoutine}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
-              title="Duplicar rutina completa"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Duplicar</span>
-            </button>
-            ) : null}
-            {isLibrary ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void (async () => {
-                    if (libraryBlueprintId) {
-                      try {
-                        libraryPayloadRef.current = await syncLibraryBlueprintPayload(
-                          libraryBlueprintId,
-                          blocksRef.current,
-                          libraryPayloadRef.current,
-                        )
-                      } catch {
-                        /* igual dejamos asignar desde la rutina de biblioteca */
-                      }
-                      navigate(`/routines?create=1&blueprint=${libraryBlueprintId}`)
-                      return
-                    }
-                    navigate('/routines?create=1')
-                  })()
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors bg-brand-primary/12 text-brand-primary hover:bg-brand-primary/20"
-                title="Asignar esta preestablecida a un alumno"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Asignar a un alumno</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setBlueprintModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated text-xs font-medium transition-colors"
-                title="Guardar como variante preestablecida"
-              >
-                <Library className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Guardar variante</span>
-              </button>
-            )}
-            {!isLibrary ? (
-            <button
-              type="button"
-              onClick={() => void handleSendRoutineWhatsApp()}
-              disabled={sendingWa || !routine?.student}
-              className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50',
-                'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400',
-              )}
-              title={`Enviar rutina por WhatsApp (${TRAINER_CONTACT_WHATSAPP_DISPLAY})`}
-            >
-              {sendingWa ? <Spinner className="h-3.5 w-3.5" /> : <WhatsAppIcon className="h-3.5 w-3.5" />}
-              <span className="hidden sm:inline">{sendingWa ? 'Enviando…' : 'WhatsApp'}</span>
-            </button>
-            ) : null}
-            {!isLibrary ? (
-            <button
-              type="button"
-              onClick={handleGeneratePdf}
-              disabled={generatingPdf}
-              className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50',
-                generatingPdf
-                  ? 'bg-brand-primary/12 text-brand-primary'
-                  : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
-              )}
-              title="Generar PDF"
-            >
-              {generatingPdf ? (
-                <Spinner className="h-3.5 w-3.5" />
-              ) : (
-                <FileText className="h-3.5 w-3.5" />
-              )}
-              <span className="hidden sm:inline">{generatingPdf ? 'Generando...' : 'PDF'}</span>
-            </button>
-            ) : null}
-            <button
-              onClick={() => setShowDelete(true)}
-              className="p-1.5 rounded-xl text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
-              title="Eliminar rutina"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <RoutineHeaderActions
+            isLibrary={isLibrary}
+            hasBlocks={blocks.length > 0}
+            hasStudent={!!routine.student_id}
+            completed={routine.status === 'completada'}
+            exportingProgressLog={exportingProgressLog}
+            sendingWa={sendingWa}
+            canSendWa={!!routine?.student}
+            generatingPdf={generatingPdf}
+            onGuide={() => setShowProgressionGuide(true)}
+            onVolume={() => setShowVolume(true)}
+            onMacro={() => setShowMacro(true)}
+            onProgressLog={() => void handleDownloadProgressLog()}
+            onToggleCompleted={() => void handleStatusChange(routine.status === 'completada' ? 'activa' : 'completada')}
+            onEdit={() => navigate(`/routines/${id}/edit`)}
+            onDuplicate={duplicateRoutine}
+            onAssign={assignLibraryRoutine}
+            onSaveVariant={() => setBlueprintModalOpen(true)}
+            onWhatsApp={() => void handleSendRoutineWhatsApp()}
+            onPdf={handleGeneratePdf}
+            onDelete={() => setShowDelete(true)}
+          />
         }
       />
 

@@ -201,7 +201,7 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         ) : (
           <QuickActionRow title="Feedback semanal">
-            <p className="text-3xs text-ink-muted">Creá un formulario en Devoluciones → Check-ins y guardalo para obtener el link general.</p>
+            <p className="text-3xs text-ink-muted">Creá un formulario en Consulta semanal → Check-ins y guardalo para obtener el link general.</p>
             <button
               type="button"
               onClick={() => navigate('/feedback?tab=checkins')}
@@ -250,7 +250,7 @@ export function DashboardTrainerOpsPanel({
           </QuickActionRow>
         ) : (
           <QuickActionRow title="Recursos · aviso semanal">
-            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Devoluciones → Recursos.</p>
+            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Consulta semanal → Recursos.</p>
             <button
               type="button"
               onClick={() => navigate('/feedback?tab=recursos')}

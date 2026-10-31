@@ -131,8 +131,8 @@ export function MobileNav() {
                 <div className={cn('p-1.5 rounded-lg transition-colors', active && mobileNavActiveTintBgClassName)}>
                   <Icon className={cn('h-4 w-4', active && mobileNavActiveTextClassName)} />
                 </div>
-                <span className="text-3xs font-medium leading-none text-center max-w-[4.5rem] truncate">
-                  {item.label}
+                <span className="text-3xs font-medium leading-none text-center max-w-[4.5rem] truncate" title={item.label}>
+                  {item.shortLabel ?? item.label}
                 </span>
               </NavLink>
             )

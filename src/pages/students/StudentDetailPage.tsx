@@ -469,8 +469,8 @@ export function StudentDetailView({
 
   const activeRoutine = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
   /** Etiquetas de solapas principales (solo entrenadores/admins ven Nutrición con planes tipo Excel). */
-  const sheetTabDefs: { key: SheetTab; label: string; icon: ReactNode }[] = [
-    { key: 'ficha', label: 'Información', icon: <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
+  const sheetTabDefs: { key: SheetTab; label: string; short?: string; icon: ReactNode }[] = [
+    { key: 'ficha', label: 'Información', short: 'Ficha', icon: <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
     ...(showRoutineTab
       ? [{ key: 'rutina' as const, label: 'Rutina', icon: <Dumbbell className="h-3.5 w-3.5 shrink-0" aria-hidden /> }]
       : []),
@@ -480,6 +480,7 @@ export function StudentDetailView({
     {
       key: 'seguimiento',
       label: 'Seguimiento',
+      short: 'Control',
       icon: <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden />,
     },
     ...(showHabitsTab
@@ -550,8 +551,8 @@ export function StudentDetailView({
           aria-label="Secciones de la ficha"
         >
           <div className="pt-3">
-            <div className="flex w-full items-end gap-2">
-              {sheetTabDefs.map(({ key, label, icon }) => {
+            <div className="flex w-full items-end gap-0.5 sm:gap-2">
+              {sheetTabDefs.map(({ key, label, short, icon }) => {
                 const active = sheetTab === key
                 return (
                   <button
@@ -563,7 +564,7 @@ export function StudentDetailView({
                     title={label}
                     onClick={() => setSheetTab(key)}
                     className={cn(
-                      'relative -mb-px flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-t-lg px-1 pb-2.5 pt-2',
+                      'relative -mb-px flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-t-lg px-0.5 pb-2.5 pt-2',
                       'text-3xs font-semibold transition-colors sm:flex-row sm:gap-2 sm:px-4 sm:py-3 sm:text-xs',
                       active ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
                     )}
@@ -584,7 +585,17 @@ export function StudentDetailView({
                     >
                       {icon}
                     </span>
-                    <span className="max-w-full truncate">{label}</span>
+                    {/* En el celu entran ~9 letras por solapa: las largas usan su versión corta. */}
+                    <span className="max-w-full truncate">
+                      {short ? (
+                        <>
+                          <span className="sm:hidden">{short}</span>
+                          <span className="hidden sm:inline">{label}</span>
+                        </>
+                      ) : (
+                        label
+                      )}
+                    </span>
                   </button>
                 )
               })}

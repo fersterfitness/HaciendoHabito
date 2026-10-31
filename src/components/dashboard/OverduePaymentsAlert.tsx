@@ -111,7 +111,7 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
             const debt = Math.max(0, r.expected - r.paid)
             return (
               <li key={r.studentId} className="flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-2xs hover:bg-surface-elevated/60">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 basis-full sm:basis-0 sm:flex-1">
                   <Link to={`/students/${r.studentId}`} className="block truncate font-medium text-ink-primary hover:underline">
                     {r.fullName}
                   </Link>

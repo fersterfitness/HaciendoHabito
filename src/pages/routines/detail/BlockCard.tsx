@@ -78,7 +78,7 @@ export function BlockCard({
       style={phaseColor ? { borderLeftColor: phaseColor, borderLeftWidth: 4 } : undefined}
     >
       <div
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors"
+        className="flex items-center gap-2 px-3 py-3 cursor-pointer select-none hover:bg-surface-elevated transition-colors sm:gap-3 sm:px-4"
         onClick={onToggle}
       >
         <span
@@ -92,7 +92,7 @@ export function BlockCard({
           S{weekN}
           {weekDone ? <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden /> : null}
         </span>
-        <GripVertical className="h-4 w-4 text-ink-muted shrink-0" />
+        <GripVertical className="hidden h-4 w-4 shrink-0 text-ink-muted sm:block" />
 
         {editingName ? (
           <input
@@ -106,15 +106,16 @@ export function BlockCard({
           />
         ) : (
           <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
-              className="text-sm font-semibold text-ink-primary hover:text-brand-primary transition-colors"
+              className="whitespace-nowrap text-sm font-semibold text-ink-primary hover:text-brand-primary transition-colors"
               onDoubleClick={(e) => { e.stopPropagation(); setEditingName(true) }}
             >
               {block.name}
             </span>
             {phaseLabel && phaseColor ? (
               <span
-                className="ml-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-3xs font-semibold text-ink-secondary"
+                className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-3xs font-semibold text-ink-secondary"
                 style={{ borderColor: phaseColor }}
                 title="Fase del macrociclo (solo vos la ves)"
               >
@@ -123,12 +124,13 @@ export function BlockCard({
               </span>
             ) : null}
             {weekCurrent ? (
-              <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-brand-primary">
+              <span className="whitespace-nowrap rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-brand-primary">
                 Semana actual
               </span>
             ) : null}
+            </div>
             {(block.start_date || block.end_date) && (
-              <p className="text-3xs text-ink-muted mt-0.5">
+              <p className="mt-0.5 whitespace-nowrap text-3xs tabular-nums text-ink-muted">
                 {block.start_date ? new Date(`${block.start_date}T12:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
                 {' → '}
                 {block.end_date ? new Date(`${block.end_date}T12:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '?'}
@@ -152,7 +154,7 @@ export function BlockCard({
           </div>
         )}
 
-        <span className="text-xs text-ink-muted">{block.days.length} días</span>
+        <span className="hidden whitespace-nowrap text-xs text-ink-muted sm:inline">{block.days.length} días</span>
         {expanded ? <ChevronDown className="h-4 w-4 text-ink-muted" /> : <ChevronRight className="h-4 w-4 text-ink-muted" />}
 
         <div className="relative" onClick={(e) => e.stopPropagation()}>

@@ -396,7 +396,7 @@ export function FinancesPage() {
       <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
         {/* KPI */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <MetricTile label="Balance neto" value={<CountUp value={balance} format={formatCurrency} duration={2600} enabled={!loading} />} tone="featured" icon={Scale} />
+          <MetricTile label="Balance neto" value={<CountUp value={balance} format={formatCurrency} duration={2600} enabled={!loading} />} tone={balance < 0 ? 'negative' : 'featured'} icon={Scale} />
           <MetricTile label="Cobrado total" value={<CountUp value={totalIngresos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingUp} />
           <MetricTile label="Pendiente" value={<CountUp value={totalPendiente} format={formatCurrency} duration={2200} enabled={!loading} />} tone={totalPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
           <MetricTile label="Total gastos" value={<CountUp value={totalGastos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingDown} />

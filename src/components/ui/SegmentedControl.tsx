@@ -80,11 +80,12 @@ export function SegmentedControl({
 
   const itemBase = (active: boolean) =>
     cn(
-      'relative isolate inline-flex min-w-0 select-none items-center justify-center font-semibold whitespace-nowrap',
+      'relative isolate inline-flex select-none items-center justify-center font-semibold whitespace-nowrap',
       'transition-colors duration-200',
       appFocusRingClassName,
       sz.item,
-      fullWidth && 'flex-1',
+      // Sin ancho completo no se achican: si no entran, el control se desliza en vez de cortar las etiquetas.
+      fullWidth ? 'min-w-0 flex-1' : 'shrink-0',
       active ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
     )
 

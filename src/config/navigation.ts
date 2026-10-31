@@ -18,6 +18,8 @@ import type { AppRole } from '@/types/database'
 
 export type NavItem = {
   label: string
+  /** Versión corta para la barra inferior del celu, donde entran ~10 caracteres. */
+  shortLabel?: string
   href: string
   icon: LucideIcon
   /** When true, active only on exact path match (default: prefix match). */
@@ -46,6 +48,7 @@ export const NAV_APPOINTMENTS: NavItem = {
 
 const NAV_STUDENT_MEAL_PLANS: NavItem = {
   label: 'Mi plan de alimentación',
+  shortLabel: 'Mi plan',
   href: '/my/meal-plans',
   icon: ClipboardList,
 }
@@ -58,13 +61,14 @@ export const NAV_TRAINING_CORE: NavItem[] = [
     icon: Users,
     alsoMatch: ['/routines'],
   },
-  { label: 'Consulta semanal', href: '/feedback', icon: MessageSquare },
+  { label: 'Consulta semanal', shortLabel: 'Consultas', href: '/feedback', icon: MessageSquare },
   { label: 'Base de datos', href: '/exercises', icon: BookOpen },
-  { label: 'Saliendo de contexto', href: '/contexto', icon: Sparkles },
+  { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles },
 ]
 
 export const NAV_MEAL_PLANS: NavItem = {
   label: 'Planes de alimentación',
+  shortLabel: 'Alimentación',
   href: '/meal-plans',
   icon: UtensilsCrossed,
 }

@@ -51,7 +51,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
         </button>
       )}
 
-      <h1 className="flex-1 truncate text-lg font-semibold tracking-tight text-ink-primary sm:text-xl">{title}</h1>
+      <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight text-ink-primary sm:text-xl">{title}</h1>
 
       <div className="flex items-center gap-1.5">
         {actions}
@@ -64,8 +64,10 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           renderIcon={(hovered) => <HeaderSearchIcon animate={hovered} />}
         />
 
+        {/* Con acciones propias de la página, en el celu el tema queda en Ajustes para que entre el título. */}
         <HeaderActionButton
           onClick={toggleTheme}
+          className={actions ? 'hidden sm:inline-flex' : undefined}
           title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           renderIcon={(hovered) =>
             theme === 'dark' ? (

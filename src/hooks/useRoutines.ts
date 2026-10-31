@@ -7,6 +7,9 @@ import toast from 'react-hot-toast'
 import { addDays, format } from 'date-fns'
 import { fetchRoutineList, invalidateRoutines, routineKeys } from '@/data/routines'
 
+/** Vacío estable: un `[]` nuevo por render dispara en bucle los efectos que dependen de `routines`. */
+const NO_ROUTINES: NonNullable<Awaited<ReturnType<typeof fetchRoutineList>>> = []
+
 /**
  * Rutinas del entrenador. El listado vive en la caché (se ve al instante al volver y se
  * revalida); solo se pide cuando alguien llama a `fetchRoutines`.
@@ -21,7 +24,7 @@ export function useRoutines() {
     queryFn: () => fetchRoutineList(user!.id, filter.studentId),
     enabled: Boolean(user) && filter.active,
   })
-  const routines = query.data ?? []
+  const routines = query.data ?? NO_ROUTINES
   const loading = filter.active && query.isPending
 
   useEffect(() => {

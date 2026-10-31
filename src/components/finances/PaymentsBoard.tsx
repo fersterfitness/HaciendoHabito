@@ -105,7 +105,9 @@ export function PaymentsBoard() {
       if (i.status !== 'cobrado' || !i.income_date.startsWith(key)) continue
       byMethod.set(i.payment_method, (byMethod.get(i.payment_method) ?? 0) + Number(i.amount || 0))
     }
+    // Las bonificadas ($0) no suman: sin esto aparecen tajadas de 0%.
     return [...byMethod.entries()]
+      .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])
       .map(([m, v], idx) => ({ name: METHOD_LABEL[m] ?? m, value: v, color: METHOD_COLORS[idx % METHOD_COLORS.length] }))
   }, [incomes, month])
@@ -287,7 +289,7 @@ export function PaymentsBoard() {
                         {debt > 0 ? formatCurrency(debt) : '—'}
                       </td>
                       <td className="px-4 py-2.5 text-right">
-                        <span className="tabular-nums text-ink-primary">{r.paid > 0 ? formatCurrency(r.paid) : '—'}</span>
+                        <span className="tabular-nums text-ink-primary">{r.paid > 0 ? formatCurrency(r.paid) : r.gifted ? formatCurrency(0) : '—'}</span>
                         {r.methods.length ? (
                           <div className="mt-1 flex justify-end gap-1">
                             {r.methods.map((m) => (
