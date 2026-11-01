@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!this.state.error) return this.props.children
     return (
       <div className={this.props.fullScreen ? 'flex min-h-screen items-center justify-center bg-surface-base p-6' : 'flex flex-1 items-center justify-center p-6'}>
-        <div className="hh-alert hh-alert-danger flex max-w-md flex-col items-start gap-3 rounded-2xl p-5">
+        <div className="hh-alert hh-alert-strong hh-alert-danger flex max-w-md flex-col items-start gap-3 rounded-2xl p-5">
           <span className="hh-alert-icon h-9 w-9" aria-hidden>
             <AlertTriangle className="h-5 w-5" />
           </span>

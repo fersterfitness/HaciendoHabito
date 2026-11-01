@@ -336,8 +336,8 @@ export function StudentRoutineWeekPanel() {
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="h-7 rounded-full border-emerald-600/40 text-3xs text-emerald-800 dark:text-emerald-300"
-                            icon={<WhatsAppIcon className="h-3 w-3" />}
+                            className="h-7 rounded-full text-3xs"
+                            icon={<WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />}
                             onClick={() => void sendFinishedWa(row)}
                           >
                             Pedir progreso

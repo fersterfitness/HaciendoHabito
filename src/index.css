@@ -418,24 +418,24 @@
    * Alerta / aviso: tarjeta neutra + barra de acento + degradé suave del tono.
    * Reemplaza los bloques con fondo y borde teñidos (estilo pesado / antiguo).
    */
+  /**
+   * Aviso: tarjeta neutra como las demás. El tono (`--tone`) solo pinta el ícono (`.hh-alert-icon`);
+   * nada de fondo teñido ni franja lateral. El tinte queda para errores reales (`.hh-alert-strong`).
+   */
+  /**
+   * Aviso: tarjeta neutra como las demás. El tono (`--tone`) solo pinta el ícono (`.hh-alert-icon`);
+   * nada de fondo teñido ni franja lateral. El tinte queda para errores reales (`.hh-alert-strong`).
+   */
   .hh-alert {
     --tone: var(--brand-primary);
     position: relative;
-    border: 1px solid rgb(var(--surface-border) / 0.9);
+    border: 1px solid rgb(var(--surface-border));
     background-color: rgb(var(--surface-card));
-    background-image: linear-gradient(rgb(var(--tone) / 0.05), rgb(var(--tone) / 0.05));
   }
 
-  .hh-alert::before {
-    content: '';
-    position: absolute;
-    left: -1px;
-    top: 0.75rem;
-    bottom: 0.75rem;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: rgb(var(--tone));
-    pointer-events: none;
+  .hh-alert-strong {
+    border-color: rgb(var(--tone) / 0.35);
+    background-color: rgb(var(--tone) / 0.06);
   }
 
   .hh-alert-danger { --tone: 244 63 94; }
@@ -446,15 +446,32 @@
 
   :where(.hh-alert-icon) { --tone: var(--brand-primary); }
 
-  /** Ícono de alerta en «pastilla» del tono. */
+  /** Ícono del aviso: solo el trazo en el tono, sin pastilla. */
   .hh-alert-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.5rem;
-    background: rgb(var(--tone) / 0.12);
     color: rgb(var(--tone));
   }
+
+  /** Botón chico de acción en filas (WhatsApp, copiar…): gris; el color va solo en el ícono. */
+  .hh-row-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 0.375rem;
+    border: 1px solid rgb(var(--surface-border));
+    background-color: rgb(var(--surface-card));
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    font-weight: 500;
+    color: rgb(var(--ink-primary));
+    transition: background-color 150ms;
+  }
+  .hh-row-btn:hover { background-color: rgb(var(--surface-elevated)); }
+  .hh-row-btn:disabled { opacity: 0.45; }
 
   /** Brillo «skeleton». */
   @keyframes hh-shimmer {

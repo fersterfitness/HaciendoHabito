@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BellRing, Check, ChevronDown, Copy } from 'lucide-react'
+import { ArrowRight, BellRing, Check, ChevronDown, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { markReminderSent, useActiveStudents, useIncomes, useSentReminders } from '@/data/finance'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -126,17 +126,17 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
                   <button
                     type="button"
                     onClick={() => void sendWhatsApp(r, digits)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-surface-border bg-surface-card px-2 py-1 text-3xs font-medium text-ink-secondary shadow-xs hover:border-surface-inputBorder hover:text-ink-primary"
+                    className="hh-row-btn"
                     title="Abre WhatsApp con el mensaje armado"
                   >
-                    <WhatsAppIcon className="h-3 w-3 text-emerald-600" />
+                    <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     Enviar aviso
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => void copyMessage(r)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-surface-border bg-surface-card px-2 py-1 text-3xs font-medium text-ink-secondary shadow-xs hover:text-ink-primary"
+                    className="hh-row-btn"
                     title="Sin teléfono cargado: copiá el mensaje"
                   >
                     <Copy className="h-3 w-3" />
@@ -146,7 +146,7 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
                 <button
                   type="button"
                   onClick={() => setPaying(r)}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-600/30 px-2 py-1 text-3xs font-semibold text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-3xs font-medium text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
                 >
                   <Check className="h-3 w-3" /> Abonó
                 </button>
@@ -162,8 +162,8 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
             )
           })}
           <li className="px-2 pt-1">
-            <Link to="/finances" className="text-3xs font-semibold text-brand-primary hover:underline">
-              Ver cobros del mes en Finanzas
+            <Link to="/finances" className="inline-flex items-center gap-1 text-3xs font-medium text-ink-muted hover:text-ink-primary">
+              Ver cobros del mes en Finanzas <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
           </li>
         </ul>

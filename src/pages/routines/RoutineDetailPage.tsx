@@ -1260,7 +1260,7 @@ export function RoutineDetailPage() {
         ) : null}
 
         {checkInWeek.lastWeek ? (
-          <p className="rounded-xl hh-alert hh-alert-danger px-3 py-2 text-2xs font-medium text-rose-700 dark:text-rose-300">
+          <p className="rounded-xl hh-alert hh-alert-strong hh-alert-danger px-3 py-2 text-2xs font-medium text-rose-700 dark:text-rose-300">
             Última semana · renovar rutina
             {checkInWeek.weekNumber != null ? ` (va por la semana ${checkInWeek.weekNumber}).` : '.'}
           </p>

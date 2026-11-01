@@ -75,11 +75,12 @@ function QuickActionRow({
   children: ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-surface-border/70 bg-surface-card/80 px-3 py-3 space-y-2">
+    <div className="rounded-xl border border-surface-border bg-surface-card px-3 py-3 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-2xs font-semibold text-ink-primary">{title}</p>
         {dueToday ? (
-          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-3xs font-bold text-sky-700 dark:text-sky-300">
+          <span className="inline-flex items-center gap-1 text-3xs font-medium text-brand-primary">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" aria-hidden />
             Hoy
           </span>
         ) : null}
@@ -165,7 +166,7 @@ export function DashboardTrainerOpsPanel({
               <button
                 type="button"
                 onClick={() => void copyCheckInLink(primaryCheckIn)}
-                className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-card transition-colors"
+                className="hh-row-btn"
               >
                 <Copy className="h-3 w-3" aria-hidden />
                 Copiar link
@@ -175,7 +176,7 @@ export function DashboardTrainerOpsPanel({
                   href={checkInSharedPublicUrl(primaryCheckIn.publicToken)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-card transition-colors"
+                  className="hh-row-btn"
                 >
                   <ExternalLink className="h-3 w-3" aria-hidden />
                   Abrir
@@ -192,9 +193,9 @@ export function DashboardTrainerOpsPanel({
                   openCheckInGroupWhatsApp(primaryCheckIn)
                   toast.success('Elegí el grupo en WhatsApp')
                 }}
-                className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-3xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 disabled:opacity-45 dark:text-emerald-300"
+                className="hh-row-btn"
               >
-                <WhatsAppIcon className="h-3 w-3" />
+                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                 Grupo WA
               </button>
             </div>
@@ -225,7 +226,7 @@ export function DashboardTrainerOpsPanel({
                     ok ? toast.success('Mensaje copiado') : toast.error('No se pudo copiar'),
                   )
                 }}
-                className="inline-flex items-center gap-1 rounded-md border border-surface-border/80 bg-surface-elevated px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-card transition-colors"
+                className="hh-row-btn"
               >
                 <Copy className="h-3 w-3" aria-hidden />
                 Copiar mensaje
@@ -241,9 +242,9 @@ export function DashboardTrainerOpsPanel({
                     }
                   })
                 }}
-                className="inline-flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-500/10 px-2 py-1 text-3xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/16 dark:text-emerald-300"
+                className="hh-row-btn"
               >
-                <WhatsAppIcon className="h-3 w-3" />
+                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                 Grupo WA
               </button>
             </div>
@@ -363,9 +364,9 @@ export function DashboardTrainerOpsPanel({
                       })
                       if (!ok) toast.error(`Sin teléfono válido para ${st.full_name}`)
                     }}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-3xs font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
+                    className="hh-row-btn"
                   >
-                    <WhatsAppIcon className="h-3 w-3" />
+                    <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     Enviar feedback mensual
                   </button>
                 </li>
@@ -423,9 +424,9 @@ export function DashboardTrainerOpsPanel({
                       })
                       if (!ok) toast.error(`Sin teléfono válido para ${st.full_name}`)
                     }}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md border border-emerald-600/35 px-2 py-0.5 text-3xs font-medium text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-45 dark:text-emerald-300"
+                    className="hh-row-btn"
                   >
-                    <WhatsAppIcon className="h-3 w-3" />
+                    <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     Recordar
                   </button>
                 </li>

@@ -56,7 +56,7 @@ export function PriceIncreaseNotice() {
         ) : (
           <Link
             to="/finances#aumentos"
-            className="inline-flex items-center rounded-md border border-surface-border bg-surface-card px-2 py-1 text-3xs font-semibold text-brand-primary shadow-xs"
+            className="inline-flex items-center rounded-md border border-surface-border bg-surface-card px-2 py-1 text-3xs font-medium text-ink-primary hover:bg-surface-elevated"
           >
             Ir a aplicar
           </Link>

@@ -46,7 +46,7 @@ export function FormErrorSummary({
     <div
       role="alert"
       className={cn(
-        'rounded-2xl hh-alert hh-alert-danger px-4 py-3 text-sm',
+        'rounded-2xl hh-alert hh-alert-strong hh-alert-danger px-4 py-3 text-sm',
         className,
       )}
     >
