@@ -59,7 +59,7 @@ export function RoutineWeekSquares({
         )
       })}
       {lastWeek ? (
-        <span className="ml-1 text-3xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+        <span className="ml-1 text-3xs font-bold text-rose-600 dark:text-rose-400">
           Última
         </span>
       ) : null}

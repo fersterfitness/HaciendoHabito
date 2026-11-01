@@ -141,7 +141,7 @@ export function AddRmModal({
           {percentRm ? (
             <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
               <div>
-                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">1RM aproximado</p>
+                <p className="text-3xs font-semibold text-ink-muted ">1RM aproximado</p>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary ">{percentRm} kg</p>
               </div>
               <p className="text-xs text-ink-muted text-right">
@@ -187,7 +187,7 @@ export function AddRmModal({
           {estimatedRm && (
             <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-elevated px-4 py-3 ">
               <div>
-                <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">1RM estimado (Epley)</p>
+                <p className="text-3xs font-semibold text-ink-muted ">1RM estimado (Epley)</p>
                 <p className="text-2xl font-bold tabular-nums text-ink-primary ">{estimatedRm} kg</p>
               </div>
               <p className="text-xs text-ink-muted text-right">

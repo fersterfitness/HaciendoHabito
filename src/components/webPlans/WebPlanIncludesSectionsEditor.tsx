@@ -68,7 +68,7 @@ export function WebPlanIncludesSectionsEditor({ sections, onChange, itemMaxLengt
               className={cn('rounded-xl border p-3 space-y-2', meta.chipClass)}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide">{meta.label}</span>
+                <span className="text-xs font-bold ">{meta.label}</span>
                 <button
                   type="button"
                   className="p-1 rounded-md text-ink-muted hover:text-status-expired hover:bg-status-expired/10"

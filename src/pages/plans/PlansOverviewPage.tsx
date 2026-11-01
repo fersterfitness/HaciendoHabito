@@ -170,19 +170,19 @@ export function PlansOverviewPage() {
         {/* KPIs */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Card padding="md">
-            <p className="text-2xs uppercase tracking-wide text-ink-muted">Activos</p>
+            <p className="text-2xs text-ink-muted">Activos</p>
             <p className="mt-1 text-xl font-semibold text-emerald-600 dark:text-emerald-400">{grouped.active.length}</p>
           </Card>
           <Card padding="md">
-            <p className="text-2xs uppercase tracking-wide text-ink-muted">Por vencer</p>
+            <p className="text-2xs text-ink-muted">Por vencer</p>
             <p className="mt-1 text-xl font-semibold text-amber-600 dark:text-amber-400">{grouped.expiring.length}</p>
           </Card>
           <Card padding="md">
-            <p className="text-2xs uppercase tracking-wide text-ink-muted">Vencidos</p>
+            <p className="text-2xs text-ink-muted">Vencidos</p>
             <p className="mt-1 text-xl font-semibold text-red-600 dark:text-red-400">{grouped.expired.length}</p>
           </Card>
           <Card padding="md">
-            <p className="text-2xs uppercase tracking-wide text-ink-muted">Pendiente cobro</p>
+            <p className="text-2xs text-ink-muted">Pendiente cobro</p>
             <p className="mt-1 text-xl font-semibold text-ink-primary">{formatMoney(pendingAmount)}</p>
           </Card>
         </div>

@@ -28,7 +28,7 @@ function Field({
         className,
       )}
     >
-      <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
+      <p className="text-3xs font-medium text-ink-muted">
         {label}
       </p>
       <div className="mt-1 whitespace-pre-wrap break-words text-sm text-ink-primary">
@@ -43,7 +43,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   if (!hasContent) return null
   return (
     <section className="space-y-1">
-      <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-secondary">
+      <h4 className="text-2xs font-semibold text-ink-secondary">
         {title}
       </h4>
       <div>{children}</div>

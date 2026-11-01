@@ -319,7 +319,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
         <header className="space-y-4 pt-2">
           <div className="flex flex-col items-center space-y-2.5 text-center">
             <BrandLogo size="sm" decorative />
-            <p className="text-3xs font-bold uppercase tracking-[0.16em] text-brand-primary">
+            <p className="text-3xs font-bold text-brand-primary">
               Ferster Fitness · Haciéndolo hábito
             </p>
             <h1 className="text-balance text-[1.7rem] font-semibold tracking-tight text-ink-primary sm:text-3xl">
@@ -359,7 +359,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
           <div className="rounded-3xl border border-surface-border/70 bg-surface-card/80 p-4 shadow-card sm:p-5">
             {import.meta.env.DEV ? (
               <div className="mb-3 rounded-2xl border border-dashed border-brand-secondary/40 bg-brand-secondary/8 px-3 py-2.5">
-                <p className="text-3xs font-bold uppercase tracking-wide text-brand-secondary">Modo desarrollo</p>
+                <p className="text-3xs font-bold text-brand-secondary">Modo desarrollo</p>
                 <p className="mt-0.5 text-2xs leading-relaxed text-ink-muted">
                   El mail tiene que ser de un alumno de la cuenta dueña de este formulario. No hace falta pedirle permiso a Tomás: usá un alumno tuyo o el link personal (Abrir) desde Consulta semanal.
                 </p>

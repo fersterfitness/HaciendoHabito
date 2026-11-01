@@ -569,9 +569,9 @@ export function IntakeNutritionForm({
             <div className="rounded-xl border border-surface-border overflow-hidden">
               {/* Header */}
               <div className="grid grid-cols-[1fr_90px_90px] gap-px bg-surface-border">
-                <div className="bg-surface-elevated px-3 py-2 text-3xs font-semibold text-ink-muted uppercase tracking-wide">Alimento</div>
-                <div className="bg-surface-elevated px-2 py-2 text-3xs font-semibold text-ink-muted uppercase tracking-wide text-center">Frecuencia</div>
-                <div className="bg-surface-elevated px-2 py-2 text-3xs font-semibold text-ink-muted uppercase tracking-wide text-center">Tipo / detalle</div>
+                <div className="bg-surface-elevated px-3 py-2 text-3xs font-semibold text-ink-muted ">Alimento</div>
+                <div className="bg-surface-elevated px-2 py-2 text-3xs font-semibold text-ink-muted text-center">Frecuencia</div>
+                <div className="bg-surface-elevated px-2 py-2 text-3xs font-semibold text-ink-muted text-center">Tipo / detalle</div>
               </div>
 
               {/* Rows */}

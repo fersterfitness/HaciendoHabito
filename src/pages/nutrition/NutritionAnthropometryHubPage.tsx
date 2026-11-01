@@ -107,7 +107,7 @@ function AiMarkdown({ text }: { text: string }) {
       blocks.push(
         <p
           key={`h-${blocks.length}`}
-          className="mt-1 text-xs font-semibold uppercase tracking-wide text-brand-tertiary"
+          className="mt-1 text-xs font-semibold text-brand-tertiary"
         >
           <InlineMd text={heading[1] ?? ''} />
         </p>,
@@ -155,7 +155,7 @@ function MetricCard({
 
   return (
     <div className="rounded-2xl border border-surface-border/70 bg-surface-card p-4">
-      <p className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">{label}</p>
+      <p className="text-2xs font-semibold text-ink-muted">{label}</p>
       <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-ink-primary">
         {fmtNum(latest)}
         {unit ? <span className="ml-1 text-sm font-normal text-ink-muted">{unit}</span> : null}

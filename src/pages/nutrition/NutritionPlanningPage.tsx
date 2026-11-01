@@ -108,7 +108,7 @@ const PLAN_FIELD_TEXTAREA_FOCUS =
 const PLAN_SECTION_CARD =
   'rounded-md border border-surface-border/75 bg-surface-card'
 
-const PLAN_STEP_KICKER = 'text-2xs font-semibold uppercase tracking-wide text-ink-secondary'
+const PLAN_STEP_KICKER = 'text-2xs font-semibold text-ink-secondary'
 
 const PLAN_DOC_LINK_CLASS =
   'font-medium text-ink-secondary underline underline-offset-2 hover:text-ink-primary'
@@ -188,7 +188,7 @@ function LiveMacroCell({
 
   return (
     <div className="min-w-0 rounded-md border border-surface-border/75 bg-white/95 px-2 py-2 text-center dark:bg-zinc-950/45 sm:px-2.5">
-      <p className="text-3xs font-bold uppercase tracking-wide text-ink-muted sm:text-3xs">{abbr}</p>
+      <p className="text-3xs font-bold text-ink-muted sm:text-3xs">{abbr}</p>
       <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-ink-primary sm:text-xl">
         {fmt1(intakeG)}
         <span className="ml-0.5 text-3xs font-semibold text-ink-muted ">g</span>
@@ -246,7 +246,7 @@ function TotalsBadge({
         compact ? 'px-3 py-2' : 'px-4 py-3',
       )}
     >
-      <p className={cn('uppercase tracking-wide text-ink-muted font-bold', compact ? 'text-3xs' : 'text-3xs')}>
+      <p className={cn(' text-ink-muted font-bold', compact ? 'text-3xs' : 'text-3xs')}>
         {label}
       </p>
       <p className={cn('tabular-nums text-ink-secondary', compact ? 'text-xs mt-0.5 leading-snug' : 'mt-1')}>
@@ -1531,7 +1531,7 @@ export function NutritionPlanningPage() {
                   </p>
                 </div>
                 <div className="w-full sm:max-w-[min(100%,20rem)] shrink-0">
-                  <label className="block text-3xs font-semibold uppercase tracking-wide text-ink-muted mb-1">{referenceEntityLabel}</label>
+                  <label className="block text-3xs font-semibold text-ink-muted mb-1">{referenceEntityLabel}</label>
                   <select
                     className={selectPlanClasses}
                     disabled={referenceStudentsLoading}
@@ -1622,7 +1622,7 @@ export function NutritionPlanningPage() {
                   Como la segunda solapa del Excel HH: texto de objetivo, calorías del día target y targets en g/kg.
                 </p>
                 <label className="text-sm space-y-1 block max-w-[12rem]">
-                  <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Peso (kg)</span>
+                  <span className="text-ink-muted text-xs font-semibold ">Peso (kg)</span>
                   <Input value={wb.person.weightKg} onChange={(e) => patchPerson('weightKg', e.target.value)} inputMode="decimal" />
                   <span className="text-3xs text-ink-muted leading-snug inline-block mt-1">
                     Para g/kg y para la calculadora TDEE; también desde «{referenceEntityLabel}» en el punto 1.
@@ -1630,7 +1630,7 @@ export function NutritionPlanningPage() {
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="text-sm space-y-1">
-                    <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Objetivo en texto</span>
+                    <span className="text-ink-muted text-xs font-semibold ">Objetivo en texto</span>
                     <textarea
                       className={cn(
                         'flex min-h-[64px] w-full px-3 py-2 text-sm placeholder:text-ink-muted',
@@ -1645,7 +1645,7 @@ export function NutritionPlanningPage() {
                     />
                   </label>
                   <label className="text-sm space-y-1">
-                    <span className="text-ink-muted text-xs font-semibold uppercase tracking-wide">Calorías propuestas · meta del día</span>
+                    <span className="text-ink-muted text-xs font-semibold ">Calorías propuestas · meta del día</span>
                     <Input
                       value={wb.proposedKcal}
                       onChange={(e) => {
@@ -1707,7 +1707,7 @@ export function NutritionPlanningPage() {
                     }
                   />
                   <div className="rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-sm space-y-1.5">
-                    <p className="text-3xs uppercase tracking-wide text-ink-muted font-bold">Meta calórica del día</p>
+                    <p className="text-3xs text-ink-muted font-bold">Meta calórica del día</p>
                     <p className="text-base font-semibold tabular-nums text-ink-primary">
                       {targetKcal > 0 ? `${targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
                     </p>
@@ -1734,7 +1734,7 @@ export function NutritionPlanningPage() {
                 </div>
               </div>
               <div className="rounded-xl border border-surface-border overflow-hidden mt-4">
-                <p className="text-3xs font-bold uppercase tracking-wide text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
+                <p className="text-3xs font-bold text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
                   Vista cuadro (Excel) · objetivo y datos
                 </p>
                 <table className="w-full border-collapse text-left text-sm border border-surface-border/80">
@@ -1805,15 +1805,15 @@ export function NutritionPlanningPage() {
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <label className="text-sm space-y-1">
-                    <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Altura (cm)</span>
+                    <span className="text-3xs font-semibold text-ink-muted ">Altura (cm)</span>
                     <Input value={wb.person.heightCm} onChange={(e) => patchPerson('heightCm', e.target.value)} inputMode="decimal" />
                   </label>
                   <label className="text-sm space-y-1">
-                    <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Edad (años)</span>
+                    <span className="text-3xs font-semibold text-ink-muted ">Edad (años)</span>
                     <Input value={wb.person.ageYears} onChange={(e) => patchPerson('ageYears', e.target.value)} inputMode="decimal" />
                   </label>
                   <label className="text-sm space-y-1 lg:col-span-2">
-                    <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Sexo · copiar TDEE</span>
+                    <span className="text-3xs font-semibold text-ink-muted ">Sexo · copiar TDEE</span>
                     <select
                       className={selectPlanClasses}
                       value={wb.person.sex}
@@ -1852,7 +1852,7 @@ export function NutritionPlanningPage() {
                   </div>
                 </details>
                 <label className="block max-w-[11rem] space-y-1">
-                  <span className="text-3xs font-semibold text-ink-muted uppercase tracking-wide">Actividad estimada ×</span>
+                  <span className="text-3xs font-semibold text-ink-muted ">Actividad estimada ×</span>
                   <Input
                     value={wb.person.activityFactor}
                     onChange={(e) => patchPerson('activityFactor', e.target.value)}
@@ -2043,7 +2043,7 @@ export function NutritionPlanningPage() {
               <strong className="text-ink-secondary">Mi lista</strong> · notas al pie de cada momento. El resumen de kcal arriba se actualiza con lo que sumes acá y en tablas.
             </p>
             <label className="block mt-4 space-y-1.5">
-              <span className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">
+              <span className="text-3xs font-semibold text-ink-muted">
                 Guía orientativa para el alumno / PDF (hortalizas A y B, equivalencias, proteínas, marcas)
               </span>
               <textarea
@@ -2066,7 +2066,7 @@ export function NutritionPlanningPage() {
             <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:bg-surface-card/95">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="shrink-0 text-3xs font-bold uppercase tracking-wide text-ink-muted">
+                  <span className="shrink-0 text-3xs font-bold text-ink-muted">
                     Kcal del plan (en vivo)
                   </span>
                   <span className="text-2xl font-bold tabular-nums leading-none text-ink-primary sm:text-3xl">
@@ -2112,7 +2112,7 @@ export function NutritionPlanningPage() {
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
-                <p className="mb-1.5 px-0.5 text-center text-3xs font-bold uppercase tracking-wide text-ink-muted sm:text-left">
+                <p className="mb-1.5 px-0.5 text-center text-3xs font-bold text-ink-muted sm:text-left">
                   Macros en vivo (g) · tablas, Mi lista y esta distribución
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -2161,7 +2161,7 @@ export function NutritionPlanningPage() {
           ) : null}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between border border-surface-border/80 rounded-xl p-3 bg-surface-muted/15">
             <div className="flex flex-col gap-2 min-w-[200px] flex-1">
-              <label htmlFor="apply-meal-template" className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">
+              <label htmlFor="apply-meal-template" className="text-3xs font-semibold text-ink-muted">
                 Plantillas (este navegador)
               </label>
               <select
@@ -2303,7 +2303,7 @@ export function NutritionPlanningPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 ">
                       <span
                         id={`meal-slot-title-${key}`}
-                        className="text-3xs font-bold uppercase tracking-[0.14em] text-ink-muted"
+                        className="text-3xs font-bold text-ink-muted"
                       >
                         {label}
                       </span>
@@ -2323,7 +2323,7 @@ export function NutritionPlanningPage() {
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[520px] border-collapse text-sm">
                             <thead>
-                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">
+                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-3xs font-semibold text-ink-muted ">
                                 <th className="min-w-0 px-3 py-2 text-left">Alimento</th>
                                 <th className="hidden px-2 py-2 text-left md:table-cell" title="Macronutrientes orientativos de esta porción">
                                   Macros
@@ -2418,7 +2418,7 @@ export function NutritionPlanningPage() {
                                       <td className="px-2 py-2 align-top">
                                         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end sm:gap-x-2 sm:gap-y-2">
                                           <label className="flex min-w-0 flex-col gap-0.5 sm:items-end">
-                                            <span className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                                            <span className="text-3xs font-medium text-ink-muted">
                                               Modo
                                             </span>
                                             <select
@@ -2471,7 +2471,7 @@ export function NutritionPlanningPage() {
                                           </label>
                                           {modeSelectValue === 'units' || modeSelectValue === 'volume' ? (
                                             <label className="flex min-w-0 flex-col gap-0.5 sm:items-end">
-                                              <span className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                                              <span className="text-3xs font-medium text-ink-muted">
                                                 {modeSelectValue === 'volume' ? 'ml' : 'Uds.'}
                                               </span>
                                               <Input
@@ -2504,7 +2504,7 @@ export function NutritionPlanningPage() {
                                                 : undefined
                                             }
                                           >
-                                            <span className="text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                                            <span className="text-3xs font-medium text-ink-muted">
                                               {modeSelectValue === 'grams'
                                                 ? 'Gramos'
                                                 : 'Equiv. gramos'}
@@ -2569,7 +2569,7 @@ export function NutritionPlanningPage() {
                                             <span id={`prep-desc-${p.id}`} className="sr-only">
                                               Define cómo se muestra crudo o cocido en el PDF para este alimento.
                                             </span>
-                                            <span className="shrink-0 text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                                            <span className="shrink-0 text-3xs font-medium text-ink-muted">
                                               PDF
                                             </span>
                                             <select
@@ -2606,7 +2606,7 @@ export function NutritionPlanningPage() {
                       )}
                       <div className="border-t border-surface-border bg-surface-muted/30 px-3 py-3 ">
                         <label className="block space-y-1">
-                          <span className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">
+                          <span className="text-3xs font-semibold text-ink-muted">
                             Notas del momento (opcional)
                           </span>
                           <textarea
@@ -2652,7 +2652,7 @@ export function NutritionPlanningPage() {
         <section className={cn('w-full overflow-hidden', PLAN_SECTION_CARD)}>
           <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/50 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink-primary">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-ink-primary">
                 <Apple className="h-4 w-4 shrink-0 text-ink-muted " aria-hidden />
                 Alimentos personalizados
               </h2>
@@ -2767,7 +2767,7 @@ export function NutritionPlanningPage() {
                               onClick={() => openTableTargetModal(lib)}
                               className={cn(
                                 'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
-                                'text-3xs font-semibold uppercase tracking-wide text-ink-muted hover:text-ink-primary ',
+                                'text-3xs font-semibold text-ink-muted hover:text-ink-primary ',
                                 'hover:border-surface-inputBorder hover:bg-surface-elevated/60 transition-colors',
                               )}
                             >
@@ -2844,7 +2844,7 @@ export function NutritionPlanningPage() {
               >
                 <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-xs font-bold text-ink-primary uppercase tracking-wide">{sec.title}</h3>
+                    <h3 className="text-xs font-bold text-ink-primary ">{sec.title}</h3>
                     <p className="text-3xs text-ink-muted mt-0.5 leading-snug">{sec.quantityColumnHint}</p>
                   </div>
                   <p className="text-3xs text-ink-secondary tabular-nums shrink-0">
@@ -2905,7 +2905,7 @@ export function NutritionPlanningPage() {
                                   }}
                                   className={cn(
                                     'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
-                                    'text-3xs font-semibold uppercase tracking-wide text-ink-muted hover:text-ink-primary ',
+                                    'text-3xs font-semibold text-ink-muted hover:text-ink-primary ',
                                     'hover:border-surface-inputBorder hover:bg-surface-elevated/60 transition-colors',
                                   )}
                                 >
@@ -3050,7 +3050,7 @@ export function NutritionPlanningPage() {
             </div>
             {mealPickTab === 'plan' ? (
               <div className="space-y-3">
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Tabla</label>
+                <label className="block text-2xs font-semibold text-ink-muted ">Tabla</label>
                 <select
                   className={selectPlanClasses}
                   value={mealPickSecKey}
@@ -3062,7 +3062,7 @@ export function NutritionPlanningPage() {
                     </option>
                   ))}
                 </select>
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Alimento</label>
+                <label className="block text-2xs font-semibold text-ink-muted ">Alimento</label>
                 <select
                   className={selectPlanClasses}
                   value={mealPickRowId}
@@ -3079,7 +3079,7 @@ export function NutritionPlanningPage() {
                     </option>
                   ))}
                 </select>
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
+                <label className="block text-2xs font-semibold text-ink-muted ">
                   Gramos (este momento)
                 </label>
                 <Input
@@ -3092,7 +3092,7 @@ export function NutritionPlanningPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
+                <label className="block text-2xs font-semibold text-ink-muted ">
                   Alimento de Mi lista
                 </label>
                 <select
@@ -3122,7 +3122,7 @@ export function NutritionPlanningPage() {
                     </Link>
                   </p>
                 ) : null}
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
+                <label className="block text-2xs font-semibold text-ink-muted ">
                   Gramos (este momento)
                 </label>
                 <Input
@@ -3135,7 +3135,7 @@ export function NutritionPlanningPage() {
               </div>
             )}
             <div className="space-y-2 pt-2 border-t border-surface-border/70">
-              <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">
+              <label className="block text-2xs font-semibold text-ink-muted ">
                 Referencia para el alumno (PDF)
               </label>
               <select
@@ -3177,7 +3177,7 @@ export function NutritionPlanningPage() {
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se cargan nombre y macros por 100 g en esa fila de la tabla (podés cambiar los gramos después).
             </p>
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Momento</label>
+            <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Momento</label>
             <select
               className={cn(selectPlanClasses, 'mb-4')}
               value={tableTargetSecKey}
@@ -3194,7 +3194,7 @@ export function NutritionPlanningPage() {
                 </option>
               ))}
             </select>
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Fila de la plantilla</label>
+            <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Fila de la plantilla</label>
             <select className={cn(selectPlanClasses, 'mb-5')} value={tableTargetRowId} onChange={(e) => setTableTargetRowId(e.target.value)}>
               {rowsForTableTarget.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -3316,7 +3316,7 @@ export function NutritionPlanningPage() {
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se guarda una copia del contenido actual del plan. El {referenceEntityLabel} la ve en su cuenta («Mi plan de alimentación») si su usuario está vinculado en la ficha.
             </p>
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">
+            <label className="block text-2xs font-semibold text-ink-muted mb-1.5">
               {referenceEntityLabel === 'paciente' ? 'Paciente' : 'Alumno'}
             </label>
             <select
@@ -3343,15 +3343,15 @@ export function NutritionPlanningPage() {
                 ))
               )}
             </select>
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Título del plan</label>
+            <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Título del plan</label>
             <Input className="mb-4" value={assignTitle} onChange={(e) => setAssignTitle(e.target.value)} placeholder="Ej. Plan marzo · déficit" />
             <div className="mb-5 grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Desde</label>
+                <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Desde</label>
                 <Input type="date" value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} />
               </div>
               <div>
-                <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide mb-1.5">Hasta</label>
+                <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Hasta</label>
                 <Input type="date" value={assignEndDate} onChange={(e) => setAssignEndDate(e.target.value)} />
               </div>
             </div>
@@ -3379,14 +3379,14 @@ export function NutritionPlanningPage() {
             <p className="text-xs text-ink-muted leading-relaxed">
               Se guarda todo el plan actual (tablas, distribución, guías, TDEE, etc.) en tu cuenta para reutilizarlo después con «Cargar».
             </p>
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Nombre</label>
+            <label className="block text-2xs font-semibold text-ink-muted ">Nombre</label>
             <Input
               className="w-full"
               value={workbookTplName}
               onChange={(e) => setWorkbookTplName(e.target.value)}
               placeholder="Ej. Déficit · 3 comidas + plantilla HH"
             />
-            <label className="block text-2xs font-semibold text-ink-muted uppercase tracking-wide">Nota (opcional)</label>
+            <label className="block text-2xs font-semibold text-ink-muted ">Nota (opcional)</label>
             <textarea
               className="w-full min-h-[64px] rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary"
               value={workbookTplDesc}

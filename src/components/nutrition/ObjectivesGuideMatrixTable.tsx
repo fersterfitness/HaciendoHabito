@@ -53,7 +53,7 @@ export function ObjectivesGuideMatrixTable({ og }: { og: PlanningWorkbookStateV1
   return (
     <div className="mt-4 overflow-x-auto rounded-lg border border-surface-border">
       <table className="w-full min-w-[640px] border-collapse text-left text-xs">
-        <caption className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 text-left text-3xs font-bold uppercase tracking-wide text-ink-muted">
+        <caption className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 text-left text-3xs font-bold text-ink-muted">
           Guía (no es específico: puede variar según deporte y contexto)
         </caption>
         <thead>

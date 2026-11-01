@@ -11,7 +11,7 @@ export function CheckInLastWeekBanner({ onAskMonthly }: { onAskMonthly?: () => v
         </span>
         <div className="min-w-0 flex-1 space-y-2">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-rose-600 dark:text-rose-400">
+            <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
               Última semana
             </p>
             <p className="mt-0.5 text-2xs font-semibold text-rose-700 dark:text-rose-300">Renovar rutina</p>

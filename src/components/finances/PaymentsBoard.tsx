@@ -153,7 +153,7 @@ export function PaymentsBoard() {
       {/* Encabezado + navegación de meses (cada mes queda «cerrado» con lo generado) */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-2xs font-semibold uppercase tracking-widest text-ink-muted">Cobros de alumnos</p>
+          <p className="text-2xs font-semibold text-ink-muted">Cobros de alumnos</p>
           <h2 className="flex items-center gap-2 text-lg font-semibold capitalize tracking-tight text-ink-primary">
             {format(month, "MMMM yyyy", { locale: es })}
             {isPastMonth ? (
@@ -190,7 +190,7 @@ export function PaymentsBoard() {
         <SummaryTile label="Por cobrar" value={formatCurrency(totals.pendiente)} tone={totals.pendiente > 0 ? 'warning' : 'neutral'} />
         <SummaryTile label="Vencidos" value={String(totals.vencidos)} tone={totals.vencidos > 0 ? 'danger' : 'neutral'} />
         <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-3 shadow-card sm:p-4">
-          <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:text-2xs">Cumplimiento</p>
+          <p className="text-3xs font-semibold text-ink-muted sm:text-2xs">Cumplimiento</p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums text-ink-primary sm:mt-1 sm:text-2xl">
             {totals.esperado > 0 ? Math.round((totals.cobrado / totals.esperado) * 100) : 0}%
           </p>
@@ -287,14 +287,14 @@ export function PaymentsBoard() {
                         <button
                           type="button"
                           onClick={() => void remind(r, wa)}
-                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 text-2xs font-semibold text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-surface-border text-2xs font-medium text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
                         >
                           <WhatsAppIcon className="h-3.5 w-3.5" />
                           Recordar
                         </button>
                       ) : null}
                       {canPay ? (
-                        <Button size="sm" variant="soft" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)} className={cn('h-9', !wa && 'col-span-2')}>
+                        <Button size="sm" variant="secondary" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)} className={cn('h-9', !wa && 'col-span-2')}>
                           Marcar pagado
                         </Button>
                       ) : null}
@@ -312,7 +312,7 @@ export function PaymentsBoard() {
                     <th
                       key={h || i}
                       className={cn(
-                        'px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted',
+                        'px-4 py-2.5 text-3xs font-semibold text-ink-muted',
                         (h === 'Debe' || h === 'Cobrado') && 'text-right',
                       )}
                     >
@@ -326,7 +326,7 @@ export function PaymentsBoard() {
                   const debt = Math.max(0, r.expected - r.paid)
                   const wa = r.state === 'vencido' || r.state === 'pendiente' || r.state === 'parcial' ? normalizePhoneForWhatsApp(r.phone) : null
                   return (
-                    <tr key={r.studentId}>
+                    <tr key={r.studentId} className="group">
                       <td className="px-4 py-2.5">
                         <Link to={`/students/${r.studentId}`} className="font-semibold text-ink-primary hover:underline">
                           {r.fullName}
@@ -368,12 +368,13 @@ export function PaymentsBoard() {
                         {r.reminder === 'overdue' ? <p className="mt-0.5 text-3xs text-status-expired">+7 días hábiles</p> : null}
                       </td>
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center justify-end gap-1.5">
+                        {/* Con mouse, las acciones aparecen al pasar por la fila: la tabla queda limpia. */}
+                        <div className="flex items-center justify-end gap-1.5 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
                           {wa ? (
                             <button
                               type="button"
                               onClick={() => void remind(r, wa)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-600/30 px-2.5 text-2xs font-semibold text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 border border-surface-border text-2xs font-medium text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
                               title="Recordar el pago por WhatsApp"
                             >
                               <WhatsAppIcon className="h-3.5 w-3.5" />
@@ -381,7 +382,7 @@ export function PaymentsBoard() {
                             </button>
                           ) : null}
                           {r.state !== 'pagado' && !isPastMonthRow(r) ? (
-                            <Button size="sm" variant="soft" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)}>
+                            <Button size="sm" variant="secondary" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)}>
                               Marcar pagado
                             </Button>
                           ) : null}
@@ -478,14 +479,12 @@ export function PaymentsBoard() {
 function SummaryTile({ label, value, tone }: { label: string; value: string; tone: 'success' | 'warning' | 'danger' | 'neutral' }) {
   return (
     <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-3 shadow-card sm:p-4">
-      <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:text-2xs">{label}</p>
+      <p className="text-3xs font-semibold text-ink-muted sm:text-2xs">{label}</p>
       <p
         className={cn(
           'mt-0.5 text-lg font-semibold tabular-nums sm:mt-1 sm:text-2xl',
-          tone === 'success' && 'text-emerald-600 dark:text-emerald-400',
-          tone === 'warning' && 'text-status-expiring',
-          tone === 'danger' && 'text-status-expired',
-          tone === 'neutral' && 'text-ink-primary',
+          // Solo lo vencido lleva color; el resto va en tinta para no competir.
+          tone === 'danger' ? 'text-status-expired' : 'text-ink-primary',
         )}
       >
         {value}

@@ -88,7 +88,7 @@ export function AssignPresetRoutineModal({
 
   return (
     <Modal open onClose={onClose} size="md" bare className="p-4">
-    <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
+    <p className="text-3xs font-semibold text-ink-muted">Rutinas preestablecidas</p>
     <h3 className="mt-1 text-sm font-semibold text-ink-primary">Asignar a {studentName}</h3>
     <p className="mt-1 text-2xs text-ink-secondary">
       Elegí macrociclo → mesociclo → rutina → variante. El objetivo se copia al asignar.

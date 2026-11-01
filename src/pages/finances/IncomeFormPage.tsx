@@ -184,7 +184,7 @@ export function IncomeFormPage() {
     <div>
       <Header title={isEditing ? 'Editar ingreso' : 'Nuevo ingreso'} showBack />
 
-      <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
+      <div className="max-w-[1600px] px-4 py-6 lg:px-6">
         <div className="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <SaveStatusBar isSubmitting={isSubmitting} isDirty={isDirty} />

@@ -8,7 +8,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   if (value == null || value === '') return null
   return (
     <div className="border-b border-surface-border/45 py-3 last:border-b-0">
-      <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted">{label}</p>
+      <p className="text-3xs font-medium text-ink-muted">{label}</p>
       <div className="mt-1 break-words text-sm text-ink-primary">{value}</div>
     </div>
   )

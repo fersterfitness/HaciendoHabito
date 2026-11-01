@@ -19,7 +19,7 @@ import {
   weekStatusHasSignal,
 } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
-import { cn } from '@/lib/utils'
+import { avatarToneClass, cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 type Row = {
@@ -215,7 +215,7 @@ export function StudentRoutineWeekPanel() {
     <div className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4">
         <div>
-          <p className="text-3xs font-bold uppercase tracking-[0.14em] text-brand-primary">Seguimiento</p>
+          <p className="text-3xs font-bold text-brand-primary">Seguimiento</p>
           <h3 className="text-base font-semibold tracking-tight text-ink-primary">Semana de rutina</h3>
           <p className="mt-0.5 max-w-prose text-2xs leading-relaxed text-ink-muted">
             Según el último check-in. {inWeekCount} en curso
@@ -262,7 +262,7 @@ export function StudentRoutineWeekPanel() {
                       'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-3xs font-bold',
                       row.lastWeek
                         ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
-                        : 'bg-brand-primary/12 text-brand-primary',
+                        : avatarToneClass(row.name),
                     )}
                   >
                     {initials(row.name)}
@@ -273,7 +273,7 @@ export function StudentRoutineWeekPanel() {
                       <p
                         className={cn(
                           'text-3xs font-medium tabular-nums',
-                          row.lastWeek ? 'font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400' : 'text-ink-muted',
+                          row.lastWeek ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-ink-muted',
                         )}
                       >
                         {row.finished
@@ -288,7 +288,7 @@ export function StudentRoutineWeekPanel() {
                       </p>
                     </div>
                     {row.lastWeek ? (
-                      <p className="mt-1 text-2xs font-semibold uppercase tracking-[0.08em] text-rose-600 dark:text-rose-400">
+                      <p className="mt-1 text-2xs font-semibold text-rose-600 dark:text-rose-400">
                         Renovar rutina
                       </p>
                     ) : null}

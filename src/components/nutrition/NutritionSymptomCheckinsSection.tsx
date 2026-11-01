@@ -101,7 +101,7 @@ export function NutritionSymptomCheckinsSection({
       </Button>
 
       <div className="border-t border-surface-border pt-4 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Registros recientes</p>
+        <p className="text-xs font-semibold text-ink-muted">Registros recientes</p>
         {loading ? (
           <p className="text-sm text-ink-muted">Cargando…</p>
         ) : rows.length === 0 ? (

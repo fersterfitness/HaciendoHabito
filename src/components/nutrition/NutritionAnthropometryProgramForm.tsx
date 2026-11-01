@@ -53,7 +53,7 @@ function inputsWithBasicPrefill(
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <p className="text-2xs font-semibold uppercase tracking-wide text-ink-muted mb-2">{children}</p>
+  return <p className="text-2xs font-semibold text-ink-muted mb-2">{children}</p>
 }
 
 function SeriesRow({

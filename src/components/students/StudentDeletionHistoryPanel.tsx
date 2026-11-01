@@ -142,37 +142,37 @@ export function StudentDeletionHistoryPanel({
                   <tr className="text-left">
                     <th
                       scope="col"
-                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
+                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5"
                     >
                       {columnLabel}
                     </th>
                     <th
                       scope="col"
-                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5"
+                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5"
                     >
                       Nivel
                     </th>
                     <th
                       scope="col"
-                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
+                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5"
                     >
                       Estado
                     </th>
                     <th
                       scope="col"
-                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5"
+                      className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5"
                     >
                       Eliminado
                     </th>
                     <th
                       scope="col"
-                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
+                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5"
                     >
                       Por
                     </th>
                     <th
                       scope="col"
-                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5"
+                      className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5"
                     >
                       Email
                     </th>

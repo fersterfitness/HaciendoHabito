@@ -713,58 +713,62 @@ export function DashboardPage() {
           </div>
         ) : null}
 
-        {canSeeTraining ? (
-          <DashboardTrainerOpsPanel
-            dueCheckInSchedules={dueCheckInSchedules}
-            dueResourceSchedules={dueResourceSchedules}
-            checkInQuickSends={checkInQuickSends}
-            resourceQuickSends={resourceQuickSends}
-            missingCheckInStudents={missingCheckInStudents}
-            lastWeekStudents={lastWeekStudents}
-            monthlyFeedbackUrl={monthlyFeedbackUrl}
-            rmTestDueStudents={rmTestDueStudents}
-            onRmTestRead={(studentId) => setRmTestDueStudents((prev) => prev.filter((s) => s.id !== studentId))}
-          />
-        ) : null}
+        {/* Todo lo que pide una acción hoy, junto y apretado; las estadísticas van después. */}
+        <section className="space-y-2.5" aria-label="Pendientes de hoy">
+          <PageSectionTitle title="Pendientes de hoy" className="hidden lg:flex" />
+          {canSeeTraining ? (
+            <DashboardTrainerOpsPanel
+              dueCheckInSchedules={dueCheckInSchedules}
+              dueResourceSchedules={dueResourceSchedules}
+              checkInQuickSends={checkInQuickSends}
+              resourceQuickSends={resourceQuickSends}
+              missingCheckInStudents={missingCheckInStudents}
+              lastWeekStudents={lastWeekStudents}
+              monthlyFeedbackUrl={monthlyFeedbackUrl}
+              rmTestDueStudents={rmTestDueStudents}
+              onRmTestRead={(studentId) => setRmTestDueStudents((prev) => prev.filter((s) => s.id !== studentId))}
+            />
+          ) : null}
 
-        {canSeeFinances && user ? <OverduePaymentsAlert ownerId={user.id} /> : null}
-        {canSeeFinances ? <PriceIncreaseNotice /> : null}
+          {canSeeFinances && user ? <OverduePaymentsAlert ownerId={user.id} /> : null}
+          {canSeeFinances ? <PriceIncreaseNotice /> : null}
 
-        {role === 'nutritionist' && user ? (
-          <section className="space-y-2">
-            <PageSectionTitle title="Seguimiento de pacientes" />
-            <NutritionistOpsPanel ownerId={user.id} />
-          </section>
-        ) : null}
+          {role === 'nutritionist' && user ? (
+            <section className="space-y-2">
+              <PageSectionTitle title="Seguimiento de pacientes" />
+              <NutritionistOpsPanel ownerId={user.id} />
+            </section>
+          ) : null}
 
-        {canSeeTraining && birthdays.length > 0 ? (
-          <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5">
-            <p className="mb-2 text-3xs font-semibold uppercase tracking-widest text-ink-muted">Cumpleaños</p>
-            <div className="flex flex-wrap gap-2">
-              {birthdays.map((b) => (
-                <button
-                  key={`bday-block-${b.id}`}
-                  type="button"
-                  onClick={() => navigate(peopleDetailPath(b.id))}
-                  className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15"
-                >
-                  <Cake className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
-                  <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
-                </button>
-              ))}
+          {canSeeTraining && birthdays.length > 0 ? (
+            <div className="rounded-xl border border-brand-secondary/25 bg-brand-secondary/8 px-3 py-2.5">
+              <p className="mb-2 text-3xs font-semibold text-ink-muted">Cumpleaños</p>
+              <div className="flex flex-wrap gap-2">
+                {birthdays.map((b) => (
+                  <button
+                    key={`bday-block-${b.id}`}
+                    type="button"
+                    onClick={() => navigate(peopleDetailPath(b.id))}
+                    className="inline-flex items-center gap-2 rounded-xl border border-brand-secondary/25 bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-primary hover:bg-brand-secondary/15"
+                  >
+                    <Cake className="h-3.5 w-3.5 text-brand-secondary shrink-0" />
+                    <span>{b.full_name} · {b.daysUntil === 0 ? 'Hoy' : b.daysUntil === 1 ? 'Mañana' : `en ${b.daysUntil}d`}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {canSeeFinances ? <RoutinePaymentsPanel compact /> : null}
+          {canSeeFinances ? <RoutinePaymentsPanel compact /> : null}
+
+          <DashboardExpiringPlansAlert
+            studentPathBase={role === 'nutritionist' ? '/nutrition' : '/students'}
+          />
+
+          {canManageWebIntakeAccess ? <WebIntakeAccessRequestsPanel variant="dashboard" /> : null}
+        </section>
 
         {canSeeTraining ? <TrainerAdherenceOverview compact /> : null}
-
-        <DashboardExpiringPlansAlert
-          studentPathBase={role === 'nutritionist' ? '/nutrition' : '/students'}
-        />
-
-        {canManageWebIntakeAccess ? <WebIntakeAccessRequestsPanel variant="dashboard" /> : null}
 
         <section className="space-y-2">
           <PageSectionTitle title="Resumen del mes" />
@@ -918,7 +922,7 @@ export function DashboardPage() {
         {/* ── Strip "Hoy" ──────────────────────────────────────────── */}
         {(todayApps.length > 0 || birthdays.length > 0 || mergedExpiring.some(r => r.days <= 3) || pendingIncomeTotal > 0) && (
           <div className="-order-1 rounded-2xl border border-surface-border bg-surface-elevated/30 px-4 py-3 lg:order-none">
-            <p className="text-3xs font-semibold uppercase tracking-widest text-ink-muted mb-2.5 capitalize">
+            <p className="text-3xs font-semibold text-ink-muted mb-2.5 capitalize">
               {/* En el celu la fecha ya está en el saludo de arriba. */}
               <span className="lg:hidden">Para hoy</span>
               <span className="hidden lg:inline">{todayLabel}</span>
@@ -1018,10 +1022,10 @@ export function DashboardPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-surface-border/60 bg-surface-elevated/30">
-                        <th className="px-4 py-2 text-left text-3xs font-semibold uppercase tracking-wider text-ink-muted">Alumno</th>
-                        <th className="px-3 py-2 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted">Monto</th>
-                        <th className="hidden px-3 py-2 text-left text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell">Método</th>
-                        <th className="px-3 py-2 text-center text-3xs font-semibold uppercase tracking-wider text-ink-muted">Estado</th>
+                        <th className="px-4 py-2 text-left text-3xs font-semibold text-ink-muted">Alumno</th>
+                        <th className="px-3 py-2 text-right text-3xs font-semibold text-ink-muted">Monto</th>
+                        <th className="hidden px-3 py-2 text-left text-3xs font-semibold text-ink-muted sm:table-cell">Método</th>
+                        <th className="px-3 py-2 text-center text-3xs font-semibold text-ink-muted">Estado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border/40">
@@ -1044,7 +1048,7 @@ export function DashboardPage() {
                           </td>
                           <td className="hh-row-drop-in px-3 py-2.5 text-center">
                             <span className={cn(
-                              'inline-flex rounded-md border px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-wide',
+                              'inline-flex rounded-md border px-1.5 py-0.5 text-3xs font-semibold ',
                               row.status === 'cobrado' && 'border-brand-secondary/40 bg-brand-secondary/15 text-brand-secondary',
                               row.status === 'pendiente' && 'border-brand-tertiary/40 bg-brand-tertiary/12 text-brand-tertiary',
                               row.status !== 'cobrado' && row.status !== 'pendiente' && 'border-surface-border/50 bg-surface-elevated/50 text-ink-muted',
@@ -1266,7 +1270,7 @@ export function DashboardPage() {
                     className="flex w-full items-center justify-between gap-2 rounded-lg border border-surface-border/70 bg-surface-elevated/30 px-2.5 py-1.5 text-left transition-colors hover:bg-surface-elevated/55"
                   >
                     <div className="flex min-w-0 items-start gap-2">
-                      <span className="w-[4rem] shrink-0 pt-[1px] text-3xs font-semibold uppercase tracking-wide text-ink-muted">
+                      <span className="w-[4rem] shrink-0 pt-[1px] text-3xs font-semibold text-ink-muted">
                         {row.kind === 'routine' ? 'Rutina' : 'Plan'}
                       </span>
                       <div className="min-w-0">

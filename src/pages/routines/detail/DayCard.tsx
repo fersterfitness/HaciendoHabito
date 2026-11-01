@@ -128,7 +128,7 @@ export function DayCard({
             <>
               <div className="fixed inset-0 z-30" onClick={() => setCopyToWeekOpen(false)} />
               <div className="absolute right-0 top-6 z-40 min-w-[160px] overflow-hidden rounded-xl border border-surface-border bg-surface-card py-1 shadow-lg">
-                <p className="px-3 py-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Copiar día a…</p>
+                <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted">Copiar día a…</p>
                 {otherWeeks.map((w) => (
                   <button
                     key={w.id}
@@ -285,7 +285,7 @@ export function DayCard({
                 <div className="flex items-center justify-between px-3 py-1.5 bg-brand-primary/5 border-b border-brand-primary/20">
                   <div className="flex items-center gap-2">
                     <Link2 className="h-3 w-3 text-brand-primary" />
-                    <span className="text-3xs font-bold text-brand-primary uppercase tracking-wider">
+                    <span className="text-3xs font-bold text-brand-primary ">
                       Circuito · {group.exercises.length} ejercicios
                     </span>
                   </div>
@@ -298,7 +298,7 @@ export function DayCard({
                   </button>
                 </div>
                 <div className="px-3 py-2 border-b border-brand-primary/15 bg-brand-primary/5">
-                  <label className="block text-3xs text-brand-primary font-semibold uppercase tracking-wide mb-1">
+                  <label className="block text-3xs text-brand-primary font-semibold mb-1">
                     Aclaración del circuito
                   </label>
                   <input

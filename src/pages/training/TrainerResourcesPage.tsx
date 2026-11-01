@@ -926,7 +926,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
           </div>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
             <div className="space-y-1 min-w-[8rem]">
-              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted">Día</label>
+              <label className="text-3xs font-medium text-ink-muted">Día</label>
               <select
                 className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
                 value={newResSchedDow}
@@ -940,7 +940,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
               </select>
             </div>
             <div className="space-y-1 flex-1 min-w-[10rem]">
-              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted">Zona horaria</label>
+              <label className="text-3xs font-medium text-ink-muted">Zona horaria</label>
               <select
                 className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
                 value={newResSchedTz}

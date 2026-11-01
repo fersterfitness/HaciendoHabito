@@ -127,7 +127,7 @@ export function FuerzaTab({
           <div className="flex flex-wrap items-center gap-3 rounded-xl hh-alert hh-alert-warning px-4 py-3">
             <Dumbbell className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold uppercase tracking-wide text-ink-primary">Testear RM en la próxima rutina</p>
+              <p className="text-sm font-bold text-ink-primary">Testear RM en la próxima rutina</p>
               <p className="text-2xs text-ink-secondary">
                 {rmTestWeeks} semanas de rutina desde el último test. Al marcarlo como leído la cuenta vuelve a cero.
               </p>
@@ -361,7 +361,7 @@ export function FuerzaTab({
             {calcRm != null && (
               <>
                 <div>
-                  <label className="mb-1 block text-3xs uppercase tracking-wide text-ink-muted">
+                  <label className="mb-1 block text-3xs text-ink-muted">
                     Porcentaje: {calcPercent}%
                   </label>
                   <input
@@ -373,7 +373,7 @@ export function FuerzaTab({
                 </div>
                 <div className="flex items-center justify-between border border-surface-border/80 bg-surface-elevated/60 px-4 py-3 ">
                   <div>
-                    <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted ">Peso estimado</p>
+                    <p className="text-3xs font-semibold text-ink-muted ">Peso estimado</p>
                     <p className="text-2xl font-bold tabular-nums text-ink-primary ">{calcWeight} kg</p>
                   </div>
                   <div className="text-right">

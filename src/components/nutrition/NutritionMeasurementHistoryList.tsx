@@ -62,22 +62,22 @@ export function NutritionMeasurementHistoryList({
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="border-b border-surface-border bg-surface-elevated/40">
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 N°
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 Fecha
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 Tipo
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 Peso
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 Talla
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">
+              <th className="whitespace-nowrap px-3 py-2.5 text-right text-3xs font-semibold text-ink-muted sm:px-4">
                 Acciones
               </th>
             </tr>

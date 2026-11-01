@@ -137,7 +137,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                   <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
                     <p className="text-xs font-bold leading-tight text-ink-primary">{meal.label}</p>
                     {meal.approxTime.trim() ? (
-                      <p className="mt-0.5 text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                      <p className="mt-0.5 text-3xs font-medium text-ink-muted">
                         {meal.approxTime}
                       </p>
                     ) : null}

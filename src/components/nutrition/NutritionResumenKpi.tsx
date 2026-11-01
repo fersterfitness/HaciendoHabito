@@ -78,7 +78,7 @@ export function NutritionResumenKpi({
         <span className="text-ink-muted shrink-0 [&_svg]:h-4 [&_svg]:w-4">
           {icon}
         </span>
-        <p className="text-3xs font-semibold text-ink-muted uppercase tracking-wider truncate">
+        <p className="text-3xs font-semibold text-ink-muted truncate">
           {label}
         </p>
       </div>

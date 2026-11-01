@@ -79,7 +79,7 @@ function QuickActionRow({
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-2xs font-semibold text-ink-primary">{title}</p>
         {dueToday ? (
-          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+          <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-3xs font-bold text-sky-700 dark:text-sky-300">
             Hoy
           </span>
         ) : null}
@@ -148,8 +148,8 @@ export function DashboardTrainerOpsPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
-        Avisos semanales · envío rápido
+      <p className="text-3xs font-semibold text-ink-muted">
+        Envío rápido
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">

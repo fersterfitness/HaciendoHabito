@@ -83,7 +83,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
             className={cn(
               'mb-0',
               variant === 'minimal'
-                ? 'text-2xs font-semibold uppercase tracking-wide text-ink-muted'
+                ? 'text-2xs font-semibold text-ink-muted'
                 : 'text-sm',
             )}
           >
@@ -122,7 +122,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
           className={cn(
             'mb-0',
             variant === 'minimal'
-              ? 'text-2xs font-semibold uppercase tracking-wide text-ink-muted'
+              ? 'text-2xs font-semibold text-ink-muted'
               : 'text-sm',
           )}
         >
@@ -170,7 +170,7 @@ export function StudentNotesCard({ notes, className, variant = 'default' }: Prop
                       variant === 'minimal' && 'border-0 px-2 sm:px-0 py-3 first:pt-0',
                     )}
                   >
-                    <dt className="text-2xs font-medium uppercase tracking-wide text-ink-muted">{p.label}</dt>
+                    <dt className="text-2xs font-medium text-ink-muted">{p.label}</dt>
                     <dd
                       className={cn(
                         'text-sm leading-snug text-ink-primary',

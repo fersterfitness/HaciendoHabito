@@ -48,7 +48,7 @@ function Field({
   if (value == null || value === '') return null
   return (
     <div className={cn('border-b border-surface-border/45 py-3 last:border-b-0 ', className)}>
-      <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted ">{label}</p>
+      <p className="text-3xs font-medium text-ink-muted ">{label}</p>
       <div className="mt-1 break-words text-sm text-ink-primary ">{value}</div>
     </div>
   )
@@ -67,7 +67,7 @@ function Section({
     <section className="space-y-2">
       <div className="flex items-center gap-2 pb-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
-        <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-secondary ">{title}</h4>
+        <h4 className="text-2xs font-semibold text-ink-secondary ">{title}</h4>
       </div>
       <div>{children}</div>
     </section>

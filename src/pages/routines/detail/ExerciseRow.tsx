@@ -243,7 +243,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
       {/* Multiarticulares: plan serie por serie (%RM → kg desde 1RM, reps, RPE/RIR) */}
       {isMultiarticular && (sets ?? 0) > 0 ? (
         <div className="rounded-xl border border-brand-primary/25 bg-brand-primary/5 p-2">
-          <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-brand-primary">
+          <p className="mb-1.5 text-3xs font-semibold text-brand-primary">
             Series por porcentaje {rmKg != null ? `· 1RM ${rmKg} kg` : '· sin 1RM en ficha (no calcula kg)'}
           </p>
           <div className="overflow-x-auto">

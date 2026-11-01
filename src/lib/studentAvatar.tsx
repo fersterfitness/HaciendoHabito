@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { cn, getInitials } from '@/lib/utils'
+import { avatarToneClass, cn, getInitials } from '@/lib/utils'
 
 export const STUDENT_AVATAR_BUCKET = 'student-avatars'
 
@@ -88,7 +88,8 @@ export function StudentAvatarThumb({ storagePath, name, className, fallbackClass
     <div
       className={cn(
         box,
-        'flex items-center justify-center bg-surface-elevated/60 text-3xs font-semibold text-ink-muted',
+        'flex items-center justify-center text-3xs font-semibold',
+        avatarToneClass(name),
         fallbackClassName,
       )}
       aria-hidden

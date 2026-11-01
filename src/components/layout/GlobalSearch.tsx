@@ -247,7 +247,7 @@ export function GlobalSearch() {
                 const label = k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
                 return (
                   <div key={k}>
-                    <p className="px-3 pb-0.5 pt-2 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
+                    <p className="px-3 pb-0.5 pt-2 text-3xs font-semibold text-ink-muted">
                       {label}
                     </p>
                     <ul>

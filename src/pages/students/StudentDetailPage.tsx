@@ -513,7 +513,7 @@ export function StudentDetailView({
       ) : (
         <div className="flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-surface-border/80 bg-white/90 px-4 py-3.5 ">
           <div className="min-w-0 flex-1">
-            <p id="student-sheet-title" className="text-3xs font-semibold uppercase tracking-widest text-ink-muted">
+            <p id="student-sheet-title" className="text-3xs font-semibold text-ink-muted">
               {entitySingularCapitalized}
             </p>
             <p className="truncate text-sm font-semibold text-ink-primary">{student.full_name}</p>
@@ -617,7 +617,7 @@ export function StudentDetailView({
           <div className="flex flex-row items-start justify-between gap-4 sm:gap-6">
             <div className="min-w-0 flex-1">
               <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary ">{student.full_name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium uppercase tracking-wider">
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium ">
                 <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
                 <span className="text-ink-muted/50 " aria-hidden>
                   ·
@@ -959,7 +959,7 @@ export function StudentDetailView({
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted ">Rutina activa</p>
+                      <p className="text-3xs font-semibold text-ink-muted ">Rutina activa</p>
                       <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-primary ">{activeRoutine.name}</p>
                       {activeRoutine.objective?.trim() ? (
                         <p className="mt-1 max-w-lg text-body-sm leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
@@ -970,11 +970,11 @@ export function StudentDetailView({
 
                   <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-surface-border/60 pt-4 ">
                     <div>
-                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted ">Inicio</dt>
+                      <dt className="text-3xs font-semibold text-ink-muted ">Inicio</dt>
                       <dd className="mt-1 text-sm tabular-nums text-ink-secondary ">{formatDate(activeRoutine.start_date)}</dd>
                     </div>
                     <div>
-                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted ">Semana</dt>
+                      <dt className="text-3xs font-semibold text-ink-muted ">Semana</dt>
                       <dd className="mt-1">
                         <RoutineWeekSquares
                           totalWeeks={weekTotal}
@@ -985,7 +985,7 @@ export function StudentDetailView({
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-3xs font-semibold uppercase tracking-[0.12em] text-ink-muted ">Semanas restantes</dt>
+                      <dt className="text-3xs font-semibold text-ink-muted ">Semanas restantes</dt>
                       <dd className={cn(
                         'mt-1 text-sm tabular-nums font-semibold',
                         weekSt?.lastWeek ? 'text-status-expired' : 'text-ink-primary ',
@@ -1083,7 +1083,7 @@ export function StudentDetailView({
                   {/* Acento izquierdo */}
                   <div className="w-1 shrink-0 bg-zinc-300/60 " />
                   <div className="flex-1 px-5 py-6">
-                    <p className="text-3xs font-semibold uppercase tracking-[0.16em] text-ink-muted ">Sin rutina activa</p>
+                    <p className="text-3xs font-semibold text-ink-muted ">Sin rutina activa</p>
                     <p className="mt-2 text-[15px] font-semibold text-ink-primary ">
                       {student.full_name.split(' ')[0]} no tiene una rutina asignada
                     </p>
@@ -1139,7 +1139,7 @@ export function StudentDetailView({
             <section>
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border/55 pb-3 ">
                 <div>
-                  <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted ">Historial</p>
+                  <p className="text-3xs font-semibold text-ink-muted ">Historial</p>
                   <h3 className="mt-0.5 text-sm font-semibold text-ink-primary ">Rutinas anteriores</h3>
                 </div>
                 <Button
@@ -1200,7 +1200,7 @@ export function StudentDetailView({
             {completedRoutines.length > 0 && (
               <section>
                 <div className="border-b border-surface-border/55 pb-3 ">
-                  <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">Historial</p>
+                  <p className="text-3xs font-semibold text-emerald-600 dark:text-emerald-400">Historial</p>
                   <h3 className="mt-0.5 text-sm font-semibold text-ink-primary ">
                     Rutinas completadas ({completedRoutines.length})
                   </h3>
@@ -1327,7 +1327,7 @@ export function StudentDetailView({
                     <ul className="divide-y divide-surface-border/60 ">{vigentes.map(renderPlan)}</ul>
                     {completados.length > 0 && (
                       <div className="mt-6">
-                        <p className="border-b border-surface-border/55 pb-2 text-3xs font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
+                        <p className="border-b border-surface-border/55 pb-2 text-3xs font-semibold text-emerald-600 dark:text-emerald-400">
                           Planes completados ({completados.length})
                         </p>
                         <ul className="divide-y divide-surface-border/60 ">{completados.map(renderPlan)}</ul>
@@ -1359,7 +1359,7 @@ export function StudentDetailView({
                   aria-selected={seguimientoTab === value}
                   onClick={() => setSeguimientoTab(value)}
                   className={cn(
-                    '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold uppercase tracking-wide transition-colors sm:text-xs',
+                    '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold transition-colors sm:text-xs',
                     seguimientoTab === value
                       ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 '
                       : 'border-transparent text-ink-muted hover:text-ink-primary ',

@@ -221,7 +221,7 @@ function VariableChip({
 function StatPill({ label, value, unit }: { label: string; value: number | null; unit: string }) {
   return (
     <div className="rounded-xl border border-surface-border/60 bg-surface-elevated/30 px-3 py-2">
-      <p className="text-3xs uppercase tracking-wide text-ink-muted">{label}</p>
+      <p className="text-3xs text-ink-muted">{label}</p>
       <p className="mt-0.5 text-sm font-semibold tabular-nums text-ink-primary">
         {value != null ? value : '—'}
         {value != null ? <span className="ml-0.5 text-3xs font-normal text-ink-muted">{unit}</span> : null}
@@ -361,7 +361,7 @@ function ChipGroup({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
-        <p className="text-2xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
+        <p className="text-2xs font-semibold " style={{ color: accent }}>
           {title}
         </p>
         <span className="text-2xs font-normal text-ink-muted">· {variables.length}</span>

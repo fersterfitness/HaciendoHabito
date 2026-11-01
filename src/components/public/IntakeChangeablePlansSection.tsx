@@ -168,7 +168,7 @@ export function IntakeChangeablePlansSection({
             'font-semibold tracking-tight',
             flushEmbed
               ? lightChrome
-                ? 'text-3xs font-bold uppercase tracking-[0.14em] text-ink-secondary'
+                ? 'text-3xs font-bold text-ink-secondary'
                 : 'text-xs font-medium text-ink-muted'
               : heroTone
                 ? 'text-xs font-medium text-white/55'
@@ -200,8 +200,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('monthly')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'monthly' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'monthly'}
@@ -213,8 +213,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('months3')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'months3' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'months3'}
@@ -226,8 +226,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('months6')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'months6' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'months6'}
@@ -239,8 +239,8 @@ export function IntakeChangeablePlansSection({
             onClick={() => onBillingChange('annual')}
             className={cn(
               flushEmbed
-                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-2 sm:text-3xs'
-                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold uppercase tracking-[0.06em] transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
+                ? 'min-w-0 flex-1 basis-0 whitespace-nowrap rounded-md px-1.5 py-1.5 text-center text-3xs font-semibold transition-all duration-200 sm:px-2 sm:text-3xs'
+                : 'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-3xs font-semibold transition-all duration-200 sm:px-3.5 sm:py-1.5 sm:text-3xs',
               billing === 'annual' ? toggleActive : toggleInactive,
             )}
             aria-pressed={billing === 'annual'}
@@ -295,7 +295,7 @@ export function IntakeChangeablePlansSection({
                   />
                 ) : plan.features.length > 0 ? (
                   <>
-                    <p className={cn('mb-2 text-3xs font-semibold uppercase tracking-[0.12em]', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
+                    <p className={cn('mb-2 text-3xs font-semibold ', darkChrome ? 'text-white/45' : 'text-neutral-400')}>
                       {plan.featuresLabel ?? 'Incluye'}
                     </p>
                     <ul className="flex flex-col gap-1.5">
@@ -360,7 +360,7 @@ export function IntakeChangeablePlansSection({
                     </div>
                     <div className="min-w-0 flex-1">
                       {plan.badge?.trim() ? (
-                        <p className="text-3xs font-bold uppercase tracking-[0.1em] text-orange-500">{plan.badge.trim()}</p>
+                        <p className="text-3xs font-bold text-orange-500">{plan.badge.trim()}</p>
                       ) : null}
                       <p className={cn('truncate text-sm font-semibold', darkChrome ? 'text-white' : 'text-zinc-900')}>
                         {plan.name}
@@ -375,7 +375,7 @@ export function IntakeChangeablePlansSection({
                       <p className={cn('text-sm font-bold tabular-nums leading-none', darkChrome ? 'text-white' : 'text-zinc-900')}>
                         {priceMain}
                       </p>
-                      <p className={cn('mt-0.5 text-3xs font-semibold uppercase tracking-[0.08em]', darkChrome ? 'text-white/40' : 'text-zinc-400')}>
+                      <p className={cn('mt-0.5 text-3xs font-semibold ', darkChrome ? 'text-white/40' : 'text-zinc-400')}>
                         {priceSub}
                       </p>
                     </div>
@@ -429,7 +429,7 @@ export function IntakeChangeablePlansSection({
               >
                 {/* Badge ámbar — esquina superior derecha, montado sobre el borde */}
                 {plan.badge?.trim() ? (
-                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-3xs font-bold uppercase tracking-[0.07em] text-white shadow-sm">
+                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-3xs font-bold text-white shadow-sm">
                     {plan.badge.trim()}
                   </span>
                 ) : null}
@@ -437,7 +437,7 @@ export function IntakeChangeablePlansSection({
                 <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,0.85fr)_1px_minmax(0,1.25fr)] sm:gap-0 sm:p-6">
                   {/* IZQUIERDA: nombre, precio, descripción, CTA */}
                   <div className="sm:pr-6">
-                    <p className={cn('text-xs font-bold uppercase tracking-[0.12em]', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
+                    <p className={cn('text-xs font-bold ', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
                       {plan.name}
                     </p>
                     <div className="mt-2 flex items-baseline gap-1">
@@ -509,7 +509,7 @@ export function IntakeChangeablePlansSection({
               {plan.badge?.trim() ? (
                 <span
                   className={cn(
-                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-3xs font-bold uppercase tracking-[0.07em]',
+                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-3xs font-bold ',
                     cornerBadgeClass(plan.badge, badgeVariant),
                   )}
                 >
@@ -617,7 +617,7 @@ export function IntakeChangeablePlansSection({
                           <>
                             <p
                               className={cn(
-                                'mb-2 text-3xs font-semibold uppercase tracking-[0.12em]',
+                                'mb-2 text-3xs font-semibold ',
                                 darkChrome ? 'text-white/45' : 'text-neutral-400',
                               )}
                             >

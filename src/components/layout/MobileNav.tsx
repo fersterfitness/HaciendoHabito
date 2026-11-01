@@ -326,7 +326,7 @@ export function MobileNav() {
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-4">
           {/* Una sola grilla: por sección quedaban filas de 1 o 2 mosaicos. Gestión y Finanzas primero. */}
           <section aria-label="Secciones">
-            <p className="px-1 pb-2 text-3xs font-semibold uppercase tracking-widest text-ink-muted">Secciones</p>
+            <p className="px-1 pb-2 text-3xs font-semibold text-ink-muted">Secciones</p>
             <div className="grid grid-cols-3 gap-2">
               {drawerItems.map((item) => (
                 <DrawerTile

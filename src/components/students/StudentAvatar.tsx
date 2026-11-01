@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
-import { cn, getInitials } from '@/lib/utils'
+import { avatarToneClass, cn, getInitials } from '@/lib/utils'
 import {
   STUDENT_AVATAR_BUCKET,
   STUDENT_AVATAR_MAX_BYTES,
@@ -167,10 +167,7 @@ export function StudentAvatar({
           busy && 'opacity-60 pointer-events-none',
           showPhoto
             ? 'bg-surface-elevated p-0 ring-0'
-            : cn(
-                'text-brand-secondary bg-brand-secondary/10',
-                'hover:bg-brand-secondary/16 dark:hover:bg-brand-secondary/20',
-              ),
+            : cn(avatarToneClass(fullName), 'hover:opacity-80'),
         )}
       >
         {showPhoto ? (

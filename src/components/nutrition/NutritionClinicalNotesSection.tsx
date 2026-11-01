@@ -92,7 +92,7 @@ export function NutritionClinicalNotesSection({
       </Button>
 
       <div className="border-t border-surface-border pt-4 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Últimas entradas</p>
+        <p className="text-xs font-semibold text-ink-muted">Últimas entradas</p>
         {loading ? (
           <p className="text-sm text-ink-muted">Cargando…</p>
         ) : rows.length === 0 ? (

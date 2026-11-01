@@ -1145,7 +1145,7 @@ export function AppointmentsPage() {
               <div className="min-w-0 flex flex-1 flex-col gap-1">
                 <label
                   htmlFor="appt-search"
-                  className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                  className="text-3xs font-semibold text-ink-muted leading-none"
                 >
                   Buscar
                 </label>
@@ -1170,7 +1170,7 @@ export function AppointmentsPage() {
                   <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
                     <span
                       id="appt-status-label"
-                      className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none"
+                      className="text-3xs font-semibold text-ink-muted leading-none"
                     >
                       Estado
                     </span>
@@ -1186,7 +1186,7 @@ export function AppointmentsPage() {
                     </select>
                   </div>
                   <div className="flex flex-col justify-end gap-1 lg:shrink-0">
-                    <span className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none">
+                    <span className="text-3xs font-semibold text-ink-muted leading-none">
                       Videollamada
                     </span>
                     <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary ">
@@ -1203,7 +1203,7 @@ export function AppointmentsPage() {
               ) : null}
               {viewMode === 'week' && (
                 <div className="flex flex-col gap-1 lg:w-auto lg:shrink-0">
-                  <span className="text-3xs font-semibold uppercase tracking-wider text-ink-muted leading-none">
+                  <span className="text-3xs font-semibold text-ink-muted leading-none">
                     Exportar
                   </span>
                   <Button
@@ -1235,7 +1235,7 @@ export function AppointmentsPage() {
               {/* Day-of-week header */}
               <div className="grid grid-cols-7 mb-1">
                 {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map((d) => (
-                  <p key={d} className="text-center text-3xs font-semibold text-ink-muted uppercase tracking-wide py-1">
+                  <p key={d} className="text-center text-3xs font-semibold text-ink-muted py-1">
                     {d}
                   </p>
                 ))}
@@ -1357,13 +1357,13 @@ export function AppointmentsPage() {
                     >
                       <p
                         className={cn(
-                          'text-2xs uppercase tracking-wide',
+                          'text-2xs ',
                           dayIsToday ? 'font-semibold text-ink-primary ' : 'text-ink-secondary',
                         )}
                       >
                         {format(day, 'EEE', { locale: es })}
                         {dayIsToday ? (
-                          <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-brand-primary">
+                          <span className="ml-1.5 align-middle text-3xs font-bold text-brand-primary">
                             · Hoy
                           </span>
                         ) : null}
@@ -1401,7 +1401,7 @@ export function AppointmentsPage() {
                                     {format(parseISO(p.starts_at), 'HH:mm')} — {format(parseISO(p.ends_at), 'HH:mm')}
                                   </p>
                                   {personalInProgress(p) ? (
-                                    <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
+                                    <p className="mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95">
                                       En curso
                                     </p>
                                   ) : null}
@@ -1446,13 +1446,13 @@ export function AppointmentsPage() {
                   >
                     <p
                       className={cn(
-                        'text-2xs uppercase tracking-wide',
+                        'text-2xs ',
                         dayIsToday ? 'font-semibold text-ink-primary ' : 'text-ink-secondary',
                       )}
                     >
                       {format(day, 'EEE', { locale: es })}
                       {dayIsToday ? (
-                        <span className="ml-1.5 align-middle text-3xs font-bold uppercase tracking-wide text-brand-primary">
+                        <span className="ml-1.5 align-middle text-3xs font-bold text-brand-primary">
                           · Hoy
                         </span>
                       ) : null}
@@ -1495,7 +1495,7 @@ export function AppointmentsPage() {
                                   {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                                 </p>
                                 {appointmentInProgress(a) ? (
-                                  <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/95">
+                                  <p className="mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95">
                                     En curso
                                   </p>
                                 ) : null}
@@ -1646,7 +1646,7 @@ export function AppointmentsPage() {
                           {new Date(a.starts_at).toLocaleString('es-AR')}
                         </p>
                         {appointmentInProgress(a) ? (
-                          <p className="mt-1 text-3xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300/90">
+                          <p className="mt-1 text-3xs font-semibold text-amber-800 dark:text-amber-300/90">
                             En curso
                           </p>
                         ) : null}

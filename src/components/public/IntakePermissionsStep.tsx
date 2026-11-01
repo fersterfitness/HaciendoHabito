@@ -119,7 +119,7 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
     <div className="v2f-slide space-y-6">
       <header className="flex items-center justify-between gap-3 border-b border-zinc-100 pb-5 dark:border-zinc-800">
         <div className="min-w-0">
-          <p className="text-3xs font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 2 de 4</p>
+          <p className="text-3xs font-bold text-brand-primary">Paso 2 de 4</p>
           <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">
             Permisos
           </h2>

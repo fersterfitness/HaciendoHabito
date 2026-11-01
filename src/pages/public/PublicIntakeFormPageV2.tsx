@@ -541,7 +541,7 @@ export function PublicIntakeFormPageV2() {
                 )}
               >
                 <div className="mb-3 text-center sm:mb-4">
-                  <p className="text-3xs font-bold uppercase tracking-[0.22em] text-orange-500">Paso 1 de 4</p>
+                  <p className="text-3xs font-bold text-orange-500">Paso 1 de 4</p>
                   <h3 className="mt-1 text-base font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
                     Seleccioná una modalidad y elegí tu plan
                   </h3>
@@ -550,7 +550,7 @@ export function PublicIntakeFormPageV2() {
                 <ModalityPicker value={catalogSegment} onChange={setCatalogSegment} />
 
                 <div className="mt-5 border-t border-zinc-200/80 pt-4 dark:border-zinc-800/80 sm:mt-6 sm:pt-5">
-                  <p className="mb-3 px-1 text-2xs font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
+                  <p className="mb-3 px-1 text-2xs font-semibold text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
 
                   {catalogSegment === 'full_trio' && plansVisible.length > 0 ? (
                     <div className="-mx-1">
@@ -597,7 +597,7 @@ export function PublicIntakeFormPageV2() {
                           <div key={sub.key}>
                             <div className="mb-4 flex items-center gap-3">
                               <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
-                              <span className="shrink-0 rounded-lg border border-orange-500/40 bg-orange-500/[0.06] px-3 py-0.5 text-3xs font-semibold uppercase tracking-[0.14em] text-orange-500 dark:border-orange-400/30 dark:bg-orange-400/[0.07] dark:text-orange-400">
+                              <span className="shrink-0 rounded-lg border border-orange-500/40 bg-orange-500/[0.06] px-3 py-0.5 text-3xs font-semibold text-orange-500 dark:border-orange-400/30 dark:bg-orange-400/[0.07] dark:text-orange-400">
                                 {sub.label}
                               </span>
                               <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
@@ -715,7 +715,7 @@ export function PublicIntakeFormPageV2() {
                       <ArrowLeft className="h-4 w-4" />
                     </button>
                     <div className="min-w-0">
-                      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 3 de 4</p>
+                      <p className="text-3xs font-bold text-brand-primary">Paso 3 de 4</p>
                       <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">Contanos un poco de vos</h2>
                       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">100% confidencial — solo lo ve el profesional asignado.</p>
                     </div>
@@ -956,7 +956,7 @@ function ModalityPicker({
                   ) : null}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-3xs font-bold uppercase tracking-[0.12em] text-orange-500">{m.short}</p>
+                  <p className="text-3xs font-bold text-orange-500">{m.short}</p>
                   <p className="text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</p>
                   <p className="text-2xs leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</p>
                 </div>
@@ -983,7 +983,7 @@ function ModalityPicker({
             >
               <IntakeModalityProfessionIcons modalityId={m.id} className="relative mb-2 min-h-6 pr-6" />
               <span className={cn(
-                'relative text-3xs font-bold uppercase tracking-wider',
+                'relative text-3xs font-bold ',
                 active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
               )}>{m.short}</span>
               <span className="relative text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</span>
@@ -1024,7 +1024,7 @@ function MeetTheTeam({
   return (
     <section>
       <div className="mb-3 text-center sm:mb-5">
-        <p className="text-3xs font-bold uppercase tracking-[0.22em] text-orange-500">
+        <p className="text-3xs font-bold text-orange-500">
           Conocé a
         </p>
         <h2 className="mt-1 text-xl font-extrabold tracking-tight text-zinc-900 sm:text-3xl dark:text-white">
@@ -1070,7 +1070,7 @@ function MeetTheTeam({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-3xs font-bold uppercase tracking-[0.12em] text-orange-500">{p.role}</p>
+                  <p className="text-3xs font-bold text-orange-500">{p.role}</p>
                   <div className="mt-0.5 flex items-center gap-1">
                     <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{p.name}</p>
                     <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-hidden />
@@ -1120,7 +1120,7 @@ function MeetTheTeam({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
 
               <div className="relative p-3 sm:p-4">
-                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-[0.1em] text-white ring-1 ring-white/25 backdrop-blur-sm">
+                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-3xs font-bold text-white ring-1 ring-white/25 backdrop-blur-sm">
                   {p.role}
                 </span>
                 <div className="mt-2 flex items-center gap-1.5">
@@ -1173,7 +1173,7 @@ function PlanSummary({
     )}>
       <header className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-3xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Tu plan</p>
+          <p className="text-3xs font-bold text-zinc-500 dark:text-zinc-400">Tu plan</p>
           <h3 className="mt-0.5 text-base font-bold text-zinc-900 dark:text-white">{plan.name}</h3>
         </div>
         {step !== 'plan' && step !== 'confirmation' && (
@@ -1188,14 +1188,14 @@ function PlanSummary({
       </header>
 
       <div className="rounded-xl border border-zinc-100 bg-orange-50/50 p-4 dark:border-zinc-800 dark:bg-orange-500/[0.06]">
-        <p className="text-3xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Precio</p>
+        <p className="text-3xs font-bold text-zinc-500 dark:text-zinc-400">Precio</p>
         <p className="mt-1 text-2xl font-extrabold tabular-nums text-zinc-900 dark:text-white">{price}</p>
-        <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{planBillingCaption(billing)}</p>
+        <p className="mt-0.5 text-3xs font-semibold text-zinc-500 dark:text-zinc-400">{planBillingCaption(billing)}</p>
       </div>
 
       {features.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-2xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Incluye</p>
+          <p className="mb-2 text-2xs font-semibold text-zinc-500 dark:text-zinc-400">Incluye</p>
           <ul className="space-y-1.5">
             {features.map((f) => (
               <li key={f} className="flex items-start gap-2 text-xs leading-snug text-zinc-700 dark:text-zinc-300">
@@ -1227,7 +1227,7 @@ function ConfirmationView({ planName, onAgain }: { planName: string | null; onAg
         <Check className="h-3 w-3" aria-hidden />
         Inscripción confirmada
       </span>
-      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-brand-primary">Paso 4 de 4</p>
+      <p className="text-3xs font-bold text-brand-primary">Paso 4 de 4</p>
       <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
         ¡Recibimos tus datos!
       </h2>

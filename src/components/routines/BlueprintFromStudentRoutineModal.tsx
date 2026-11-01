@@ -133,7 +133,7 @@ export function BlueprintFromStudentRoutineModal({
 
   return (
     <Modal open onClose={onClose} size="lg" bare className="max-h-[92vh] overflow-y-auto p-4">
-    <p className="text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Rutinas preestablecidas</p>
+    <p className="text-3xs font-semibold text-ink-muted">Rutinas preestablecidas</p>
     <h3 className="mt-1 text-sm font-semibold text-ink-primary">Copiar desde rutina de un alumno</h3>
     <p className="mt-1 text-2xs text-ink-secondary">
       Elegí la rutina, ubicala en una carpeta y se abre el editor para modificarla. La rutina del alumno no cambia.

@@ -431,7 +431,7 @@ export function NutritionTemplatesPage() {
                           <FileText className="h-3.5 w-3.5" aria-hidden />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                          <p className="text-3xs font-semibold text-ink-muted sm:hidden">
                             Plan
                           </p>
                           <p
@@ -449,7 +449,7 @@ export function NutritionTemplatesPage() {
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <p className="text-3xs font-semibold text-ink-muted sm:hidden">
                           Objetivo
                         </p>
                         <p
@@ -464,7 +464,7 @@ export function NutritionTemplatesPage() {
                       </div>
 
                       <div>
-                        <p className="mb-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <p className="mb-0.5 text-3xs font-semibold text-ink-muted sm:hidden">
                           Formato
                         </p>
                         <span
@@ -481,7 +481,7 @@ export function NutritionTemplatesPage() {
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <p className="text-3xs font-semibold text-ink-muted sm:hidden">
                           Actualización
                         </p>
                         <p
@@ -503,7 +503,7 @@ export function NutritionTemplatesPage() {
                         className="flex items-center justify-end gap-0.5"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="mr-auto text-3xs font-semibold uppercase tracking-wide text-ink-muted sm:hidden">
+                        <span className="mr-auto text-3xs font-semibold text-ink-muted sm:hidden">
                           Acciones
                         </span>
                         <button

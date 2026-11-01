@@ -404,7 +404,7 @@ export function TrainingMethodsPage() {
           <div className="space-y-6">
             {grouped.map(({ cat, items }) => (
               <section key={cat?.id ?? 'none'}>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                <h2 className="text-xs font-semibold text-ink-muted mb-2">
                   {cat?.name ?? 'Sin categoría'}
                 </h2>
                 <ul className="space-y-2">

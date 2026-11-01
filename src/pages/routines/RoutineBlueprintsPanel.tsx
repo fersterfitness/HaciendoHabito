@@ -174,7 +174,7 @@ export function RoutineBlueprintsPanel() {
               {openingId === bp.id ? 'Abriendo editor…' : bp.name}
             </button>
             {blueprintAudience(bp) ? (
-              <p className="text-3xs font-medium uppercase tracking-wide text-ink-muted mt-1">
+              <p className="text-3xs font-medium text-ink-muted mt-1">
                 Para: {blueprintAudience(bp)}
               </p>
             ) : null}
@@ -424,7 +424,7 @@ export function RoutineBlueprintsPanel() {
             <section key={cat}>
               <div className="mb-2 flex items-center gap-2 border-b border-surface-border pb-1.5">
                 <FolderOpen className="h-4 w-4 text-brand-secondary shrink-0" />
-                <h3 className="text-sm font-bold uppercase tracking-wide text-ink-primary">{cat}</h3>
+                <h3 className="text-sm font-bold text-ink-primary">{cat}</h3>
                 <span className="text-2xs text-ink-muted">{realCount}</span>
                 {isReal && (
                   <button
@@ -453,7 +453,7 @@ export function RoutineBlueprintsPanel() {
                     <div key={sub || '__none__'}>
                       {sub ? (
                         <div className="mb-1.5 flex items-center gap-1.5">
-                          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+                          <p className="text-2xs font-semibold text-ink-muted">
                             {sub}
                           </p>
                           <button
@@ -482,7 +482,7 @@ export function RoutineBlueprintsPanel() {
                             <div key={rut || '__loose__'}>
                               {rut ? (
                                 <div className="mb-1 flex items-center gap-1.5">
-                                  <p className="text-3xs font-bold uppercase tracking-wide text-ink-secondary">{rut}</p>
+                                  <p className="text-3xs font-bold text-ink-secondary">{rut}</p>
                                   <button
                                     type="button"
                                     onClick={() => void renameRoutineGroup(isReal ? cat : '', sub, rut)}

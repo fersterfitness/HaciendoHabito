@@ -1204,13 +1204,13 @@ export function RoutineDetailPage() {
           <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3 shadow-card">
             {routine.objective && (
               <div className="border-l-[3px] border-l-brand-primary pl-3">
-                <p className="text-3xs font-semibold text-brand-primary uppercase tracking-wider mb-1.5">Objetivo del Coach</p>
+                <p className="text-3xs font-semibold text-brand-primary mb-1.5">Objetivo del Coach</p>
                 <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.objective}</p>
               </div>
             )}
             {routine.notes && (
               <div className="pt-3 border-t border-surface-border border-l-[3px] border-l-amber-500 pl-3 mt-3">
-                <p className="text-3xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1.5">Aclaraciones</p>
+                <p className="text-3xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5">Aclaraciones</p>
                 <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">{routine.notes}</p>
               </div>
             )}
@@ -1246,7 +1246,7 @@ export function RoutineDetailPage() {
 
         {/* Divisor semanas */}
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wider">
+          <span className="text-xs font-semibold text-ink-muted ">
             Semanas / Bloques ({blocks.length})
           </span>
           <div className="flex-1 h-px bg-surface-border" />
@@ -1505,7 +1505,7 @@ export function RoutineDetailPage() {
                         </span>
                       </p>
                       {p.block_note && <p className="mt-0.5 text-2xs text-ink-muted">{p.block_note}</p>}
-                      {p.category?.name && <p className="mt-0.5 text-3xs uppercase tracking-wide text-brand-secondary">{p.category.name}</p>}
+                      {p.category?.name && <p className="mt-0.5 text-3xs text-brand-secondary">{p.category.name}</p>}
                     </button>
                   </li>
                 ))}

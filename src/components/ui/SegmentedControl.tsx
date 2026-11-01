@@ -17,12 +17,14 @@ export type SegmentedItem = {
 }
 
 const SIZE = {
-  sm: { wrap: 'p-0.5 rounded-full', item: 'h-7 px-3 text-2xs gap-1.5 rounded-full', icon: 'h-3.5 w-3.5' },
-  md: { wrap: 'p-1 rounded-xl', item: 'h-9 px-3 text-xs gap-1.5 rounded-lg', icon: 'h-4 w-4' },
+  sm: { wrap: 'gap-1', item: 'h-7 px-2.5 text-xs gap-1.5 rounded-md', icon: 'h-3.5 w-3.5' },
+  md: { wrap: 'gap-5 border-b border-surface-border', item: 'h-10 text-sm gap-2', icon: 'h-4 w-4' },
 } as const
 
 /**
- * Control segmentado único de la app: pastilla que se desliza a la opción activa.
+ * Control de pestañas único de la app, en dos tamaños:
+ * - `md` (secciones): pestañas con subrayado que se desliza, alineadas a la izquierda.
+ * - `sm` (filtros): «chips» livianos, el activo con fondo gris.
  * Sirve para navegación entre secciones (`to`) y para pestañas internas (`value` / `onChange`).
  */
 export function SegmentedControl({
@@ -55,20 +57,21 @@ export function SegmentedControl({
             layoutId={pillId}
             aria-hidden
             className={cn(
-              'absolute inset-0 -z-10 border border-surface-border bg-surface-card shadow-[var(--highlight-top),var(--shadow-xs)]',
-              size === 'sm' ? 'rounded-full' : 'rounded-lg',
-              'dark:border-white/[0.08] dark:bg-surface-panel',
+              'absolute -z-10',
+              size === 'sm'
+                ? 'inset-0 rounded-md bg-ink-primary/[0.07] dark:bg-white/[0.09]'
+                : 'inset-x-0 bottom-0 h-0.5 rounded-full bg-ink-primary',
             )}
             transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 460, damping: 36 }}
           />
         ) : null}
-        {Icon ? <Icon className={cn(sz.icon, 'shrink-0', active ? 'text-brand-primary' : 'opacity-80')} aria-hidden /> : null}
+        {Icon ? <Icon className={cn(sz.icon, 'shrink-0', !active && 'opacity-80')} aria-hidden /> : null}
         <span className="truncate">{item.label}</span>
         {typeof item.count === 'number' ? (
           <span
             className={cn(
               'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-3xs font-bold tabular-nums',
-              active ? 'bg-brand-primary/12 text-brand-primary' : 'bg-surface-border/70 text-ink-muted',
+              active ? 'bg-brand-primary/[0.12] text-brand-primary' : 'bg-surface-border/70 text-ink-muted',
             )}
           >
             {item.count}
@@ -80,12 +83,12 @@ export function SegmentedControl({
 
   const itemBase = (active: boolean) =>
     cn(
-      'relative isolate inline-flex select-none items-center justify-center font-semibold whitespace-nowrap',
+      'relative isolate inline-flex select-none items-center justify-center font-medium whitespace-nowrap',
       'transition-colors duration-200',
       appFocusRingClassName,
       sz.item,
-      // Sin ancho completo no se achican: si no entran, el control se desliza en vez de cortar las etiquetas.
-      fullWidth ? 'min-w-0 flex-1' : 'shrink-0',
+      // No se achican: si no entran, el control se desliza en vez de cortar las etiquetas.
+      fullWidth && size === 'sm' ? 'min-w-0 flex-1' : 'shrink-0',
       active ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
     )
 
@@ -94,10 +97,12 @@ export function SegmentedControl({
       role={items.some((i) => i.to) ? 'navigation' : 'tablist'}
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex max-w-full items-center gap-0.5 overflow-x-auto scrollbar-hide border border-surface-border/80 bg-surface-elevated/60',
+        'inline-flex max-w-full items-center overflow-x-auto scrollbar-hide',
         sz.wrap,
-        fullWidth && 'flex w-full',
+        (fullWidth || size === 'md') && 'flex w-full',
         className,
+        // Las secciones ocupan todo el ancho: la línea de abajo corre de lado a lado.
+        size === 'md' && 'max-w-full',
       )}
     >
       {items.map((item) =>

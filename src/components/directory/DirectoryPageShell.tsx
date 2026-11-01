@@ -10,7 +10,7 @@ export function DirectoryPageShell({
   className?: string
 }) {
   return (
-    <div className={cn('mx-auto max-w-[1600px] space-y-4 page-shell-x page-shell-y', className)}>
+    <div className={cn('max-w-[1600px] space-y-4 page-shell-x page-shell-y', className)}>
       {children}
     </div>
   )

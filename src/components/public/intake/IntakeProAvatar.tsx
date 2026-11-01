@@ -245,7 +245,7 @@ export function IntakeProfessionalMiniCard({
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            'text-3xs font-bold uppercase tracking-[0.1em]',
+            'text-3xs font-bold ',
             isDark ? 'text-white/45' : 'text-ink-muted',
           )}
         >

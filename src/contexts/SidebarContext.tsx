@@ -12,9 +12,9 @@ const SidebarContext = createContext<SidebarContextValue | null>(null)
 
 function readExpanded(): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === '1'
+    return localStorage.getItem(STORAGE_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 

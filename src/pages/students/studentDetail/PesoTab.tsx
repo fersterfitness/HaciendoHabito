@@ -137,7 +137,7 @@ export function PesoTab({
           <div className="mt-4 space-y-3 border border-surface-border/55 bg-surface-elevated/50 p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-3xs text-ink-muted uppercase tracking-wide mb-1">Peso (kg) *</label>
+                <label className="block text-3xs text-ink-muted mb-1">Peso (kg) *</label>
                 <input
                   type="number" min={0} step={0.1} placeholder="ej: 75.5"
                   className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center font-bold"
@@ -146,7 +146,7 @@ export function PesoTab({
                 />
               </div>
               <div>
-                <label className="block text-3xs text-ink-muted uppercase tracking-wide mb-1">Grasa corporal %</label>
+                <label className="block text-3xs text-ink-muted mb-1">Grasa corporal %</label>
                 <input
                   type="number" min={0} max={100} step={0.1} placeholder="opcional"
                   className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
@@ -156,7 +156,7 @@ export function PesoTab({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-3xs text-ink-muted uppercase tracking-wide mb-1">Fecha</label>
+                <label className="block text-3xs text-ink-muted mb-1">Fecha</label>
                 <input
                   type="date"
                   className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
@@ -164,7 +164,7 @@ export function PesoTab({
                 />
               </div>
               <div>
-                <label className="block text-3xs text-ink-muted uppercase tracking-wide mb-1">Notas</label>
+                <label className="block text-3xs text-ink-muted mb-1">Notas</label>
                 <input
                   placeholder="opcional"
                   className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
@@ -209,11 +209,11 @@ export function PesoTab({
                   {/* KPIs row */}
                   <div className="flex items-end gap-5 mb-3 px-1 flex-wrap">
                     <div>
-                      <p className="text-3xs text-ink-muted uppercase tracking-wide">Actual</p>
+                      <p className="text-3xs text-ink-muted ">Actual</p>
                       <p className="text-2xl font-bold text-ink-primary">{last.weight_kg} <span className="text-sm font-normal text-ink-muted">kg</span></p>
                     </div>
                     <div>
-                      <p className="text-3xs text-ink-muted uppercase tracking-wide">Δ inicio</p>
+                      <p className="text-3xs text-ink-muted ">Δ inicio</p>
                       <p
                         className={cn(
                           'text-base font-bold tabular-nums',
@@ -225,13 +225,13 @@ export function PesoTab({
                     </div>
                     {hasFat && last.body_fat_pct != null && (
                       <div>
-                        <p className="text-3xs text-ink-muted uppercase tracking-wide">% Grasa</p>
+                        <p className="text-3xs text-ink-muted ">% Grasa</p>
                         <p className="text-base font-bold text-ink-secondary">{last.body_fat_pct}%</p>
                       </div>
                     )}
                     {goal && (
                       <div>
-                        <p className="text-3xs text-ink-muted uppercase tracking-wide">Objetivo</p>
+                        <p className="text-3xs text-ink-muted ">Objetivo</p>
                         <p className="text-base font-bold tabular-nums text-ink-primary">{goal} kg</p>
                         {(() => {
                           const toGoal = Math.round((last.weight_kg - goal) * 10) / 10

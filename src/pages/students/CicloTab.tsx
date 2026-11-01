@@ -229,7 +229,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
           <div className="border-b border-surface-border/60 pb-5 ">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <p className="mb-0.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted">Fase actual</p>
+                <p className="mb-0.5 text-3xs font-semibold text-ink-muted">Fase actual</p>
                 <p className="text-lg font-semibold tracking-tight text-ink-primary ">{PHASE_META[cycleInfo.phase].label}</p>
                 <p className="mt-2 text-xs leading-relaxed text-ink-secondary ">{PHASE_META[cycleInfo.phase].desc}</p>
               </div>
@@ -248,7 +248,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
                 { label: 'Largo prom.', value: `${avgCycleLen} días` },
               ].map(({ label, value }) => (
                 <div key={label}>
-                  <dt className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{label}</dt>
+                  <dt className="text-3xs font-semibold text-ink-muted">{label}</dt>
                   <dd className="mt-0.5 text-sm font-medium text-ink-primary ">{value}</dd>
                 </div>
               ))}
@@ -256,7 +256,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
 
             {activeRoutine ? (
               <div className="mt-4 rounded-xl border border-brand-secondary/35 bg-brand-secondary/[0.06] px-3 py-3 dark:border-brand-secondary/45 dark:bg-brand-secondary/[0.08]">
-                <p className="text-3xs font-semibold uppercase tracking-wider text-brand-secondary">Planificación · rutina + ciclo</p>
+                <p className="text-3xs font-semibold text-brand-secondary">Planificación · rutina + ciclo</p>
                 <p className="mt-2 text-xs leading-relaxed text-ink-secondary ">
                   {(() => {
                     const w = approxRoutineWeekHint(activeRoutine)
@@ -389,7 +389,7 @@ function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
 
   return (
     <div className="border-b border-surface-border/55 pb-4 ">
-      <p className="mb-4 text-3xs font-semibold uppercase tracking-wider text-ink-muted">Gráfico hormonal del ciclo</p>
+      <p className="mb-4 text-3xs font-semibold text-ink-muted">Gráfico hormonal del ciclo</p>
 
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -28 }}>
@@ -474,7 +474,7 @@ function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
 
   return (
     <div className="border-b border-surface-border/55 pb-4 ">
-      <p className="mb-3 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
+      <p className="mb-3 text-3xs font-semibold text-ink-muted">
         Rueda del ciclo · seguimiento por día
       </p>
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8">

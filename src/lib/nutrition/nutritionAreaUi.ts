@@ -9,7 +9,7 @@ export const nutritionTabsStripClass =
 
 /** Kicker de bloque hero / destacado. */
 export const nutritionKickerClass =
-  'text-3xs font-semibold uppercase tracking-[0.12em] text-brand-secondary/90'
+  'text-3xs font-semibold text-brand-secondary/90'
 
 /** Superficie de panel (tablas, formularios, bloques). */
 export const nutritionPanelClass =
@@ -27,7 +27,7 @@ export const nutritionListRowActiveClass =
 
 /** Título de subsección dentro de una página (alineado a PageSectionTitle). */
 export const nutritionSectionTitleClass =
-  'text-xs font-semibold uppercase tracking-widest text-ink-muted'
+  'text-xs font-semibold text-ink-muted'
 
 export const nutritionSectionDescClass = 'mt-1 max-w-prose text-sm text-ink-secondary'
 
@@ -42,4 +42,4 @@ export const nutritionMetaClass = 'text-xs leading-snug text-ink-muted'
 export const nutritionHintClass = 'text-2xs leading-snug text-ink-muted'
 
 export const nutritionLabelClass =
-  'mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted'
+  'mb-1 block text-xs font-medium text-ink-muted'

@@ -108,7 +108,7 @@ export function NutritionPatientCards({
               <div className="h-px bg-surface-border/50" />
 
               <div className="grid grid-cols-2 gap-2.5" onClick={(e) => e.stopPropagation()}>
-                <label className="flex flex-col gap-1 text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                <label className="flex flex-col gap-1 text-3xs font-medium text-ink-muted">
                   Última
                   <input
                     type="date"
@@ -119,7 +119,7 @@ export function NutritionPatientCards({
                     className={cardDateInputClass}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-3xs font-medium uppercase tracking-wide text-ink-muted">
+                <label className="flex flex-col gap-1 text-3xs font-medium text-ink-muted">
                   Próxima
                   <input
                     type="date"

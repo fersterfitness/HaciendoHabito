@@ -80,13 +80,13 @@ export function WebPlanIncludesSectionsDisplay({
   if (!sections.length && !giftItems.length) return null
 
   const eyebrowClass = darkChrome
-    ? 'text-3xs font-semibold uppercase tracking-[0.12em] text-white/45'
-    : 'text-3xs font-semibold uppercase tracking-[0.12em] text-neutral-400'
+    ? 'text-3xs font-semibold text-white/45'
+    : 'text-3xs font-semibold text-neutral-400'
 
   const sectionHeadingClass = (s: IntakeIncludeSectionView) =>
     darkChrome
-      ? cn('text-xs font-bold uppercase tracking-wide leading-tight', s.headingClassDark)
-      : cn('text-xs font-bold uppercase tracking-wide leading-tight', s.headingClassLight)
+      ? cn('text-xs font-bold leading-tight', s.headingClassDark)
+      : cn('text-xs font-bold leading-tight', s.headingClassLight)
 
   const subtitleClass = darkChrome ? 'text-2xs leading-snug text-white/55' : 'text-2xs leading-snug text-neutral-500'
   const itemTextClass = darkChrome ? 'text-white/78' : 'text-neutral-600'

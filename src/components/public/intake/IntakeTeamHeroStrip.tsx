@@ -26,7 +26,7 @@ export function IntakeTeamHeroStrip({ theme = 'dark', members }: IntakeTeamHeroS
     <section aria-label="Nuestro equipo" className="mb-0">
       <p
         className={cn(
-          'mb-3 text-center text-2xs font-bold uppercase tracking-[0.18em]',
+          'mb-3 text-center text-2xs font-bold ',
           isDark ? 'text-white/70' : 'text-ink-secondary',
         )}
       >
@@ -68,7 +68,7 @@ export function IntakeTeamHeroStrip({ theme = 'dark', members }: IntakeTeamHeroS
                   expandable
                 />
               </div>
-              <p className={cn('mt-1.5 text-3xs font-semibold uppercase tracking-[0.1em]', roleClass)}>
+              <p className={cn('mt-1.5 text-3xs font-semibold ', roleClass)}>
                 {member.roleLabel}
               </p>
               {displayName ? (

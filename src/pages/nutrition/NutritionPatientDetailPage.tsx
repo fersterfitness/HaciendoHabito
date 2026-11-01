@@ -696,7 +696,7 @@ export function NutritionPatientDetailView({
           <div className="min-w-0 flex-1">
             <p
               id="nutrition-patient-sheet-title"
-              className="text-3xs font-semibold uppercase tracking-widest text-ink-muted"
+              className="text-3xs font-semibold text-ink-muted"
             >
               Carpeta nutricional
             </p>
@@ -935,7 +935,7 @@ export function NutritionPatientDetailView({
               </div>
 
               <div className="mt-6 border-t border-surface-border pt-5">
-                <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide mb-3">
+                <p className="text-xs font-semibold text-ink-secondary mb-3">
                   Historial de mediciones
                 </p>
                 <div className="space-y-2">

@@ -56,9 +56,22 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
       <div className="flex items-center gap-1.5">
         {actions}
 
+        <button
+          type="button"
+          onClick={() => openGlobalSearch()}
+          className={cn(
+            'hidden h-9 w-56 items-center gap-2 rounded-lg border border-surface-border bg-surface-panel px-3 text-sm text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-secondary md:inline-flex',
+            appFocusRingClassName,
+          )}
+          aria-label="Buscar (Ctrl+K)"
+        >
+          <HeaderSearchIcon />
+          <span className="flex-1 text-left">Buscar…</span>
+          <kbd className="rounded border border-surface-border bg-surface-card px-1.5 font-sans text-3xs font-medium text-ink-muted">Ctrl K</kbd>
+        </button>
         <HeaderActionButton
           onClick={() => openGlobalSearch()}
-          className="hidden sm:inline-flex"
+          className="hidden sm:inline-flex md:hidden"
           aria-label="Buscar (Ctrl+K)"
           title="Buscar (Ctrl+K)"
           renderIcon={(hovered) => <HeaderSearchIcon animate={hovered} />}
@@ -90,14 +103,14 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           type="button"
           onClick={() => navigate('/settings')}
           className={cn(
-            'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-surface-border bg-surface-elevated transition-colors hover:border-brand-primary/50 hover:bg-surface-border/50',
+            'ml-1 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-80',
             appFocusRingClassName,
           )}
           aria-label="Ajustes y perfil"
           title="Ajustes"
         >
           {profile ? (
-            <AvatarOrInitials fullName={profile.full_name} avatarUrl={profile.avatar_url} size="md" rounded="xl" />
+            <AvatarOrInitials fullName={profile.full_name} avatarUrl={profile.avatar_url} size="md" />
           ) : (
             <span className="text-xs font-bold text-ink-muted">?</span>
           )}

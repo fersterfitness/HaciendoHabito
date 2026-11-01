@@ -81,7 +81,7 @@ function buildPaymentReminderWaUrl(phone: string | null | undefined, studentName
 }
 
 function expenseTypePillClass(expenseType: string): string {
-  const base = 'inline-flex rounded border px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide'
+  const base = 'inline-flex rounded border px-2 py-0.5 text-3xs font-semibold '
   if (expenseType === 'fijo') {
     return cn(
       base,
@@ -129,13 +129,13 @@ function MetricTile({
           <span
             className={cn(
               'flex h-7 w-7 items-center justify-center rounded-lg',
-              featured ? 'bg-white/20 text-white' : 'bg-brand-primary/10 text-brand-primary ring-1 ring-inset ring-brand-primary/15',
+              featured ? 'bg-white/20 text-white' : 'bg-surface-elevated text-ink-secondary',
             )}
           >
             <Icon className="h-3.5 w-3.5" aria-hidden />
           </span>
         ) : null}
-        <p className={cn('text-2xs font-semibold uppercase tracking-wider', featured ? 'text-white/85' : 'text-ink-muted')}>
+        <p className={cn('text-2xs font-semibold ', featured ? 'text-white/85' : 'text-ink-muted')}>
           {label}
         </p>
       </div>
@@ -145,9 +145,7 @@ function MetricTile({
           valueClassName ??
             (featured
               ? 'text-white'
-              : tone === 'warning'
-                ? 'text-status-expiring'
-                : tone === 'negative'
+              : tone === 'negative'
                   ? 'text-status-expired'
                   : 'text-ink-primary'),
         )}
@@ -181,7 +179,7 @@ function AnnualIncomeTooltip({
       <p className="mt-1 font-semibold tabular-nums leading-tight text-body-sm text-brand-primary">
         {Number.isFinite(value) ? formatCurrency(value) : formatCurrency(0)}
       </p>
-      <p className="mt-1.5 border-t border-surface-border pt-1.5 text-3xs font-medium uppercase tracking-wide text-ink-secondary ">
+      <p className="mt-1.5 border-t border-surface-border pt-1.5 text-3xs font-medium text-ink-secondary ">
         Cobrado (ingresos)
       </p>
     </div>
@@ -390,10 +388,10 @@ export function FinancesPage() {
     <div>
       <Header title="Finanzas" />
 
-      <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
+      <div className="max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
         {/* KPI */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <MetricTile label="Balance neto" value={<CountUp value={balance} format={formatCurrency} duration={2600} enabled={!loading} />} tone={balance < 0 ? 'negative' : 'featured'} icon={Scale} />
+          <MetricTile label="Balance neto" value={<CountUp value={balance} format={formatCurrency} duration={2600} enabled={!loading} />} tone={balance < 0 ? 'negative' : 'default'} icon={Scale} />
           <MetricTile label="Cobrado total" value={<CountUp value={totalIngresos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingUp} />
           <MetricTile label="Pendiente" value={<CountUp value={totalPendiente} format={formatCurrency} duration={2200} enabled={!loading} />} tone={totalPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
           <MetricTile label="Total gastos" value={<CountUp value={totalGastos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingDown} />
@@ -562,7 +560,7 @@ export function FinancesPage() {
           const grandTotal = entries.reduce((s, [, v]) => s + v, 0)
           return (
             <div className="rounded-md border border-surface-border/70 bg-surface-card px-4 py-3 ">
-              <p className="mb-2.5 text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+              <p className="mb-2.5 text-2xs font-semibold text-ink-muted">
                 {tab === 'income' ? 'Ingresos cobrados' : 'Gastos registrados'} por método de pago
               </p>
               <p className="-mt-2 mb-2.5 text-2xs text-ink-muted">
@@ -610,13 +608,13 @@ export function FinancesPage() {
                 <table className="w-full min-w-[900px] border-collapse text-body-sm leading-snug hh-table">
                   <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                     <tr className="text-left">
-                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
-                      <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Concepto</th>
-                      <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
-                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Estado</th>
-                      <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Fecha</th>
+                      <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Concepto</th>
+                      <th className="hidden px-3 py-2 text-3xs font-medium text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Monto</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Estado</th>
+                      <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Medio · notas</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border/70 bg-surface-card">
@@ -703,13 +701,13 @@ export function FinancesPage() {
               <table className="w-full min-w-[760px] border-collapse text-body-sm leading-snug hh-table">
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
-                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Fecha</th>
-                    <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Descripción</th>
-                    <th className="hidden px-3 py-2 text-3xs font-medium uppercase tracking-wider text-ink-muted sm:table-cell sm:px-4">Categoría</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Monto</th>
-                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Tipo</th>
-                    <th className="px-3 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-4">Medio · notas</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium uppercase tracking-wider text-ink-muted sm:px-4">Acciones</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Fecha</th>
+                    <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Descripción</th>
+                    <th className="hidden px-3 py-2 text-3xs font-medium text-ink-muted sm:table-cell sm:px-4">Categoría</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Monto</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Tipo</th>
+                    <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Medio · notas</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border/70 bg-surface-card">
@@ -784,7 +782,7 @@ export function FinancesPage() {
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
-              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-status-expiring">
+              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-3xs font-bold text-status-expiring">
                 {deudores.length}
               </span>
             </div>
@@ -833,7 +831,7 @@ export function FinancesPage() {
             return (
               <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
                 <div>
-                  <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
+                  <p className="text-2xs font-semibold text-ink-muted">Ingresos cobrados · últimos 12 meses</p>
                   <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-ink-primary">{formatCurrency(total)}</p>
                 </div>
                 <p className="text-2xs text-ink-muted">

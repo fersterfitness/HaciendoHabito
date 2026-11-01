@@ -114,7 +114,7 @@ export function PagosTab({
       {/* ── Cuota mensual ── */}
       <div className="border-b border-surface-border/60 pb-4 ">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide ">Plan de cuota mensual</p>
+          <p className="text-xs font-semibold text-ink-secondary  ">Plan de cuota mensual</p>
           {!editingCuota && (
             <button
               type="button"
@@ -174,7 +174,7 @@ export function PagosTab({
       {/* Día de pago: ese día sale el aviso en Inicio y a los 7 días hábiles sin pago, el segundo */}
       <div className="border-b border-surface-border/60 pb-4">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Día de pago</p>
+          <p className="text-xs font-semibold text-ink-secondary">Día de pago</p>
           {!editingWindow ? (
             <button
               type="button"
@@ -223,11 +223,11 @@ export function PagosTab({
       {/* Estado de cuenta */}
       <div className="grid grid-cols-3 gap-px border border-surface-border/70 bg-surface-border/70 ">
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
-          <p className="mb-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Total cobrado</p>
+          <p className="mb-1 text-3xs font-semibold text-ink-muted">Total cobrado</p>
           <p className="text-lg font-bold text-ink-primary ">{formatCurrency(totalCobrado)}</p>
         </div>
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
-          <p className="mb-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Este mes</p>
+          <p className="mb-1 text-3xs font-semibold text-ink-muted">Este mes</p>
           <p
             className={cn(
               'text-sm font-medium',
@@ -238,7 +238,7 @@ export function PagosTab({
           </p>
         </div>
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
-          <p className="mb-1 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Último pago</p>
+          <p className="mb-1 text-3xs font-semibold text-ink-muted">Último pago</p>
           <p className="text-sm font-semibold text-ink-primary ">{ultimoPago ? formatDate(ultimoPago.income_date) : '—'}</p>
         </div>
       </div>

@@ -338,7 +338,7 @@ function FiltersDropdown({
       >
           {/* Nivel */}
           <div>
-            <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Nivel</p>
+            <p className="text-3xs text-ink-muted font-semibold mb-1.5">Nivel</p>
             {(['', 'inicial', 'intermedio', 'avanzado'] as LevelFilter[]).map((v) => (
               <button
                 key={v || 'all-nivel'}
@@ -357,7 +357,7 @@ function FiltersDropdown({
           </div>
 
           <div className={directoryPopoverDividerClassName}>
-            <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Estado</p>
+            <p className="text-3xs text-ink-muted font-semibold mb-1.5">Estado</p>
             {([{ value: '' as StatusFilter, label: 'Todos' }, ...STATUS_OPTIONS]).map((opt) => (
               <button
                 key={opt.value || 'all-status'}
@@ -376,7 +376,7 @@ function FiltersDropdown({
           </div>
 
           <div className={directoryPopoverDividerClassName}>
-            <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Plan</p>
+            <p className="text-3xs text-ink-muted font-semibold mb-1.5">Plan</p>
             {([
               { value: '' as ExpiryFilter, label: 'Todos' },
               { value: 'pronto' as ExpiryFilter, label: 'Vence en ≤14 días' },
@@ -400,7 +400,7 @@ function FiltersDropdown({
 
           {allTags.length > 0 && (
             <div className={directoryPopoverDividerClassName}>
-              <p className="text-3xs text-ink-muted uppercase tracking-wide font-semibold mb-1.5">Etiqueta</p>
+              <p className="text-3xs text-ink-muted font-semibold mb-1.5">Etiqueta</p>
               {(['', ...allTags]).map((t) => (
                 <button
                   key={t || 'all-tag'}
@@ -462,7 +462,7 @@ function SortDropdown({ value, onChange }: { value: TableSort; onChange: (v: Tab
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">
+          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold text-ink-muted">
             Orden de la tabla
           </p>
           {TABLE_SORT_OPTS.map((opt) => (
@@ -1016,7 +1016,7 @@ function StudentDirectoryTable({
         </span>
         <span className="hidden sm:inline text-2xs text-ink-muted truncate">· {sortSubtitle}</span>
       </div>
-      <span className="sm:hidden text-3xs uppercase tracking-wide text-ink-muted truncate">{sortSubtitle}</span>
+      <span className="sm:hidden text-3xs text-ink-muted truncate">{sortSubtitle}</span>
     </div>
   )
 
@@ -1081,7 +1081,7 @@ function StudentDirectoryTable({
                   </span>
                   {rmTestDueIds.has(student.id) ? (
                     <span
-                      className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                      className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
                       title="12 semanas de rutina desde el último test de RM"
                     >
                       Testear RM
@@ -1117,11 +1117,11 @@ function StudentDirectoryTable({
         <table className="w-full border-collapse text-body-sm leading-snug hh-table">
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityLabelColumn}</th>
-              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:table-cell sm:px-5">Nivel</th>
-              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-              <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
-              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted lg:table-cell lg:px-5">Email</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{entityLabelColumn}</th>
+              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5">Nivel</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Estado</th>
+              <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Semana</th>
+              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5">Email</th>
               <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
           </thead>
@@ -1220,7 +1220,7 @@ function StudentDirectoryTable({
                       )}
                       {rmTestDueIds.has(student.id) ? (
                         <span
-                          className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                          className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
                           title="12 semanas de rutina desde el último test de RM"
                         >
                           Testear RM

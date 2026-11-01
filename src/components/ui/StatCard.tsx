@@ -21,7 +21,7 @@ export type StatCardTone = 'neutral' | 'success' | 'warning' | 'info'
 
 /** Títulos KPI con degradado (Resumen del mes, Inicio). */
 export const statCardGradientTitleClass =
-  'font-semibold uppercase tracking-wider leading-snug text-ink-muted'
+  'font-semibold leading-snug text-ink-muted'
 
 /** Borde suave + sombra flotante (KPI / resumen del mes). */
 const statCardFloatClass = cn('border-surface-border/90 bg-surface-card shadow-card')
@@ -498,7 +498,7 @@ export function StatCard({
             className={compact ? 'scale-90' : undefined}
           />
         )}
-        <p className="min-w-0 flex-1 text-label font-semibold uppercase tracking-wider text-ink-muted truncate">
+        <p className="min-w-0 flex-1 text-label font-semibold text-ink-muted truncate">
           {title}
         </p>
         {action && (

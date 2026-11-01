@@ -36,7 +36,7 @@ export function intakeRoutinePhrase(status: string): string {
 /** Píldora de estado de rutina (activa = verde; resto semántico). */
 export function routineStatusPillClass(status: string, compact = false): string {
   const sizing = compact ? 'px-1.5 py-px text-3xs' : 'px-2 py-0.5 text-3xs'
-  const base = cn('rounded border font-semibold uppercase tracking-wide', sizing)
+  const base = cn('rounded border font-semibold ', sizing)
   switch (status) {
     case 'activa':
       return cn(

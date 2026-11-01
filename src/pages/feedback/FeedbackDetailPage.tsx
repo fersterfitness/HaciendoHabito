@@ -157,7 +157,7 @@ export function FeedbackDetailPage() {
         {/* Historial de devoluciones */}
         {feedbacks.length > 0 && (
           <section>
-            <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">Respuestas enviadas</h2>
+            <h2 className="text-xs font-semibold text-ink-muted mb-3">Respuestas enviadas</h2>
             <div className="space-y-3">
               {feedbacks.map((fb) => (
                 <Card key={fb.id} className="border-brand-primary/20 bg-brand-primary/5">

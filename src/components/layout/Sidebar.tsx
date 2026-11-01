@@ -204,7 +204,7 @@ function SidebarNavGroup({ items, title, className }: { items: NavItem[]; title?
   return (
     <div className={className}>
       {title && expanded ? (
-        <p className="truncate px-4 pb-1 pt-2 text-3xs font-semibold uppercase tracking-[0.14em] text-ink-muted/80">
+        <p className="truncate px-4 pb-1 pt-3 text-2xs font-medium text-ink-muted">
           {title}
         </p>
       ) : null}
@@ -360,7 +360,7 @@ export function Sidebar() {
 
   return (
     <div className={railShellClass}>
-      <aside className={cn(railPanelClass, expanded ? 'w-[13rem]' : 'w-[52px]')} aria-label="Navegación principal">
+      <aside className={cn(railPanelClass, expanded ? 'w-60' : 'w-[52px]')} aria-label="Navegación principal">
         <div
           className={cn(
             'flex h-12 shrink-0 items-center border-b border-[rgb(var(--sidebar-border)/0.12)] dark:border-[rgb(var(--sidebar-border)/0.06)]',

@@ -189,22 +189,22 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
               <div>
-                <dt className="text-2xs uppercase tracking-wide text-ink-muted">Inicio</dt>
+                <dt className="text-2xs text-ink-muted">Inicio</dt>
                 <dd className="font-medium text-ink-primary">{formatDate(current.start_date)}</dd>
               </div>
               <div>
-                <dt className="text-2xs uppercase tracking-wide text-ink-muted">Vencimiento</dt>
+                <dt className="text-2xs text-ink-muted">Vencimiento</dt>
                 <dd className="font-medium text-ink-primary">{formatDate(current.end_date)}</dd>
               </div>
               {money ? (
                 <div>
-                  <dt className="text-2xs uppercase tracking-wide text-ink-muted">Monto</dt>
+                  <dt className="text-2xs text-ink-muted">Monto</dt>
                   <dd className="font-medium text-ink-primary">{money}</dd>
                 </div>
               ) : null}
               {current.payment_method ? (
                 <div>
-                  <dt className="text-2xs uppercase tracking-wide text-ink-muted">Método</dt>
+                  <dt className="text-2xs text-ink-muted">Método</dt>
                   <dd className="inline-flex items-center gap-1 font-medium text-ink-primary">
                     <Wallet className="h-3 w-3" />
                     {PAYMENT_METHOD_LABELS[current.payment_method]}

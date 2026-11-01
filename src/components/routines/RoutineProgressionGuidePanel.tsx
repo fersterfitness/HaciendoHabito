@@ -127,7 +127,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
       <div className="mx-auto flex h-full w-full max-w-[92rem] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-3xs font-semibold uppercase tracking-wider text-brand-primary">
+            <p className="text-3xs font-semibold text-brand-primary">
               Solo entrenador · no PDF ni alumno
             </p>
             <h2 id="progression-guide-title" className="truncate text-base font-bold text-white">
@@ -177,7 +177,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                 : undefined
               return (
               <section key={section.dayKey} className="overflow-hidden rounded-lg border border-zinc-800">
-                <div className="bg-brand-primary px-3 py-2 text-sm font-extrabold uppercase tracking-widest text-white">
+                <div className="bg-brand-primary px-3 py-2 text-sm font-extrabold text-white">
                   {section.dayTitle}
                 </div>
 
@@ -185,14 +185,14 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                   <table className="w-full min-w-[800px] border-collapse text-xs">
                     <thead>
                       <tr>
-                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-3xs font-bold uppercase tracking-wide text-white">
+                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-3xs font-bold text-white">
                           Ejercicio / bloque
                         </th>
                         {weekLabels.map((w, i) => (
                           <th
                             key={i}
                             className={cn(
-                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-3xs font-bold uppercase tracking-wide text-white',
+                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-3xs font-bold text-white',
                               weekHeaderBg(i),
                             )}
                           >
@@ -214,7 +214,7 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                           ) : null}
 
                           <tr className="bg-black">
-                            <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 text-center text-2xs font-extrabold uppercase tracking-wider text-white">
+                            <td className="sticky left-0 z-10 border-b border-r border-zinc-700 bg-black px-2 py-2 text-center text-2xs font-extrabold text-white">
                               {KIND_LABEL[block.kind]}
                             </td>
                             {block.headerNotesByWeek.map((note, i) => (

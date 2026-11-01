@@ -13,10 +13,7 @@ export function PageSectionTitle({ title, description, action, className }: Page
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-2', className)}>
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ink-muted">
-          <span aria-hidden className="h-3 w-1 rounded-full bg-brand-gradient" />
-          {title}
-        </h2>
+        <h2 className="text-base font-semibold text-ink-primary">{title}</h2>
         {description ? (
           <p className="mt-1 max-w-prose text-sm text-ink-secondary">{description}</p>
         ) : null}

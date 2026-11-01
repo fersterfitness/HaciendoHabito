@@ -399,7 +399,7 @@ export function StudentHabitsPanel({
             <div className="grid gap-0 border-t border-surface-border/60 md:grid-cols-2">
               {/* Left: bar chart */}
               <div className="px-4 pb-4 pt-3 md:border-r md:border-surface-border/60 ">
-                <p className="mb-2 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
+                <p className="mb-2 text-3xs font-semibold text-ink-muted">
                   Promedio mensual (12 meses)
                 </p>
                 <div className="h-52 w-full">
@@ -466,7 +466,7 @@ export function StudentHabitsPanel({
 
               {/* Right: changes log */}
               <div className="flex flex-col px-4 pb-4 pt-3">
-                <p className="mb-2 text-3xs font-semibold uppercase tracking-wider text-ink-muted">
+                <p className="mb-2 text-3xs font-semibold text-ink-muted">
                   Últimos cambios (alta / baja)
                 </p>
                 <div className="flex-1 overflow-y-auto rounded-lg border border-surface-border/70 " style={{ maxHeight: '13rem' }}>
@@ -558,7 +558,7 @@ export function StudentHabitsPanel({
                     : 'hh-alert hh-alert-danger',
                 )}>
                   <div className="flex items-center justify-between">
-                    <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">Promedio</p>
+                    <p className="text-3xs font-semibold text-ink-muted">Promedio</p>
                     {overallPct >= 70
                       ? <Trophy className="h-4 w-4 text-emerald-500" />
                       : overallPct >= 40
@@ -610,7 +610,7 @@ export function StudentHabitsPanel({
                   <table className="min-w-full border-collapse">
                     <thead>
                       <tr>
-                        <th className="sticky left-0 z-10 min-w-[130px] border-b border-r border-surface-border/70 bg-surface-elevated px-3 py-2 text-left text-3xs font-semibold uppercase tracking-wider text-ink-secondary ">
+                        <th className="sticky left-0 z-10 min-w-[130px] border-b border-r border-surface-border/70 bg-surface-elevated px-3 py-2 text-left text-3xs font-semibold text-ink-secondary ">
                           Hábito
                         </th>
                         {dayNums.map((d) => {
@@ -627,7 +627,7 @@ export function StudentHabitsPanel({
                             </th>
                           )
                         })}
-                        <th className="min-w-[52px] border-b border-l border-surface-border/70 bg-surface-elevated/60 px-2 py-2 text-center text-3xs font-semibold uppercase tracking-wider text-ink-muted ">
+                        <th className="min-w-[52px] border-b border-l border-surface-border/70 bg-surface-elevated/60 px-2 py-2 text-center text-3xs font-semibold text-ink-muted ">
                           %
                         </th>
                       </tr>
@@ -685,7 +685,7 @@ export function StudentHabitsPanel({
               </div>
 
               <div className="rounded-xl border border-surface-border/75 p-4 ">
-                <p className="mb-3 text-3xs font-semibold uppercase tracking-wider text-ink-muted">Detalle del mes · {monthLabel(year, month)}</p>
+                <p className="mb-3 text-3xs font-semibold text-ink-muted">Detalle del mes · {monthLabel(year, month)}</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {stats.map(({ habit, done, total, pct: p }) => (
                     <div key={habit.id} className="flex items-center gap-3">
@@ -853,7 +853,7 @@ function HabitLibraryModal({
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
-          <p className="mb-2 text-3xs font-semibold uppercase tracking-wide text-ink-muted">
+          <p className="mb-2 text-3xs font-semibold text-ink-muted">
             Marcá los hábitos que seguís para este alumno
           </p>
           {habits.map((h) => {
@@ -898,7 +898,7 @@ function HabitLibraryModal({
         </div>
 
         <div className="space-y-3 border-t border-surface-border/80 px-4 py-3">
-          <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">Nuevo hábito</p>
+          <p className="text-3xs font-semibold text-ink-muted">Nuevo hábito</p>
           {/* Icon picker grid */}
           <div className="grid grid-cols-10 gap-1">
             {ICON_OPTIONS.map((iconName) => {

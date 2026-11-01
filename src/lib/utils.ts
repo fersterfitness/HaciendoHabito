@@ -43,3 +43,21 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 }
+
+const AVATAR_TONES = [
+  'bg-orange-500/[0.12] text-orange-700 dark:text-orange-300',
+  'bg-sky-500/[0.12] text-sky-700 dark:text-sky-300',
+  'bg-emerald-500/[0.12] text-emerald-700 dark:text-emerald-300',
+  'bg-violet-500/[0.12] text-violet-700 dark:text-violet-300',
+  'bg-rose-500/[0.12] text-rose-700 dark:text-rose-300',
+  'bg-amber-500/15 text-amber-800 dark:text-amber-300',
+  'bg-teal-500/[0.12] text-teal-700 dark:text-teal-300',
+  'bg-indigo-500/[0.12] text-indigo-700 dark:text-indigo-300',
+] as const
+
+/** Color de iniciales por persona: sale del nombre, así cada alumno conserva el suyo. */
+export function avatarToneClass(name: string): string {
+  let h = 0
+  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return AVATAR_TONES[h % AVATAR_TONES.length]
+}

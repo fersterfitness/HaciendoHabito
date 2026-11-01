@@ -473,7 +473,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
 
       {versions.length > 0 && (
         <div className="rounded-xl border border-surface-border p-3 bg-surface-elevated/40">
-          <p className="text-xs font-semibold text-ink-secondary uppercase tracking-wide mb-2">Historial de versiones</p>
+          <p className="text-xs font-semibold text-ink-secondary mb-2">Historial de versiones</p>
           <div className="flex flex-wrap gap-2">
             {versions.slice(0, 8).map((v) => (
               <button

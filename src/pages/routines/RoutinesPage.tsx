@@ -197,7 +197,7 @@ function RoutinesFiltersDropdown({
         )}
       >
           <div>
-            <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">Nivel</p>
+            <p className="mb-1.5 text-3xs font-semibold text-ink-muted ">Nivel</p>
             {(['', 'inicial', 'intermedio', 'avanzado'] as RoutineLevelFilter[]).map((v) => (
               <button
                 key={v || 'all-nivel'}
@@ -216,7 +216,7 @@ function RoutinesFiltersDropdown({
           </div>
 
           <div className="border-t border-surface-border/65 pt-2 ">
-            <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Estado rutina</p>
+            <p className="mb-1.5 text-3xs font-semibold text-ink-muted">Estado rutina</p>
             {([{ value: '' as RoutineStatusFilter, label: 'Todos' }, ...ROUTINE_STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))]).map(
               (opt) => (
                 <button
@@ -285,7 +285,7 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Orden del listado</p>
+          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold text-ink-muted">Orden del listado</p>
           {ROUTINE_SORT_OPTS.map((opt) => (
             <button
               key={opt.value}
@@ -598,7 +598,7 @@ export function RoutinesPage() {
             <RoutinePdfsPanelLazy />
           </Suspense>
         ) : (
-          <div className="mx-auto max-w-[1600px] space-y-4">
+          <div className="max-w-[1600px] space-y-4">
             <StudentRoutineWeekPanel />
             <RoutineDeletionHistoryPanel onRestored={() => void fetchRoutines()} />
 
@@ -728,13 +728,13 @@ export function RoutinesPage() {
                   <table className="w-full min-w-[980px] border-collapse text-body-sm leading-snug hh-table">
                     <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                       <tr className="text-left">
-                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Rutina</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Alumno</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Período</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Nivel</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Estado</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Semana</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Rutina</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Alumno</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Período</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Nivel</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Estado</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Semana</th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-right text-3xs font-semibold text-ink-muted sm:px-5">
                           Acciones
                         </th>
                       </tr>

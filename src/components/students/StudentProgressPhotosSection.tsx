@@ -277,7 +277,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
         <div>
           <div className="flex items-center gap-2">
             <Camera className="h-3.5 w-3.5 shrink-0 text-brand-secondary" aria-hidden />
-            <h3 className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">
+            <h3 className="text-2xs font-semibold text-ink-muted">
               Progreso en fotografía
             </h3>
           </div>
@@ -290,7 +290,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
 
       {canManage ? (
         <div className="flex flex-wrap items-end gap-3 border-b border-surface-border/45 border-dashed pb-4 ">
-          <label className="text-3xs font-semibold uppercase tracking-wide text-ink-muted shrink-0">
+          <label className="text-3xs font-semibold text-ink-muted shrink-0">
             Mes
             <input
               type="month"
@@ -338,7 +338,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
           {byMonth.map(([ym, rows]) => {
             return (
               <div key={ym}>
-                <p className="mb-2 text-3xs font-semibold uppercase tracking-wide text-ink-muted ">{formatYmLabel(ym)}</p>
+                <p className="mb-2 text-3xs font-semibold text-ink-muted ">{formatYmLabel(ym)}</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                   {rows.map((ph, photoIdx) => {
                     return (

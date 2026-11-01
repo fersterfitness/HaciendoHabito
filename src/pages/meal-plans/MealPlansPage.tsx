@@ -156,7 +156,7 @@ function MealPlansFiltersDropdown({
           </button>
         )}
       >
-          <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Origen</p>
+          <p className="mb-1.5 text-3xs font-semibold text-ink-muted">Origen</p>
           {(
             [
               { value: '' as MealPlanOriginFilter, label: 'Todos' },
@@ -227,7 +227,7 @@ function MealPlansSortDropdown({ value, onChange }: { value: MealPlanTableSort; 
           </button>
         )}
       >
-          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold uppercase tracking-wide text-ink-muted">Orden del listado</p>
+          <p className="px-2 pb-1.5 pt-0.5 text-3xs font-semibold text-ink-muted">Orden del listado</p>
           {SORT_OPTS.map((opt) => (
             <button
               key={opt.value}
@@ -393,7 +393,7 @@ export function MealPlansPage() {
     <div>
       <Header title="Planes de alimentación" />
 
-      <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 lg:px-6 lg:py-8">
+      <div className="max-w-[1600px] space-y-4 px-4 py-6 lg:px-6 lg:py-8">
         <TrainerMealPlansSectionNav />
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative min-h-10 min-w-0 flex-1">
@@ -500,11 +500,11 @@ export function MealPlansPage() {
               <table className="w-full min-w-[860px] border-collapse text-body-sm leading-snug hh-table">
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
-                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Plan</th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">{entityColumn}</th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Actualización</th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">Condición</th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-right text-3xs font-semibold uppercase tracking-wider text-ink-muted sm:px-5">
+                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Plan</th>
+                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{entityColumn}</th>
+                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Actualización</th>
+                    <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Condición</th>
+                    <th className="whitespace-nowrap px-4 py-2.5 text-right text-3xs font-semibold text-ink-muted sm:px-5">
                       Acciones
                     </th>
                   </tr>
@@ -681,7 +681,7 @@ export function MealPlansPage() {
             <div className="flex shrink-0 flex-col gap-3 border-b border-surface-border/70 px-4 py-3 ">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-2xs font-medium uppercase tracking-wide text-ink-muted">{entityColumn}</p>
+                  <p className="text-2xs font-medium text-ink-muted">{entityColumn}</p>
                   <p className="truncate text-sm text-ink-secondary">{selectedPlan.student?.full_name ?? '—'}</p>
                   <h2 id="meal-plan-detail-title" className="mt-1 break-words text-lg font-semibold tracking-tight text-ink-primary">
                     {selectedPlan.title}

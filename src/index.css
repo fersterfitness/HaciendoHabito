@@ -225,6 +225,11 @@
     cursor: not-allowed;
   }
 
+  /* Íconos de trazo fino (1,5 en vez de 2): la interfaz se ve más liviana. */
+  :where(svg.lucide) {
+    stroke-width: 1.5;
+  }
+
   @media print {
     body {
       background: white !important;

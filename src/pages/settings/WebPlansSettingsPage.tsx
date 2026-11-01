@@ -188,14 +188,14 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
 function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-surface-border bg-surface-card/60 p-4 dark:bg-surface-card/40">
-      <h3 className="mb-3 text-2xs font-semibold uppercase tracking-[0.07em] text-ink-muted">{title}</h3>
+      <h3 className="mb-3 text-2xs font-semibold text-ink-muted">{title}</h3>
       <div className="space-y-4">{children}</div>
     </div>
   )
 }
 
 function SubsectionTitle({ children }: { children: ReactNode }) {
-  return <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-ink-muted">{children}</p>
+  return <p className="text-2xs font-semibold text-ink-muted">{children}</p>
 }
 
 function newPlanDraft(sortOrder: number): EditableWebPlan {
@@ -855,7 +855,7 @@ export function WebPlansSettingsPage() {
         actions={<Button size="sm" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/settings')}>Configuración</Button>}
       />
 
-      <div className="mx-auto max-w-4xl space-y-8 px-4 py-6 lg:px-6">
+      <div className="max-w-4xl space-y-8 px-4 py-6 lg:px-6">
         <div className="space-y-4 rounded-xl border border-surface-border bg-surface-elevated/40 px-4 py-4 sm:px-5">
           <div>
             <p className="text-sm font-semibold text-ink-primary">Cómo se arma el formulario público (/form)</p>
@@ -1313,7 +1313,7 @@ export function WebPlansSettingsPage() {
                     </span>
                     {plan.show_in_public_intake ? (
                       <span
-                        className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide text-brand-primary"
+                        className="shrink-0 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-3xs font-semibold text-brand-primary"
                         title={
                           plan.isCatalogCanonical
                             ? 'Oferta base del catálogo (también tiene defaults en código)'
@@ -1332,7 +1332,7 @@ export function WebPlansSettingsPage() {
                     )}
                     <span
                       className={cn(
-                        'shrink-0 rounded-md px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide',
+                        'shrink-0 rounded-md px-2 py-0.5 text-3xs font-semibold ',
                         segmentBrandBadgeClass(plan.catalog_segment),
                       )}
                     >
@@ -1594,7 +1594,7 @@ export function WebPlansSettingsPage() {
                     onChange={(e) => updatePlan(plan.slug, { intro_text: e.target.value })}
                   />
                   <div>
-                    <p className="text-2xs font-semibold uppercase tracking-[0.07em] text-ink-muted mb-2">
+                    <p className="text-2xs font-semibold text-ink-muted mb-2">
                       Incluye — por profesional
                     </p>
                     <WebPlanIncludesSectionsEditor

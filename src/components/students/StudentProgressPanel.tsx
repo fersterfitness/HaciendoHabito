@@ -92,7 +92,7 @@ function Delta({ value, suffix = '', goodWhenUp = true, digits = 0 }: { value: n
 function Kpi({ icon, label, value, hint, delta }: { icon: ReactNode; label: string; value: ReactNode; hint: ReactNode; delta?: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-surface-border/80 bg-surface-card p-3.5 shadow-xs">
-      <div className="flex items-center gap-2 text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+      <div className="flex items-center gap-2 text-2xs font-semibold text-ink-muted">
         <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary [&>svg]:h-3.5 [&>svg]:w-3.5">
           {icon}
         </span>
@@ -371,7 +371,7 @@ export function StudentProgressPanel({
                   const r = recentVsPrevious(weeks, (w) => w[k])
                   return (
                     <div key={k} className="rounded-xl bg-surface-elevated/60 px-2 py-2 text-center">
-                      <p className="text-3xs font-semibold uppercase tracking-wide" style={{ color: meta.color }}>
+                      <p className="text-3xs font-semibold " style={{ color: meta.color }}>
                         {meta.label}
                       </p>
                       <p className="text-base font-semibold tabular-nums text-ink-primary">

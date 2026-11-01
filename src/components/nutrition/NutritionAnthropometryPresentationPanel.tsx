@@ -139,7 +139,7 @@ export function NutritionAnthropometryPresentationPanel({
         <table className="w-full min-w-[640px] text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-surface-border bg-surface-elevated/80">
-              <th className="px-2 py-2 font-semibold text-ink-muted uppercase tracking-wide">Sección / variable</th>
+              <th className="px-2 py-2 font-semibold text-ink-muted ">Sección / variable</th>
               <th className="px-2 py-2 font-semibold text-ink-muted">Resultado</th>
               <th className="px-2 py-2 font-semibold text-ink-muted">Valor aj.</th>
               <th className="px-2 py-2 font-semibold text-ink-muted">Dif. ant.</th>

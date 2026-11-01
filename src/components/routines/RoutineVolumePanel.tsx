@@ -160,14 +160,14 @@ function MesocycleTable({
       <table className="w-full min-w-[520px] border-separate border-spacing-0 text-2xs">
         <thead>
           <tr>
-            <th className="sticky left-0 bg-surface-card px-2 py-1.5 text-left font-semibold uppercase tracking-wide text-ink-muted">Músculo</th>
+            <th className="sticky left-0 bg-surface-card px-2 py-1.5 text-left font-semibold text-ink-muted">Músculo</th>
             {labels.map((l, i) => (
               <th key={i} className="px-1 py-1.5 text-center">
                 <button
                   type="button"
                   onClick={() => onSelect(i)}
                   className={cn(
-                    'rounded-md px-2 py-0.5 font-semibold uppercase tracking-wide transition-colors',
+                    'rounded-md px-2 py-0.5 font-semibold transition-colors',
                     i === selected ? 'bg-brand-primary text-white' : 'text-ink-muted hover:bg-surface-elevated hover:text-ink-primary',
                   )}
                 >
@@ -175,7 +175,7 @@ function MesocycleTable({
                 </button>
               </th>
             ))}
-            <th className="px-2 py-1.5 text-center font-semibold uppercase tracking-wide text-ink-muted">Rango</th>
+            <th className="px-2 py-1.5 text-center font-semibold text-ink-muted">Rango</th>
           </tr>
         </thead>
         <tbody>
@@ -228,7 +228,7 @@ function CounterTable({
   onAdjust?: (row: VolumeRow) => void
   studentFirstName?: string
 }) {
-  const head = 'px-1.5 py-2 text-center text-3xs font-bold uppercase tracking-wide text-ink-muted'
+  const head = 'px-1.5 py-2 text-center text-3xs font-bold text-ink-muted'
   return (
     <div className="overflow-x-auto rounded-xl border border-surface-border/80">
       <table className="w-full min-w-[1080px] border-collapse text-2xs">
@@ -249,7 +249,7 @@ function CounterTable({
           {week.days.map((day) => (
             <Fragment key={day.id}>
               <tr>
-                <td colSpan={4 + MUSCLE_IDS.length} className="border-t border-surface-border bg-brand-primary/10 px-2 py-1.5 text-3xs font-bold uppercase tracking-widest text-brand-primary">
+                <td colSpan={4 + MUSCLE_IDS.length} className="border-t border-surface-border bg-brand-primary/10 px-2 py-1.5 text-3xs font-bold text-brand-primary">
                   <span className="sticky left-2">
                     {day.name || 'Día'}
                     <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 normal-case tracking-normal">
@@ -364,7 +364,7 @@ function CounterTable({
         </tbody>
         <tfoot className="bg-surface-elevated/70">
           <tr>
-            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-bold uppercase tracking-wide text-ink-muted">
+            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-bold text-ink-muted">
               Series brutas (con sinergias)
             </td>
             {MUSCLE_IDS.map((id) => (
@@ -374,7 +374,7 @@ function CounterTable({
             ))}
           </tr>
           <tr>
-            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-bold uppercase tracking-wide text-ink-primary">
+            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-bold text-ink-primary">
               Series ponderadas (fatiga real)
             </td>
             {MUSCLE_IDS.map((id) => {
@@ -427,14 +427,14 @@ function SessionTable({
       <table className="w-full min-w-[560px] border-separate border-spacing-0 text-2xs">
         <thead>
           <tr>
-            <th className="sticky left-0 bg-surface-card px-2 py-1.5 text-left font-semibold uppercase tracking-wide text-ink-muted">Sesión</th>
+            <th className="sticky left-0 bg-surface-card px-2 py-1.5 text-left font-semibold text-ink-muted">Sesión</th>
             {labels.map((l, i) => (
               <th key={i} className="px-2 py-1.5 text-left">
                 <button
                   type="button"
                   onClick={() => onSelect(i)}
                   className={cn(
-                    'rounded-md px-2 py-0.5 font-semibold uppercase tracking-wide transition-colors',
+                    'rounded-md px-2 py-0.5 font-semibold transition-colors',
                     i === selected ? 'bg-brand-primary text-white' : 'text-ink-muted hover:bg-surface-elevated hover:text-ink-primary',
                   )}
                 >
@@ -454,7 +454,7 @@ function SessionTable({
             </tr>
           ))}
           <tr>
-            <td className="sticky left-0 border-t border-surface-border bg-surface-card px-2 py-1.5 font-bold uppercase tracking-wide text-ink-primary">Total semana</td>
+            <td className="sticky left-0 border-t border-surface-border bg-surface-card px-2 py-1.5 font-bold text-ink-primary">Total semana</td>
             {totals.map((t, i) => (
               <td key={i} className={cn('border-t border-surface-border px-2 py-1.5 font-bold tabular-nums text-ink-primary', i === selected && 'bg-brand-primary/5')}>
                 {t} series
@@ -593,7 +593,7 @@ function SettingsModal({
         </div>
 
         <section>
-          <h4 className="mb-2 text-2xs font-bold uppercase tracking-wider text-ink-muted">Rango objetivo semanal</h4>
+          <h4 className="mb-2 text-2xs font-bold text-ink-muted">Rango objetivo semanal</h4>
           <div className="grid grid-cols-2 gap-3">
             <NumField label="Mínimo (series ponderadas)" value={s.targetMin} onChange={(v) => setS({ ...s, targetMin: v })} />
             <NumField label="Máximo (sostenible)" value={s.targetMax} onChange={(v) => setS({ ...s, targetMax: v })} />
@@ -601,7 +601,7 @@ function SettingsModal({
         </section>
 
         <section>
-          <h4 className="mb-2 text-2xs font-bold uppercase tracking-wider text-ink-muted">Regla de RIR</h4>
+          <h4 className="mb-2 text-2xs font-bold text-ink-muted">Regla de RIR</h4>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <NumField
               label="Técnicas suman con RIR ≤"
@@ -621,7 +621,7 @@ function SettingsModal({
         </section>
 
         <section>
-          <h4 className="mb-2 text-2xs font-bold uppercase tracking-wider text-ink-muted">Multiplicadores de técnica</h4>
+          <h4 className="mb-2 text-2xs font-bold text-ink-muted">Multiplicadores de técnica</h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {TECHNIQUES.map((t) => (
               <NumField
@@ -636,7 +636,7 @@ function SettingsModal({
         </section>
 
         <section>
-          <h4 className="mb-1 text-2xs font-bold uppercase tracking-wider text-ink-muted">Prioridades por músculo</h4>
+          <h4 className="mb-1 text-2xs font-bold text-ink-muted">Prioridades por músculo</h4>
           <p className="mb-2 text-3xs text-ink-muted">Vacío = usa el rango general. Útil para el mapa muscular objetivo del alumno.</p>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {VOLUME_MUSCLES.map((m) => {
@@ -836,7 +836,7 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
       <div className="mx-auto flex h-full w-full max-w-[92rem] flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-base shadow-pop">
         <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-card px-4 py-3">
           <div className="min-w-0">
-            <p className="text-3xs font-semibold uppercase tracking-wider text-brand-primary">Solo entrenador · no PDF ni alumno</p>
+            <p className="text-3xs font-semibold text-brand-primary">Solo entrenador · no PDF ni alumno</p>
             <h2 id="volume-panel-title" className="flex items-center gap-2 truncate text-base font-bold text-ink-primary">
               <BarChart3 className="h-4 w-4 text-brand-primary" />
               Volumen semanal — {routineName}

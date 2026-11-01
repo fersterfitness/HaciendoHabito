@@ -27,7 +27,7 @@ export function OffContextPage() {
   return (
     <div>
       <Header title="Saliendo de contexto" />
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 lg:px-6">
+      <div className="max-w-2xl space-y-5 px-4 py-6 lg:px-6">
         {wednesday ? (
           <p className="rounded-xl hh-alert hh-alert-warning px-3 py-2 text-sm font-medium text-amber-800 dark:text-amber-200">
             Hoy es miércoles: es el día de mandar el hilo al grupo.
@@ -39,7 +39,7 @@ export function OffContextPage() {
         )}
 
         <label className="block space-y-1.5">
-          <span className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">
+          <span className="text-2xs font-semibold text-ink-muted">
             Cuestionamiento
           </span>
           <Textarea
@@ -52,7 +52,7 @@ export function OffContextPage() {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">
+          <span className="text-2xs font-semibold text-ink-muted">
             Tu respuesta (abro hilo)
           </span>
           <Textarea
@@ -65,7 +65,7 @@ export function OffContextPage() {
         </label>
 
         <div className="rounded-2xl border border-surface-border bg-surface-card p-4">
-          <p className="mb-2 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-muted">
+          <p className="mb-2 flex items-center gap-1.5 text-2xs font-semibold text-ink-muted">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
             Vista previa
           </p>

@@ -419,7 +419,7 @@ export function NutritionComparativePage() {
               className="shrink-0 text-ink-secondary/70"
             />
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-3xs font-semibold uppercase tracking-[0.18em] text-brand-secondary">
+              <p className="text-3xs font-semibold text-brand-secondary">
                 PDFs nutrición
               </p>
               <h1 className="text-xl font-semibold tracking-tight text-ink-primary sm:text-2xl">
@@ -492,7 +492,7 @@ export function NutritionComparativePage() {
                 ) : null}
 
                 <div>
-                  <p className="text-3xs font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                  <p className="text-3xs font-semibold text-ink-muted mb-2">
                     Fuente de datos
                   </p>
                   <SegmentedMode
@@ -842,7 +842,7 @@ function MetricDeltaCard({
 }) {
   return (
     <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/30 p-2.5">
-      <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted truncate">{label}</p>
+      <p className="text-3xs font-semibold text-ink-muted truncate">{label}</p>
       <p className="mt-1 text-2xs text-ink-secondary tabular-nums truncate">
         {from} → {to}
       </p>

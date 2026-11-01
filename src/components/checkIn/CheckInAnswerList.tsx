@@ -26,7 +26,7 @@ export function CheckInAnswerList({
         const enlargeText = monthly && q.type === 'text' && q.key !== 'full_name'
         return (
           <li key={q.id} className="rounded-2xl border border-surface-border/60 bg-surface-elevated/25 px-3 py-2.5">
-            <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{q.label}</p>
+            <p className="text-3xs font-semibold text-ink-muted">{q.label}</p>
             {choice && !skipped && opt ? (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
@@ -62,7 +62,7 @@ export function CheckInAnswerList({
         .filter(([k]) => !known.has(k))
         .map(([k, v]) => (
           <li key={k} className="rounded-2xl border border-surface-border/60 bg-surface-elevated/25 px-3 py-2.5">
-            <p className="text-3xs font-semibold uppercase tracking-wide text-ink-muted">{k}</p>
+            <p className="text-3xs font-semibold text-ink-muted">{k}</p>
             <p className="mt-1 text-sm text-ink-primary">{String(v ?? '—')}</p>
           </li>
         ))}

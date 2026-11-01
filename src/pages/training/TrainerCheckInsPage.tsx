@@ -2,7 +2,7 @@ import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Trash2, Download, Users,
+  CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Trash2, Download,
 } from 'lucide-react'
 import { checkInRepo } from '@/data/checkIns'
 import { useAuthStore } from '@/stores/authStore'
@@ -913,35 +913,33 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
           }
         />
 
+        {/* Una sola fila de vistas: las tres por alumno y la de formularios. */}
         <SegmentedControl
+          size="sm"
           ariaLabel="Vista de check-ins"
-          fullWidth
-          className="max-w-md"
-          value={checkInView}
-          onChange={(id) => setCheckInView(id as typeof checkInView)}
+          value={checkInView === 'form' ? 'form' : studentPanel}
+          onChange={(id) => {
+            if (id === 'form') {
+              setCheckInView('form')
+              return
+            }
+            setCheckInView('student')
+            setStudentPanel(id as typeof studentPanel)
+          }}
           items={[
-            { id: 'student', label: 'Por alumno', icon: Users },
-            { id: 'form', label: 'Por formulario', icon: ClipboardCheck },
+            { id: 'seguimiento', label: 'Seguimiento' },
+            {
+              id: 'sin_respuesta',
+              label: 'Sin respuesta',
+              count: missingStudents.length > 0 ? missingStudents.length : undefined,
+            },
+            { id: 'feedbacks', label: 'Feedbacks' },
+            { id: 'form', label: 'Formularios' },
           ]}
         />
 
         {checkInView === 'student' ? (
           <div className="space-y-4">
-            <SegmentedControl
-              size="sm"
-              ariaLabel="Vista por alumno"
-              value={studentPanel}
-              onChange={(id) => setStudentPanel(id as typeof studentPanel)}
-              items={[
-                { id: 'seguimiento', label: 'Seguimiento' },
-                {
-                  id: 'sin_respuesta',
-                  label: 'Sin respuesta',
-                  count: missingStudents.length > 0 ? missingStudents.length : undefined,
-                },
-                { id: 'feedbacks', label: 'Feedbacks general' },
-              ]}
-            />
 
             {studentPanel === 'sin_respuesta' ? (
               <Card padding="lg" className="space-y-3 border-amber-500/30">
@@ -1424,7 +1422,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
         <div className="grid lg:grid-cols-5 gap-4 lg:gap-6">
           <Card padding="lg" className={cn('space-y-3 lg:col-span-2', checkInPanelCardClass)}>
             <CardHeader className="mb-2">
-              <CardTitle className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+              <CardTitle className="text-label font-semibold text-brand-secondary/90">
                 Mis formularios
               </CardTitle>
             </CardHeader>
@@ -1542,7 +1540,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-label font-semibold uppercase tracking-wider text-brand-secondary/80">Preguntas</span>
+                <span className="text-label font-semibold text-brand-secondary/80">Preguntas</span>
                 <div className="flex flex-wrap gap-1">
                   <Button type="button" size="sm" variant="outline" className="text-3xs h-7" onClick={applyWeeklyTemplate}>
                     Plantilla semanal
@@ -1584,7 +1582,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             {activeFormId && savedForm ? (
               <>
                 <div className={cn('border-t border-surface-border/80 pt-4', checkInHighlightPanelClass)}>
-                  <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                  <h3 className="text-label font-semibold text-brand-secondary/90">
                     Link general (recomendado)
                   </h3>
                   <p className="text-2xs text-ink-muted leading-relaxed">
@@ -1626,7 +1624,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                 </div>
 
                 <div className="border-t border-surface-border/80 pt-4 space-y-3">
-                  <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                  <h3 className="text-label font-semibold text-brand-secondary/90">
                     Links por alumno (opcional)
                   </h3>
                   <p className="text-2xs text-ink-muted">
@@ -1676,7 +1674,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
                 <div className="border-t border-surface-border/80 pt-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-label font-semibold uppercase tracking-wider text-brand-secondary/90">
+                    <h3 className="text-label font-semibold text-brand-secondary/90">
                       Invitaciones y respuestas
                     </h3>
                     <div className="flex flex-wrap gap-1.5">
@@ -1822,7 +1820,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
             <div className="space-y-1 min-w-[8rem]">
-              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-dow">
+              <label className="text-3xs font-medium text-ink-muted" htmlFor="sched-dow">
                 Día
               </label>
               <select
@@ -1839,7 +1837,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
               </select>
             </div>
             <div className="space-y-1 flex-1 min-w-[10rem]">
-              <label className="text-3xs font-medium uppercase tracking-wide text-ink-muted" htmlFor="sched-tz">
+              <label className="text-3xs font-medium text-ink-muted" htmlFor="sched-tz">
                 Zona horaria
               </label>
               <select

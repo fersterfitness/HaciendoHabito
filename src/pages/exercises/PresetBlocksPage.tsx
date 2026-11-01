@@ -401,7 +401,7 @@ export function PresetBlocksPage() {
           <div className="space-y-5">
             {grouped.map((g) => (
               <section key={g.cat?.id ?? '__none__'}>
-                <h3 className="mb-2 border-b border-surface-border pb-1 text-sm font-bold uppercase tracking-wide text-ink-primary">
+                <h3 className="mb-2 border-b border-surface-border pb-1 text-sm font-bold text-ink-primary">
                   {g.cat?.name ?? 'Sin categoría'} <span className="text-2xs font-normal text-ink-muted">({g.items.length})</span>
                 </h3>
                 <ul className="space-y-2">

@@ -124,7 +124,7 @@ export function BlockCard({
               </span>
             ) : null}
             {weekCurrent ? (
-              <span className="whitespace-nowrap rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold uppercase tracking-wide text-brand-primary">
+              <span className="whitespace-nowrap rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold text-brand-primary">
                 Semana actual
               </span>
             ) : null}
@@ -142,7 +142,7 @@ export function BlockCard({
                   <span
                     key={p.phase}
                     className={cn(
-                      'rounded-md border px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide',
+                      'rounded-md border px-1.5 py-0.5 text-3xs font-bold ',
                       CYCLE_PHASE_CLASSES[p.color].chip,
                     )}
                   >
@@ -165,7 +165,7 @@ export function BlockCard({
             <>
               <div className="fixed inset-0 z-30" onClick={onCloseCopyMenu} />
               <div className="absolute right-0 top-6 z-40 bg-surface-card border border-surface-border rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
-                <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted uppercase tracking-wide">Copiar días a…</p>
+                <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted ">Copiar días a…</p>
                 {otherBlocks.length === 0
                   ? <p className="px-3 py-2 text-xs text-ink-muted">No hay otras semanas</p>
                   : otherBlocks.map((b) => (
@@ -215,7 +215,7 @@ export function BlockCard({
                 >
                   <Droplets className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
                   <p className="leading-snug">
-                    <span className="font-semibold uppercase tracking-wide">{p.label}</span>
+                    <span className="font-semibold ">{p.label}</span>
                     {' · '}
                     {p.description}
                   </p>
@@ -226,7 +226,7 @@ export function BlockCard({
           {/* Fechas del bloque */}
           <div className="grid grid-cols-2 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
             <div>
-              <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Fecha inicio</label>
+              <label className="block text-3xs text-ink-muted mb-1 ">Fecha inicio</label>
               <input
                 type="date"
                 className={cn(
@@ -243,7 +243,7 @@ export function BlockCard({
               />
             </div>
             <div>
-              <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Fecha fin</label>
+              <label className="block text-3xs text-ink-muted mb-1 ">Fecha fin</label>
               <input
                 type="date"
                 className={cn(
@@ -260,7 +260,7 @@ export function BlockCard({
 
           {onPhaseChange ? (
             <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-              <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Fase del macrociclo · se marca en el calendario (el alumno no la ve)</label>
+              <label className="block text-3xs text-ink-muted mb-1 ">Fase del macrociclo · se marca en el calendario (el alumno no la ve)</label>
               <div className="flex flex-wrap gap-1.5">
                 {BLOCK_TYPES.map((t) => {
                   const active = block.phase_type === t.id
@@ -289,7 +289,7 @@ export function BlockCard({
           {/* Aclaración general: reemplazada por la fase; se muestra solo si la semana ya tenía texto. */}
           {blockNotes || block.notes ? (
           <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-            <label className="block text-3xs text-ink-muted mb-1 uppercase tracking-wide">Aclaración general del bloque</label>
+            <label className="block text-3xs text-ink-muted mb-1 ">Aclaración general del bloque</label>
             <Textarea
               placeholder="Ej: Intermitente HIIT corto 20x20'' x 4 vueltas. Descanso entre vueltas: 3'."
               rows={5}
