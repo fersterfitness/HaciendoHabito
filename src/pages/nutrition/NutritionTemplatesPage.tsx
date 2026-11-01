@@ -574,7 +574,7 @@ export function NutritionTemplatesPage() {
                 exit="leave"
               >
                 <div
-                  className="shrink-0 border-b border-surface-border/70 bg-gradient-to-r from-brand-secondary/[0.12] via-transparent to-brand-tertiary/[0.06] px-4 py-4 sm:px-6"
+                  className="shrink-0 border-b border-surface-border/70 bg-brand-secondary/[0.05] px-4 py-4 sm:px-6"
                   style={planEditorPanelBg}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">

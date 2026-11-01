@@ -33,8 +33,7 @@ export function EmptyState({
     >
       {icon && (
         <div className="relative mb-5">
-          <div aria-hidden className="absolute inset-0 -z-10 scale-150 rounded-full bg-brand-primary/10 blur-2xl" />
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-surface-border bg-surface-card text-brand-primary shadow-card [&_svg]:h-6 [&_svg]:w-6">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-elevated text-ink-secondary [&_svg]:h-6 [&_svg]:w-6">
             {icon}
           </div>
         </div>

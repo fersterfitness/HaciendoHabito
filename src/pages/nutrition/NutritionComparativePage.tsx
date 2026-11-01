@@ -407,14 +407,10 @@ export function NutritionComparativePage() {
         <header
           className={cn(
             'relative overflow-hidden rounded-2xl border border-brand-secondary/25',
-            'bg-gradient-to-br from-brand-secondary/[0.16] via-brand-secondary/[0.06] to-transparent',
+            'bg-brand-secondary/[0.06]',
             'px-5 py-6 sm:px-8 sm:py-7',
           )}
         >
-          <div
-            className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-brand-secondary/12 blur-3xl"
-            aria-hidden
-          />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
             <Kpi3dIcon
               id="anthropometry-pdf"

@@ -304,30 +304,6 @@
     --hh-patient-btn-h: 2.25rem;
     --hh-patient-edge-gap: 0.625rem;
     position: relative;
-    filter:
-      drop-shadow(0 1px 2px rgb(15 15 35 / 0.05))
-      drop-shadow(0 6px 16px rgb(15 15 35 / 0.07))
-      drop-shadow(0 14px 36px rgb(15 15 35 / 0.09));
-    transition: filter 0.2s ease;
-  }
-
-  .hh-patient-card:hover {
-    filter:
-      drop-shadow(0 2px 6px rgb(15 15 35 / 0.06))
-      drop-shadow(0 10px 26px rgb(15 15 35 / 0.1))
-      drop-shadow(0 22px 48px rgb(15 15 35 / 0.12));
-  }
-
-  .dark .hh-patient-card {
-    filter:
-      drop-shadow(0 1px 2px rgb(0 0 0 / 0.2))
-      drop-shadow(0 8px 20px rgb(0 0 0 / 0.24));
-  }
-
-  .dark .hh-patient-card:hover {
-    filter:
-      drop-shadow(0 4px 10px rgb(0 0 0 / 0.24))
-      drop-shadow(0 14px 32px rgb(0 0 0 / 0.3));
   }
 
   .hh-patient-card__body {
@@ -374,7 +350,6 @@
     height: var(--hh-patient-btn-h);
     border-radius: 0.75rem;
     border: 1px solid rgb(var(--surface-border) / 0.55);
-    box-shadow: 0 1px 3px rgb(15 15 35 / 0.08), 0 4px 10px rgb(15 15 35 / 0.06);
     transition:
       border-color 0.2s ease,
       color 0.2s ease;
@@ -382,10 +357,6 @@
 
   .hh-patient-card:hover .hh-patient-card__action {
     border-color: rgb(var(--brand-secondary) / 0.4);
-  }
-
-  .dark .hh-patient-card__action {
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.28);
   }
 
   .text-balance {

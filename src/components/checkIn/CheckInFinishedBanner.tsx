@@ -4,7 +4,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 
 export function CheckInLastWeekBanner({ onAskMonthly }: { onAskMonthly?: () => void }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-rose-500/35 bg-gradient-to-br from-rose-500/15 via-surface-card to-rose-500/8 p-3.5 shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/[0.06] p-3.5">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-700 dark:text-rose-300">
           <AlertTriangle className="h-4 w-4" strokeWidth={2.2} />
@@ -47,7 +47,7 @@ export function CheckInFinishedBanner({
   onAskMonthly: () => void
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-500/12 via-surface-card to-orange-500/8 p-3.5 shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-500/[0.06] p-3.5">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
           <Flag className="h-4 w-4" strokeWidth={2.2} />

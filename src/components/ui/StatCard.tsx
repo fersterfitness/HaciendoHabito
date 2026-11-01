@@ -327,16 +327,6 @@ function StatCardGradient({
         className,
       )}
     >
-      <div
-        className={cn(
-          'pointer-events-none absolute rounded-full blur-2xl',
-          featured
-            ? 'bg-white/30 -right-6 -top-6 h-28 w-28'
-            : 'bg-brand-primary/15 -right-8 -top-8 h-20 w-20 opacity-0 transition-opacity duration-500 group-hover:opacity-100',
-        )}
-        aria-hidden
-      />
-
       <div className={cn('relative z-10 flex items-center gap-2', showHero && 'max-w-full')}>
         {!showHero ? (
           <GradientIconPod

@@ -54,8 +54,8 @@ export function CheckInQuestionFields({
                   'h-12 flex-1 rounded-2xl text-base font-bold transition-all duration-150 sm:h-14',
                   'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40',
                   isOn
-                    ? 'border-brand-primary bg-brand-primary text-white shadow-[0_10px_22px_-8px_rgba(255,72,0,0.55)] scale-[1.03]'
-                    : 'border-surface-border bg-surface-elevated/60 text-ink-secondary hover:-translate-y-0.5 hover:border-brand-primary/40 hover:text-ink-primary',
+                    ? 'border-brand-primary bg-brand-primary text-white'
+                    : 'border-surface-border bg-surface-elevated/60 text-ink-secondary hover:border-brand-primary/40 hover:text-ink-primary',
                 )}
               >
                 {num}

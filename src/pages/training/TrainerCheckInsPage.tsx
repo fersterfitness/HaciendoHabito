@@ -104,10 +104,10 @@ const inviteTableActionBtnClass =
   'h-7 min-h-7 min-w-[3.25rem] px-2.5 text-3xs font-medium gap-1 shrink-0'
 
 const checkInPanelCardClass =
-  'border-brand-secondary/20 bg-gradient-to-br from-brand-secondary/[0.08] via-surface-card to-surface-card shadow-[0_8px_28px_rgba(169,121,255,0.06)]'
+  'border-surface-border bg-surface-card'
 
 const checkInFormTileActiveClass =
-  'border-brand-secondary/45 bg-gradient-to-br from-brand-secondary/18 via-brand-secondary/8 to-transparent text-ink-primary font-semibold shadow-[0_4px_18px_rgba(169,121,255,0.12)]'
+  'border-brand-secondary/45 bg-brand-secondary/10 text-ink-primary font-semibold'
 
 const checkInFormTileIdleClass =
   'border-surface-border/80 bg-surface-elevated/25 text-ink-secondary hover:border-brand-secondary/35 hover:bg-brand-secondary/10 hover:text-ink-primary'
@@ -117,7 +117,7 @@ const checkInFieldSelectClass = controlSmClassName
 const checkInCheckboxClass = 'rounded border-surface-border accent-brand-secondary'
 
 const checkInHighlightPanelClass =
-  'rounded-xl border border-brand-secondary/25 bg-gradient-to-br from-brand-secondary/12 via-brand-secondary/5 to-transparent p-3 space-y-3'
+  'rounded-xl border border-brand-secondary/25 bg-brand-secondary/[0.06] p-3 space-y-3'
 
 export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()

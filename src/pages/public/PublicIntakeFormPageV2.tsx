@@ -492,7 +492,7 @@ export function PublicIntakeFormPageV2() {
         {/* ═══════════ Hero compacto ═══════════ */}
         <div className="v2f-drop v2f-d1 mb-6 text-center sm:mb-7">
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl md:text-[34px]">
-            Empezá tu <span className="bg-gradient-to-r from-brand-primary to-amber-500 bg-clip-text text-transparent">transformación</span>
+            Empezá tu <span className="text-brand-primary">transformación</span>
           </h1>
         </div>
 
@@ -977,13 +977,10 @@ function ModalityPicker({
               className={cn(
                 'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-2xl border p-3.5 text-left',
                 active
-                  ? 'border-zinc-400 bg-gradient-to-br from-zinc-100 via-zinc-50 to-transparent ring-2 ring-zinc-300/60 shadow-[0_8px_28px_-12px_rgba(15,23,42,0.25)] dark:border-zinc-500 dark:from-white/[0.10] dark:via-white/[0.04] dark:to-transparent dark:ring-white/15 dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.6)]'
+                  ? 'border-zinc-900 bg-white ring-1 ring-zinc-900 dark:border-white dark:bg-white/[0.06] dark:ring-white'
                   : 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800',
               )}
             >
-              {active ? (
-                <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-zinc-400/20 blur-2xl dark:bg-white/10" aria-hidden />
-              ) : null}
               <IntakeModalityProfessionIcons modalityId={m.id} className="relative mb-2 min-h-6 pr-6" />
               <span className={cn(
                 'relative text-3xs font-bold uppercase tracking-wider',
@@ -1190,7 +1187,7 @@ function PlanSummary({
         )}
       </header>
 
-      <div className="rounded-xl border border-zinc-100 bg-gradient-to-br from-orange-50/60 to-stone-50 p-4 dark:border-zinc-800 dark:from-orange-500/[0.08] dark:to-zinc-900/40">
+      <div className="rounded-xl border border-zinc-100 bg-orange-50/50 p-4 dark:border-zinc-800 dark:bg-orange-500/[0.06]">
         <p className="text-3xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Precio</p>
         <p className="mt-1 text-2xl font-extrabold tabular-nums text-zinc-900 dark:text-white">{price}</p>
         <p className="mt-0.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{planBillingCaption(billing)}</p>

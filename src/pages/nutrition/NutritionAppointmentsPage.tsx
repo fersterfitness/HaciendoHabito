@@ -1773,7 +1773,7 @@ export function AppointmentsPage() {
           open
           className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-zinc-400/70 bg-surface-card dark:border-l-zinc-500/50"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-gradient-to-r from-zinc-500/[0.06] to-surface-elevated/25 px-4 py-3 transition-colors hover:from-zinc-500/[0.09] hover:to-surface-elevated/35 dark:from-zinc-500/[0.1] dark:hover:from-zinc-500/[0.14] [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-surface-panel px-4 py-3 transition-colors hover:bg-surface-elevated [&::-webkit-details-marker]:hidden">
             <div>
               <p className="text-sm font-semibold text-ink-primary">Agendar turno</p>
               <p className="text-2xs text-ink-muted mt-0.5">Alta rápida · se limpia después de guardar</p>
@@ -1893,7 +1893,7 @@ export function AppointmentsPage() {
             open
             className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-violet-500/60 bg-surface-card dark:border-l-violet-500/45"
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-gradient-to-r from-violet-500/[0.08] to-surface-elevated/25 px-4 py-3 transition-colors hover:from-violet-500/[0.11] hover:to-surface-elevated/35 dark:from-violet-500/[0.12] dark:hover:from-violet-500/[0.16] [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-violet-500/[0.06] px-4 py-3 transition-colors hover:bg-violet-500/[0.1] [&::-webkit-details-marker]:hidden">
               <div>
                 <p className="text-sm font-semibold text-ink-primary">Nuevo evento personal</p>
                 <p className="text-2xs text-ink-muted mt-0.5">No se asocia a alumnos ni sincroniza con Google Calendar</p>

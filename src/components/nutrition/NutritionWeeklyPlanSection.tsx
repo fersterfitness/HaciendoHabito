@@ -355,7 +355,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-brand-secondary/25 bg-gradient-to-r from-brand-secondary/[0.12] to-brand-secondary/[0.04] p-3 sm:p-4">
+      <div className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/[0.06] p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-ink-primary flex items-center gap-2">

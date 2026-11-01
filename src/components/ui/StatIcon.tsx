@@ -7,9 +7,9 @@ export type StatIconVariant = 'flat' | '3d'
 
 const TONE_WRAP: Record<StatIconTone, string> = {
   neutral:
-    'border-surface-border/70 bg-gradient-to-b from-surface-elevated/90 to-surface-card text-ink-secondary',
+    'border-transparent bg-surface-elevated text-ink-secondary',
   accent:
-    'border-brand-secondary/25 bg-gradient-to-b from-brand-secondary/12 to-surface-card text-brand-secondary',
+    'border-transparent bg-brand-secondary/10 text-brand-secondary',
 }
 
 /** Contenedor KPI: icono Animate UI, Lucide, o relieve CSS en variante `3d`. */
@@ -34,7 +34,6 @@ export function StatIcon({
       <span
         className={cn(
           'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border',
-          'shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
           tone === 'accent'
             ? 'border-brand-secondary/18 bg-brand-secondary/6 text-brand-secondary/65'
             : 'border-surface-border/55 bg-surface-elevated/45 text-ink-secondary/65',
@@ -63,7 +62,6 @@ export function StatIcon({
           ? cn('stat-icon-3d shrink-0', tone === 'accent' && 'stat-icon-3d-accent')
           : cn(
               'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
               TONE_WRAP[tone],
             ),
         className,

@@ -63,14 +63,10 @@ export function NutritionEvolutionPage() {
         <section
           className={cn(
             'relative overflow-hidden rounded-2xl border border-brand-secondary/25',
-            'bg-gradient-to-br from-brand-secondary/[0.14] via-brand-secondary/[0.05] to-transparent',
+            'bg-brand-secondary/[0.06]',
             'px-5 py-6 sm:px-7 sm:py-7',
           )}
         >
-          <div
-            className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-brand-secondary/10 blur-3xl"
-            aria-hidden
-          />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 space-y-2">
               <p className={nutritionKickerClass}>

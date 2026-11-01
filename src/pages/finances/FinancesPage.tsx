@@ -117,16 +117,13 @@ function MetricTile({
     <div
       className={cn(
         'group relative flex flex-col gap-1.5 overflow-hidden rounded-2xl border p-3 sm:p-4',
-        'transition-[transform,box-shadow] duration-300 ease-out-expo motion-safe:hover:-translate-y-0.5',
+        'transition-colors duration-150',
         featured
           ? 'hh-cta border-transparent text-white'
-          : 'border-surface-border/90 bg-surface-card shadow-card hover:shadow-card-md',
+          : 'border-surface-border bg-surface-card',
         containerClassName,
       )}
     >
-      {featured ? (
-        <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
-      ) : null}
       <div className="relative flex items-center gap-2">
         {Icon ? (
           <span
