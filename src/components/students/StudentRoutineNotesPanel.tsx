@@ -83,13 +83,13 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
   const pending = notes.filter((n) => !n.is_done)
 
   return (
-    <section className="rounded-2xl border border-amber-300/50 bg-amber-50/50 p-4 dark:border-amber-700/40 dark:bg-amber-950/15">
+    <section className="rounded-2xl border border-surface-border bg-surface-card p-4">
       <div className="mb-3 flex items-center gap-2">
         <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <h3 className="text-sm font-semibold text-ink-primary">
           Notas para la próxima rutina
           {pending.length > 0 && (
-            <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-2xs font-bold text-amber-700 dark:text-amber-300">
+            <span className="ml-2 rounded-full bg-surface-elevated px-2 py-0.5 text-2xs font-semibold text-ink-secondary">
               {pending.length} pendiente{pending.length > 1 ? 's' : ''}
             </span>
           )}

@@ -219,7 +219,7 @@ export function StudentEngagementStatsPanel({
         {monthlyRows.length > 0 ? (
           <ul className="mb-4 space-y-2">
             {monthlyRows.map((row) => (
-              <li key={row.id} className="rounded-xl border border-emerald-600/25 bg-emerald-500/5 px-3 py-2.5">
+              <li key={row.id} className="rounded-xl border border-surface-border bg-surface-card px-3 py-2.5">
                 <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-3xs font-bold text-emerald-700 dark:text-emerald-300">
                     {row.formTitle}

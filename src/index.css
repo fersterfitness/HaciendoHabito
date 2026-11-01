@@ -415,14 +415,6 @@
   }
 
   /**
-   * Alerta / aviso: tarjeta neutra + barra de acento + degradé suave del tono.
-   * Reemplaza los bloques con fondo y borde teñidos (estilo pesado / antiguo).
-   */
-  /**
-   * Aviso: tarjeta neutra como las demás. El tono (`--tone`) solo pinta el ícono (`.hh-alert-icon`);
-   * nada de fondo teñido ni franja lateral. El tinte queda para errores reales (`.hh-alert-strong`).
-   */
-  /**
    * Aviso: tarjeta neutra como las demás. El tono (`--tone`) solo pinta el ícono (`.hh-alert-icon`);
    * nada de fondo teñido ni franja lateral. El tinte queda para errores reales (`.hh-alert-strong`).
    */

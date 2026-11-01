@@ -1730,7 +1730,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                                       aria-label={`Enviar link por WhatsApp a ${inv.student?.full_name ?? 'alumno'}`}
                                       className={cn(
                                         inviteTableActionBtnClass,
-                                        'border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12 hover:border-emerald-600/55 hover:text-emerald-900 dark:hover:text-emerald-300',
+                                        '[&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400',
                                       )}
                                       onClick={() => openCheckInWhatsApp(inv)}
                                     >

@@ -1016,7 +1016,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
               </div>
 
               {checked.size > 0 ? (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-ink-primary">
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-surface-border bg-surface-card px-3 py-2 text-xs text-ink-primary shadow-sm">
                   <span className="font-semibold">
                     {checked.size} bloque{checked.size === 1 ? '' : 's'} seleccionado{checked.size === 1 ? '' : 's'}
                   </span>

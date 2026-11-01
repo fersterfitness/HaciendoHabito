@@ -913,8 +913,8 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
               </div>
 
               {weekPains[safeIdx]?.length ? (
-                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs text-ink-secondary">
-                  <span className="mt-0.5 rounded-full bg-amber-400 p-1 text-zinc-900" aria-hidden>
+                <div className="flex items-start gap-2.5 rounded-xl border border-surface-border bg-surface-card px-3 py-2.5 text-xs text-ink-secondary">
+                  <span className="mt-0.5 text-amber-500" aria-hidden>
                     <Zap className="h-3 w-3" />
                   </span>
                   <div className="space-y-0.5">

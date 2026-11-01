@@ -4,17 +4,17 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 
 export function CheckInLastWeekBanner({ onAskMonthly }: { onAskMonthly?: () => void }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/[0.06] p-3.5">
+    <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card p-3.5">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-700 dark:text-rose-300">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-surface-elevated text-rose-600 dark:text-rose-400">
           <AlertTriangle className="h-4 w-4" strokeWidth={2.2} />
         </span>
         <div className="min-w-0 flex-1 space-y-2">
           <div>
-            <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
+            <p className="text-xs font-semibold text-ink-primary">
               Última semana
             </p>
-            <p className="mt-0.5 text-2xs font-semibold text-rose-700 dark:text-rose-300">Renovar rutina</p>
+            <p className="mt-0.5 text-2xs font-medium text-rose-600 dark:text-rose-400">Renovar rutina</p>
             <p className="mt-1 text-2xs leading-relaxed text-ink-secondary">
               El alumno marcó que está en su última semana. Armá el siguiente mesociclo y pedile el feedback mensual.
             </p>
@@ -47,9 +47,9 @@ export function CheckInFinishedBanner({
   onAskMonthly: () => void
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-500/[0.06] p-3.5">
+    <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card p-3.5">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-surface-elevated text-amber-600 dark:text-amber-400">
           <Flag className="h-4 w-4" strokeWidth={2.2} />
         </span>
         <div className="min-w-0 flex-1 space-y-2.5">
@@ -62,7 +62,7 @@ export function CheckInFinishedBanner({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 rounded-full border-emerald-600/35 bg-emerald-500/8 text-2xs text-emerald-800 dark:text-emerald-300"
+              className="h-8 rounded-full text-2xs [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
               icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
               onClick={onAskProgress}
             >

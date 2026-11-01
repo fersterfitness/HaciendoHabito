@@ -35,7 +35,7 @@ export function CheckInQuestionFields({
         {question.label}
       </p>
       {question.helperText ? (
-        <p className="mt-2 rounded-xl border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs leading-snug text-violet-800 dark:text-violet-200">
+        <p className="mt-2 border-l-2 border-violet-500/60 pl-3 text-xs leading-snug text-ink-secondary">
           {question.helperText}
         </p>
       ) : null}
@@ -139,8 +139,8 @@ export function CheckInQuestionFields({
             </div>
           ) : null}
           {selected?.extra === 'date' ? (
-            <label className="block space-y-1.5 rounded-2xl border border-violet-500/30 bg-violet-500/8 p-3 pt-2">
-              <span className="text-2xs font-medium text-violet-800 dark:text-violet-200">
+            <label className="block space-y-1.5 rounded-2xl border border-surface-border bg-surface-card p-3 pt-2">
+              <span className="text-2xs font-medium text-ink-secondary">
                 {painYes ? '¿Qué día fue?' : 'Fecha de tu última menstruación — registrala en cada ciclo'}
               </span>
               <input

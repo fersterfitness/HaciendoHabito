@@ -97,7 +97,7 @@ export function RoutineHeaderActions(p: Props) {
               'hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors sm:flex',
               p.completed
                 ? 'bg-surface-elevated text-ink-secondary hover:text-ink-primary'
-                : 'bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400',
+                : 'bg-surface-elevated text-ink-primary hover:bg-surface-border/60 [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400',
             )}
             title={p.completed ? 'Reactivar: volver a rutinas activas' : 'Marcar como realizada y mover al historial del alumno'}
           >
@@ -108,7 +108,7 @@ export function RoutineHeaderActions(p: Props) {
             type="button"
             onClick={p.onWhatsApp}
             disabled={p.sendingWa || !p.canSendWa}
-            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-500/15 disabled:opacity-50 dark:text-emerald-400"
+            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 bg-surface-elevated text-ink-primary hover:bg-surface-border/60 [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
             title={`Enviar rutina por WhatsApp (${TRAINER_CONTACT_WHATSAPP_DISPLAY})`}
           >
             {p.sendingWa ? <Spinner className="h-3.5 w-3.5" /> : <WhatsAppIcon className="h-3.5 w-3.5" />}

@@ -720,10 +720,10 @@ function PendingRoutineNotesBanner({ studentId }: { studentId?: string }) {
   if (notes.length === 0) return null
 
   return (
-    <div className="rounded-2xl border border-amber-400/60 bg-amber-50 p-3.5 dark:border-amber-600/50 dark:bg-amber-950/25">
+    <div className="rounded-2xl border border-surface-border bg-surface-card p-3.5">
       <div className="mb-2 flex items-center gap-2">
         <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-        <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+        <span className="text-sm font-semibold text-ink-primary">
           Notas a tener en cuenta ({notes.length})
         </span>
       </div>

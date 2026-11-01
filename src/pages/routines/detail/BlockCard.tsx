@@ -74,8 +74,8 @@ export function BlockCard({
       className={cn(
         'scroll-mt-20 rounded-2xl border overflow-hidden shadow-sm',
         stripeIndex % 2 === 0
-          ? 'border-slate-200/95 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40'
-          : 'border-emerald-200/85 bg-emerald-50/60 dark:border-emerald-900/45 dark:bg-emerald-950/30',
+          ? 'border-surface-border bg-surface-card'
+          : 'border-surface-border bg-surface-elevated/40',
       )}
       style={phaseColor ? { borderLeftColor: phaseColor, borderLeftWidth: 4 } : undefined}
     >

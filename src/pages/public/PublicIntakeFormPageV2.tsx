@@ -460,7 +460,7 @@ export function PublicIntakeFormPageV2() {
               href={trainerWaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden items-center gap-1 rounded-lg border border-emerald-600/30 px-2.5 py-1.5 text-2xs font-medium text-emerald-800 hover:bg-emerald-500/10 sm:inline-flex dark:text-emerald-300"
+              className="hidden items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-2xs font-medium text-zinc-800 hover:bg-zinc-100 sm:inline-flex dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800 [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
               title={TRAINER_CONTACT_WHATSAPP_DISPLAY}
             >
               <WhatsAppIcon className="h-3.5 w-3.5" />

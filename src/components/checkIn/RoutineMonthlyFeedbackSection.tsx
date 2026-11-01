@@ -100,7 +100,7 @@ export function RoutineMonthlyFeedbackSection({
       {forThisRoutine.length > 0 ? (
         <ul className="space-y-2">
           {forThisRoutine.map((row) => (
-            <li key={row.id} className="rounded-xl border border-emerald-600/20 bg-emerald-500/5 px-3 py-2">
+            <li key={row.id} className="rounded-xl border border-surface-border bg-surface-card px-3 py-2">
               <p className="mb-2 text-3xs text-ink-muted">
                 {new Date(row.submittedAt).toLocaleDateString('es-AR', {
                   day: '2-digit',

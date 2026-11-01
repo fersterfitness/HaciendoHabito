@@ -1220,7 +1220,7 @@ export function RoutineDetailPage() {
 
         {/* Nota de cierre → próxima rutina (solo cuando está completada) */}
         {!isLibrary && routine.status === 'completada' && (
-          <div className="rounded-2xl border border-amber-300/50 bg-amber-50/50 p-4 dark:border-amber-700/40 dark:bg-amber-950/15">
+          <div className="rounded-2xl border border-surface-border bg-surface-card p-4">
             <div className="mb-1 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <p className="text-sm font-semibold text-ink-primary">Rutina completada — nota para la próxima</p>

@@ -24,7 +24,7 @@ export function PsychologistStudentIntakePanel({ student }: { student: Student }
   return (
     <section
       className={cn(
-        'rounded-2xl border border-violet-200/60 bg-violet-50/30 p-4 dark:border-violet-900/40 dark:bg-violet-950/20',
+        'rounded-2xl border border-surface-border bg-surface-card p-4',
       )}
     >
       <div className="mb-3 flex items-center gap-2">

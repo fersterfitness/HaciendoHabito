@@ -712,7 +712,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12"
+                        className="border-surface-border text-ink-primary hover:bg-surface-elevated [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
                         icon={<WhatsAppIcon className="h-4 w-4" />}
                         onClick={() => void openGroupWaTemplate()}
                       >
@@ -831,7 +831,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-emerald-600/45 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/12"
+                    className="border-surface-border text-ink-primary hover:bg-surface-elevated [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
                     icon={<WhatsAppIcon className="h-4 w-4" />}
                     onClick={() => void openGroupWhatsApp()}
                   >
