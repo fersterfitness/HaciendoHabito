@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo-brand.png" />
@@ -8,6 +8,20 @@
     <meta name="theme-color" content="#FF8C00" />
     <meta name="description" content="Haciéndolo Hábito — Plataforma de entrenamiento personalizado" />
     <title>Haciéndolo Hábito</title>
+    <script src="/boot-theme.js"></script>
+    <!-- Pantalla de arranque: se ve mientras baja la app y React la reemplaza al montar. -->
+    <style>
+      html { background: #fff; }
+      html.dark { background: #191919; }
+      .hh-boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+      .hh-boot img { width: 40px; height: 40px; }
+      .hh-boot span { position: relative; overflow: hidden; width: 112px; height: 3px; border-radius: 999px; background: rgba(40, 38, 34, 0.08); }
+      html.dark .hh-boot span { background: rgba(236, 236, 234, 0.08); }
+      .hh-boot span::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 999px; background: #ea4200; animation: hh-boot 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+      html.dark .hh-boot span::after { background: #ff5c1a; }
+      @keyframes hh-boot { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+      @media (prefers-reduced-motion: reduce) { .hh-boot span::after { width: 100%; animation: none; opacity: 0.5; } }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,7 +30,12 @@
     />
   </head>
   <body class="bg-surface-base text-ink-primary antialiased">
-    <div id="root"></div>
+    <div id="root">
+      <div class="hh-boot" role="status" aria-label="Cargando">
+        <img src="/logo_mark_original_white_transparent.png" alt="" />
+        <span></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

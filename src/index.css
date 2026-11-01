@@ -241,34 +241,39 @@
 }
 
 @layer utilities {
-  /** Loader de app: logo con pulso suave. */
-  @keyframes brand-loader-pulse {
-    0%,
-    100% {
-      opacity: 0.72;
-      transform: scale(0.94);
+  /** Barra de carga indeterminada (ver BrandAppLoader y la pantalla de arranque en index.html). */
+  @keyframes hh-indeterminate {
+    from {
+      transform: translateX(-100%);
     }
-    50% {
-      opacity: 1;
-      transform: scale(1);
+    to {
+      transform: translateX(250%);
     }
   }
-  @keyframes brand-loader-glow {
-    0%,
-    100% {
-      opacity: 0.35;
-      transform: scale(0.92);
-    }
-    50% {
-      opacity: 0.65;
-      transform: scale(1.08);
-    }
+
+  .hh-loader-bar {
+    position: relative;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(var(--ink-primary) / 0.08);
   }
-  .animate-brand-loader-pulse {
-    animation: brand-loader-pulse 1.35s ease-in-out infinite;
+
+  .hh-loader-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 40%;
+    border-radius: inherit;
+    background: rgb(var(--brand-primary));
+    animation: hh-indeterminate 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
   }
-  .animate-brand-loader-glow {
-    animation: brand-loader-glow 1.35s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    .hh-loader-bar::after {
+      width: 100%;
+      animation: none;
+      opacity: 0.5;
+    }
   }
 
   /** Lista de alumnos: cada fila “cae” desde arriba (lento + escalonado desde TS). */

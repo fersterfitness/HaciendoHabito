@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import type { Profile } from '@/types/database'
 import { supabase } from '@/lib/supabase'
 import {
   isPasswordRecoveryLanding,
   isPasswordRecoveryPending,
   setPasswordRecoveryPending,
 } from '@/lib/authRecovery'
-import { clearStoredAuthSession, isLoginRoute } from '@/lib/authSession'
+import { clearStoredAuthSession, isLoginRoute, readCachedProfile, writeCachedProfile } from '@/lib/authSession'
 import { useAuthStore } from '@/stores/authStore'
 
 // ─── Session version ──────────────────────────────────────────────────────────
@@ -126,34 +127,47 @@ export function useAuthInit() {
 
       // ── Fast path: valid non-expired session in localStorage (no lock, no network) ──
       // No restaurar sesión vieja si el usuario abrió un link de recovery (evita “entrar” al panel sin cambiar clave).
+      // La app se muestra enseguida con la sesión guardada y se verifica en paralelo con el perfil:
+      // antes se esperaba a Supabase (un viaje entero) con la pantalla en blanco. Los datos no quedan
+      // expuestos: Supabase valida el token en cada consulta, y si la verificación falla se cierra la sesión.
       const localSession = readLocalSession()
       if (localSession && !isPasswordRecoveryLanding() && !isPasswordRecoveryPending()) {
-        const { data: { user: verified }, error: verifyErr } = await supabase.auth.getUser()
-        if (!mounted) return
-        if (verifyErr || !verified?.id || verified.id !== localSession.user.id) {
-          clearStoredAuthSession()
-          clearTimeout(timer)
-          finish(false)
-          return
-        }
+        const cachedProfile = readCachedProfile<Profile>(localSession.user.id)
         setSession(localSession)
-        setUser(verified)
+        setUser(localSession.user)
+        if (cachedProfile) setProfile(cachedProfile)
         clearTimeout(timer)
         finish(true)
 
-        // Background profile fetch — does not block the loading state.
         try {
-          const { data, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', verified.id)
-            .single()
-          if (mounted) {
-            if (!profileError && data) setProfile(data)
-            else setProfile(null)
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', localSession.user.id).single()
+          if (!mounted) return
+          if (!error && data) {
+            setProfile(data)
+            writeCachedProfile(data)
+          } else if (!cachedProfile) {
+            setProfile(null)
           }
         } catch {
-          if (mounted) setProfile(null)
+          if (mounted && !cachedProfile) setProfile(null)
+        }
+
+        // La verificación va después de la primera carga: supabase-js frena las demás consultas
+        // mientras corre getUser(), y hacerla al arrancar volvía a sumar un viaje de red.
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        if (!mounted) return
+        try {
+          const { data: { user: verified }, error: verifyErr } = await supabase.auth.getUser()
+          if (!mounted) return
+          // Sin conexión no se echa a nadie: solo se cierra si Supabase rechaza el token o es otro usuario.
+          // No se vuelve a guardar el usuario si es el mismo: un objeto nuevo recargaba todas las pantallas.
+          const rejected = verifyErr ? verifyErr.status === 401 || verifyErr.status === 403 : verified?.id !== localSession.user.id
+          if (rejected) {
+            clearStoredAuthSession()
+            reset()
+          }
+        } catch {
+          // red caída: se reintenta en la próxima carga
         }
         return
       }
@@ -189,8 +203,10 @@ export function useAuthInit() {
           .eq('id', session.user.id)
           .single()
         if (mounted) {
-          if (!profileError && data) setProfile(data)
-          else setProfile(null)
+          if (!profileError && data) {
+            setProfile(data)
+            writeCachedProfile(data)
+          } else setProfile(null)
         }
       } catch {
         if (mounted) setProfile(null)
@@ -209,6 +225,7 @@ export function useAuthInit() {
 
       if (event === 'SIGNED_OUT' || !session?.user) {
         setPasswordRecoveryPending(false)
+        writeCachedProfile(null)
         reset()
         return
       }
@@ -231,7 +248,10 @@ export function useAuthInit() {
           .select('*')
           .eq('id', session.user.id)
           .single()
-        if (mounted) setProfile(data ?? null)
+        if (mounted) {
+          setProfile(data ?? null)
+          if (data) writeCachedProfile(data)
+        }
       } catch {
         if (mounted) setProfile(null)
       }

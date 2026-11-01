@@ -170,8 +170,85 @@ export function DashboardPage() {
     })
   }, [loading])
 
+  /** Lo de entrenamiento (check-ins, envíos, RM) no depende de los contadores: corre en paralelo. */
+  async function loadTrainingOps() {
+    if (canSeeTraining) {
+      const sinceCi = new Date()
+      sinceCi.setDate(sinceCi.getDate() - 30)
+      // Mostramos pendientes de respuesta (no el total) — es la métrica
+      // accionable: "todavía no le contesté a X alumnos esta semana".
+      // Lo que no depende de los envíos programados sale ya, todo en paralelo.
+      const independent = Promise.all([
+        loadStudentsMissingCheckIn(user!.id, weeklyPeriodMondayUtc(loadWeeklyPeriodStartYmd(user!.id))),
+        loadStudentsInLastWeek(user!.id),
+        loadMonthlyFeedbackPublicToken(user!.id),
+        loadRmTestWeeksByOwner(user!.id).catch(() => [] as RmTestWeeksRow[]),
+      ])
+      const [ciRes, schRes, resSchRes] = await Promise.all([
+        supabase
+          .from('check_in_responses')
+          .select('id', { count: 'exact', head: true })
+          .gte('submitted_at', sinceCi.toISOString())
+          .is('trainer_replied_at', null),
+        supabase
+          .from('check_in_send_schedules')
+          .select(
+            'id, owner_id, form_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, form:check_in_forms(title)',
+          )
+          .eq('owner_id', user!.id)
+          .eq('is_enabled', true),
+        supabase
+          .from('trainer_resource_send_schedules')
+          .select(
+            'id, owner_id, resource_id, template_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, resource:trainer_resources(title, url, description), template:trainer_message_templates(title, body)',
+          )
+          .eq('owner_id', user!.id)
+          .eq('is_enabled', true)
+          .then(
+            (res) => res,
+            () => ({ data: null, error: true as const }),
+          ),
+      ])
+      setCheckInRecentCount(ciRes.count ?? 0)
+      const srows = (schRes.data ?? []) as unknown as DueCheckInScheduleRow[]
+      const dueCheckIns = srows.filter((s) => scheduleMatchesToday(s))
+      setDueCheckInSchedules(dueCheckIns)
+      const dueResources = resSchRes.error
+        ? []
+        : ((resSchRes.data ?? []) as unknown as DueResourceScheduleRow[]).filter((s) => scheduleMatchesToday(s))
+      setDueResourceSchedules(dueResources)
+
+      const [quickSends, [missing, lastWeek, monthlyToken, rmWeeks]] = await Promise.all([
+        loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
+        independent,
+      ])
+      setRmTestDueStudents(
+        rmWeeks
+          .filter((s) => s.weeks >= RM_TEST_EVERY_WEEKS)
+          .sort((a, b) => b.weeks - a.weeks || a.full_name.localeCompare(b.full_name, 'es')),
+      )
+      setCheckInQuickSends(quickSends.checkInSends)
+      setResourceQuickSends(quickSends.resourceSends)
+      setMissingCheckInStudents(missing)
+      setLastWeekStudents(lastWeek)
+      setMonthlyFeedbackUrl(monthlyToken ? checkInSharedPublicUrl(monthlyToken) : null)
+    } else {
+      setCheckInRecentCount(0)
+      setDueCheckInSchedules([])
+      setDueResourceSchedules([])
+      setCheckInQuickSends([])
+      setResourceQuickSends([])
+      setMissingCheckInStudents([])
+      setLastWeekStudents([])
+      setRmTestDueStudents([])
+      setMonthlyFeedbackUrl(null)
+    }
+  }
+
   async function loadDashboard() {
     setLoading(true)
+    // Arranca ya y no frena la página: su panel se completa cuando llega.
+    void loadTrainingOps().catch((e) => console.error('[Dashboard] training ops', e))
     try {
       // Fecha de inicio: primer día de hace 5 meses
       const since = new Date()
@@ -513,17 +590,19 @@ export function DashboardPage() {
       const monthStartStr = `${now3.getFullYear()}-${String(now3.getMonth() + 1).padStart(2, '0')}-01`
       const todayStr = now3.toISOString().split('T')[0]
 
-      let habitLogsMonthRes: { data: { student_id: string; log_date: string; habit_id: string }[] | null }
-      let habitSelectionsRes: { data: { student_id: string; habit_id: string }[] | null }
-      if (studentIds.length > 0) {
-        ;[habitLogsMonthRes, habitSelectionsRes] = await Promise.all([
-          supabase.from('habit_logs').select('student_id, log_date, habit_id').in('student_id', studentIds).gte('log_date', monthStartStr).lte('log_date', todayStr),
-          supabase.from('student_habit_selections').select('student_id, habit_id').in('student_id', studentIds),
-        ])
-      } else {
-        habitLogsMonthRes = { data: [] }
-        habitSelectionsRes = { data: [] }
-      }
+      // Los hábitos piden una tanda más: salen ya y se completan después de pintar.
+      const habitsPromise: Promise<
+        [
+          { data: { student_id: string; log_date: string; habit_id: string }[] | null },
+          { data: { student_id: string; habit_id: string }[] | null },
+        ]
+      > =
+        studentIds.length > 0
+          ? Promise.all([
+              supabase.from('habit_logs').select('student_id, log_date, habit_id').in('student_id', studentIds).gte('log_date', monthStartStr).lte('log_date', todayStr),
+              supabase.from('student_habit_selections').select('student_id, habit_id').in('student_id', studentIds),
+            ])
+          : Promise.resolve([{ data: [] }, { data: [] }])
 
       // 1. Cobros pendientes
       const pendingRows = (pendingRes.data ?? []) as { amount: number }[]
@@ -551,6 +630,11 @@ export function DashboardPage() {
           .sort((a, b) => b.count - a.count)
       )
 
+      // Con los contadores ya alcanza para pintar el tablero; los paneles de adentro
+      // empiezan a pedir lo suyo sin esperar a los hábitos.
+      setLoading(false)
+      const [habitLogsMonthRes, habitSelectionsRes] = await habitsPromise
+
       // 4 & 5. Adherencia de hábitos
       const daysElapsed = Math.max(now3.getDate(), 1)
       const selsByStudent: Record<string, number> = {}
@@ -573,75 +657,6 @@ export function DashboardPage() {
       setHabitAvg(avgHabit)
       setHabitTop5([...perStudentHabit].sort((a, b) => b.pct - a.pct).slice(0, 5))
 
-      if (canSeeTraining) {
-        const sinceCi = new Date()
-        sinceCi.setDate(sinceCi.getDate() - 30)
-        // Mostramos pendientes de respuesta (no el total) — es la métrica
-        // accionable: "todavía no le contesté a X alumnos esta semana".
-        const ciRes = await supabase
-          .from('check_in_responses')
-          .select('id', { count: 'exact', head: true })
-          .gte('submitted_at', sinceCi.toISOString())
-          .is('trainer_replied_at', null)
-        setCheckInRecentCount(ciRes.count ?? 0)
-        const schRes = await supabase
-          .from('check_in_send_schedules')
-          .select(
-            'id, owner_id, form_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, form:check_in_forms(title)',
-          )
-          .eq('owner_id', user!.id)
-          .eq('is_enabled', true)
-        const srows = (schRes.data ?? []) as unknown as DueCheckInScheduleRow[]
-        const dueCheckIns = srows.filter((s) => scheduleMatchesToday(s))
-        setDueCheckInSchedules(dueCheckIns)
-        let dueResources: DueResourceScheduleRow[] = []
-        try {
-          const resSchRes = await supabase
-            .from('trainer_resource_send_schedules')
-            .select(
-              'id, owner_id, resource_id, template_id, is_enabled, day_of_week, timezone, prefer_group_whatsapp, created_at, updated_at, resource:trainer_resources(title, url, description), template:trainer_message_templates(title, body)',
-            )
-            .eq('owner_id', user!.id)
-            .eq('is_enabled', true)
-          if (!resSchRes.error) {
-            dueResources = (resSchRes.data ?? []) as unknown as DueResourceScheduleRow[]
-            dueResources = dueResources.filter((s) => scheduleMatchesToday(s))
-            setDueResourceSchedules(dueResources)
-          } else {
-            setDueResourceSchedules([])
-          }
-        } catch {
-          setDueResourceSchedules([])
-        }
-
-        const [quickSends, missing, lastWeek, monthlyToken, rmWeeks] = await Promise.all([
-          loadDashboardQuickSends(user!.id, dueCheckIns, dueResources),
-          loadStudentsMissingCheckIn(user!.id, weeklyPeriodMondayUtc(loadWeeklyPeriodStartYmd(user!.id))),
-          loadStudentsInLastWeek(user!.id),
-          loadMonthlyFeedbackPublicToken(user!.id),
-          loadRmTestWeeksByOwner(user!.id).catch(() => [] as RmTestWeeksRow[]),
-        ])
-        setRmTestDueStudents(
-          rmWeeks
-            .filter((s) => s.weeks >= RM_TEST_EVERY_WEEKS)
-            .sort((a, b) => b.weeks - a.weeks || a.full_name.localeCompare(b.full_name, 'es')),
-        )
-        setCheckInQuickSends(quickSends.checkInSends)
-        setResourceQuickSends(quickSends.resourceSends)
-        setMissingCheckInStudents(missing)
-        setLastWeekStudents(lastWeek)
-        setMonthlyFeedbackUrl(monthlyToken ? checkInSharedPublicUrl(monthlyToken) : null)
-      } else {
-        setCheckInRecentCount(0)
-        setDueCheckInSchedules([])
-        setDueResourceSchedules([])
-        setCheckInQuickSends([])
-        setResourceQuickSends([])
-        setMissingCheckInStudents([])
-        setLastWeekStudents([])
-        setRmTestDueStudents([])
-        setMonthlyFeedbackUrl(null)
-      }
 
       setDataUpdatedAt(new Date())
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { isPasswordRecoveryPending } from '@/lib/authRecovery'
-import { Spinner } from '@/components/ui/Spinner'
+import { BrandAppLoader } from '@/components/branding/BrandAppLoader'
 
 // Hard cap: si la verificación de auth tarda más que esto, redirige a login
 const MAX_LOADING_MS = 8000
@@ -27,9 +27,7 @@ export function AuthGuard() {
 
   if (loading && !timedOut) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-base">
-        <Spinner size="lg" variant="brand" />
-      </div>
+      <BrandAppLoader fullScreen />
     )
   }
 

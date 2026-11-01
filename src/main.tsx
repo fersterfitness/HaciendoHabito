@@ -1,9 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import './index.css'
 import App from './App.tsx'
-import { queryClient } from '@/data/queryClient'
+import { queryClient, queryPersistOptions } from '@/data/queryClient'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { installGlobalErrorReporting } from '@/lib/errorReporting'
 
@@ -12,9 +12,9 @@ installGlobalErrorReporting()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary fullScreen>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={queryPersistOptions}>
         <App />
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,
 )
