@@ -212,7 +212,7 @@ export function StudentRoutineWeekPanel() {
   ]
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card bg-[radial-gradient(90%_70%_at_0%_0%,rgb(var(--brand-primary)/0.08),transparent_60%)] shadow-card">
+    <div className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4">
         <div>
           <p className="text-3xs font-bold uppercase tracking-[0.14em] text-brand-primary">Seguimiento</p>

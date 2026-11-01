@@ -318,10 +318,10 @@ function StatCardGradient({
         showHero && !compact && 'pr-[36%] sm:pr-[32%]',
         featured
           ? 'hh-cta border-transparent text-white'
-          : cn(statCardFloatClass, 'bg-[radial-gradient(120%_90%_at_100%_0%,rgb(var(--brand-primary)/0.09),transparent_55%)]'),
+          : statCardFloatClass,
         onClick &&
           cn(
-            'cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out-expo motion-safe:hover:-translate-y-0.5',
+            'cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out-expo',
             !featured && 'hover:border-surface-inputBorder hover:shadow-card-md',
           ),
         className,

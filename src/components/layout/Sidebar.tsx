@@ -22,25 +22,21 @@ import { getSidebarBlocks, isNavPathActive, type NavItem } from '@/config/naviga
 import type { AppRole } from '@/types/database'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 
-/** Contenedor flotante: margen + sombra (el rail va dentro). */
+/** Barra lateral pegada al borde, a toda la altura (sin margen ni sombra). */
 const railShellClass = cn(
-  'hidden lg:flex shrink-0 sticky top-0 z-30 h-screen flex-col py-3 pl-3 print:hidden',
+  'hidden lg:flex shrink-0 sticky top-0 z-30 h-screen flex-col print:hidden',
 )
 
 const railPanelClass = cn(
-  'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl',
-  'border border-surface-border/80 bg-[rgb(var(--surface-sidebar))] shadow-card-md',
-  'dark:border-white/[0.06]',
+  'flex min-h-0 flex-1 flex-col overflow-hidden',
+  'border-r border-surface-border bg-[rgb(var(--surface-sidebar))]',
   'transition-[width] duration-300 ease-out-expo motion-reduce:transition-none',
 )
 
-/**
- * Pastilla activa sobria: superficie apenas elevada + ícono naranja + barrita de acento.
- * El naranja queda para el ícono; los CTA siguen siendo lo único con degradé.
- */
+/** Ítem activo: fondo gris apenas marcado + ícono naranja + barrita de acento. */
 const railActivePillClass = cn(
-  'rounded-lg bg-surface-card ring-1 ring-inset ring-surface-border shadow-[var(--highlight-top),var(--shadow-xs)]',
-  'dark:bg-white/[0.07] dark:ring-white/[0.06]',
+  'rounded-md bg-ink-primary/[0.06]',
+  'dark:bg-white/[0.08]',
 )
 
 /** Rebote suave al cambiar de ítem. */

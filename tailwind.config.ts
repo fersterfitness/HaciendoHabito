@@ -55,11 +55,13 @@ const config: Config = {
         'table-head': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.06em' }],
         'body-sm': ['0.8125rem', { lineHeight: '1.25rem' }],
       },
+      /** Esquinas chicas (estilo editor de documentos): todo el escalafón baja un escalón. */
       borderRadius: {
-        xl: '0.75rem',
-        '2xl': '1rem',
-        '3xl': '1.5rem',
-        '4xl': '2rem',
+        lg: '0.375rem',
+        xl: '0.5rem',
+        '2xl': '0.625rem',
+        '3xl': '0.875rem',
+        '4xl': '1.25rem',
       },
       boxShadow: {
         'xs': 'var(--shadow-xs)',

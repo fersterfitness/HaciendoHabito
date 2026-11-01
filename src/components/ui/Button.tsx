@@ -23,7 +23,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  /** Acción principal: degradé de marca con brillo y halo (ver `.hh-cta`). */
+  /** Acción principal: color de marca pleno (ver `.hh-cta`). */
   primary: 'hh-cta text-white font-semibold',
   secondary: cn(
     'bg-surface-card text-ink-primary font-medium border border-surface-border',

@@ -4,25 +4,24 @@
 
 @layer base {
   :root {
-    /* Shell: sidebar alineada al tema (claro / oscuro) */
-    --surface-sidebar: 244 244 247;
-    --sidebar-border: 224 224 231;
-    --sidebar-icon-idle: 92 92 108;
-    --sidebar-icon-hover: 20 20 28;
-    --shadow-panel: 0 1px 2px 0 rgb(16 16 24 / 0.04), 0 4px 16px -4px rgb(16 16 24 / 0.08);
-    --radius-shell: 1rem;
+    /* Estilo «papel» (Notion/AppFlowy): lienzo blanco, barra lateral gris cálido, todo plano.
+       Las tarjetas se separan por el borde, no por sombras; solo lo flotante (menús, modales) tiene sombra. */
+    --surface-sidebar: 247 247 245;
+    --sidebar-border: 233 233 231;
+    --sidebar-icon-idle: 120 119 116;
+    --sidebar-icon-hover: 55 53 47;
+    --shadow-panel: 0 0 0 1px rgb(15 15 15 / 0.05), 0 3px 6px rgb(15 15 15 / 0.08), 0 9px 24px rgb(15 15 15 / 0.12);
+    --radius-shell: 0.625rem;
 
-    /* Elevación en capas: hairline + sombra difusa (estilo Linear/Vercel). */
-    --shadow-xs: 0 1px 2px 0 rgb(16 16 24 / 0.05);
-    --shadow-sm: 0 1px 2px 0 rgb(16 16 24 / 0.04), 0 2px 8px -2px rgb(16 16 24 / 0.06);
-    --shadow-md: 0 2px 4px -1px rgb(16 16 24 / 0.05), 0 8px 24px -6px rgb(16 16 24 / 0.10);
-    --shadow-lg: 0 4px 8px -2px rgb(16 16 24 / 0.06), 0 20px 48px -12px rgb(16 16 24 / 0.18);
-    /* Brillo interno superior de superficies (luz cenital). */
-    --highlight-top: inset 0 1px 0 0 rgb(255 255 255 / 0.7);
+    --shadow-xs: 0 0 #0000;
+    --shadow-sm: 0 0 #0000;
+    --shadow-md: 0 1px 2px rgb(15 15 15 / 0.04);
+    --shadow-lg: 0 0 0 1px rgb(15 15 15 / 0.05), 0 3px 6px rgb(15 15 15 / 0.08), 0 9px 24px rgb(15 15 15 / 0.14);
+    --highlight-top: 0 0 #0000;
 
-    /* CTA de marca: degradé naranja cálido → naranja profundo. */
-    --brand-gradient: linear-gradient(135deg, #ff8a3d 0%, #ff5a0a 48%, #ec3d12 100%);
-    --brand-gradient-hover: linear-gradient(135deg, #ff9a52 0%, #ff6a1c 48%, #f2481c 100%);
+    /* CTA de marca: color pleno, sin degradé ni halo. */
+    --brand-gradient: linear-gradient(rgb(var(--brand-primary)), rgb(var(--brand-primary)));
+    --brand-gradient-hover: linear-gradient(rgb(var(--brand-hover)), rgb(var(--brand-hover)));
 
     /* Densidad UI: comfortable (default) | compact */
     --density-page-y: 1.5rem;
@@ -37,21 +36,20 @@
     --brand-tertiary: 255 45 149;
     --brand-warm: 255 229 219;
 
-    /* Light mode — lienzo gris claro y tarjetas blancas con borde marcado: la tarjeta se separa sola. */
-    --surface-base: 244 244 247;
+    /* Light mode — grises cálidos (no azulados): blanco puro, hover #F1F1EF, borde #E9E9E7. */
+    --surface-base: 255 255 255;
     --surface-card: 255 255 255;
-    --surface-elevated: 241 241 245;
-    --surface-panel: 249 249 251;
+    --surface-elevated: 241 241 239;
+    --surface-panel: 251 251 250;
     --surface-input: 255 255 255;
-    --surface-border: 223 223 230;
-    --surface-input-border: 204 204 214;
+    --surface-border: 233 233 231;
+    --surface-input-border: 218 218 214;
 
-    /* Texto: los tres niveles pasan 4,5:1 (AA) sobre cualquier superficie clara.
-       El «muted» anterior (132/132/158) daba 3,4:1 y por eso la letra chica se veía gris lavado. */
-    --ink-primary: 14 14 22;
-    --ink-secondary: 52 52 66;
+    /* Texto tinta cálida (#37352F). Los tres niveles pasan 4,5:1 (AA) sobre blanco y sobre el gris de hover. */
+    --ink-primary: 40 38 34;
+    --ink-secondary: 72 70 64;
     --ink-warm: 120 68 30;
-    --ink-muted: 95 95 112;
+    --ink-muted: 107 106 102;
 
     /* Status — en light, el “amarillo” necesita más contraste */
     --status-active: 220 110 0;
@@ -71,35 +69,34 @@
   }
 
   .dark {
-    /* Dark mode «grafito»: capas apenas frías y bien escalonadas (fondo → tarjeta → elevado) */
-    --surface-sidebar: 13 13 15;
+    /* Dark mode neutro (#191919 / #202020 / #2C2C2C), sin tinte azul. */
+    --surface-sidebar: 32 32 32;
     --sidebar-border: 255 255 255;
     --sidebar-icon-idle: 255 255 255;
     --sidebar-icon-hover: 255 255 255;
-    --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 8px 24px -8px rgb(0 0 0 / 0.5);
+    --shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.06), 0 3px 6px rgb(0 0 0 / 0.3), 0 9px 24px rgb(0 0 0 / 0.45);
 
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.35);
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 2px 8px -2px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.4), 0 10px 28px -8px rgb(0 0 0 / 0.55);
-    --shadow-lg: 0 4px 10px -2px rgb(0 0 0 / 0.45), 0 24px 56px -12px rgb(0 0 0 / 0.7);
-    --highlight-top: inset 0 1px 0 0 rgb(255 255 255 / 0.045);
+    --shadow-xs: 0 0 #0000;
+    --shadow-sm: 0 0 #0000;
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 0.25);
+    --shadow-lg: 0 0 0 1px rgb(255 255 255 / 0.06), 0 3px 6px rgb(0 0 0 / 0.3), 0 9px 24px rgb(0 0 0 / 0.5);
+    --highlight-top: 0 0 #0000;
 
-    /* Antes las capas iban de 9 a 25: casi no se distinguían tarjeta y fondo. */
-    --surface-base: 11 11 13;
-    --surface-card: 21 21 24;
-    --surface-elevated: 30 30 34;
-    --surface-panel: 37 37 42;
-    --surface-input: 16 16 19;
-    --surface-border: 46 46 52;
-    --surface-input-border: 62 62 70;
+    --surface-base: 25 25 25;
+    --surface-card: 32 32 32;
+    --surface-elevated: 44 44 44;
+    --surface-panel: 50 50 50;
+    --surface-input: 37 37 37;
+    --surface-border: 52 52 52;
+    --surface-input-border: 70 70 70;
 
     --brand-primary: 255 92 26;
     --brand-hover: 255 112 51;
 
-    --ink-primary: 246 246 248;
-    --ink-secondary: 205 205 212;
+    --ink-primary: 236 236 234;
+    --ink-secondary: 200 200 196;
     --ink-warm: 228 228 228;
-    --ink-muted: 155 155 166;
+    --ink-muted: 155 155 151;
 
     /* Status — en dark, más “luminosos” */
     --status-active: 255 160 0;
@@ -117,16 +114,15 @@
   }
 
   html {
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    /* Inter ya viene espaciada para pantalla; cv11 = «a» de un piso, ss03 = comillas redondeadas. */
-    font-feature-settings: 'cv11', 'ss03';
+    font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
     text-rendering: optimizeLegibility;
-  }
-
-  /* Suavizado fino solo en oscuro: en claro adelgaza la letra y la vuelve gris. */
-  html.dark {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Títulos con un poco menos de aire entre letras, como en los editores de documentos. */
+  :where(h1, h2, h3) {
+    letter-spacing: -0.015em;
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -201,8 +197,8 @@
 
   :where(input:not([type='checkbox']):not([type='radio']):not([type='range']), select, textarea):focus-visible {
     outline: none;
-    border-color: rgb(var(--brand-primary) / 0.6);
-    box-shadow: 0 0 0 4px rgb(var(--brand-primary) / 0.14);
+    border-color: rgb(var(--brand-primary) / 0.55);
+    box-shadow: 0 0 0 3px rgb(var(--brand-primary) / 0.12);
   }
 
   :where(input[type='checkbox'], input[type='radio'], input[type='range'], progress) {
@@ -222,7 +218,7 @@
   :where(button, [role='button'], a, summary):focus-visible {
     outline: 2px solid rgb(var(--brand-primary) / 0.5);
     outline-offset: 2px;
-    border-radius: 0.5rem;
+    border-radius: 0.375rem;
   }
 
   :where(button:disabled) {
@@ -403,24 +399,14 @@
 
   .hh-cta {
     background-image: var(--brand-gradient);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.28),
-      inset 0 -1px 0 0 rgb(0 0 0 / 0.12),
-      0 1px 2px 0 rgb(180 50 0 / 0.25),
-      0 4px 14px -4px rgb(255 72 0 / 0.45);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
     transition:
-      box-shadow 0.2s ease,
       transform 0.12s ease,
       filter 0.2s ease;
   }
 
   .hh-cta:hover {
     background-image: var(--brand-gradient-hover);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.32),
-      inset 0 -1px 0 0 rgb(0 0 0 / 0.12),
-      0 1px 2px 0 rgb(180 50 0 / 0.3),
-      0 8px 24px -6px rgb(255 72 0 / 0.55);
   }
 
   .hh-cta:active {
@@ -428,11 +414,10 @@
     filter: brightness(0.97);
   }
 
-  /** Tarjeta: hairline + sombra en capas + luz superior. */
+  /** Tarjeta: plana, solo borde. */
   .hh-surface {
     background: rgb(var(--surface-card));
-    border: 1px solid rgb(var(--surface-border) / 0.9);
-    box-shadow: var(--highlight-top), var(--shadow-sm);
+    border: 1px solid rgb(var(--surface-border));
   }
 
   /** Tablas de listado: mismo hover y transición en todas (Alumnos, Rutinas, Finanzas, Ejercicios…). */
@@ -457,8 +442,7 @@
     position: relative;
     border: 1px solid rgb(var(--surface-border) / 0.9);
     background-color: rgb(var(--surface-card));
-    background-image: linear-gradient(90deg, rgb(var(--tone) / 0.08) 0%, rgb(var(--tone) / 0.02) 35%, transparent 70%);
-    box-shadow: var(--highlight-top), var(--shadow-xs);
+    background-image: linear-gradient(rgb(var(--tone) / 0.05), rgb(var(--tone) / 0.05));
   }
 
   .hh-alert::before {
@@ -541,107 +525,26 @@
     padding-bottom: var(--density-page-y);
   }
 
-  /** KPI / dashboard: icono con relieve 3D (sombras + luz superior). */
+  /** KPI / dashboard: ícono en pastilla plana (antes con relieve 3D). */
   .stat-icon-3d {
-    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 0.875rem;
-    border: 1px solid rgb(var(--surface-border) / 0.65);
-    background: linear-gradient(
-      145deg,
-      rgb(var(--surface-elevated)) 0%,
-      rgb(var(--surface-card)) 48%,
-      rgb(var(--surface-border) / 0.22) 100%
-    );
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.14),
-      inset 0 -2px 0 rgb(0 0 0 / 0.06),
-      0 2px 4px rgb(0 0 0 / 0.06),
-      0 8px 16px rgb(0 0 0 / 0.08);
-    transform: translateY(-1px);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background: rgb(var(--surface-elevated));
     color: rgb(var(--ink-secondary));
   }
 
-  .dark .stat-icon-3d {
-    border-color: rgb(var(--surface-border) / 0.85);
-    background: linear-gradient(
-      145deg,
-      rgb(var(--surface-elevated)) 0%,
-      rgb(var(--surface-card)) 52%,
-      rgb(0 0 0 / 0.22) 100%
-    );
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.1),
-      inset 0 -2px 0 rgb(0 0 0 / 0.35),
-      0 3px 6px rgb(0 0 0 / 0.28),
-      0 10px 22px rgb(0 0 0 / 0.22);
-  }
-
-  .stat-icon-3d::before {
-    content: '';
-    position: absolute;
-    inset: 2px;
-    border-radius: inherit;
-    background: linear-gradient(155deg, rgb(255 255 255 / 0.16) 0%, transparent 42%);
-    pointer-events: none;
-  }
-
-  .stat-icon-3d::after {
-    content: '';
-    position: absolute;
-    left: 12%;
-    right: 12%;
-    bottom: -5px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgb(0 0 0 / 0.14);
-    filter: blur(3px);
-    pointer-events: none;
-  }
-
-  .dark .stat-icon-3d::after {
-    background: rgb(0 0 0 / 0.45);
-  }
-
   .stat-icon-3d-accent {
-    border-color: rgb(var(--brand-secondary) / 0.35);
-    background: linear-gradient(
-      145deg,
-      rgb(var(--brand-secondary) / 0.28) 0%,
-      rgb(var(--surface-card)) 55%,
-      rgb(var(--surface-border) / 0.2) 100%
-    );
-    color: rgb(var(--brand-secondary));
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.12),
-      inset 0 -2px 0 rgb(0 0 0 / 0.08),
-      0 2px 6px rgb(var(--brand-secondary) / 0.18),
-      0 10px 20px rgb(0 0 0 / 0.12);
-  }
-
-  .dark .stat-icon-3d-accent {
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.08),
-      inset 0 -2px 0 rgb(0 0 0 / 0.3),
-      0 3px 10px rgb(var(--brand-secondary) / 0.22),
-      0 12px 24px rgb(0 0 0 / 0.28);
+    background: rgb(var(--brand-primary) / 0.1);
+    color: rgb(var(--brand-primary));
   }
 
   .stat-icon-3d svg {
-    position: relative;
-    z-index: 1;
-    width: 1.25rem;
-    height: 1.25rem;
-    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.2));
-    transform: translateY(-0.5px);
-  }
-
-  .dark .stat-icon-3d svg {
-    filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
   /** KPI Animate UI: trazo fino y sin sombra extra (las tarjetas ya dan el contenedor). */

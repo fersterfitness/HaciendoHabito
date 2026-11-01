@@ -120,7 +120,7 @@ function MetricTile({
         'transition-[transform,box-shadow] duration-300 ease-out-expo motion-safe:hover:-translate-y-0.5',
         featured
           ? 'hh-cta border-transparent text-white'
-          : 'border-surface-border/90 bg-surface-card shadow-card hover:shadow-card-md bg-[radial-gradient(120%_90%_at_100%_0%,rgb(var(--brand-primary)/0.06),transparent_55%)]',
+          : 'border-surface-border/90 bg-surface-card shadow-card hover:shadow-card-md',
         containerClassName,
       )}
     >

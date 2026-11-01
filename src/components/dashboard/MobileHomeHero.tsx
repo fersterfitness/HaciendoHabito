@@ -96,7 +96,7 @@ export function MobileHomeHero({
 
   return (
     <section className="lg:hidden" aria-label="Resumen de hoy">
-      <p className="text-2xs font-medium capitalize text-ink-muted">{dateLabel}</p>
+      <p className="text-2xs font-medium text-ink-muted first-letter:uppercase">{dateLabel}</p>
       <h2 className="mt-0.5 text-2xl font-semibold tracking-tight text-ink-primary">
         {greeting(now)}
         {firstName ? `, ${firstName}` : ''}
@@ -113,7 +113,7 @@ export function MobileHomeHero({
                 'group relative flex flex-col gap-3 overflow-hidden rounded-2xl border p-3.5 transition-colors motion-safe:active:scale-[0.98]',
                 appFocusRingClassName,
                 t.alert
-                  ? 'border-brand-primary/30 bg-brand-primary/[0.06]'
+                  ? 'border-brand-primary/25 bg-brand-primary/[0.04]'
                   : 'border-surface-border/80 bg-surface-card shadow-card',
               )}
             >
@@ -121,7 +121,7 @@ export function MobileHomeHero({
                 <span
                   className={cn(
                     'flex h-8 w-8 items-center justify-center rounded-xl',
-                    t.alert ? 'bg-brand-primary text-white' : 'bg-surface-elevated text-ink-secondary',
+                    t.alert ? 'bg-brand-primary/[0.12] text-brand-primary' : 'bg-surface-elevated text-ink-secondary',
                   )}
                 >
                   <Icon className="h-4 w-4" />
