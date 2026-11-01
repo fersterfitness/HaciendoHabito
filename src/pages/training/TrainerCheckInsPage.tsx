@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { PageSectionTitle } from '@/components/ui/PageSectionTitle'
 import { loadStudentsMissingCheckIn, type DashboardMissingCheckInStudent } from '@/lib/dashboard/dashboardTrainerOps'
+import { CheckInSendBoard } from '@/components/checkIn/CheckInSendBoard'
 import {
   buildWhatsAppGroupPickUrl,
   buildWhatsAppUrl,
@@ -24,7 +25,6 @@ import {
   normalizePhoneForWhatsApp,
   routineMonthFinishedWhatsAppMessage,
   shareToWhatsApp,
-  weeklyFormMissingReminderMessage,
   WHATSAPP_DIRECT_PASTE_HINT,
 } from '@/lib/whatsapp'
 import { groupByYearMonth, monthLabelEs } from '@/lib/checkIn/historyGroups'
@@ -51,7 +51,6 @@ import { matchRoutineForSubmittedAt, type RoutineDateRange } from '@/lib/checkIn
 import {
   defaultWeeklyPeriodStartYmd,
   formatPeriodYmd,
-  isWeeklyPeriodOverdue,
   loadWeeklyPeriodStartYmd,
   saveWeeklyPeriodStartYmd,
   submittedInWeeklyPeriod,
@@ -930,7 +929,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             { id: 'seguimiento', label: 'Seguimiento' },
             {
               id: 'sin_respuesta',
-              label: 'Sin respuesta',
+              label: 'Enviar',
               count: missingStudents.length > 0 ? missingStudents.length : undefined,
             },
             { id: 'feedbacks', label: 'Feedbacks' },
@@ -941,54 +940,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
         {checkInView === 'student' ? (
           <div className="space-y-4">
 
-            {studentPanel === 'sin_respuesta' ? (
-              <Card padding="lg" className="space-y-3 border-amber-500/30">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-ink-primary">
-                      No completaron el feedback semanal
-                    </p>
-                    <p className="text-2xs text-ink-muted">
-                      Semana del {formatWeekRangeEs(periodStart)}
-                      {isWeeklyPeriodOverdue(periodStart) ? ' · ya pasaron 3 días hábiles: recordales' : ' · tienen 3 días hábiles'}
-                      . {missingStudents.length} sin respuesta.
-                    </p>
-                  </div>
-                </div>
-                {missingStudents.length > 0 ? (
-                <ul className="divide-y divide-surface-border/60 rounded-xl border border-surface-border/80 overflow-hidden">
-                  {missingStudents.map((st) => (
-                    <li key={st.id} className="flex items-center gap-3 px-3 py-2">
-                      <p className="min-w-0 flex-1 text-sm font-medium text-ink-primary">{st.full_name}</p>
-                      <button
-                        type="button"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-500/10 px-2 py-1 text-2xs font-semibold text-emerald-800 dark:text-emerald-200"
-                        onClick={() => {
-                          const weekly = forms.find((f) => isWeeklyTemplate(parseQuestions(f.questions)))
-                          const url = weekly?.public_token ? sharedPublicUrl(weekly.public_token) : ''
-                          const digits = normalizePhoneForWhatsApp(st.phone)
-                          if (!digits) {
-                            toast.error('Sin teléfono válido en la ficha')
-                            return
-                          }
-                          window.open(
-                            buildWhatsAppUrl(digits, weeklyFormMissingReminderMessage(st.full_name, url)),
-                            '_blank',
-                            'noopener,noreferrer',
-                          )
-                        }}
-                      >
-                        <WhatsAppIcon className="h-3.5 w-3.5" />
-                        Recordar
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-ink-muted">Todos completaron el feedback semanal de esta semana.</p>
-              )}
-              </Card>
-            ) : null}
+            {studentPanel === 'sin_respuesta' && user ? <CheckInSendBoard ownerId={user.id} /> : null}
 
             {studentPanel === 'seguimiento' ? <StudentRoutineWeekPanel /> : null}
 

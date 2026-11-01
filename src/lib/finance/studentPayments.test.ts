@@ -12,15 +12,23 @@ const oct = new Date(2026, 9, 1)
 const state = (o: Parameters<typeof computePaymentState>[0]) => computePaymentState(o)
 
 describe('computePaymentState', () => {
-  it('en su fecha de pago sin cobro: pendiente con el primer aviso', () => {
-    expect(state({ expected: 50000, paid: 0, dueDay: 30, month: oct, today: new Date(2026, 9, 29) })).toEqual({ state: 'pendiente', reminder: null })
-    expect(state({ expected: 50000, paid: 0, dueDay: 30, month: oct, today: new Date(2026, 9, 30) })).toEqual({ state: 'pendiente', reminder: 'due' })
+  it('antes de su fecha está al día; el mismo día, «abonan hoy» con el primer aviso', () => {
+    expect(state({ expected: 50000, paid: 0, dueDay: 30, month: oct, today: new Date(2026, 9, 29) })).toEqual({ state: 'pendiente', reminder: null, timing: 'antes' })
+    expect(state({ expected: 50000, paid: 0, dueDay: 30, month: oct, today: new Date(2026, 9, 30) })).toEqual({ state: 'pendiente', reminder: 'due', timing: 'hoy' })
   })
 
-  it('a los 7 días hábiles sin pago: vencido con el segundo aviso', () => {
+  it('pasada la fecha queda vencido; a los 7 días hábiles, el segundo aviso', () => {
     // Jueves 1/10 + 7 hábiles = lunes 12/10.
-    expect(state({ expected: 50000, paid: 0, dueDay: 1, month: oct, today: new Date(2026, 9, 9) }).reminder).toBe('due')
-    expect(state({ expected: 50000, paid: 0, dueDay: 1, month: oct, today: new Date(2026, 9, 12) })).toEqual({ state: 'vencido', reminder: 'overdue' })
+    expect(state({ expected: 50000, paid: 0, dueDay: 1, month: oct, today: new Date(2026, 9, 9) })).toEqual({ state: 'vencido', reminder: 'due', timing: 'despues' })
+    expect(state({ expected: 50000, paid: 0, dueDay: 1, month: oct, today: new Date(2026, 9, 12) })).toEqual({ state: 'vencido', reminder: 'overdue', timing: 'despues' })
+  })
+
+  it('si arrancó después de su día de pago, ese mes no debe todavía', () => {
+    expect(state({ expected: 50000, paid: 0, dueDay: 10, month: oct, today: new Date(2026, 9, 31), startedAt: '2026-10-20' })).toEqual({
+      state: 'pendiente',
+      reminder: null,
+      timing: 'antes',
+    })
   })
 
   it('pagado si lo cobrado cubre lo esperado; un cobro de $0 cuenta (bonificado)', () => {
@@ -40,6 +48,7 @@ describe('computePaymentState', () => {
     expect(state({ expected: 50000, paid: 0, dueDay: null, month: new Date(2026, 8, 1), today: new Date(2026, 9, 2) })).toEqual({
       state: 'vencido',
       reminder: null,
+      timing: 'despues',
     })
   })
 

@@ -52,6 +52,92 @@ function shortReminderLabel(r: TrainerWeeklyReminder): string {
   }
 }
 
+const todayKey = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+function readDone(id: string): boolean {
+  try {
+    return localStorage.getItem(`hh-reminder-done:${id}`) === todayKey()
+  } catch {
+    return false
+  }
+}
+
+function writeDone(id: string) {
+  try {
+    localStorage.setItem(`hh-reminder-done:${id}`, todayKey())
+  } catch {
+    /* modo privado: el aviso vuelve a salir al recargar */
+  }
+}
+
+/**
+ * Aviso del día bien a la vista: los viernes, mandar el feedback semanal al grupo;
+ * los miércoles, el hilo de «Saliendo de contexto». «Listo» lo oculta hasta mañana.
+ */
+function TodayReminders({ checkIn }: { checkIn: DashboardCheckInQuickSend | null }) {
+  const navigate = useAppNavigate()
+  const [done, setDone] = useState<Record<string, boolean>>({})
+  const today = TRAINER_WEEKLY_REMINDERS.filter(
+    (r) => isTrainerReminderHighlightedToday(r) && !done[r.id] && !readDone(r.id),
+  )
+  if (today.length === 0) return null
+
+  function finish(id: string) {
+    writeDone(id)
+    setDone((d) => ({ ...d, [id]: true }))
+  }
+
+  return (
+    <div className="space-y-2">
+      {today.map((r) => {
+        const friday = r.id === 'checkins-send-friday'
+        return (
+          <div key={r.id} className="hh-alert hh-alert-warning flex flex-wrap items-center gap-2.5 rounded-xl px-3.5 py-2.5">
+            <span className="hh-alert-icon h-7 w-7 shrink-0" aria-hidden>
+              <BellRing className="h-3.5 w-3.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold text-ink-primary">
+                {friday ? 'Hoy es viernes: mandá el feedback semanal' : 'Hoy es miércoles: Saliendo de contexto'}
+              </span>
+              <span className="block text-2xs text-ink-muted">
+                {friday ? 'Link general al grupo de WhatsApp, o a cada alumno desde Consulta semanal.' : 'Armá la pregunta de la semana y mandá el hilo al grupo.'}
+              </span>
+            </span>
+            {friday && checkIn?.publicToken ? (
+              <button
+                type="button"
+                className="hh-row-btn"
+                onClick={() => {
+                  openCheckInGroupWhatsApp(checkIn)
+                  toast.success('Elegí el grupo en WhatsApp')
+                }}
+              >
+                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                Mandar al grupo
+              </button>
+            ) : null}
+            <button type="button" className="hh-row-btn" onClick={() => navigate(r.href)}>
+              {friday ? 'Consulta semanal' : 'Armar el hilo'}
+            </button>
+            <button
+              type="button"
+              onClick={() => finish(r.id)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-3xs font-medium text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+              title="Ocultarlo hasta mañana"
+            >
+              <Check className="h-3 w-3" /> Listo
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 type Props = {
   dueCheckInSchedules: DueCheckInSchedule[]
   dueResourceSchedules: DueResourceSchedule[]
@@ -63,6 +149,8 @@ type Props = {
   /** Alumnos que llegaron a 12 semanas sin testear RM. */
   rmTestDueStudents: RmTestWeeksRow[]
   onRmTestRead: (studentId: string) => void
+  /** Otros avisos del día (cobros, cumpleaños…): van con los de entrenamiento, antes del envío rápido. */
+  extraAlerts?: ReactNode
 }
 
 function QuickActionRow({
@@ -101,6 +189,7 @@ export function DashboardTrainerOpsPanel({
   monthlyFeedbackUrl,
   rmTestDueStudents,
   onRmTestRead,
+  extraAlerts,
 }: Props) {
   const navigate = useAppNavigate()
   const [guideOpen, setGuideOpen] = useState(false)
@@ -149,119 +238,7 @@ export function DashboardTrainerOpsPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-3xs font-semibold text-ink-muted">
-        Envío rápido
-      </p>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {primaryCheckIn ? (
-          <QuickActionRow
-            title={`Check-in · ${primaryCheckIn.formTitle}`}
-            dueToday={checkInDueToday}
-          >
-            <p className="text-3xs text-ink-muted leading-relaxed">
-              Link general para el grupo. Cada alumno completa con su correo.
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => void copyCheckInLink(primaryCheckIn)}
-                className="hh-row-btn"
-              >
-                <Copy className="h-3 w-3" aria-hidden />
-                Copiar link
-              </button>
-              {primaryCheckIn.publicToken ? (
-                <a
-                  href={checkInSharedPublicUrl(primaryCheckIn.publicToken)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hh-row-btn"
-                >
-                  <ExternalLink className="h-3 w-3" aria-hidden />
-                  Abrir
-                </a>
-              ) : null}
-              <button
-                type="button"
-                disabled={!primaryCheckIn.publicToken}
-                onClick={() => {
-                  if (!primaryCheckIn.publicToken) {
-                    toast.error('Guardá el formulario en Check-ins primero')
-                    return
-                  }
-                  openCheckInGroupWhatsApp(primaryCheckIn)
-                  toast.success('Elegí el grupo en WhatsApp')
-                }}
-                className="hh-row-btn"
-              >
-                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                Grupo WA
-              </button>
-            </div>
-          </QuickActionRow>
-        ) : (
-          <QuickActionRow title="Feedback semanal">
-            <p className="text-3xs text-ink-muted">Creá un formulario en Consulta semanal → Check-ins y guardalo para obtener el link general.</p>
-            <button
-              type="button"
-              onClick={() => navigate('/feedback?tab=checkins')}
-              className="text-3xs font-medium text-brand-primary hover:underline"
-            >
-              Ir a Check-ins
-            </button>
-          </QuickActionRow>
-        )}
-
-        {primaryResource ? (
-          <QuickActionRow title={`Recursos · ${primaryResource.label}`} dueToday={resourceDueToday}>
-            <p className="text-3xs text-ink-muted leading-relaxed">
-              Aviso semanal o recurso para compartir en el grupo de alumnos.
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  void copyWhatsAppMessage(primaryResource.message).then((ok) =>
-                    ok ? toast.success('Mensaje copiado') : toast.error('No se pudo copiar'),
-                  )
-                }}
-                className="hh-row-btn"
-              >
-                <Copy className="h-3 w-3" aria-hidden />
-                Copiar mensaje
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void openResourceGroupWhatsApp(primaryResource).then((r) => {
-                    if (r.mode === 'clipboard') {
-                      toast.success(r.copied ? WHATSAPP_CLIPBOARD_PASTE_HINT : 'Abrí WhatsApp y pegá el mensaje')
-                    } else {
-                      toast.success('Elegí el grupo en WhatsApp')
-                    }
-                  })
-                }}
-                className="hh-row-btn"
-              >
-                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                Grupo WA
-              </button>
-            </div>
-          </QuickActionRow>
-        ) : (
-          <QuickActionRow title="Recursos · aviso semanal">
-            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Consulta semanal → Recursos.</p>
-            <button
-              type="button"
-              onClick={() => navigate('/feedback?tab=recursos')}
-              className="text-3xs font-medium text-brand-primary hover:underline"
-            >
-              Ir a Recursos
-            </button>
-          </QuickActionRow>
-        )}
-      </div>
+      <TodayReminders checkIn={primaryCheckIn} />
 
       {rmTestDueStudents.length > 0 ? (
         <div className="rounded-xl hh-alert hh-alert-warning">
@@ -435,6 +412,122 @@ export function DashboardTrainerOpsPanel({
           ) : null}
         </div>
       ) : null}
+
+      {extraAlerts}
+
+      <p className="text-3xs font-semibold text-ink-muted">
+        Envío rápido
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {primaryCheckIn ? (
+          <QuickActionRow
+            title={`Check-in · ${primaryCheckIn.formTitle}`}
+            dueToday={checkInDueToday}
+          >
+            <p className="text-3xs text-ink-muted leading-relaxed">
+              Link general para el grupo. Cada alumno completa con su correo.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => void copyCheckInLink(primaryCheckIn)}
+                className="hh-row-btn"
+              >
+                <Copy className="h-3 w-3" aria-hidden />
+                Copiar link
+              </button>
+              {primaryCheckIn.publicToken ? (
+                <a
+                  href={checkInSharedPublicUrl(primaryCheckIn.publicToken)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hh-row-btn"
+                >
+                  <ExternalLink className="h-3 w-3" aria-hidden />
+                  Abrir
+                </a>
+              ) : null}
+              <button
+                type="button"
+                disabled={!primaryCheckIn.publicToken}
+                onClick={() => {
+                  if (!primaryCheckIn.publicToken) {
+                    toast.error('Guardá el formulario en Check-ins primero')
+                    return
+                  }
+                  openCheckInGroupWhatsApp(primaryCheckIn)
+                  toast.success('Elegí el grupo en WhatsApp')
+                }}
+                className="hh-row-btn"
+              >
+                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                Grupo WA
+              </button>
+            </div>
+          </QuickActionRow>
+        ) : (
+          <QuickActionRow title="Feedback semanal">
+            <p className="text-3xs text-ink-muted">Creá un formulario en Consulta semanal → Check-ins y guardalo para obtener el link general.</p>
+            <button
+              type="button"
+              onClick={() => navigate('/feedback?tab=checkins')}
+              className="text-3xs font-medium text-brand-primary hover:underline"
+            >
+              Ir a Check-ins
+            </button>
+          </QuickActionRow>
+        )}
+
+        {primaryResource ? (
+          <QuickActionRow title={`Recursos · ${primaryResource.label}`} dueToday={resourceDueToday}>
+            <p className="text-3xs text-ink-muted leading-relaxed">
+              Aviso semanal o recurso para compartir en el grupo de alumnos.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  void copyWhatsAppMessage(primaryResource.message).then((ok) =>
+                    ok ? toast.success('Mensaje copiado') : toast.error('No se pudo copiar'),
+                  )
+                }}
+                className="hh-row-btn"
+              >
+                <Copy className="h-3 w-3" aria-hidden />
+                Copiar mensaje
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void openResourceGroupWhatsApp(primaryResource).then((r) => {
+                    if (r.mode === 'clipboard') {
+                      toast.success(r.copied ? WHATSAPP_CLIPBOARD_PASTE_HINT : 'Abrí WhatsApp y pegá el mensaje')
+                    } else {
+                      toast.success('Elegí el grupo en WhatsApp')
+                    }
+                  })
+                }}
+                className="hh-row-btn"
+              >
+                <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                Grupo WA
+              </button>
+            </div>
+          </QuickActionRow>
+        ) : (
+          <QuickActionRow title="Recursos · aviso semanal">
+            <p className="text-3xs text-ink-muted">Agregá una plantilla o recurso en Consulta semanal → Recursos.</p>
+            <button
+              type="button"
+              onClick={() => navigate('/feedback?tab=recursos')}
+              className="text-3xs font-medium text-brand-primary hover:underline"
+            >
+              Ir a Recursos
+            </button>
+          </QuickActionRow>
+        )}
+      </div>
 
       <div className="rounded-xl border border-surface-border/70 bg-surface-elevated/15">
         <button

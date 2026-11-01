@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { format, addDays } from 'date-fns'
 import { Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { applyBlueprintPayloadToRoutine, type RoutineBlueprintPayload } from '@/lib/routine/routineBlueprint'
+import { applyBlueprintPayloadToRoutine, weekDatesFromStart, type RoutineBlueprintPayload } from '@/lib/routine/routineBlueprint'
+import { syncWeekPhasesToCalendar } from '@/lib/macrocycle/macrocycleData'
 import { blueprintLibraryRoutineId, blueprintObjective, withBlueprintMeta } from '@/lib/routine/blueprintFolders'
 import { ensureLibraryRoutineForBlueprint } from '@/lib/routine/libraryRoutine'
 import { useRoutines } from '@/hooks/useRoutines'
@@ -261,7 +262,7 @@ export function RoutineFormContent({
       return
     }
 
-    async function copyStructureFromTemplate(sourceRoutineId: string, targetRoutineId: string) {
+    async function copyStructureFromTemplate(sourceRoutineId: string, targetRoutineId: string, startDate?: string) {
       const { data: templateBlocks, error: blocksError } = await supabase
         .from('routine_blocks')
         .select('*, days:routine_days(*, exercises:routine_exercises(*))')
@@ -275,6 +276,7 @@ export function RoutineFormContent({
         notes: string | null
         start_date: string | null
         end_date: string | null
+        phase_type?: string | null
         days?: Array<{
           day_name: string
           day_of_week: number | null
@@ -300,6 +302,8 @@ export function RoutineFormContent({
           }>
         }>
       }>) {
+        const index = (templateBlocks ?? []).indexOf(block)
+        const dates = startDate ? weekDatesFromStart(startDate, index) : { start_date: block.start_date, end_date: block.end_date }
         const { data: createdBlock, error: blockError } = await supabase
           .from('routine_blocks')
           .insert({
@@ -307,8 +311,8 @@ export function RoutineFormContent({
             name: block.name,
             sort_order: block.sort_order,
             notes: block.notes,
-            start_date: block.start_date,
-            end_date: block.end_date,
+            ...dates,
+            phase_type: block.phase_type ?? null,
           })
           .select('id')
           .single()
@@ -408,10 +412,12 @@ export function RoutineFormContent({
             if (bpErr || !row) throw new Error(bpErr?.message ?? 'Variante no encontrada')
             const libraryId = blueprintLibraryRoutineId(row)
             if (libraryId) {
-              await copyStructureFromTemplate(libraryId, result.id)
+              await copyStructureFromTemplate(libraryId, result.id, values.start_date)
             } else {
-              await applyBlueprintPayloadToRoutine(result.id, row.payload as RoutineBlueprintPayload)
+              await applyBlueprintPayloadToRoutine(result.id, row.payload as RoutineBlueprintPayload, { startDate: values.start_date })
             }
+            // Las fases de la preestablecida quedan marcadas en el calendario del alumno.
+            if (values.student_id) await syncWeekPhasesToCalendar(result.id, values.student_id)
             toast.success('Rutina creada desde la variante preestablecida', { id: loadingId })
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'No se pudo copiar la variante', { id: loadingId })

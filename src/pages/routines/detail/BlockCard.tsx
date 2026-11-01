@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/Input'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
-import { BLOCK_TYPES, blockColor, blockTypeLabel, type BlockTypeId } from '@/lib/macrocycle/macrocycle'
+import { blockColor, blockTypeLabel, type BlockTypeId } from '@/lib/macrocycle/macrocycle'
+import { usePhaseTypes } from '@/lib/macrocycle/phaseTypes'
 import type { StudentRmLookup } from '@/lib/routine/studentRmLookup'
 import type { CyclePhaseInfo } from '@/lib/routine/menstrualCyclePlanning'
 import type { RoutineBlock, RoutineDay, RoutineExercise, TrainingMethod } from '@/types/database'
@@ -59,6 +60,7 @@ export function BlockCard({
   const weekN = (stripeIndex ?? 0) + 1
   const weekDone = checkInFinished || (checkInWeekNumber != null && weekN <= checkInWeekNumber)
   const weekCurrent = !checkInFinished && checkInWeekNumber === weekN
+  const phaseTypes = usePhaseTypes()
   const phaseLabel = blockTypeLabel(block.phase_type)
   const phaseColor = phaseLabel ? blockColor(block.phase_type, null) : null
 
@@ -262,7 +264,7 @@ export function BlockCard({
             <div className="pt-1" onClick={(e) => e.stopPropagation()}>
               <label className="block text-3xs text-ink-muted mb-1 ">Fase del macrociclo · se marca en el calendario (el alumno no la ve)</label>
               <div className="flex flex-wrap gap-1.5">
-                {BLOCK_TYPES.map((t) => {
+                {phaseTypes.map((t) => {
                   const active = block.phase_type === t.id
                   return (
                     <button

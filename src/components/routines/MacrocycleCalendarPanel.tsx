@@ -29,7 +29,6 @@ import { controlSmClassName } from '@/lib/formControlClasses'
 import {
   assignLanes,
   BLOCK_COLOR_PRESETS,
-  BLOCK_TYPES,
   blockColor,
   blockTypeLabel,
   dayOffset,
@@ -41,9 +40,14 @@ import {
   yearWeeks,
   ymd,
 } from '@/lib/macrocycle/macrocycle'
+import { usePhaseTypes } from '@/lib/macrocycle/phaseTypes'
+import { PhaseTypesEditor } from '@/components/routines/PhaseTypesEditor'
+import { invalidateRoutines } from '@/data/routines'
 import {
   deletePlanBlock,
   deletePlanBlocks,
+  deleteRoutineFromCalendar,
+  hideDeletedRoutine,
   duplicateRoutineAt,
   loadDeletedRoutines,
   loadMacrocycle,
@@ -133,6 +137,7 @@ function PlanEditor({
   onDeleteOverlapping?: () => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const phaseTypes = usePhaseTypes()
   const color = blockColor(draft.block_type, draft.color)
   const days = dayOffset(minYmd(draft.start_date, draft.end_date), maxYmd(draft.start_date, draft.end_date)) + 1
   return (
@@ -181,7 +186,7 @@ function PlanEditor({
               className={cn(controlSmClassName, 'w-full')}
             >
               <option value="">Sin tipo</option>
-              {BLOCK_TYPES.map((t) => (
+              {phaseTypes.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.label}
                 </option>
@@ -270,6 +275,8 @@ function PlanEditor({
 export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName, onChanged }: Props) {
   const { user } = useAuthStore()
   const navigate = useAppNavigate()
+  const phaseTypes = usePhaseTypes()
+  const [phasesOpen, setPhasesOpen] = useState(false)
   const today = ymd(new Date())
   const [year, setYear] = useState(new Date().getFullYear())
   const [routines, setRoutines] = useState<MacroRoutine[] | null>(null)
@@ -543,6 +550,38 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
     }
     toast.success('Bloque eliminado')
     setDraft(null)
+    setSelectedId(null)
+    await reload()
+  }
+
+  async function removeRoutine(routine: MacroRoutine) {
+    if (!user) return
+    const ok = await confirmDialog({
+      title: `¿Eliminar la rutina «${routine.name}»?`,
+      description: 'Se borra con sus semanas y ejercicios. Queda en Rutinas › Eliminadas por si la querés restaurar.',
+      confirmLabel: 'Eliminar rutina',
+    })
+    if (!ok) return
+    setBusy(true)
+    const err = await deleteRoutineFromCalendar(routine.id, user.id)
+    setBusy(false)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    toast.success('Rutina eliminada')
+    setSelectedId(null)
+    void invalidateRoutines()
+    await reload()
+    onChanged?.()
+  }
+
+  async function hideDeleted(id: string) {
+    const err = await hideDeletedRoutine(id)
+    if (err) {
+      toast.error(err)
+      return
+    }
     setSelectedId(null)
     await reload()
   }
@@ -935,14 +974,23 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                 </div>
               ) : null}
 
+              {phasesOpen ? <PhaseTypesEditor phases={phaseTypes} onClose={() => setPhasesOpen(false)} /> : null}
+
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  {BLOCK_TYPES.map((t) => (
+                  {phaseTypes.map((t) => (
                     <span key={t.id} className="inline-flex items-center gap-1.5 text-2xs text-ink-secondary">
                       <span className="h-2.5 w-2.5 rounded-sm" style={{ background: t.color }} />
                       {t.label}
                     </span>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setPhasesOpen((v) => !v)}
+                    className="text-2xs font-medium text-ink-primary underline-offset-2 hover:underline"
+                  >
+                    Editar fases
+                  </button>
                   <span className="inline-flex items-center gap-1.5 text-2xs text-ink-secondary">
                     <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Volumen por encima del rango
                   </span>
@@ -1168,7 +1216,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                         className={cn(controlSmClassName, 'w-full')}
                       >
                         <option value="">Sin tipo</option>
-                        {BLOCK_TYPES.map((t) => (
+                        {phaseTypes.map((t) => (
                           <option key={t.id} value={t.id}>
                             {t.label}
                           </option>
@@ -1212,6 +1260,9 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                         <Button type="button" variant="ghost" size="sm" onClick={() => navigate(`/routines/${selected.id}`)}>
                           <ExternalLink className="h-3.5 w-3.5" /> Abrir rutina
                         </Button>
+                        <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => void removeRoutine(selected.routine)}>
+                          <Trash2 className="h-3.5 w-3.5" /> Eliminar rutina
+                        </Button>
                       </div>
                     </div>
 
@@ -1245,6 +1296,9 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                     {fmtLong(selected.start)} → {fmtLong(selected.end)} · rutina eliminada el {fmtLong(selected.deleted.deleted_at.slice(0, 10))}. Queda en el calendario como historial; se puede
                     restaurar desde Rutinas › Eliminadas.
                   </p>
+                  <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => void hideDeleted(selected.id)}>
+                    <Trash2 className="h-3.5 w-3.5" /> Quitar del calendario
+                  </Button>
                 </section>
               ) : null}
 

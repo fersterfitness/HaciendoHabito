@@ -9,6 +9,9 @@ export type PaymentState = 'pagado' | 'parcial' | 'pendiente' | 'vencido' | 'sin
  */
 export type PaymentReminderKind = 'due' | 'overdue'
 
+/** Respecto de la fecha de pago del mes: todavía no llegó, es hoy, o ya pasó. */
+export type PaymentTiming = 'antes' | 'hoy' | 'despues' | null
+
 /** Días hábiles después de la fecha de pago para el segundo aviso. */
 export const OVERDUE_BUSINESS_DAYS = 7
 
@@ -34,6 +37,8 @@ export type StudentPaymentRow = {
   methods: PaymentMethod[]
   lastPaidAt: string | null
   state: PaymentState
+  /** Dónde está respecto de su fecha de pago: antes («Al día»), el mismo día («Abonan hoy») o después. */
+  timing: PaymentTiming
   /** Aviso por WhatsApp que corresponde hoy (solo el mes en curso). */
   reminder: PaymentReminderKind | null
   /** Ingresos pendientes del alumno (rutinas asignadas sin abonar). */
@@ -90,8 +95,9 @@ export function addBusinessDays(date: Date, days: number): Date {
  * Estado de pago de un alumno en un mes.
  * - pagado: hay cobro del mes y cubre lo esperado (un cobro de $0 = bonificado).
  * - parcial: cobró algo pero menos de lo esperado.
- * - vencido: meses anteriores sin cubrir, o pasaron 7 días hábiles desde su fecha de pago.
- * - pendiente: todavía no pagó y está en fecha (o no tiene día de pago).
+ * - vencido: meses anteriores sin cubrir, o ya pasó su fecha de pago. A los 7 días hábiles, segundo aviso.
+ * - pendiente: todavía no pagó y está en fecha («Al día»), es su día («Abonan hoy») o no tiene día de pago.
+ * Si el alumno arrancó después de su fecha de pago de ese mes, su primer pago es el mes siguiente.
  */
 export function computePaymentState(opts: {
   expected: number
@@ -100,22 +106,30 @@ export function computePaymentState(opts: {
   dueDay: number | null
   month: Date
   today: Date
-}): { state: PaymentState; reminder: PaymentReminderKind | null } {
+  /** Alta del alumno (YYYY-MM-DD): si es posterior a su fecha de pago del mes, ese mes todavía no debe. */
+  startedAt?: string | null
+}): { state: PaymentState; reminder: PaymentReminderKind | null; timing: PaymentTiming } {
   const { expected, paid, dueDay, month, today } = opts
   const paidCount = opts.paidCount ?? (paid > 0 ? 1 : 0)
-  if (paidCount > 0 && paid >= expected) return { state: 'pagado', reminder: null }
+  if (paidCount > 0 && paid >= expected) return { state: 'pagado', reminder: null, timing: null }
   const y = month.getFullYear()
   const m = month.getMonth()
-  const isPastMonth = y < today.getFullYear() || (y === today.getFullYear() && m < today.getMonth())
-  if (isPastMonth) return { state: 'vencido', reminder: null }
-  const isCurrentMonth = y === today.getFullYear() && m === today.getMonth()
   const unpaidState: PaymentState = paid > 0 ? 'parcial' : 'pendiente'
-  if (!isCurrentMonth || dueDay == null) return { state: unpaidState, reminder: null }
+  const dueYmd = dueDay != null ? ymdLocal(dueDateOf(month, dueDay)) : null
+  // Arrancó después de su día de pago: el primer cobro es el mes que viene.
+  if (dueYmd && opts.startedAt && opts.startedAt.slice(0, 10) > dueYmd) return { state: unpaidState, reminder: null, timing: 'antes' }
+  const isPastMonth = y < today.getFullYear() || (y === today.getFullYear() && m < today.getMonth())
+  if (isPastMonth) return { state: 'vencido', reminder: null, timing: 'despues' }
+  const isCurrentMonth = y === today.getFullYear() && m === today.getMonth()
+  if (!isCurrentMonth || dueDay == null || !dueYmd) return { state: unpaidState, reminder: null, timing: null }
   const todayYmd = ymdLocal(today)
-  const due = dueDateOf(month, dueDay)
-  if (todayYmd < ymdLocal(due)) return { state: unpaidState, reminder: null }
-  if (todayYmd >= ymdLocal(addBusinessDays(due, OVERDUE_BUSINESS_DAYS))) return { state: 'vencido', reminder: 'overdue' }
-  return { state: unpaidState, reminder: 'due' }
+  if (todayYmd < dueYmd) return { state: unpaidState, reminder: null, timing: 'antes' }
+  if (todayYmd === dueYmd) return { state: unpaidState, reminder: 'due', timing: 'hoy' }
+  const lateState: PaymentState = paid > 0 ? 'parcial' : 'vencido'
+  if (todayYmd >= ymdLocal(addBusinessDays(dueDateOf(month, dueDay), OVERDUE_BUSINESS_DAYS))) {
+    return { state: lateState, reminder: 'overdue', timing: 'despues' }
+  }
+  return { state: lateState, reminder: 'due', timing: 'despues' }
 }
 
 /**
@@ -149,7 +163,15 @@ export function buildPaymentBoard(opts: {
         .sort()
         .slice(-1)[0]
       const dueDay = s.payment_day_from ?? s.payment_day_to ?? null
-      const { state, reminder } = computePaymentState({ expected, paid, paidCount: paidRows.length, dueDay, month, today })
+      const { state, reminder, timing } = computePaymentState({
+        expected,
+        paid,
+        paidCount: paidRows.length,
+        dueDay,
+        month,
+        today,
+        startedAt: s.created_at ?? null,
+      })
       return {
         studentId: s.id,
         fullName: s.full_name,
@@ -165,6 +187,7 @@ export function buildPaymentBoard(opts: {
         methods: [...new Set(paidRows.map((i) => i.payment_method))],
         lastPaidAt: lastPaid ?? null,
         state,
+        timing,
         reminder,
         pendingIncomeIds: pendingRows.map((i) => i.id),
       }

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { ArrowRight, Check, Copy, FolderOpen, Library, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { ArrowRight, CalendarRange, Check, Copy, FolderOpen, Library, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +23,7 @@ import {
 import { ensureLibraryRoutineForBlueprint } from '@/lib/routine/libraryRoutine'
 import { BlueprintFromStudentRoutineModal } from '@/components/routines/BlueprintFromStudentRoutineModal'
 import { promptDialog } from '@/components/ui/dialogs'
+import { PresetMacroCalendar } from '@/components/routines/PresetMacroCalendar'
 
 /** Lista de plantillas guardadas desde el detalle de rutina (pestaña dentro de Rutinas). */
 export function RoutineBlueprintsPanel() {
@@ -37,6 +38,8 @@ export function RoutineBlueprintsPanel() {
   const [editSub, setEditSub] = useState('')
   const [savingCat, setSavingCat] = useState(false)
   const [openingId, setOpeningId] = useState<string | null>(null)
+  /** Macrociclo con el calendario abierto. */
+  const [calendarFor, setCalendarFor] = useState<string | null>(null)
   /** Copiar una rutina de alumno a preestablecidas; `defaults` precarga la carpeta destino. */
   const [fromStudent, setFromStudent] = useState<{ category?: string; subcategory?: string; routineGroup?: string } | null>(null)
 
@@ -439,13 +442,32 @@ export function RoutineBlueprintsPanel() {
                 {isReal && (
                   <button
                     type="button"
+                    onClick={() => setCalendarFor((c) => (c === cat ? null : cat))}
+                    className="ml-auto inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
+                    aria-expanded={calendarFor === cat}
+                  >
+                    <CalendarRange className="h-3 w-3" aria-hidden />
+                    Calendario
+                  </button>
+                )}
+                {isReal && (
+                  <button
+                    type="button"
                     onClick={() => void createFolder('meso', cat)}
-                    className="ml-auto rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
+                    className="rounded-lg border border-surface-border px-2 py-0.5 text-3xs font-semibold text-ink-secondary hover:text-ink-primary"
                   >
                     + Mesociclo
                   </button>
                 )}
               </div>
+              {calendarFor === cat ? (
+                <PresetMacroCalendar
+                  macroName={cat}
+                  blueprints={items.filter((bp) => (bp.category?.trim() || '') === cat && !isBlueprintFolderPlaceholder(bp))}
+                  onClose={() => setCalendarFor(null)}
+                  onPayloadSaved={(id, payload) => setItems((prev) => prev.map((x) => (x.id === id ? { ...x, payload } : x)))}
+                />
+              ) : null}
               <div className="space-y-4 pl-1">
                 {[...subs.entries()]
                   .sort((a, b) => (a[0] === '' ? 1 : b[0] === '' ? -1 : a[0].localeCompare(b[0])))

@@ -18,7 +18,8 @@ import {
   type CheckInAnswerDraft,
 } from '@/lib/checkIn/questions'
 import toast from 'react-hot-toast'
-import { formatWeekRangeEs, todayYmdInCheckInTz } from '@/lib/checkInWeek'
+import { todayYmdInCheckInTz } from '@/lib/checkInWeek'
+import { periodLabel, sendDayOnOrBefore } from '@/lib/checkIn/sendPeriods'
 
 type FormPayload = {
   ok: boolean
@@ -87,6 +88,9 @@ function PageFrame({ children, innerClassName }: { children: ReactNode; innerCla
 export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
   const { token: tokenParam } = useParams<{ token: string }>()
   const [searchParams] = useSearchParams()
+  /** Semana pedida por el link (`?semana=AAAA-MM-DD`): el feedback que quedó pendiente. */
+  const requestedPeriod = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get('semana') ?? '') ? searchParams.get('semana') : null
+  const formPeriod = requestedPeriod ? sendDayOnOrBefore(requestedPeriod) : sendDayOnOrBefore(todayYmdInCheckInTz())
   const token = normalizeToken(tokenParam)
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
@@ -212,7 +216,9 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
       toast.error(err)
       return
     }
-    const jsonAnswers = serializeDrafts(allQuestions, drafts, gender)
+    const jsonAnswers = requestedPeriod
+      ? { ...serializeDrafts(allQuestions, drafts, gender), __period: requestedPeriod }
+      : serializeDrafts(allQuestions, drafts, gender)
     setSubmitError(null)
     setSubmitting(true)
     const { data, error } = shared
@@ -237,7 +243,9 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
     if (!res?.ok) {
       if (res?.error === 'already_submitted') {
         toast.error(
-          `Ya enviaste el feedback semanal de esta semana (${formatWeekRangeEs(todayYmdInCheckInTz())}). El mismo formulario te llega de nuevo el viernes que viene.`,
+          requestedPeriod
+            ? `Ya enviaste el feedback de la semana del ${periodLabel(formPeriod)}.`
+            : `Ya enviaste el feedback de esta semana (${periodLabel(formPeriod)}). El próximo te llega el viernes que viene.`,
         )
       } else if (res?.error === 'rate_limited') toast.error('Demasiados intentos. Probá de nuevo en un rato.')
       else if (res?.error === 'answer_too_long') toast.error('Alguna respuesta es demasiado larga.')
@@ -333,8 +341,9 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
             </p>
           ) : null}
           <p className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/8 px-4 py-2.5 text-center text-xs leading-relaxed text-ink-secondary">
-            Feedback semanal · {formatWeekRangeEs(todayYmdInCheckInTz())}. Te llega todos los viernes; es el mismo
-            formulario.
+            {requestedPeriod
+              ? `Feedback de la semana del ${periodLabel(formPeriod)}: quedó pendiente, completalo cuando puedas.`
+              : `Feedback semanal · ${periodLabel(formPeriod)}. Te llega todos los viernes; es el mismo formulario.`}
           </p>
         </header>
 

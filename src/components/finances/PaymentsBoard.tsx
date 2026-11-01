@@ -41,6 +41,14 @@ const STATE_META: Record<PaymentState, { label: string; chip: string; color: str
 const METHOD_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#008300', '#e34948']
 const METHOD_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label])) as Record<string, string>
 
+/** Etiqueta del estado: «Falta pagar» se afina según la fecha de pago (pedido del entrenador). */
+function stateLabel(r: StudentPaymentRow): string {
+  if (r.gifted) return 'Bonificado'
+  if (r.state === 'pendiente' && r.timing === 'antes') return 'Al día'
+  if (r.state === 'pendiente' && r.timing === 'hoy') return 'Abonan hoy'
+  return STATE_META[r.state].label
+}
+
 type Filter = 'all' | 'vencido' | 'pendiente' | 'pagado'
 
 /**
@@ -260,10 +268,10 @@ export function PaymentsBoard() {
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', STATE_META[r.state].chip)}>
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                          {r.gifted ? 'Bonificado' : STATE_META[r.state].label}
+                          {stateLabel(r)}
                         </span>
                         {r.reminder === 'overdue' ? <span className="text-3xs text-status-expired">+7 días hábiles</span> : null}
-                        {r.reminder === 'due' ? <span className="text-3xs text-ink-muted">Llegó su fecha</span> : null}
+                        
                         <button
                           type="button"
                           onClick={() => setWindowFor(r)}
@@ -362,9 +370,8 @@ export function PaymentsBoard() {
                       <td className="px-4 py-2.5">
                         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', STATE_META[r.state].chip)}>
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                          {r.gifted ? 'Bonificado' : STATE_META[r.state].label}
+                          {stateLabel(r)}
                         </span>
-                        {r.reminder === 'due' ? <p className="mt-0.5 text-3xs text-ink-muted">Llegó su fecha</p> : null}
                         {r.reminder === 'overdue' ? <p className="mt-0.5 text-3xs text-status-expired">+7 días hábiles</p> : null}
                       </td>
                       <td className="px-4 py-2.5">

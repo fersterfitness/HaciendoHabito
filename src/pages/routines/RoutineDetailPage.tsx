@@ -407,6 +407,7 @@ export function RoutineDetailPage() {
     }
     if (warning) toast(warning)
     else if (phase && routine?.student_id) toast.success('Fase marcada en el calendario')
+    else if (phase) toast.success('Fase guardada: se marca en el calendario del alumno al asignarla')
   }
 
   /** Inicio de semana → fin +6 días y semanas siguientes en cadena (editable manual después). */

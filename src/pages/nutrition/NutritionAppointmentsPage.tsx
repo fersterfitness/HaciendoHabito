@@ -31,6 +31,7 @@ import {
   buildAppointmentFeedbackWaUrl,
 } from '@/lib/whatsapp'
 import { parseGoogleCalendarSyncFailure } from '@/lib/googleCalendarSyncErrors'
+import { googleCalendarEventUrl } from '@/lib/googleCalendarLink'
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -169,6 +170,18 @@ const FALLBACK_DURATION_MIN = 45
 function appointmentEndMs(a: Pick<Appointment, 'starts_at' | 'ends_at'>, fallbackMin = FALLBACK_DURATION_MIN): number {
   if (a.ends_at) return new Date(a.ends_at).getTime()
   return new Date(a.starts_at).getTime() + fallbackMin * 60 * 1000
+}
+
+/** Link para agregar el turno a la cuenta de Google de quien lo toca (sin depender del servidor). */
+function appointmentGoogleUrl(a: AppointmentRow): string {
+  const name = a.student?.full_name?.trim()
+  return googleCalendarEventUrl({
+    title: name && !a.title.includes(name) ? `${a.title} · ${name}` : a.title,
+    start: new Date(a.starts_at),
+    end: new Date(appointmentEndMs(a)),
+    details: [a.notes?.trim(), 'Agendado desde Haciéndolo Hábito'].filter(Boolean).join('\n\n'),
+    location: a.location,
+  })
 }
 
 function intervalsOverlap(s1: number, e1: number, s2: number, e2: number): boolean {
@@ -817,7 +830,25 @@ export function AppointmentsPage() {
       }
 
       if (!googleEventId) {
-        toast.success('Turno agendado')
+        const gUrl = appointmentGoogleUrl(appointment)
+        toast.custom(
+          (t) => (
+            <div className="flex max-w-sm items-center gap-3 rounded-2xl border border-surface-border bg-surface-card px-4 py-3 text-sm text-ink-primary shadow-lg">
+              <span className="flex-1">Turno agendado</span>
+              <a
+                href={gUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => toast.dismiss(t.id)}
+                className="hh-row-btn"
+              >
+                <Calendar className="h-3 w-3" aria-hidden />
+                Agregar a Google Calendar
+              </a>
+            </div>
+          ),
+          { duration: 10000 },
+        )
       }
     } finally {
       setCreating(false)
@@ -1731,16 +1762,27 @@ export function AppointmentsPage() {
                           Cancelar
                         </button>
                         {!a.google_event_id && (a.status === 'scheduled' || a.status === 'confirmed') ? (
-                          <button
-                            type="button"
-                            disabled={syncingGoogleId === a.id}
-                            onClick={() => void retryGoogleCalendarSync(a.id)}
-                            title="Crear o vincular el evento en Google Calendar"
-                            className="text-2xs px-2.5 py-1 rounded-lg border border-sky-500/35 text-sky-900 dark:text-sky-300/95 hover:bg-sky-500/12 inline-flex items-center gap-1 disabled:opacity-50"
-                          >
-                            <Calendar className="h-3 w-3" />
-                            {syncingGoogleId === a.id ? 'Sincronizando…' : 'Google Calendar'}
-                          </button>
+                          <>
+                            <a
+                              href={appointmentGoogleUrl(a)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Abre Google Calendar con el turno cargado para guardarlo en tu agenda"
+                              className="text-2xs px-2.5 py-1 rounded-lg border border-surface-border text-ink-primary hover:bg-surface-elevated inline-flex items-center gap-1"
+                            >
+                              <Calendar className="h-3 w-3" />
+                              Agregar a Google Calendar
+                            </a>
+                            <button
+                              type="button"
+                              disabled={syncingGoogleId === a.id}
+                              onClick={() => void retryGoogleCalendarSync(a.id)}
+                              title="Reintentar la sincronización automática con Google Calendar"
+                              className="text-2xs px-2 py-1 rounded-lg text-ink-muted hover:bg-surface-elevated hover:text-ink-primary disabled:opacity-50"
+                            >
+                              {syncingGoogleId === a.id ? 'Sincronizando…' : 'Sincronizar'}
+                            </button>
+                          </>
                         ) : null}
                         <button
                           type="button"

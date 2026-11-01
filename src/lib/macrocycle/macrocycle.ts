@@ -1,17 +1,10 @@
 /** Calendario anual del macrociclo: grilla de semanas, carriles de barras y movimiento de bloques. */
 
 import { addDays, differenceInCalendarDays, format, getISOWeek, parseISO } from 'date-fns'
+import { findPhaseType } from '@/lib/macrocycle/phaseTypes'
 
-export const BLOCK_TYPES = [
-  { id: 'adaptacion', label: 'Adaptación', color: '#38bdf8' },
-  { id: 'desarrollo', label: 'Desarrollo', color: '#a78bfa' },
-  { id: 'intensificacion', label: 'Intensificación', color: '#fb923c' },
-  { id: 'realizacion', label: 'Realización', color: '#f43f5e' },
-  { id: 'descarga', label: 'Descarga', color: '#34d399' },
-  { id: 'transicion', label: 'Transición', color: '#94a3b8' },
-] as const
-
-export type BlockTypeId = (typeof BLOCK_TYPES)[number]['id']
+/** Clave de la fase (las arma el entrenador en «Fases»; ver `phaseTypes.ts`). */
+export type BlockTypeId = string
 
 export const BLOCK_COLOR_PRESETS = ['#a78bfa', '#c084fc', '#f0abfc', '#fb923c', '#f43f5e', '#34d399', '#38bdf8', '#facc15', '#94a3b8']
 
@@ -19,11 +12,11 @@ const DEFAULT_COLOR = '#a78bfa'
 
 export function blockColor(type: string | null | undefined, custom: string | null | undefined): string {
   if (custom && /^#[0-9a-f]{6}$/i.test(custom)) return custom
-  return BLOCK_TYPES.find((t) => t.id === type)?.color ?? DEFAULT_COLOR
+  return findPhaseType(type)?.color ?? DEFAULT_COLOR
 }
 
 export function blockTypeLabel(type: string | null | undefined): string | null {
-  return BLOCK_TYPES.find((t) => t.id === type)?.label ?? null
+  return findPhaseType(type)?.label ?? null
 }
 
 export const ymd = (d: Date) => format(d, 'yyyy-MM-dd')

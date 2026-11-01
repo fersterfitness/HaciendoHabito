@@ -361,6 +361,28 @@ export function weeklyFormMissingReminderMessage(studentName: string, formUrl?: 
   return lines.join('\n')
 }
 
+/**
+ * Feedback semanal que quedó pendiente (una o varias semanas), con un link por semana para que
+ * cada respuesta quede en la suya y no pise la de esta semana.
+ */
+export function weeklyFormOwedMessage(
+  studentName: string,
+  owed: { label: string; url: string }[],
+  current?: { label: string; url: string } | null,
+): string {
+  const first = studentName.trim().split(/\s+/)[0] || studentName.trim()
+  const lines = [`Hola ${first}, ¿cómo estás?`, '']
+  lines.push(
+    owed.length === 1
+      ? `Te quedó pendiente el feedback semanal del ${owed[0]!.label}. Completalo desde este link (es solo de esa semana):`
+      : 'Te quedaron pendientes estos feedbacks semanales. Cada link es de su semana, así no se pisan:',
+  )
+  for (const o of owed) lines.push('', owed.length === 1 ? o.url : `${o.label}: ${o.url}`)
+  if (current) lines.push('', `Y el de esta semana (${current.label}):`, current.url)
+  lines.push('', '¡GRACIAS! 💪')
+  return lines.join('\n')
+}
+
 /** Mensaje al enviar rutina (PDF) al alumno por WhatsApp. */
 export function buildRoutinePdfShareMessage(params: {
   studentName: string

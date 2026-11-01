@@ -30,7 +30,11 @@ export type RoutineBlueprintDay = Pick<
 export type RoutineBlueprintBlock = Pick<
   RoutineBlock,
   'name' | 'sort_order' | 'notes' | 'start_date' | 'end_date'
-> & { days: RoutineBlueprintDay[] }
+> & {
+  /** Fase del macrociclo de la semana (se marca en el calendario del alumno al asignarla). */
+  phase_type?: string | null
+  days: RoutineBlueprintDay[]
+}
 
 export type RoutineBlueprintPayload = {
   v: typeof ROUTINE_BLUEPRINT_VERSION
@@ -50,6 +54,7 @@ export function serializeBlocksToBlueprint(blocks: BlockWithDays[]): RoutineBlue
       notes: b.notes,
       start_date: b.start_date,
       end_date: b.end_date,
+      phase_type: b.phase_type ?? null,
       days: [...b.days]
         .sort((a, c) => a.sort_order - c.sort_order)
         .map((d) => ({
@@ -82,14 +87,30 @@ export function serializeBlocksToBlueprint(blocks: BlockWithDays[]): RoutineBlue
   }
 }
 
+/**
+ * Fechas de cada semana contadas desde el inicio de la rutina (semana 1 = inicio … inicio + 6).
+ * Las de la plantilla son de cuando se armó y no sirven para el alumno.
+ */
+export function weekDatesFromStart(startDate: string, index: number): { start_date: string; end_date: string } {
+  const [y, m, d] = startDate.split('-').map(Number)
+  const at = (offset: number) => {
+    const dt = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, (d ?? 1) + offset))
+    return dt.toISOString().slice(0, 10)
+  }
+  return { start_date: at(index * 7), end_date: at(index * 7 + 6) }
+}
+
 /** Inserta bloques/días/ejercicios de una plantilla en una rutina (sin borrar lo existente). */
 export async function applyBlueprintPayloadToRoutine(
   routineId: string,
   payload: RoutineBlueprintPayload,
+  opts: { startDate?: string } = {},
 ): Promise<void> {
   if (payload.v !== ROUTINE_BLUEPRINT_VERSION) throw new Error('Versión de plantilla no soportada')
 
-  for (const block of payload.blocks) {
+  const ordered = [...payload.blocks].sort((a, b) => a.sort_order - b.sort_order)
+  for (const [index, block] of ordered.entries()) {
+    const dates = opts.startDate ? weekDatesFromStart(opts.startDate, index) : { start_date: block.start_date, end_date: block.end_date }
     const { data: createdBlock, error: blockError } = await supabase
       .from('routine_blocks')
       .insert({
@@ -97,8 +118,8 @@ export async function applyBlueprintPayloadToRoutine(
         name: block.name,
         sort_order: block.sort_order,
         notes: block.notes,
-        start_date: block.start_date,
-        end_date: block.end_date,
+        ...dates,
+        phase_type: block.phase_type ?? null,
       })
       .select('id')
       .single()

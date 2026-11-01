@@ -246,7 +246,8 @@ export async function setWeekPhase(opts: {
   const { studentId, week, phase } = opts
   const { error: wErr } = await supabase.from('routine_blocks').update({ phase_type: phase }).eq('id', week.id)
   if (wErr) return { error: /phase_type|schema cache/i.test(wErr.message) ? PHASE_SQL_HINT : wErr.message, warning: null }
-  if (!studentId) return { error: null, warning: 'La rutina no tiene alumno: la fase no se marca en el calendario.' }
+  // Preestablecida: la fase queda en la semana y se marca en el calendario del alumno al asignarla.
+  if (!studentId) return { error: null, warning: null }
 
   const { data: linked, error: lErr } = await supabase
     .from('macrocycle_plan_blocks')
@@ -286,9 +287,14 @@ export async function setWeekPhase(opts: {
 export type DeletedRoutine = { id: string; name: string; start_date: string; end_date: string; deleted_at: string }
 
 export async function loadDeletedRoutines(userId: string, studentId: string): Promise<DeletedRoutine[]> {
-  const { data } = await fetchRoutineDeletionLog({ userId })
+  const [{ data }, hiddenRes] = await Promise.all([
+    fetchRoutineDeletionLog({ userId }),
+    // Sin la migración oct6 la columna no existe: no se oculta nada.
+    supabase.from('routine_deletion_log').select('id').eq('student_id', studentId).not('calendar_hidden_at', 'is', null),
+  ])
+  const hidden = new Set(((hiddenRes.data ?? []) as { id: string }[]).map((r) => r.id))
   return data
-    .filter((r) => r.student_id === studentId && r.start_date && r.end_date)
+    .filter((r) => r.student_id === studentId && r.start_date && r.end_date && !hidden.has(r.id))
     .map((r) => ({
       id: `deleted-${r.id}`,
       name: r.routine_name,
@@ -296,4 +302,33 @@ export async function loadDeletedRoutines(userId: string, studentId: string): Pr
       end_date: r.end_date! < r.start_date! ? r.start_date! : r.end_date!,
       deleted_at: r.deleted_at,
     }))
+}
+
+/** Quita del calendario el rastro de una rutina borrada (sigue restaurable desde Rutinas › Eliminadas). */
+export async function hideDeletedRoutine(itemId: string): Promise<string | null> {
+  const logId = itemId.replace(/^deleted-/, '')
+  const { error } = await supabase.from('routine_deletion_log').update({ calendar_hidden_at: new Date().toISOString() }).eq('id', logId)
+  if (!error) return null
+  return /calendar_hidden_at|schema cache|permission/i.test(error.message)
+    ? 'Falta correr en Supabase la migración 20261101120000_oct6_correcciones.sql.'
+    : error.message
+}
+
+/** Borra una rutina desde el calendario (queda en Rutinas › Eliminadas para restaurarla). */
+export async function deleteRoutineFromCalendar(routineId: string, ownerId: string): Promise<string | null> {
+  const { error } = await supabase.from('routines').delete().eq('id', routineId).eq('owner_id', ownerId)
+  return error?.message ?? null
+}
+
+/** Marca en el calendario del alumno las fases que traen las semanas de una rutina (al asignar una preestablecida). */
+export async function syncWeekPhasesToCalendar(routineId: string, studentId: string): Promise<void> {
+  const { data } = await supabase
+    .from('routine_blocks')
+    .select('id, start_date, end_date, phase_type, sort_order')
+    .eq('routine_id', routineId)
+    .not('phase_type', 'is', null)
+    .order('sort_order')
+  for (const w of (data ?? []) as { id: string; start_date: string | null; end_date: string | null; phase_type: string }[]) {
+    await setWeekPhase({ studentId, week: w, phase: w.phase_type })
+  }
 }
