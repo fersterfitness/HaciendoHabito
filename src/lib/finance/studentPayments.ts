@@ -21,7 +21,7 @@ export type StudentPaymentRow = {
   phone: string | null
   /** Día de pago del mes (el que acordó el alumno). */
   dueDay: number | null
-  /** Ventana guardada (compatibilidad: el día de pago es `dayFrom`). */
+  /** Ventana guardada (compatibilidad: el día de pago es el último, `dayTo`). */
   dayFrom: number | null
   dayTo: number | null
   /** Fecha de pago del mes mostrado (YYYY-MM-DD), si tiene día de pago. */
@@ -162,7 +162,8 @@ export function buildPaymentBoard(opts: {
         .map((i) => i.income_date)
         .sort()
         .slice(-1)[0]
-      const dueDay = s.payment_day_from ?? s.payment_day_to ?? null
+      // Alumnos con la ventana vieja («del 1 al 10»): la fecha de pago es el último día, no el primero.
+      const dueDay = s.payment_day_to ?? s.payment_day_from ?? null
       const { state, reminder, timing } = computePaymentState({
         expected,
         paid,
@@ -218,6 +219,6 @@ export function reminderMessage(kind: PaymentReminderKind, studentName: string):
 }
 
 export function paymentWindowLabel(from: number | null, to: number | null): string {
-  const day = from ?? to
+  const day = to ?? from
   return day == null ? 'Sin fecha' : `Día ${day}`
 }

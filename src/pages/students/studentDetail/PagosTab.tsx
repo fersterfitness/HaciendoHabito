@@ -179,7 +179,7 @@ export function PagosTab({
             <button
               type="button"
               onClick={() => {
-                setFromInput(dayFrom != null ? String(dayFrom) : dayTo != null ? String(dayTo) : '')
+                setFromInput(dayTo != null ? String(dayTo) : dayFrom != null ? String(dayFrom) : '')
                 setEditingWindow(true)
               }}
               className="text-2xs font-semibold text-ink-secondary underline-offset-4 hover:text-ink-primary hover:underline"

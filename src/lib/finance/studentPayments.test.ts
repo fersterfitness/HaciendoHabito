@@ -76,8 +76,21 @@ describe('buildPaymentBoard', () => {
     })
     expect(rows[0].expected).toBe(37500)
     expect(rows[0].state).toBe('vencido')
-    expect(rows[0].dueDate).toBe('2026-10-01')
+    expect(rows[0].dueDate).toBe('2026-10-05')
     expect(rows[0].pendingIncomeIds).toEqual(['i1'])
+  })
+
+  it('con la ventana vieja (del 1 al 10) vence el 10, no el 1', () => {
+    const board = (day: number) =>
+      buildPaymentBoard({
+        students: [{ id: 's1', full_name: 'Ailin', monthly_fee_amount: 45000, payment_day_from: 1, payment_day_to: 10, created_at: '2026-01-01T00:00:00Z' }],
+        incomes: [],
+        month: new Date(2026, 10, 1),
+        today: new Date(2026, 10, day),
+      })[0]
+    expect(board(2)).toMatchObject({ state: 'pendiente', timing: 'antes', reminder: null, dueDate: '2026-11-10' })
+    expect(board(10)).toMatchObject({ timing: 'hoy', reminder: 'due' })
+    expect(board(11)).toMatchObject({ state: 'vencido', timing: 'despues' })
   })
 
   it('sin rutina pendiente espera la cuota mensual', () => {
