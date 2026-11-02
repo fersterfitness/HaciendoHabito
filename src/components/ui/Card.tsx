@@ -20,6 +20,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   return (
     <div
       ref={ref}
+      data-hh-card=""
       className={cn(
         'rounded-2xl border border-surface-border/90 bg-surface-card shadow-card',
         hover &&

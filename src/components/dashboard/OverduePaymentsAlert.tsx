@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BellRing, Check, ChevronDown, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { markReminderSent, useActiveStudents, useIncomes, useSentReminders } from '@/data/finance'
+import { markReminderSent, useActiveStudents, useIncomes, useSentReminders, unmarkReminderSent } from '@/data/finance'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { MarkPaidModal, type MarkPaidValues } from '@/components/finances/MarkPaidModal'
 import { buildPaymentBoard, monthKey, reminderMessage, type StudentPaymentRow } from '@/lib/finance/studentPayments'
@@ -38,10 +38,33 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
 
   if (!ownerId || rows.length === 0) return null
 
-  async function markSent(r: StudentPaymentRow) {
+  async function markSent(r: StudentPaymentRow, undoable = false) {
     if (!r.reminder) return
-    const err = await markReminderSent({ student_id: r.studentId, period, kind: r.reminder })
-    if (err) toast.error(err)
+    const entry = { student_id: r.studentId, period, kind: r.reminder }
+    const err = await markReminderSent(entry)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    if (!undoable) return
+    toast(
+      (t) => (
+        <span className="flex items-center gap-3 text-sm">
+          {r.fullName.split(' ')[0]} salió de la lista
+          <button
+            type="button"
+            className="font-semibold text-brand-primary hover:underline"
+            onClick={() => {
+              toast.dismiss(t.id)
+              void unmarkReminderSent(entry).then((e) => e && toast.error(e))
+            }}
+          >
+            Deshacer
+          </button>
+        </span>
+      ),
+      { duration: 6000 },
+    )
   }
 
   /** Con emojis, WhatsApp escritorio rompe el texto del link: se copia y se abre el chat para pegar. */
@@ -97,7 +120,7 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
         </span>
         <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="text-xs font-semibold text-ink-primary">Recordatorios de pago</span>
-          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-semibold tabular-nums text-ink-primary">
             {rows.length}
           </span>
           <span className="text-2xs text-ink-muted">llegó su fecha de pago y no figura el abono</span>
@@ -152,7 +175,7 @@ export function OverduePaymentsAlert({ ownerId }: { ownerId: string }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void markSent(r)}
+                  onClick={() => void markSent(r, true)}
                   className="shrink-0 rounded-md px-1.5 py-1 text-3xs text-ink-muted hover:text-ink-primary"
                   title="Sacarlo de la lista sin mandar nada"
                 >

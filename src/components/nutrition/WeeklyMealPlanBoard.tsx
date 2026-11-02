@@ -42,7 +42,7 @@ export function WeeklyMealPlanBoard({
             return (
               <h3
                 key={day}
-                className="min-w-0 flex-1 text-center text-xs font-bold tracking-tight text-ink-primary"
+                className="min-w-0 flex-1 text-center text-xs font-semibold tracking-tight text-ink-primary"
                 style={{ color: accent.color }}
               >
                 {day}

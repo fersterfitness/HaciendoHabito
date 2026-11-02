@@ -13,7 +13,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     | 'soft'
     /** @deprecated usar `primary` (mismo degradé de marca). */
     | 'gradientPrimary'
-    /** @deprecated usar `soft`. */
+    /** @deprecated usar `primary` (era la acción principal de cada formulario). */
     | 'gradientSecondary'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   loading?: boolean
@@ -31,19 +31,19 @@ const variantStyles = {
     'hover:bg-surface-elevated hover:border-surface-inputBorder',
   ),
   ghost: 'bg-transparent text-ink-secondary font-medium hover:text-ink-primary hover:bg-surface-elevated',
+  /** Borrar / acciones destructivas: gris con texto rojo; el rojo se llena recién al pasar. */
   danger: cn(
-    'bg-status-expired/10 text-status-expired font-semibold border border-status-expired/30',
-    'hover:bg-status-expired/15 hover:border-status-expired/45',
+    'bg-transparent text-status-expired font-medium border border-surface-border',
+    'hover:bg-status-expired/10 hover:border-status-expired/40',
   ),
   outline: cn(
     'bg-transparent text-ink-secondary font-medium border border-surface-border',
     'hover:bg-surface-elevated/60 hover:text-ink-primary hover:border-surface-inputBorder',
   ),
-  /** Variante «suave» con tinte de marca (acciones de listado, menos peso que primary). */
+  /** Secundaria con relleno gris (acciones de listado). El color de marca queda solo para `primary`. */
   soft: cn(
-    'bg-brand-primary/10 text-brand-primary font-semibold border border-brand-primary/20',
-    'hover:bg-brand-primary/15 hover:border-brand-primary/35',
-    'dark:text-[#ff8a4d]',
+    'bg-surface-elevated text-ink-primary font-medium border border-transparent',
+    'hover:bg-surface-border/70',
   ),
 }
 
@@ -70,7 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const resolved = variant === 'gradientPrimary' ? 'primary' : variant === 'gradientSecondary' ? 'soft' : variant
+    const resolved = variant === 'gradientPrimary' || variant === 'gradientSecondary' ? 'primary' : variant
 
     const composedClassName = cn(
       'inline-flex select-none items-center justify-center whitespace-nowrap',

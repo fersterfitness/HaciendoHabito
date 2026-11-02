@@ -168,7 +168,7 @@ export function IntakeChangeablePlansSection({
             'font-semibold tracking-tight',
             flushEmbed
               ? lightChrome
-                ? 'text-3xs font-bold text-ink-secondary'
+                ? 'text-3xs font-semibold text-ink-secondary'
                 : 'text-xs font-medium text-ink-muted'
               : heroTone
                 ? 'text-xs font-medium text-white/55'
@@ -360,7 +360,7 @@ export function IntakeChangeablePlansSection({
                     </div>
                     <div className="min-w-0 flex-1">
                       {plan.badge?.trim() ? (
-                        <p className="text-3xs font-bold text-orange-500">{plan.badge.trim()}</p>
+                        <p className="text-3xs font-semibold text-orange-500">{plan.badge.trim()}</p>
                       ) : null}
                       <p className={cn('truncate text-sm font-semibold', darkChrome ? 'text-white' : 'text-zinc-900')}>
                         {plan.name}
@@ -429,7 +429,7 @@ export function IntakeChangeablePlansSection({
               >
                 {/* Badge ámbar — esquina superior derecha, montado sobre el borde */}
                 {plan.badge?.trim() ? (
-                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-3xs font-bold text-white shadow-sm">
+                  <span className="absolute -top-2.5 right-5 z-10 rounded-lg bg-orange-500 px-3.5 py-1 text-3xs font-semibold text-white shadow-sm">
                     {plan.badge.trim()}
                   </span>
                 ) : null}
@@ -437,7 +437,7 @@ export function IntakeChangeablePlansSection({
                 <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,0.85fr)_1px_minmax(0,1.25fr)] sm:gap-0 sm:p-6">
                   {/* IZQUIERDA: nombre, precio, descripción, CTA */}
                   <div className="sm:pr-6">
-                    <p className={cn('text-xs font-bold ', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
+                    <p className={cn('text-xs font-semibold ', darkChrome ? 'text-white/55' : 'text-neutral-500')}>
                       {plan.name}
                     </p>
                     <div className="mt-2 flex items-baseline gap-1">
@@ -509,7 +509,7 @@ export function IntakeChangeablePlansSection({
               {plan.badge?.trim() ? (
                 <span
                   className={cn(
-                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-3xs font-bold ',
+                    'absolute right-3 top-3 z-10 rounded-lg px-3 py-1 text-3xs font-semibold ',
                     cornerBadgeClass(plan.badge, badgeVariant),
                   )}
                 >

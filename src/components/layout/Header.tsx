@@ -112,7 +112,7 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
           {profile ? (
             <AvatarOrInitials fullName={profile.full_name} avatarUrl={profile.avatar_url} size="md" />
           ) : (
-            <span className="text-xs font-bold text-ink-muted">?</span>
+            <span className="text-xs font-semibold text-ink-muted">?</span>
           )}
         </button>
       </div>

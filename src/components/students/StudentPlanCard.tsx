@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 import { Ban, Calendar, CalendarPlus, ChevronDown, ChevronUp, CreditCard, History, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -129,7 +130,7 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
 
       <CardContent>
         {loading ? (
-          <p className="text-sm text-ink-muted">Cargando…</p>
+          <ListSkeleton rows={2} />
         ) : !current ? (
           <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed border-surface-border p-4">
             <p className="text-sm text-ink-secondary">Este alumno todavía no tiene un plan asignado.</p>

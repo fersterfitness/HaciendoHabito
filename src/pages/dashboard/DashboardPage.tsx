@@ -1234,7 +1234,7 @@ export function DashboardPage() {
                   const accent = BRAND_ROW_ACCENT_PAIR[i % BRAND_ROW_ACCENT_PAIR.length]
                   return (
                     <div key={s.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate(peopleDetailPath(s.id))}>
-                      <span className="w-4 text-2xs font-bold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
+                      <span className="w-4 text-2xs font-semibold text-ink-muted tabular-nums shrink-0">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="mb-1 flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">

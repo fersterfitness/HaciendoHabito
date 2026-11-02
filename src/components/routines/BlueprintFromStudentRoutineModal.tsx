@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 import { Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
@@ -141,7 +142,7 @@ export function BlueprintFromStudentRoutineModal({
 
     <div className="mt-4">
       {loading ? (
-        <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
+        <ListSkeleton className="py-4" />
       ) : (
         <RoutineSourcePicker routines={routines} value={routineId} onChange={pick} includeLibrary={false} />
       )}

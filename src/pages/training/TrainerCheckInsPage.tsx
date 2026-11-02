@@ -1,4 +1,5 @@
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -1380,7 +1381,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             </CardHeader>
             <CardContent className="space-y-2">
             {loading ? (
-              <p className="text-sm text-ink-muted">Cargando…</p>
+              <ListSkeleton />
             ) : forms.length === 0 ? (
               <EmptyState
                 title="Sin formularios"

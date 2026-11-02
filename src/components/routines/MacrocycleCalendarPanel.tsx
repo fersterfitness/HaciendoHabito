@@ -144,7 +144,7 @@ function PlanEditor({
     <section className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-2xs font-bold text-brand-primary">{draft.id ? 'Bloque del macrociclo' : 'Nuevo bloque'}</p>
+          <p className="text-2xs font-semibold text-brand-primary">{draft.id ? 'Bloque del macrociclo' : 'Nuevo bloque'}</p>
           <p className="text-xs text-ink-muted">
             {fmtShort(minYmd(draft.start_date, draft.end_date))} → {fmtShort(maxYmd(draft.start_date, draft.end_date))} · {days} día{days === 1 ? '' : 's'}
             {days >= 7 ? ` (${durationWeeks(draft.start_date, draft.end_date)} sem.)` : ''}
@@ -902,7 +902,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
   }
 
   const laneLabel = (text: string) => (
-    <div className="sticky left-0 z-10 flex items-center gap-2 bg-surface-card px-2 pt-2 text-3xs font-bold text-ink-muted" style={{ width: 'max-content' }}>
+    <div className="sticky left-0 z-10 flex items-center gap-2 bg-surface-card px-2 pt-2 text-3xs font-semibold text-ink-muted" style={{ width: 'max-content' }}>
       {text}
     </div>
   )
@@ -1043,7 +1043,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                         key={i}
                         style={{ width: g.count * CW }}
                         className={cn(
-                          'shrink-0 truncate border-l border-surface-border/70 px-1.5 py-1.5 text-2xs font-bold',
+                          'shrink-0 truncate border-l border-surface-border/70 px-1.5 py-1.5 text-2xs font-semibold',
                           g.month < 0 ? 'text-ink-muted/40' : i % 2 ? 'bg-surface-elevated/50 text-ink-primary' : 'text-ink-primary',
                         )}
                       >
@@ -1175,7 +1175,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                 <section className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-2xs font-bold text-ink-muted">Rutina</p>
+                      <p className="text-2xs font-semibold text-ink-muted">Rutina</p>
                       <div className="flex items-center gap-2">
                         <span className="h-3 w-3 shrink-0 rounded" style={{ background: selected.color }} />
                         <input
@@ -1209,7 +1209,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
 
                   <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr_1.2fr]">
                     <div className="space-y-2">
-                      <p className="text-2xs font-bold text-ink-muted">Tipo y color</p>
+                      <p className="text-2xs font-semibold text-ink-muted">Tipo y color</p>
                       <select
                         value={selected.type ?? ''}
                         onChange={(e) => void patchMeta(selected.id, { block_type: e.target.value || null })}
@@ -1244,7 +1244,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-2xs font-bold text-ink-muted">Mover y copiar</p>
+                      <p className="text-2xs font-semibold text-ink-muted">Mover y copiar</p>
                       <div className="flex flex-wrap gap-2">
                         <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => void doMove(selected.routine, -7)}>
                           <ArrowLeft className="h-3.5 w-3.5" /> 1 semana
@@ -1267,7 +1267,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-2xs font-bold text-ink-muted">Volumen semanal</p>
+                      <p className="text-2xs font-semibold text-ink-muted">Volumen semanal</p>
                       {selected.routine.weeks.length === 0 ? (
                         <p className="text-xs text-ink-muted">Sin semanas cargadas todavía.</p>
                       ) : selectedAlerts.length === 0 ? (

@@ -209,7 +209,7 @@ export function DayCard({
               <div className="flex items-center justify-between px-3 py-2 border-b border-brand-primary/20">
                 <div className="flex items-center gap-2">
                   <Link2 className="h-3.5 w-3.5 text-brand-primary" />
-                  <span className="text-xs font-bold text-brand-primary">Seleccioná los ejercicios del circuito</span>
+                  <span className="text-xs font-semibold text-brand-primary">Seleccioná los ejercicios del circuito</span>
                 </div>
                 <button
                   type="button"
@@ -238,7 +238,7 @@ export function DayCard({
                       'w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors',
                       selectedIds.has(ex.id) ? 'bg-brand-primary border-brand-primary' : 'border-surface-border'
                     )}>
-                      {selectedIds.has(ex.id) && <span className="text-white text-3xs font-bold">✓</span>}
+                      {selectedIds.has(ex.id) && <span className="text-white text-3xs font-semibold">✓</span>}
                     </div>
                     <span className="flex-1 text-sm font-medium text-ink-primary">{ex.exercise?.name ?? 'Ejercicio'}</span>
                     <span className="text-3xs text-ink-muted">{(ex.exercise?.muscle_group as { name: string } | undefined)?.name}</span>
@@ -285,7 +285,7 @@ export function DayCard({
                 <div className="flex items-center justify-between px-3 py-1.5 bg-brand-primary/5 border-b border-brand-primary/20">
                   <div className="flex items-center gap-2">
                     <Link2 className="h-3 w-3 text-brand-primary" />
-                    <span className="text-3xs font-bold text-brand-primary ">
+                    <span className="text-3xs font-semibold text-brand-primary ">
                       Circuito · {group.exercises.length} ejercicios
                     </span>
                   </div>

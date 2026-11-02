@@ -1394,7 +1394,7 @@ export function AppointmentsPage() {
                       >
                         {format(day, 'EEE', { locale: es })}
                         {dayIsToday ? (
-                          <span className="ml-1.5 align-middle text-3xs font-bold text-brand-primary">
+                          <span className="ml-1.5 align-middle text-3xs font-semibold text-brand-primary">
                             · Hoy
                           </span>
                         ) : null}
@@ -1483,7 +1483,7 @@ export function AppointmentsPage() {
                     >
                       {format(day, 'EEE', { locale: es })}
                       {dayIsToday ? (
-                        <span className="ml-1.5 align-middle text-3xs font-bold text-brand-primary">
+                        <span className="ml-1.5 align-middle text-3xs font-semibold text-brand-primary">
                           · Hoy
                         </span>
                       ) : null}

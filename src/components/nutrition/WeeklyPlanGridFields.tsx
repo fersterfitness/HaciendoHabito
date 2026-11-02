@@ -113,7 +113,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
             const count = filledMealCountForDay(normalized, di)
             return (
               <header key={`h-${day}`} className="flex items-center justify-between gap-2 px-0.5">
-                <h3 className="text-xs font-bold tracking-tight text-ink-primary">{day}</h3>
+                <h3 className="text-xs font-semibold tracking-tight text-ink-primary">{day}</h3>
                 <span
                   className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-3xs font-semibold tabular-nums"
                   style={{ backgroundColor: `${accent.color}22`, color: accent.color }}
@@ -135,7 +135,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                 >
                   <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />
                   <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
-                    <p className="text-xs font-bold leading-tight text-ink-primary">{meal.label}</p>
+                    <p className="text-xs font-semibold leading-tight text-ink-primary">{meal.label}</p>
                     {meal.approxTime.trim() ? (
                       <p className="mt-0.5 text-3xs font-medium text-ink-muted">
                         {meal.approxTime}

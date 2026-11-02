@@ -228,7 +228,7 @@ function CounterTable({
   onAdjust?: (row: VolumeRow) => void
   studentFirstName?: string
 }) {
-  const head = 'px-1.5 py-2 text-center text-3xs font-bold text-ink-muted'
+  const head = 'px-1.5 py-2 text-center text-3xs font-semibold text-ink-muted'
   return (
     <div className="overflow-x-auto rounded-xl border border-surface-border/80">
       <table className="w-full min-w-[1080px] border-collapse text-2xs">
@@ -249,7 +249,7 @@ function CounterTable({
           {week.days.map((day) => (
             <Fragment key={day.id}>
               <tr>
-                <td colSpan={4 + MUSCLE_IDS.length} className="border-t border-surface-border bg-brand-primary/10 px-2 py-1.5 text-3xs font-bold text-brand-primary">
+                <td colSpan={4 + MUSCLE_IDS.length} className="border-t border-surface-border bg-brand-primary/10 px-2 py-1.5 text-3xs font-semibold text-brand-primary">
                   <span className="sticky left-2">
                     {day.name || 'Día'}
                     <span className="ml-2 rounded-full bg-brand-primary/15 px-2 py-0.5 normal-case tracking-normal">
@@ -364,7 +364,7 @@ function CounterTable({
         </tbody>
         <tfoot className="bg-surface-elevated/70">
           <tr>
-            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-bold text-ink-muted">
+            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-semibold text-ink-muted">
               Series brutas (con sinergias)
             </td>
             {MUSCLE_IDS.map((id) => (
@@ -374,7 +374,7 @@ function CounterTable({
             ))}
           </tr>
           <tr>
-            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-bold text-ink-primary">
+            <td colSpan={4} className="sticky left-0 z-10 bg-surface-elevated px-2 py-1.5 text-3xs font-semibold text-ink-primary">
               Series ponderadas (fatiga real)
             </td>
             {MUSCLE_IDS.map((id) => {
@@ -593,7 +593,7 @@ function SettingsModal({
         </div>
 
         <section>
-          <h4 className="mb-2 text-2xs font-bold text-ink-muted">Rango objetivo semanal</h4>
+          <h4 className="mb-2 text-2xs font-semibold text-ink-muted">Rango objetivo semanal</h4>
           <div className="grid grid-cols-2 gap-3">
             <NumField label="Mínimo (series ponderadas)" value={s.targetMin} onChange={(v) => setS({ ...s, targetMin: v })} />
             <NumField label="Máximo (sostenible)" value={s.targetMax} onChange={(v) => setS({ ...s, targetMax: v })} />
@@ -601,7 +601,7 @@ function SettingsModal({
         </section>
 
         <section>
-          <h4 className="mb-2 text-2xs font-bold text-ink-muted">Regla de RIR</h4>
+          <h4 className="mb-2 text-2xs font-semibold text-ink-muted">Regla de RIR</h4>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <NumField
               label="Técnicas suman con RIR ≤"
@@ -621,7 +621,7 @@ function SettingsModal({
         </section>
 
         <section>
-          <h4 className="mb-2 text-2xs font-bold text-ink-muted">Multiplicadores de técnica</h4>
+          <h4 className="mb-2 text-2xs font-semibold text-ink-muted">Multiplicadores de técnica</h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {TECHNIQUES.map((t) => (
               <NumField
@@ -636,7 +636,7 @@ function SettingsModal({
         </section>
 
         <section>
-          <h4 className="mb-1 text-2xs font-bold text-ink-muted">Prioridades por músculo</h4>
+          <h4 className="mb-1 text-2xs font-semibold text-ink-muted">Prioridades por músculo</h4>
           <p className="mb-2 text-3xs text-ink-muted">Vacío = usa el rango general. Útil para el mapa muscular objetivo del alumno.</p>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {VOLUME_MUSCLES.map((m) => {

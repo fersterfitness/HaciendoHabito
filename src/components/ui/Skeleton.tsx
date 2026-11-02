@@ -16,6 +16,23 @@ export function Skeleton({
   )
 }
 
+/** Filas grises mientras carga una lista (en lugar de «Cargando…»). */
+export function ListSkeleton({ rows = 3, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={cn('space-y-2.5', className)} aria-busy="true" aria-label="Cargando">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className={cn('h-3', i % 2 ? 'w-1/2' : 'w-2/3')} />
+            <Skeleton className="h-2.5 w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Skeleton de una fila de tabla de alumnos/rutinas */
 export function TableRowSkeleton({ cols = 4 }: { cols?: number }) {
   const colWidths = ['w-40', 'w-20', 'w-16', 'w-28', 'w-20']

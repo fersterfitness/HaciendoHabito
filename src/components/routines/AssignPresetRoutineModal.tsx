@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 import { Library } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -94,7 +95,7 @@ export function AssignPresetRoutineModal({
       Elegí macrociclo → mesociclo → rutina → variante. El objetivo se copia al asignar.
     </p>
     {loading ? (
-      <p className="py-8 text-center text-sm text-ink-muted">Cargando…</p>
+      <ListSkeleton className="py-4" />
     ) : items.length === 0 ? (
       <p className="py-6 text-sm text-ink-muted">
         Todavía no hay variantes. Guardá una desde el detalle de una rutina (Base de datos → Rutinas preestablecidas).

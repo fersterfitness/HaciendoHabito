@@ -87,8 +87,8 @@
     --surface-elevated: 44 44 44;
     --surface-panel: 50 50 50;
     --surface-input: 37 37 37;
-    --surface-border: 52 52 52;
-    --surface-input-border: 70 70 70;
+    --surface-border: 46 46 46;
+    --surface-input-border: 64 64 64;
 
     --brand-primary: 255 92 26;
     --brand-hover: 255 112 51;
@@ -118,6 +118,18 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Números del mismo ancho: importes, fechas y contadores quedan alineados en columnas. */
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Una tarjeta dentro de otra no repite el borde: se separa con un gris suave. */
+  [data-hh-card] [data-hh-card] {
+    border-color: transparent;
+    background-color: rgb(var(--surface-elevated) / 0.45);
+    box-shadow: none;
   }
 
   /* Títulos con un poco menos de aire entre letras, como en los editores de documentos. */

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
@@ -94,7 +95,7 @@ export function NutritionClinicalNotesSection({
       <div className="border-t border-surface-border pt-4 space-y-2">
         <p className="text-xs font-semibold text-ink-muted">Últimas entradas</p>
         {loading ? (
-          <p className="text-sm text-ink-muted">Cargando…</p>
+          <ListSkeleton />
         ) : rows.length === 0 ? (
           <p className="text-sm text-ink-muted">Todavía no hay notas en el historial.</p>
         ) : (

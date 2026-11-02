@@ -204,7 +204,7 @@ export function IntakeProAvatar({
     <span
       className={cn(
         sizeClass,
-        'flex shrink-0 items-center justify-center px-0.5 text-3xs font-bold uppercase leading-tight ring-1',
+        'flex shrink-0 items-center justify-center px-0.5 text-3xs font-semibold uppercase leading-tight ring-1',
         shape === 'circle' ? 'rounded-full' : 'rounded-lg',
         theme === 'light'
           ? 'bg-neutral-200/90 text-neutral-800 ring-neutral-300/70'
@@ -245,7 +245,7 @@ export function IntakeProfessionalMiniCard({
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            'text-3xs font-bold ',
+            'text-3xs font-semibold ',
             isDark ? 'text-white/45' : 'text-ink-muted',
           )}
         >

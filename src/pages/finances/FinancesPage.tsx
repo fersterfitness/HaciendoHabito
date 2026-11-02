@@ -782,7 +782,7 @@ export function FinancesPage() {
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
-              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-3xs font-bold text-status-expiring">
+              <span className="ml-auto inline-flex rounded border border-status-expiring/45 bg-status-expiring/15 px-2 py-0.5 text-3xs font-semibold text-status-expiring">
                 {deudores.length}
               </span>
             </div>

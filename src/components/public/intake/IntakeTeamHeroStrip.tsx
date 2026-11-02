@@ -26,7 +26,7 @@ export function IntakeTeamHeroStrip({ theme = 'dark', members }: IntakeTeamHeroS
     <section aria-label="Nuestro equipo" className="mb-0">
       <p
         className={cn(
-          'mb-3 text-center text-2xs font-bold ',
+          'mb-3 text-center text-2xs font-semibold ',
           isDark ? 'text-white/70' : 'text-ink-secondary',
         )}
       >

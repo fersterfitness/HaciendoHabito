@@ -29,7 +29,7 @@ export function CheckInQuestionFields({
   return (
     <section className="rounded-3xl border border-surface-border/70 bg-surface-card/80 p-4 shadow-card sm:p-5">
       <p className="text-[15px] font-semibold leading-snug text-ink-primary">
-        <span className="mr-2 inline-flex h-6 w-6 translate-y-[-1px] items-center justify-center rounded-full bg-brand-primary/12 text-2xs font-bold tabular-nums text-brand-primary">
+        <span className="mr-2 inline-flex h-6 w-6 translate-y-[-1px] items-center justify-center rounded-full bg-brand-primary/12 text-2xs font-semibold tabular-nums text-brand-primary">
           {index + 1}
         </span>
         {question.label}

@@ -102,6 +102,19 @@ export function useSentReminders(period: string) {
   })
 }
 
+/** Deshace «ya le avisé»: el alumno vuelve a la lista de avisos. */
+export async function unmarkReminderSent(r: SentReminder): Promise<string | null> {
+  const { error } = await supabase
+    .from('student_payment_reminders')
+    .delete()
+    .eq('student_id', r.student_id)
+    .eq('period', r.period)
+    .eq('kind', r.kind)
+  if (error) return error.message
+  void invalidateFinance()
+  return null
+}
+
 export async function markReminderSent(r: SentReminder): Promise<string | null> {
   const { error } = await supabase
     .from('student_payment_reminders')

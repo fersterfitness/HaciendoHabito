@@ -70,7 +70,7 @@ export function SegmentedControl({
         {typeof item.count === 'number' ? (
           <span
             className={cn(
-              'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-3xs font-bold tabular-nums',
+              'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-3xs font-semibold tabular-nums',
               active ? 'bg-brand-primary/[0.12] text-brand-primary' : 'bg-surface-border/70 text-ink-muted',
             )}
           >

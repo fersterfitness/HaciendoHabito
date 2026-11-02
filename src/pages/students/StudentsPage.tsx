@@ -328,7 +328,7 @@ function FiltersDropdown({
             <Filter className="h-4 w-4 opacity-70" aria-hidden />
             <span className="hidden sm:inline">Filtrar</span>
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-secondary px-1.5 text-3xs font-bold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-secondary px-1.5 text-3xs font-semibold text-white">
                 {activeCount}
               </span>
             )}
@@ -1081,7 +1081,7 @@ function StudentDirectoryTable({
                   </span>
                   {rmTestDueIds.has(student.id) ? (
                     <span
-                      className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                      className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-semibold bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
                       title="12 semanas de rutina desde el último test de RM"
                     >
                       Testear RM
@@ -1220,7 +1220,7 @@ function StudentDirectoryTable({
                       )}
                       {rmTestDueIds.has(student.id) ? (
                         <span
-                          className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-bold bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
+                          className="inline-flex items-center rounded px-1.5 py-0.5 text-3xs font-semibold bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300"
                           title="12 semanas de rutina desde el último test de RM"
                         >
                           Testear RM

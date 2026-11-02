@@ -221,10 +221,7 @@ function SidebarNavGroup({ items, title, className }: { items: NavItem[]; title?
             opacity: pill.opacity,
           }}
           transition={reduceMotion ? { duration: 0.12 } : railSpring}
-        >
-          {/* Barrita de acento a la izquierda */}
-          <span className="absolute -left-px top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gradient" />
-        </motion.div>
+        />
         {items.map((item) => (
           <RailNavLink
             key={navItemKey(item)}
@@ -283,7 +280,7 @@ function RailNavLink({
             fallback={Icon}
             isActive={isActive}
             parentHovered={hovered}
-            className={isActive ? 'text-brand-primary' : undefined}
+            className={isActive ? 'text-ink-primary' : undefined}
           />
         </span>
         {expanded ? (

@@ -185,14 +185,14 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
                   <table className="w-full min-w-[800px] border-collapse text-xs">
                     <thead>
                       <tr>
-                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-3xs font-bold text-white">
+                        <th className="sticky left-0 z-20 min-w-[11rem] border-b border-r border-zinc-700 bg-black px-2 py-2 text-left text-3xs font-semibold text-white">
                           Ejercicio / bloque
                         </th>
                         {weekLabels.map((w, i) => (
                           <th
                             key={i}
                             className={cn(
-                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-3xs font-bold text-white',
+                              'min-w-[10rem] border-b border-zinc-700 px-2 py-2 text-center text-3xs font-semibold text-white',
                               weekHeaderBg(i),
                             )}
                           >

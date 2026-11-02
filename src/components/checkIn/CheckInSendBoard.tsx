@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Copy, ExternalLink } from 'lucide-react'
+import { Check, Copy, ExternalLink, MoreHorizontal } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import { Card } from '@/components/ui/Card'
+import { Popover } from '@/components/ui/Popover'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { isWeeklyTemplate, parseQuestions } from '@/lib/checkIn/questions'
@@ -37,6 +39,7 @@ export function CheckInSendBoard({ ownerId }: { ownerId: string }) {
   const [answeredByStudent, setAnsweredByStudent] = useState<Map<string, Set<string>>>(new Map())
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'faltan' | 'todos'>('faltan')
+  const [menuFor, setMenuFor] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -132,7 +135,13 @@ export function CheckInSendBoard({ ownerId }: { ownerId: string }) {
     else toast.error('No se pudo copiar')
   }
 
-  if (loading) return <Card padding="lg" className="h-40 animate-pulse" />
+  if (loading) {
+    return (
+      <Card padding="lg">
+        <ListSkeleton rows={5} />
+      </Card>
+    )
+  }
 
   if (!form) {
     return (
@@ -218,33 +227,56 @@ export function CheckInSendBoard({ ownerId }: { ownerId: string }) {
                     ) : null}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {!r.currentDone ? (
+                <div className="flex items-center gap-1.5">
+                  {r.owed.length + (r.currentDone ? 0 : 1) > 1 ? (
+                    <button type="button" className="hh-row-btn" onClick={() => void send(r, 'all')} title="Un solo mensaje con un link por semana">
+                      <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                      Mandar todo
+                    </button>
+                  ) : !r.currentDone ? (
                     <button type="button" className="hh-row-btn" onClick={() => void send(r, 'current')} title="Link de esta semana">
                       <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                       Esta semana
                     </button>
-                  ) : null}
-                  {r.owed.map((p) => (
-                    <button key={p} type="button" className="hh-row-btn" onClick={() => void send(r, 'owed', p)} title={`Link solo de la semana del ${periodLabel(p)}`}>
+                  ) : r.owed.length === 1 ? (
+                    <button type="button" className="hh-row-btn" onClick={() => void send(r, 'owed', r.owed[0])} title="Link solo de esa semana">
                       <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                      {periodLabel(p)}
-                    </button>
-                  ))}
-                  {r.owed.length + (r.currentDone ? 0 : 1) > 1 ? (
-                    <button type="button" className="hh-row-btn" onClick={() => void send(r, 'all')} title="Un solo mensaje con un link por semana">
-                      <WhatsAppIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                      Todo junto
+                      {periodLabel(r.owed[0]!)}
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    className="hh-row-btn"
-                    title="Copiar su link de esta semana"
-                    onClick={() => void copyWhatsAppMessage(studentUrl(r)).then((ok) => (ok ? toast.success('Link copiado') : toast.error('No se pudo copiar')))}
+                  <Popover
+                    open={menuFor === r.id}
+                    onOpenChange={(next) => setMenuFor(next ? r.id : null)}
+                    align="end"
+                    className="w-60 p-1"
+                    trigger={(t) => (
+                      <button {...t} type="button" className="hh-row-btn px-1.5" aria-label={`Más opciones para ${r.full_name}`}>
+                        <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    )}
                   >
-                    <Copy className="h-3 w-3" aria-hidden />
-                  </button>
+                    {!r.currentDone ? (
+                      <MenuItem onClick={() => { setMenuFor(null); void send(r, 'current') }}>
+                        <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        Solo esta semana ({periodLabel(current)})
+                      </MenuItem>
+                    ) : null}
+                    {r.owed.map((p) => (
+                      <MenuItem key={p} onClick={() => { setMenuFor(null); void send(r, 'owed', p) }}>
+                        <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        Solo la del {periodLabel(p)}
+                      </MenuItem>
+                    ))}
+                    <MenuItem
+                      onClick={() => {
+                        setMenuFor(null)
+                        void copyWhatsAppMessage(studentUrl(r)).then((ok) => (ok ? toast.success('Link copiado') : toast.error('No se pudo copiar')))
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+                      Copiar link de esta semana
+                    </MenuItem>
+                  </Popover>
                 </div>
               </li>
             ))}
@@ -252,5 +284,17 @@ export function CheckInSendBoard({ ownerId }: { ownerId: string }) {
         )}
       </Card>
     </div>
+  )
+}
+
+function MenuItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-ink-primary transition-colors hover:bg-surface-elevated"
+    >
+      {children}
+    </button>
   )
 }

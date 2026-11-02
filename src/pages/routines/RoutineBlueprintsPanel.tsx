@@ -504,7 +504,7 @@ export function RoutineBlueprintsPanel() {
                             <div key={rut || '__loose__'}>
                               {rut ? (
                                 <div className="mb-1 flex items-center gap-1.5">
-                                  <p className="text-3xs font-bold text-ink-secondary">{rut}</p>
+                                  <p className="text-3xs font-semibold text-ink-secondary">{rut}</p>
                                   <button
                                     type="button"
                                     onClick={() => void renameRoutineGroup(isReal ? cat : '', sub, rut)}

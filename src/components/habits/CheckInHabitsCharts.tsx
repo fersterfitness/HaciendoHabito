@@ -180,7 +180,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-3xs font-bold text-brand-secondary">Check-in</p>
+          <p className="text-3xs font-semibold text-brand-secondary">Check-in</p>
           <p className="text-sm font-semibold tracking-tight text-ink-primary">Hábitos del formulario</p>
           <p className="mt-0.5 max-w-md text-2xs leading-relaxed text-ink-muted">
             {period === 'evolucion'

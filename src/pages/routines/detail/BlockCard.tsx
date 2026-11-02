@@ -86,7 +86,7 @@ export function BlockCard({
         <span
           title={weekCurrent ? 'Semana actual según el check-in' : weekDone ? 'Semana ya marcada en el check-in' : `Semana ${weekN}`}
           className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-3xs font-bold tabular-nums text-white',
+            'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-3xs font-semibold tabular-nums text-white',
             weekDone ? 'bg-emerald-600' : 'bg-brand-primary',
             weekCurrent && 'ring-2 ring-brand-primary/70 ring-offset-1 ring-offset-surface-card',
           )}
@@ -126,7 +126,7 @@ export function BlockCard({
               </span>
             ) : null}
             {weekCurrent ? (
-              <span className="whitespace-nowrap rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-bold text-brand-primary">
+              <span className="whitespace-nowrap rounded-full bg-brand-primary/15 px-2 py-0.5 text-3xs font-semibold text-brand-primary">
                 Semana actual
               </span>
             ) : null}
@@ -144,7 +144,7 @@ export function BlockCard({
                   <span
                     key={p.phase}
                     className={cn(
-                      'rounded-md border px-1.5 py-0.5 text-3xs font-bold ',
+                      'rounded-md border px-1.5 py-0.5 text-3xs font-semibold ',
                       CYCLE_PHASE_CLASSES[p.color].chip,
                     )}
                   >

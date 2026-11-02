@@ -704,7 +704,7 @@ function WorkflowProgress({ steps }: { steps: { label: string; done: boolean }[]
         >
           <span
             className={cn(
-              'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
               step.done
                 ? 'bg-status-generated text-white'
                 : 'border border-surface-border text-ink-muted',

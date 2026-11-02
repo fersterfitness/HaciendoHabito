@@ -102,7 +102,7 @@ export function NutritionMeasurementHistoryList({
                   <td className="px-3 py-2.5 sm:px-4">
                     <span
                       className={cn(
-                        'inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg px-1.5 text-2xs font-bold tabular-nums',
+                        'inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg px-1.5 text-2xs font-semibold tabular-nums',
                         active
                           ? 'bg-brand-secondary/20 text-brand-secondary'
                           : 'bg-surface-elevated text-ink-muted',

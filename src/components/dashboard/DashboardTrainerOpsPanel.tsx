@@ -253,7 +253,7 @@ export function DashboardTrainerOpsPanel({
             </span>
             <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span className="text-xs font-semibold text-ink-primary">Testear RM</span>
-              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-semibold tabular-nums text-ink-primary">
                 {rmTestDueStudents.length}
               </span>
               <span className="text-2xs text-ink-muted">en la próxima rutina</span>
@@ -308,7 +308,7 @@ export function DashboardTrainerOpsPanel({
             </span>
             <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span className="text-xs font-semibold text-ink-primary">Última semana</span>
-              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-semibold tabular-nums text-ink-primary">
                 {lastWeekStudents.length}
               </span>
               <span className="text-2xs text-ink-muted">enviar feedback mensual</span>
@@ -366,7 +366,7 @@ export function DashboardTrainerOpsPanel({
             </span>
             <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span className="text-xs font-semibold text-ink-primary">Sin feedback semanal</span>
-              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-semibold tabular-nums text-ink-primary">
                 {missingCheckInStudents.length}
               </span>
               <span className="text-2xs text-ink-muted">recordales por WhatsApp</span>

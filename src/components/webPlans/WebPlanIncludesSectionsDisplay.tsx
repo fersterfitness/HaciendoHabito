@@ -85,8 +85,8 @@ export function WebPlanIncludesSectionsDisplay({
 
   const sectionHeadingClass = (s: IntakeIncludeSectionView) =>
     darkChrome
-      ? cn('text-xs font-bold leading-tight', s.headingClassDark)
-      : cn('text-xs font-bold leading-tight', s.headingClassLight)
+      ? cn('text-xs font-semibold leading-tight', s.headingClassDark)
+      : cn('text-xs font-semibold leading-tight', s.headingClassLight)
 
   const subtitleClass = darkChrome ? 'text-2xs leading-snug text-white/55' : 'text-2xs leading-snug text-neutral-500'
   const itemTextClass = darkChrome ? 'text-white/78' : 'text-neutral-600'

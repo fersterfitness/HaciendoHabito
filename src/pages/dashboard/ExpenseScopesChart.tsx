@@ -26,7 +26,7 @@ function ExpenseScopesTooltip({ active, payload, label }: any) {
                   <span className="truncate font-medium text-ink-secondary">{s.label}</span>
                 </span>
                 <span className={cn(
-                  'shrink-0 text-xs font-bold tabular-nums',
+                  'shrink-0 text-xs font-semibold tabular-nums',
                   net >= 0 ? 'text-status-generated' : 'text-status-expired',
                 )}
                 >

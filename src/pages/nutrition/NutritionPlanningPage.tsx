@@ -188,7 +188,7 @@ function LiveMacroCell({
 
   return (
     <div className="min-w-0 rounded-md border border-surface-border/75 bg-white/95 px-2 py-2 text-center dark:bg-zinc-950/45 sm:px-2.5">
-      <p className="text-3xs font-bold text-ink-muted sm:text-3xs">{abbr}</p>
+      <p className="text-3xs font-semibold text-ink-muted sm:text-3xs">{abbr}</p>
       <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-ink-primary sm:text-xl">
         {fmt1(intakeG)}
         <span className="ml-0.5 text-3xs font-semibold text-ink-muted ">g</span>
@@ -198,7 +198,7 @@ function LiveMacroCell({
       </p>
       <p
         className={cn(
-          'mt-0.5 text-3xs font-bold tabular-nums leading-tight sm:text-2xs',
+          'mt-0.5 text-3xs font-semibold tabular-nums leading-tight sm:text-2xs',
           !hasGoal ? 'text-ink-muted ' : over ? 'text-status-expiring' : 'text-ink-secondary ',
         )}
       >
@@ -1600,7 +1600,7 @@ export function NutritionPlanningPage() {
 
               {remainderVsGuide ? (
                 <div className="rounded-lg border border-surface-border bg-surface-card px-3 py-2 text-2xs">
-                  <p className="text-3xs uppercase font-bold text-ink-muted mb-1">Gramos restantes vs objetivo (g/kg × peso)</p>
+                  <p className="text-3xs uppercase font-semibold text-ink-muted mb-1">Gramos restantes vs objetivo (g/kg × peso)</p>
                   <p className="tabular-nums text-ink-secondary leading-relaxed">
                     Prot {fmt1(remainderVsGuide.proteinG)} g · HC {fmt1(remainderVsGuide.carbsG)} g · Grasas {fmt1(remainderVsGuide.fatG)} g · negativo =
                     fuiste pasado · orientativo
@@ -1707,7 +1707,7 @@ export function NutritionPlanningPage() {
                     }
                   />
                   <div className="rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-sm space-y-1.5">
-                    <p className="text-3xs text-ink-muted font-bold">Meta calórica del día</p>
+                    <p className="text-3xs text-ink-muted font-semibold">Meta calórica del día</p>
                     <p className="text-base font-semibold tabular-nums text-ink-primary">
                       {targetKcal > 0 ? `${targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
                     </p>
@@ -1734,7 +1734,7 @@ export function NutritionPlanningPage() {
                 </div>
               </div>
               <div className="rounded-xl border border-surface-border overflow-hidden mt-4">
-                <p className="text-3xs font-bold text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
+                <p className="text-3xs font-semibold text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
                   Vista cuadro (Excel) · objetivo y datos
                 </p>
                 <table className="w-full border-collapse text-left text-sm border border-surface-border/80">
@@ -1770,7 +1770,7 @@ export function NutritionPlanningPage() {
                       ] as const
                     ).map(([k, v]) => (
                       <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                        <th className="w-[34%] px-3 py-2 text-3xs font-bold uppercase text-ink-muted bg-surface-muted/20 align-top border-r border-surface-border/60">
+                        <th className="w-[34%] px-3 py-2 text-3xs font-semibold uppercase text-ink-muted bg-surface-muted/20 align-top border-r border-surface-border/60">
                           {k}
                         </th>
                         <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap tabular-nums">{v}</td>
@@ -1868,7 +1868,7 @@ export function NutritionPlanningPage() {
                     ['TDEE · M', calcTdeeFemale],
                   ].map(([label, val]) => (
                     <div key={String(label)} className="rounded-lg border border-brand-primary/20 bg-brand-primary/[0.06] px-2.5 py-2">
-                      <p className="text-3xs uppercase text-ink-muted font-bold">{label}</p>
+                      <p className="text-3xs uppercase text-ink-muted font-semibold">{label}</p>
                       <p className="text-base font-semibold tabular-nums text-ink-primary">
                         {Number.isFinite(val as number) ? `${fmt1(val as number)} kcal` : '—'}
                       </p>
@@ -2066,7 +2066,7 @@ export function NutritionPlanningPage() {
             <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:bg-surface-card/95">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="shrink-0 text-3xs font-bold text-ink-muted">
+                  <span className="shrink-0 text-3xs font-semibold text-ink-muted">
                     Kcal del plan (en vivo)
                   </span>
                   <span className="text-2xl font-bold tabular-nums leading-none text-ink-primary sm:text-3xl">
@@ -2112,7 +2112,7 @@ export function NutritionPlanningPage() {
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
-                <p className="mb-1.5 px-0.5 text-center text-3xs font-bold text-ink-muted sm:text-left">
+                <p className="mb-1.5 px-0.5 text-center text-3xs font-semibold text-ink-muted sm:text-left">
                   Macros en vivo (g) · tablas, Mi lista y esta distribución
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -2303,7 +2303,7 @@ export function NutritionPlanningPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 ">
                       <span
                         id={`meal-slot-title-${key}`}
-                        className="text-3xs font-bold text-ink-muted"
+                        className="text-3xs font-semibold text-ink-muted"
                       >
                         {label}
                       </span>
@@ -2844,7 +2844,7 @@ export function NutritionPlanningPage() {
               >
                 <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-xs font-bold text-ink-primary ">{sec.title}</h3>
+                    <h3 className="text-xs font-semibold text-ink-primary ">{sec.title}</h3>
                     <p className="text-3xs text-ink-muted mt-0.5 leading-snug">{sec.quantityColumnHint}</p>
                   </div>
                   <p className="text-3xs text-ink-secondary tabular-nums shrink-0">

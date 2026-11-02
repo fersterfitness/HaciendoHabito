@@ -45,7 +45,7 @@ export function RoutineWeekSquares({
             key={n}
             title={`Semana ${n}`}
             className={cn(
-              'inline-flex h-5 min-w-5 items-center justify-center rounded-md px-0.5 text-3xs font-bold tabular-nums transition-colors',
+              'inline-flex h-5 min-w-5 items-center justify-center rounded-md px-0.5 text-3xs font-semibold tabular-nums transition-colors',
               done
                 ? lastWeek
                   ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
@@ -59,7 +59,7 @@ export function RoutineWeekSquares({
         )
       })}
       {lastWeek ? (
-        <span className="ml-1 text-3xs font-bold text-rose-600 dark:text-rose-400">
+        <span className="ml-1 text-3xs font-semibold text-rose-600 dark:text-rose-400">
           Última
         </span>
       ) : null}

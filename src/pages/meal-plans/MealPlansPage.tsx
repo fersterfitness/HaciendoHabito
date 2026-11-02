@@ -148,7 +148,7 @@ function MealPlansFiltersDropdown({
             <Filter className="h-4 w-4 text-ink-muted" aria-hidden />
             Filtrar
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-3xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-zinc-900 px-1.5 text-3xs font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
                 {activeCount}
               </span>
             )}
@@ -580,7 +580,7 @@ export function MealPlansPage() {
                             <StudentAvatarThumb
                               storagePath={p.student?.avatar_path}
                               name={p.student?.full_name ?? '?'}
-                              fallbackClassName={cn('text-3xs font-bold', colors.avatar)}
+                              fallbackClassName={cn('text-3xs font-semibold', colors.avatar)}
                             />
                             <span className="truncate">{p.student?.full_name ?? '—'}</span>
                           </div>

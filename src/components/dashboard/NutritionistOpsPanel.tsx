@@ -38,7 +38,7 @@ function Block({
           {icon}
         </span>
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight text-ink-primary">{title}</h3>
-        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-bold tabular-nums text-ink-primary">
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ink-primary/[0.08] px-1.5 text-3xs font-semibold tabular-nums text-ink-primary">
           {count}
         </span>
       </div>

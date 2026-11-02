@@ -21,7 +21,7 @@ export function EmptyState({
   title,
   description,
   action,
-  actionVariant = 'soft',
+  actionVariant = 'primary',
   className,
 }: EmptyStateProps) {
   return (

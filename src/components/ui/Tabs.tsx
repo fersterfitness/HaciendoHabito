@@ -73,7 +73,7 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
                 className={cn(
                   'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-md text-3xs font-semibold tabular-nums',
                   isActive
-                    ? 'bg-brand-primary/12 text-brand-primary'
+                    ? 'bg-surface-elevated text-ink-primary'
                     : 'bg-surface-elevated text-ink-muted',
                 )}
               >
@@ -101,7 +101,7 @@ export function TabPanel({ id, active, children, className }: TabPanelProps) {
       role="tabpanel"
       id={`tabpanel-${id}`}
       aria-labelledby={`tab-${id}`}
-      className={className}
+      className={cn('animate-fade-in', className)}
     >
       {children}
     </div>

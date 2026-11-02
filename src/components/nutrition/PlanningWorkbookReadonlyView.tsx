@@ -162,7 +162,7 @@ export function PlanningWorkbookReadonlyView({
           {audience === 'student' ? (
             <div className="pt-4 border-t border-surface-border/80 space-y-4">
               <div>
-                <p className="text-2xs font-bold text-ink-muted mb-2">Resumen orientativo</p>
+                <p className="text-2xs font-semibold text-ink-muted mb-2">Resumen orientativo</p>
                 <div className="rounded-xl border border-brand-primary/25 overflow-hidden text-sm">
                   <table className="w-full text-left">
                     <tbody>
@@ -175,7 +175,7 @@ export function PlanningWorkbookReadonlyView({
                         ] as const
                       ).map(([k, v]) => (
                         <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                          <th className="w-[38%] px-3 py-2 text-3xs font-bold text-ink-muted bg-surface-muted/40 align-top">
+                          <th className="w-[38%] px-3 py-2 text-3xs font-semibold text-ink-muted bg-surface-muted/40 align-top">
                             {k}
                           </th>
                           <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap">{v}</td>
@@ -187,7 +187,7 @@ export function PlanningWorkbookReadonlyView({
               </div>
               {wb.studentOrientativeGuide?.trim() ? (
                 <div className="rounded-xl border border-dashed border-surface-border bg-surface-muted/15 px-3 py-3">
-                  <p className="text-3xs font-bold text-ink-muted mb-1.5">
+                  <p className="text-3xs font-semibold text-ink-muted mb-1.5">
                     Hortalizas, equivalencias y proteínas (guía)
                   </p>
                   <p className="text-xs text-ink-secondary whitespace-pre-wrap leading-relaxed">{wb.studentOrientativeGuide.trim()}</p>
@@ -218,7 +218,7 @@ export function PlanningWorkbookReadonlyView({
                   ] as const
                 ).map(([k, v]) => (
                   <tr key={k} className="border-b border-surface-border/70 last:border-b-0">
-                    <th className="w-[40%] px-3 py-2 text-3xs font-bold text-ink-muted bg-surface-muted/40 align-top">
+                    <th className="w-[40%] px-3 py-2 text-3xs font-semibold text-ink-muted bg-surface-muted/40 align-top">
                       {k}
                     </th>
                     <td className="px-3 py-2 text-ink-secondary whitespace-pre-wrap tabular-nums">{v}</td>

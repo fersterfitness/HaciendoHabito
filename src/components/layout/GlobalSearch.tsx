@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useId } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Users, Dumbbell, X, UtensilsCrossed } from 'lucide-react'
+import { Users, Dumbbell, X, UtensilsCrossed, UserPlus, Wallet, MessageSquare, CalendarPlus, ArrowRight, type LucideIcon } from 'lucide-react'
 import { HeaderSearchIcon } from '@/components/icons/headerAnimateIcons'
 import { supabase } from '@/lib/supabase'
 import { fetchAccessibleStudents, filterAccessibleStudents } from '@/lib/students/studentAccess'
@@ -14,8 +14,33 @@ type Result = {
   id: string
   label: string
   sub: string
-  kind: 'student' | 'routine' | 'mealplan'
+  kind: 'action' | 'student' | 'routine' | 'mealplan'
   href: string
+  icon?: LucideIcon
+}
+
+type Action = Omit<Result, 'kind' | 'sub'> & { sub: string; icon: LucideIcon; keywords: string; when: (role?: string | null) => boolean }
+
+const trains = (role?: string | null) => role === 'admin' || role === 'trainer' || !role
+const handlesMoney = (role?: string | null) => role === 'admin' || role === 'trainer' || role === 'nutritionist' || !role
+
+/** Lo de todos los días, a un Ctrl K: aparece con el buscador vacío y se filtra al escribir. */
+const ACTIONS: Action[] = [
+  { id: 'new-student', label: 'Nuevo alumno', sub: 'Cargar un alumno', href: '/students/new', icon: UserPlus, keywords: 'alta alumno agregar crear', when: trains },
+  { id: 'new-routine', label: 'Nueva rutina', sub: 'Armar una rutina', href: '/routines/new', icon: Dumbbell, keywords: 'rutina crear armar entrenamiento', when: trains },
+  { id: 'new-income', label: 'Registrar cobro', sub: 'Finanzas · ingreso', href: '/finances/income/new', icon: Wallet, keywords: 'cobro pago abono ingreso cuota', when: handlesMoney },
+  { id: 'check-ins', label: 'Mandar feedback semanal', sub: 'Consulta semanal · Enviar', href: '/check-ins', icon: MessageSquare, keywords: 'feedback consulta semanal formulario enviar', when: trains },
+  { id: 'appointments', label: 'Agendar turno', sub: 'Turnos', href: '/appointments', icon: CalendarPlus, keywords: 'turno cita agenda reunion calendario', when: (r) => r !== 'nutritionist' },
+  { id: 'nutri-appointments', label: 'Agendar turno', sub: 'Turnos', href: '/nutrition/appointments', icon: CalendarPlus, keywords: 'turno cita agenda consulta calendario', when: (r) => r === 'nutritionist' },
+]
+
+const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+function matchingActions(q: string, role?: string | null): Result[] {
+  const n = norm(q.trim())
+  return ACTIONS.filter((a) => a.when(role) && (!n || norm(`${a.label} ${a.keywords}`).includes(n)))
+    .slice(0, n ? 3 : 6)
+    .map((a) => ({ id: a.id, label: a.label, sub: a.sub, href: a.href, icon: a.icon, kind: 'action' as const }))
 }
 
 const searchInputClass =
@@ -65,7 +90,7 @@ export function GlobalSearch() {
   useEffect(() => {
     if (open) {
       setQuery('')
-      setResults([])
+      setResults(matchingActions('', profile?.role))
       setActive(0)
       const t = window.setTimeout(() => inputRef.current?.focus(), 50)
       return () => window.clearTimeout(t)
@@ -73,8 +98,9 @@ export function GlobalSearch() {
   }, [open])
 
   const search = useCallback(async (q: string) => {
+    const actions = matchingActions(q, profile?.role)
     if (!user || !q.trim()) {
-      setResults([])
+      setResults(actions)
       return
     }
     setLoading(true)
@@ -114,6 +140,7 @@ export function GlobalSearch() {
       mealPlansPromise,
     ])
     const res: Result[] = [
+      ...actions,
       ...(students ?? []).map((s) => {
         const tagHint = studentTrainerTags(s).slice(0, 2).join(', ')
         const subParts = [s.level, s.status, tagHint].filter(Boolean)
@@ -208,7 +235,7 @@ export function GlobalSearch() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Buscar alumnos, rutinas, planes…"
+            placeholder="Buscá o elegí una acción…"
             aria-label="Buscar alumnos, rutinas y planes"
             aria-controls={listboxId}
             aria-activedescendant={results[active] ? `search-result-${active}` : undefined}
@@ -241,10 +268,10 @@ export function GlobalSearch() {
             </div>
           ) : (
             <div className="py-1">
-              {(['student', 'routine', 'mealplan'] as const).map((k) => {
+              {(['action', 'student', 'routine', 'mealplan'] as const).map((k) => {
                 const group = results.filter((r) => r.kind === k)
                 if (group.length === 0) return null
-                const label = k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
+                const label = k === 'action' ? 'Acciones' : k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
                 return (
                   <div key={k}>
                     <p className="px-3 pb-0.5 pt-2 text-3xs font-semibold text-ink-muted">
@@ -265,13 +292,13 @@ export function GlobalSearch() {
                               onMouseEnter={() => setActive(i)}
                               className={cn(
                                 'flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors',
-                                isActive
-                                  ? 'bg-surface-elevated border-l-2 border-brand-secondary/40'
-                                  : 'border-l-2 border-transparent hover:bg-surface-elevated/60',
+                                isActive ? 'bg-surface-elevated' : 'hover:bg-surface-elevated/60',
                               )}
                             >
                               <span className={resultIconPodClass} aria-hidden>
-                                {r.kind === 'student' ? (
+                                {r.icon ? (
+                                  <r.icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                ) : r.kind === 'student' ? (
                                   <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 ) : r.kind === 'routine' ? (
                                   <Dumbbell className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -283,6 +310,9 @@ export function GlobalSearch() {
                                 <p className="truncate text-sm font-medium text-ink-primary">{r.label}</p>
                                 <p className="truncate text-2xs text-ink-muted">{r.sub}</p>
                               </div>
+                              {isActive && r.kind === 'action' ? (
+                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+                              ) : null}
                             </button>
                           </li>
                         )

@@ -252,7 +252,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
                 <tr>
                   <th className="w-16 px-1 py-0.5 text-left text-3xs font-semibold uppercase text-ink-muted">Serie</th>
                   {Array.from({ length: Math.min(sets ?? 0, 8) }, (_, i) => (
-                    <th key={i} className="px-1 py-0.5 text-3xs font-bold text-ink-secondary">{i + 1}°</th>
+                    <th key={i} className="px-1 py-0.5 text-3xs font-semibold text-ink-secondary">{i + 1}°</th>
                   ))}
                 </tr>
               </thead>

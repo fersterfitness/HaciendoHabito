@@ -670,7 +670,7 @@ export function StudentHabitsPanel({
                           <td className="border-l border-surface-border/70 px-2 py-1.5 text-center ">
                             <span
                               className={cn(
-                                'text-xs font-bold tabular-nums',
+                                'text-xs font-semibold tabular-nums',
                                 p >= 80 ? 'text-emerald-600 dark:text-emerald-400' : p >= 50 ? 'text-status-expiring' : 'text-status-expired',
                               )}
                             >
@@ -694,7 +694,7 @@ export function StudentHabitsPanel({
                         <div className="mb-1 flex items-center justify-between gap-2">
                           <span className="truncate text-xs font-medium text-ink-primary">{habit.name}</span>
                           <span className={cn(
-                            'shrink-0 text-xs font-bold tabular-nums',
+                            'shrink-0 text-xs font-semibold tabular-nums',
                             p >= 70 ? 'text-emerald-600 dark:text-emerald-400' : p >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
                           )}>
                             {done}/{total}

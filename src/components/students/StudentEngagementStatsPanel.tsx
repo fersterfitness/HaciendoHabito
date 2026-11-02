@@ -221,7 +221,7 @@ export function StudentEngagementStatsPanel({
             {monthlyRows.map((row) => (
               <li key={row.id} className="rounded-xl border border-surface-border bg-surface-card px-3 py-2.5">
                 <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-3xs font-bold text-emerald-700 dark:text-emerald-300">
+                  <span className="text-3xs font-semibold text-emerald-700 dark:text-emerald-300">
                     {row.formTitle}
                   </span>
                   <span className="text-3xs text-ink-muted">
@@ -275,7 +275,7 @@ export function StudentEngagementStatsPanel({
             {testimonials.map((t) => (
               <li key={t.id} className="rounded-xl border border-surface-border bg-surface-elevated/40 px-3 py-2.5">
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-3xs font-bold text-brand-secondary">{t.period_label}</span>
+                  <span className="text-3xs font-semibold text-brand-secondary">{t.period_label}</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
