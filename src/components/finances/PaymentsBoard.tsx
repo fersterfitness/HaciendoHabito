@@ -49,7 +49,11 @@ function stateLabel(r: StudentPaymentRow): string {
   return STATE_META[r.state].label
 }
 
-type Filter = 'all' | 'vencido' | 'pendiente' | 'pagado'
+type Filter = 'all' | 'vencido' | 'pendiente' | 'al_dia' | 'pagado'
+
+/** Todavía no llegó su día de pago: no debe nada aún. */
+const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing === 'antes'
+const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state === 'parcial') && !isAlDia(r)
 
 /**
  * Cobros del mes por alumno: quién pagó, cuánto y por qué medio; vencidos con WhatsApp directo.
@@ -90,11 +94,19 @@ export function PaymentsBoard() {
     const cobrado = rows.reduce((a, r) => a + r.paid, 0)
     const esperado = rows.reduce((a, r) => a + Math.max(r.expected, r.paid), 0)
     const count = (s: PaymentState) => rows.filter((r) => r.state === s).length
-    return { cobrado, esperado, pendiente: Math.max(0, esperado - cobrado), vencidos: count('vencido'), pagados: count('pagado') }
+    return {
+      cobrado,
+      esperado,
+      pendiente: Math.max(0, esperado - cobrado),
+      vencidos: count('vencido'),
+      pagados: count('pagado'),
+      alDia: rows.filter(isAlDia).length,
+      faltan: rows.filter(owesNow).length,
+    }
   }, [rows])
 
   const visible = rows.filter((r) =>
-    filter === 'all' ? true : filter === 'pendiente' ? r.state === 'pendiente' || r.state === 'parcial' : r.state === filter,
+    filter === 'all' ? true : filter === 'pendiente' ? owesNow(r) : filter === 'al_dia' ? isAlDia(r) : r.state === filter,
   )
 
   // Datos de gráficos memorizados: recharts reanima (y re-renderiza) si cambia la referencia en cada render.
@@ -198,18 +210,19 @@ export function PaymentsBoard() {
         <SummaryTile label="Por cobrar" value={formatCurrency(totals.pendiente)} tone={totals.pendiente > 0 ? 'warning' : 'neutral'} />
         <SummaryTile label="Vencidos" value={String(totals.vencidos)} tone={totals.vencidos > 0 ? 'danger' : 'neutral'} />
         <div className="rounded-2xl border border-surface-border/90 bg-surface-card p-3 shadow-card sm:p-4">
+          {/* Por alumnos y no por montos: casi nadie tiene cuota cargada y el % por plata daba 100% con 1 de 17. */}
           <p className="text-3xs font-semibold text-ink-muted sm:text-2xs">Cumplimiento</p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums text-ink-primary sm:mt-1 sm:text-2xl">
-            {totals.esperado > 0 ? Math.round((totals.cobrado / totals.esperado) * 100) : 0}%
+            {rows.length > 0 ? Math.round((totals.pagados / rows.length) * 100) : 0}%
           </p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-border/70">
             <div
               className="h-full rounded-full bg-brand-gradient transition-[width] duration-500"
-              style={{ width: `${totals.esperado > 0 ? Math.min(100, (totals.cobrado / totals.esperado) * 100) : 0}%` }}
+              style={{ width: `${rows.length > 0 ? (totals.pagados / rows.length) * 100 : 0}%` }}
             />
           </div>
           <p className="mt-1.5 text-3xs text-ink-muted">
-            {totals.pagados} de {rows.length} alumnos al día
+            {totals.pagados} de {rows.length} ya abonaron{totals.alDia > 0 ? ` · ${totals.alDia} al día` : ''}
           </p>
         </div>
       </div>
@@ -225,11 +238,8 @@ export function PaymentsBoard() {
             items={[
               { id: 'all', label: 'Todos', count: rows.length },
               { id: 'vencido', label: 'Vencidos', count: totals.vencidos },
-              {
-                id: 'pendiente',
-                label: 'Falta pagar',
-                count: rows.filter((r) => r.state === 'pendiente' || r.state === 'parcial').length,
-              },
+              { id: 'pendiente', label: 'Falta pagar', count: totals.faltan },
+              { id: 'al_dia', label: 'Al día', count: totals.alDia },
               { id: 'pagado', label: 'Abonaron', count: totals.pagados },
             ]}
           />
