@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useSearchParams, Navigate } from 'react-router-dom'
@@ -48,11 +49,17 @@ type RoutineWithStudent = Routine & {
   student?: { full_name: string; level?: string; status?: string; avatar_path?: string | null } | null
 }
 
-const ROUTINE_COLORS = [
-  { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },
-  { bar: 'bg-brand-tertiary', avatar: 'bg-brand-tertiary/15 text-brand-tertiary' },
-  { bar: 'bg-brand-primary', avatar: 'bg-brand-primary/15 text-brand-primary' },
-]
+const ROUTINE_COLORS = IS_V2
+  ? [
+      { bar: 'bg-pastel-lavender-ink/50', avatar: 'hh-pastel bg-pastel-lavender text-pastel-lavender-ink' },
+      { bar: 'bg-pastel-sky-ink/50', avatar: 'hh-pastel bg-pastel-sky text-pastel-sky-ink' },
+      { bar: 'bg-pastel-peach-ink/50', avatar: 'hh-pastel bg-pastel-peach text-pastel-peach-ink' },
+    ]
+  : [
+      { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },
+      { bar: 'bg-brand-tertiary', avatar: 'bg-brand-tertiary/15 text-brand-tertiary' },
+      { bar: 'bg-brand-primary', avatar: 'bg-brand-primary/15 text-brand-primary' },
+    ]
 
 function strColorIdx(str: string): number {
   let h = 0

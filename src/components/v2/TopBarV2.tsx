@@ -59,7 +59,7 @@ export function TopBarV2({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-surface-border bg-surface-base/90 px-4 backdrop-blur-xl lg:h-[52px] lg:px-6',
+        'v2-topbar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-surface-border bg-surface-base/90 px-4 backdrop-blur-xl lg:h-[52px] lg:px-6',
         className,
       )}
     >

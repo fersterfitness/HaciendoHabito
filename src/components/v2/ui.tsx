@@ -39,7 +39,7 @@ const TONE_FILL: Record<Tone, string> = {
 
 /** Contenedor de página: ancho máximo y márgenes iguales en todas las pantallas nuevas. */
 export function PageV2({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('mx-auto w-full max-w-[74rem] px-4 pb-14 pt-6 lg:px-10 lg:pt-9', className)}>{children}</div>
+  return <div className={cn('v2-own mx-auto w-full max-w-[74rem] px-4 pb-14 pt-6 lg:px-10 lg:pt-9', className)}>{children}</div>
 }
 
 /** Saludo o título de la página, sin nada colgando al costado. */
@@ -66,7 +66,7 @@ export function ToneIcon({ icon: Icon, tone, size = 'md' }: { icon: LucideIcon; 
   return (
     <span
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-lg',
+        'hh-pastel flex shrink-0 items-center justify-center rounded-lg',
         TONE_BG[tone],
         TONE_INK[tone],
         size === 'sm' ? 'h-6 w-6' : 'h-8 w-8',
@@ -153,7 +153,7 @@ export function ToneTileV2({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'group flex items-center gap-3 rounded-2xl p-3.5 text-left transition-[box-shadow,transform] active:scale-[0.99]',
+        'hh-pastel group flex items-center gap-3 rounded-2xl p-3.5 text-left transition-[box-shadow,transform] active:scale-[0.99]',
         TONE_BG[tone],
         active ? 'shadow-[0_0_0_1.5px_rgb(var(--ink-primary))]' : 'hover:shadow-[0_0_0_1px_rgb(var(--ink-primary)/0.12)]',
       )}
@@ -172,7 +172,7 @@ export function ToneTileV2({
 
 /** Etiqueta pastel (tipo de tarea, estado). */
 export function TagV2({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={cn('inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium', TONE_BG[tone], TONE_INK[tone])}>{children}</span>
+  return <span className={cn('hh-pastel inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium', TONE_BG[tone], TONE_INK[tone])}>{children}</span>
 }
 
 /** Dato chico con borde (fecha, monto, cantidad). */
@@ -340,7 +340,7 @@ export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'm
   return (
     <span
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-surface-card',
+        'hh-pastel flex shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-surface-card',
         TONE_BG[tone],
         TONE_INK[tone],
         size === 'sm' ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-[11px]',

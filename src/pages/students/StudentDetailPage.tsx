@@ -790,7 +790,7 @@ export function StudentDetailView({
           'space-y-6',
           variant === 'page'
             ? v2Page
-              ? 'mx-auto w-full max-w-[74rem] px-4 py-6 lg:px-10 lg:py-8'
+              ? 'v2-own mx-auto w-full max-w-[74rem] px-4 py-6 lg:px-10 lg:py-8'
               : 'px-4 py-5 lg:px-6'
             : 'min-h-0 flex-1 overflow-y-auto px-4 py-5',
         )}

@@ -13,8 +13,9 @@ export function DirectoryPageShell({
   return (
     <div
       className={cn(
-        IS_V2 ? 'mx-auto w-full max-w-[74rem] space-y-5 px-4 pb-14 pt-6 lg:px-10 lg:pt-8' : 'max-w-[1600px] space-y-4 page-shell-x page-shell-y',
+        IS_V2 ? '' : 'max-w-[1600px] space-y-4 page-shell-x page-shell-y',
         className,
+        IS_V2 && 'v2-own mx-auto w-full max-w-[74rem] space-y-5 px-4 pb-14 pt-6 lg:px-10 lg:pt-8',
       )}
     >
       {children}

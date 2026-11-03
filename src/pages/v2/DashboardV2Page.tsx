@@ -496,7 +496,7 @@ export function DashboardV2Page() {
                 ))}
               </div>
             ) : pendingCount === 0 ? (
-              <div className="rounded-2xl bg-pastel-mint px-5 py-8 text-center">
+              <div className="hh-pastel rounded-2xl bg-pastel-mint px-5 py-8 text-center">
                 <p className="text-[15px] font-medium text-pastel-mint-ink">Todo al día</p>
                 <p className="mt-1 text-[13px] text-ink-secondary">No hay cobros, feedback ni rutinas pendientes para hoy.</p>
               </div>
@@ -693,7 +693,7 @@ export function DashboardV2Page() {
                   <p className="rounded-xl bg-surface-panel px-4 py-5 text-center text-[13px] text-ink-muted">Sin turnos este día</p>
                 ) : (
                   dayAppointments.map((a, i) => (
-                    <div key={a.id} className={cn('rounded-xl px-3.5 py-3', SLOT_BG[i % SLOT_BG.length])}>
+                    <div key={a.id} className={cn('hh-pastel rounded-xl px-3.5 py-3', SLOT_BG[i % SLOT_BG.length])}>
                       <div className="flex items-start gap-2">
                         <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-primary">
                           {a.student?.full_name ?? a.title}

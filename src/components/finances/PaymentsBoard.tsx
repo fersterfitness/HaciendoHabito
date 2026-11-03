@@ -53,6 +53,8 @@ type Filter = 'all' | 'vencido' | 'pendiente' | 'al_dia' | 'pagado'
 
 /** Todavía no llegó su día de pago: no debe nada aún. */
 const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing === 'antes'
+/** Chip del estado: «Al día» va neutro (todavía no debe), el resto según su estado. */
+const stateChip = (r: StudentPaymentRow) => (isAlDia(r) && !r.gifted ? 'bg-surface-elevated text-ink-secondary' : STATE_META[r.state].chip)
 const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state === 'parcial') && !isAlDia(r)
 
 /**
@@ -276,7 +278,7 @@ export function PaymentsBoard() {
                         {r.fullName}
                       </Link>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', STATE_META[r.state].chip)}>
+                        <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', stateChip(r))}>
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
                           {stateLabel(r)}
                         </span>
@@ -378,7 +380,7 @@ export function PaymentsBoard() {
                         ) : null}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', STATE_META[r.state].chip)}>
+                        <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-3xs font-semibold', stateChip(r))}>
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
                           {stateLabel(r)}
                         </span>

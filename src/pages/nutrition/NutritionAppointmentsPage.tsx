@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { Header } from '@/components/layout/Header'
@@ -1510,14 +1511,24 @@ export function AppointmentsPage() {
                                 type="button"
                                 onClick={onClick}
                                 className={cn(
-                                  'w-full text-left rounded-lg border px-2 py-1 transition-all border-l-[3px] motion-safe:duration-200',
+                                  'w-full text-left rounded-lg px-2 py-1 transition-all motion-safe:duration-200',
+                                  !IS_V2 && 'border border-l-[3px]',
                                   appointmentInProgress(a) &&
                                     'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
-                                  a.status === 'confirmed'
-                                    ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
-                                    : a.status === 'scheduled'
-                                      ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
-                                      : 'border border-surface-border/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-l-zinc-500 dark:hover:bg-zinc-500/[0.16]',
+                                  IS_V2
+                                    ? cn(
+                                        'hh-pastel border-0 hover:brightness-[0.97]',
+                                        a.status === 'confirmed'
+                                          ? 'bg-pastel-mint'
+                                          : a.status === 'scheduled'
+                                            ? 'bg-pastel-lavender'
+                                            : 'bg-surface-elevated',
+                                      )
+                                    : a.status === 'confirmed'
+                                      ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
+                                      : a.status === 'scheduled'
+                                        ? 'border border-brand-tertiary/30 border-l-brand-tertiary bg-brand-tertiary/[0.08] hover:bg-brand-tertiary/[0.13]'
+                                        : 'border border-surface-border/90 border-l-zinc-500 bg-zinc-500/[0.05] hover:bg-zinc-500/[0.1] dark:border-l-zinc-500 dark:hover:bg-zinc-500/[0.16]',
                                 )}
                                 {...a11y}
                               >

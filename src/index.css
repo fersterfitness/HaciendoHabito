@@ -579,19 +579,19 @@
   --pastel-rose-ink: 206 48 84;
 }
 
-.dark {
-  --pastel-lavender: 46 40 74;
-  --pastel-lavender-ink: 196 182 255;
-  --pastel-peach: 66 40 26;
-  --pastel-peach-ink: 255 176 132;
-  --pastel-butter: 62 52 20;
-  --pastel-butter-ink: 250 214 110;
-  --pastel-mint: 20 56 44;
-  --pastel-mint-ink: 120 224 180;
-  --pastel-sky: 20 46 68;
-  --pastel-sky-ink: 132 200 250;
-  --pastel-rose: 70 28 38;
-  --pastel-rose-ink: 255 150 172;
+
+/*
+ * Sobre un pastel el texto va siempre oscuro, también en modo oscuro (los pasteles son los mismos
+ * en los dos modos). `.hh-pastel` lo marca cada pieza que pinta un fondo pastel.
+ */
+.dark .hh-pastel {
+  --ink-primary: 23 23 25;
+  --ink-secondary: 62 62 66;
+  --ink-muted: 98 98 94;
+  --surface-base: 255 255 255;
+  --surface-card: 255 255 255;
+  --surface-border: 234 234 232;
+  color: rgb(var(--ink-primary));
 }
 
 html.ui-v2 {
@@ -679,6 +679,42 @@ html.ui-v2 .hh-table > thead th {
 }
 html.ui-v2 .hh-table > tbody > tr:hover {
   background-color: rgb(var(--surface-panel));
+}
+
+/* Contenido de las pantallas viejas dentro de la v2: centrado, con el mismo aire que las nuevas. */
+html.ui-v2 .v2-main > div {
+  padding-top: 0;
+}
+html.ui-v2 div:has(> header.v2-topbar) > :not(header):not(.v2-own):not([role='dialog']):not(.fixed) {
+  width: 100%;
+  max-width: 74rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 1024px) {
+  html.ui-v2 div:has(> header.v2-topbar) > :not(header):not(.v2-own):not([role='dialog']):not(.fixed) {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+/* Un listado v2 metido dentro de otra pantalla (p. ej. Check-ins en Consulta semanal) ya tiene el marco. */
+html.ui-v2 div:has(> header.v2-topbar) > :not(header) .v2-own {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Tarjetas y avisos genéricos: esquinas amplias; el ícono del aviso sobre un pastel. */
+html.ui-v2 .hh-surface,
+html.ui-v2 .hh-alert {
+  border-radius: 1rem;
+}
+html.ui-v2 .hh-alert-icon {
+  border-radius: 0.5rem;
+  background-color: rgb(var(--tone) / 0.12);
 }
 
 /* Naranjas sueltos escritos a mano: en la v2 pasan a negro (o blanco en oscuro). */
