@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import {
@@ -1460,14 +1461,14 @@ export function NutritionPlanningPage() {
           </div>
         }
       />
-      <div className="mx-auto w-full max-w-[min(1600px,calc(100%-2rem))] space-y-5 px-4 pt-2 lg:px-6">
+      <div className={cn('mx-auto w-full space-y-5', IS_V2 ? 'v2-own max-w-[74rem] px-4 pb-14 pt-6 lg:px-10 lg:pt-8' : 'max-w-[min(1600px,calc(100%-2rem))] px-4 pt-2 lg:px-6')}>
         <TrainerMealPlansSectionNav />
         <NutritionPlansTabs className="pt-2" />
         <nav
-          className="-mx-4 border-b border-surface-border px-4 pt-4 lg:-mx-6 lg:px-6"
+          className={IS_V2 ? '' : '-mx-4 border-b border-surface-border px-4 pt-4 lg:-mx-6 lg:px-6'}
           aria-label="Secciones del plan"
         >
-          <div role="tablist" className="flex flex-wrap gap-2">
+          <div role="tablist" className={IS_V2 ? 'inline-flex flex-wrap gap-1 rounded-full bg-surface-elevated p-1' : 'flex flex-wrap gap-2'}>
             {PLANNING_MAIN_TAB_DEFS.map(({ id, label, hint, Icon }) => {
               const sel = planningTab === id
               return (
@@ -1480,12 +1481,19 @@ export function NutritionPlanningPage() {
                   id={`planning-tab-${id}`}
                   aria-controls={`planning-panel-${id}`}
                   onClick={() => setPlanningTab(id)}
-                  className={cn(
-                    '-mb-px flex shrink-0 items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
-                    sel
-                      ? 'border-surface-border bg-surface-card text-ink-primary'
-                      : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
-                  )}
+                  className={
+                    IS_V2
+                      ? cn(
+                          'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors',
+                          sel ? 'bg-surface-card text-ink-primary shadow-sm' : 'text-ink-muted hover:text-ink-primary',
+                        )
+                      : cn(
+                          '-mb-px flex shrink-0 items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
+                          sel
+                            ? 'border-surface-border bg-surface-card text-ink-primary'
+                            : 'border-transparent text-ink-muted hover:bg-surface-muted/40 hover:text-ink-secondary',
+                        )
+                  }
                 >
                   <Icon
                     className={cn('h-4 w-4 shrink-0', sel ? 'opacity-95' : 'opacity-65')}

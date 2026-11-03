@@ -774,6 +774,34 @@ html.ui-v2.dark [class~='bg-emerald-600'] {
   color: rgb(17 17 17);
 }
 
+/* Etiquetas chicas en mayúsculas: en la v2 van en tipo oración, más calmas. */
+html.ui-v2 .uppercase:is(.text-3xs, .text-2xs, .text-\[10px\], .text-\[11px\]) {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Tarjeta de paciente: en la v2 sin la muesca; borde simple y botón redondo en la esquina. */
+html.ui-v2 .hh-patient-card__body {
+  -webkit-clip-path: none;
+  clip-path: none;
+  border: 1px solid rgb(var(--surface-border));
+  border-radius: 1.25rem;
+}
+html.ui-v2 .hh-patient-card__outline {
+  display: none;
+}
+html.ui-v2 .hh-patient-card__action {
+  top: 0.875rem;
+  right: 0.875rem;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 9999px;
+}
+html.ui-v2 .hh-patient-card:hover .hh-patient-card__body {
+  border-color: rgb(var(--ink-primary) / 0.25);
+}
+
 /* Ficha del alumno: cada sección de la pestaña en su tarjeta. */
 html.ui-v2 .v2-cards > *,
 html.ui-v2 .v2-card {
