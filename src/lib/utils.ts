@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { IS_V2 } from '@/lib/uiVersion'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -55,9 +56,20 @@ const AVATAR_TONES = [
   'bg-indigo-500/[0.12] text-indigo-700 dark:text-indigo-300',
 ] as const
 
+/** v2: los mismos avatares con los colores de la paleta (fondo sólido, texto oscuro en modo oscuro). */
+const AVATAR_TONES_V2 = [
+  'hh-pastel bg-pastel-rose text-pastel-rose-ink',
+  'hh-pastel bg-pastel-lavender text-pastel-lavender-ink',
+  'hh-pastel bg-pastel-peach text-pastel-peach-ink',
+  'hh-pastel bg-pastel-sky text-pastel-sky-ink',
+  'hh-pastel bg-pastel-mint text-pastel-mint-ink',
+  'hh-pastel bg-pastel-butter text-pastel-butter-ink',
+] as const
+
 /** Color de iniciales por persona: sale del nombre, así cada alumno conserva el suyo. */
 export function avatarToneClass(name: string): string {
   let h = 0
   for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  if (IS_V2) return AVATAR_TONES_V2[h % AVATAR_TONES_V2.length]!
   return AVATAR_TONES[h % AVATAR_TONES.length]
 }

@@ -565,60 +565,61 @@
  * Va al final y sin @layer para ganarle a las utilidades.
  */
 :root {
-  --pastel-lavender: 238 235 255;
-  --pastel-lavender-ink: 104 76 214;
-  --pastel-peach: 255 238 226;
-  --pastel-peach-ink: 204 92 34;
-  --pastel-butter: 255 246 214;
-  --pastel-butter-ink: 160 116 0;
-  --pastel-mint: 222 246 236;
-  --pastel-mint-ink: 18 138 96;
-  --pastel-sky: 224 241 253;
-  --pastel-sky-ink: 18 120 190;
-  --pastel-rose: 253 230 235;
-  --pastel-rose-ink: 206 48 84;
-  --pastel-lavender-accent: 104 76 214;
-  --pastel-peach-accent: 204 92 34;
-  --pastel-butter-accent: 160 116 0;
-  --pastel-mint-accent: 18 138 96;
-  --pastel-sky-accent: 18 120 190;
-  --pastel-rose-accent: 206 48 84;
+  /* Paleta de detalles de la v2: FF00FF · C040FF · 8080FF · 40C0FF · 00FFFF (+ A060FF entre phlox e índigo). */
+  --pastel-rose: 255 219 255;
+  --pastel-lavender: 246 228 255;
+  --pastel-peach: 237 237 255;
+  --pastel-sky: 228 246 255;
+  --pastel-mint: 219 255 255;
+  --pastel-butter: 241 232 255;
+  --pastel-rose-ink: 170 0 170;
+  --pastel-lavender-ink: 128 28 190;
+  --pastel-peach-ink: 70 70 200;
+  --pastel-sky-ink: 0 110 170;
+  --pastel-mint-ink: 0 118 128;
+  --pastel-butter-ink: 108 50 200;
+  --pastel-rose-accent: 170 0 170;
+  --pastel-lavender-accent: 128 28 190;
+  --pastel-peach-accent: 70 70 200;
+  --pastel-sky-accent: 0 110 170;
+  --pastel-mint-accent: 0 118 128;
+  --pastel-butter-accent: 108 50 200;
 }
 
-/* Modo oscuro: colores fuertes y sólidos (sin transparencia), con texto blanco encima. */
+/* Modo oscuro: los colores de la paleta tal cual, sólidos, con texto negro encima. */
 .dark {
-  --pastel-lavender: 124 88 236;
-  --pastel-peach: 226 98 44;
-  --pastel-butter: 202 138 4;
-  --pastel-mint: 16 152 106;
-  --pastel-sky: 14 132 204;
-  --pastel-rose: 222 52 92;
-  --pastel-lavender-ink: 255 255 255;
-  --pastel-peach-ink: 255 255 255;
-  --pastel-butter-ink: 255 255 255;
-  --pastel-mint-ink: 255 255 255;
-  --pastel-sky-ink: 255 255 255;
-  --pastel-rose-ink: 255 255 255;
-  --pastel-lavender-accent: 124 88 236;
-  --pastel-peach-accent: 226 98 44;
-  --pastel-butter-accent: 202 138 4;
-  --pastel-mint-accent: 16 152 106;
-  --pastel-sky-accent: 14 132 204;
-  --pastel-rose-accent: 222 52 92;
+  --pastel-rose: 255 0 255;
+  --pastel-lavender: 192 64 255;
+  --pastel-peach: 128 128 255;
+  --pastel-sky: 64 192 255;
+  --pastel-mint: 0 255 255;
+  --pastel-butter: 160 96 255;
+  --pastel-rose-ink: 17 17 17;
+  --pastel-lavender-ink: 17 17 17;
+  --pastel-peach-ink: 17 17 17;
+  --pastel-sky-ink: 17 17 17;
+  --pastel-mint-ink: 17 17 17;
+  --pastel-butter-ink: 17 17 17;
+  --pastel-rose-accent: 255 0 255;
+  --pastel-lavender-accent: 192 64 255;
+  --pastel-peach-accent: 128 128 255;
+  --pastel-sky-accent: 64 192 255;
+  --pastel-mint-accent: 0 255 255;
+  --pastel-butter-accent: 160 96 255;
 }
 
 
 /*
- * Texto sobre un fondo de color: oscuro sobre el pastel (claro), blanco sobre el color fuerte (oscuro).
+ * Texto sobre un fondo de color: siempre oscuro (sobre el tinte en claro y sobre el color pleno en oscuro).
  * `.hh-pastel` lo marca cada pieza que pinta ese fondo.
  */
 .dark .hh-pastel {
-  --ink-primary: 255 255 255;
-  --ink-secondary: 246 246 246;
-  --ink-muted: 236 236 236;
-  --surface-base: 255 255 255;
-  --surface-card: 255 255 255;
-  --surface-border: 255 255 255;
+  --ink-primary: 17 17 17;
+  --ink-secondary: 30 30 30;
+  --ink-muted: 44 44 44;
+  --surface-base: 17 17 17;
+  --surface-card: 17 17 17;
+  --surface-border: 17 17 17;
   color: rgb(var(--ink-primary));
 }
 
@@ -641,9 +642,11 @@ html.ui-v2 {
   --brand-warm: 243 243 241;
   --brand-secondary: 23 23 25;
   --brand-tertiary: 23 23 25;
-  --status-active: 18 138 96;
-  --status-expiring: 160 116 0;
-  --status-pending: 160 116 0;
+  --status-active: 0 118 128;
+  --status-generated: 0 118 128;
+  --status-expiring: 128 28 190;
+  --status-pending: 70 70 200;
+  --status-expired: 170 0 170;
   --brand-gradient: linear-gradient(rgb(var(--brand-primary)), rgb(var(--brand-primary)));
   --brand-gradient-hover: linear-gradient(rgb(var(--brand-hover)), rgb(var(--brand-hover)));
   --r-lg: 0.5rem;
@@ -671,9 +674,11 @@ html.ui-v2.dark {
   --brand-warm: 36 36 36;
   --brand-secondary: 240 240 238;
   --brand-tertiary: 240 240 238;
-  --status-active: 120 224 180;
-  --status-expiring: 250 214 110;
-  --status-pending: 250 214 110;
+  --status-active: 0 255 255;
+  --status-generated: 0 255 255;
+  --status-expiring: 192 64 255;
+  --status-pending: 128 128 255;
+  --status-expired: 255 0 255;
 }
 
 /* Barra de listados: botones grises en pastilla, chips de filtro grises. */

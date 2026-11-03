@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addMonths, format } from 'date-fns'
@@ -54,7 +55,16 @@ type Filter = 'all' | 'vencido' | 'pendiente' | 'al_dia' | 'pagado'
 /** Todavía no llegó su día de pago: no debe nada aún. */
 const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing === 'antes'
 /** Chip del estado: «Al día» va neutro (todavía no debe), el resto según su estado. */
-const stateChip = (r: StudentPaymentRow) => (isAlDia(r) && !r.gifted ? 'bg-surface-elevated text-ink-secondary' : STATE_META[r.state].chip)
+/** v2: los estados con los colores de la paleta. */
+const STATE_CHIP_V2: Record<PaymentState, string> = {
+  pagado: 'hh-pastel bg-pastel-mint text-pastel-mint-ink',
+  parcial: 'hh-pastel bg-pastel-sky text-pastel-sky-ink',
+  pendiente: 'hh-pastel bg-pastel-lavender text-pastel-lavender-ink',
+  vencido: 'hh-pastel bg-pastel-rose text-pastel-rose-ink',
+  sin_cargo: 'bg-surface-elevated text-ink-muted',
+}
+const stateChip = (r: StudentPaymentRow) =>
+  isAlDia(r) && !r.gifted ? 'bg-surface-elevated text-ink-secondary' : IS_V2 ? STATE_CHIP_V2[r.state] : STATE_META[r.state].chip
 const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state === 'parcial') && !isAlDia(r)
 
 /**
