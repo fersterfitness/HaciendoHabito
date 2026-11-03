@@ -12,6 +12,8 @@
     --sidebar-icon-hover: 55 53 47;
     --shadow-panel: 0 0 0 1px rgb(15 15 15 / 0.05), 0 3px 6px rgb(15 15 15 / 0.08), 0 9px 24px rgb(15 15 15 / 0.12);
     --radius-shell: 0.625rem;
+    /* v2: lienzo gris donde apoya la barra lateral; el contenido va en un panel blanco encima. */
+    --v2-canvas: 244 244 242;
 
     --shadow-xs: 0 0 #0000;
     --shadow-sm: 0 0 #0000;
@@ -75,6 +77,7 @@
     --sidebar-icon-idle: 255 255 255;
     --sidebar-icon-hover: 255 255 255;
     --shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.06), 0 3px 6px rgb(0 0 0 / 0.3), 0 9px 24px rgb(0 0 0 / 0.45);
+    --v2-canvas: 17 17 17;
 
     --shadow-xs: 0 0 #0000;
     --shadow-sm: 0 0 #0000;

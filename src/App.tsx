@@ -6,6 +6,8 @@ import { useAuthInit } from '@/hooks/useAuth'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/stores/authStore'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { AppLayoutV2 } from '@/components/v2/AppLayoutV2'
+import { IS_V2, routerBasename } from '@/lib/uiVersion'
 import { AuthGuard } from '@/components/layout/AuthGuard'
 import { PageRouteFallback } from '@/components/layout/PageRouteFallback'
 import { LoginPageV2 as LoginPage } from '@/pages/auth/LoginPageV2'
@@ -16,6 +18,7 @@ import { brandHex } from '@/theme/brandColors'
 
 /** Inicio y Alumnos también a demanda: traen gráficos y PDF, que no hacen falta para el login. */
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const DashboardV2Page = lazy(() => import('@/pages/v2/DashboardV2Page').then((m) => ({ default: m.DashboardV2Page })))
 const StudentsPage = lazy(() => import('@/pages/students/StudentsPage').then((m) => ({ default: m.StudentsPage })))
 const StudentFormPage = lazy(() => import('@/pages/students/StudentFormPage').then((m) => ({ default: m.StudentFormPage })))
 const StudentDetailPage = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })))
@@ -126,7 +129,15 @@ function renderLoggedInRoutes({
   return (
     <>
       <Route index element={<Navigate to="/dashboard" replace />} />
-      <Route path="dashboard" element={withPageSuspense(<DashboardPage />)} />
+      {IS_V2 ? (
+        <>
+          <Route path="dashboard" element={withPageSuspense(<DashboardV2Page />)} />
+          {/* El tablero anterior completo (estadísticas, retención, gráficos) sigue a un clic. */}
+          <Route path="dashboard/completo" element={withPageSuspense(<DashboardPage />)} />
+        </>
+      ) : (
+        <Route path="dashboard" element={withPageSuspense(<DashboardPage />)} />
+      )}
 
       {/* Alumnos */}
       <Route path="students" element={withPageSuspense(<StudentsPage />)} />
@@ -294,16 +305,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/v2/login" element={<Navigate to="/login" replace />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route path="/form/check-in/compartido/:token" element={withPageSuspense(<PublicCheckInPage shared />)} />
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
       <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
-      <Route path="/v2/form" element={<Navigate to="/form" replace />} />
 
       <Route element={<AuthGuard />}>
-        <Route element={<AppLayout />}>
+        <Route element={IS_V2 ? <AppLayoutV2 /> : <AppLayout />}>
           {/* Sin rol todavía, las rutas con permiso redirigirían a /dashboard: esperar con el esqueleto. */}
           {profilePending ? <Route path="*" element={<PageRouteFallback />} /> : renderLoggedInRoutes(loggedInProps)}
         </Route>
@@ -364,6 +373,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter
+        basename={routerBasename()}
         future={{
           v7_startTransition: true,
           v7_relativeSplatPath: true,

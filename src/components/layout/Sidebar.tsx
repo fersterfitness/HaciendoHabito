@@ -11,7 +11,8 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { BrandLogo } from '@/components/branding/BrandLogo'
-import { PanelLeftClose, PanelLeftOpen, Settings, type LucideIcon } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Settings, Sparkles, type LucideIcon } from 'lucide-react'
+import { enterV2 } from '@/lib/uiVersion'
 import { SidebarAnimateIcon, SidebarLogOutIcon } from '@/components/icons/sidebarAnimateIcons'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -394,6 +395,9 @@ export function Sidebar() {
 
         <div className="shrink-0 border-t border-[rgb(var(--sidebar-border)/0.12)] py-1.5 dark:border-[rgb(var(--sidebar-border)/0.06)]">
           <SidebarNavGroup items={footerNavItems} />
+          <RailButton label="Probar la versión nueva" onClick={enterV2}>
+            {() => <Sparkles className="h-4 w-4 text-brand-primary" />}
+          </RailButton>
           <RailButton label={expanded ? 'Contraer barra' : 'Expandir barra'} onClick={toggle}>
             {() => (expanded ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />)}
           </RailButton>

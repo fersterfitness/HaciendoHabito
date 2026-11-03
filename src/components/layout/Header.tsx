@@ -15,6 +15,7 @@ import {
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
+import { IS_V2 } from '@/lib/uiVersion'
 
 interface HeaderProps {
   title: string
@@ -28,6 +29,46 @@ export function Header({ title, showBack = false, actions, className }: HeaderPr
   const { profile } = useAuthStore()
   const { theme, toggleTheme } = useTheme()
   const unreadCount = useUnreadNotificationCount()
+
+  // v2: búsqueda, tema y perfil viven en la barra lateral; la cabecera queda con el título y lo propio de la página.
+  if (IS_V2) {
+    return (
+      <header
+        className={cn(
+          'sticky top-0 z-30 flex h-14 items-center gap-2 bg-surface-base/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-surface-base/70 lg:h-16 lg:px-8',
+          className,
+        )}
+      >
+        {showBack && (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Volver"
+            className={cn('-ml-1.5 rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary', appFocusRingClassName)}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
+        <h1 className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-[-0.02em] text-ink-primary lg:text-xl">{title}</h1>
+        <div className="flex items-center gap-1.5">
+          {actions}
+          <HeaderActionButton
+            onClick={() => openGlobalSearch()}
+            className="lg:hidden"
+            aria-label="Buscar (Ctrl+K)"
+            renderIcon={(hovered) => <HeaderSearchIcon animate={hovered} />}
+          />
+          <HeaderActionButton
+            onClick={() => navigate('/notifications')}
+            aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'}
+            className="relative overflow-visible"
+            renderIcon={(hovered) => <HeaderBellIcon animate={hovered} />}
+            badge={<NotificationBellBadge count={unreadCount} className="-top-1 -right-1" />}
+          />
+        </div>
+      </header>
+    )
+  }
 
   return (
     <header
