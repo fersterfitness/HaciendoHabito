@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ChevronsUpDown, LogOut, Moon, Search, Settings, Sun, Undo2 } from 'lucide-react'
+import { Bell, ChevronsUpDown, LogOut, Moon, Search, Settings, Sun, Undo2 } from 'lucide-react'
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
 import { BrandLogo } from '@/components/branding/BrandLogo'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 import { Popover } from '@/components/ui/Popover'
@@ -26,10 +27,10 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 
 const itemClass = (active: boolean) =>
   cn(
-    'group flex h-8 items-center gap-2.5 rounded-lg px-2 text-[13px] font-medium transition-colors',
+    'group flex h-9 items-center gap-3 rounded-full px-3 text-[14px] transition-colors',
     active
-      ? 'bg-surface-base text-ink-primary shadow-[0_0_0_1px_rgb(var(--surface-border)),0_1px_2px_rgb(0_0_0/0.05)]'
-      : 'text-ink-secondary hover:bg-surface-base/60 hover:text-ink-primary',
+      ? 'bg-[rgb(var(--v2-sidebar-active))] font-medium text-ink-primary shadow-[0_1px_2px_rgb(0_0_0/0.06),0_0_0_1px_rgb(0_0_0/0.03)]'
+      : 'text-ink-secondary hover:bg-[rgb(var(--v2-sidebar-active))]/60 hover:text-ink-primary',
   )
 
 /** Barra lateral de la v2: apoyada en el lienzo gris, la sección activa es una «pastilla» blanca. */
@@ -40,6 +41,20 @@ export function SidebarV2() {
   const { theme, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const sections = getNavSections(profile?.role)
+  const unread = useUnreadNotificationCount()
+
+  // «/» abre la búsqueda (salvo que se esté escribiendo en un campo).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+      e.preventDefault()
+      openGlobalSearch()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   async function logout() {
     setMenuOpen(false)
@@ -50,26 +65,37 @@ export function SidebarV2() {
   }
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col px-3 pb-3 pt-3.5 lg:flex print:hidden" aria-label="Navegación principal">
-      <NavLink to="/dashboard" className="mb-4 flex items-center gap-2.5 rounded-lg px-1.5 py-1">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col px-4 pb-4 pt-5 lg:flex print:hidden" aria-label="Navegación principal">
+      <NavLink to="/dashboard" className="mb-5 flex items-center gap-2.5 rounded-lg px-2 py-1">
         <BrandLogo size="sm" decorative />
-        <span className="min-w-0 truncate text-sm font-semibold tracking-[-0.01em] text-ink-primary">Haciéndolo Hábito</span>
+        <span className="min-w-0 truncate text-[15px] font-medium tracking-[-0.015em] text-ink-primary">Haciéndolo Hábito</span>
       </NavLink>
 
       <button
         type="button"
         onClick={() => openGlobalSearch()}
-        className="mb-4 flex h-8 items-center gap-2 rounded-lg border border-surface-border bg-surface-base/70 px-2.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-base hover:text-ink-secondary"
+        className="mb-5 flex h-10 items-center gap-2.5 rounded-xl bg-[rgb(var(--v2-sidebar-active))] px-3 text-[14px] text-ink-muted shadow-[0_1px_2px_rgb(0_0_0/0.05),0_0_0_1px_rgb(0_0_0/0.03)] transition-colors hover:text-ink-secondary"
       >
-        <Search className="h-3.5 w-3.5" aria-hidden />
+        <Search className="h-4 w-4" strokeWidth={1.75} aria-hidden />
         <span className="flex-1 text-left">Buscar</span>
-        <kbd className="font-sans text-[11px] text-ink-muted/80">Ctrl K</kbd>
+        <kbd className="flex h-6 min-w-6 items-center justify-center rounded-md bg-surface-elevated px-1.5 font-sans text-[12px] text-ink-muted">/</kbd>
       </button>
 
-      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 scrollbar-hide">
+      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 scrollbar-hide">
+        <div className="-mb-3 flex flex-col">
+          <NavLink to="/notifications" className={({ isActive }) => itemClass(isActive)}>
+            <Bell className="h-[18px] w-[18px] shrink-0 text-ink-muted group-hover:text-ink-secondary" strokeWidth={1.6} />
+            <span className="flex-1 truncate">Notificaciones</span>
+            {unread > 0 ? (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-pastel-rose px-1.5 text-[11px] font-semibold tabular-nums text-pastel-rose-ink">
+                {unread > 99 ? '99+' : unread}
+              </span>
+            ) : null}
+          </NavLink>
+        </div>
         {sections.map((section, i) => (
           <div key={section.title} className="flex flex-col gap-px">
-            {i > 0 ? <p className="mb-1 px-2 text-[11px] font-medium text-ink-muted">{section.title}</p> : null}
+            {i > 0 ? <p className="mb-1.5 px-3 text-[12px] text-ink-muted">{section.title}</p> : null}
             {section.items.map((item) => {
               const active = isNavPathActive(pathname, item)
               const Icon = item.icon
@@ -81,7 +107,7 @@ export function SidebarV2() {
                   aria-current={active ? 'page' : undefined}
                   onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
                 >
-                  <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.75} />
+                  <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
                   <span className="truncate">{item.label}</span>
                 </NavLink>
               )
@@ -90,6 +116,7 @@ export function SidebarV2() {
         ))}
       </nav>
 
+      <p className="mb-1.5 mt-4 px-3 text-[12px] text-ink-muted">Cuenta</p>
       <Popover
         open={menuOpen}
         onOpenChange={setMenuOpen}
@@ -100,12 +127,12 @@ export function SidebarV2() {
           <button
             {...t}
             type="button"
-            className="mt-3 flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface-base/60"
+            className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-[rgb(var(--v2-sidebar-active))]/60"
           >
             <AvatarOrInitials fullName={profile?.full_name ?? '?'} avatarUrl={profile?.avatar_url ?? null} size="md" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium text-ink-primary">{profile?.full_name ?? 'Mi cuenta'}</span>
-              <span className="block truncate text-[11px] text-ink-muted">{(profile?.role && ROLE_LABEL[profile.role]) || 'Cuenta'}</span>
+              <span className="block truncate text-[14px] font-medium text-ink-primary">{profile?.full_name ?? 'Mi cuenta'}</span>
+              <span className="block truncate text-[12px] text-ink-muted">{(profile?.role && ROLE_LABEL[profile.role]) || 'Cuenta'}</span>
             </span>
             <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
           </button>

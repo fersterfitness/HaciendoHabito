@@ -14,6 +14,9 @@ function pathIsV2(pathname: string): boolean {
 /** Esta carga de la página es de la versión nueva. */
 export const IS_V2 = typeof window !== 'undefined' && pathIsV2(window.location.pathname)
 
+// El tema de la v2 (colores, esquinas, botones) cuelga de esta clase en <html>; ver index.css.
+if (IS_V2) document.documentElement.classList.add('ui-v2')
+
 export function routerBasename(): string | undefined {
   return IS_V2 ? V2_BASE : undefined
 }

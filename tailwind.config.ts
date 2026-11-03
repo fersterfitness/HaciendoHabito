@@ -32,6 +32,13 @@ const config: Config = {
           warm: 'rgb(var(--ink-warm) / <alpha-value>)',
           muted: 'rgb(var(--ink-muted) / <alpha-value>)',
         },
+        /** Pasteles sólidos de la v2: fondo (`pastel-x`) y su tinta (`pastel-x-ink`). */
+        pastel: Object.fromEntries(
+          ['lavender', 'peach', 'butter', 'mint', 'sky', 'rose'].flatMap((n) => [
+            [n, `rgb(var(--pastel-${n}) / <alpha-value>)`],
+            [`${n}-ink`, `rgb(var(--pastel-${n}-ink) / <alpha-value>)`],
+          ]),
+        ),
         status: {
           active: 'rgb(var(--status-active) / <alpha-value>)',
           expiring: 'rgb(var(--status-expiring) / <alpha-value>)',
@@ -57,11 +64,11 @@ const config: Config = {
       },
       /** Esquinas chicas (estilo editor de documentos): todo el escalafón baja un escalón. */
       borderRadius: {
-        lg: '0.375rem',
-        xl: '0.5rem',
-        '2xl': '0.625rem',
-        '3xl': '0.875rem',
-        '4xl': '1.25rem',
+        lg: 'var(--r-lg, 0.375rem)',
+        xl: 'var(--r-xl, 0.5rem)',
+        '2xl': 'var(--r-2xl, 0.625rem)',
+        '3xl': 'var(--r-3xl, 0.875rem)',
+        '4xl': 'var(--r-4xl, 1.25rem)',
       },
       boxShadow: {
         'xs': 'var(--shadow-xs)',

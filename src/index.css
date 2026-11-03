@@ -558,3 +558,106 @@
     filter: none;
   }
 }
+
+/* ───────────────────────── v2 (/v2) ─────────────────────────
+ * Tema de la versión nueva: monocromo con pasteles sólidos, esquinas amplias y botones en pastilla.
+ * Cuelga de `html.ui-v2` (lo pone uiVersion.ts), así las pantallas viejas dentro de la v2 también cambian.
+ * Va al final y sin @layer para ganarle a las utilidades.
+ */
+:root {
+  --pastel-lavender: 238 235 255;
+  --pastel-lavender-ink: 104 76 214;
+  --pastel-peach: 255 238 226;
+  --pastel-peach-ink: 204 92 34;
+  --pastel-butter: 255 246 214;
+  --pastel-butter-ink: 160 116 0;
+  --pastel-mint: 222 246 236;
+  --pastel-mint-ink: 18 138 96;
+  --pastel-sky: 224 241 253;
+  --pastel-sky-ink: 18 120 190;
+  --pastel-rose: 253 230 235;
+  --pastel-rose-ink: 206 48 84;
+}
+
+.dark {
+  --pastel-lavender: 46 40 74;
+  --pastel-lavender-ink: 196 182 255;
+  --pastel-peach: 66 40 26;
+  --pastel-peach-ink: 255 176 132;
+  --pastel-butter: 62 52 20;
+  --pastel-butter-ink: 250 214 110;
+  --pastel-mint: 20 56 44;
+  --pastel-mint-ink: 120 224 180;
+  --pastel-sky: 20 46 68;
+  --pastel-sky-ink: 132 200 250;
+  --pastel-rose: 70 28 38;
+  --pastel-rose-ink: 255 150 172;
+}
+
+html.ui-v2 {
+  --v2-canvas: 237 237 235;
+  --v2-sidebar-active: 255 255 255;
+  --surface-base: 255 255 255;
+  --surface-card: 255 255 255;
+  --surface-panel: 249 249 248;
+  --surface-elevated: 243 243 241;
+  --surface-input: 255 255 255;
+  --surface-border: 234 234 232;
+  --surface-input-border: 222 222 219;
+  --ink-primary: 23 23 25;
+  --ink-secondary: 68 68 72;
+  --ink-muted: 128 128 124;
+  /* Sin naranja en la interfaz: la acción principal es negra y el color lo ponen los pasteles. */
+  --brand-primary: 23 23 25;
+  --brand-hover: 58 58 62;
+  --brand-warm: 243 243 241;
+  --brand-gradient: linear-gradient(rgb(var(--brand-primary)), rgb(var(--brand-primary)));
+  --brand-gradient-hover: linear-gradient(rgb(var(--brand-hover)), rgb(var(--brand-hover)));
+  --r-lg: 0.5rem;
+  --r-xl: 0.75rem;
+  --r-2xl: 1rem;
+  --r-3xl: 1.25rem;
+  --r-4xl: 1.75rem;
+}
+
+html.ui-v2.dark {
+  --v2-canvas: 10 10 10;
+  --v2-sidebar-active: 34 34 34;
+  --surface-base: 22 22 22;
+  --surface-card: 22 22 22;
+  --surface-panel: 28 28 28;
+  --surface-elevated: 36 36 36;
+  --surface-input: 28 28 28;
+  --surface-border: 38 38 38;
+  --surface-input-border: 56 56 56;
+  --ink-primary: 240 240 238;
+  --ink-secondary: 200 200 196;
+  --ink-muted: 140 140 136;
+  --brand-primary: 240 240 238;
+  --brand-hover: 210 210 206;
+  --brand-warm: 36 36 36;
+}
+
+/* Botones en pastilla; la secundaria es gris de relleno (como «Filtrar» / «Ordenar»). */
+html.ui-v2 .hh-btn {
+  border-radius: 9999px;
+}
+html.ui-v2 .hh-btn-secondary,
+html.ui-v2 .hh-btn-outline {
+  background-color: rgb(var(--surface-elevated));
+  border-color: transparent;
+  box-shadow: none;
+  color: rgb(var(--ink-primary));
+}
+html.ui-v2 .hh-btn-secondary:hover,
+html.ui-v2 .hh-btn-outline:hover {
+  background-color: rgb(var(--surface-border));
+}
+html.ui-v2 .hh-cta {
+  box-shadow: none;
+}
+/* En oscuro la acción principal es clara: el texto va oscuro. */
+html.ui-v2.dark .hh-cta,
+html.ui-v2.dark .bg-brand-primary.text-white {
+  color: rgb(17 17 17);
+}

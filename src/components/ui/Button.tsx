@@ -77,6 +77,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       'transition-[background-color,border-color,color,box-shadow,transform,filter] duration-200 ease-out-expo',
       'active:scale-[0.98] motion-reduce:active:scale-100',
       appFocusRingClassName,
+      `hh-btn hh-btn-${resolved}`,
       'disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none',
       variantStyles[resolved],
       sizeStyles[size],

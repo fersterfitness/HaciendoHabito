@@ -1,181 +1,353 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { avatarToneClass, cn, getInitials } from '@/lib/utils'
+import { ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 /**
  * Piezas de la v2. Pocas y con una sola forma de usarse: así las pantallas nuevas salen parejas
- * sin estilos a mano.
+ * sin estilos a mano. El color lo ponen los pasteles (`Tone`); el resto es blanco, gris y negro.
  */
+
+export type Tone = 'lavender' | 'peach' | 'butter' | 'mint' | 'sky' | 'rose'
+
+const TONE_BG: Record<Tone, string> = {
+  lavender: 'bg-pastel-lavender',
+  peach: 'bg-pastel-peach',
+  butter: 'bg-pastel-butter',
+  mint: 'bg-pastel-mint',
+  sky: 'bg-pastel-sky',
+  rose: 'bg-pastel-rose',
+}
+
+const TONE_INK: Record<Tone, string> = {
+  lavender: 'text-pastel-lavender-ink',
+  peach: 'text-pastel-peach-ink',
+  butter: 'text-pastel-butter-ink',
+  mint: 'text-pastel-mint-ink',
+  sky: 'text-pastel-sky-ink',
+  rose: 'text-pastel-rose-ink',
+}
+
+const TONE_FILL: Record<Tone, string> = {
+  lavender: 'bg-pastel-lavender-ink/70',
+  peach: 'bg-pastel-peach-ink/70',
+  butter: 'bg-pastel-butter-ink/60',
+  mint: 'bg-pastel-mint-ink/65',
+  sky: 'bg-pastel-sky-ink/65',
+  rose: 'bg-pastel-rose-ink/65',
+}
 
 /** Contenedor de página: ancho máximo y márgenes iguales en todas las pantallas nuevas. */
 export function PageV2({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('mx-auto w-full max-w-[72rem] px-4 pb-12 pt-6 lg:px-8 lg:pt-8', className)}>{children}</div>
+  return <div className={cn('mx-auto w-full max-w-[74rem] px-4 pb-14 pt-6 lg:px-10 lg:pt-9', className)}>{children}</div>
 }
 
-export function PageHeaderV2({
-  title,
-  description,
-  actions,
-}: {
-  title: ReactNode
-  description?: ReactNode
-  actions?: ReactNode
-}) {
+/** Saludo o título de la página, sin nada colgando al costado. */
+export function GreetingV2({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <div className="min-w-0">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em] text-ink-primary lg:text-[30px]">{title}</h1>
-        {description ? <p className="mt-1.5 text-sm text-ink-muted">{description}</p> : null}
-      </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+    <div className="mb-8">
+      <h1 className="text-[24px] font-medium leading-tight tracking-[-0.025em] text-ink-primary lg:text-[28px]">{title}</h1>
+      {children ? <p className="mt-2 text-[14px] text-ink-muted">{children}</p> : null}
     </div>
   )
 }
 
-/** Tira de números del mes: una sola caja dividida, sin tarjetas sueltas. */
-export function StatStrip({ items }: { items: { label: string; value: ReactNode; hint?: ReactNode }[] }) {
+export function SectionTitleV2({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mb-7 grid grid-cols-2 overflow-hidden rounded-xl border border-surface-border bg-surface-card lg:grid-cols-4">
-      {items.map((it, i) => (
-        <div
-          key={it.label}
-          className={cn(
-            'px-4 py-4 lg:px-5',
-            i % 2 === 1 && 'border-l border-surface-border',
-            i >= 2 && 'border-t border-surface-border lg:border-t-0',
-            i === 2 && 'lg:border-l',
-          )}
-        >
-          <p className="text-[12px] font-medium text-ink-muted">{it.label}</p>
-          <p className="mt-1.5 text-[22px] font-semibold leading-none tracking-[-0.02em] text-ink-primary lg:text-2xl">{it.value}</p>
-          {it.hint ? <p className="mt-1.5 truncate text-[12px] text-ink-muted">{it.hint}</p> : null}
-        </div>
-      ))}
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h2 className="text-[15px] font-medium tracking-[-0.01em] text-ink-primary">{children}</h2>
+      {action}
     </div>
   )
 }
 
-/** Bloque con título y, opcional, una acción a la derecha. */
-export function PanelV2({
-  title,
-  count,
-  action,
-  children,
-  className,
-}: {
-  title: string
-  count?: number
-  action?: ReactNode
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <section className={cn('overflow-hidden rounded-xl border border-surface-border bg-surface-card', className)}>
-      <header className="flex h-11 items-center gap-2 border-b border-surface-border px-4">
-        <h2 className="text-[13px] font-semibold text-ink-primary">{title}</h2>
-        {count ? <span className="rounded-md bg-surface-elevated px-1.5 text-[11px] font-medium tabular-nums text-ink-secondary">{count}</span> : null}
-        <div className="ml-auto">{action}</div>
-      </header>
-      {children}
-    </section>
-  )
-}
-
-/** Separador con nombre dentro de un panel (agrupa filas). */
-export function GroupLabel({ children }: { children: ReactNode }) {
-  return <p className="bg-surface-panel/60 px-4 pb-1.5 pt-3 text-[11px] font-medium text-ink-muted">{children}</p>
-}
-
-export function IconBubble({ icon: Icon, tone = 'neutral' }: { icon: LucideIcon; tone?: 'neutral' | 'warning' | 'danger' | 'success' | 'info' | 'brand' }) {
-  const color = {
-    neutral: 'text-ink-secondary',
-    warning: 'text-amber-600 dark:text-amber-400',
-    danger: 'text-rose-600 dark:text-rose-400',
-    success: 'text-emerald-600 dark:text-emerald-400',
-    info: 'text-sky-600 dark:text-sky-400',
-    brand: 'text-brand-primary',
-  }[tone]
-  return (
-    <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-border bg-surface-base', color)} aria-hidden>
-      <Icon className="h-4 w-4" strokeWidth={1.75} />
-    </span>
-  )
-}
-
-export function InitialsV2({ name, className }: { name: string; className?: string }) {
+/** Ícono sobre un cuadrado pastel (identifica el tipo de cosa, no decora). */
+export function ToneIcon({ icon: Icon, tone, size = 'md' }: { icon: LucideIcon; tone: Tone; size?: 'sm' | 'md' }) {
   return (
     <span
-      className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold', avatarToneClass(name), className)}
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-lg',
+        TONE_BG[tone],
+        TONE_INK[tone],
+        size === 'sm' ? 'h-6 w-6' : 'h-8 w-8',
+      )}
       aria-hidden
     >
-      {getInitials(name)}
+      <Icon className={size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'} strokeWidth={2} />
     </span>
   )
 }
 
-/** Fila de lista: algo a la izquierda (ícono o avatar), texto y acciones. */
-export function RowV2({
-  leading,
+/** Barra en dos tramos: lo hecho en pastel y lo que falta en gris. */
+export function ProgressV2({ value, tone }: { value: number; tone: Tone }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value * 100)))
+  return (
+    <div className="flex h-1.5 gap-1" aria-hidden>
+      {pct > 0 ? <span className={cn('rounded-full', TONE_FILL[tone])} style={{ width: `${pct}%` }} /> : null}
+      {pct < 100 ? <span className="flex-1 rounded-full bg-surface-elevated" /> : null}
+    </div>
+  )
+}
+
+/** Tarjeta de un número del mes: título con ícono pastel, link a la pantalla y barra de avance. */
+export function MetricCardV2({
+  icon,
+  tone,
   title,
-  meta,
-  trailing,
-  onClick,
+  link,
+  label,
+  value,
+  progress,
 }: {
-  leading?: ReactNode
-  title: ReactNode
-  meta?: ReactNode
-  trailing?: ReactNode
-  onClick?: () => void
+  icon: LucideIcon
+  tone: Tone
+  title: string
+  link?: { label: string; onClick: () => void }
+  label: ReactNode
+  value: ReactNode
+  progress?: number
 }) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 transition-colors',
-        onClick && 'cursor-pointer hover:bg-surface-elevated/50',
-      )}
-      onClick={onClick}
-    >
-      {leading}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium text-ink-primary">{title}</p>
-        {meta ? <p className="mt-0.5 truncate text-[12px] text-ink-muted">{meta}</p> : null}
+    <div className="flex flex-col rounded-2xl border border-surface-border bg-surface-card p-5">
+      <div className="mb-6 flex items-center gap-2.5">
+        <ToneIcon icon={icon} tone={tone} size="sm" />
+        <p className="text-[14px] font-medium text-ink-primary">{title}</p>
+        {link ? (
+          <button type="button" onClick={link.onClick} className="ml-auto text-[12px] text-ink-muted transition-colors hover:text-ink-primary">
+            {link.label}
+          </button>
+        ) : null}
       </div>
-      {trailing ? (
-        <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          {trailing}
+      <div className="mt-auto flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-[13px] text-ink-secondary">{label}</p>
+        <p className="shrink-0 text-[15px] font-semibold tabular-nums tracking-[-0.01em] text-ink-primary">{value}</p>
+      </div>
+      {progress !== undefined ? (
+        <div className="mt-3">
+          <ProgressV2 value={progress} tone={tone} />
         </div>
       ) : null}
     </div>
   )
 }
 
-/** Botón chico de fila: gris, con ícono opcional. */
-export function RowAction({
+/** Bloque pastel sólido con un número: sirve de filtro de la lista de abajo. */
+export function ToneTileV2({
+  icon: Icon,
+  tone,
+  count,
+  label,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon
+  tone: Tone
+  count: number
+  label: string
+  active?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'group flex items-center gap-3 rounded-2xl p-3.5 text-left transition-[box-shadow,transform] active:scale-[0.99]',
+        TONE_BG[tone],
+        active ? 'shadow-[0_0_0_1.5px_rgb(var(--ink-primary))]' : 'hover:shadow-[0_0_0_1px_rgb(var(--ink-primary)/0.12)]',
+      )}
+    >
+      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-base', TONE_INK[tone])} aria-hidden>
+        <Icon className="h-4 w-4" strokeWidth={2} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[18px] font-semibold leading-none tabular-nums text-ink-primary">{count}</span>
+        <span className="mt-1 block truncate text-[12px] text-ink-secondary">{label}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
+    </button>
+  )
+}
+
+/** Etiqueta pastel (tipo de tarea, estado). */
+export function TagV2({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return <span className={cn('inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium', TONE_BG[tone], TONE_INK[tone])}>{children}</span>
+}
+
+/** Dato chico con borde (fecha, monto, cantidad). */
+export function MetaChipV2({ icon: Icon, children }: { icon?: LucideIcon; children: ReactNode }) {
+  return (
+    <span className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-surface-border px-2 text-[12px] tabular-nums text-ink-secondary">
+      {Icon ? <Icon className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.75} aria-hidden /> : null}
+      {children}
+    </span>
+  )
+}
+
+/**
+ * Tarjeta de una cosa por hacer: título, detalle, etiquetas y, separado por una línea punteada,
+ * los datos y las acciones.
+ */
+export function TaskCardV2({
+  title,
+  description,
+  tags,
+  meta,
+  actions,
+  onOpen,
+  mark,
+}: {
+  title: ReactNode
+  description?: ReactNode
+  tags?: ReactNode
+  meta?: ReactNode
+  actions?: ReactNode
+  onOpen?: () => void
+  /** Algo a la derecha del título (avatar, aviso). */
+  mark?: ReactNode
+}) {
+  return (
+    <article className="rounded-2xl border border-surface-border bg-surface-card transition-shadow hover:shadow-[0_2px_10px_rgb(0_0_0/0.04)]">
+      <div className={cn('px-4 pb-3.5 pt-4', onOpen && 'cursor-pointer')} onClick={onOpen}>
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>
+            <span className="h-3 w-3 rounded-full border-[1.5px] border-ink-muted/70" />
+          </span>
+          <h3 className="min-w-0 flex-1 text-[15px] font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
+          {mark}
+        </div>
+        {description ? <p className="mt-2 pl-9 text-[13px] leading-relaxed text-ink-secondary">{description}</p> : null}
+        {tags ? <div className="mt-3 flex flex-wrap gap-1.5 pl-9">{tags}</div> : null}
+      </div>
+      {meta || actions ? (
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-dashed border-surface-border px-4 py-3">
+          {meta}
+          {actions ? <div className="ml-auto flex flex-wrap items-center gap-1.5">{actions}</div> : null}
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
+/** Botón de tarjeta: pastilla gris (o negra si es la acción del momento). */
+export function PillButtonV2({
   icon: Icon,
   children,
   onClick,
   title,
+  primary,
   iconClassName,
 }: {
   icon?: LucideIcon | ((p: { className?: string }) => ReactNode)
   children?: ReactNode
   onClick: () => void
   title?: string
+  primary?: boolean
   iconClassName?: string
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
       title={title}
-      className="inline-flex h-7 items-center gap-1.5 rounded-md border border-surface-border bg-surface-base px-2.5 text-[12px] font-medium text-ink-primary transition-colors hover:bg-surface-elevated"
+      aria-label={children ? undefined : title}
+      className={cn(
+        'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors',
+        primary
+          ? 'bg-ink-primary text-surface-base hover:bg-ink-primary/85'
+          : 'bg-surface-elevated text-ink-primary hover:bg-surface-border',
+        !children && 'w-8 justify-center px-0',
+      )}
     >
-      {Icon ? <Icon className={cn('h-3.5 w-3.5', iconClassName ?? 'text-ink-muted')} /> : null}
+      {Icon ? <Icon className={cn('h-3.5 w-3.5', iconClassName)} /> : null}
       {children}
     </button>
   )
 }
 
-export function EmptyRowV2({ children }: { children: ReactNode }) {
-  return <p className="px-4 py-8 text-center text-[13px] text-ink-muted">{children}</p>
+/** Filtros en pastilla: el elegido en negro con tilde. */
+export function SegmentedV2<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: { value: T; label: string; count?: number }[]
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5" role="tablist">
+      {options.map((o) => {
+        const on = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              'inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors',
+              on ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+            )}
+          >
+            {o.label}
+            {o.count !== undefined ? <span className={cn('tabular-nums', on ? 'opacity-70' : 'text-ink-muted')}>{o.count}</span> : null}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Caja blanca con título, para columnas laterales. */
+export function CardV2({ title, action, children, className }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={cn('rounded-2xl border border-surface-border bg-surface-card', className)}>
+      {title ? (
+        <header className="flex items-center gap-2 px-5 pb-1 pt-4">
+          <h2 className="text-[14px] font-medium text-ink-primary">{title}</h2>
+          <div className="ml-auto">{action}</div>
+        </header>
+      ) : null}
+      {children}
+    </section>
+  )
+}
+
+export function EmptyV2({ children }: { children: ReactNode }) {
+  return <p className="px-5 py-8 text-center text-[13px] text-ink-muted">{children}</p>
+}
+
+
+const AVATAR_TONES: Tone[] = ['lavender', 'peach', 'mint', 'sky', 'butter', 'rose']
+
+/** Iniciales sobre un pastel fijo por nombre (la misma persona siempre del mismo color). */
+export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+  let h = 0
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  const tone = AVATAR_TONES[h % AVATAR_TONES.length]!
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('')
+  return (
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-surface-card',
+        TONE_BG[tone],
+        TONE_INK[tone],
+        size === 'sm' ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-[11px]',
+      )}
+      aria-hidden
+    >
+      {initials || '?'}
+    </span>
+  )
 }
