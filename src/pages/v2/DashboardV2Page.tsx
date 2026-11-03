@@ -96,11 +96,6 @@ function isDone(id: string): boolean {
   }
 }
 
-function greeting(now: Date): string {
-  const h = now.getHours()
-  return h < 12 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches'
-}
-
 function daysToBirthday(birthDate: string, today: Date): number {
   const [, m, d] = birthDate.slice(0, 10).split('-').map(Number)
   const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -393,8 +388,7 @@ export function DashboardV2Page() {
         }
       />
       <PageV2>
-        <GreetingV2 title={`${greeting(new Date())}${profile?.full_name ? `, ${firstName(profile.full_name)}` : ''}`}>
-          {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}.{' '}
+        <GreetingV2 title={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}>
           {loading
             ? 'Cargando lo de hoy…'
             : pendingCount

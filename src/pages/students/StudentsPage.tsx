@@ -534,6 +534,30 @@ export function StudentsPage() {
   const [filterExpiry, setFilterExpiry] = useState<ExpiryFilter>('')
   const [filterTag,    setFilterTag]    = useState('')
   const [filterGender, setFilterGender] = useState<'' | 'F' | 'M'>('')
+
+  // Enlaces del menú («Estado»): ?estado=activo|pausado y ?plan=pronto|vencido aplican el filtro y se limpian de la URL.
+  useEffect(() => {
+    const estado = searchParams.get('estado')
+    const plan = searchParams.get('plan')
+    if (!estado && !plan) return
+    if (estado === 'activo' || estado === 'pausado') {
+      setFilterStatus(estado)
+      setFilterExpiry('')
+    }
+    if (plan === 'pronto' || plan === 'vencido') {
+      setFilterExpiry(plan)
+      setFilterStatus('')
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('estado')
+        next.delete('plan')
+        return next
+      },
+      { replace: true },
+    )
+  }, [searchParams, setSearchParams])
   const [tableSort, setTableSort] = useState<TableSort>('weeks_left')
   const TABLE_PAGE_SIZE = 50
   const [tableVisibleCount, setTableVisibleCount] = useState(TABLE_PAGE_SIZE)

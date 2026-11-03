@@ -38,6 +38,7 @@ import { chartAxis, chartBarCursor, chartBarRadius, chartGrid, compactCurrency }
 import { normalizePhoneForWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { tableRowEnterStyle } from '@/lib/tableRowEnterAnimation'
 import { PaymentsBoard } from '@/components/finances/PaymentsBoard'
+import { FinanceFlowChartV2 } from '@/components/finances/FinanceFlowChartV2'
 import { PriceIncreasePanel } from '@/components/finances/PriceIncreasePanel'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 
@@ -397,6 +398,7 @@ export function FinancesPage() {
           <MetricTile label="Pendiente" value={<CountUp value={totalPendiente} format={formatCurrency} duration={2200} enabled={!loading} />} tone={totalPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
           <MetricTile label="Total gastos" value={<CountUp value={totalGastos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingDown} />
         </div>
+        {IS_V2 && !loading ? <FinanceFlowChartV2 incomes={incomesFiltered} expenses={expensesFiltered} /> : null}
         <p className="text-2xs leading-relaxed text-ink-muted">
           Los montos siguen el filtro &ldquo;
           {scopeFilter === 'all' ? 'Todos los ámbitos' : scopeFilter === 'business' ? 'Haciéndolo hábito' : 'Vida personal'}
