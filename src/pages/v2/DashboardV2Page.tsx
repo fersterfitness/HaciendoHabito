@@ -680,7 +680,7 @@ export function DashboardV2Page() {
                         {d.getDate()}
                       </span>
                       <span
-                        className={cn('h-1 w-1 rounded-full', has ? (on ? 'bg-surface-base' : 'bg-pastel-peach-ink') : 'bg-transparent')}
+                        className={cn('h-1 w-1 rounded-full', has ? (on ? 'bg-surface-base' : 'bg-pastel-peach-accent') : 'bg-transparent')}
                       />
                     </button>
                   )
@@ -699,8 +699,8 @@ export function DashboardV2Page() {
                           {a.student?.full_name ?? a.title}
                         </p>
                         {a.status === 'confirmed' ? (
-                          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-surface-base px-2 text-[11px] font-medium text-ink-secondary">
-                            <Check className="h-3 w-3 text-pastel-mint-ink" />
+                          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-white px-2 text-[11px] font-medium text-zinc-700">
+                            <Check className="h-3 w-3 text-pastel-mint-accent" />
                             Confirmado
                           </span>
                         ) : null}

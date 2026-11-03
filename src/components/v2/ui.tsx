@@ -28,13 +28,22 @@ const TONE_INK: Record<Tone, string> = {
   rose: 'text-pastel-rose-ink',
 }
 
+const TONE_ACCENT: Record<Tone, string> = {
+  lavender: 'text-pastel-lavender-accent',
+  peach: 'text-pastel-peach-accent',
+  butter: 'text-pastel-butter-accent',
+  mint: 'text-pastel-mint-accent',
+  sky: 'text-pastel-sky-accent',
+  rose: 'text-pastel-rose-accent',
+}
+
 const TONE_FILL: Record<Tone, string> = {
-  lavender: 'bg-pastel-lavender-ink/70',
-  peach: 'bg-pastel-peach-ink/70',
-  butter: 'bg-pastel-butter-ink/60',
-  mint: 'bg-pastel-mint-ink/65',
-  sky: 'bg-pastel-sky-ink/65',
-  rose: 'bg-pastel-rose-ink/65',
+  lavender: 'bg-pastel-lavender-ink/70 dark:bg-pastel-lavender-accent',
+  peach: 'bg-pastel-peach-ink/70 dark:bg-pastel-peach-accent',
+  butter: 'bg-pastel-butter-ink/60 dark:bg-pastel-butter-accent',
+  mint: 'bg-pastel-mint-ink/65 dark:bg-pastel-mint-accent',
+  sky: 'bg-pastel-sky-ink/65 dark:bg-pastel-sky-accent',
+  rose: 'bg-pastel-rose-ink/65 dark:bg-pastel-rose-accent',
 }
 
 /** Contenedor de página: ancho máximo y márgenes iguales en todas las pantallas nuevas. */
@@ -158,7 +167,7 @@ export function ToneTileV2({
         active ? 'shadow-[0_0_0_1.5px_rgb(var(--ink-primary))]' : 'hover:shadow-[0_0_0_1px_rgb(var(--ink-primary)/0.12)]',
       )}
     >
-      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-base', TONE_INK[tone])} aria-hidden>
+      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-base', TONE_ACCENT[tone])} aria-hidden>
         <Icon className="h-4 w-4" strokeWidth={2} />
       </span>
       <span className="min-w-0 flex-1">
@@ -340,7 +349,7 @@ export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'm
   return (
     <span
       className={cn(
-        'hh-pastel flex shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-surface-card',
+        'hh-pastel flex shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-surface-card dark:ring-0',
         TONE_BG[tone],
         TONE_INK[tone],
         size === 'sm' ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-[11px]',

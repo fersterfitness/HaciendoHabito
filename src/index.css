@@ -577,20 +577,48 @@
   --pastel-sky-ink: 18 120 190;
   --pastel-rose: 253 230 235;
   --pastel-rose-ink: 206 48 84;
+  --pastel-lavender-accent: 104 76 214;
+  --pastel-peach-accent: 204 92 34;
+  --pastel-butter-accent: 160 116 0;
+  --pastel-mint-accent: 18 138 96;
+  --pastel-sky-accent: 18 120 190;
+  --pastel-rose-accent: 206 48 84;
+}
+
+/* Modo oscuro: colores fuertes y sólidos (sin transparencia), con texto blanco encima. */
+.dark {
+  --pastel-lavender: 124 88 236;
+  --pastel-peach: 226 98 44;
+  --pastel-butter: 202 138 4;
+  --pastel-mint: 16 152 106;
+  --pastel-sky: 14 132 204;
+  --pastel-rose: 222 52 92;
+  --pastel-lavender-ink: 255 255 255;
+  --pastel-peach-ink: 255 255 255;
+  --pastel-butter-ink: 255 255 255;
+  --pastel-mint-ink: 255 255 255;
+  --pastel-sky-ink: 255 255 255;
+  --pastel-rose-ink: 255 255 255;
+  --pastel-lavender-accent: 124 88 236;
+  --pastel-peach-accent: 226 98 44;
+  --pastel-butter-accent: 202 138 4;
+  --pastel-mint-accent: 16 152 106;
+  --pastel-sky-accent: 14 132 204;
+  --pastel-rose-accent: 222 52 92;
 }
 
 
 /*
- * Sobre un pastel el texto va siempre oscuro, también en modo oscuro (los pasteles son los mismos
- * en los dos modos). `.hh-pastel` lo marca cada pieza que pinta un fondo pastel.
+ * Texto sobre un fondo de color: oscuro sobre el pastel (claro), blanco sobre el color fuerte (oscuro).
+ * `.hh-pastel` lo marca cada pieza que pinta ese fondo.
  */
 .dark .hh-pastel {
-  --ink-primary: 23 23 25;
-  --ink-secondary: 62 62 66;
-  --ink-muted: 98 98 94;
+  --ink-primary: 255 255 255;
+  --ink-secondary: 246 246 246;
+  --ink-muted: 236 236 236;
   --surface-base: 255 255 255;
   --surface-card: 255 255 255;
-  --surface-border: 234 234 232;
+  --surface-border: 255 255 255;
   color: rgb(var(--ink-primary));
 }
 

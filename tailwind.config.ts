@@ -37,6 +37,7 @@ const config: Config = {
           ['lavender', 'peach', 'butter', 'mint', 'sky', 'rose'].flatMap((n) => [
             [n, `rgb(var(--pastel-${n}) / <alpha-value>)`],
             [`${n}-ink`, `rgb(var(--pastel-${n}-ink) / <alpha-value>)`],
+            [`${n}-accent`, `rgb(var(--pastel-${n}-accent) / <alpha-value>)`],
           ]),
         ),
         status: {

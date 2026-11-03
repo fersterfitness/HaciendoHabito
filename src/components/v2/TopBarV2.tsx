@@ -99,7 +99,7 @@ export function TopBarV2({
         </RoundIconButton>
         <RoundIconButton label={unread > 0 ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'} onClick={() => navigate('/notifications')} className="lg:hidden">
           <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
-          {unread > 0 ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-pastel-rose-ink ring-2 ring-surface-base" /> : null}
+          {unread > 0 ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-pastel-rose-accent ring-2 ring-surface-base" /> : null}
         </RoundIconButton>
       </div>
     </header>
