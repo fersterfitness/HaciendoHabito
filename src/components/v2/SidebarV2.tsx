@@ -3,7 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Bell, ChevronsUpDown, LogOut, Moon, Search, Settings, Sun, Undo2 } from 'lucide-react'
 import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
-import { BrandLogo } from '@/components/branding/BrandLogo'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 import { Popover } from '@/components/ui/Popover'
 import { getNavSections, isNavPathActive } from '@/config/navigation'
@@ -32,6 +31,16 @@ const itemClass = (active: boolean) =>
       ? 'bg-[rgb(var(--v2-sidebar-active))] font-medium text-ink-primary shadow-[0_1px_2px_rgb(0_0_0/0.06),0_0_0_1px_rgb(0_0_0/0.03)]'
       : 'text-ink-secondary hover:bg-[rgb(var(--v2-sidebar-active))]/60 hover:text-ink-primary',
   )
+
+/** Marca de la v2: el mismo dibujo del logo, en negro liso y del tamaño de los íconos. */
+function BrandMarkV2() {
+  return (
+    <svg viewBox="113 188 374 380" className="h-6 w-6 shrink-0" aria-hidden>
+      <rect x="113" y="188" width="374" height="380" rx="84" className="fill-ink-primary" />
+      <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" className="fill-surface-base" />
+    </svg>
+  )
+}
 
 /** Barra lateral de la v2: apoyada en el lienzo gris, la sección activa es una «pastilla» blanca. */
 export function SidebarV2() {
@@ -66,8 +75,8 @@ export function SidebarV2() {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-[13.5rem] shrink-0 flex-col px-3 pb-3 pt-4 lg:flex print:hidden" aria-label="Navegación principal">
-      <NavLink to="/dashboard" className="mb-4 flex items-center gap-2 rounded-lg px-1.5 py-1">
-        <BrandLogo size="sm" decorative />
+      <NavLink to="/dashboard" className="mb-4 flex h-8 items-center gap-2 rounded-lg px-1.5">
+        <BrandMarkV2 />
         <span className="min-w-0 truncate text-[13.5px] font-medium tracking-[-0.01em] text-ink-primary">Haciéndolo Hábito</span>
       </NavLink>
 
@@ -82,20 +91,25 @@ export function SidebarV2() {
       </button>
 
       <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 scrollbar-hide">
-        <div className="-mb-3 flex flex-col">
-          <NavLink to="/notifications" className={({ isActive }) => itemClass(isActive)}>
-            <Bell className="h-4 w-4 shrink-0 text-ink-muted group-hover:text-ink-secondary" strokeWidth={1.6} />
-            <span className="flex-1 truncate">Notificaciones</span>
-            {unread > 0 ? (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-pastel-rose px-1 text-[10px] font-semibold tabular-nums text-pastel-rose-ink">
-                {unread > 99 ? '99+' : unread}
-              </span>
-            ) : null}
-          </NavLink>
-        </div>
         {sections.map((section, i) => (
           <div key={section.title} className="flex flex-col gap-px">
             {i > 0 ? <p className="mb-1 px-2.5 text-[11px] text-ink-muted">{section.title}</p> : null}
+            {i === 0 ? (
+              <NavLink to="/notifications" className={({ isActive }) => itemClass(isActive)}>
+                {({ isActive }) => (
+                  <>
+                    <Bell
+                      className={cn('h-4 w-4 shrink-0', isActive ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')}
+                      strokeWidth={1.6}
+                    />
+                    <span className="flex-1 truncate">Notificaciones</span>
+                    {unread > 0 ? (
+                      <span className="text-[11px] font-medium tabular-nums text-ink-muted">{unread > 99 ? '99+' : unread}</span>
+                    ) : null}
+                  </>
+                )}
+              </NavLink>
+            ) : null}
             {section.items.map((item) => {
               const active = isNavPathActive(pathname, item)
               const Icon = item.icon

@@ -13,6 +13,8 @@ import { cn, formatDate } from '@/lib/utils'
 import type { Notification } from '@/types/database'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
+import { IS_V2 } from '@/lib/uiVersion'
+import { ToneIcon, type Tone } from '@/components/v2/ui'
 
 const HISTORY_LIMIT = 100
 
@@ -29,6 +31,30 @@ const TYPE_STYLE: Record<string, { icon: LucideIcon; tone: string }> = {
   intake_acceso_solicitado: { icon: KeyRound, tone: 'bg-brand-primary/12 text-brand-primary' },
 }
 const DEFAULT_TYPE_STYLE = { icon: Bell, tone: 'bg-surface-elevated text-ink-muted' }
+
+/** v2: el mismo ícono por tipo, sobre su pastel. */
+const TYPE_TONE: Record<string, Tone> = {
+  rutina_por_vencer: 'butter',
+  form_recibido: 'lavender',
+  pdf_generado: 'sky',
+  consulta_recibida: 'lavender',
+  feedback_enviado: 'mint',
+  pago_pendiente: 'peach',
+  pago_registrado: 'mint',
+  intake_acceso_solicitado: 'rose',
+}
+
+/** v2: agrupa por día para leer la lista como una bandeja. */
+function dayGroup(iso: string): string {
+  const d = new Date(iso)
+  const today = new Date()
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+  const diff = Math.floor((t0 - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 86_400_000)
+  if (diff <= 0) return 'Hoy'
+  if (diff === 1) return 'Ayer'
+  if (diff < 7) return 'Esta semana'
+  return 'Anteriores'
+}
 
 export function NotificationsPage() {
   const navigate = useNavigate()
@@ -101,13 +127,81 @@ export function NotificationsPage() {
         title="Notificaciones"
         actions={
           notifications.some((n) => !n.is_read) ? (
-            <Button variant="ghost" size="sm" icon={<Check className="h-4 w-4" />} onClick={() => void markAllRead()}>
+            <Button variant={IS_V2 ? 'secondary' : 'ghost'} size="sm" icon={<Check className={IS_V2 ? 'h-3.5 w-3.5' : 'h-4 w-4'} />} onClick={() => void markAllRead()}>
               Marcar todas
             </Button>
           ) : undefined
         }
       />
 
+      {IS_V2 ? (
+        <div className="mx-auto w-full max-w-[52rem] px-4 pb-14 pt-6 lg:px-10 lg:pt-8">
+          <p className="mb-5 text-[13px] text-ink-muted">
+            {loading
+              ? 'Cargando…'
+              : `${notifications.length} en el historial${unreadCount > 0 ? ` · ${unreadCount} sin leer` : ''}`}
+          </p>
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Spinner size="lg" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <p className="rounded-2xl bg-surface-panel px-5 py-10 text-center text-[13px] text-ink-muted">
+              Sin notificaciones. Cuando llegue un formulario o un pago, lo vas a ver acá.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {['Hoy', 'Ayer', 'Esta semana', 'Anteriores'].map((group) => {
+                const items = notifications.filter((n) => dayGroup(n.created_at) === group)
+                if (!items.length) return null
+                return (
+                  <section key={group}>
+                    <h2 className="mb-2 px-1 text-[12px] text-ink-muted">{group}</h2>
+                    <ul className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card" role="list">
+                      {items.map((n) => {
+                        const typeLabel = NOTIFICATION_TYPE_LABELS[n.type as keyof typeof NOTIFICATION_TYPE_LABELS] ?? n.type
+                        const Icon = (TYPE_STYLE[n.type] ?? DEFAULT_TYPE_STYLE).icon
+                        return (
+                          <li
+                            key={n.id}
+                            className={cn(
+                              'group flex items-center gap-3 border-b border-surface-border px-4 py-3 last:border-b-0 transition-colors hover:bg-surface-panel',
+                              deletingId === n.id && 'pointer-events-none opacity-50',
+                            )}
+                          >
+                            <span className={cn(n.is_read && 'opacity-60')}>
+                              <ToneIcon icon={Icon} tone={TYPE_TONE[n.type] ?? 'sky'} />
+                            </span>
+                            <button type="button" onClick={() => void openNotification(n)} className="min-w-0 flex-1 text-left outline-none">
+                              <span className={cn('block truncate text-[13px]', n.is_read ? 'text-ink-secondary' : 'font-medium text-ink-primary')}>
+                                {n.title}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[12px] text-ink-muted">
+                                {typeLabel}
+                                {n.body ? ` · ${n.body}` : ''}
+                              </span>
+                            </button>
+                            <span className="shrink-0 text-[12px] tabular-nums text-ink-muted">{formatDate(n.created_at, 'HH:mm')}</span>
+                            {!n.is_read ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-primary" aria-label="Sin leer" /> : null}
+                            <button
+                              type="button"
+                              onClick={() => void removeNotification(n.id)}
+                              aria-label="Eliminar notificación"
+                              className="shrink-0 rounded-full p-1.5 text-ink-muted opacity-0 transition-opacity hover:bg-surface-elevated hover:text-ink-primary group-hover:opacity-100 focus-visible:opacity-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </section>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="px-4 lg:px-6 py-6">
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
@@ -226,6 +320,7 @@ export function NotificationsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }
