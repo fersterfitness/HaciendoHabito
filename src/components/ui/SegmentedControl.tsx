@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
+import { IS_V2 } from '@/lib/uiVersion'
 import { cn } from '@/lib/utils'
 
 export type SegmentedItem = {
@@ -52,7 +53,7 @@ export function SegmentedControl({
     const Icon = item.icon
     return (
       <>
-        {active ? (
+        {active && !IS_V2 ? (
           <motion.span
             layoutId={pillId}
             aria-hidden
@@ -71,7 +72,13 @@ export function SegmentedControl({
           <span
             className={cn(
               'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-3xs font-semibold tabular-nums',
-              active ? 'bg-brand-primary/[0.12] text-brand-primary' : 'bg-surface-border/70 text-ink-muted',
+              IS_V2
+                ? active
+                  ? 'bg-surface-base/20 text-surface-base'
+                  : 'bg-surface-border text-ink-muted'
+                : active
+                  ? 'bg-brand-primary/[0.12] text-brand-primary'
+                  : 'bg-surface-border/70 text-ink-muted',
             )}
           >
             {item.count}
@@ -82,7 +89,20 @@ export function SegmentedControl({
   }
 
   const itemBase = (active: boolean) =>
-    cn(
+    IS_V2
+      ? size === 'sm'
+        ? cn(
+            // Filtro chico: pista gris y la opción elegida en blanco.
+            'inline-flex h-7 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[12.5px] font-medium transition-colors',
+            appFocusRingClassName,
+            active ? 'bg-surface-base text-ink-primary shadow-[0_1px_2px_rgb(0_0_0/0.08)]' : 'text-ink-muted hover:text-ink-primary',
+          )
+        : cn(
+            'inline-flex h-8 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors',
+            appFocusRingClassName,
+            active ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+          )
+      : cn(
       'relative isolate inline-flex select-none items-center justify-center font-medium whitespace-nowrap',
       'transition-colors duration-200',
       appFocusRingClassName,
@@ -98,8 +118,8 @@ export function SegmentedControl({
       aria-label={ariaLabel}
       className={cn(
         'inline-flex max-w-full items-center overflow-x-auto scrollbar-hide',
-        sz.wrap,
-        (fullWidth || size === 'md') && 'flex w-full',
+        IS_V2 ? (size === 'sm' ? 'gap-0.5 rounded-full bg-surface-elevated p-0.5' : 'gap-1.5') : sz.wrap,
+        !IS_V2 && (fullWidth || size === 'md') && 'flex w-full',
         className,
         // Las secciones ocupan todo el ancho: la línea de abajo corre de lado a lado.
         size === 'md' && 'max-w-full',

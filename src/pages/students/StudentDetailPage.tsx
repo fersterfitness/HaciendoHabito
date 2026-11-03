@@ -2,12 +2,14 @@ import { useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Pencil, Trash2, Dumbbell, FileText, FileDown, Plus, Mail, Phone, Calendar, X, StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Maximize2, UserRound, UtensilsCrossed, TrendingUp, CalendarCheck, Trophy, CalendarRange, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, Dumbbell, FileText, FileDown, Plus, Mail, Phone, Calendar, X, StickyNote, Check, DollarSign, ClipboardList, Copy, MessageCircle, Tag, Maximize2, UserRound, UtensilsCrossed, TrendingUp, CalendarCheck, Trophy, CalendarRange, ChevronRight, Ruler, CreditCard } from 'lucide-react'
 import { mealPlanRepo } from '@/data/mealPlans'
 import { supabase } from '@/lib/supabase'
 import { useStudents } from '@/hooks/useStudents'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
+import { MetricCardV2 } from '@/components/v2/ui'
+import { IS_V2 } from '@/lib/uiVersion'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -474,6 +476,8 @@ export function StudentDetailView({
   }
 
   const activeRoutine = routines.find((r) => r.status === 'activa' || r.status === 'por_vencer')
+  /** v2: la cabecera del alumno queda arriba de las solapas, como tarjeta, con su estado. */
+  const v2Page = IS_V2 && variant === 'page'
   /** Etiquetas de solapas principales (solo entrenadores/admins ven Nutrición con planes tipo Excel). */
   const sheetTabDefs: { key: SheetTab; label: string; short?: string; icon: ReactNode }[] = [
     { key: 'ficha', label: 'Información', short: 'Ficha', icon: <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden /> },
@@ -505,6 +509,249 @@ export function StudentDetailView({
       : student.selected_web_plan_slug === 'plan-full'
       ? 'Plan Full'
       : null
+
+  const profileSection = (
+          <section className={v2Page ? 'rounded-2xl border border-surface-border bg-surface-card p-5 lg:p-6' : 'pb-2'}>
+            <div className="flex flex-row items-start justify-between gap-4 sm:gap-6">
+              <div className="min-w-0 flex-1">
+                <h2 className={cn('text-balance text-ink-primary', v2Page ? 'text-[24px] font-medium tracking-[-0.025em]' : 'text-lg font-semibold tracking-tight')}>{student.full_name}</h2>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium ">
+                  <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
+                  <span className="text-ink-muted/50 " aria-hidden>
+                    ·
+                  </span>
+                  {student.level ? (
+                    <>
+                      <span className="text-ink-muted ">{DETAIL_LEVEL_LABEL[student.level] ?? student.level}</span>
+                      <span className="text-ink-muted/50 " aria-hidden>
+                        ·
+                      </span>
+                    </>
+                  ) : null}
+                  <span className="text-ink-muted ">{selectedPlanLabel ?? 'Sin plan web'}</span>
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs sm:gap-x-4 sm:gap-y-1.5">
+                  {student.email && (
+                    <a
+                      href={`mailto:${student.email}`}
+                      className={contactLinkClassName}
+                    >
+                      <Mail className="h-3 w-3 opacity-70" aria-hidden />
+                      <span className="sm:hidden">Mail</span>
+                      <span className="hidden sm:inline">{student.email}</span>
+                    </a>
+                  )}
+                  {student.phone && (
+                    <>
+                      <a
+                        href={`tel:${student.phone}`}
+                        className={contactLinkClassName}
+                      >
+                        <Phone className="h-3 w-3 opacity-70" aria-hidden />
+                        <span className="sm:hidden">Llamar</span>
+                        <span className="hidden sm:inline">{student.phone}</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${student.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className={contactLinkClassName}
+                      >
+                        <MessageCircle className="h-3 w-3 opacity-70" aria-hidden />
+                        WhatsApp
+                      </a>
+                    </>
+                  )}
+                  {student.birth_date && (
+                    <span className="flex items-center gap-1 px-1 text-ink-secondary sm:px-0">
+                      <Calendar className="h-3 w-3 opacity-70" aria-hidden />{formatDate(student.birth_date)}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {savingTags ? (
+                    <span className="inline-flex h-8 items-center gap-1.5 px-1 text-2xs text-ink-muted" aria-live="polite">
+                      <Spinner size="sm" variant="spin" />
+                      Guardando…
+                    </span>
+                  ) : null}
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className={cn(
+                        'inline-flex h-8 max-w-[12rem] items-center gap-1.5 rounded-xl border px-3 text-xs font-medium',
+                        'border-surface-border/80 bg-surface-card text-ink-primary shadow-none',
+                        '',
+                      )}
+                    >
+                      <span className="truncate">{t}</span>
+                      {editingTags && (
+                        <button
+                          type="button"
+                          onClick={() => removeTag(t)}
+                          disabled={savingTags}
+                          className={cn(
+                            'flex h-5 w-5 shrink-0 items-center justify-center rounded-lg',
+                            'text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary',
+                          )}
+                          aria-label={`Quitar etiqueta ${t}`}
+                        >
+                          <X className="h-3 w-3" strokeWidth={2} />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                  {editingTags ? (
+                    <div className="inline-flex flex-wrap items-center gap-2">
+                      <input
+                        autoFocus
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addTag(tagInput)
+                          }
+                          if (e.key === 'Escape') setEditingTags(false)
+                        }}
+                        placeholder="Nueva etiqueta…"
+                        disabled={savingTags}
+                        className={cn(
+                          'h-8 w-36 rounded-xl border border-surface-border/80 bg-surface-card px-3 text-xs text-ink-primary',
+                          'outline-none placeholder:text-ink-muted',
+                          'focus:border-brand-secondary/35 focus:ring-2 focus:ring-brand-secondary/15',
+                          ' ',
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={savingTags || !tagInput.trim()}
+                        onClick={() => addTag(tagInput)}
+                      >
+                        Agregar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingTags(false)
+                          setTagInput('')
+                        }}
+                      >
+                        Listo
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      icon={<Tag className="h-3.5 w-3.5" />}
+                      onClick={() => setEditingTags(true)}
+                    >
+                      {tags.length === 0 ? 'Etiqueta' : 'Agregar'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {/* En el celu la foto va chica al lado del nombre (antes ocupaba media pantalla arriba). */}
+              <div className="flex shrink-0 justify-end sm:hidden">
+                <StudentAvatar
+                  studentId={student.id}
+                  fullName={student.full_name}
+                  avatarPath={student.avatar_path ?? null}
+                  size="md"
+                  allowRemove
+                  onPathChange={(path) => setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))}
+                />
+              </div>
+              <div className="hidden shrink-0 justify-end sm:flex">
+                <StudentAvatar
+                  studentId={student.id}
+                  fullName={student.full_name}
+                  avatarPath={student.avatar_path ?? null}
+                  size={v2Page ? 'md' : 'lg'}
+                  allowRemove
+                  onPathChange={(path) => setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))}
+                />
+              </div>
+            </div>
+            <div className={cn('mt-5 flex flex-wrap items-center gap-2 border-t pt-4', v2Page ? 'border-dashed border-surface-border' : 'border-surface-border/60')}>
+              <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
+                Editar
+              </Button>
+              <Button
+                size="sm"
+                variant="gradientSecondary"
+                icon={<DollarSign className="h-3.5 w-3.5" />}
+                onClick={() => setShowPayModal(true)}
+              >
+                Registrar pago
+              </Button>
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={() => setShowDelete(true)}
+                className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-muted transition-colors hover:text-ink-secondary"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Eliminar
+              </button>
+            </div>
+          </section>
+  )
+
+  const routineProgress = (() => {
+    if (!activeRoutine) return null
+    const t0 = new Date(`${activeRoutine.start_date.slice(0, 10)}T00:00:00`).getTime()
+    const t1 = new Date(`${activeRoutine.end_date.slice(0, 10)}T00:00:00`).getTime()
+    const now = Date.now()
+    const left = Math.ceil((t1 - now) / 86_400_000)
+    return { value: t1 > t0 ? (now - t0) / (t1 - t0) : 1, left }
+  })()
+
+  const v2StatusCards = v2Page ? (
+    <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 [&>*]:w-[82%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto">
+      {showRoutineTab ? (
+        <MetricCardV2
+          icon={Dumbbell}
+          tone="butter"
+          title="Rutina"
+          link={{ label: 'Ver rutina', onClick: () => setSheetTab('rutina') }}
+          label={activeRoutine?.name ?? 'Sin rutina activa'}
+          value={
+            routineProgress
+              ? routineProgress.left < 0
+                ? 'Terminó'
+                : routineProgress.left === 0
+                  ? 'Termina hoy'
+                  : `Faltan ${routineProgress.left} d`
+              : '—'
+          }
+          progress={routineProgress ? routineProgress.value : 0}
+        />
+      ) : null}
+      <MetricCardV2
+        icon={Ruler}
+        tone="sky"
+        title="Medidas"
+        link={{ label: 'Seguimiento', onClick: () => setSheetTab('seguimiento') }}
+        label="Peso · altura"
+        value={`${student.weight_kg ? `${student.weight_kg} kg` : '—'} · ${student.height_cm ? `${student.height_cm} cm` : '—'}`}
+      />
+      <MetricCardV2
+        icon={CreditCard}
+        tone="lavender"
+        title="Plan"
+        link={{ label: 'Registrar pago', onClick: () => setShowPayModal(true) }}
+        label={(student.level && DETAIL_LEVEL_LABEL[student.level]) || 'Nivel sin cargar'}
+        value={selectedPlanLabel ?? 'Sin plan web'}
+      />
+    </div>
+  ) : null
 
   return (
     <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-surface-elevated/60 dark:bg-[rgb(var(--surface-base))]')}>
@@ -541,23 +788,30 @@ export function StudentDetailView({
       <div
         className={cn(
           'space-y-6',
-          variant === 'page' ? 'px-4 py-5 lg:px-6' : 'min-h-0 flex-1 overflow-y-auto px-4 py-5',
+          variant === 'page'
+            ? v2Page
+              ? 'mx-auto w-full max-w-[74rem] px-4 py-6 lg:px-10 lg:py-8'
+              : 'px-4 py-5 lg:px-6'
+            : 'min-h-0 flex-1 overflow-y-auto px-4 py-5',
         )}
       >
+        {v2Page ? profileSection : null}
+        {v2StatusCards}
+
         {/* Solapas principales — tabs “raised” (full width) + sticky en panel */}
         <div
           className={cn(
-            '-mx-4 px-4',
-            variant === 'page' && 'lg:-mx-6 lg:px-6',
-            'border-b border-surface-border/70',
+            v2Page ? '-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:px-0' : '-mx-4 px-4',
+            variant === 'page' && !v2Page && 'lg:-mx-6 lg:px-6',
+            !v2Page && 'border-b border-surface-border/70',
             variant === 'panel' &&
               'sticky top-0 z-[5] bg-surface-base/85 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/70',
           )}
           role="tablist"
           aria-label="Secciones de la ficha"
         >
-          <div className="pt-3">
-            <div className="flex w-full items-end gap-0.5 sm:gap-2">
+          <div className={v2Page ? '' : 'pt-3'}>
+            <div className={v2Page ? 'flex w-max items-center gap-1.5' : 'flex w-full items-end gap-0.5 sm:gap-2'}>
               {sheetTabDefs.map(({ key, label, short, icon }) => {
                 const active = sheetTab === key
                 return (
@@ -570,12 +824,19 @@ export function StudentDetailView({
                     title={label}
                     onClick={() => setSheetTab(key)}
                     className={cn(
-                      'relative -mb-px flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-t-lg px-0.5 pb-2.5 pt-2',
-                      'text-3xs font-semibold transition-colors sm:flex-row sm:gap-2 sm:px-4 sm:py-3 sm:text-xs',
-                      active ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
+                      v2Page
+                        ? cn(
+                            'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[12.5px] font-medium transition-colors',
+                            active ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+                          )
+                        : cn(
+                            'relative -mb-px flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-t-lg px-0.5 pb-2.5 pt-2',
+                            'text-3xs font-semibold transition-colors sm:flex-row sm:gap-2 sm:px-4 sm:py-3 sm:text-xs',
+                            active ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
+                          ),
                     )}
                   >
-                    {active ? (
+                    {active && !v2Page ? (
                       <motion.span
                         layoutId="student-sheet-tab"
                         aria-hidden
@@ -586,14 +847,14 @@ export function StudentDetailView({
                     <span
                       className={cn(
                         'shrink-0 [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-3.5 sm:[&>svg]:w-3.5',
-                        active ? 'text-brand-primary' : 'text-ink-muted',
+                        v2Page ? (active ? 'text-surface-base' : 'text-ink-muted') : active ? 'text-brand-primary' : 'text-ink-muted',
                       )}
                     >
                       {icon}
                     </span>
                     {/* En el celu entran ~9 letras por solapa: las largas usan su versión corta. */}
                     <span className="max-w-full truncate">
-                      {short ? (
+                      {short && !v2Page ? (
                         <>
                           <span className="sm:hidden">{short}</span>
                           <span className="hidden sm:inline">{label}</span>
@@ -612,198 +873,7 @@ export function StudentDetailView({
         {/* ── Información: datos completos del alumno ── */}
         {sheetTab === 'ficha' && (
           <>
-        {/* Perfil: sin tarjeta contenedora, tipografía y líneas */}
-        <section className="pb-2">
-          <div className="flex flex-row items-start justify-between gap-4 sm:gap-6">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-balance text-lg font-semibold tracking-tight text-ink-primary ">{student.full_name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium ">
-                <span className={studentAccountStatusChipClass(student.status)}>{intakeStatusPhrase(student.status)}</span>
-                <span className="text-ink-muted/50 " aria-hidden>
-                  ·
-                </span>
-                {student.level ? (
-                  <>
-                    <span className="text-ink-muted ">{DETAIL_LEVEL_LABEL[student.level] ?? student.level}</span>
-                    <span className="text-ink-muted/50 " aria-hidden>
-                      ·
-                    </span>
-                  </>
-                ) : null}
-                <span className="text-ink-muted ">{selectedPlanLabel ?? 'Sin plan web'}</span>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs sm:gap-x-4 sm:gap-y-1.5">
-                {student.email && (
-                  <a
-                    href={`mailto:${student.email}`}
-                    className={contactLinkClassName}
-                  >
-                    <Mail className="h-3 w-3 opacity-70" aria-hidden />
-                    <span className="sm:hidden">Mail</span>
-                    <span className="hidden sm:inline">{student.email}</span>
-                  </a>
-                )}
-                {student.phone && (
-                  <>
-                    <a
-                      href={`tel:${student.phone}`}
-                      className={contactLinkClassName}
-                    >
-                      <Phone className="h-3 w-3 opacity-70" aria-hidden />
-                      <span className="sm:hidden">Llamar</span>
-                      <span className="hidden sm:inline">{student.phone}</span>
-                    </a>
-                    <a
-                      href={`https://wa.me/${student.phone.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className={contactLinkClassName}
-                    >
-                      <MessageCircle className="h-3 w-3 opacity-70" aria-hidden />
-                      WhatsApp
-                    </a>
-                  </>
-                )}
-                {student.birth_date && (
-                  <span className="flex items-center gap-1 px-1 text-ink-secondary sm:px-0">
-                    <Calendar className="h-3 w-3 opacity-70" aria-hidden />{formatDate(student.birth_date)}
-                  </span>
-                )}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {savingTags ? (
-                  <span className="inline-flex h-8 items-center gap-1.5 px-1 text-2xs text-ink-muted" aria-live="polite">
-                    <Spinner size="sm" variant="spin" />
-                    Guardando…
-                  </span>
-                ) : null}
-                {tags.map((t) => (
-                  <span
-                    key={t}
-                    className={cn(
-                      'inline-flex h-8 max-w-[12rem] items-center gap-1.5 rounded-xl border px-3 text-xs font-medium',
-                      'border-surface-border/80 bg-surface-card text-ink-primary shadow-none',
-                      '',
-                    )}
-                  >
-                    <span className="truncate">{t}</span>
-                    {editingTags && (
-                      <button
-                        type="button"
-                        onClick={() => removeTag(t)}
-                        disabled={savingTags}
-                        className={cn(
-                          'flex h-5 w-5 shrink-0 items-center justify-center rounded-lg',
-                          'text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary',
-                        )}
-                        aria-label={`Quitar etiqueta ${t}`}
-                      >
-                        <X className="h-3 w-3" strokeWidth={2} />
-                      </button>
-                    )}
-                  </span>
-                ))}
-                {editingTags ? (
-                  <div className="inline-flex flex-wrap items-center gap-2">
-                    <input
-                      autoFocus
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          addTag(tagInput)
-                        }
-                        if (e.key === 'Escape') setEditingTags(false)
-                      }}
-                      placeholder="Nueva etiqueta…"
-                      disabled={savingTags}
-                      className={cn(
-                        'h-8 w-36 rounded-xl border border-surface-border/80 bg-surface-card px-3 text-xs text-ink-primary',
-                        'outline-none placeholder:text-ink-muted',
-                        'focus:border-brand-secondary/35 focus:ring-2 focus:ring-brand-secondary/15',
-                        ' ',
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={savingTags || !tagInput.trim()}
-                      onClick={() => addTag(tagInput)}
-                    >
-                      Agregar
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingTags(false)
-                        setTagInput('')
-                      }}
-                    >
-                      Listo
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    icon={<Tag className="h-3.5 w-3.5" />}
-                    onClick={() => setEditingTags(true)}
-                  >
-                    {tags.length === 0 ? 'Etiqueta' : 'Agregar'}
-                  </Button>
-                )}
-              </div>
-            </div>
-            {/* En el celu la foto va chica al lado del nombre (antes ocupaba media pantalla arriba). */}
-            <div className="flex shrink-0 justify-end sm:hidden">
-              <StudentAvatar
-                studentId={student.id}
-                fullName={student.full_name}
-                avatarPath={student.avatar_path ?? null}
-                size="md"
-                allowRemove
-                onPathChange={(path) => setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))}
-              />
-            </div>
-            <div className="hidden shrink-0 justify-end sm:flex">
-              <StudentAvatar
-                studentId={student.id}
-                fullName={student.full_name}
-                avatarPath={student.avatar_path ?? null}
-                size="lg"
-                allowRemove
-                onPathChange={(path) => setStudent((prev) => (prev ? { ...prev, avatar_path: path } : null))}
-              />
-            </div>
-          </div>
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-surface-border/60 pt-4 ">
-            <Button variant="secondary" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => navigate(`/students/${id}/edit`)}>
-              Editar
-            </Button>
-            <Button
-              size="sm"
-              variant="gradientSecondary"
-              icon={<DollarSign className="h-3.5 w-3.5" />}
-              onClick={() => setShowPayModal(true)}
-            >
-              Registrar pago
-            </Button>
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={() => setShowDelete(true)}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-muted transition-colors hover:text-ink-secondary"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Eliminar
-            </button>
-          </div>
-        </section>
+        {!v2Page ? profileSection : null}
 
         <FersterStudentIntakePanel student={student} />
         <PsychologistStudentIntakePanel student={student} />

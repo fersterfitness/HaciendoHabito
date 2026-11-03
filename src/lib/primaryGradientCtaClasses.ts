@@ -40,6 +40,7 @@ export const primaryGradientCtaClassName = cn(
 
 /** Chip de filtro activo junto a la barra de listados. */
 export const directoryFilterChipClassName = cn(
+  'hh-dir-chip',
   'inline-flex h-9 items-center gap-1.5 rounded-full border border-brand-primary/25',
   'bg-brand-primary/[0.07] px-3 text-xs font-medium text-ink-primary',
 )
@@ -49,6 +50,7 @@ export const directoryPopoverDividerClassName = 'border-t border-surface-border/
 
 /** Botones secundarios de barra (Exportar, Filtrar, Ordenar) en listados. */
 export const directoryToolbarBtnClassName = cn(
+  'hh-dir-btn',
   'inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-surface-border',
   'bg-surface-card px-3 text-sm font-medium text-ink-secondary sm:px-3.5',
   'shadow-[var(--highlight-top),var(--shadow-xs)] outline-none transition-all duration-200',

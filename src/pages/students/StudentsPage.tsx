@@ -17,6 +17,10 @@ import {
   ArrowDownUp,
   Utensils,
   ChevronRight,
+  UserCheck,
+  PauseCircle,
+  CalendarClock,
+  CalendarX,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { fetchCurrentAssignmentsForStudents, PAYMENT_STATUS_LABELS, effectivePaymentStatus } from '@/lib/studentPlanAssignments'
@@ -24,6 +28,8 @@ import type { StudentPlanAssignment } from '@/types/database'
 import { StudentTagChips } from '@/components/students/StudentTagChips'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { Header } from '@/components/layout/Header'
+import { ToneTileV2 } from '@/components/v2/ui'
+import { IS_V2 } from '@/lib/uiVersion'
 import { AdvisoriesSectionNav } from '@/components/layout/AdvisoriesSectionNav'
 import { WomenCycleOverview } from '@/components/students/WomenCycleOverview'
 import { Badge } from '@/components/ui/Badge'
@@ -705,6 +711,36 @@ export function StudentsPage() {
     return true
   }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag, filterGender])
 
+  const v2Summary = useMemo(() => {
+    let activos = 0
+    let pausados = 0
+    let pronto = 0
+    let vencido = 0
+    for (const s of localStudents) {
+      if (s.status === 'activo') activos++
+      if (s.status === 'pausado') pausados++
+      if (s.plan_end_date) {
+        const d = daysUntil(s.plan_end_date)
+        if (d >= 0 && d <= 14) pronto++
+        else if (d < 0) vencido++
+      }
+    }
+    return { activos, pausados, pronto, vencido }
+  }, [localStudents])
+
+  const newStudentButton = (
+    <Button
+      type="button"
+      variant="gradientSecondary"
+      size={IS_V2 ? 'sm' : 'md'}
+      onClick={openNewStudentModal}
+      title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
+      icon={<Plus className={IS_V2 ? 'h-3.5 w-3.5 shrink-0' : 'h-4 w-4 shrink-0'} strokeWidth={2.25} aria-hidden />}
+    >
+      {role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
+    </Button>
+  )
+
   const remainingWeeksOf = useCallback((studentId: string) => {
     const total = weeksByStudent.get(studentId) ?? 0
     const st = weekByStudent.get(studentId)
@@ -731,10 +767,46 @@ export function StudentsPage() {
 
   return (
     <div>
-      <Header title={entityLabel} />
+      <Header title={entityLabel} actions={IS_V2 ? newStudentButton : undefined} />
 
       <DirectoryPageShell>
         <AdvisoriesSectionNav />
+        {IS_V2 ? (
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            <ToneTileV2
+              icon={UserCheck}
+              tone="mint"
+              count={v2Summary.activos}
+              label="Activos"
+              active={filterStatus === 'activo'}
+              onClick={() => setFilterStatus(filterStatus === 'activo' ? '' : 'activo')}
+            />
+            <ToneTileV2
+              icon={PauseCircle}
+              tone="butter"
+              count={v2Summary.pausados}
+              label="Pausados"
+              active={filterStatus === 'pausado'}
+              onClick={() => setFilterStatus(filterStatus === 'pausado' ? '' : 'pausado')}
+            />
+            <ToneTileV2
+              icon={CalendarClock}
+              tone="peach"
+              count={v2Summary.pronto}
+              label="Plan vence en 14 días"
+              active={filterExpiry === 'pronto'}
+              onClick={() => setFilterExpiry(filterExpiry === 'pronto' ? '' : 'pronto')}
+            />
+            <ToneTileV2
+              icon={CalendarX}
+              tone="rose"
+              count={v2Summary.vencido}
+              label="Plan vencido"
+              active={filterExpiry === 'vencido'}
+              onClick={() => setFilterExpiry(filterExpiry === 'vencido' ? '' : 'vencido')}
+            />
+          </div>
+        ) : null}
         {filterGender === 'F' ? (
           <WomenCycleOverview students={filtered} weekByStudent={weekByStudent} />
         ) : null}
@@ -824,15 +896,7 @@ export function StudentsPage() {
               </span>
             )}
 
-            <Button
-              type="button"
-              variant="gradientSecondary"
-              onClick={openNewStudentModal}
-              title={role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
-              icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
-            >
-              {role === 'nutritionist' ? 'Nuevo paciente' : 'Nuevo alumno'}
-            </Button>
+            {IS_V2 ? null : newStudentButton}
           </div>
         </div>
 

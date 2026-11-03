@@ -59,7 +59,7 @@ export function TopBarV2({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-surface-border bg-surface-base/90 px-4 backdrop-blur-xl lg:h-[60px] lg:px-6',
+        'sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-surface-border bg-surface-base/90 px-4 backdrop-blur-xl lg:h-[52px] lg:px-6',
         className,
       )}
     >
@@ -68,7 +68,7 @@ export function TopBarV2({
           <ChevronLeft className="h-[18px] w-[18px]" />
         </RoundIconButton>
       ) : null}
-      <nav aria-label="Ubicación" className="flex min-w-0 flex-1 items-center gap-1.5 text-[14px]">
+      <nav aria-label="Ubicación" className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px]">
         {nav ? (
           <>
             <span className="hidden shrink-0 text-ink-muted sm:inline">{nav.section}</span>

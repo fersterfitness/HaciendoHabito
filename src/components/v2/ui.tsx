@@ -45,9 +45,9 @@ export function PageV2({ children, className }: { children: ReactNode; className
 /** Saludo o título de la página, sin nada colgando al costado. */
 export function GreetingV2({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
-    <div className="mb-8">
-      <h1 className="text-[24px] font-medium leading-tight tracking-[-0.025em] text-ink-primary lg:text-[28px]">{title}</h1>
-      {children ? <p className="mt-2 text-[14px] text-ink-muted">{children}</p> : null}
+    <div className="mb-7">
+      <h1 className="text-[22px] font-medium leading-tight tracking-[-0.025em] text-ink-primary lg:text-[24px]">{title}</h1>
+      {children ? <p className="mt-1.5 text-[13px] text-ink-muted">{children}</p> : null}
     </div>
   )
 }
@@ -55,7 +55,7 @@ export function GreetingV2({ title, children }: { title: ReactNode; children?: R
 export function SectionTitleV2({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-[15px] font-medium tracking-[-0.01em] text-ink-primary">{children}</h2>
+      <h2 className="text-[14px] font-medium tracking-[-0.01em] text-ink-primary">{children}</h2>
       {action}
     </div>
   )
@@ -108,10 +108,10 @@ export function MetricCardV2({
   progress?: number
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-surface-border bg-surface-card p-5">
-      <div className="mb-6 flex items-center gap-2.5">
+    <div className="flex flex-col rounded-2xl border border-surface-border bg-surface-card p-4">
+      <div className="mb-5 flex items-center gap-2.5">
         <ToneIcon icon={icon} tone={tone} size="sm" />
-        <p className="text-[14px] font-medium text-ink-primary">{title}</p>
+        <p className="text-[13px] font-medium text-ink-primary">{title}</p>
         {link ? (
           <button type="button" onClick={link.onClick} className="ml-auto text-[12px] text-ink-muted transition-colors hover:text-ink-primary">
             {link.label}
@@ -120,7 +120,7 @@ export function MetricCardV2({
       </div>
       <div className="mt-auto flex items-baseline justify-between gap-3">
         <p className="min-w-0 truncate text-[13px] text-ink-secondary">{label}</p>
-        <p className="shrink-0 text-[15px] font-semibold tabular-nums tracking-[-0.01em] text-ink-primary">{value}</p>
+        <p className="shrink-0 text-[14px] font-semibold tabular-nums tracking-[-0.01em] text-ink-primary">{value}</p>
       </div>
       {progress !== undefined ? (
         <div className="mt-3">
@@ -162,7 +162,7 @@ export function ToneTileV2({
         <Icon className="h-4 w-4" strokeWidth={2} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[18px] font-semibold leading-none tabular-nums text-ink-primary">{count}</span>
+        <span className="block text-[16px] font-semibold leading-none tabular-nums text-ink-primary">{count}</span>
         <span className="mt-1 block truncate text-[12px] text-ink-secondary">{label}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
@@ -214,7 +214,7 @@ export function TaskCardV2({
           <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>
             <span className="h-3 w-3 rounded-full border-[1.5px] border-ink-muted/70" />
           </span>
-          <h3 className="min-w-0 flex-1 text-[15px] font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
+          <h3 className="min-w-0 flex-1 text-[14px] font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
           {mark}
         </div>
         {description ? <p className="mt-2 pl-9 text-[13px] leading-relaxed text-ink-secondary">{description}</p> : null}
@@ -310,7 +310,7 @@ export function CardV2({ title, action, children, className }: { title?: ReactNo
     <section className={cn('rounded-2xl border border-surface-border bg-surface-card', className)}>
       {title ? (
         <header className="flex items-center gap-2 px-5 pb-1 pt-4">
-          <h2 className="text-[14px] font-medium text-ink-primary">{title}</h2>
+          <h2 className="text-[13px] font-medium text-ink-primary">{title}</h2>
           <div className="ml-auto">{action}</div>
         </header>
       ) : null}

@@ -611,6 +611,11 @@ html.ui-v2 {
   --brand-primary: 23 23 25;
   --brand-hover: 58 58 62;
   --brand-warm: 243 243 241;
+  --brand-secondary: 23 23 25;
+  --brand-tertiary: 23 23 25;
+  --status-active: 18 138 96;
+  --status-expiring: 160 116 0;
+  --status-pending: 160 116 0;
   --brand-gradient: linear-gradient(rgb(var(--brand-primary)), rgb(var(--brand-primary)));
   --brand-gradient-hover: linear-gradient(rgb(var(--brand-hover)), rgb(var(--brand-hover)));
   --r-lg: 0.5rem;
@@ -636,6 +641,55 @@ html.ui-v2.dark {
   --brand-primary: 240 240 238;
   --brand-hover: 210 210 206;
   --brand-warm: 36 36 36;
+  --brand-secondary: 240 240 238;
+  --brand-tertiary: 240 240 238;
+  --status-active: 120 224 180;
+  --status-expiring: 250 214 110;
+  --status-pending: 250 214 110;
+}
+
+/* Barra de listados: botones grises en pastilla, chips de filtro grises. */
+html.ui-v2 .hh-dir-btn {
+  height: 2.25rem;
+  border-radius: 9999px;
+  border-color: transparent;
+  background-color: rgb(var(--surface-elevated));
+  box-shadow: none;
+  color: rgb(var(--ink-primary));
+  font-size: 13px;
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+}
+html.ui-v2 .hh-dir-btn:hover {
+  background-color: rgb(var(--surface-border));
+}
+html.ui-v2 .hh-dir-chip {
+  height: 2.25rem;
+  border-color: transparent;
+  background-color: rgb(var(--surface-elevated));
+}
+
+/* Tablas de listado: cabecera chica y gris, filas con aire. */
+html.ui-v2 .hh-table > thead th {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(var(--ink-muted));
+}
+html.ui-v2 .hh-table > tbody > tr:hover {
+  background-color: rgb(var(--surface-panel));
+}
+
+/* Naranjas sueltos escritos a mano: en la v2 pasan a negro (o blanco en oscuro). */
+html.ui-v2 .text-orange-500,
+html.ui-v2 .text-orange-400,
+html.ui-v2 .text-orange-600,
+html.ui-v2 .text-orange-700 {
+  color: rgb(var(--ink-primary));
+}
+html.ui-v2 .bg-orange-500 {
+  background-color: rgb(var(--ink-primary));
 }
 
 /* Botones en pastilla; la secundaria es gris de relleno (como «Filtrar» / «Ordenar»). */
