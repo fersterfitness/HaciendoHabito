@@ -31,15 +31,17 @@ import { cn, formatCurrency } from '@/lib/utils'
 import type { Income } from '@/types/database'
 
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
-  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: '#10b981' },
-  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: '#3b82f6' },
-  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: '#f59e0b' },
-  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: '#f43f5e' },
+  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: IS_V2 ? '#00C8D0' : '#10b981' },
+  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? '#40C0FF' : '#3b82f6' },
+  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? '#C040FF' : '#f59e0b' },
+  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: IS_V2 ? '#FF00FF' : '#f43f5e' },
   sin_cargo: { label: 'Sin cargo', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
 }
 
 /** Paleta categórica validada (claro/oscuro legibles sobre la tarjeta). */
-const METHOD_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#008300', '#e34948']
+const METHOD_COLORS = IS_V2
+  ? ['#8080FF', '#40C0FF', '#C040FF', '#00C8D0', '#FF00FF', '#A060FF', '#5050C8', '#0090C0']
+  : ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#008300', '#e34948']
 const METHOD_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label])) as Record<string, string>
 
 /** Etiqueta del estado: «Falta pagar» se afina según la fecha de pago (pedido del entrenador). */

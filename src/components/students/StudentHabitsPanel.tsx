@@ -3,7 +3,7 @@
  * Usado dentro de la ficha del alumno y en la página /habits.
  */
 import { IS_V2 } from '@/lib/uiVersion'
-import { CHART_ACCENT_2 } from '@/components/charts/chartKit'
+import { CHART_ACCENT_2 } from '@/lib/chartColors'
 import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
 import {
   ChevronLeft,

@@ -26,7 +26,7 @@ import {
 import { buildAdherenceTimeline } from '@/lib/checkIn/adherence'
 import { loadCheckInPoints } from '@/lib/checkIn/loadPoints'
 import { brandHex } from '@/theme/brandColors'
-import { CHART_ACCENT } from '@/components/charts/chartKit'
+import { CHART_ACCENT } from '@/lib/chartColors'
 import { IS_V2 } from '@/lib/uiVersion'
 
 const ADH_COLOR = IS_V2 ? CHART_ACCENT : brandHex('primary')

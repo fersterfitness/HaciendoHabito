@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useState, useRef, useMemo, type ReactNode } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -844,8 +845,8 @@ export function FinancesPage() {
             <BarChart data={annualChartData} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="annual-current" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ff8a3d" />
-                  <stop offset="100%" stopColor="#ec3d12" />
+                  <stop offset="0%" stopColor={IS_V2 ? '#A0A0FF' : '#ff8a3d'} />
+                  <stop offset="100%" stopColor={IS_V2 ? '#8080FF' : '#ec3d12'} />
                 </linearGradient>
               </defs>
               <CartesianGrid {...chartGrid} />

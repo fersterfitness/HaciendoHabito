@@ -1,3 +1,4 @@
+import { CHART_ACCENT } from '@/lib/chartColors'
 import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart,
@@ -28,7 +29,7 @@ import {
 } from '@/lib/checkIn/monthlyFeedback'
 import type { Routine, StudentTestimonial } from '@/types/database'
 import toast from 'react-hot-toast'
-import { CHART_ACCENT, ChartBarGradient, ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
+import { ChartBarGradient, ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
 
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']

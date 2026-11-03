@@ -1,4 +1,4 @@
-import { CHART_ACCENT } from '@/components/charts/chartKit'
+import { CHART_ACCENT } from '@/lib/chartColors'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Area,

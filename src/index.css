@@ -819,6 +819,19 @@ html.ui-v2 .v2-cards > button:last-child {
   border-style: dashed;
 }
 
+/* Ámbar escrito a mano (pendiente, por vencer, transferencia): en la v2 toma el phlox de «por vencer». */
+html.ui-v2 [class*='text-amber-'] {
+  color: rgb(var(--status-expiring));
+}
+html.ui-v2 [class*='border-amber-'] {
+  border-color: rgb(var(--status-expiring) / 0.35);
+}
+html.ui-v2 [class*='bg-amber-500/'],
+html.ui-v2 [class*='bg-amber-400/'],
+html.ui-v2 [class*='bg-amber-50'] {
+  background-color: rgb(var(--status-expiring) / 0.12);
+}
+
 /* Naranjas sueltos escritos a mano: en la v2 pasan a negro (o blanco en oscuro). */
 html.ui-v2 .text-orange-500,
 html.ui-v2 .text-orange-400,

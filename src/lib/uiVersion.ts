@@ -17,6 +17,20 @@ export const IS_V2 = typeof window !== 'undefined' && pathIsV2(window.location.p
 // El tema de la v2 (colores, esquinas, botones) cuelga de esta clase en <html>; ver index.css.
 if (IS_V2) document.documentElement.classList.add('ui-v2')
 
+/** v2: ícono de pestaña con la marca en negro liso (la v1 sigue con el naranja de `index.html`). */
+const V2_FAVICON =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="113 188 374 380"><rect x="113" y="188" width="374" height="380" rx="84" fill="#171719"/>' +
+      '<path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" fill="#fff"/></svg>',
+  )
+if (IS_V2) {
+  for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]')) {
+    link.type = 'image/svg+xml'
+    link.href = V2_FAVICON
+  }
+}
+
 export function routerBasename(): string | undefined {
   return IS_V2 ? V2_BASE : undefined
 }

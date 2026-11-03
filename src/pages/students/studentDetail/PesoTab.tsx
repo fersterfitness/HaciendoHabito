@@ -1,4 +1,4 @@
-import { CHART_ACCENT } from '@/components/charts/chartKit'
+import { CHART_ACCENT } from '@/lib/chartColors'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Scale, X } from 'lucide-react'
 import toast from 'react-hot-toast'
