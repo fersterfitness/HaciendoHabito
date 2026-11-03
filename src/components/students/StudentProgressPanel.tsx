@@ -1,3 +1,4 @@
+import { CHART_ACCENT } from '@/components/charts/chartKit'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Area,
@@ -47,7 +48,7 @@ import {
 } from '@/lib/progress/studentProgress'
 import type { StudentRmRecord, StudentWeightLog } from '@/types/database'
 
-const BRAND = '#ff5a0a'
+const BRAND = CHART_ACCENT
 const ADHERENCE_GOAL = 80
 const STEPS_GOAL = 8000
 

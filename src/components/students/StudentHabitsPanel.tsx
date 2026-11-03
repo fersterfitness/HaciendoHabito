@@ -2,6 +2,8 @@
  * Seguimiento de hábitos por alumno (calendario mensual, biblioteca y evolución).
  * Usado dentro de la ficha del alumno y en la página /habits.
  */
+import { IS_V2 } from '@/lib/uiVersion'
+import { CHART_ACCENT_2 } from '@/components/charts/chartKit'
 import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
 import {
   ChevronLeft,
@@ -56,7 +58,7 @@ import { brandHex } from '@/theme/brandColors'
 import toast from 'react-hot-toast'
 import { chartGrid } from '@/components/charts/chartKit'
 
-const HABIT_CHART_STROKE = brandHex('secondary')
+const HABIT_CHART_STROKE = IS_V2 ? CHART_ACCENT_2 : brandHex('secondary')
 
 /** Mapa ícono-name → componente Lucide */
 const HABIT_ICON_MAP: Record<string, LucideIcon> = {

@@ -26,6 +26,10 @@ import {
 import { buildAdherenceTimeline } from '@/lib/checkIn/adherence'
 import { loadCheckInPoints } from '@/lib/checkIn/loadPoints'
 import { brandHex } from '@/theme/brandColors'
+import { CHART_ACCENT } from '@/components/charts/chartKit'
+import { IS_V2 } from '@/lib/uiVersion'
+
+const ADH_COLOR = IS_V2 ? CHART_ACCENT : brandHex('primary')
 import { controlSmClassName } from '@/lib/formControlClasses'
 import { ChartAreaGradient, ChartTooltip, chartActiveDot, chartAxis, chartBarCursor, chartBarRadius, chartCursor, chartGrid } from '@/components/charts/chartKit'
 
@@ -211,7 +215,7 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
             <div className="h-48 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={adherence} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <ChartAreaGradient id="adherence-fill" color={brandHex('primary')} />
+                  <ChartAreaGradient id="adherence-fill" color={ADH_COLOR} />
                   <CartesianGrid {...chartGrid} />
                   <XAxis dataKey="label" {...chartAxis} />
                   <YAxis domain={[0, 100]} {...chartAxis} width={36} tickFormatter={(v: number) => `${v}%`} />
@@ -220,11 +224,11 @@ export function CheckInHabitsCharts({ studentId }: { studentId: string }) {
                     type="monotone"
                     dataKey="score"
                     name="Adherencia"
-                    stroke={brandHex('primary')}
+                    stroke={ADH_COLOR}
                     strokeWidth={2.4}
                     fill="url(#adherence-fill)"
-                    dot={{ r: 3.5, fill: brandHex('primary'), stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
-                    activeDot={chartActiveDot(brandHex('primary'))}
+                    dot={{ r: 3.5, fill: ADH_COLOR, stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                    activeDot={chartActiveDot(ADH_COLOR)}
                     connectNulls={false}
                   />
                 </AreaChart>

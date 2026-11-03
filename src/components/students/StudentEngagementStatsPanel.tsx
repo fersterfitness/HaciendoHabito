@@ -28,7 +28,7 @@ import {
 } from '@/lib/checkIn/monthlyFeedback'
 import type { Routine, StudentTestimonial } from '@/types/database'
 import toast from 'react-hot-toast'
-import { ChartBarGradient, ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
+import { CHART_ACCENT, ChartBarGradient, ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } from '@/components/charts/chartKit'
 
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -172,7 +172,7 @@ export function StudentEngagementStatsPanel({
       {/* KPIs */}
       <section className="rounded-2xl border border-surface-border bg-surface-card p-4">
         <div className="mb-3 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-brand-primary" />
+          <TrendingUp className="h-4 w-4 text-ink-muted" />
           <h3 className="text-sm font-semibold text-ink-primary">Constancia de {studentName.split(' ')[0]}</h3>
         </div>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -195,7 +195,7 @@ export function StudentEngagementStatsPanel({
         </p>
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={stats.byMonth} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
-            <ChartBarGradient id="engagement-bar" color="#ff5a0a" />
+            <ChartBarGradient id="engagement-bar" color={CHART_ACCENT} />
             <CartesianGrid {...chartGrid} />
             <XAxis dataKey="label" {...chartAxis} />
             <YAxis allowDecimals={false} {...chartAxis} width={24} />

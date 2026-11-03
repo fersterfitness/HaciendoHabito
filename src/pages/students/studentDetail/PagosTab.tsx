@@ -221,7 +221,7 @@ export function PagosTab({
       </div>
 
       {/* Estado de cuenta */}
-      <div className="grid grid-cols-3 gap-px border border-surface-border/70 bg-surface-border/70 ">
+      <div className="grid grid-cols-3 gap-px overflow-hidden border border-surface-border/70 bg-surface-border/70 [html.ui-v2_&]:rounded-2xl">
         <div className="bg-surface-elevated/60 px-3 py-3 text-center ">
           <p className="mb-1 text-3xs font-semibold text-ink-muted">Total cobrado</p>
           <p className="text-lg font-bold text-ink-primary ">{formatCurrency(totalCobrado)}</p>

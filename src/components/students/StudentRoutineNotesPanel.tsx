@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useState } from 'react'
 import { Plus, X, Check, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -85,7 +86,7 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
   return (
     <section className="rounded-2xl border border-surface-border bg-surface-card p-4">
       <div className="mb-3 flex items-center gap-2">
-        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <AlertCircle className={IS_V2 ? 'h-4 w-4 text-ink-muted' : 'h-4 w-4 text-amber-600 dark:text-amber-400'} />
         <h3 className="text-sm font-semibold text-ink-primary">
           Notas para la próxima rutina
           {pending.length > 0 && (
@@ -107,7 +108,11 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
             }
           }}
           placeholder="ej: trabajar movilidad lumbo-pélvica…"
-          className="flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-amber-500 dark:border-amber-700/50 dark:bg-zinc-900"
+          className={
+            IS_V2
+              ? 'h-9 flex-1 rounded-full border-0 bg-surface-elevated px-4 text-[13px] text-ink-primary outline-none placeholder:text-ink-muted focus:ring-2 focus:ring-ink-primary/15'
+              : 'flex-1 rounded-xl border border-amber-300/60 bg-white px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-amber-500 dark:border-amber-700/50 dark:bg-zinc-900'
+          }
         />
         <Button size="sm" variant="secondary" loading={saving} icon={<Plus className="h-3.5 w-3.5" />} onClick={() => void addNote()}>
           Anotar

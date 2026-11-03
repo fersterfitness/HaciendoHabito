@@ -872,7 +872,7 @@ export function StudentDetailView({
 
         {/* ── Información: datos completos del alumno ── */}
         {sheetTab === 'ficha' && (
-          <>
+          <SheetWrapV2 on={v2Page} className="v2-cards space-y-4">
         {!v2Page ? profileSection : null}
 
         <FersterStudentIntakePanel student={student} />
@@ -938,7 +938,7 @@ export function StudentDetailView({
                 Agregar observaciones...
               </button>
             )}
-          </>
+          </SheetWrapV2>
         )}
 
         {/* ── Rutina ── */}
@@ -1413,7 +1413,11 @@ export function StudentDetailView({
         {/* ── Seguimiento (peso, fuerza, pagos, ciclo) ── */}
         {sheetTab === 'seguimiento' && (
           <div className="space-y-4">
-            <div className="-mx-px flex border-b border-surface-border/60 " role="tablist" aria-label="Seguimiento">
+            <div
+              className={v2Page ? 'inline-flex gap-1 rounded-full bg-surface-elevated p-1' : '-mx-px flex border-b border-surface-border/60 '}
+              role="tablist"
+              aria-label="Seguimiento"
+            >
               {(
                 [
                   { value: 'peso' as const, label: 'Peso' },
@@ -1428,18 +1432,28 @@ export function StudentDetailView({
                   role="tab"
                   aria-selected={seguimientoTab === value}
                   onClick={() => setSeguimientoTab(value)}
-                  className={cn(
-                    '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold transition-colors sm:text-xs',
-                    seguimientoTab === value
-                      ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 '
-                      : 'border-transparent text-ink-muted hover:text-ink-primary ',
-                  )}
+                  className={
+                    v2Page
+                      ? cn(
+                          'h-7 rounded-full px-3.5 text-[12.5px] font-medium transition-colors',
+                          seguimientoTab === value
+                            ? 'bg-surface-card text-ink-primary shadow-sm'
+                            : 'text-ink-muted hover:text-ink-primary',
+                        )
+                      : cn(
+                          '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold transition-colors sm:text-xs',
+                          seguimientoTab === value
+                            ? 'border-b-zinc-900 text-ink-primary dark:border-b-zinc-200 '
+                            : 'border-transparent text-ink-muted hover:text-ink-primary ',
+                        )
+                  }
                 >
                   {label}
                 </button>
               ))}
             </div>
 
+            <SheetWrapV2 on={v2Page} className="v2-card">
             {seguimientoTab === 'pagos' && (
               <PagosTab
                 studentId={id!}
@@ -1477,6 +1491,7 @@ export function StudentDetailView({
                 onRmTestRead={markRmTestRead}
               />
             )}
+            </SheetWrapV2>
           </div>
         )}
 
@@ -1575,4 +1590,9 @@ export function StudentDetailPage() {
     )
   }
   return <StudentDetailView studentId={id} variant="page" />
+}
+
+/** v2: agrupa el contenido de una pestaña (tarjetas por sección); en la v1 no agrega nada al DOM. */
+function SheetWrapV2({ on, className, children }: { on: boolean; className: string; children: ReactNode }) {
+  return on ? <div className={className}>{children}</div> : <>{children}</>
 }

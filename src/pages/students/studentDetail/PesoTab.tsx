@@ -1,3 +1,4 @@
+import { CHART_ACCENT } from '@/components/charts/chartKit'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Scale, X } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -263,7 +264,7 @@ export function PesoTab({
 
                   <ResponsiveContainer width="100%" height={190}>
                     <ComposedChart data={rechartsData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                      <ChartAreaGradient id="peso-fill" color="#ff5a0a" opacity={0.3} />
+                      <ChartAreaGradient id="peso-fill" color={CHART_ACCENT} opacity={0.3} />
                       <CartesianGrid {...chartGrid} />
                       <XAxis dataKey="date" {...chartAxis} interval="preserveStartEnd" />
                       <YAxis domain={['auto', 'auto']} {...chartAxis} width={36} />
@@ -288,11 +289,11 @@ export function PesoTab({
                         type="monotone"
                         dataKey="weight"
                         name="Peso"
-                        stroke="#ff5a0a"
+                        stroke={CHART_ACCENT}
                         strokeWidth={2.5}
                         fill="url(#peso-fill)"
-                        dot={{ r: 3, fill: '#ff5a0a', stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
-                        activeDot={chartActiveDot('#ff5a0a')}
+                        dot={{ r: 3, fill: CHART_ACCENT, stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                        activeDot={chartActiveDot(CHART_ACCENT)}
                       />
                       {hasFat && (
                         <Line

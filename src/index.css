@@ -750,6 +750,47 @@ html.ui-v2 .hh-alert-icon {
   background-color: rgb(var(--tone) / 0.12);
 }
 
+/* Verdes escritos a mano (activo, cobrado, abonó): en la v2 toman el cian del estado activo. */
+html.ui-v2 [class*='text-emerald-'] {
+  color: rgb(var(--status-active));
+}
+html.ui-v2 [class*='border-emerald-'] {
+  border-color: rgb(var(--status-active) / 0.4);
+}
+html.ui-v2 [class*='ring-emerald-'] {
+  --tw-ring-color: rgb(var(--status-active) / 0.35);
+}
+html.ui-v2 [class*='bg-emerald-500/'],
+html.ui-v2 [class*='bg-emerald-900/'] {
+  background-color: rgb(var(--status-active) / 0.12);
+}
+html.ui-v2 [class~='bg-emerald-500'],
+html.ui-v2 [class~='bg-emerald-600'],
+html.ui-v2 [class~='dark:bg-emerald-500'] {
+  background-color: rgb(var(--status-active));
+}
+html.ui-v2.dark [class~='bg-emerald-500'],
+html.ui-v2.dark [class~='bg-emerald-600'] {
+  color: rgb(17 17 17);
+}
+
+/* Ficha del alumno: cada sección de la pestaña en su tarjeta. */
+html.ui-v2 .v2-cards > *,
+html.ui-v2 .v2-card {
+  border: 1px solid rgb(var(--surface-border));
+  border-radius: 1.25rem;
+  background-color: rgb(var(--surface-card));
+  padding: 1.25rem;
+}
+html.ui-v2 .v2-cards > * > *:first-child {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+html.ui-v2 .v2-cards > button:last-child {
+  border-style: dashed;
+}
+
 /* Naranjas sueltos escritos a mano: en la v2 pasan a negro (o blanco en oscuro). */
 html.ui-v2 .text-orange-500,
 html.ui-v2 .text-orange-400,
