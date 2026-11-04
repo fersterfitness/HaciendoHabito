@@ -53,11 +53,41 @@ export function PageV2({ children, className }: { children: ReactNode; className
 }
 
 /** Saludo o título de la página, sin nada colgando al costado. */
-export function GreetingV2({ title, children }: { title: ReactNode; children?: ReactNode }) {
+export function GreetingV2({ title, eyebrow, children }: { title: ReactNode; eyebrow?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="mb-7">
-      <h1 className="text-[22px] font-medium leading-tight tracking-[-0.025em] text-ink-primary lg:text-[24px]">{title}</h1>
-      {children ? <p className="mt-1.5 text-[13px] text-ink-muted">{children}</p> : null}
+    <div className="mb-6 lg:mb-7">
+      {eyebrow ? <p className="mb-1 text-[12px] font-medium text-ink-muted">{eyebrow}</p> : null}
+      <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-ink-primary lg:text-[26px]">{title}</h1>
+      {children ? <p className="mt-1 text-[13px] text-ink-muted">{children}</p> : null}
+    </div>
+  )
+}
+
+/** Celu: los números del mes en una sola franja (tres columnas parejas, sin carrusel cortado). */
+export function StatStripV2({
+  items,
+}: {
+  items: { label: string; value: string; suffix?: string; tone: Tone; progress?: number; onClick: () => void }[]
+}) {
+  return (
+    <div className="grid grid-cols-3 divide-x divide-surface-border overflow-hidden rounded-2xl border border-surface-border bg-surface-card">
+      {items.map((it) => (
+        <button key={it.label} type="button" onClick={it.onClick} className="min-w-0 px-3 pb-3 pt-2.5 text-left active:bg-surface-panel">
+          <p className="truncate text-[11.5px] text-ink-muted">{it.label}</p>
+          <p className="mt-1 truncate text-[19px] font-semibold leading-tight tabular-nums tracking-[-0.03em] text-ink-primary">
+            {it.value}
+            {it.suffix ? <span className="ml-0.5 text-[12px] font-medium tracking-normal text-ink-muted">{it.suffix}</span> : null}
+          </p>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-elevated">
+            {it.progress !== undefined ? (
+              <div
+                className={cn('h-full rounded-full bg-current transition-[width] duration-700', TONE_ACCENT[it.tone])}
+                style={{ width: `${Math.max(0, Math.min(1, it.progress)) * 100}%` }}
+              />
+            ) : null}
+          </div>
+        </button>
+      ))}
     </div>
   )
 }

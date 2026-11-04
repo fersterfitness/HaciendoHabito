@@ -28,6 +28,7 @@ import {
   PulseCardV2,
   SectionTitleV2,
   SegmentedV2,
+  StatStripV2,
   TagV2,
   TaskCardV2,
 } from '@/components/v2/ui'
@@ -108,6 +109,14 @@ function daysFromToday(ymd: string, today: Date): number {
 
 const fmtDay = (ymd: string | null) => (ymd ? format(new Date(`${ymd}T12:00:00`), 'd/MM') : '')
 const firstName = (full: string | null | undefined) => (full ?? '').trim().split(/\s+/)[0] ?? ''
+/** Nombre para el saludo: nunca el mail (cuentas sin nombre cargado). */
+const greetName = (full: string | null | undefined) => {
+  const n = firstName(full)
+  return n.includes('@') ? '' : n
+}
+/** Plata corta para la franja del celu: $296k, $1,2M. */
+const shortMoney = (n: number) =>
+  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1).replace('.', ',')}M` : n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${Math.round(n)}`
 
 /**
  * Inicio v2: lo que hay que hacer hoy en una sola lista (con la acción en la misma fila), la agenda
@@ -376,18 +385,56 @@ export function DashboardV2Page() {
         }
       />
       <PageV2>
-        <GreetingV2 title={`${greeting}${firstName(profile?.full_name) ? `, ${firstName(profile?.full_name)}` : ''}`}>
-          {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
-          {' · '}
+        <GreetingV2 eyebrow={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)} title={`${greeting}${greetName(profile?.full_name) ? `, ${greetName(profile?.full_name)}` : ''}`}>
           {loading
-            ? 'cargando lo de hoy…'
+            ? 'Cargando lo de hoy…'
             : pendingCount
-              ? `tenés ${pendingCount} ${pendingCount === 1 ? 'cosa' : 'cosas'} para resolver.`
-              : 'no hay nada urgente.'}
+              ? `Tenés ${pendingCount} ${pendingCount === 1 ? 'cosa' : 'cosas'} para resolver.`
+              : 'No hay nada urgente.'}
         </GreetingV2>
 
+        {/* Celu: los tres números en una franja. */}
+        <div className="mb-8 md:hidden">
+          <StatStripV2
+            items={[
+              ...(handlesMoney
+                ? [{
+                    label: 'Cobrado',
+                    value: loading ? '—' : shortMoney(money.cobrado),
+                    tone: 'peach' as const,
+                    progress: money.esperado > 0 ? money.cobrado / money.esperado : undefined,
+                    onClick: () => navigate('/finances'),
+                  }]
+                : []),
+              trains
+                ? {
+                    label: 'Feedback',
+                    value: missingQ.isPending || loading ? '—' : String(answered),
+                    suffix: `/${students.length}`,
+                    tone: 'lavender' as const,
+                    progress: students.length ? answered / students.length : undefined,
+                    onClick: () => navigate('/feedback'),
+                  }
+                : {
+                    label: 'Turnos hoy',
+                    value: appointmentsQ.isPending ? '—' : String(appointmentsToday.length),
+                    tone: 'sky' as const,
+                    onClick: () => navigate('/appointments'),
+                  },
+              {
+                label: trains ? 'Con rutina' : 'Activos',
+                value: loading || (trains && routinesQ.isPending) ? '—' : String(trains ? withRoutine : students.length),
+                suffix: trains ? `/${routineTotal}` : undefined,
+                tone: 'mint' as const,
+                progress: trains && routineTotal ? withRoutine / routineTotal : undefined,
+                onClick: () => navigate(role === 'nutritionist' ? '/nutrition' : '/students'),
+              },
+            ]}
+          />
+        </div>
+
         {/* Números del mes, cada uno con su avance. */}
-        <div className="-mx-4 mb-10 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 [&>*]:w-[82%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto">
+        <div className="mb-10 hidden gap-3 md:grid md:grid-cols-3">
           {handlesMoney ? (
             <PulseCardV2
               icon={Wallet}
@@ -438,11 +485,11 @@ export function DashboardV2Page() {
         </div>
 
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <section>
+          <section className="min-w-0">
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
             {!loading && filterTiles.length > 1 ? (
-              <div className="mb-4">
+              <div className="-mx-4 mb-4 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0 max-md:[&>div]:flex-nowrap">
                 <SegmentedV2
                   value={filter}
                   onChange={(f) => toggle(f)}
