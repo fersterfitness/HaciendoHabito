@@ -9,11 +9,9 @@ import {
   CalendarPlus,
   Check,
   Copy,
-  Dumbbell,
   LayoutGrid,
   MessageSquare,
   Plus,
-  Repeat,
   Users,
   Wallet,
 } from 'lucide-react'
@@ -23,17 +21,15 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import {
   AvatarV2,
   CardV2,
-  EmptyV2,
   GreetingV2,
   MetaChipV2,
-  MetricCardV2,
   PageV2,
   PillButtonV2,
+  PulseCardV2,
   SectionTitleV2,
+  SegmentedV2,
   TagV2,
   TaskCardV2,
-  ToneTileV2,
-  type Tone,
 } from '@/components/v2/ui'
 import { TopBarV2 } from '@/components/v2/TopBarV2'
 import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
@@ -115,7 +111,7 @@ const firstName = (full: string | null | undefined) => (full ?? '').trim().split
 
 /**
  * Inicio v2: lo que hay que hacer hoy en una sola lista (con la acción en la misma fila), la agenda
- * y los cumpleaños al costado. Las estadísticas del mes siguen en «Tablero completo».
+ * y los cumpleaños al costado (si hay). Las estadísticas del mes siguen en «Estadísticas».
  */
 export function DashboardV2Page() {
   const { user, profile } = useAuthStore()
@@ -300,6 +296,8 @@ export function DashboardV2Page() {
   }
 
   const dateLabel = format(today, "EEEE d 'de' MMMM", { locale: es })
+  const hour = today.getHours()
+  const greeting = hour < 13 ? 'Buen día' : hour < 20 ? 'Buenas tardes' : 'Buenas noches'
   const routineTotal = students.length
   const withRoutine = Math.max(0, routineTotal - routines.without.length)
   const answered = Math.max(0, students.length - missing.length)
@@ -311,46 +309,36 @@ export function DashboardV2Page() {
     semana: weekly.length,
   }
   const show = (f: Exclude<Filter, 'all'>) => filter === 'all' || filter === f
-  const toggle = (f: Filter) => setFilter((cur) => (cur === f ? 'all' : f))
+  const toggle = (f: Filter) => setFilter((cur) => (cur === f || f === 'all' ? 'all' : f))
 
   const tiles: {
     key: Exclude<Filter, 'all'>
-    icon: typeof Wallet
-    tone: Tone
     label: string
     visible: boolean
   }[] = [
     {
       key: 'cobros',
-      icon: Wallet,
-      tone: 'peach',
       label: 'Cobros',
       visible: handlesMoney,
     },
     {
       key: 'feedback',
-      icon: MessageSquare,
-      tone: 'lavender',
       label: 'Feedback',
       visible: trains,
     },
     {
       key: 'rutinas',
-      icon: Dumbbell,
-      tone: 'butter',
       label: 'Rutinas',
       visible: trains,
     },
     {
       key: 'semana',
-      icon: Repeat,
-      tone: 'sky',
       label: 'Avisos',
       visible: trains,
     },
   ]
 
-  const visibleTiles = tiles.filter((t) => t.visible)
+  const filterTiles = tiles.filter((t) => t.visible && (counts[t.key] > 0 || filter === t.key))
 
   const names = (list: { full_name: string | null }[]) =>
     list
@@ -367,13 +355,13 @@ export function DashboardV2Page() {
         actions={
           <>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               className="hidden sm:inline-flex"
               icon={<LayoutGrid className="h-3.5 w-3.5" />}
               onClick={() => navigate('/dashboard/completo')}
             >
-              Tablero completo
+              Estadísticas
             </Button>
             {trains ? (
               <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/students?create=1')}>
@@ -388,94 +376,78 @@ export function DashboardV2Page() {
         }
       />
       <PageV2>
-        <GreetingV2 title={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}>
+        <GreetingV2 title={`${greeting}${firstName(profile?.full_name) ? `, ${firstName(profile?.full_name)}` : ''}`}>
+          {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
+          {' · '}
           {loading
-            ? 'Cargando lo de hoy…'
+            ? 'cargando lo de hoy…'
             : pendingCount
-              ? `Tenés ${pendingCount} ${pendingCount === 1 ? 'cosa' : 'cosas'} para resolver.`
-              : 'No hay nada urgente.'}
+              ? `tenés ${pendingCount} ${pendingCount === 1 ? 'cosa' : 'cosas'} para resolver.`
+              : 'no hay nada urgente.'}
         </GreetingV2>
 
         {/* Números del mes, cada uno con su avance. */}
         <div className="-mx-4 mb-10 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 [&>*]:w-[82%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto">
           {handlesMoney ? (
-            <MetricCardV2
+            <PulseCardV2
               icon={Wallet}
               tone="peach"
-              title={`Cobros de ${format(today, 'MMMM', { locale: es })}`}
-              link={{ label: 'Finanzas', onClick: () => navigate('/finances') }}
-              label={money.esperado > 0 ? `Cobrado de ${formatCurrency(money.esperado)}` : 'Sin cuotas cargadas'}
-              value={loading ? '—' : formatCurrency(money.cobrado)}
-              progress={money.esperado > 0 ? money.cobrado / money.esperado : 0}
+              title={`Cobrado en ${format(today, 'MMMM', { locale: es })}`}
+              value={loading ? null : money.cobrado}
+              format={(n) => formatCurrency(Math.round(n))}
+              caption={
+                money.esperado > 0
+                  ? `de ${formatCurrency(money.esperado)}${money.owing ? ` · ${money.owing} por cobrar` : ''}`
+                  : 'Sin cuotas cargadas'
+              }
+              progress={money.esperado > 0 ? money.cobrado / money.esperado : undefined}
+              onClick={() => navigate('/finances')}
             />
           ) : null}
           {trains ? (
-            <MetricCardV2
+            <PulseCardV2
               icon={MessageSquare}
               tone="lavender"
-              title="Feedback semanal"
-              link={{
-                label: 'Consulta semanal',
-                onClick: () => navigate('/feedback'),
-              }}
-              label="Respondieron esta semana"
-              value={missingQ.isPending ? '—' : `${answered} / ${students.length}`}
-              progress={students.length ? answered / students.length : 0}
+              title="Feedback de la semana"
+              value={missingQ.isPending || loading ? null : answered}
+              suffix={`/ ${students.length}`}
+              caption={missing.length ? `Faltan ${missing.length}` : 'Respondieron todos'}
+              progress={students.length ? answered / students.length : undefined}
+              onClick={() => navigate('/feedback')}
             />
           ) : (
-            <MetricCardV2
+            <PulseCardV2
               icon={CalendarClock}
               tone="sky"
-              title="Turnos"
-              link={{
-                label: 'Agenda',
-                onClick: () => navigate('/appointments'),
-              }}
-              label="Hoy en la agenda"
-              value={appointmentsQ.isPending ? '—' : appointmentsToday.length}
+              title="Turnos de hoy"
+              value={appointmentsQ.isPending ? null : appointmentsToday.length}
+              caption={appointmentsToday[0] ? `El próximo a las ${fmtTime(appointmentsToday[0].starts_at)}` : 'Agenda libre'}
+              onClick={() => navigate('/appointments')}
             />
           )}
-          <MetricCardV2
+          <PulseCardV2
             icon={Users}
             tone="mint"
-            title={role === 'nutritionist' ? 'Pacientes' : 'Alumnos'}
-            link={{
-              label: role === 'nutritionist' ? 'Ver pacientes' : 'Asesorías',
-              onClick: () => navigate(role === 'nutritionist' ? '/nutrition' : '/students'),
-            }}
-            label={trains ? 'Con rutina activa' : 'Activos'}
-            value={loading ? '—' : trains ? `${withRoutine} / ${routineTotal}` : students.length}
+            title={trains ? 'Con rutina activa' : role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'}
+            value={loading || (trains && routinesQ.isPending) ? null : trains ? withRoutine : students.length}
+            suffix={trains ? `/ ${routineTotal}` : undefined}
+            caption={trains ? (routines.without.length ? `${routines.without.length} sin rutina` : 'Todos con rutina') : 'En seguimiento'}
             progress={trains && routineTotal ? withRoutine / routineTotal : undefined}
+            onClick={() => navigate(role === 'nutritionist' ? '/nutrition' : '/students')}
           />
         </div>
 
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
           <section>
-            <SectionTitleV2
-              action={
-                filter !== 'all' ? (
-                  <button type="button" onClick={() => setFilter('all')} className="text-[12px] text-ink-muted hover:text-ink-primary">
-                    Ver todo
-                  </button>
-                ) : null
-              }
-            >
-              Para hoy
-            </SectionTitleV2>
+            <SectionTitleV2>Para hoy</SectionTitleV2>
 
-            {visibleTiles.length > 1 ? (
-              <div className="mb-5 grid grid-cols-2 gap-2.5 xl:grid-cols-4">
-                {visibleTiles.map((t) => (
-                  <ToneTileV2
-                    key={t.key}
-                    icon={t.icon}
-                    tone={t.tone}
-                    count={counts[t.key]}
-                    label={t.label}
-                    active={filter === t.key}
-                    onClick={() => toggle(t.key)}
-                  />
-                ))}
+            {!loading && filterTiles.length > 1 ? (
+              <div className="mb-4">
+                <SegmentedV2
+                  value={filter}
+                  onChange={(f) => toggle(f)}
+                  options={[{ value: 'all' as Filter, label: 'Todo', count: pendingCount }, ...filterTiles.map((t) => ({ value: t.key as Filter, label: t.label, count: counts[t.key] }))]}
+                />
               </div>
             ) : null}
 
@@ -710,10 +682,9 @@ export function DashboardV2Page() {
               </div>
             </CardV2>
 
+            {birthdays.length ? (
             <CardV2 title="Cumpleaños">
-              {birthdays.length === 0 ? (
-                <EmptyV2>Ninguno en los próximos 7 días</EmptyV2>
-              ) : (
+              {(
                 <ul className="px-2 pb-2 pt-1">
                   {birthdays.map(({ s, days }) => (
                     <li key={s.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5">
@@ -747,6 +718,7 @@ export function DashboardV2Page() {
                 </ul>
               )}
             </CardV2>
+            ) : null}
           </aside>
         </div>
 
@@ -766,7 +738,7 @@ export function DashboardV2Page() {
             onClick={() => navigate('/dashboard/completo')}
             className="text-[13px] text-ink-muted underline-offset-4 hover:text-ink-primary hover:underline sm:hidden"
           >
-            Ver el tablero completo
+            Ver estadísticas del mes
           </button>
         </div>
       </PageV2>

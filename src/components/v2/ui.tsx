@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -137,6 +137,111 @@ export function MetricCardV2({
         </div>
       ) : null}
     </div>
+  )
+}
+
+/** Número que sube desde 0 la primera vez que llega (rápido; nada si se pidió menos movimiento). */
+function useCountUp(target: number | null, ms = 700): number | null {
+  const [v, setV] = useState<number | null>(target)
+  const done = useRef(false)
+  useEffect(() => {
+    if (target === null) return
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (done.current || reduce || target === 0) {
+      done.current = true
+      setV(target)
+      return
+    }
+    done.current = true
+    const t0 = performance.now()
+    let raf = 0
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / ms)
+      setV(target * (1 - Math.pow(1 - k, 3)))
+      if (k < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target, ms])
+  return target === null ? null : v
+}
+
+/** Anillo de avance (se llena al aparecer). */
+function RingV2({ value, tone }: { value: number; tone: Tone }) {
+  const pct = Math.max(0, Math.min(1, value))
+  const [shown, setShown] = useState(0)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(pct))
+    return () => cancelAnimationFrame(id)
+  }, [pct])
+  const r = 21
+  const c = 2 * Math.PI * r
+  return (
+    <span className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center', TONE_ACCENT[tone])} aria-hidden>
+      <svg viewBox="0 0 52 52" className="absolute inset-0 -rotate-90">
+        <circle cx="26" cy="26" r={r} fill="none" strokeWidth="5" className="stroke-surface-elevated" />
+        <circle
+          cx="26"
+          cy="26"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - shown)}
+          className="v2-ring"
+        />
+      </svg>
+      <span className="text-[11px] font-semibold tabular-nums text-ink-primary">{Math.round(pct * 100)}%</span>
+    </span>
+  )
+}
+
+/** Número del mes a primera vista: grande, con su contexto abajo y el anillo de avance. Toda la tarjeta lleva a la pantalla. */
+export function PulseCardV2({
+  icon,
+  tone,
+  title,
+  value,
+  format = (n) => String(Math.round(n)),
+  suffix,
+  caption,
+  progress,
+  onClick,
+}: {
+  icon: LucideIcon
+  tone: Tone
+  title: string
+  /** null mientras carga. */
+  value: number | null
+  format?: (n: number) => string
+  suffix?: string
+  caption: ReactNode
+  progress?: number
+  onClick: () => void
+}) {
+  const n = useCountUp(value)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex items-center gap-4 rounded-2xl border border-surface-border bg-surface-card p-4 text-left transition-shadow hover:shadow-[0_6px_20px_-12px_rgb(0_0_0/0.25)]"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <ToneIcon icon={icon} tone={tone} size="sm" />
+          <p className="truncate text-[12.5px] font-medium text-ink-secondary">{title}</p>
+          <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+        </div>
+        <p className="mt-3 truncate text-[26px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-ink-primary">
+          {n === null ? '—' : format(n)}
+          {suffix && n !== null ? <span className="ml-1 text-[15px] font-medium tracking-normal text-ink-muted">{suffix}</span> : null}
+        </p>
+        <p className="mt-1.5 truncate text-[12px] text-ink-muted">{caption}</p>
+      </div>
+      {progress !== undefined && value !== null ? <RingV2 value={progress} tone={tone} /> : null}
+    </button>
   )
 }
 
