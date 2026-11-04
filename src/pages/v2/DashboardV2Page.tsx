@@ -326,11 +326,6 @@ export function DashboardV2Page() {
     visible: boolean
   }[] = [
     {
-      key: 'cobros',
-      label: 'Cobros',
-      visible: handlesMoney,
-    },
-    {
       key: 'feedback',
       label: 'Feedback',
       visible: trains,
@@ -344,6 +339,11 @@ export function DashboardV2Page() {
       key: 'semana',
       label: 'Avisos',
       visible: trains,
+    },
+    {
+      key: 'cobros',
+      label: 'Cobros',
+      visible: handlesMoney,
     },
   ]
 
@@ -393,97 +393,6 @@ export function DashboardV2Page() {
               : 'No hay nada urgente.'}
         </GreetingV2>
 
-        {/* Celu: los tres números en una franja. */}
-        <div className="mb-8 md:hidden">
-          <StatStripV2
-            items={[
-              ...(handlesMoney
-                ? [{
-                    label: 'Cobrado',
-                    value: loading ? '—' : shortMoney(money.cobrado),
-                    tone: 'peach' as const,
-                    progress: money.esperado > 0 ? money.cobrado / money.esperado : undefined,
-                    onClick: () => navigate('/finances'),
-                  }]
-                : []),
-              trains
-                ? {
-                    label: 'Feedback',
-                    value: missingQ.isPending || loading ? '—' : String(answered),
-                    suffix: `/${students.length}`,
-                    tone: 'lavender' as const,
-                    progress: students.length ? answered / students.length : undefined,
-                    onClick: () => navigate('/feedback'),
-                  }
-                : {
-                    label: 'Turnos hoy',
-                    value: appointmentsQ.isPending ? '—' : String(appointmentsToday.length),
-                    tone: 'sky' as const,
-                    onClick: () => navigate('/appointments'),
-                  },
-              {
-                label: trains ? 'Con rutina' : 'Activos',
-                value: loading || (trains && routinesQ.isPending) ? '—' : String(trains ? withRoutine : students.length),
-                suffix: trains ? `/${routineTotal}` : undefined,
-                tone: 'mint' as const,
-                progress: trains && routineTotal ? withRoutine / routineTotal : undefined,
-                onClick: () => navigate(role === 'nutritionist' ? '/nutrition' : '/students'),
-              },
-            ]}
-          />
-        </div>
-
-        {/* Números del mes, cada uno con su avance. */}
-        <div className="mb-10 hidden gap-3 md:grid md:grid-cols-3">
-          {handlesMoney ? (
-            <PulseCardV2
-              icon={Wallet}
-              tone="peach"
-              title={`Cobrado en ${format(today, 'MMMM', { locale: es })}`}
-              value={loading ? null : money.cobrado}
-              format={(n) => formatCurrency(Math.round(n))}
-              caption={
-                money.esperado > 0
-                  ? `de ${formatCurrency(money.esperado)}${money.owing ? ` · ${money.owing} por cobrar` : ''}`
-                  : 'Sin cuotas cargadas'
-              }
-              progress={money.esperado > 0 ? money.cobrado / money.esperado : undefined}
-              onClick={() => navigate('/finances')}
-            />
-          ) : null}
-          {trains ? (
-            <PulseCardV2
-              icon={MessageSquare}
-              tone="lavender"
-              title="Feedback de la semana"
-              value={missingQ.isPending || loading ? null : answered}
-              suffix={`/ ${students.length}`}
-              caption={missing.length ? `Faltan ${missing.length}` : 'Respondieron todos'}
-              progress={students.length ? answered / students.length : undefined}
-              onClick={() => navigate('/feedback')}
-            />
-          ) : (
-            <PulseCardV2
-              icon={CalendarClock}
-              tone="sky"
-              title="Turnos de hoy"
-              value={appointmentsQ.isPending ? null : appointmentsToday.length}
-              caption={appointmentsToday[0] ? `El próximo a las ${fmtTime(appointmentsToday[0].starts_at)}` : 'Agenda libre'}
-              onClick={() => navigate('/appointments')}
-            />
-          )}
-          <PulseCardV2
-            icon={Users}
-            tone="mint"
-            title={trains ? 'Con rutina activa' : role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'}
-            value={loading || (trains && routinesQ.isPending) ? null : trains ? withRoutine : students.length}
-            suffix={trains ? `/ ${routineTotal}` : undefined}
-            caption={trains ? (routines.without.length ? `${routines.without.length} sin rutina` : 'Todos con rutina') : 'En seguimiento'}
-            progress={trains && routineTotal ? withRoutine / routineTotal : undefined}
-            onClick={() => navigate(role === 'nutritionist' ? '/nutrition' : '/students')}
-          />
-        </div>
-
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
           <section className="min-w-0">
             <SectionTitleV2>Para hoy</SectionTitleV2>
@@ -532,51 +441,6 @@ export function DashboardV2Page() {
                               </PillButtonV2>
                               <PillButtonV2 primary onClick={() => navigate(c.href)}>
                                 {c.cta}
-                              </PillButtonV2>
-                            </>
-                          }
-                        />
-                      )
-                    })
-                  : null}
-
-                {show('cobros')
-                  ? payItems.map((r) => {
-                      const debt = Math.max(0, r.expected - r.paid)
-                      const isToday = r.timing === 'hoy'
-                      const overdue = r.reminder === 'overdue'
-                      return (
-                        <TaskCardV2
-                          key={r.studentId}
-                          title={r.fullName}
-                          mark={<AvatarV2 name={r.fullName} />}
-                          onOpen={() => navigate(`/students/${r.studentId}`)}
-                          description={
-                            isToday
-                              ? 'Hoy es su día de pago. Mandale el recordatorio armado.'
-                              : overdue
-                                ? 'Pasaron 7 días hábiles desde el vencimiento.'
-                                : 'Ya venció y todavía no figura el pago.'
-                          }
-                          tags={
-                            <>
-                              <TagV2 tone="peach">Cobro</TagV2>
-                              <TagV2 tone={isToday ? 'butter' : 'rose'}>{isToday ? 'Vence hoy' : overdue ? 'Atrasado' : 'Vencido'}</TagV2>
-                            </>
-                          }
-                          meta={
-                            <>
-                              {r.dueDate ? <MetaChipV2 icon={CalendarDays}>{fmtDay(r.dueDate)}</MetaChipV2> : null}
-                              {debt > 0 ? <MetaChipV2 icon={Wallet}>{formatCurrency(debt)}</MetaChipV2> : null}
-                            </>
-                          }
-                          actions={
-                            <>
-                              <PillButtonV2 onClick={() => void dismiss(r)} title="Sacarlo de la lista sin mandar nada">
-                                Ya le avisé
-                              </PillButtonV2>
-                              <PillButtonV2 primary icon={WhatsAppIcon} onClick={() => void remind(r)}>
-                                Recordar
                               </PillButtonV2>
                             </>
                           }
@@ -648,6 +512,51 @@ export function DashboardV2Page() {
                   />
                 ) : null}
 
+                {show('cobros')
+                  ? payItems.map((r) => {
+                      const debt = Math.max(0, r.expected - r.paid)
+                      const isToday = r.timing === 'hoy'
+                      const overdue = r.reminder === 'overdue'
+                      return (
+                        <TaskCardV2
+                          key={r.studentId}
+                          title={r.fullName}
+                          mark={<AvatarV2 name={r.fullName} />}
+                          onOpen={() => navigate(`/students/${r.studentId}`)}
+                          description={
+                            isToday
+                              ? 'Hoy es su día de pago. Mandale el recordatorio armado.'
+                              : overdue
+                                ? 'Pasaron 7 días hábiles desde el vencimiento.'
+                                : 'Ya venció y todavía no figura el pago.'
+                          }
+                          tags={
+                            <>
+                              <TagV2 tone="peach">Cobro</TagV2>
+                              <TagV2 tone={isToday ? 'butter' : 'rose'}>{isToday ? 'Vence hoy' : overdue ? 'Atrasado' : 'Vencido'}</TagV2>
+                            </>
+                          }
+                          meta={
+                            <>
+                              {r.dueDate ? <MetaChipV2 icon={CalendarDays}>{fmtDay(r.dueDate)}</MetaChipV2> : null}
+                              {debt > 0 ? <MetaChipV2 icon={Wallet}>{formatCurrency(debt)}</MetaChipV2> : null}
+                            </>
+                          }
+                          actions={
+                            <>
+                              <PillButtonV2 onClick={() => void dismiss(r)} title="Sacarlo de la lista sin mandar nada">
+                                Ya le avisé
+                              </PillButtonV2>
+                              <PillButtonV2 primary icon={WhatsAppIcon} onClick={() => void remind(r)}>
+                                Recordar
+                              </PillButtonV2>
+                            </>
+                          }
+                        />
+                      )
+                    })
+                  : null}
+
                 {filter !== 'all' && counts[filter] === 0 ? (
                   <p className="col-span-full rounded-2xl bg-surface-panel px-5 py-6 text-center text-[13px] text-ink-muted">
                     Nada pendiente acá.
@@ -657,9 +566,10 @@ export function DashboardV2Page() {
             )}
           </section>
 
-          <aside className="space-y-4">
+          <aside className="space-y-4 max-lg:contents">
             <CardV2
-              title="Agenda"
+              className="max-lg:order-first"
+              title={selectedDay === todayIndex ? 'Turnos de hoy' : `Turnos del ${format(new Date(weekStart.getTime() + selectedDay * DAY_MS), 'EEEE d', { locale: es })}`}
               action={
                 <button
                   type="button"
@@ -730,7 +640,7 @@ export function DashboardV2Page() {
             </CardV2>
 
             {birthdays.length ? (
-            <CardV2 title="Cumpleaños">
+            <CardV2 title="Cumpleaños" className="max-lg:order-last">
               {(
                 <ul className="px-2 pb-2 pt-1">
                   {birthdays.map(({ s, days }) => (
@@ -768,6 +678,102 @@ export function DashboardV2Page() {
             ) : null}
           </aside>
         </div>
+
+        {/* Los números del mes: después de lo de hoy. */}
+        <section className="mt-10">
+          <SectionTitleV2>Este mes</SectionTitleV2>
+        {/* Celu: los tres números en una franja. */}
+        <div className="md:hidden">
+          <StatStripV2
+            items={[
+              trains
+                ? {
+                    label: 'Feedback',
+                    value: missingQ.isPending || loading ? '—' : String(answered),
+                    suffix: `/${students.length}`,
+                    tone: 'lavender' as const,
+                    progress: students.length ? answered / students.length : undefined,
+                    onClick: () => navigate('/feedback'),
+                  }
+                : {
+                    label: 'Turnos hoy',
+                    value: appointmentsQ.isPending ? '—' : String(appointmentsToday.length),
+                    tone: 'sky' as const,
+                    onClick: () => navigate('/appointments'),
+                  },
+              {
+                label: trains ? 'Con rutina' : 'Activos',
+                value: loading || (trains && routinesQ.isPending) ? '—' : String(trains ? withRoutine : students.length),
+                suffix: trains ? `/${routineTotal}` : undefined,
+                tone: 'mint' as const,
+                progress: trains && routineTotal ? withRoutine / routineTotal : undefined,
+                onClick: () => navigate(role === 'nutritionist' ? '/nutrition' : '/students'),
+              },
+              ...(handlesMoney
+                ? [{
+                    label: 'Cobrado',
+                    value: loading ? '—' : shortMoney(money.cobrado),
+                    tone: 'peach' as const,
+                    progress: money.esperado > 0 ? money.cobrado / money.esperado : undefined,
+                    onClick: () => navigate('/finances'),
+                  }]
+                : []),
+            ]}
+          />
+        </div>
+
+        {/* Números del mes, cada uno con su avance. */}
+        <div className="hidden gap-3 md:grid md:grid-cols-3">
+          {trains ? (
+            <PulseCardV2
+              icon={MessageSquare}
+              tone="lavender"
+              title="Feedback de la semana"
+              value={missingQ.isPending || loading ? null : answered}
+              suffix={`/ ${students.length}`}
+              caption={missing.length ? `Faltan ${missing.length}` : 'Respondieron todos'}
+              progress={students.length ? answered / students.length : undefined}
+              onClick={() => navigate('/feedback')}
+            />
+          ) : (
+            <PulseCardV2
+              icon={CalendarClock}
+              tone="sky"
+              title="Turnos de hoy"
+              value={appointmentsQ.isPending ? null : appointmentsToday.length}
+              caption={appointmentsToday[0] ? `El próximo a las ${fmtTime(appointmentsToday[0].starts_at)}` : 'Agenda libre'}
+              onClick={() => navigate('/appointments')}
+            />
+          )}
+          <PulseCardV2
+            icon={Users}
+            tone="mint"
+            title={trains ? 'Con rutina activa' : role === 'nutritionist' ? 'Pacientes activos' : 'Alumnos activos'}
+            value={loading || (trains && routinesQ.isPending) ? null : trains ? withRoutine : students.length}
+            suffix={trains ? `/ ${routineTotal}` : undefined}
+            caption={trains ? (routines.without.length ? `${routines.without.length} sin rutina` : 'Todos con rutina') : 'En seguimiento'}
+            progress={trains && routineTotal ? withRoutine / routineTotal : undefined}
+            onClick={() => navigate(role === 'nutritionist' ? '/nutrition' : '/students')}
+          />
+          {handlesMoney ? (
+            <PulseCardV2
+              icon={Wallet}
+              tone="peach"
+              title={`Cobrado en ${format(today, 'MMMM', { locale: es })}`}
+              value={loading ? null : money.cobrado}
+              format={(n) => formatCurrency(Math.round(n))}
+              caption={
+                money.esperado > 0
+                  ? `de ${formatCurrency(money.esperado)}${money.owing ? ` · ${money.owing} por cobrar` : ''}`
+                  : 'Sin cuotas cargadas'
+              }
+              progress={money.esperado > 0 ? money.cobrado / money.esperado : undefined}
+              onClick={() => navigate('/finances')}
+            />
+          ) : null}
+        </div>
+
+        </section>
 
         {/* Lo que el Inicio anterior también mostraba y se resuelve desde acá. */}
         <div className="mt-10 space-y-4">
