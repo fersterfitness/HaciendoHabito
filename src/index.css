@@ -658,7 +658,7 @@ html.ui-v2 {
 
 html.ui-v2.dark {
   --v2-canvas: 10 10 10;
-  --v2-sidebar-active: 34 34 34;
+  --v2-sidebar-active: 46 46 46;
   --surface-base: 22 22 22;
   --surface-card: 22 22 22;
   --surface-panel: 28 28 28;
@@ -865,4 +865,95 @@ html.ui-v2 .hh-cta {
 html.ui-v2.dark .hh-cta,
 html.ui-v2.dark .bg-brand-primary.text-white {
   color: rgb(17 17 17);
+}
+
+/* ── v2 · barra lateral: ítem activo con contraste en los dos modos ── */
+html.ui-v2 .v2-nav-pill {
+  background-color: rgb(var(--v2-sidebar-active));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.07), 0 1px 2px rgb(0 0 0 / 0.08);
+}
+html.ui-v2.dark .v2-nav-pill {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+/*
+ * ── v2 · movimiento ──
+ * Solo opacity y transform (los compone la GPU, no recalculan el diseño). El relleno es
+ * `backwards`: al terminar no queda ningún transform puesto, así los modales `fixed` que viven
+ * dentro de la página se siguen ubicando bien. Con "reducir movimiento" no se anima nada.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes v2-rise {
+    from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.992); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes v2-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Bloques de cada pantalla: entran en cascada al abrirla. */
+  html.ui-v2 .v2-main > div > * > * {
+    animation: v2-rise 460ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  html.ui-v2 .v2-main > div > * > *:nth-child(2) { animation-delay: 40ms; }
+  html.ui-v2 .v2-main > div > * > *:nth-child(3) { animation-delay: 80ms; }
+  html.ui-v2 .v2-main > div > * > *:nth-child(4) { animation-delay: 120ms; }
+  html.ui-v2 .v2-main > div > * > *:nth-child(5) { animation-delay: 160ms; }
+  html.ui-v2 .v2-main > div > * > *:nth-child(n + 6) { animation-delay: 200ms; }
+
+  /* Tarjetas de una grilla (KPIs, resúmenes): una tras otra. */
+  html.ui-v2 .v2-main .grid > :is(div, a, section, button) {
+    animation: v2-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  html.ui-v2 .v2-main .grid > :nth-child(2) { animation-delay: 35ms; }
+  html.ui-v2 .v2-main .grid > :nth-child(3) { animation-delay: 70ms; }
+  html.ui-v2 .v2-main .grid > :nth-child(4) { animation-delay: 105ms; }
+  html.ui-v2 .v2-main .grid > :nth-child(n + 5) { animation-delay: 140ms; }
+
+  /* Filas de tablas: aparecen en cascada (solo las primeras; el resto, de una). */
+  html.ui-v2 .v2-main tbody > tr {
+    animation: v2-fade 360ms ease-out backwards;
+  }
+  html.ui-v2 .v2-main tbody > tr:nth-child(2) { animation-delay: 25ms; }
+  html.ui-v2 .v2-main tbody > tr:nth-child(3) { animation-delay: 50ms; }
+  html.ui-v2 .v2-main tbody > tr:nth-child(4) { animation-delay: 75ms; }
+  html.ui-v2 .v2-main tbody > tr:nth-child(5) { animation-delay: 100ms; }
+  html.ui-v2 .v2-main tbody > tr:nth-child(6) { animation-delay: 125ms; }
+  html.ui-v2 .v2-main tbody > tr:nth-child(n + 7) { animation-delay: 150ms; }
+
+  /* Tarjetas que son links: se elevan apenas al pasar. */
+  html.ui-v2 .v2-main a.rounded-xl,
+  html.ui-v2 .v2-main a.rounded-2xl,
+  html.ui-v2 .v2-main a[class*='rounded-[1.'] {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease, background-color 150ms ease;
+  }
+  html.ui-v2 .v2-main a.rounded-xl:hover,
+  html.ui-v2 .v2-main a.rounded-2xl:hover,
+  html.ui-v2 .v2-main a[class*='rounded-[1.']:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 6px 18px -8px rgb(0 0 0 / 0.18);
+  }
+
+  /* Íconos de los botones: un pequeño desplazamiento al pasar. */
+  html.ui-v2 button:hover > svg:first-child:not(:only-child) {
+    transform: translate3d(1px, 0, 0);
+  }
+  html.ui-v2 button > svg:first-child {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Cambio de tema: revelado circular desde el botón (View Transitions). */
+  html.ui-v2::view-transition-old(root),
+  html.ui-v2::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  html.ui-v2::view-transition-new(root) {
+    animation: v2-theme-reveal 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes v2-theme-reveal {
+    from { clip-path: circle(0 at var(--v2-reveal-x, 28px) var(--v2-reveal-y, 100%)); }
+    to { clip-path: circle(150vmax at var(--v2-reveal-x, 28px) var(--v2-reveal-y, 100%)); }
+  }
 }

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { motion, useReducedMotion } from 'motion/react'
+import { flushSync } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -44,17 +46,52 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 
 const COLLAPSE_KEY = 'hh-v2-sidebar-collapsed'
 
+/**
+ * Cambia el tema con un revelado circular que sale del botón (View Transitions). Donde el
+ * navegador no lo soporta, o con "reducir movimiento", cambia de golpe como siempre.
+ */
+function toggleThemeWithReveal(e: { clientX: number; clientY: number }, toggle: () => void) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
+  if (!doc.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    toggle()
+    return
+  }
+  const root = document.documentElement
+  root.style.setProperty('--v2-reveal-x', `${e.clientX}px`)
+  root.style.setProperty('--v2-reveal-y', `${e.clientY}px`)
+  doc.startViewTransition(() => flushSync(toggle))
+}
+
+/** Fondo del ítem al pasar: tinte sobre el lienzo (el gris de las tarjetas casi no se ve sobre él). */
+const NAV_HOVER = 'hover:bg-black/[0.05] dark:hover:bg-white/[0.06]'
+
 const rowClass = (active: boolean) =>
   cn(
-    'group flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors',
-    active ? 'bg-surface-elevated font-medium text-ink-primary' : 'text-ink-secondary hover:bg-surface-elevated/70 hover:text-ink-primary',
+    'group relative isolate flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors duration-150',
+    active ? 'font-medium text-ink-primary' : cn('text-ink-secondary hover:text-ink-primary', NAV_HOVER),
   )
 
 const railBtnClass = (active = false) =>
   cn(
-    'relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-    active ? 'bg-surface-elevated text-ink-primary' : 'text-ink-muted hover:bg-surface-elevated/70 hover:text-ink-primary',
+    'relative isolate flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-150',
+    active ? 'text-ink-primary' : cn('text-ink-muted hover:text-ink-primary', NAV_HOVER),
   )
+
+/**
+ * Pastilla del ítem activo: blanca con borde fino en claro, gris claro en oscuro. Usa el mismo
+ * `layoutId` en todos los ítems, así al navegar se desliza de uno a otro (solo transform).
+ */
+function ActivePill({ id, rounded = 'rounded-lg' }: { id: string; rounded?: string }) {
+  const reduce = useReducedMotion()
+  return (
+    <motion.span
+      layoutId={reduce ? undefined : id}
+      aria-hidden
+      className={cn('v2-nav-pill absolute inset-0 -z-10', rounded)}
+      transition={{ type: 'spring', stiffness: 520, damping: 40, mass: 0.7 }}
+    />
+  )
+}
 
 /** Marca de la v2: el mismo dibujo del logo, en negro liso. */
 function BrandMarkV2({ className = 'h-7 w-7' }: { className?: string }) {
@@ -208,8 +245,13 @@ export function SidebarV2() {
           <>
             <div className="my-2 h-px w-6 bg-surface-border" />
             <NavLink to="/notifications" className={({ isActive }) => railBtnClass(isActive)} title="Notificaciones" aria-label="Notificaciones">
-              <Bell className="h-[17px] w-[17px]" strokeWidth={1.6} />
-              {unread > 0 ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-pastel-rose-accent" /> : null}
+              {({ isActive }) => (
+                <>
+                  {isActive ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
+                  <Bell className="h-[17px] w-[17px]" strokeWidth={1.6} />
+                  {unread > 0 ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-pastel-rose-accent" /> : null}
+                </>
+              )}
             </NavLink>
             {allItems.map((item) => {
               const Icon = item.icon
@@ -224,6 +266,7 @@ export function SidebarV2() {
                   aria-current={active ? 'page' : undefined}
                   onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
                 >
+                  {active ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
                   <Icon className="h-[17px] w-[17px]" strokeWidth={1.6} />
                 </NavLink>
               )
@@ -232,7 +275,7 @@ export function SidebarV2() {
         ) : null}
 
         <div className="mt-auto flex flex-col items-center gap-1">
-          <button type="button" onClick={toggleTheme} className={railBtnClass()} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'} aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
+          <button type="button" onClick={(e) => toggleThemeWithReveal(e, toggleTheme)} className={railBtnClass()} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'} aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
             {theme === 'dark' ? <Sun className="h-[17px] w-[17px]" strokeWidth={1.6} /> : <Moon className="h-[17px] w-[17px]" strokeWidth={1.6} />}
           </button>
           <Popover
@@ -297,6 +340,7 @@ export function SidebarV2() {
                       aria-current={active ? 'page' : undefined}
                       onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
                     >
+                      {active ? <ActivePill id="v2-nav-pill" /> : null}
                       <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
                       <span className="truncate">{item.label}</span>
                       <Count value={itemCount(item)} />
@@ -307,6 +351,7 @@ export function SidebarV2() {
                   <NavLink to="/notifications" className={({ isActive }) => rowClass(isActive)}>
                     {({ isActive }) => (
                       <>
+                        {isActive ? <ActivePill id="v2-nav-pill" /> : null}
                         <Bell className={cn('h-4 w-4 shrink-0', isActive ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
                         <span className="truncate">Notificaciones</span>
                         <Count value={unread} />
