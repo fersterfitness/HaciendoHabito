@@ -316,14 +316,16 @@ export function PaymentsBoard() {
                   {wa || canPay ? (
                     <div className="mt-2.5 grid grid-cols-2 gap-2">
                       {wa ? (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => void remind(r, wa)}
-                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-surface-border text-2xs font-medium text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
+                          className="h-9 w-full"
+                          icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
                         >
-                          <WhatsAppIcon className="h-3.5 w-3.5" />
                           Recordar
-                        </button>
+                        </Button>
                       ) : null}
                       {canPay ? (
                         <Button size="sm" variant="secondary" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)} className={cn('h-9', !wa && 'col-span-2')}>
@@ -402,15 +404,16 @@ export function PaymentsBoard() {
                         {/* Con mouse, las acciones aparecen al pasar por la fila: la tabla queda limpia. */}
                         <div className="flex items-center justify-end gap-1.5 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
                           {wa ? (
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => void remind(r, wa)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 border border-surface-border text-2xs font-medium text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
                               title="Recordar el pago por WhatsApp"
+                              icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
                             >
-                              <WhatsAppIcon className="h-3.5 w-3.5" />
                               Recordar
-                            </button>
+                            </Button>
                           ) : null}
                           {r.state !== 'pagado' && !isPastMonthRow(r) ? (
                             <Button size="sm" variant="secondary" icon={<Check className="h-3.5 w-3.5" />} onClick={() => setPaying(r)}>

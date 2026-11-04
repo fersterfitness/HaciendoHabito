@@ -1,4 +1,4 @@
-import { fieldInputClassName, fieldSelectClassName } from '@/lib/fieldClasses'
+import { controlInputClassName, controlSelectClassName } from '@/lib/formControlClasses'
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -77,7 +77,7 @@ export function AddRmModal({
       <div>
         <label className="block text-xs font-medium text-ink-secondary mb-1">Ejercicio *</label>
         <select
-          className={fieldSelectClassName}
+          className={controlSelectClassName}
           value={exerciseId}
           onChange={(e) => setExerciseId(e.target.value)}
         >
@@ -115,7 +115,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Peso (kg) *</label>
               <input
                 type="number" min={0} step={0.5} placeholder="ej: 120"
-                className={cn(fieldInputClassName, 'text-center')}
+                className={cn(controlInputClassName, 'text-center')}
                 value={epleyWeight}
                 onChange={(e) => setEpleyWeight(e.target.value)}
               />
@@ -124,7 +124,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Reps</label>
               <input
                 type="number" min={1} max={20} placeholder="ej: 5"
-                className={cn(fieldInputClassName, 'text-center')}
+                className={cn(controlInputClassName, 'text-center')}
                 value={epleyReps}
                 onChange={(e) => setEpleyReps(e.target.value)}
               />
@@ -133,7 +133,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">% del RM *</label>
               <input
                 type="number" min={30} max={100} step={1} placeholder="ej: 80"
-                className={cn(fieldInputClassName, 'text-center')}
+                className={cn(controlInputClassName, 'text-center')}
                 value={pctOfRm}
                 onChange={(e) => setPctOfRm(e.target.value)}
               />
@@ -158,7 +158,7 @@ export function AddRmModal({
           <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
           <input
             type="number" min={0} step={0.5} placeholder="ej: 120"
-            className={cn(fieldInputClassName, 'text-center font-bold')}
+            className={cn(controlInputClassName, 'text-center font-bold')}
             value={rmKg}
             onChange={(e) => setRmKg(e.target.value)}
           />
@@ -170,7 +170,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Peso usado (kg) *</label>
               <input
                 type="number" min={0} step={0.5} placeholder="ej: 100"
-                className={cn(fieldInputClassName, 'text-center')}
+                className={cn(controlInputClassName, 'text-center')}
                 value={epleyWeight}
                 onChange={(e) => setEpleyWeight(e.target.value)}
               />
@@ -179,7 +179,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Reps realizadas *</label>
               <input
                 type="number" min={1} max={10} placeholder="ej: 5"
-                className={cn(fieldInputClassName, 'text-center')}
+                className={cn(controlInputClassName, 'text-center')}
                 value={epleyReps}
                 onChange={(e) => setEpleyReps(e.target.value)}
               />
@@ -205,7 +205,7 @@ export function AddRmModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
         <input
           type="date"
-          className={fieldInputClassName}
+          className={controlInputClassName}
           value={testedAt}
           onChange={(e) => setTestedAt(e.target.value)}
         />
@@ -215,7 +215,7 @@ export function AddRmModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
         <input
           placeholder="ej: con cinturón, post competencia..."
-          className={fieldInputClassName}
+          className={controlInputClassName}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />

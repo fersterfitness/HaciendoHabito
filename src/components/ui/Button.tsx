@@ -15,7 +15,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     | 'gradientPrimary'
     /** @deprecated usar `primary` (era la acción principal de cada formulario). */
     | 'gradientSecondary'
-  size?: 'sm' | 'md' | 'lg' | 'icon'
+  size?: 'sm' | 'md' | 'lg' | 'icon' | 'iconSm'
   loading?: boolean
   icon?: ReactNode
   iconPosition?: 'left' | 'right'
@@ -52,6 +52,8 @@ const sizeStyles = {
   md: 'h-9 px-4 text-sm gap-2 rounded-xl',
   lg: 'h-11 px-5 text-[15px] gap-2 rounded-xl',
   icon: 'h-9 w-9 p-0 rounded-xl',
+  /** Acción de fila (editar, borrar, quitar): ícono de 14–16 px. */
+  iconSm: 'h-7 w-7 p-0 rounded-lg',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

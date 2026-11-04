@@ -98,13 +98,13 @@ import {
   mifflinStJeorBmrMale,
   tdeeFromBmr,
 } from '@/lib/nutrition/tdeeCalculator'
-import { controlMdClassName } from '@/lib/formControlClasses'
+import { controlBaseClassName, controlMdClassName, controlSmClassName, controlTextareaClassName } from '@/lib/formControlClasses'
 
 /** Campos zinc — evita tinte brand (naranja) en selects / textareas. */
 const PLAN_FIELD_SELECT = cn('flex w-full', controlMdClassName)
 
-const PLAN_FIELD_TEXTAREA_FOCUS =
-  'rounded-md border border-surface-border/80 bg-surface-input text-ink-primary outline-none placeholder:text-ink-muted focus:border-brand-primary/60 focus:ring-2 focus:ring-zinc-400/20'
+/** Áreas de texto del plan: mismo borde y foco que el resto de los campos. */
+const PLAN_FIELD_TEXTAREA_FOCUS = controlBaseClassName
 
 const PLAN_SECTION_CARD =
   'rounded-md border border-surface-border/75 bg-surface-card'
@@ -2531,28 +2531,33 @@ export function NutritionPlanningPage() {
                                         </div>
                                       </td>
                                       <td className="px-1 py-2 align-top text-center">
-                                        <button
+                                        <Button
                                           type="button"
-                                          className="rounded-lg p-1.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired mx-auto"
+                                          variant="ghost"
+                                          size="iconSm"
+                                          className="mx-auto hover:bg-status-expired/10 hover:text-status-expired"
                                           title="Quitar"
+                                          aria-label="Quitar"
                                           onClick={() => removeMealPick(key, p.id)}
                                         >
                                           <Trash2 className="h-4 w-4" aria-hidden />
-                                        </button>
+                                        </Button>
                                       </td>
                                     </tr>
                                     <tr className="border-b border-surface-border bg-surface-muted/55 ">
                                       <td colSpan={5} className="border-t border-surface-border/70 px-3 py-2.5">
                                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
-                                          <button
+                                          <Button
                                             type="button"
-                                            className="inline-flex w-fit items-center justify-center gap-1 rounded-lg border border-surface-border bg-surface-card px-2 py-1.5 text-3xs font-medium text-ink-secondary hover:bg-surface-elevated"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 w-fit px-2 text-3xs"
                                             title="Actualizar tip desde la fila del plan o las notas de Mi lista"
                                             onClick={() => syncPickHintSnapshot(key, p.id)}
+                                            icon={<RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                                           >
-                                            <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
                                             Sincronizar tip
-                                          </button>
+                                          </Button>
                                           <label htmlFor={`dup-${key}-${p.id}`} className="sr-only">
                                             Copiar «{displayNameForMealPick(p)}» a otro momento
                                           </label>
@@ -2924,7 +2929,7 @@ export function NutritionPlanningPage() {
                             </td>
                             <td className="px-1 py-1 align-top">
                               <select
-                                className="h-8 w-full rounded-md border border-surface-inputBorder bg-surface-input px-1 text-3xs text-ink-primary"
+                                className={cn(controlSmClassName, 'w-full px-1 text-3xs')}
                                 value={r.qtyPresentation ?? 'grams'}
                                 onChange={(e) => {
                                   const v = e.target.value
@@ -3246,16 +3251,19 @@ export function NutritionPlanningPage() {
                   Elegí un alimento guardado: se cargan nombre y valores por 100 g en esta fila.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
-                className="rounded-lg p-2 text-ink-muted hover:bg-surface-muted hover:text-ink-primary shrink-0"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                aria-label="Cerrar"
                 onClick={() => {
                   setLibraryPicker(null)
                   setLibraryQuery('')
                 }}
               >
                 <X className="h-5 w-5" aria-hidden />
-              </button>
+              </Button>
             </div>
             <div className="shrink-0 p-4 pt-2">
               <div className="relative">
@@ -3396,7 +3404,7 @@ export function NutritionPlanningPage() {
             />
             <label className="block text-2xs font-semibold text-ink-muted ">Nota (opcional)</label>
             <textarea
-              className="w-full min-h-[64px] rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary"
+              className={cn(controlTextareaClassName, 'min-h-[64px]')}
               value={workbookTplDesc}
               onChange={(e) => setWorkbookTplDesc(e.target.value)}
               placeholder="Cuándo usarla…"

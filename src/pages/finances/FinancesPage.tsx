@@ -1,3 +1,4 @@
+import { controlSelectClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useState, useRef, useMemo, type ReactNode } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
@@ -494,12 +495,7 @@ export function FinancesPage() {
               aria-label="Filtrar por ámbito"
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value as 'all' | 'business' | 'personal')}
-              className={cn(
-                'h-10 w-full appearance-none rounded-md border border-surface-border/75 bg-surface-card',
-                'pl-3 pr-9 text-sm text-ink-primary shadow-none outline-none transition-colors cursor-pointer',
-                ' ',
-                'focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/18',
-              )}
+              className={cn(controlSelectClassName, 'appearance-none pr-9')}
             >
               <option value="business">Haciéndolo hábito</option>
               <option value="personal">Vida personal</option>
@@ -508,18 +504,16 @@ export function FinancesPage() {
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
           </div>
           <div className="flex flex-wrap items-center gap-2 md:shrink-0 md:justify-end md:gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={exportCSV}
               title="Exportar CSV"
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-surface-border/75 px-3.5 text-sm font-medium text-ink-primary transition-colors',
-                'hover:border-surface-inputBorder hover:bg-surface-elevated/90 ',
-              )}
+              className="h-10 shrink-0"
+              icon={<Download className="h-4 w-4 text-ink-muted" aria-hidden />}
             >
-              <Download className="h-4 w-4 text-ink-muted " aria-hidden />
               CSV
-            </button>
+            </Button>
             <Button
               type="button"
               variant="gradientSecondary"
@@ -660,24 +654,27 @@ export function FinancesPage() {
                         </td>
                         <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
                           <div className="flex items-center justify-end gap-1">
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="iconSm"
                               onClick={() => navigate(`/finances/income/${income.id}/edit`)}
-                              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
                               title="Editar"
                               aria-label="Editar"
                             >
                               <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="iconSm"
                               onClick={() => setDeleteIncomeTarget(income)}
-                              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+                              className="hover:bg-status-expired/10 hover:text-status-expired"
                               title="Eliminar"
                               aria-label="Eliminar"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -754,22 +751,27 @@ export function FinancesPage() {
                       </td>
                       <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
                         <div className="flex items-center justify-end gap-1">
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="iconSm"
                             onClick={() => navigate(`/finances/expenses/${expense.id}/edit`)}
-                            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
                             title="Editar"
+                            aria-label="Editar"
                           >
                             <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="iconSm"
                             onClick={() => setDeleteExpenseTarget(expense)}
-                            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+                            className="hover:bg-status-expired/10 hover:text-status-expired"
                             title="Eliminar"
+                            aria-label="Eliminar"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>

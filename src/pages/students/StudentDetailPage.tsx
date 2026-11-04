@@ -1,4 +1,4 @@
-import { fieldClassName } from '@/lib/fieldClasses'
+import { controlTextareaClassName } from '@/lib/formControlClasses'
 import { useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
@@ -904,7 +904,7 @@ export function StudentDetailView({
                   value={notesValue}
                   onChange={(e) => setNotesValue(e.target.value)}
                   rows={5}
-                  className={cn(fieldClassName, 'resize-none px-3 py-2')}
+                  className={cn(controlTextareaClassName, 'resize-none px-3 py-2')}
                   placeholder="Observaciones, lesiones, objetivos..."
                 />
                 <div className="flex items-center gap-2 justify-end">

@@ -1,4 +1,4 @@
-import { fieldSelectClassName } from '@/lib/fieldClasses'
+import { controlSelectClassName } from '@/lib/formControlClasses'
 import { useState, useMemo } from 'react'
 import { Dumbbell, Plus, Zap, X, ChevronDown, Check, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -347,7 +347,7 @@ export function FuerzaTab({
           </div>
           <div className="space-y-3">
             <select
-              className={fieldSelectClassName}
+              className={controlSelectClassName}
               value={calcKey}
               onChange={(e) => setCalcKey(e.target.value)}
             >

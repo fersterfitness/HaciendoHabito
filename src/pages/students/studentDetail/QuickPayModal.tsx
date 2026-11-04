@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { fieldInputClassName, fieldSelectClassName } from '@/lib/fieldClasses'
+import { controlInputClassName, controlSelectClassName } from '@/lib/formControlClasses'
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -112,7 +112,7 @@ export function QuickPayModal({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">$</span>
           <input
             type="number" min={0} step={100} placeholder="0"
-            className={cn(fieldInputClassName, 'text-lg text-center font-bold pl-7')}
+            className={cn(controlInputClassName, 'text-lg text-center font-bold pl-7')}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             autoFocus
@@ -125,7 +125,7 @@ export function QuickPayModal({
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
           <select
-            className={fieldSelectClassName}
+            className={controlSelectClassName}
             value={type} onChange={(e) => setType(e.target.value)}
           >
             {INCOME_TYPES.map((t) => (
@@ -137,7 +137,7 @@ export function QuickPayModal({
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
           <select
-            className={fieldSelectClassName}
+            className={controlSelectClassName}
             value={method} onChange={(e) => setMethod(e.target.value)}
           >
             {PAYMENT_METHODS.map((m) => (
@@ -152,7 +152,7 @@ export function QuickPayModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
         <input
           type="date"
-          className={fieldInputClassName}
+          className={controlInputClassName}
           value={date} onChange={(e) => setDate(e.target.value)}
         />
       </div>
@@ -162,7 +162,7 @@ export function QuickPayModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Notas libres (ej. cuotas)</label>
         <input
           placeholder="ej: quedan 2 cuotas, mes mayo…"
-          className={fieldInputClassName}
+          className={controlInputClassName}
           value={notes} onChange={(e) => setNotes(e.target.value)}
         />
       </div>

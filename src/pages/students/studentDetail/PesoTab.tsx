@@ -1,4 +1,4 @@
-import { fieldInputClassName } from '@/lib/fieldClasses'
+import { controlInputClassName } from '@/lib/formControlClasses'
 import { CHART_ACCENT } from '@/lib/chartColors'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Scale, X } from 'lucide-react'
@@ -142,7 +142,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Peso (kg) *</label>
                 <input
                   type="number" min={0} step={0.1} placeholder="ej: 75.5"
-                  className={cn(fieldInputClassName, 'text-center font-bold')}
+                  className={cn(controlInputClassName, 'text-center font-bold')}
                   value={weight} onChange={(e) => setWeight(e.target.value)}
                   autoFocus
                 />
@@ -151,7 +151,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Grasa corporal %</label>
                 <input
                   type="number" min={0} max={100} step={0.1} placeholder="opcional"
-                  className={cn(fieldInputClassName, 'text-center')}
+                  className={cn(controlInputClassName, 'text-center')}
                   value={fat} onChange={(e) => setFat(e.target.value)}
                 />
               </div>
@@ -161,7 +161,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Fecha</label>
                 <input
                   type="date"
-                  className={fieldInputClassName}
+                  className={controlInputClassName}
                   value={dateVal} onChange={(e) => setDateVal(e.target.value)}
                 />
               </div>
@@ -169,7 +169,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Notas</label>
                 <input
                   placeholder="opcional"
-                  className={fieldInputClassName}
+                  className={controlInputClassName}
                   value={noteVal} onChange={(e) => setNoteVal(e.target.value)}
                 />
               </div>
@@ -321,7 +321,7 @@ export function PesoTab({
                 <input
                   type="number" min={30} max={300} step={0.5} autoFocus
                   placeholder="Peso objetivo (kg)"
-                  className={cn(fieldInputClassName, 'flex-1 text-center')}
+                  className={cn(controlInputClassName, 'flex-1 text-center')}
                   value={goalInput}
                   onChange={(e) => setGoalInput(e.target.value)}
                 />
