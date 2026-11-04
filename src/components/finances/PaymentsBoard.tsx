@@ -31,16 +31,16 @@ import { cn, formatCurrency } from '@/lib/utils'
 import type { Income } from '@/types/database'
 
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
-  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: IS_V2 ? '#00C8D0' : '#10b981' },
-  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? '#40C0FF' : '#3b82f6' },
-  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? '#C040FF' : '#f59e0b' },
-  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: IS_V2 ? '#FF00FF' : '#f43f5e' },
+  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: IS_V2 ? '#8082A6' : '#10b981' },
+  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? '#F2C230' : '#3b82f6' },
+  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? '#F2921D' : '#f59e0b' },
+  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: IS_V2 ? '#F24F13' : '#f43f5e' },
   sin_cargo: { label: 'Sin cargo', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
 }
 
 /** Paleta categórica validada (claro/oscuro legibles sobre la tarjeta). */
 const METHOD_COLORS = IS_V2
-  ? ['#8080FF', '#40C0FF', '#C040FF', '#00C8D0', '#FF00FF', '#A060FF', '#5050C8', '#0090C0']
+  ? ['#F2921D', '#8082A6', '#F2C230', '#F24F13', '#A896B8', '#C46A1A', '#5E607F', '#D9A520']
   : ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#008300', '#e34948']
 const METHOD_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label])) as Record<string, string>
 
@@ -459,7 +459,7 @@ export function PaymentsBoard() {
 
       {/* Análisis del mes */}
       {rows.length > 0 ? (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className={IS_V2 ? 'hidden gap-3 sm:grid lg:grid-cols-3' : 'grid gap-3 lg:grid-cols-3'}>
           <ChartCard title="Estado de los alumnos">
             <DonutWithLegend data={stateChart} format={(v) => `${v} alumno${v === 1 ? '' : 's'}`} />
           </ChartCard>

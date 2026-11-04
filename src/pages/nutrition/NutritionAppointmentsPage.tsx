@@ -1445,7 +1445,7 @@ export function AppointmentsPage() {
                     <div
                       key={day.toISOString()}
                       className={cn(
-                        'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
+                        'rounded-xl border p-2 transition-shadow motion-safe:duration-300', IS_V2 ? 'md:min-h-44' : 'min-h-44',
                         dayIsToday
                           ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
                           : 'border-surface-border bg-surface-elevated/50',
@@ -1534,7 +1534,7 @@ export function AppointmentsPage() {
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      'rounded-xl border min-h-44 p-2 transition-shadow motion-safe:duration-300',
+                      'rounded-xl border p-2 transition-shadow motion-safe:duration-300', IS_V2 ? 'md:min-h-44' : 'min-h-44',
                       dayIsToday
                         ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
                         : 'border-surface-border bg-surface-elevated/50',

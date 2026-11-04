@@ -823,7 +823,7 @@ export function FinancesPage() {
         )}
 
         {deudores.length > 0 && (
-          <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4 ">
+          <section className={cn('overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4', IS_V2 && 'max-sm:hidden')}>
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
@@ -869,7 +869,7 @@ export function FinancesPage() {
         )}
 
         {/* Gráfico anual */}
-        <section className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
+        <section className={cn('overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card', IS_V2 && 'max-sm:hidden')}>
           {(() => {
             const total = annualChartData.reduce((acc, d) => acc + d.total, 0)
             const withData = annualChartData.filter((d) => d.total > 0).length
@@ -889,8 +889,8 @@ export function FinancesPage() {
             <BarChart data={annualChartData} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="annual-current" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={IS_V2 ? '#A0A0FF' : '#ff8a3d'} />
-                  <stop offset="100%" stopColor={IS_V2 ? '#8080FF' : '#ec3d12'} />
+                  <stop offset="0%" stopColor={IS_V2 ? '#F2C230' : '#ff8a3d'} />
+                  <stop offset="100%" stopColor={IS_V2 ? '#F2921D' : '#ec3d12'} />
                 </linearGradient>
               </defs>
               <CartesianGrid {...chartGrid} />
