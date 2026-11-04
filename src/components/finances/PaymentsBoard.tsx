@@ -218,7 +218,31 @@ export function PaymentsBoard() {
         </div>
       </div>
 
-      {/* Resumen del mes */}
+      {/* Resumen del mes (v2: una sola tarjeta) */}
+      {IS_V2 ? (
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-surface-border bg-surface-card px-5 py-4">
+          <div>
+            <p className="text-[12px] text-ink-muted">Cobrado</p>
+            <p className="text-[20px] font-semibold tabular-nums tracking-[-0.02em] text-ink-primary">{formatCurrency(totals.cobrado)}</p>
+          </div>
+          <div>
+            <p className="text-[12px] text-ink-muted">Por cobrar</p>
+            <p className="text-[20px] font-semibold tabular-nums tracking-[-0.02em] text-ink-primary">{formatCurrency(totals.pendiente)}</p>
+          </div>
+          <div className="min-w-[12rem] flex-1">
+            <div className="flex items-baseline justify-between text-[12px] text-ink-muted">
+              <span>{totals.pagados} de {rows.length} abonaron</span>
+              {totals.vencidos > 0 ? <span className="font-medium text-status-expired">{totals.vencidos} vencido{totals.vencidos === 1 ? '' : 's'}</span> : null}
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-elevated">
+              <div
+                className="h-full rounded-full bg-ink-primary transition-[width] duration-500"
+                style={{ width: `${rows.length > 0 ? (totals.pagados / rows.length) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <SummaryTile label="Cobrado" value={formatCurrency(totals.cobrado)} tone="success" />
         <SummaryTile label="Por cobrar" value={formatCurrency(totals.pendiente)} tone={totals.pendiente > 0 ? 'warning' : 'neutral'} />
@@ -240,6 +264,7 @@ export function PaymentsBoard() {
           </p>
         </div>
       </div>
+      )}
 
       {/* Tablero por alumno */}
       <div className="overflow-hidden rounded-2xl border border-surface-border/90 bg-surface-card shadow-card">
@@ -257,7 +282,7 @@ export function PaymentsBoard() {
               { id: 'pagado', label: 'Abonaron', count: totals.pagados },
             ]}
           />
-          <p className="ml-auto text-3xs text-ink-muted">
+          <p className={cn('ml-auto text-3xs text-ink-muted', IS_V2 && 'hidden')}>
             Todos tus alumnos activos. Lo esperado sale de la rutina con precio o de la cuota mensual; $0 = bonificada.
           </p>
         </div>

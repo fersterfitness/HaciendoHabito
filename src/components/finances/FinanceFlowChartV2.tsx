@@ -6,6 +6,7 @@ import { SegmentedV2 } from '@/components/v2/ui'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Expense, Income } from '@/types/database'
 
+const MES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 const MES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const C_IN = '#8080FF'
 const C_OUT = '#FF00FF'
@@ -33,17 +34,20 @@ export function FinanceFlowChartV2({ incomes, expenses }: { incomes: Income[]; e
 
   const current = data[data.length - 1]
   const previous = data[data.length - 2]
-  const delta = current && previous && previous.balance !== 0 ? ((current.balance - previous.balance) / Math.abs(previous.balance)) * 100 : null
+  // En plata y no en %: el % no se entiende cuando el balance cambia de signo (daba «200%»).
+  const delta = current && previous ? current.balance - previous.balance : null
   const up = delta != null && delta >= 0
+  const now = new Date()
+  const prevName = MES_LARGO[(now.getMonth() + 11) % 12]
 
   return (
     <section className="rounded-[1.25rem] border border-surface-border bg-surface-card p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[13px] text-ink-muted">Flujo de caja · balance del mes</p>
+          <p className="text-[13px] text-ink-muted">Balance de {MES_LARGO[now.getMonth()]}</p>
           <div className="mt-1 flex items-baseline gap-2.5">
             <p className="text-[26px] font-medium tabular-nums tracking-[-0.02em] text-ink-primary">{formatCurrency(current?.balance ?? 0)}</p>
-            {delta != null ? (
+            {delta != null && delta !== 0 ? (
               <span
                 className={cn(
                   'hh-pastel inline-flex h-6 items-center gap-0.5 rounded-full px-2 text-[12px] font-medium tabular-nums',
@@ -51,7 +55,8 @@ export function FinanceFlowChartV2({ incomes, expenses }: { incomes: Income[]; e
                 )}
               >
                 {up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                {Math.abs(Math.round(delta))}%
+                {formatCurrency(Math.abs(delta))}
+                <span className="ml-1 font-normal opacity-75">vs {prevName}</span>
               </span>
             ) : null}
           </div>

@@ -1,5 +1,6 @@
 import { controlSelectClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
+import { SegmentedV2 } from '@/components/v2/ui'
 import { useEffect, useState, useRef, useMemo, type ReactNode } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -389,18 +390,43 @@ export function FinancesPage() {
 
   return (
     <div>
-      <Header title="Finanzas" />
+      <Header
+        title="Finanzas"
+        actions={
+          IS_V2 ? (
+            <>
+              <Button size="sm" variant="secondary" icon={<TrendingDown className="h-3.5 w-3.5" />} onClick={() => navigate('/finances/expenses/new')}>
+                Gasto
+              </Button>
+              <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/finances/income/new')}>
+                Ingreso
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       <div className="max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
+        {IS_V2 ? (
+          <SegmentedV2
+            value={scopeFilter}
+            onChange={(v) => setScopeFilter(v)}
+            options={[
+              { value: 'business' as const, label: 'Haciéndolo Hábito' },
+              { value: 'personal' as const, label: 'Personal' },
+              { value: 'all' as const, label: 'Todo' },
+            ]}
+          />
+        ) : null}
         {/* KPI */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <div className={cn('grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4', IS_V2 && 'hidden')}>
           <MetricTile label="Balance neto" value={<CountUp value={balance} format={formatCurrency} duration={2600} enabled={!loading} />} tone={balance < 0 ? 'negative' : 'default'} icon={Scale} />
           <MetricTile label="Cobrado total" value={<CountUp value={totalIngresos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingUp} />
           <MetricTile label="Pendiente" value={<CountUp value={totalPendiente} format={formatCurrency} duration={2200} enabled={!loading} />} tone={totalPendiente > 0 ? 'warning' : 'default'} icon={Clock} />
           <MetricTile label="Total gastos" value={<CountUp value={totalGastos} format={formatCurrency} duration={2200} enabled={!loading} />} icon={TrendingDown} />
         </div>
         {IS_V2 && !loading ? <FinanceFlowChartV2 incomes={incomesFiltered} expenses={expensesFiltered} /> : null}
-        <p className="text-2xs leading-relaxed text-ink-muted">
+        <p className={cn('text-2xs leading-relaxed text-ink-muted', IS_V2 && 'hidden')}>
           Los montos siguen el filtro &ldquo;
           {scopeFilter === 'all' ? 'Todos los ámbitos' : scopeFilter === 'business' ? 'Haciéndolo hábito' : 'Vida personal'}
           &rdquo;.
@@ -459,9 +485,22 @@ export function FinancesPage() {
         {scopeFilter !== 'personal' ? <PriceIncreasePanel /> : null}
 
         {/* Tabs (estilo rutinas / listados) */}
+        {IS_V2 ? (
+          <div className="flex items-center gap-3 pt-4">
+            <h2 className="text-[14px] font-medium text-ink-primary">Movimientos</h2>
+            <SegmentedV2
+              value={tab}
+              onChange={(v) => switchTab(v)}
+              options={[
+                { value: 'income' as const, label: 'Ingresos', count: incomesFiltered.length },
+                { value: 'expenses' as const, label: 'Gastos', count: expensesFiltered.length },
+              ]}
+            />
+          </div>
+        ) : null}
         <SegmentedControl
           ariaLabel="Movimientos"
-          className="mt-1"
+          className={cn('mt-1', IS_V2 && 'hidden')}
           value={tab}
           onChange={(id) => switchTab(id as typeof tab)}
           items={[
@@ -490,7 +529,7 @@ export function FinancesPage() {
               )}
             />
           </div>
-          <div className="relative md:w-[210px]">
+          <div className={cn('relative md:w-[210px]', IS_V2 && 'hidden')}>
             <select
               aria-label="Filtrar por ámbito"
               value={scopeFilter}
@@ -517,6 +556,7 @@ export function FinancesPage() {
             <Button
               type="button"
               variant="gradientSecondary"
+              className={IS_V2 ? 'hidden' : undefined}
               title={tab === 'income' ? 'Registrar ingreso' : 'Registrar gasto'}
               onClick={() => navigate(tab === 'income' ? '/finances/income/new' : '/finances/expenses/new')}
               icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}
@@ -525,7 +565,7 @@ export function FinancesPage() {
             </Button>
           </div>
         </div>
-        {dataUpdatedAt && !loading ? (
+        {dataUpdatedAt && !loading && !IS_V2 ? (
           <p className="text-3xs text-ink-muted tabular-nums">
             Datos actualizados ·{' '}
             {dataUpdatedAt.toLocaleString('es-AR', {
@@ -560,7 +600,7 @@ export function FinancesPage() {
               <p className="mb-2.5 text-2xs font-semibold text-ink-muted">
                 {tab === 'income' ? 'Ingresos cobrados' : 'Gastos registrados'} por método de pago
               </p>
-              <p className="-mt-2 mb-2.5 text-2xs text-ink-muted">
+              <p className={cn('-mt-2 mb-2.5 text-2xs text-ink-muted', IS_V2 && 'hidden')}>
                 Vas viendo cada canal por separado; el total reproduce la suma de esas cifras ({formatCurrency(grandTotal)}).
               </p>
               <div className="flex flex-wrap gap-2">

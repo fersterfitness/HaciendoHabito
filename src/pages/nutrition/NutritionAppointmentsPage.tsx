@@ -1,6 +1,7 @@
 import { controlSmClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
-import { useEffect, useMemo, useState } from 'react'
+import { Modal } from '@/components/ui/Modal'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { Header } from '@/components/layout/Header'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -13,6 +14,7 @@ import { Popover } from '@/components/ui/Popover'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Calendar,
+  Plus,
   CalendarClock,
   CalendarDays,
   ChevronDown,
@@ -325,7 +327,48 @@ const FIELD_ROW =
 /** Opciones de duración del turno (minutos, de 15 en 15 hasta 8 h). */
 const APPOINTMENT_DURATION_OPTIONS_MINUTES = Array.from({ length: 32 }, (_, i) => (i + 1) * 15)
 
+/** Alta de turno / evento: desplegable en la v1, panel (modal) en la v2. */
+function BookingShell({
+  v2Open,
+  onClose,
+  title,
+  subtitle,
+  className,
+  summaryClassName,
+  children,
+}: {
+  v2Open: boolean
+  onClose: () => void
+  title: string
+  subtitle: string
+  className: string
+  summaryClassName: string
+  children: ReactNode
+}) {
+  if (IS_V2) {
+    return (
+      <Modal open={v2Open} onClose={onClose} title={title} size="lg">
+        {children}
+      </Modal>
+    )
+  }
+  return (
+    <details open className={className}>
+      <summary className={summaryClassName}>
+        <div>
+          <p className="text-sm font-semibold text-ink-primary">{title}</p>
+          <p className="text-2xs text-ink-muted mt-0.5">{subtitle}</p>
+        </div>
+        <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      {children}
+    </details>
+  )
+}
+
 export function AppointmentsPage() {
+  const [bookingOpen, setBookingOpen] = useState(false)
+  const [personalOpen, setPersonalOpen] = useState(false)
   const { user, profile } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -698,6 +741,7 @@ export function AppointmentsPage() {
         const recAppts = recData as AppointmentRow[]
         setAppointments((prev) => [...prev, ...recAppts].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
         setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
+        setBookingOpen(false)
         setRecurring(false); setRecurWeeks(4)
         toast.success(`${recurWeeks} turnos recurrentes agendados`)
 
@@ -799,6 +843,7 @@ export function AppointmentsPage() {
       }
       setAppointments((prev) => [...prev, appointmentWithReminders].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
       setForm({ student_id: '', starts_at: '', duration_minutes: 45, title: '', location: '', notes: '' })
+      setBookingOpen(false)
 
       const studentName = appointment.student?.full_name ?? '—'
       const phoneRaw = appointment.student?.phone ?? students.find((s) => s.id === appointment.student_id)?.phone
@@ -888,6 +933,7 @@ export function AppointmentsPage() {
       const row = data as PersonalCalendarItem
       setPersonalItems((prev) => [...prev, row].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
       setPersonalForm({ title: '', starts_at: '', duration_minutes: 60, notes: '' })
+      setPersonalOpen(false)
       toast.success('Evento personal guardado')
     } finally {
       setPersonalSaving(false)
@@ -1047,8 +1093,23 @@ export function AppointmentsPage() {
 
   return (
     <div>
-      <Header title="Turnos" />
-      <div className="px-4 lg:px-6 py-8 space-y-8">
+      <Header
+        title="Turnos"
+        actions={
+          IS_V2 ? (
+            calendarScope === 'students' ? (
+              <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setBookingOpen(true)}>
+                Agendar turno
+              </Button>
+            ) : (
+              <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setPersonalOpen(true)}>
+                Nuevo evento
+              </Button>
+            )
+          ) : undefined
+        }
+      />
+      <div className={cn('px-4 lg:px-6 space-y-8', IS_V2 ? 'py-6' : 'py-8')}>
         <Card className="overflow-hidden p-0 gap-0">
           <PageToolbar
             className="rounded-none border-0 border-b border-surface-border bg-surface-elevated/35 dark:bg-surface-elevated/15"
@@ -1179,7 +1240,7 @@ export function AppointmentsPage() {
               <div className="min-w-0 flex flex-1 flex-col gap-1">
                 <label
                   htmlFor="appt-search"
-                  className="text-3xs font-semibold text-ink-muted leading-none"
+                  className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}
                 >
                   Buscar
                 </label>
@@ -1204,7 +1265,7 @@ export function AppointmentsPage() {
                   <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
                     <span
                       id="appt-status-label"
-                      className="text-3xs font-semibold text-ink-muted leading-none"
+                      className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}
                     >
                       Estado
                     </span>
@@ -1220,7 +1281,7 @@ export function AppointmentsPage() {
                     </select>
                   </div>
                   <div className="flex flex-col justify-end gap-1 lg:shrink-0">
-                    <span className="text-3xs font-semibold text-ink-muted leading-none">
+                    <span className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}>
                       Videollamada
                     </span>
                     <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary ">
@@ -1237,7 +1298,7 @@ export function AppointmentsPage() {
               ) : null}
               {viewMode === 'week' && (
                 <div className="flex flex-col gap-1 lg:w-auto lg:shrink-0">
-                  <span className="text-3xs font-semibold text-ink-muted leading-none">
+                  <span className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}>
                     Exportar
                   </span>
                   <Button
@@ -1253,7 +1314,7 @@ export function AppointmentsPage() {
                 </div>
               )}
             </div>
-            <p className="flex items-start gap-2 border-t border-surface-border/70 pt-3 text-3xs leading-relaxed text-ink-muted ">
+            <p className={cn('flex items-start gap-2 border-t border-surface-border/70 pt-3 text-3xs leading-relaxed text-ink-muted', IS_V2 && 'hidden')}>
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500/85" aria-hidden />
               <span>
                 <span className="font-medium text-ink-secondary">Tip:</span>{' '}
@@ -1824,18 +1885,15 @@ export function AppointmentsPage() {
         </Card>
 
         {calendarScope === 'students' && (
-        <details
-          open
+        <BookingShell
+          v2Open={bookingOpen}
+          onClose={() => setBookingOpen(false)}
+          title="Agendar turno"
+          subtitle="Alta rápida · se limpia después de guardar"
           className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-zinc-400/70 bg-surface-card dark:border-l-zinc-500/50"
+          summaryClassName="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-surface-panel px-4 py-3 transition-colors hover:bg-surface-elevated [&::-webkit-details-marker]:hidden"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-surface-panel px-4 py-3 transition-colors hover:bg-surface-elevated [&::-webkit-details-marker]:hidden">
-            <div>
-              <p className="text-sm font-semibold text-ink-primary">Agendar turno</p>
-              <p className="text-2xs text-ink-muted mt-0.5">Alta rápida · se limpia después de guardar</p>
-            </div>
-            <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
-          </summary>
-          <div className="p-4 sm:p-5 space-y-4">
+          <div className={IS_V2 ? 'space-y-4' : 'p-4 sm:p-5 space-y-4'}>
             <div className="grid md:grid-cols-2 gap-3">
               <label className="text-xs font-medium text-ink-muted">
                 {profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno'}
@@ -1940,22 +1998,19 @@ export function AppointmentsPage() {
               {recurring ? `Agendar ${recurWeeks} turnos` : 'Guardar turno'}
             </Button>
           </div>
-        </details>
+        </BookingShell>
         )}
 
         {calendarScope === 'personal' && (
-          <details
-            open
+          <BookingShell
+            v2Open={personalOpen}
+            onClose={() => setPersonalOpen(false)}
+            title="Nuevo evento personal"
+            subtitle="No se asocia a alumnos ni sincroniza con Google Calendar"
             className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-violet-500/60 bg-surface-card dark:border-l-violet-500/45"
+            summaryClassName="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-violet-500/[0.06] px-4 py-3 transition-colors hover:bg-violet-500/[0.1] [&::-webkit-details-marker]:hidden"
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-violet-500/[0.06] px-4 py-3 transition-colors hover:bg-violet-500/[0.1] [&::-webkit-details-marker]:hidden">
-              <div>
-                <p className="text-sm font-semibold text-ink-primary">Nuevo evento personal</p>
-                <p className="text-2xs text-ink-muted mt-0.5">No se asocia a alumnos ni sincroniza con Google Calendar</p>
-              </div>
-              <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform group-open:rotate-180" aria-hidden />
-            </summary>
-            <div className="p-4 sm:p-5 space-y-4">
+            <div className={IS_V2 ? 'space-y-4' : 'p-4 sm:p-5 space-y-4'}>
               <div className="grid md:grid-cols-2 gap-3">
                 <label className="text-xs font-medium text-ink-muted md:col-span-2">
                   Título
@@ -2011,7 +2066,7 @@ export function AppointmentsPage() {
                 Guardar evento
               </Button>
             </div>
-          </details>
+          </BookingShell>
         )}
 
         {calendarScope === 'students' && (
