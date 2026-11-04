@@ -1536,6 +1536,7 @@ export function StudentDetailView({
         open={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
+        requireConfirm
         title={`¿Eliminar ${entitySingular}?`}
         description="Esta acción no se puede deshacer. Se borran sus datos; sus rutinas se conservan."
         confirmLabel="Sí, eliminar"

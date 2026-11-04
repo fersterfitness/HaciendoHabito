@@ -1037,6 +1037,7 @@ export function StudentsPage() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
+        requireConfirm
         title={`¿Eliminar a ${deleteTarget?.full_name}?`}
         description={`Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al ${entityLabelSingular}; sus rutinas se conservan.`}
         confirmLabel="Sí, eliminar"
