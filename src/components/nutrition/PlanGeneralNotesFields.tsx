@@ -110,15 +110,16 @@ export function PlanGeneralNotesFields({ value, onChange, className }: Props) {
                   placeholder={`Ítem ${index + 1}…`}
                   className={planNotesItemInputClass}
                 />
-                <button
+                <Button
+                  variant="ghost"
+                  size="iconSm"
                   type="button"
                   onClick={() => removeItem(index)}
-                  className="mt-0.5 shrink-0 rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired"
+                  className="mt-0.5 shrink-0 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                   title="Quitar ítem"
-                  aria-label="Quitar ítem"
-                >
+                  aria-label="Quitar ítem">
                   <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

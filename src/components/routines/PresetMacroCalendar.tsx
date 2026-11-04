@@ -189,7 +189,7 @@ export function PresetMacroCalendar({
                         <select
                           value={bp.id}
                           onChange={(e) => setVariantBySlot((m) => ({ ...m, [slot.key]: e.target.value }))}
-                          className="mt-0.5 w-full truncate rounded border border-surface-border bg-surface-card px-1 text-3xs text-ink-secondary"
+                          className={cn(controlSmClassName, 'mt-0.5 w-full truncate px-1 text-3xs cursor-pointer')}
                           aria-label={`Variante de ${slot.label}`}
                         >
                           {slot.variants.map((v) => (

@@ -69,15 +69,16 @@ export function WebPlanIncludesSectionsEditor({ sections, onChange, itemMaxLengt
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold ">{meta.label}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="iconSm"
                   type="button"
-                  className="p-1 rounded-md text-ink-muted hover:text-status-expired hover:bg-status-expired/10"
+                  className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                   title={`Quitar sección ${meta.label}`}
                   aria-label={`Quitar sección ${meta.label}`}
-                  onClick={() => removeSection(sec.professional)}
-                >
+                  onClick={() => removeSection(sec.professional)}>
                   <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
               <Textarea
                 label="Ítems — una línea por beneficio"

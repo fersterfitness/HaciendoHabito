@@ -2,6 +2,7 @@
  * Seguimiento de hábitos por alumno (calendario mensual, biblioteca y evolución).
  * Usado dentro de la ficha del alumno y en la página /habits.
  */
+import { Button } from '@/components/ui/Button'
 import { IS_V2 } from '@/lib/uiVersion'
 import { CHART_ACCENT_2 } from '@/lib/chartColors'
 import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
@@ -355,23 +356,25 @@ export function StudentHabitsPanel({
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-lg border border-surface-border/75 bg-surface-elevated/50 px-3 py-2 ">
-            <button
+            <Button
+              variant="ghost"
+              size="iconSm"
               type="button"
               onClick={prevMonth}
-              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
-              aria-label="Mes anterior"
-            >
+              className="text-ink-muted"
+              aria-label="Mes anterior">
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </Button>
             <span className="text-sm font-semibold capitalize text-ink-primary ">{monthLabel(year, month)}</span>
-            <button
+            <Button
+              variant="ghost"
+              size="iconSm"
               type="button"
               onClick={nextMonth}
-              className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
-              aria-label="Mes siguiente"
-            >
+              className="text-ink-muted"
+              aria-label="Mes siguiente">
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
 
           <div className="rounded-2xl border border-surface-border/75 bg-surface-card p-4 ">
@@ -849,9 +852,9 @@ function HabitLibraryModal({
       <div className="relative flex max-h-[80vh] w-full flex-col rounded-t-2xl border border-surface-border bg-surface-card shadow-lg sm:max-w-md sm:rounded-2xl dark:shadow-xl">
         <div className="flex items-center justify-between border-b border-surface-border/80 px-4 pb-3 pt-4 ">
           <h3 className="text-sm font-semibold text-ink-primary">Gestionar hábitos</h3>
-          <button type="button" onClick={onClose} className="text-ink-muted hover:text-ink-primary">
+          <Button variant="ghost" size="iconSm" type="button" onClick={onClose} className="-m-1.5 text-ink-muted">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3">

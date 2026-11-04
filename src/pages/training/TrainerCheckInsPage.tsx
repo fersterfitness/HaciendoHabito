@@ -1410,15 +1410,16 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                         {!f.is_active ? `${isMonthlyTemplate(parseQuestions(f.questions)) || isWeeklyTemplate(parseQuestions(f.questions)) ? ' · ' : ''}Pausado` : ''}
                       </span>
                     </button>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       type="button"
-                      className="shrink-0 rounded-lg p-2 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired"
+                      className="shrink-0 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                       title="Eliminar formulario"
                       aria-label={`Eliminar formulario ${f.title}`}
-                      onClick={() => void deleteForm(f.id, f.title)}
-                    >
+                      onClick={() => void deleteForm(f.id, f.title)}>
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -1453,7 +1454,7 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
                       type="date"
                       value={periodStart}
                       onChange={(e) => setPeriodStart(e.target.value)}
-                      className="mt-1 block rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary"
+                      className={cn(controlSmClassName, 'mt-1 block px-2')}
                     />
                   </label>
                   <Button

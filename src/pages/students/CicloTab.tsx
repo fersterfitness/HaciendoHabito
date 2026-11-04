@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, X, Droplets } from 'lucide-react'
 import {
@@ -10,7 +11,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
-import { formatDate } from '@/lib/utils'
+import { formatDate, cn } from '@/lib/utils'
 import type { MenstrualCycle } from '@/types/database'
 import toast from 'react-hot-toast'
 import { Modal } from '@/components/ui/Modal'
@@ -319,14 +320,15 @@ export function CicloTab({ studentId }: { studentId: string }) {
                       {c.notes && ` · ${c.notes}`}
                     </p>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
                     type="button"
                     onClick={() => deleteCycle(c.id)}
                     disabled={deleting === c.id}
-                    className="text-ink-muted transition-colors hover:text-ink-secondary"
-                  >
+                    className="-m-1.5 text-ink-muted">
                     <X className="h-3.5 w-3.5" />
-                  </button>
+                  </Button>
                 </li>
               )
             })}
@@ -571,14 +573,14 @@ function AddCycleModal({
     <Modal open onClose={onClose} size="sm" bare>
     <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
       <h3 className="text-sm font-semibold text-ink-primary">Registrar período</h3>
-      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+      <Button variant="ghost" size="iconSm" onClick={onClose} className="-m-1.5 text-ink-muted"><X className="h-4 w-4" /></Button>
     </div>
     <div className="px-4 py-4 space-y-4">
       <div>
         <label className="block text-xs font-medium text-ink-secondary mb-1">Primer día del período *</label>
         <input
           type="date"
-          className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-sm text-ink-primary outline-none focus:border-brand-primary/60"
+          className={cn(controlMdClassName, 'w-full')}
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
@@ -601,7 +603,7 @@ function AddCycleModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
         <input
           placeholder="ej: ciclo irregular, con dolor..."
-          className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2.5 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-brand-primary/60"
+          className={cn(controlMdClassName, 'w-full')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />

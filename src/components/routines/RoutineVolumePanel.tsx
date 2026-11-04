@@ -864,14 +864,14 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
             <Button type="button" variant="secondary" size="sm" onClick={() => setSettingsOpen(true)} disabled={!data}>
               <Settings2 className="h-3.5 w-3.5" /> Ajustes
             </Button>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-surface-border p-2 text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
-              aria-label="Cerrar volumen"
-            >
+              aria-label="Cerrar volumen">
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
         </div>
 

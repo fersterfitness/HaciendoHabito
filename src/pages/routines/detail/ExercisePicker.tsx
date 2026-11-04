@@ -1,3 +1,4 @@
+import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -133,13 +134,13 @@ export function ExercisePicker({
         <h3 className="text-sm font-semibold text-ink-primary">{title}</h3>
         {subtitle ? <p className="text-2xs text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
       </div>
-      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary shrink-0"><X className="h-4 w-4" /></button>
+      <Button variant="ghost" size="iconSm" onClick={onClose} className="-m-1.5 shrink-0 text-ink-muted"><X className="h-4 w-4" /></Button>
     </div>
     <div className="px-4 py-3">
       <input
         autoFocus
         placeholder="Buscar por nombre o grupo muscular..."
-        className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+        className={cn(controlMdClassName, 'w-full')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -202,18 +203,18 @@ export function ExercisePicker({
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-ink-primary">Nuevo ejercicio</span>
-            <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+            <Button variant="ghost" size="iconSm" onClick={() => setShowNewForm(null)} className="-m-1.5 text-ink-muted"><X className="h-3.5 w-3.5" /></Button>
           </div>
           <input
             autoFocus
             placeholder="Nombre del ejercicio *"
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            className={cn(controlSmClassName, 'w-full px-3')}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
           <div className="grid grid-cols-2 gap-2">
             <select
-              className="w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 py-2 text-xs text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
+              className={cn(controlSmClassName, 'w-full px-3 cursor-pointer')}
               value={newGroupId}
               onChange={(e) => setNewGroupId(e.target.value)}
             >
@@ -221,7 +222,7 @@ export function ExercisePicker({
               {muscleGroupOptions.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
             <select
-              className="w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 py-2 text-xs text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
+              className={cn(controlSmClassName, 'w-full px-3 cursor-pointer')}
               value={newDifficulty}
               onChange={(e) => setNewDifficulty(e.target.value as 'basico' | 'intermedio' | 'avanzado')}
             >
@@ -238,12 +239,12 @@ export function ExercisePicker({
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-ink-primary">Nueva categoría</span>
-            <button onClick={() => setShowNewForm(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-3.5 w-3.5" /></button>
+            <Button variant="ghost" size="iconSm" onClick={() => setShowNewForm(null)} className="-m-1.5 text-ink-muted"><X className="h-3.5 w-3.5" /></Button>
           </div>
           <input
             autoFocus
             placeholder="Nombre de la categoría *"
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-3 py-2 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            className={cn(controlSmClassName, 'w-full px-3')}
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
           />

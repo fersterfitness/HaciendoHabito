@@ -1,3 +1,4 @@
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useState } from 'react'
 import { DollarSign } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -137,7 +138,7 @@ export function PagosTab({
               onChange={(e) => setCuotaInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && saveCuota()}
               placeholder="Ej: 15000"
-              className="w-36 rounded-xl border border-surface-inputBorder bg-surface-elevated/60 text-ink-primary text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-400/40 "
+              className={cn(controlSmClassName, 'w-36 text-sm px-3')}
             />
             <Button size="sm" variant="secondary" loading={savingCuota} onClick={() => void saveCuota()}>
               Guardar
@@ -197,7 +198,7 @@ export function PagosTab({
               max={31}
               value={fromInput}
               onChange={(e) => setFromInput(e.target.value)}
-              className="w-16 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1 text-sm tabular-nums text-ink-primary"
+              className={cn(controlSmClassName, 'w-16 px-2 text-sm tabular-nums')}
               autoFocus
             />
             de cada mes

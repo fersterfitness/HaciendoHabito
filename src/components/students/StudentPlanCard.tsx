@@ -221,23 +221,25 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
             ) : null}
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 onClick={() => onRequestEdit(current)}
-                className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-1 text-2xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
-              >
+                className="text-2xs">
                 <Pencil className="h-3 w-3" />
                 Editar
-              </button>
+              </Button>
               {effStatus !== 'cancelled' ? (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={() => setConfirmCancel(current)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-2 py-1 text-2xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
-                >
+                  className="text-2xs">
                   <Ban className="h-3 w-3" />
                   Cancelar plan
-                </button>
+                </Button>
               ) : null}
               <button
                 type="button"

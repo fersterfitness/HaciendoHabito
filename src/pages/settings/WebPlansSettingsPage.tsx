@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -1480,7 +1481,7 @@ export function WebPlansSettingsPage() {
                           includes_items: flattenIncludeSections(includes_sections),
                         })
                       }}
-                      className="w-full max-w-md rounded-xl border border-surface-border bg-surface-base px-3 py-2 text-sm text-ink-primary"
+                      className={cn(controlMdClassName, 'w-full max-w-md cursor-pointer')}
                     >
                       <option value="full_trio">SERVICIO INTEGRAL — TODO en un plan (full_trio)</option>
                       <option value="full">PAR PROFESIONAL — Servicio Dual (full)</option>

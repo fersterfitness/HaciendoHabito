@@ -923,13 +923,13 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <div className="flex items-center rounded-xl border border-surface-border bg-surface-elevated/60">
-              <button type="button" onClick={() => setYear((y) => y - 1)} className="p-2 text-ink-muted hover:text-ink-primary" aria-label="Año anterior">
+              <Button variant="ghost" size="icon" type="button" onClick={() => setYear((y) => y - 1)} className="text-ink-muted" aria-label="Año anterior">
                 <ChevronLeft className="h-4 w-4" />
-              </button>
+              </Button>
               <span className="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-ink-primary">{year}</span>
-              <button type="button" onClick={() => setYear((y) => y + 1)} className="p-2 text-ink-muted hover:text-ink-primary" aria-label="Año siguiente">
+              <Button variant="ghost" size="icon" type="button" onClick={() => setYear((y) => y + 1)} className="text-ink-muted" aria-label="Año siguiente">
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
             <Button
               type="button"
@@ -947,14 +947,14 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
             <Button type="button" variant="ghost" size="sm" onClick={() => navigate(`/routines/new?student=${studentId}`)}>
               Nueva rutina
             </Button>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-surface-border p-2 text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
-              aria-label="Cerrar calendario"
-            >
+              aria-label="Cerrar calendario">
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
         </div>
 

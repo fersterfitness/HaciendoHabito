@@ -1,3 +1,4 @@
+import { controlBaseClassName, controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
@@ -179,14 +180,15 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
               {isEdit ? 'Modificá los datos de esta asignación.' : 'Crea una asignación nueva con fechas y método de pago.'}
             </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="iconSm"
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-lg p-1.5 text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
-          >
+            className="text-ink-muted">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
@@ -195,7 +197,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
             <select
               value={planSlug}
               onChange={(e) => setPlanSlug(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+              className={cn(controlMdClassName, 'w-full cursor-pointer')}
               disabled={loadingPlans}
             >
               <option value="">— Sin plan del catálogo (personalizado) —</option>
@@ -213,7 +215,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
                 value={planNameCustom}
                 onChange={(e) => setPlanNameCustom(e.target.value)}
                 placeholder="Ej: Plan personalizado entrenamiento"
-                className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+                className={cn(controlMdClassName, 'w-full')}
                 maxLength={120}
               />
             </div>
@@ -247,7 +249,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value || todayISO())}
-                className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+                className={cn(controlMdClassName, 'w-full')}
               />
             </div>
             <div>
@@ -257,7 +259,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
                 value={endDate}
                 readOnly
                 disabled
-                className="w-full rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-muted"
+                className={cn(controlMdClassName, 'w-full')}
               />
             </div>
           </div>
@@ -272,7 +274,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Ej: 50000"
-                className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+                className={cn(controlMdClassName, 'w-full')}
               />
             </div>
             <div>
@@ -280,7 +282,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as PlanPaymentMethod | '')}
-                className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+                className={cn(controlMdClassName, 'w-full cursor-pointer')}
               >
                 <option value="">— Sin especificar —</option>
                 {PAYMENT_METHODS.map((m) => (
@@ -298,7 +300,7 @@ export function AssignPlanModal({ open, studentId, editAssignment, onClose, onAs
               rows={2}
               maxLength={500}
               placeholder="Ej: pagó por transferencia el día 12"
-              className="w-full rounded-lg border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+              className={cn(controlBaseClassName, 'w-full px-3 py-2 text-sm')}
             />
           </div>
 

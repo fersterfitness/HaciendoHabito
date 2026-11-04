@@ -506,14 +506,14 @@ export function NutritionAnthropometryHubPage() {
                       <Activity className="h-4 w-4" aria-hidden />
                       Cargar / ver ficha
                     </button>
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       type="button"
-                      onClick={() => navigate('/nutrition-pdfs')}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-surface-border px-3.5 py-2 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-elevated"
-                    >
+                      onClick={() => navigate('/nutrition-pdfs')}>
                       <Scale className="h-4 w-4" aria-hidden />
                       Comparar
-                    </button>
+                    </Button>
                     <button
                       type="button"
                       onClick={runAiAnalysis}
@@ -589,24 +589,25 @@ export function NutritionAnthropometryHubPage() {
                                 {d.deleted_by_name ? ` · ${d.deleted_by_name}` : ''}
                               </p>
                             </div>
-                            <button
+                            <Button
+                              variant="outline"
+                              size="sm"
                               type="button"
                               onClick={() => handleRestore(d.id)}
                               disabled={restoringId === d.id || d.can_restore === false}
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-surface-border px-2.5 py-1.5 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                              className="shrink-0 disabled:cursor-not-allowed"
                               title={
                                 d.can_restore === false
                                   ? 'No se puede restaurar (ya existe o falta el paciente)'
                                   : 'Restaurar antropometría'
-                              }
-                            >
+                              }>
                               {restoringId === d.id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                               ) : (
                                 <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                               )}
                               Restaurar
-                            </button>
+                            </Button>
                           </li>
                         ))}
                       </ul>
@@ -693,14 +694,14 @@ export function NutritionAnthropometryHubPage() {
                                     ) : null}
                                     Sí, eliminar
                                   </button>
-                                  <button
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
                                     type="button"
                                     onClick={() => setConfirmDeleteId(null)}
-                                    disabled={deletingId === m.id}
-                                    className="rounded-lg border border-surface-border px-2.5 py-1.5 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-elevated disabled:opacity-50"
-                                  >
+                                    disabled={deletingId === m.id}>
                                     Cancelar
-                                  </button>
+                                  </Button>
                                 </div>
                               ) : (
                                 <button

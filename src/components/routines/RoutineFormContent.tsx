@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -476,7 +478,7 @@ export function RoutineFormContent({
                   value={presetMacro}
                   onChange={(e) => setPresetMacro(e.target.value)}
                   placeholder="Ej. Adaptación Neural"
-                  className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
+                  className={cn(controlSmClassName, 'mt-1 w-full px-2')}
                 />
               </label>
               <label className="text-2xs font-medium text-ink-secondary">
@@ -486,7 +488,7 @@ export function RoutineFormContent({
                   value={presetMeso}
                   onChange={(e) => setPresetMeso(e.target.value)}
                   placeholder="Ej. Fase NTC"
-                  className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
+                  className={cn(controlSmClassName, 'mt-1 w-full px-2')}
                 />
               </label>
               <label className="text-2xs font-medium text-ink-secondary">
@@ -495,7 +497,7 @@ export function RoutineFormContent({
                   value={presetRutina}
                   onChange={(e) => setPresetRutina(e.target.value)}
                   placeholder="Nombre de la rutina madre"
-                  className="mt-1 w-full rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs text-ink-primary"
+                  className={cn(controlSmClassName, 'mt-1 w-full px-2')}
                 />
               </label>
               <datalist id="new-routine-macros">

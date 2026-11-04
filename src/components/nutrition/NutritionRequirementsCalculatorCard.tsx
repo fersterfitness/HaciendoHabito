@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useMemo, useState } from 'react'
 import type { Student } from '@/types/database'
 import {
@@ -39,7 +41,7 @@ export function NutritionRequirementsCalculatorCard({ student }: { student: Stud
           value={weightOverride}
           onChange={(e) => setWeightOverride(e.target.value)}
           placeholder={student.weight_kg != null ? `Ficha: ${student.weight_kg}` : 'Ej. 72.5'}
-          className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+          className={cn(controlMdClassName, 'mt-1 w-full px-2')}
         />
       </label>
       <label className="text-2xs text-ink-secondary block">
@@ -47,7 +49,7 @@ export function NutritionRequirementsCalculatorCard({ student }: { student: Stud
         <select
           value={activity}
           onChange={(e) => setActivity(e.target.value as ActivityFactorKey)}
-          className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+          className={cn(controlMdClassName, 'mt-1 w-full px-2 cursor-pointer')}
         >
           {(Object.keys(ACTIVITY_FACTOR_LABELS) as ActivityFactorKey[]).map((k) => (
             <option key={k} value={k}>

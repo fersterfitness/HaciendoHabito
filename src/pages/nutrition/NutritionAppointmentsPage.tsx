@@ -1,3 +1,4 @@
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
@@ -958,17 +959,17 @@ export function AppointmentsPage() {
               >
                 Cerrar
               </button>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
-                className="inline-flex items-center justify-center rounded-lg border border-surface-border bg-surface-elevated/40 px-2.5 py-1.5 text-xs font-semibold text-ink-primary hover:bg-surface-elevated"
                 onClick={async () => {
                   toast.dismiss(t.id)
                   await updateStatus(id, prevStatus, prevNotes ?? undefined, { allowUndo: false })
                   toast.success('Cancelación deshecha')
-                }}
-              >
+                }}>
                 Deshacer
-              </button>
+              </Button>
             </div>
           </div>
         ),
@@ -1159,14 +1160,15 @@ export function AppointmentsPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button
+                <Button
+                  variant="ghost"
+                  size="iconSm"
                   type="button"
                   onClick={handleNext}
-                  className="p-1.5 text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors"
-                  aria-label="Periodo siguiente"
-                >
+                  className="text-ink-muted"
+                  aria-label="Periodo siguiente">
                   <ChevronRight className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
             </div>
           </PageToolbar>
@@ -1922,7 +1924,7 @@ export function AppointmentsPage() {
                     max={52}
                     value={recurWeeks}
                     onChange={(e) => setRecurWeeks(Math.max(2, Math.min(52, Number(e.target.value))))}
-                    className="w-16 rounded-lg bg-surface-input border border-surface-inputBorder text-ink-primary text-xs px-2 py-1.5 text-center"
+                    className={cn(controlSmClassName, 'w-16 px-2 text-center')}
                   />
                   <span className="text-xs text-ink-muted">semanas</span>
                 </div>

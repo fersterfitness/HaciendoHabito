@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
@@ -76,7 +78,7 @@ function SeriesRow({
           inputMode="decimal"
           value={cell}
           onChange={(e) => onCell(i, e.target.value)}
-          className="w-full min-w-0 rounded-lg border border-surface-inputBorder bg-surface-input px-1.5 py-1 text-2xs text-ink-primary"
+          className={cn(controlSmClassName, 'w-full min-w-0 px-1.5 text-2xs')}
         />
       ))}
       <span className="text-right text-2xs font-medium text-brand-secondary tabular-nums">
@@ -275,7 +277,7 @@ export function NutritionAnthropometryProgramForm({
               type="date"
               value={measuredAt}
               onChange={(e) => setMeasuredAt(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+              className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
           <label className="text-2xs text-ink-secondary">
@@ -291,7 +293,7 @@ export function NutritionAnthropometryProgramForm({
                 }))
               }
               placeholder="Ej. 2"
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+              className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
           <label className="text-2xs text-ink-secondary">
@@ -302,7 +304,7 @@ export function NutritionAnthropometryProgramForm({
                 const v = e.target.value
                 setMeta((m) => ({ ...m, sex: v === '1' ? 1 : v === '2' ? 2 : null }))
               }}
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+              className={cn(controlMdClassName, 'mt-1 w-full px-2 cursor-pointer')}
             >
               <option value="">—</option>
               <option value="1">1 · Masculino</option>
@@ -314,7 +316,7 @@ export function NutritionAnthropometryProgramForm({
             <input
               value={meta.sport ?? ''}
               onChange={(e) => setMeta((m) => ({ ...m, sport: e.target.value }))}
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+              className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
           <label className="text-2xs text-ink-secondary">
@@ -322,7 +324,7 @@ export function NutritionAnthropometryProgramForm({
             <input
               value={meta.physical_activity ?? ''}
               onChange={(e) => setMeta((m) => ({ ...m, physical_activity: e.target.value }))}
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+              className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
           <label className="text-2xs text-ink-secondary">
@@ -330,7 +332,7 @@ export function NutritionAnthropometryProgramForm({
             <input
               value={meta.depo_recrea ?? ''}
               onChange={(e) => setMeta((m) => ({ ...m, depo_recrea: e.target.value }))}
-              className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2 py-2 text-sm"
+              className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
           <label className="text-2xs text-ink-secondary lg:col-span-2">
@@ -348,7 +350,7 @@ export function NutritionAnthropometryProgramForm({
                     const n = Number.isFinite(raw) ? Math.min(15, Math.max(0, raw)) : 2
                     setMeta((m) => ({ ...m, measurement_error_pct_default: n }))
                   }}
-                  className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 pr-7 text-sm tabular-nums outline-none transition-colors focus:border-brand-secondary/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className={cn(controlMdClassName, 'w-full px-2.5 pr-7 tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none')}
                 />
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
                   %

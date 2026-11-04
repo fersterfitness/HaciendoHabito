@@ -919,13 +919,14 @@ export function StudentDetailView({
             ) : student.notes ? (
               <div className="relative group">
                 <StudentNotesCard notes={student.notes} variant="minimal" />
-                <button
+                <Button
+                  variant="ghost"
+                  size="iconSm"
                   onClick={startEditNotes}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-elevated transition-colors opacity-0 group-hover:opacity-100"
-                  title="Editar notas"
-                >
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-ink-muted"
+                  title="Editar notas">
                   <Pencil className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             ) : (
               <button

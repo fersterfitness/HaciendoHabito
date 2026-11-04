@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Pencil, Trash2, Layers, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -248,7 +250,7 @@ export function TrainingMethodsPage() {
             <label className="block text-xs font-medium text-ink-secondary">
               Categoría
               <select
-                className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs hover:border-ink-muted/50"
+                className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
                 value={methodCategoryId}
                 onChange={(e) => setMethodCategoryId(e.target.value)}
               >
@@ -312,14 +314,15 @@ export function TrainingMethodsPage() {
                       <div key={i} className="rounded-lg border border-surface-border/70 bg-surface-elevated/30 p-2">
                         <div className="mb-1.5 flex items-center justify-between">
                           <span className="text-2xs font-semibold text-ink-secondary">Semana {i + 1}</span>
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="iconSm"
                             type="button"
                             onClick={() => setMethodWeekPlan((p) => p.filter((_, j) => j !== i))}
-                            className="text-ink-muted hover:text-status-expired"
-                            title="Quitar semana"
-                          >
+                            className="-m-1.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
+                            title="Quitar semana">
                             <X className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
                           <label className="col-span-2 text-3xs text-ink-muted">
@@ -425,22 +428,24 @@ export function TrainingMethodsPage() {
                         ) : null}
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           type="button"
-                          className="p-2 text-ink-muted hover:text-ink-primary"
+                          className="text-ink-muted"
                           onClick={() => openEditMethod(m)}
-                          aria-label="Editar"
-                        >
+                          aria-label="Editar">
                           <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           type="button"
-                          className="p-2 text-ink-muted hover:text-status-expired"
+                          className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                           onClick={() => setDeleteMethod(m)}
-                          aria-label="Eliminar"
-                        >
+                          aria-label="Eliminar">
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     </li>
                   ))}

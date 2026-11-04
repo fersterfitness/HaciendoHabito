@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button'
 import { useEffect, useState, useRef, useCallback, useId } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Users, Dumbbell, X, UtensilsCrossed, UserPlus, Wallet, MessageSquare, CalendarPlus, ArrowRight, type LucideIcon } from 'lucide-react'
@@ -243,14 +244,15 @@ export function GlobalSearch() {
             className={searchInputClass}
           />
           {query ? (
-            <button
+            <Button
+              variant="ghost"
+              size="iconSm"
               type="button"
               aria-label="Limpiar búsqueda"
               onClick={() => setQuery('')}
-              className="rounded-md p-1 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-            >
+              className="text-ink-muted">
               <X className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           ) : null}
           <kbd className="hidden shrink-0 rounded border border-surface-border/80 bg-surface-elevated/60 px-1.5 py-0.5 text-3xs font-medium text-ink-muted sm:inline">
             esc

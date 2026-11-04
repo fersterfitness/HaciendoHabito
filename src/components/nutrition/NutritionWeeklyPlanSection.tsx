@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { pdf } from '@react-pdf/renderer'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
@@ -370,7 +372,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             <select
               value={pdfVariant}
               onChange={(e) => setPdfVariant(e.target.value as 'compact' | 'detailed')}
-              className="rounded-lg bg-surface-input border border-surface-inputBorder px-2 py-1.5 text-xs"
+              className={cn(controlSmClassName, 'px-2 cursor-pointer')}
             >
               <option value="detailed">PDF detallado</option>
               <option value="compact">PDF compacto</option>
@@ -403,7 +405,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
               schedulePersist({ totalKcal: next })
             }}
             placeholder="Ej: 2250"
-            className="mt-1 w-36 rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm focus:outline-none focus:border-brand-primary block"
+            className={cn(controlMdClassName, 'mt-1 w-36 block')}
           />
         </label>
         <label className="text-xs text-ink-secondary">
@@ -416,7 +418,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
               setNextConsultDate(v)
               schedulePersist({ nextConsultDate: v })
             }}
-            className="mt-1 rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm focus:outline-none focus:border-brand-secondary block min-w-[10rem]"
+            className={cn(controlMdClassName, 'mt-1 block min-w-[10rem]')}
           />
         </label>
       </div>
@@ -431,7 +433,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
               e.target.selectedIndex = 0
               if (v) void importFromLibrary(v)
             }}
-            className="mt-1 max-w-[16rem] rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-2 py-1.5 text-sm"
+            className={cn(controlSmClassName, 'mt-1 max-w-[16rem] px-2 text-sm cursor-pointer')}
           >
             <option value="">Elegí un plan…</option>
             {libraryPlans.map((plan) => (
@@ -459,7 +461,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
               setGrid(nextGrid)
               schedulePersist({ mergeWeekends: mw, grid: nextGrid })
             }}
-            className="mt-1 max-w-[16rem] rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-2 py-1.5 text-sm"
+            className={cn(controlSmClassName, 'mt-1 max-w-[16rem] px-2 text-sm cursor-pointer')}
           >
             <option value="">Elegí una plantilla legacy…</option>
             {legacyTemplates.map((tpl) => (

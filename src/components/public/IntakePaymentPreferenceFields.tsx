@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlBaseClassName } from '@/lib/formControlClasses'
 import type { UseFormRegister } from 'react-hook-form'
 import { intakeFormFieldLabelClass } from '@/lib/intake/intakeFormUi'
 
@@ -57,7 +59,7 @@ export function IntakePaymentPreferenceFields({ register, error }: Props) {
         <textarea
           rows={2}
           maxLength={500}
-          className="mt-1 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary placeholder:text-ink-muted/60"
+          className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2 text-sm')}
           placeholder="Ej. alias MP · nº de operación · observaciones"
           {...register('payment_notes')}
         />

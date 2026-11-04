@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link} from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -206,14 +208,15 @@ export function RoutineBlueprintsPanel() {
             >
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               type="button"
               onClick={() => setDeleteId(bp.id)}
-              className="p-2 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors"
-              title="Eliminar variante"
-            >
+              className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
+              title="Eliminar variante">
               <Trash2 className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -226,7 +229,7 @@ export function RoutineBlueprintsPanel() {
                 value={editCat}
                 onChange={(e) => setEditCat(e.target.value)}
                 placeholder="Ej: Hipertrofia 12 semanas"
-                className="mt-1 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+                className={cn(controlSmClassName, 'mt-1 w-full px-2')}
               />
             </label>
             <label className="text-2xs font-medium text-ink-secondary">
@@ -236,7 +239,7 @@ export function RoutineBlueprintsPanel() {
                 value={editSub}
                 onChange={(e) => setEditSub(e.target.value)}
                 placeholder="Ej: Principiante / Mujeres"
-                className="mt-1 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+                className={cn(controlSmClassName, 'mt-1 w-full px-2')}
               />
             </label>
             <div className="flex items-end gap-1">
@@ -248,13 +251,14 @@ export function RoutineBlueprintsPanel() {
               >
                 <Check className="h-3.5 w-3.5" /> Guardar
               </button>
-              <button
+              <Button
+                variant="ghost"
+                size="iconSm"
                 type="button"
                 onClick={() => setEditId(null)}
-                className="rounded-lg p-1.5 text-ink-muted hover:text-ink-primary"
-              >
+                className="text-ink-muted">
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         )}

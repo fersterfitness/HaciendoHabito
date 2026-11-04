@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useMemo, useState } from 'react'
 import { Search, Snowflake, Sun, Calendar, Flame, Wheat, Copy, ChevronRight } from 'lucide-react'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
@@ -117,7 +118,7 @@ export function NutritionSeasonalMenusPage() {
                 <select
                   value={pathology}
                   onChange={(e) => setPathology(e.target.value as PathologyFilter)}
-                  className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
+                  className={cn(controlMdClassName, 'w-full cursor-pointer')}
                 >
                   <option value="todas">Todas las patologías</option>
                   {(Object.keys(PATHOLOGY_LABELS) as PathologyTag[]).map((p) => (
@@ -135,7 +136,7 @@ export function NutritionSeasonalMenusPage() {
                 <select
                   value={tolerance}
                   onChange={(e) => setTolerance(e.target.value as ToleranceFilter)}
-                  className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
+                  className={cn(controlMdClassName, 'w-full cursor-pointer')}
                 >
                   <option value="todas">Cualquier tolerancia</option>
                   {(Object.keys(TOLERANCE_LABELS) as DigestiveTolerance[]).map((t) => (

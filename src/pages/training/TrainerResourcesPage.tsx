@@ -1,3 +1,4 @@
+import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarClock, MessageCircle, Plus, Trash2, ExternalLink, Copy, History, AlignLeft, Link2 } from 'lucide-react'
@@ -554,18 +555,19 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     <p className="font-medium text-ink-primary">{t.title}</p>
                     <p className="text-ink-muted line-clamp-2 whitespace-pre-wrap">{t.body}</p>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
                     type="button"
-                    className="shrink-0 p-1 text-ink-muted hover:text-status-expired"
+                    className="shrink-0 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                     title="Eliminar plantilla"
                     aria-label={`Eliminar plantilla ${t.title}`}
                     onClick={(e) => {
                       e.stopPropagation()
                       void deleteTemplate(t.id)
-                    }}
-                  >
+                    }}>
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -649,15 +651,16 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="iconSm"
                         type="button"
-                        className="shrink-0 p-1 text-ink-muted hover:text-status-expired"
+                        className="shrink-0 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                         title="Eliminar recurso"
                         aria-label={`Eliminar recurso ${r.title}`}
-                        onClick={() => void deleteResource(r.id)}
-                      >
+                        onClick={() => void deleteResource(r.id)}>
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   </li>
                 ))}
@@ -751,7 +754,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     <select
                       value={selectedTemplateId}
                       onChange={(e) => setSelectedTemplateId(e.target.value)}
-                      className="w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+                      className={cn(controlMdClassName, 'w-full cursor-pointer')}
                     >
                       <option value="">Sin plantilla</option>
                       {templates.map((t) => (
@@ -928,7 +931,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <div className="space-y-1 min-w-[8rem]">
               <label className="text-3xs font-medium text-ink-muted">Día</label>
               <select
-                className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
+                className={cn(controlSmClassName, 'w-full cursor-pointer')}
                 value={newResSchedDow}
                 onChange={(e) => setNewResSchedDow(Number(e.target.value))}
               >
@@ -942,7 +945,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
             <div className="space-y-1 flex-1 min-w-[10rem]">
               <label className="text-3xs font-medium text-ink-muted">Zona horaria</label>
               <select
-                className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-2.5 py-2 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
+                className={cn(controlSmClassName, 'w-full cursor-pointer')}
                 value={newResSchedTz}
                 onChange={(e) => setNewResSchedTz(e.target.value)}
               >

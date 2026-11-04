@@ -889,17 +889,17 @@ export function StudentsPage() {
             {filterLevel && (
               <span className={directoryFilterChipClassName}>
                 {LEVEL_LABELS[filterLevel]}
-                <button type="button" className="text-ink-muted hover:text-ink-primary" onClick={() => setFilterLevel('')} aria-label="Quitar filtro nivel">
+                <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" onClick={() => setFilterLevel('')} aria-label="Quitar filtro nivel">
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </span>
             )}
             {filterStatus && (
               <span className={directoryFilterChipClassName}>
                 {STATUS_OPTIONS.find((o) => o.value === filterStatus)?.label}
-                <button type="button" className="text-ink-muted hover:text-ink-primary" onClick={() => setFilterStatus('')} aria-label="Quitar filtro estado">
+                <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" onClick={() => setFilterStatus('')} aria-label="Quitar filtro estado">
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </span>
             )}
             {filterExpiry && (
@@ -914,9 +914,9 @@ export function StudentsPage() {
               <span className={directoryFilterChipClassName}>
                 <Tag className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
                 {filterTag}
-                <button type="button" className="text-ink-muted hover:text-ink-primary" onClick={() => setFilterTag('')} aria-label="Quitar etiqueta">
+                <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" onClick={() => setFilterTag('')} aria-label="Quitar etiqueta">
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </span>
             )}
 
@@ -1330,12 +1330,12 @@ function StudentDirectoryTable({
                       >
                         Abrir <ChevronRight className="h-3 w-3" />
                       </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
-                        className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                        title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }}
-                        className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-md p-1.5 text-ink-muted transition-colors hover:bg-status-expired/12 hover:text-status-expired opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                        title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <Button variant="ghost" size="iconSm" type="button" onClick={(e) => { e.stopPropagation(); onEdit(student.id) }}
+                        className="min-h-9 min-w-9 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 text-ink-muted"
+                        title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="iconSm" type="button" onClick={(e) => { e.stopPropagation(); onDelete(student) }}
+                        className="min-h-9 min-w-9 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
+                        title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </td>
                 </tr>

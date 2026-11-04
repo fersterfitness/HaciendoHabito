@@ -352,13 +352,14 @@ export function PesoTab({
                     {l.notes && <p className="mt-0.5 truncate text-xs text-ink-muted">{l.notes}</p>}
                   </div>
                   <span className="shrink-0 text-xs tabular-nums text-ink-muted">{l.logged_at}</span>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
                     type="button"
                     onClick={() => handleDelete(l.id)}
-                    className="text-ink-muted opacity-0 transition-opacity hover:text-ink-secondary group-hover:opacity-100"
-                  >
+                    className="-m-1.5 opacity-0 group-hover:opacity-100 text-ink-muted">
                     <X className="h-3.5 w-3.5" />
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>

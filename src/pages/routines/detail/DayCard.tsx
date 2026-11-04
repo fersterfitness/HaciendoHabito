@@ -1,3 +1,4 @@
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronRight, Copy, X, Link2, Unlink, ArrowUp, ArrowDown, Boxes, CopyPlus } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -105,12 +106,12 @@ export function DayCard({
         {focus && <span className="text-xs text-ink-muted">{focus}</span>}
         <span className="text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
-        <button onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="text-ink-muted hover:text-ink-primary transition-colors ml-1" title="Mover día arriba">
+        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="-m-1.5 ml-1 text-ink-muted" title="Mover día arriba">
           <ArrowUp className="h-3 w-3" />
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="text-ink-muted hover:text-ink-primary transition-colors ml-1" title="Mover día abajo">
+        </Button>
+        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="-m-1.5 ml-1 text-ink-muted" title="Mover día abajo">
           <ArrowDown className="h-3 w-3" />
-        </button>
+        </Button>
         <button onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="text-ink-muted hover:text-brand-primary transition-colors ml-1" title="Duplicar día en esta semana">
           <Copy className="h-3 w-3" />
         </button>
@@ -146,9 +147,9 @@ export function DayCard({
             </>
           ) : null}
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="text-ink-muted hover:text-status-expired transition-colors ml-1">
+        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="-m-1.5 ml-1 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired">
           <Trash2 className="h-3 w-3" />
-        </button>
+        </Button>
       </div>
 
       {expanded && (
@@ -304,7 +305,7 @@ export function DayCard({
                   <input
                     type="text"
                     placeholder="Ej: descanso entre vueltas 3' · intermitente 20x20'' x 4"
-                    className="w-full bg-surface-card text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                    className={cn(controlSmClassName, 'w-full px-2')}
                     value={parseExerciseMeta(group.exercises[0]?.technical_notes).meta.circuitNote ?? ''}
                     onChange={(e) => onCircuitNoteChange(group.groupId, e.target.value)}
                   />
@@ -361,9 +362,9 @@ export function DayCard({
           <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-4 shadow-lg max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-ink-primary">Copiar a otros días de esta semana</h3>
-              <button type="button" onClick={() => setCopyPrescriptionOpen(false)} className="text-ink-muted hover:text-ink-primary">
+              <Button variant="ghost" size="iconSm" type="button" onClick={() => setCopyPrescriptionOpen(false)} className="-m-1.5 text-ink-muted">
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
             <p className="text-xs text-ink-secondary mb-3 leading-relaxed">
               Se copian series, peso, descanso, RPE/RIR, aclaraciones de circuito y agrupación. Las{' '}

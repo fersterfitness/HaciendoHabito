@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/Button'
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useState } from 'react'
 import { Trash2, GripVertical, Link2, Unlink, ArrowUp, ArrowDown, ExternalLink, RefreshCw } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -130,15 +132,15 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
             <RefreshCw className="h-3 w-3" />
           </button>
         )}
-        <button onClick={onMoveUp} title="Subir" className="text-ink-muted hover:text-ink-primary transition-colors">
+        <Button variant="ghost" size="iconSm" onClick={onMoveUp} title="Subir" className="-m-1.5 text-ink-muted">
           <ArrowUp className="h-3 w-3" />
-        </button>
-        <button onClick={onMoveDown} title="Bajar" className="text-ink-muted hover:text-ink-primary transition-colors">
+        </Button>
+        <Button variant="ghost" size="iconSm" onClick={onMoveDown} title="Bajar" className="-m-1.5 text-ink-muted">
           <ArrowDown className="h-3 w-3" />
-        </button>
-        <button onClick={onDelete} className="text-ink-muted hover:text-status-expired transition-colors">
+        </Button>
+        <Button variant="ghost" size="iconSm" onClick={onDelete} className="-m-1.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired">
           <Trash2 className="h-3 w-3" />
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-1.5">
@@ -146,7 +148,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <label className="block text-3xs text-ink-muted mb-0.5">Series</label>
           <input
             type="number" min={0}
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            className={cn(controlSmClassName, 'w-full px-2 text-center')}
             value={sets ?? ''}
             onChange={(e) => {
               const v = e.target.value === '' ? null : Number(e.target.value)
@@ -159,7 +161,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <input
             type="text"
             placeholder="ej: 8 / 6 / 5"
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+            className={cn(controlSmClassName, 'w-full px-2')}
             value={reps}
             onChange={(e) => { setReps(e.target.value); save({ reps_scheme: e.target.value || null }) }}
           />
@@ -183,7 +185,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <input
             type="text"
             placeholder="20'' / 2'"
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            className={cn(controlSmClassName, 'w-full px-2 text-center')}
             value={restText}
             onChange={(e) => {
               const v = e.target.value
@@ -197,7 +199,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <label className="block text-3xs text-ink-muted mb-0.5">Peso kg</label>
           <input
             type="number" min={0}
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            className={cn(controlSmClassName, 'w-full px-2 text-center')}
             value={weight ?? ''}
             onChange={(e) => {
               const v = e.target.value === '' ? null : Number(e.target.value)
@@ -228,7 +230,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <input
             type="text"
             placeholder="RIR 8/9"
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            className={cn(controlSmClassName, 'w-full px-2 text-center')}
             value={rpeText}
             onChange={(e) => {
               const v = e.target.value
@@ -264,7 +266,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
                       <input
                         inputMode="decimal"
                         placeholder="%"
-                        className="w-full rounded-md border border-surface-border bg-surface-elevated px-1 py-1 text-center text-xs text-ink-primary outline-none focus:border-brand-primary"
+                        className={cn(controlSmClassName, 'w-full px-1 text-center')}
                         value={seriesPlan[i]?.pct ?? ''}
                         onChange={(e) => patchSeriesPlan(i, 'pct', e.target.value)}
                       />
@@ -287,7 +289,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
                     <td key={i} className="px-0.5 py-0.5">
                       <input
                         inputMode="decimal"
-                        className="w-full rounded-md border border-surface-border bg-surface-elevated px-1 py-1 text-center text-xs text-ink-primary outline-none focus:border-brand-primary"
+                        className={cn(controlSmClassName, 'w-full px-1 text-center')}
                         value={seriesPlan[i]?.reps ?? ''}
                         onChange={(e) => patchSeriesPlan(i, 'reps', e.target.value)}
                       />
@@ -300,7 +302,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
                     <td key={i} className="px-0.5 py-0.5">
                       <input
                         placeholder="6o7"
-                        className="w-full rounded-md border border-surface-border bg-surface-elevated px-1 py-1 text-center text-xs text-ink-primary outline-none focus:border-brand-primary"
+                        className={cn(controlSmClassName, 'w-full px-1 text-center')}
                         value={seriesPlan[i]?.rpeRir ?? ''}
                         onChange={(e) => patchSeriesPlan(i, 'rpeRir', e.target.value)}
                       />
@@ -324,7 +326,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
             min={1}
             max={100}
             placeholder="80"
-            className="w-full bg-surface-elevated text-ink-primary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none text-center"
+            className={cn(controlSmClassName, 'w-full px-2 text-center')}
             value={percent1rm}
             onChange={(e) => {
               const v = e.target.value
@@ -382,7 +384,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
       ) : null}
 
       <input
-        className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+        className={cn(controlSmClassName, 'w-full px-2')}
         placeholder="Notas técnicas..."
         value={notes}
         onChange={(e) => {
@@ -401,7 +403,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
       <div>
         <label className="block text-3xs text-ink-muted mb-0.5">Video demostración (URL)</label>
         <input
-          className="w-full bg-surface-elevated text-ink-secondary text-xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-brand-primary outline-none placeholder:text-ink-muted"
+          className={cn(controlSmClassName, 'w-full px-2')}
           placeholder={libraryVideo ? `Vacío → se usa el de la biblioteca` : 'https://youtube.com/...'}
           value={videoUrl}
           onChange={(e) => {

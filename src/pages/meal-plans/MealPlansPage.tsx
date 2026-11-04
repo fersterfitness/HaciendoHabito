@@ -426,14 +426,15 @@ export function MealPlansPage() {
             {filterOrigin && (
               <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary ">
                 {filterOrigin === 'from_template' ? 'Desde plantilla' : 'Asignación directa'}
-                <button
+                <Button
+                  variant="ghost"
+                  size="iconSm"
                   type="button"
-                  className="text-ink-muted hover:text-ink-primary "
+                  className="-m-1.5 text-ink-muted"
                   aria-label="Quitar filtro origen"
-                  onClick={() => setFilterOrigin('')}
-                >
+                  onClick={() => setFilterOrigin('')}>
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </span>
             )}
 
@@ -611,17 +612,17 @@ export function MealPlansPage() {
                         </td>
                         <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedPlanId(p.id)
                               }}
-                              title="Ver detalle"
-                              className="flex items-center gap-1.5 rounded-lg border border-surface-border/70 px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-surface-border hover:bg-surface-elevated hover:text-ink-primary"
-                            >
+                              title="Ver detalle">
                               <Pencil className="h-3.5 w-3.5" />
                               <span className="hidden md:inline">Detalle</span>
-                            </button>
+                            </Button>
                             <button
                               disabled={pdfBusyId === p.id}
                               onClick={(e) => {

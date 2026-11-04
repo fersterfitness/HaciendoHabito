@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Camera, ChevronLeft, ChevronRight, Loader2, Trash2, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
@@ -296,7 +297,7 @@ export function StudentProgressPhotosSection({ studentId, canManage }: Props) {
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="mt-1 block h-9 rounded-lg border border-surface-border bg-surface-input px-2 text-sm text-ink-primary"
+              className={cn(controlMdClassName, 'mt-1 block h-9 px-2')}
             />
           </label>
           <input

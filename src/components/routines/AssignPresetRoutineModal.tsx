@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useMemo, useState } from 'react'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { Library } from 'lucide-react'
@@ -112,7 +113,7 @@ export function AssignPresetRoutineModal({
               setRutina('')
               setVariantId('')
             }}
-            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary"
+            className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
           >
             <option value="">Elegí…</option>
             {macros.map((m) => (
@@ -132,7 +133,7 @@ export function AssignPresetRoutineModal({
               setVariantId('')
             }}
             disabled={!macro}
-            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+            className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
           >
             <option value="">{macro ? 'Elegí…' : 'Primero el macrociclo'}</option>
             {mesos.map((m) => (
@@ -151,7 +152,7 @@ export function AssignPresetRoutineModal({
               setVariantId('')
             }}
             disabled={!macro}
-            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+            className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
           >
             <option value="">{macro ? 'Elegí…' : 'Primero el mesociclo'}</option>
             {rutinas.map((r) => (
@@ -167,7 +168,7 @@ export function AssignPresetRoutineModal({
             value={variantId}
             onChange={(e) => setVariantId(e.target.value)}
             disabled={!macro}
-            className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-3 py-2 text-sm text-ink-primary disabled:opacity-50"
+            className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
           >
             <option value="">Elegí…</option>
             {variants.map((b) => (

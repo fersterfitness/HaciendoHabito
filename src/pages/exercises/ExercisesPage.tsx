@@ -385,24 +385,26 @@ export function ExercisesPage() {
                       </td>
                       <td className="hh-row-drop-in px-2 py-1.5 sm:px-3">
                         <div className="flex items-center justify-end gap-0.5">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="iconSm"
                             type="button"
                             onClick={() => setDeleteTarget(exercise)}
-                            className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+                            className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
                             title="Eliminar"
-                            aria-label={`Eliminar ${exercise.name}`}
-                          >
+                            aria-label={`Eliminar ${exercise.name}`}>
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="iconSm"
                             type="button"
                             onClick={() => navigate(`/exercises/${exercise.id}/edit`)}
-                            className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary "
+                            className="text-ink-muted"
                             title="Editar"
-                            aria-label={`Editar ${exercise.name}`}
-                          >
+                            aria-label={`Editar ${exercise.name}`}>
                             <Pencil className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>

@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -642,7 +643,7 @@ export function NutritionTemplatesPage() {
                           persistDraft({ name: draftName, mergeWeekends, grid })
                         }}
                         placeholder="Ej: Recomp. corporal, mantenimiento…"
-                        className="mt-1.5 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/15"
+                        className={cn(controlMdClassName, 'mt-1.5 w-full')}
                       />
                     </label>
                     <div className="sm:col-span-2">

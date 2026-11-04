@@ -1,3 +1,4 @@
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Check, Copy, ArrowUp, ArrowDown, Droplets } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -99,7 +100,7 @@ export function BlockCard({
         {editingName ? (
           <input
             autoFocus
-            className="flex-1 bg-surface-elevated text-ink-primary text-sm font-semibold rounded-lg px-2 py-1 border border-surface-border focus:border-brand-primary outline-none"
+            className={cn(controlSmClassName, 'flex-1 text-sm font-semibold px-2')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={() => { onUpdateBlock({ name }); setEditingName(false) }}

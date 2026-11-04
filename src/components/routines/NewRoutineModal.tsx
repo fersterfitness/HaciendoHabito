@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button'
 import { useEffect, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -110,14 +111,15 @@ export function NewRoutineModal({
               >
                 {title}
               </h2>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={onClose}
-                className="rounded-xl p-2 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-                aria-label="Cerrar"
-              >
+                className="text-ink-muted"
+                aria-label="Cerrar">
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
             <div
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-7 sm:px-10 sm:py-9"

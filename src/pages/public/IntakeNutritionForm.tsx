@@ -1,3 +1,4 @@
+import { controlSmClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
@@ -583,7 +584,7 @@ export function IntakeNutritionForm({
                     </div>
                     <div className="bg-surface-card px-1 py-1.5 flex items-center">
                       <select
-                        className="w-full bg-surface-elevated text-ink-primary text-2xs rounded-lg px-1.5 py-1.5 border border-surface-border focus:border-zinc-400 dark:focus:border-zinc-500 outline-none cursor-pointer"
+                        className={cn(controlSmClassName, 'w-full text-2xs px-1.5 cursor-pointer')}
                         {...register(`food_freq.${food.key}.frecuencia`)}
                       >
                         {FREQ_OPTIONS.map((o) => (
@@ -595,7 +596,7 @@ export function IntakeNutritionForm({
                       <input
                         type="text"
                         placeholder="—"
-                        className="w-full bg-surface-elevated text-ink-primary text-2xs rounded-lg px-2 py-1.5 border border-surface-border focus:border-zinc-400 dark:focus:border-zinc-500 outline-none placeholder:text-ink-muted"
+                        className={cn(controlSmClassName, 'w-full text-2xs px-2')}
                         {...register(`food_freq.${food.key}.tipo`)}
                       />
                     </div>

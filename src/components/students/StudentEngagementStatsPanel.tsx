@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { CHART_ACCENT } from '@/lib/chartColors'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -252,7 +253,7 @@ export function StudentEngagementStatsPanel({
             value={draftPeriod}
             onChange={(e) => setDraftPeriod(e.target.value)}
             placeholder="Mes (ej. Julio 2026)"
-            className="rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-secondary"
+            className={controlMdClassName}
           />
           <input
             value={draft}
@@ -261,7 +262,7 @@ export function StudentEngagementStatsPanel({
               if (e.key === 'Enter') { e.preventDefault(); void saveTestimonial() }
             }}
             placeholder="Pegá acá lo que respondió el alumno…"
-            className="rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-secondary"
+            className={controlMdClassName}
           />
           <Button size="sm" loading={saving} icon={<Plus className="h-3.5 w-3.5" />} onClick={() => void saveTestimonial()}>
             Guardar
@@ -289,14 +290,15 @@ export function StudentEngagementStatsPanel({
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </button>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="iconSm"
                       type="button"
                       title="Eliminar"
                       onClick={() => void removeTestimonial(t.id)}
-                      className="rounded p-1 text-ink-muted hover:text-status-expired"
-                    >
+                      className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired">
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <p className="whitespace-pre-wrap text-body-sm leading-snug text-ink-secondary">{t.content}</p>

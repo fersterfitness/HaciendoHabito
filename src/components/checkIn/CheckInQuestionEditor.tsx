@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button'
 import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
@@ -81,32 +82,35 @@ export function CheckInQuestionEditor({
           <option value="choice">Opciones (una sola)</option>
         </select>
         <div className="flex items-center gap-0.5">
-          <button
+          <Button
+            variant="ghost"
+            size="iconSm"
             type="button"
-            className="rounded-lg p-1.5 text-ink-muted hover:text-ink-primary disabled:opacity-30"
+            className="text-ink-muted"
             disabled={index === 0}
             onClick={() => onMove('up')}
-            title="Subir pregunta"
-          >
+            title="Subir pregunta">
             <ArrowUp className="h-3.5 w-3.5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="iconSm"
             type="button"
-            className="rounded-lg p-1.5 text-ink-muted hover:text-ink-primary disabled:opacity-30"
+            className="text-ink-muted"
             disabled={index === total - 1}
             onClick={() => onMove('down')}
-            title="Bajar pregunta"
-          >
+            title="Bajar pregunta">
             <ArrowDown className="h-3.5 w-3.5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="iconSm"
             type="button"
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired"
+            className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
             onClick={onRemove}
-            title="Quitar pregunta"
-          >
+            title="Quitar pregunta">
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -136,7 +140,7 @@ export function CheckInQuestionEditor({
             <div key={opt.id} className="flex flex-wrap items-center gap-2">
               <span className="text-3xs text-ink-muted w-4">{oi + 1}</span>
               <input
-                className="flex-1 min-w-[10rem] rounded-lg border border-surface-border bg-surface-input px-2 py-1.5 text-xs"
+                className={cn(controlSmClassName, 'flex-1 min-w-[10rem] px-2')}
                 value={opt.label}
                 onChange={(e) => updateOption(opt.id, { label: e.target.value })}
                 placeholder="Texto de la opción"

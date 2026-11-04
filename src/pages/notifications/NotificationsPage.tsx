@@ -183,14 +183,15 @@ export function NotificationsPage() {
                             </button>
                             <span className="shrink-0 text-[12px] tabular-nums text-ink-muted">{formatDate(n.created_at, 'HH:mm')}</span>
                             {!n.is_read ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-primary" aria-label="Sin leer" /> : null}
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="iconSm"
                               type="button"
                               onClick={() => void removeNotification(n.id)}
                               aria-label="Eliminar notificación"
-                              className="shrink-0 rounded-full p-1.5 text-ink-muted opacity-0 transition-opacity hover:bg-surface-elevated hover:text-ink-primary group-hover:opacity-100 focus-visible:opacity-100"
-                            >
+                              className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-muted">
                               <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            </Button>
                           </li>
                         )
                       })}

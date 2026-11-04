@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Send, Video, Paperclip } from 'lucide-react'
@@ -12,7 +13,7 @@ import { Textarea } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
-import { formatDate } from '@/lib/utils'
+import { formatDate, cn } from '@/lib/utils'
 import type { RoutineQuestion, RoutineFeedback, Student, Routine, Exercise } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -205,7 +206,7 @@ export function FeedbackDetailPage() {
                 <input
                   type="url"
                   placeholder="https://youtube.com/watch?v=..."
-                  className="w-full bg-surface-input text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-inputBorder focus:border-brand-primary outline-none placeholder:text-ink-muted"
+                  className={cn(controlMdClassName, 'w-full')}
                   {...register('video_url_external')}
                 />
                 {errors.video_url_external && <p className="text-xs text-status-expired mt-1">{errors.video_url_external.message}</p>}

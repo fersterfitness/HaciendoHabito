@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
@@ -645,27 +646,29 @@ export function RoutinesPage() {
                 {filterLevel && (
                   <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary ">
                     {LEVEL_LABELS[filterLevel]}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="iconSm"
                       type="button"
-                      className="text-ink-muted hover:text-ink-primary "
+                      className="-m-1.5 text-ink-muted"
                       aria-label="Quitar filtro nivel"
-                      onClick={() => setFilterLevel('')}
-                    >
+                      onClick={() => setFilterLevel('')}>
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </span>
                 )}
                 {filterStatus && (
                   <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary ">
                     {phraseRoutineStatus(filterStatus)}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="iconSm"
                       type="button"
-                      className="text-ink-muted hover:text-ink-primary "
+                      className="-m-1.5 text-ink-muted"
                       aria-label="Quitar filtro estado"
-                      onClick={() => setFilterStatus('')}
-                    >
+                      onClick={() => setFilterStatus('')}>
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </span>
                 )}
 
@@ -914,7 +917,7 @@ export function RoutinesPage() {
             <select
               value={dupStudentId}
               onChange={(e) => setDupStudentId(e.target.value)}
-              className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2.5 text-sm text-ink-primary"
+              className={cn(controlMdClassName, 'w-full cursor-pointer')}
             >
               <option value="">Seleccionar alumno...</option>
               {students.map((s) => (

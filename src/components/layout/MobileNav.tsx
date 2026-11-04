@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button'
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -260,14 +261,15 @@ export function MobileNav() {
             <p className="text-base font-semibold tracking-tight text-ink-primary">¿Qué querés hacer?</p>
             <p className="text-2xs text-ink-muted">Lo de todos los días, a un toque</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             onClick={() => setCreateOpen(false)}
-            className="rounded-xl p-2 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-            aria-label="Cerrar"
-          >
+            className="text-ink-muted"
+            aria-label="Cerrar">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <div className="grid grid-cols-2 gap-2.5 overflow-y-auto px-4 pb-6 pt-3">
           {quickActions.map((a) => {
@@ -313,14 +315,15 @@ export function MobileNav() {
             <p className="truncate text-sm font-semibold leading-tight text-ink-primary">{profile?.full_name ?? '—'}</p>
             <p className="text-xs text-ink-muted">{roleLabel(role)}</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             onClick={() => setDrawerOpen(false)}
-            className="rounded-xl p-2 text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-            aria-label="Cerrar"
-          >
+            className="text-ink-muted"
+            aria-label="Cerrar">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-4">

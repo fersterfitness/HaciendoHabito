@@ -1,3 +1,4 @@
+import { controlBaseClassName, controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
@@ -651,7 +652,7 @@ export function NutritionPatientDetailView({
         <select
           value={pdfTone}
           onChange={(e) => setPdfTone(e.target.value as InterpretationTone)}
-          className="rounded-lg bg-surface-card border border-surface-border/80 text-ink-primary px-2 py-1.5 text-xs focus:outline-none focus:border-brand-primary"
+          className={cn(controlSmClassName, 'px-2 cursor-pointer')}
           title="Tono del texto de devolución en el PDF"
         >
           {(Object.keys(TONE_LABELS) as InterpretationTone[]).map((t) => (
@@ -854,7 +855,7 @@ export function NutritionPatientDetailView({
                     type="date"
                     value={measurementForm.measured_at}
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, measured_at: e.target.value }))}
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlMdClassName, 'mt-1 w-full')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary">
@@ -864,7 +865,7 @@ export function NutritionPatientDetailView({
                     value={measurementForm.weight_kg}
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, weight_kg: e.target.value }))}
                     placeholder="Ej: 78.4"
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlMdClassName, 'mt-1 w-full')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary">
@@ -874,7 +875,7 @@ export function NutritionPatientDetailView({
                     value={measurementForm.bmi}
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, bmi: e.target.value }))}
                     placeholder="Ej: 24.9"
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlMdClassName, 'mt-1 w-full')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary">
@@ -884,7 +885,7 @@ export function NutritionPatientDetailView({
                     value={measurementForm.body_fat_pct}
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, body_fat_pct: e.target.value }))}
                     placeholder="Ej: 21.3"
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlMdClassName, 'mt-1 w-full')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary md:col-span-2">
@@ -894,7 +895,7 @@ export function NutritionPatientDetailView({
                     value={measurementForm.muscle_mass_kg}
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, muscle_mass_kg: e.target.value }))}
                     placeholder="Ej: 32.1"
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlMdClassName, 'mt-1 w-full')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary md:col-span-2">
@@ -904,7 +905,7 @@ export function NutritionPatientDetailView({
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, perimeters_notes: e.target.value }))}
                     rows={3}
                     placeholder="Ej: Cintura 82 cm, Cadera 98 cm, Brazo 31 cm..."
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary md:col-span-2">
@@ -914,7 +915,7 @@ export function NutritionPatientDetailView({
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, skinfolds_notes: e.target.value }))}
                     rows={3}
                     placeholder="Ej: Tricipital 12 mm, Subescapular 14 mm..."
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
                   />
                 </label>
                 <label className="text-xs text-ink-secondary md:col-span-2">
@@ -924,7 +925,7 @@ export function NutritionPatientDetailView({
                     onChange={(e) => setMeasurementForm((prev) => ({ ...prev, notes: e.target.value }))}
                     rows={2}
                     placeholder="Comentario clínico breve..."
-                    className="mt-1 w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary px-3 py-2.5 focus:outline-none focus:border-brand-primary"
+                    className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
                   />
                 </label>
               </div>
@@ -991,7 +992,7 @@ export function NutritionPatientDetailView({
                   }}
                   rows={10}
                   placeholder="Recordatorios, generalidades que no están en la grilla, comunicación informal al paciente…"
-                  className="w-full rounded-xl bg-surface-input border border-surface-inputBorder text-ink-primary placeholder:text-ink-muted px-3 py-2.5 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                  className={cn(controlBaseClassName, 'w-full px-3 py-2.5 text-sm')}
                 />
               </div>
             </Card>
@@ -1096,15 +1097,16 @@ export function NutritionPatientDetailView({
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-ink-muted hidden sm:inline">Abrir PDF</span>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="iconSm"
                         type="button"
                         onClick={() => deleteDocument(doc)}
                         disabled={deletingDocId === doc.id}
-                        className="p-1.5 rounded-lg text-ink-muted hover:text-status-expired hover:bg-status-expired/10 transition-colors disabled:opacity-40"
-                        title="Eliminar PDF"
-                      >
+                        className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
+                        title="Eliminar PDF">
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )

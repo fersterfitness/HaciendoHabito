@@ -1,3 +1,4 @@
+import { controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Check, Loader2 } from 'lucide-react'
@@ -376,7 +377,7 @@ export function PublicCheckInPage({ shared = false }: { shared?: boolean }) {
                   <label className="mt-2 block text-2xs font-medium text-ink-muted">
                     Probar como
                     <select
-                      className="mt-1 w-full rounded-xl border border-surface-border bg-surface-input px-2.5 py-2 text-sm text-ink-primary"
+                      className={cn(controlMdClassName, 'mt-1 w-full px-2.5 cursor-pointer')}
                       value={responderEmail}
                       onChange={(e) => {
                         const email = e.target.value

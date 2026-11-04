@@ -1,3 +1,4 @@
+import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Pencil, Trash2, Boxes, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -244,7 +245,7 @@ export function PresetBlocksPage() {
               onChange={(e) => setNewCategoryName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') void addCategory() }}
               placeholder="+ categoría"
-              className="w-28 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+              className={cn(controlSmClassName, 'w-28 px-2')}
             />
           </div>
         </div>
@@ -254,7 +255,7 @@ export function PresetBlocksPage() {
           <div className="rounded-2xl border border-surface-border bg-surface-card p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-ink-primary">{editing ? 'Editar preestablecido' : 'Nuevo preestablecido'}</p>
-              <button type="button" onClick={() => setFormOpen(false)} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+              <Button variant="ghost" size="iconSm" type="button" onClick={() => setFormOpen(false)} className="-m-1.5 text-ink-muted"><X className="h-4 w-4" /></Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -262,7 +263,7 @@ export function PresetBlocksPage() {
               <label className="block text-xs font-medium text-ink-secondary">
                 Categoría
                 <select
-                  className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs hover:border-ink-muted/50"
+                  className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                 >
@@ -276,7 +277,7 @@ export function PresetBlocksPage() {
               <label className="block text-xs font-medium text-ink-secondary">
                 Tipo
                 <select
-                  className="mt-1 w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs hover:border-ink-muted/50"
+                  className={cn(controlMdClassName, 'mt-1 w-full cursor-pointer')}
                   value={kind}
                   onChange={(e) => setKind(e.target.value as 'circuit' | 'individual')}
                 >
@@ -306,7 +307,7 @@ export function PresetBlocksPage() {
                   <div key={i} className="rounded-xl border border-surface-border bg-surface-elevated/40 p-2.5 space-y-2">
                     <div className="flex items-center gap-2">
                       <select
-                        className="flex-1 rounded-lg border border-surface-inputBorder bg-surface-input px-2 py-1.5 text-xs text-ink-primary shadow-xs hover:border-ink-muted/50"
+                        className={cn(controlSmClassName, 'flex-1 px-2 cursor-pointer')}
                         value={ex.exercise_id ?? ''}
                         onChange={(e) => {
                           const lib = library.find((l) => l.id === e.target.value)
@@ -316,9 +317,9 @@ export function PresetBlocksPage() {
                         <option value="">— Elegir ejercicio —</option>
                         {library.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
-                      <button type="button" onClick={() => setExercises((p) => p.filter((_, j) => j !== i))} className="text-ink-muted hover:text-status-expired" title="Quitar">
+                      <Button variant="ghost" size="iconSm" type="button" onClick={() => setExercises((p) => p.filter((_, j) => j !== i))} className="-m-1.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired" title="Quitar">
                         <X className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                       <NumField label="Series" value={ex.sets} onChange={(v) => patchExercise(i, { sets: v })} />
@@ -354,14 +355,14 @@ export function PresetBlocksPage() {
                                     value={wk?.reps_scheme ?? ''}
                                     onChange={(e) => setWeekValue(i, w, { reps_scheme: e.target.value || null })}
                                     placeholder="reps"
-                                    className="flex-1 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+                                    className={cn(controlSmClassName, 'flex-1 px-2')}
                                   />
                                   <input
                                     type="number"
                                     value={wk?.percent_rm ?? ''}
                                     onChange={(e) => setWeekValue(i, w, { percent_rm: e.target.value === '' ? null : Number(e.target.value) })}
                                     placeholder="%RM"
-                                    className="w-16 rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+                                    className={cn(controlSmClassName, 'w-16 px-2')}
                                   />
                                 </div>
                               )
@@ -420,7 +421,7 @@ export function PresetBlocksPage() {
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         <button type="button" onClick={() => openEdit(b)} className="rounded-lg p-2 text-ink-muted hover:text-brand-secondary hover:bg-brand-secondary/10" title="Editar"><Pencil className="h-4 w-4" /></button>
-                        <button type="button" onClick={() => setDeleteBlock(b)} className="rounded-lg p-2 text-ink-muted hover:text-status-expired hover:bg-status-expired/10" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                        <Button variant="ghost" size="icon" type="button" onClick={() => setDeleteBlock(b)} className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired" title="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </li>
                   ))}
@@ -451,7 +452,7 @@ function NumField({ label, value, onChange }: { label: string; value: number | n
         type="number"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-        className="mt-0.5 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+        className={cn(controlSmClassName, 'mt-0.5 w-full px-2')}
       />
     </label>
   )
@@ -465,7 +466,7 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-0.5 w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1 text-xs text-ink-primary outline-none focus:border-brand-secondary"
+        className={cn(controlSmClassName, 'mt-0.5 w-full px-2')}
       />
     </label>
   )

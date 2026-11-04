@@ -238,14 +238,15 @@ export function FuerzaTab({
                               </span>
                             ) : null}
                             <span className="text-xs font-semibold tabular-nums text-ink-primary">{h.rm_kg} kg</span>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="iconSm"
                               type="button"
                               onClick={() => void onDelete(h.id)}
-                              className="text-ink-muted transition-colors hover:text-status-expired"
-                              aria-label="Borrar registro"
-                            >
+                              className="-m-1.5 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired"
+                              aria-label="Borrar registro">
                               <X className="h-3.5 w-3.5" />
-                            </button>
+                            </Button>
                           </li>
                         )
                       })}

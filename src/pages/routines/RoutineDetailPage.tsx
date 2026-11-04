@@ -1385,9 +1385,9 @@ export function RoutineDetailPage() {
         <Modal open onClose={() => setBlueprintModalOpen(false)} size="md" bare className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-ink-primary">Guardar variante preestablecida</h3>
-          <button type="button" onClick={() => setBlueprintModalOpen(false)} className="text-ink-muted hover:text-ink-primary">
+          <Button variant="ghost" size="iconSm" type="button" onClick={() => setBlueprintModalOpen(false)} className="-m-1.5 text-ink-muted">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <p className="text-xs text-ink-secondary mb-3">
           Se guarda la estructura de semanas, días y ejercicios. Después la asignás a un alumno desde su ficha (macrociclo → mesociclo → variante).
@@ -1484,7 +1484,7 @@ export function RoutineDetailPage() {
           <div className="relative bg-surface-card border border-surface-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg p-4 shadow-lg max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-ink-primary">Pegar circuito / preestablecido</h3>
-              <button type="button" onClick={() => setPresetPickerDayId(null)} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+              <Button variant="ghost" size="iconSm" type="button" onClick={() => setPresetPickerDayId(null)} className="-m-1.5 text-ink-muted"><X className="h-4 w-4" /></Button>
             </div>
             {presetList.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-muted">
