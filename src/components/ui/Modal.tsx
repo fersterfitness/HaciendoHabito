@@ -1,8 +1,9 @@
-import { type ReactNode, useEffect, useId, useRef } from 'react'
+import { type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 
 const SIZE = {
   sm: 'sm:max-w-sm',
@@ -65,6 +66,35 @@ export function Modal({
     }
   }, [open])
 
+  // v2 · celu: se cierra arrastrando la agarradera hacia abajo (solo transform, sin recalcular diseño).
+  const drag = useRef<{ y0: number; dy: number; t0: number } | null>(null)
+  function onGrabDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!IS_V2 || window.matchMedia('(min-width: 640px)').matches) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    drag.current = { y0: e.clientY, dy: 0, t0: performance.now() }
+    if (panelRef.current) panelRef.current.style.transition = 'none'
+  }
+  function onGrabMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const d = drag.current
+    if (!d || !panelRef.current) return
+    d.dy = Math.max(0, e.clientY - d.y0)
+    panelRef.current.style.transform = `translate3d(0, ${d.dy}px, 0)`
+  }
+  function onGrabUp() {
+    const d = drag.current
+    drag.current = null
+    const el = panelRef.current
+    if (!d || !el) return
+    const fast = d.dy / Math.max(1, performance.now() - d.t0) > 0.6
+    el.style.transition = 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)'
+    if (d.dy > 110 || (fast && d.dy > 30)) {
+      el.style.transform = 'translate3d(0, 100%, 0)'
+      window.setTimeout(() => onCloseRef.current(), 180)
+    } else {
+      el.style.transform = ''
+    }
+  }
+
   if (!open) return null
 
   return createPortal(
@@ -81,7 +111,7 @@ export function Modal({
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative flex max-h-[92vh] w-full flex-col outline-none',
+          'hh-modal-panel relative flex max-h-[92vh] w-full flex-col outline-none',
           bare ? 'overflow-y-auto' : 'overflow-hidden',
           'rounded-t-3xl border border-surface-border bg-surface-card pb-[env(safe-area-inset-bottom)] sm:rounded-2xl sm:pb-0',
           'shadow-[var(--highlight-top),var(--shadow-lg)] animate-scale-in',
@@ -89,6 +119,18 @@ export function Modal({
           className,
         )}
       >
+        {IS_V2 ? (
+          <div
+            aria-hidden
+            className="flex shrink-0 cursor-grab touch-none justify-center pb-0.5 pt-2.5 active:cursor-grabbing sm:hidden"
+            onPointerDown={onGrabDown}
+            onPointerMove={onGrabMove}
+            onPointerUp={onGrabUp}
+            onPointerCancel={onGrabUp}
+          >
+            <div className="h-1 w-10 rounded-full bg-ink-muted/30" />
+          </div>
+        ) : null}
         {bare ? children : null}
         {!bare && (title || eyebrow || !hideClose) ? (
           <div className="flex items-start gap-3 px-5 pb-3 pt-5">

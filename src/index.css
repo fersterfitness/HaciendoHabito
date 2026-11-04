@@ -957,3 +957,39 @@ html.ui-v2.dark .v2-nav-pill {
     to { clip-path: circle(150vmax at var(--v2-reveal-x, 28px) var(--v2-reveal-y, 100%)); }
   }
 }
+
+/* ── v2 · celu: los modales suben como hoja desde abajo ── */
+@media (max-width: 639px) and (prefers-reduced-motion: no-preference) {
+  @keyframes v2-sheet-up {
+    from { transform: translate3d(0, 100%, 0); }
+    to { transform: none; }
+  }
+  html.ui-v2 .hh-modal-panel {
+    animation: v2-sheet-up 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+}
+
+/* ── v2 · borrar con «Deshacer» ── */
+html.ui-v2 .v2-undo-pending {
+  opacity: 0.32;
+  filter: grayscale(1);
+  pointer-events: none;
+  transition: opacity 220ms ease, filter 220ms ease;
+}
+@keyframes v2-undo-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.v2-undo-progress { animation: v2-undo-progress linear forwards; }
+@keyframes v2-undo-in {
+  from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes v2-undo-out {
+  to { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.98); }
+}
+.v2-undo-in { animation: v2-undo-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.v2-undo-out { animation: v2-undo-out 180ms ease-in both; }
+@media (prefers-reduced-motion: reduce) {
+  .v2-undo-in, .v2-undo-out { animation: none; }
+}

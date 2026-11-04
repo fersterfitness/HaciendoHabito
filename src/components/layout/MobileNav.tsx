@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button'
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { useAuthStore } from '@/stores/authStore'
@@ -15,6 +15,7 @@ import {
   type NavItem,
 } from '@/config/navigation'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
+import { IS_V2 } from '@/lib/uiVersion'
 import { ChevronRight, LogOut, Menu, Moon, Plus, Settings, Sun, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -43,6 +44,7 @@ function BottomSheet({
   children: ReactNode
 }) {
   const reduceMotion = useReducedMotion()
+  const dragControls = useDragControls()
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -66,12 +68,31 @@ function BottomSheet({
           <div className="absolute inset-0 bg-black/55 backdrop-blur-[6px]" aria-hidden onClick={onClose} />
           <motion.div
             className="relative z-10 flex max-h-[88dvh] min-h-0 flex-col overflow-hidden rounded-t-[1.75rem] border-t border-surface-border bg-surface-card pb-[env(safe-area-inset-bottom)] shadow-pop"
+            {...(IS_V2 && !reduceMotion
+              ? {
+                  drag: 'y' as const,
+                  dragConstraints: { top: 0, bottom: 0 },
+                  dragElastic: { top: 0, bottom: 0.6 },
+                  dragListener: false,
+                  dragControls,
+                  onDragEnd: (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+                    if (info.offset.y > 90 || info.velocity.y > 500) onClose()
+                  },
+                }
+              : {})}
             initial={reduceMotion ? false : { y: '100%' }}
             animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { y: '100%' }}
             transition={reduceMotion ? { duration: 0.15 } : { duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-ink-muted/30" />
+            {/* Agarradera: en la v2 se arrastra para cerrar. */}
+            <div
+              aria-hidden
+              className={cn('shrink-0 pb-1 pt-2.5', IS_V2 && 'cursor-grab touch-none active:cursor-grabbing')}
+              onPointerDown={IS_V2 ? (e) => dragControls.start(e) : undefined}
+            >
+              <div className="mx-auto h-1 w-10 rounded-full bg-ink-muted/30" />
+            </div>
             {children}
           </motion.div>
         </motion.div>
@@ -90,6 +111,22 @@ const barItemClass = (active: boolean) =>
 
 /** Pastilla del ícono: se pinta con el color de marca cuando la sección está activa. */
 function BarIcon({ active, children }: { active: boolean; children: ReactNode }) {
+  const reduceMotion = useReducedMotion()
+  if (IS_V2) {
+    return (
+      <span className="relative isolate flex h-7 w-12 items-center justify-center rounded-full">
+        {active ? (
+          <motion.span
+            layoutId={reduceMotion ? undefined : 'v2-mobile-pill'}
+            aria-hidden
+            className="v2-nav-pill absolute inset-0 -z-10 rounded-full"
+            transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.7 }}
+          />
+        ) : null}
+        {children}
+      </span>
+    )
+  }
   return (
     <span
       className={cn(
@@ -220,9 +257,14 @@ export function MobileNav() {
       {/* Barra inferior */}
       <nav
         aria-label="Navegación principal"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-border/70 bg-surface-card/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_-18px_rgb(0_0_0/0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-surface-card/80 lg:hidden print:hidden"
+        className={cn(
+          'fixed z-40 lg:hidden print:hidden',
+          IS_V2
+            ? 'v2-mobile-bar inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom))] mx-auto max-w-md rounded-[1.6rem] border border-surface-border bg-surface-card/85 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35),0_0_0_1px_rgb(0_0_0/0.02)] backdrop-blur-xl supports-[backdrop-filter]:bg-surface-card/75'
+            : 'bottom-0 left-0 right-0 border-t border-surface-border/70 bg-surface-card/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_-18px_rgb(0_0_0/0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-surface-card/80',
+        )}
       >
-        <div className="mx-auto flex h-16 max-w-xl items-center gap-1 px-2">
+        <div className={cn('mx-auto flex items-center gap-1 px-2', IS_V2 ? 'h-[3.75rem]' : 'h-16 max-w-xl')}>
           {quickActions.length > 0 ? (
             <>
               {items.slice(0, leftCount)}
@@ -234,7 +276,9 @@ export function MobileNav() {
                   aria-haspopup="dialog"
                   aria-expanded={createOpen}
                   className={cn(
-                    'hh-cta -mt-7 flex h-14 w-14 items-center justify-center rounded-2xl text-white ring-4 ring-surface-base',
+                    IS_V2
+                      ? 'hh-cta flex h-11 w-11 items-center justify-center rounded-full text-white'
+                      : 'hh-cta -mt-7 flex h-14 w-14 items-center justify-center rounded-2xl text-white ring-4 ring-surface-base',
                     'transition-transform duration-200 motion-safe:active:scale-95',
                     appFocusRingClassName,
                   )}

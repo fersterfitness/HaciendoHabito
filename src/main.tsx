@@ -10,7 +10,7 @@ import { applyPreferredUiVersion } from '@/lib/uiVersion'
 
 installGlobalErrorReporting()
 
-// Quien eligió la versión nueva (/v2) vuelve a ella aunque entre por un link viejo.
+// Limpia la preferencia vieja de versión; la dirección (/v2 o no) decide cuál se ve.
 if (!applyPreferredUiVersion()) createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary fullScreen>

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button'
 import { useEffect, useState, useRef, useCallback, useId } from 'react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
-import { Users, Dumbbell, X, UtensilsCrossed, UserPlus, Wallet, MessageSquare, CalendarPlus, ArrowRight, type LucideIcon } from 'lucide-react'
+import { Users, Dumbbell, X, UtensilsCrossed, UserPlus, Wallet, MessageSquare, CalendarPlus, ArrowRight, Bell, Moon, Settings, Sparkles, Sun, Undo2, type LucideIcon } from 'lucide-react'
 import { HeaderSearchIcon } from '@/components/icons/headerAnimateIcons'
 import { supabase } from '@/lib/supabase'
 import { fetchAccessibleStudents, filterAccessibleStudents } from '@/lib/students/studentAccess'
@@ -10,14 +10,89 @@ import { cn } from '@/lib/utils'
 import { GLOBAL_SEARCH_OPEN_EVENT } from '@/lib/globalSearch'
 import { escapeIlikePattern } from '@/lib/escapeIlikePattern'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
+import { getNavSections } from '@/config/navigation'
+import { useTheme } from '@/contexts/ThemeContext'
+import { IS_V2, enterV2, leaveV2 } from '@/lib/uiVersion'
+import type { AppRole } from '@/types/database'
+
+type Kind = 'recent' | 'action' | 'command' | 'nav' | 'student' | 'routine' | 'mealplan'
 
 type Result = {
   id: string
   label: string
   sub: string
-  kind: 'action' | 'student' | 'routine' | 'mealplan'
+  kind: Kind
   href: string
   icon?: LucideIcon
+  /** Comandos que no navegan (cambiar tema, versión). */
+  run?: () => void
+  /** Atajo de teclado que se muestra a la derecha. */
+  hint?: string
+}
+
+const GROUPS: { kind: Kind; label: string }[] = [
+  { kind: 'recent', label: 'Recientes' },
+  { kind: 'action', label: 'Acciones' },
+  { kind: 'command', label: 'Comandos' },
+  { kind: 'nav', label: 'Ir a' },
+  { kind: 'student', label: 'Alumnos' },
+  { kind: 'routine', label: 'Rutinas' },
+  { kind: 'mealplan', label: 'Planes' },
+]
+
+/** Atajos «G y una letra» para ir a cada sección (también se muestran en el buscador). */
+const GO_KEYS: Record<string, string> = {
+  i: '/dashboard',
+  t: '/appointments',
+  a: '/students',
+  r: '/routines',
+  f: '/finances',
+  n: '/notifications',
+  c: '/settings',
+}
+const HREF_HINT = Object.fromEntries(Object.entries(GO_KEYS).map(([k, href]) => [href, `G ${k.toUpperCase()}`]))
+
+// ── Recientes: lo último que se abrió desde el buscador (solo en este navegador). ──
+const RECENT_KEY = 'hh-search-recent'
+type Recent = Pick<Result, 'id' | 'label' | 'sub' | 'href'> & { from: Kind }
+function readRecent(): Recent[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Recent[]
+    return Array.isArray(v) ? v.slice(0, 4) : []
+  } catch {
+    return []
+  }
+}
+function pushRecent(r: Result) {
+  if (r.kind !== 'student' && r.kind !== 'routine' && r.kind !== 'mealplan' && r.kind !== 'recent') return
+  try {
+    const item: Recent = { id: r.id, label: r.label, sub: r.sub, href: r.href, from: r.kind === 'recent' ? 'student' : r.kind }
+    const next = [item, ...readRecent().filter((x) => x.href !== r.href)].slice(0, 4)
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+  } catch {
+    /* sin storage */
+  }
+}
+const recentIcon = (k: Kind) => (k === 'routine' ? Dumbbell : k === 'mealplan' ? UtensilsCrossed : Users)
+
+/** Secciones del menú como destinos («Ir a Finanzas»). */
+function navResults(q: string, role?: string | null): Result[] {
+  const n = norm(q.trim())
+  if (!n) return []
+  const items = [
+    ...getNavSections((role ?? undefined) as AppRole | undefined).flatMap((sec) => sec.items.map((it) => ({ ...it, section: sec.title }))),
+    { label: 'Notificaciones', href: '/notifications', icon: Bell, section: 'Cuenta' },
+    { label: 'Configuración', href: '/settings', icon: Settings, section: 'Cuenta' },
+  ]
+  const seen = new Set<string>()
+  return items
+    .filter((it) => {
+      if (seen.has(it.href)) return false
+      seen.add(it.href)
+      return norm(`${it.label} ${it.section}`).includes(n)
+    })
+    .slice(0, 4)
+    .map((it) => ({ id: `nav-${it.href}`, label: it.label, sub: it.section, href: it.href, icon: it.icon, kind: 'nav' as const, hint: HREF_HINT[it.href] }))
 }
 
 type Action = Omit<Result, 'kind' | 'sub'> & { sub: string; icon: LucideIcon; keywords: string; when: (role?: string | null) => boolean }
@@ -41,7 +116,7 @@ function matchingActions(q: string, role?: string | null): Result[] {
   const n = norm(q.trim())
   return ACTIONS.filter((a) => a.when(role) && (!n || norm(`${a.label} ${a.keywords}`).includes(n)))
     .slice(0, n ? 3 : 6)
-    .map((a) => ({ id: a.id, label: a.label, sub: a.sub, href: a.href, icon: a.icon, kind: 'action' as const }))
+    .map((a) => ({ id: a.id, label: a.label, sub: a.sub, href: a.href, icon: a.icon, kind: 'action' as const, hint: a.id === 'new-student' && IS_V2 ? 'N' : undefined }))
 }
 
 const searchInputClass =
@@ -64,6 +139,40 @@ export function GlobalSearch() {
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleId = useId()
   const listboxId = useId()
+  const { theme, toggleTheme } = useTheme()
+
+  /** Comandos (no navegan): tema y versión de la interfaz. */
+  const commandResults = useCallback(
+    (q: string): Result[] => {
+      const n = norm(q.trim())
+      const all: (Result & { keywords: string })[] = [
+        {
+          id: 'cmd-theme',
+          label: theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
+          sub: 'Apariencia',
+          href: '',
+          icon: theme === 'dark' ? Sun : Moon,
+          kind: 'command',
+          run: toggleTheme,
+          keywords: 'tema oscuro claro noche dia apariencia dark light',
+        },
+        IS_V2
+          ? { id: 'cmd-v1', label: 'Volver a la versión actual', sub: 'Interfaz', href: '', icon: Undo2, kind: 'command', run: leaveV2, keywords: 'version vieja anterior actual v1 diseño' }
+          : { id: 'cmd-v2', label: 'Probar la versión nueva', sub: 'Interfaz', href: '', icon: Sparkles, kind: 'command', run: enterV2, keywords: 'version nueva v2 diseño' },
+      ]
+      return all.filter((c) => n && norm(`${c.label} ${c.keywords}`).includes(n)).map((c) => ({ id: c.id, label: c.label, sub: c.sub, href: c.href, icon: c.icon, kind: c.kind, run: c.run }))
+    },
+    [theme, toggleTheme],
+  )
+
+  /** Con el buscador vacío: lo último que abriste + las acciones de siempre. */
+  const idleResults = useCallback(
+    (): Result[] => [
+      ...readRecent().map((r) => ({ ...r, kind: 'recent' as const, icon: recentIcon(r.from) })),
+      ...matchingActions('', profile?.role),
+    ],
+    [profile?.role],
+  )
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -91,7 +200,7 @@ export function GlobalSearch() {
   useEffect(() => {
     if (open) {
       setQuery('')
-      setResults(matchingActions('', profile?.role))
+      setResults(idleResults())
       setActive(0)
       const t = window.setTimeout(() => inputRef.current?.focus(), 50)
       return () => window.clearTimeout(t)
@@ -99,8 +208,12 @@ export function GlobalSearch() {
   }, [open])
 
   const search = useCallback(async (q: string) => {
-    const actions = matchingActions(q, profile?.role)
-    if (!user || !q.trim()) {
+    if (!q.trim()) {
+      setResults(idleResults())
+      return
+    }
+    const actions = [...matchingActions(q, profile?.role), ...commandResults(q), ...navResults(q, profile?.role)]
+    if (!user) {
       setResults(actions)
       return
     }
@@ -173,7 +286,7 @@ export function GlobalSearch() {
     setResults(res)
     setActive(0)
     setLoading(false)
-  }, [user, profile?.role])
+  }, [user, profile?.role, commandResults, idleResults])
 
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current)
@@ -183,10 +296,49 @@ export function GlobalSearch() {
     }
   }, [query, search])
 
-  function go(href: string) {
-    navigate(href)
+  function go(r: Result) {
     setOpen(false)
+    if (r.run) {
+      r.run()
+      return
+    }
+    pushRecent(r)
+    navigate(r.href)
   }
+
+  // v2 · atajos de teclado: «N» nuevo alumno, «G» y una letra para ir a cada sección.
+  useEffect(() => {
+    if (!IS_V2) return
+    let pendingG = 0
+    function typing(t: EventTarget | null) {
+      const el = t as HTMLElement | null
+      return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target) || document.querySelector('[aria-modal="true"]')) return
+      const k = e.key.toLowerCase()
+      if (pendingG && Date.now() - pendingG < 1200) {
+        pendingG = 0
+        const nutri = profile?.role === 'nutritionist'
+        const href = nutri && k === 't' ? '/nutrition/appointments' : nutri && k === 'a' ? '/nutrition' : GO_KEYS[k]
+        if (href) {
+          e.preventDefault()
+          navigate(href)
+        }
+        return
+      }
+      if (k === 'g') {
+        pendingG = Date.now()
+        return
+      }
+      if (k === 'n' && trains(profile?.role)) {
+        e.preventDefault()
+        navigate('/students/new')
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [navigate, profile?.role])
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
@@ -197,7 +349,7 @@ export function GlobalSearch() {
       e.preventDefault()
       setActive((a) => Math.max(a - 1, 0))
     }
-    if (e.key === 'Enter' && results[active]) go(results[active].href)
+    if (e.key === 'Enter' && results[active]) go(results[active])
   }
 
   if (!open) return null
@@ -270,10 +422,9 @@ export function GlobalSearch() {
             </div>
           ) : (
             <div className="py-1">
-              {(['action', 'student', 'routine', 'mealplan'] as const).map((k) => {
+              {GROUPS.map(({ kind: k, label }) => {
                 const group = results.filter((r) => r.kind === k)
                 if (group.length === 0) return null
-                const label = k === 'action' ? 'Acciones' : k === 'student' ? 'Alumnos' : k === 'routine' ? 'Rutinas' : 'Planes'
                 return (
                   <div key={k}>
                     <p className="px-3 pb-0.5 pt-2 text-3xs font-semibold text-ink-muted">
@@ -290,7 +441,7 @@ export function GlobalSearch() {
                               type="button"
                               role="option"
                               aria-selected={isActive}
-                              onClick={() => go(r.href)}
+                              onClick={() => go(r)}
                               onMouseEnter={() => setActive(i)}
                               className={cn(
                                 'flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors',
@@ -300,7 +451,7 @@ export function GlobalSearch() {
                               <span className={resultIconPodClass} aria-hidden>
                                 {r.icon ? (
                                   <r.icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-                                ) : r.kind === 'student' ? (
+                                ) : r.kind === 'student' || r.kind === 'recent' ? (
                                   <Users className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 ) : r.kind === 'routine' ? (
                                   <Dumbbell className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -312,7 +463,12 @@ export function GlobalSearch() {
                                 <p className="truncate text-sm font-medium text-ink-primary">{r.label}</p>
                                 <p className="truncate text-2xs text-ink-muted">{r.sub}</p>
                               </div>
-                              {isActive && r.kind === 'action' ? (
+                              {r.hint ? (
+                                <kbd className="hidden shrink-0 rounded border border-surface-border/80 bg-surface-elevated/60 px-1.5 py-0.5 text-3xs font-medium text-ink-muted sm:inline">
+                                  {r.hint}
+                                </kbd>
+                              ) : null}
+                              {isActive && (r.kind === 'action' || r.kind === 'nav' || r.kind === 'command') ? (
                                 <ArrowRight className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
                               ) : null}
                             </button>
@@ -331,6 +487,7 @@ export function GlobalSearch() {
           <span className="text-3xs text-ink-muted">↑↓ navegar</span>
           <span className="text-3xs text-ink-muted">↵ abrir</span>
           <span className="text-3xs text-ink-muted">esc cerrar</span>
+          {IS_V2 ? <span className="ml-auto hidden text-3xs text-ink-muted sm:inline">N nuevo alumno · G + letra para ir</span> : null}
         </div>
       </div>
     </div>
