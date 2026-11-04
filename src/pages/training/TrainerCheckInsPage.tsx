@@ -3,6 +3,7 @@ import { ListSkeleton } from '@/components/ui/Skeleton'
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { IS_V2 } from '@/lib/uiVersion'
 import { SegmentedV2 } from '@/components/v2/ui'
+import { v2TabClass } from '@/components/v2/tabStyle'
 import { useSearchParams } from 'react-router-dom'
 import {
   CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Trash2, Download,
@@ -998,7 +999,7 @@ export function TrainerCheckInsPage({
                 Elegí un alumno, después el año y el mes, y por último la respuesta. Así el listado escala si el alumno está años con vos.
               </p>
             )}
-            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Tipo de formulario">
+            <div className={IS_V2 ? 'flex flex-wrap gap-1.5' : 'flex flex-wrap gap-1'} role="tablist" aria-label="Tipo de formulario">
               {([
                 { id: 'weekly' as const, label: 'Feedback semanales' },
                 { id: 'monthly' as const, label: 'Feedback mensuales' },
@@ -1009,7 +1010,7 @@ export function TrainerCheckInsPage({
                   role="tab"
                   aria-selected={historyKind === opt.id}
                   onClick={() => setHistoryKind(opt.id)}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(historyKind === opt.id, 'sm') : cn(
                     'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                     historyKind === opt.id
                       ? 'border-brand-secondary/40 bg-brand-secondary/12 text-ink-primary'
@@ -1020,7 +1021,7 @@ export function TrainerCheckInsPage({
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Estado de revisión">
+            <div className={IS_V2 ? 'flex flex-wrap gap-1.5' : 'flex flex-wrap gap-1'} role="tablist" aria-label="Estado de revisión">
               {([
                 { id: 'all' as const, label: 'Todos' },
                 { id: 'pending' as const, label: 'Pendientes' },
@@ -1032,7 +1033,7 @@ export function TrainerCheckInsPage({
                   role="tab"
                   aria-selected={historyStatusFilter === opt.id}
                   onClick={() => setHistoryStatusFilter(opt.id)}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(historyStatusFilter === opt.id, 'sm') : cn(
                     'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                     historyStatusFilter === opt.id
                       ? opt.id === 'pending'

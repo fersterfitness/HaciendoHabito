@@ -3,6 +3,7 @@ import { GlobalSearch } from '@/components/layout/GlobalSearch'
 import { AnimatedOutlet } from '@/components/layout/AnimatedOutlet'
 import { SidebarProvider } from '@/contexts/SidebarContext'
 import { SidebarV2 } from './SidebarV2'
+import { ShortcutsHelpV2 } from './ShortcutsHelpV2'
 
 /**
  * Marco de la v2: lienzo gris con la barra lateral y el contenido en un panel blanco con borde,
@@ -21,6 +22,7 @@ export function AppLayoutV2() {
         <MobileNav />
       </div>
       <GlobalSearch />
+      <ShortcutsHelpV2 />
     </SidebarProvider>
   )
 }

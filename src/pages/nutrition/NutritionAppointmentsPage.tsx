@@ -1,5 +1,6 @@
 import { controlSmClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass } from '@/components/v2/tabStyle'
 import { Modal } from '@/components/ui/Modal'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
@@ -1129,7 +1130,7 @@ export function AppointmentsPage() {
             }
           >
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px">
+              <div className={IS_V2 ? 'inline-flex gap-1.5' : 'inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px'}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1137,7 +1138,7 @@ export function AppointmentsPage() {
                     setPersonalWeekPopoverOpen(false)
                     setPersonalWeekPopoverId(null)
                   }}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(calendarScope === 'students', 'sm') : cn(
                     'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
                     calendarScope === 'students'
                       ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
@@ -1153,7 +1154,7 @@ export function AppointmentsPage() {
                     setWeekPopoverOpen(false)
                     setWeekPopoverApptId(null)
                   }}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(calendarScope === 'personal', 'sm') : cn(
                     'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
                     calendarScope === 'personal'
                       ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
@@ -1163,11 +1164,11 @@ export function AppointmentsPage() {
                   <CalendarClock className="h-3.5 w-3.5" aria-hidden /> Personal
                 </button>
               </div>
-              <div className="inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px">
+              <div className={IS_V2 ? 'inline-flex gap-1.5' : 'inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px'}>
                 <button
                   type="button"
                   onClick={() => setViewMode('week')}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(viewMode === 'week', 'sm') : cn(
                     'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
                     viewMode === 'week'
                       ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
@@ -1179,7 +1180,7 @@ export function AppointmentsPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('month')}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(viewMode === 'month', 'sm') : cn(
                     'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
                     viewMode === 'month'
                       ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'
@@ -1191,7 +1192,7 @@ export function AppointmentsPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('agenda')}
-                  className={cn(
+                  className={IS_V2 ? v2TabClass(viewMode === 'agenda', 'sm') : cn(
                     'rounded-md px-2.5 py-1.5 text-xs flex items-center gap-1 transition-colors',
                     viewMode === 'agenda'
                       ? 'bg-slate-500/12 text-ink-primary font-medium shadow-sm ring-1 ring-slate-400/30 dark:bg-slate-400/14 dark:text-ink-primary dark:ring-slate-500/35'

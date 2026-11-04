@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass, v2TabCountClass } from '@/components/v2/tabStyle'
 import { cn } from '@/lib/utils'
 
 export type SegmentedItem = {
@@ -68,7 +69,8 @@ export function SegmentedControl({
         ) : null}
         {Icon ? <Icon className={cn(sz.icon, 'shrink-0', !active && 'opacity-80')} aria-hidden /> : null}
         <span className="truncate">{item.label}</span>
-        {typeof item.count === 'number' ? (
+        {typeof item.count === 'number' && IS_V2 ? <span className={v2TabCountClass(active)}>{item.count}</span> : null}
+        {typeof item.count === 'number' && !IS_V2 ? (
           <span
             className={cn(
               'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-3xs font-semibold tabular-nums',
@@ -90,18 +92,7 @@ export function SegmentedControl({
 
   const itemBase = (active: boolean) =>
     IS_V2
-      ? size === 'sm'
-        ? cn(
-            // Filtro chico: pista gris y la opción elegida en blanco.
-            'inline-flex h-7 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[12.5px] font-medium transition-colors',
-            appFocusRingClassName,
-            active ? 'bg-surface-base text-ink-primary shadow-[0_1px_2px_rgb(0_0_0/0.08)]' : 'text-ink-muted hover:text-ink-primary',
-          )
-        : cn(
-            'inline-flex h-8 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors',
-            appFocusRingClassName,
-            active ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
-          )
+      ? v2TabClass(active, size)
       : cn(
       'relative isolate inline-flex select-none items-center justify-center font-medium whitespace-nowrap',
       'transition-colors duration-200',
@@ -118,7 +109,7 @@ export function SegmentedControl({
       aria-label={ariaLabel}
       className={cn(
         'inline-flex max-w-full items-center overflow-x-auto scrollbar-hide',
-        IS_V2 ? (size === 'sm' ? 'gap-0.5 rounded-full bg-surface-elevated p-0.5' : 'gap-1.5') : sz.wrap,
+        IS_V2 ? 'gap-1.5' : sz.wrap,
         !IS_V2 && (fullWidth || size === 'md') && 'flex w-full',
         className,
         // Las secciones ocupan todo el ancho: la línea de abajo corre de lado a lado.

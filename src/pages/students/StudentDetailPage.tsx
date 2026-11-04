@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { MetricCardV2 } from '@/components/v2/ui'
 import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass } from '@/components/v2/tabStyle'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -826,10 +827,7 @@ export function StudentDetailView({
                     onClick={() => setSheetTab(key)}
                     className={cn(
                       v2Page
-                        ? cn(
-                            'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[12.5px] font-medium transition-colors',
-                            active ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
-                          )
+                        ? v2TabClass(active)
                         : cn(
                             'relative -mb-px flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-t-lg px-0.5 pb-2.5 pt-2',
                             'text-3xs font-semibold transition-colors sm:flex-row sm:gap-2 sm:px-4 sm:py-3 sm:text-xs',
@@ -1413,7 +1411,7 @@ export function StudentDetailView({
         {sheetTab === 'seguimiento' && (
           <div className="space-y-4">
             <div
-              className={v2Page ? 'inline-flex gap-1 rounded-full bg-surface-elevated p-1' : '-mx-px flex border-b border-surface-border/60 '}
+              className={v2Page ? 'inline-flex gap-1.5' : '-mx-px flex border-b border-surface-border/60 '}
               role="tablist"
               aria-label="Seguimiento"
             >
@@ -1433,12 +1431,7 @@ export function StudentDetailView({
                   onClick={() => setSeguimientoTab(value)}
                   className={
                     v2Page
-                      ? cn(
-                          'h-7 rounded-full px-3.5 text-[12.5px] font-medium transition-colors',
-                          seguimientoTab === value
-                            ? 'bg-surface-card text-ink-primary shadow-sm'
-                            : 'text-ink-muted hover:text-ink-primary',
-                        )
+                      ? v2TabClass(seguimientoTab === value, 'sm')
                       : cn(
                           '-mb-px flex-1 border-b-2 px-2 py-2.5 text-center text-2xs font-semibold transition-colors sm:text-xs',
                           seguimientoTab === value

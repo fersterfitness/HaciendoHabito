@@ -1,4 +1,5 @@
 import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass } from '@/components/v2/tabStyle'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import {
@@ -1468,7 +1469,7 @@ export function NutritionPlanningPage() {
           className={IS_V2 ? '' : '-mx-4 border-b border-surface-border px-4 pt-4 lg:-mx-6 lg:px-6'}
           aria-label="Secciones del plan"
         >
-          <div role="tablist" className={IS_V2 ? 'inline-flex flex-wrap gap-1 rounded-full bg-surface-elevated p-1' : 'flex flex-wrap gap-2'}>
+          <div role="tablist" className={IS_V2 ? 'inline-flex flex-wrap gap-1.5' : 'flex flex-wrap gap-2'}>
             {PLANNING_MAIN_TAB_DEFS.map(({ id, label, hint, Icon }) => {
               const sel = planningTab === id
               return (
@@ -1483,10 +1484,7 @@ export function NutritionPlanningPage() {
                   onClick={() => setPlanningTab(id)}
                   className={
                     IS_V2
-                      ? cn(
-                          'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors',
-                          sel ? 'bg-surface-card text-ink-primary shadow-sm' : 'text-ink-muted hover:text-ink-primary',
-                        )
+                      ? v2TabClass(sel)
                       : cn(
                           '-mb-px flex shrink-0 items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold transition-colors',
                           sel

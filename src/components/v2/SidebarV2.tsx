@@ -15,6 +15,7 @@ import {
   Settings,
   Sun,
   Undo2,
+  Keyboard,
 } from 'lucide-react'
 import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
@@ -23,6 +24,7 @@ import { canSeeTraining, getNavV2, isNavPathActive, type NavItem } from '@/confi
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { openGlobalSearch } from '@/lib/globalSearch'
+import { openShortcutsHelp } from '@/lib/shortcutsV2'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
 import { supabase } from '@/lib/supabase'
 import { leaveV2 } from '@/lib/uiVersion'
@@ -274,6 +276,15 @@ export function SidebarV2() {
               }}
             >
               Configuración
+            </MenuButton>
+            <MenuButton
+              icon={Keyboard}
+              onClick={() => {
+                setMenuOpen(false)
+                openShortcutsHelp()
+              }}
+            >
+              Atajos de teclado
             </MenuButton>
             <MenuButton icon={Undo2} onClick={leaveV2}>
               Volver a la versión actual

@@ -13,6 +13,7 @@ import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { getNavSections } from '@/config/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { IS_V2, enterV2, leaveV2 } from '@/lib/uiVersion'
+import { GO_HINT_BY_HREF, goKeysFor, isTypingTarget } from '@/lib/shortcutsV2'
 import type { AppRole } from '@/types/database'
 
 type Kind = 'recent' | 'action' | 'command' | 'nav' | 'student' | 'routine' | 'mealplan'
@@ -41,16 +42,7 @@ const GROUPS: { kind: Kind; label: string }[] = [
 ]
 
 /** Atajos «G y una letra» para ir a cada sección (también se muestran en el buscador). */
-const GO_KEYS: Record<string, string> = {
-  i: '/dashboard',
-  t: '/appointments',
-  a: '/students',
-  r: '/routines',
-  f: '/finances',
-  n: '/notifications',
-  c: '/settings',
-}
-const HREF_HINT = Object.fromEntries(Object.entries(GO_KEYS).map(([k, href]) => [href, `G ${k.toUpperCase()}`]))
+const HREF_HINT = GO_HINT_BY_HREF
 
 // ── Recientes: lo último que se abrió desde el buscador (solo en este navegador). ──
 const RECENT_KEY = 'hh-search-recent'
@@ -310,17 +302,13 @@ export function GlobalSearch() {
   useEffect(() => {
     if (!IS_V2) return
     let pendingG = 0
-    function typing(t: EventTarget | null) {
-      const el = t as HTMLElement | null
-      return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))
-    }
+    const goKeys = goKeysFor(profile?.role)
     function onKey(e: KeyboardEvent) {
-      if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target) || document.querySelector('[aria-modal="true"]')) return
+      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target) || document.querySelector('[aria-modal="true"]')) return
       const k = e.key.toLowerCase()
       if (pendingG && Date.now() - pendingG < 1200) {
         pendingG = 0
-        const nutri = profile?.role === 'nutritionist'
-        const href = nutri && k === 't' ? '/nutrition/appointments' : nutri && k === 'a' ? '/nutrition' : GO_KEYS[k]
+        const href = goKeys.find((g) => g.key === k)?.href
         if (href) {
           e.preventDefault()
           navigate(href)

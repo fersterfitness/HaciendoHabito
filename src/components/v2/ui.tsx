@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { v2TabClass, v2TabCountClass } from './tabStyle'
 
 /**
  * Piezas de la v2. Pocas y con una sola forma de usarse: así las pantallas nuevas salen parejas
@@ -388,10 +389,12 @@ export function SegmentedV2<T extends string>({
   value,
   options,
   onChange,
+  size = 'md',
 }: {
   value: T
   options: { value: T; label: string; count?: number }[]
   onChange: (v: T) => void
+  size?: 'sm' | 'md'
 }) {
   return (
     <div className="flex flex-wrap gap-1.5" role="tablist">
@@ -404,13 +407,10 @@ export function SegmentedV2<T extends string>({
             role="tab"
             aria-selected={on}
             onClick={() => onChange(o.value)}
-            className={cn(
-              'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors',
-              on ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
-            )}
+            className={v2TabClass(on, size)}
           >
             {o.label}
-            {o.count !== undefined ? <span className={cn('tabular-nums', on ? 'opacity-70' : 'text-ink-muted')}>{o.count}</span> : null}
+            {o.count !== undefined ? <span className={v2TabCountClass(on)}>{o.count}</span> : null}
           </button>
         )
       })}
