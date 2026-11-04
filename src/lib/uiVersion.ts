@@ -21,48 +21,27 @@ export function routerBasename(): string | undefined {
   return IS_V2 ? V2_BASE : undefined
 }
 
-function remember(v2: boolean) {
-  try {
-    if (v2) localStorage.setItem(STORAGE_KEY, 'v2')
-    else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* sin storage: la elección vale solo para esta pestaña */
-  }
-}
-
-function prefersV2(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'v2'
-  } catch {
-    return false
-  }
-}
-
 /**
- * Al arrancar: quien eligió la versión nueva entra siempre por `/v2` (también desde links viejos o
- * favoritos). Los formularios públicos que abren los alumnos quedan afuera. Devuelve true si redirige.
+ * La dirección decide la versión: con `/v2` se ve la nueva y sin `/v2` la actual. No se recuerda
+ * la elección entre visitas (antes se guardaba y redirigía sola a `/v2`, y la versión actual
+ * quedaba inaccesible). Se borra la preferencia vieja que haya quedado guardada.
+ * Devuelve true si redirige (hoy nunca).
  */
 export function applyPreferredUiVersion(): boolean {
-  const { pathname, search, hash } = window.location
-  if (pathIsV2(pathname)) {
-    remember(true)
-    return false
-  }
-  if (prefersV2() && !pathname.startsWith('/form')) {
-    window.location.replace(`${V2_BASE}${pathname === '/' ? '/dashboard' : pathname}${search}${hash}`)
-    return true
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* sin storage: nada que limpiar */
   }
   return false
 }
 
 export function enterV2() {
-  remember(true)
   const { pathname, search } = window.location
   window.location.assign(`${V2_BASE}${pathname === '/' ? '/dashboard' : pathname}${search}`)
 }
 
 export function leaveV2() {
-  remember(false)
   const { pathname, search } = window.location
   window.location.assign(`${pathname.replace(/^\/v2/, '') || '/dashboard'}${search}`)
 }
