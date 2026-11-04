@@ -1,6 +1,8 @@
 import { STUDENT_PHONE_FORMAT_HINT } from '@/lib/studentPhone'
 import { ListSkeleton } from '@/components/ui/Skeleton'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { IS_V2 } from '@/lib/uiVersion'
+import { SegmentedV2 } from '@/components/v2/ui'
 import { useSearchParams } from 'react-router-dom'
 import {
   CalendarClock, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Copy, Plus, Trash2, Download,
@@ -119,7 +121,16 @@ const checkInCheckboxClass = 'rounded border-surface-border accent-brand-seconda
 const checkInHighlightPanelClass =
   'rounded-xl border border-brand-secondary/25 bg-brand-secondary/[0.06] p-3 space-y-3'
 
-export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }) {
+export function TrainerCheckInsPage({
+  embedded = false,
+  resourcesSlot,
+  startInResources = false,
+}: {
+  embedded?: boolean
+  /** v2: «Recursos» pasa a ser una pestaña más de la misma fila. */
+  resourcesSlot?: ReactNode
+  startInResources?: boolean
+}) {
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const formIdFromUrl = searchParams.get('formId')
@@ -142,7 +153,9 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const [newScheduleTz, setNewScheduleTz] = useState('America/Argentina/Buenos_Aires')
   const [newSchedulePreferGroup, setNewSchedulePreferGroup] = useState(true)
   /** Vista principal: por formulario (edición) o historial cronológico agrupado por alumno. */
-  const [checkInView, setCheckInView] = useState<'form' | 'student'>(embedded ? 'student' : 'form')
+  const [checkInView, setCheckInView] = useState<'form' | 'student' | 'recursos'>(
+    startInResources && resourcesSlot ? 'recursos' : embedded ? 'student' : 'form',
+  )
   const [studentHistoryLoading, setStudentHistoryLoading] = useState(false)
   /** Drill-down: alumno → año → mes → respuesta. */
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
@@ -150,7 +163,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<number | null>(null)
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null)
   const [missingStudents, setMissingStudents] = useState<DashboardMissingCheckInStudent[]>([])
-  const [studentPanel, setStudentPanel] = useState<'seguimiento' | 'sin_respuesta' | 'feedbacks'>('seguimiento')
+  // v2: se entra a lo que se hace acá (mandar el check-in); el seguimiento queda a un toque.
+  const [studentPanel, setStudentPanel] = useState<'seguimiento' | 'sin_respuesta' | 'feedbacks'>(IS_V2 ? 'sin_respuesta' : 'seguimiento')
   const [periodStart, setPeriodStart] = useState(() => defaultWeeklyPeriodStartYmd())
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'pending' | 'al_dia'>('all')
   const [historyKind, setHistoryKind] = useState<'weekly' | 'monthly'>('weekly')
@@ -895,6 +909,36 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
     <div>
       {!embedded ? <Header title="Check-ins" /> : null}
       <DirectoryPageShell className={cn('max-w-5xl space-y-6', embedded && 'py-0')}>
+        {IS_V2 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="-mx-4 min-w-0 flex-1 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0 [&>div]:flex-nowrap">
+              <SegmentedV2
+                value={checkInView === 'student' ? studentPanel : checkInView}
+                onChange={(id) => {
+                  if (id === 'form' || id === 'recursos') {
+                    setCheckInView(id)
+                    return
+                  }
+                  setCheckInView('student')
+                  setStudentPanel(id)
+                }}
+                options={[
+                  { value: 'sin_respuesta' as const, label: 'Enviar', count: missingStudents.length || undefined },
+                  { value: 'feedbacks' as const, label: 'Respuestas' },
+                  { value: 'seguimiento' as const, label: 'Seguimiento' },
+                  { value: 'form' as const, label: 'Formularios' },
+                  ...(resourcesSlot ? [{ value: 'recursos' as const, label: 'Recursos' }] : []),
+                ]}
+              />
+            </div>
+            {checkInView === 'form' ? (
+              <Button type="button" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => openForm(null)}>
+                Nuevo formulario
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+        <>
         <PageSectionTitle
           title="Formularios semanales"
           description="Armá un formulario corto y compartí un link general en el grupo (cada alumno completa con su correo). También podés generar links personales por alumno."
@@ -937,6 +981,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             { id: 'form', label: 'Formularios' },
           ]}
         />
+        </>
+        )}
 
         {checkInView === 'student' ? (
           <div className="space-y-4">
@@ -947,9 +993,11 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
 
             {studentPanel === 'feedbacks' ? (
           <Card padding="lg" className={cn('space-y-4', checkInPanelCardClass)}>
-            <p className="text-xs text-ink-secondary max-w-prose">
-              Elegí un alumno, después el año y el mes, y por último la respuesta. Así el listado escala si el alumno está años con vos.
-            </p>
+            {IS_V2 ? null : (
+              <p className="text-xs text-ink-secondary max-w-prose">
+                Elegí un alumno, después el año y el mes, y por último la respuesta. Así el listado escala si el alumno está años con vos.
+              </p>
+            )}
             <div className="flex flex-wrap gap-1" role="tablist" aria-label="Tipo de formulario">
               {([
                 { id: 'weekly' as const, label: 'Feedback semanales' },
@@ -1370,6 +1418,8 @@ export function TrainerCheckInsPage({ embedded = false }: { embedded?: boolean }
             ) : null}
           </div>
         ) : null}
+
+        {checkInView === 'recursos' ? resourcesSlot : null}
 
         {checkInView === 'form' ? (
         <div className="grid lg:grid-cols-5 gap-4 lg:gap-6">

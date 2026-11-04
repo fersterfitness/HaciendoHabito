@@ -4,6 +4,7 @@ import { TrainerCheckInsPage } from '@/pages/training/TrainerCheckInsPage'
 import { TrainerResourcesPage } from '@/pages/training/TrainerResourcesPage'
 import { Header } from '@/components/layout/Header'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { IS_V2 } from '@/lib/uiVersion'
 
 /**
  * "Formulario de consulta semanal" (antes "Devoluciones").
@@ -41,6 +42,19 @@ export function FeedbackPage() {
         return nextParams
       },
       { replace: true },
+    )
+  }
+
+  if (IS_V2) {
+    return (
+      <div>
+        <Header title="Consultas" />
+        <TrainerCheckInsPage
+          embedded
+          startInResources={mainSection === 'recursos'}
+          resourcesSlot={<TrainerResourcesPage embedded />}
+        />
+      </div>
     )
   }
 

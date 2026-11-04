@@ -20,11 +20,13 @@ type Props = {
   onRestored?: () => void
 }
 
-export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
+export function RoutineDeletionHistoryPanel({ onRestored, controlledOpen }: Props & { controlledOpen?: boolean }) {
   const navigate = useAppNavigate()
   const user = useAuthStore((s) => s.user)
 
-  const [open, setOpen] = useState(false)
+  const [ownOpen, setOpen] = useState(false)
+  const controlled = controlledOpen !== undefined
+  const open = controlled ? controlledOpen : ownOpen
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<RoutineDeletionLogEntry[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -66,8 +68,8 @@ export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      <button
+    <div className={controlled && !open ? 'hidden' : 'space-y-3'}>
+      {controlled ? null : <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -75,7 +77,7 @@ export function RoutineDeletionHistoryPanel({ onRestored }: Props) {
       >
         <Archive className="h-3.5 w-3.5 opacity-70" aria-hidden />
         {open ? 'Ocultar eliminadas' : 'Ver rutinas eliminadas'}
-      </button>
+      </button>}
 
       {open ? (
         <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">

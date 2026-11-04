@@ -1,3 +1,4 @@
+import { IS_V2 } from '@/lib/uiVersion'
 import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -495,12 +496,15 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
   return (
     <div>
       {!embedded ? <Header title="Recursos y WhatsApp" /> : null}
-      <div className={cn('px-4 lg:px-6 space-y-6 max-w-5xl', embedded ? 'py-4' : 'py-8')}>
+      {/* v2: va dentro de Consultas, que ya pone los márgenes; la explicación sobra. */}
+      <div className={cn('space-y-6 max-w-5xl', IS_V2 && embedded ? 'pt-2' : cn('px-4 lg:px-6', embedded ? 'py-4' : 'py-8'))}>
+        {IS_V2 ? null : (
         <p className="text-sm text-ink-secondary max-w-prose">
           Guardá links (videos, PDFs, artículos). Elegí alumnos y abrí WhatsApp con el mismo mensaje para cada uno. Podés usar plantillas de texto fijo
           arriba del mensaje y dejar que el historial se registre solo al abrir WhatsApp. El historial solo lo ves vos con la sesión iniciada; igual revisá
           que la nota extra no lleve datos sensibles si el alumno reenvía el chat.
         </p>
+        )}
 
         <Card className="p-4 sm:p-5 space-y-4">
           <h2 className="text-sm font-semibold text-ink-primary inline-flex items-center gap-2">

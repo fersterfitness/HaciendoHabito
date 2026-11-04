@@ -1,10 +1,14 @@
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
+import { SegmentedV2 } from '@/components/v2/ui'
 import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useSearchParams, Navigate } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
+  Archive,
+  ChevronRight,
+  MoreHorizontal,
   Plus,
   Dumbbell,
   Search,
@@ -66,6 +70,13 @@ function strColorIdx(str: string): number {
   let h = 0
   for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
   return Math.abs(h) % ROUTINE_COLORS.length
+}
+
+/** «2026-10-03» → «3/10». */
+function shortDate(ymd: string | null | undefined): string {
+  if (!ymd) return '—'
+  const [, m, d] = ymd.slice(0, 10).split('-').map(Number)
+  return m && d ? `${d}/${m}` : '—'
 }
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -158,6 +169,44 @@ function sortRoutinesList(list: RoutineWithStudent[], sort: RoutineTableSort): R
       break
   }
   return copy
+}
+
+/** v2: lo que se usa poco (rutinas eliminadas) queda en un menú «…». */
+function RoutinesMoreMenu({ showDeleted, onToggleDeleted }: { showDeleted: boolean; onToggleDeleted: () => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      className="w-56 p-1"
+      trigger={({ ref, onClick, ...a11y }) => (
+        <button
+          ref={ref}
+          type="button"
+          onClick={onClick}
+          title="Más acciones"
+          aria-label="Más acciones"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-surface-border/75 px-3 text-ink-secondary transition-colors hover:text-ink-primary"
+          {...a11y}
+        >
+          <MoreHorizontal className="h-4 w-4 opacity-70" aria-hidden />
+        </button>
+      )}
+    >
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-ink-primary transition-colors hover:bg-surface-elevated"
+        onClick={() => {
+          setOpen(false)
+          onToggleDeleted()
+        }}
+      >
+        <Archive className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+        {showDeleted ? 'Ocultar eliminadas' : 'Ver rutinas eliminadas'}
+      </button>
+    </Popover>
+  )
 }
 
 function RoutinesFiltersDropdown({
@@ -353,6 +402,7 @@ export function RoutinesPage() {
   const [filterLevel, setFilterLevel] = useState<RoutineLevelFilter>('')
   const [filterStatus, setFilterStatus] = useState<RoutineStatusFilter>('')
   const [tableSort, setTableSort] = useState<RoutineTableSort>('recommended')
+  const [showDeleted, setShowDeleted] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoutineWithStudent | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -557,13 +607,36 @@ export function RoutinesPage() {
 
   const filterActiveCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0)
 
+  /** v2: pastillas de estado con su cantidad (las que no tienen ninguna no se muestran). */
+  const statusOptions = useMemo(() => {
+    const count = (st: RoutineStatus) => list.filter((r) => r.status === st).length
+    const opts: { value: RoutineStatusFilter; label: string; count: number }[] = [
+      { value: '', label: 'Todas', count: list.filter((r) => r.status !== 'completada').length },
+      { value: 'activa', label: 'Activas', count: count('activa') },
+      { value: 'por_vencer', label: 'Por vencer', count: count('por_vencer') },
+      { value: 'vencida', label: 'Vencidas', count: count('vencida') },
+      { value: 'pausada', label: 'Pausadas', count: count('pausada') },
+      { value: 'completada', label: 'Completadas', count: count('completada') },
+    ]
+    return opts.filter((o) => o.value === '' || o.count > 0 || o.value === filterStatus)
+  }, [list, filterStatus])
+
   if (tabPlantillas) {
     return <Navigate to="/exercises/blueprints" replace />
   }
 
   return (
     <div>
-      <Header title="Rutinas" />
+      <Header
+        title="Rutinas"
+        actions={
+          IS_V2 ? (
+            <Button size="sm" title="Nueva rutina" onClick={openNewRoutineModal} icon={<Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />}>
+              Nueva rutina
+            </Button>
+          ) : undefined
+        }
+      />
       <div className="px-4 pt-4 lg:px-6">
         <AdvisoriesSectionNav />
       </div>
@@ -607,9 +680,57 @@ export function RoutinesPage() {
           </Suspense>
         ) : (
           <div className="max-w-[1600px] space-y-4">
-            <StudentRoutineWeekPanel />
-            <RoutineDeletionHistoryPanel onRestored={() => void fetchRoutines()} />
+            {IS_V2 ? null : <StudentRoutineWeekPanel />}
+            {IS_V2 ? null : <RoutineDeletionHistoryPanel onRestored={() => void fetchRoutines()} />}
 
+            {IS_V2 ? (
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="relative min-w-0 lg:max-w-xs lg:flex-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
+                    <Search className="h-4 w-4 text-ink-muted" aria-hidden />
+                  </span>
+                  <input
+                    ref={searchRef}
+                    type="search"
+                    placeholder="Buscar rutina o alumno…"
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-label="Buscar rutinas"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50"
+                  />
+                </div>
+                <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:shrink-0 lg:overflow-visible lg:px-0 [&>div]:flex-nowrap">
+                  <SegmentedV2
+                    value={filterStatus || ('all' as const)}
+                    onChange={(v) => setFilterStatus(v === 'all' || v === filterStatus ? '' : (v as RoutineStatusFilter))}
+                    options={statusOptions.map((o) => ({ value: o.value || ('all' as const), label: o.label, count: o.count }))}
+                  />
+                </div>
+                <div className="flex items-center gap-2 lg:ml-auto">
+                  <RoutinesFiltersDropdown
+                    filterLevel={filterLevel}
+                    setFilterLevel={setFilterLevel}
+                    filterStatus={filterStatus}
+                    setFilterStatus={setFilterStatus}
+                  />
+                  <RoutinesSortDropdown value={tableSort} onChange={setTableSort} />
+                  <RoutinesMoreMenu showDeleted={showDeleted} onToggleDeleted={() => setShowDeleted((v) => !v)} />
+                  {filterLevel ? (
+                    <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary">
+                      {LEVEL_LABELS[filterLevel]}
+                      <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" aria-label="Quitar filtro nivel" onClick={() => setFilterLevel('')}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {IS_V2 ? <RoutineDeletionHistoryPanel controlledOpen={showDeleted} onRestored={() => void fetchRoutines()} /> : null}
+
+            {IS_V2 ? null : (
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
               <div className="relative min-h-10 min-w-0 flex-1">
                 <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
@@ -683,6 +804,7 @@ export function RoutinesPage() {
                 </Button>
               </div>
             </div>
+            )}
 
             {loading ? (
               <div className="flex justify-center py-16">
@@ -707,7 +829,7 @@ export function RoutinesPage() {
               />
             ) : (
               <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">
-                <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className={IS_V2 ? "hidden" : "flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"}>
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
                     <p className="truncate text-2xs text-ink-muted">
@@ -734,8 +856,44 @@ export function RoutinesPage() {
                   </div>
                 </div>
 
-                <div className="max-h-[min(72vh,40rem)] overflow-auto">
-                  <table className="w-full min-w-[980px] border-collapse text-body-sm leading-snug hh-table">
+                {/* v2 · celu: una tarjeta por rutina en vez de la tabla ancha. */}
+                {IS_V2 ? (
+                  <ul className="divide-y divide-surface-border/70 sm:hidden">
+                    {filteredSorted.map((r) => {
+                      const colors = ROUTINE_COLORS[strColorIdx(routineStudentName(r) || r.id)]
+                      const st = weekStatusOrEmpty(weekByStudent, r.student_id ?? '')
+                      return (
+                        <li key={r.id} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/routines/${r.id}`)}
+                            className="flex w-full items-start gap-3 py-3 pl-4 pr-3 text-left"
+                          >
+                            <span className={cn('absolute inset-y-0 left-0 w-1', colors.bar)} aria-hidden />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-ink-primary">{r.name}</p>
+                              <p className="mt-0.5 truncate text-xs text-ink-muted">
+                                {routineStudentName(r) || '—'} · {shortDate(r.start_date)} → {shortDate(r.end_date)}
+                              </p>
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                <Badge status={r.status} />
+                                <RoutineWeekSquares
+                                  totalWeeks={blocksByRoutine.get(r.id) ?? 0}
+                                  currentWeek={st.weekNumber}
+                                  finished={st.finished}
+                                  lastWeek={st.lastWeek}
+                                />
+                              </div>
+                            </div>
+                            <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                ) : null}
+                <div className={cn('max-h-[min(72vh,40rem)] overflow-auto', IS_V2 && 'hidden sm:block')}>
+                  <table className={cn('w-full border-collapse text-body-sm leading-snug hh-table', IS_V2 ? 'min-w-[720px]' : 'min-w-[980px]')}>
                     <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                       <tr className="text-left">
                         <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Rutina</th>
@@ -745,7 +903,7 @@ export function RoutinesPage() {
                         <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Estado</th>
                         <th className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Semana</th>
                         <th className="whitespace-nowrap px-4 py-2.5 text-right text-3xs font-semibold text-ink-muted sm:px-5">
-                          Acciones
+                          {IS_V2 ? <span className="sr-only">Acciones</span> : 'Acciones'}
                         </th>
                       </tr>
                     </thead>
@@ -757,7 +915,7 @@ export function RoutinesPage() {
                         <tr
                           key={r.id}
                           style={tableRowEnterStyle(rowIndex)}
-                          className="cursor-pointer transition-colors hover:bg-surface-elevated/35"
+                          className="group cursor-pointer transition-colors hover:bg-surface-elevated/35"
                           onClick={() => renamingId !== r.id && navigate(`/routines/${r.id}`)}
                         >
                           {/* Rutina con barra de color + rename inline */}
@@ -821,7 +979,7 @@ export function RoutinesPage() {
                             </div>
                           </td>
                           <td className={cn('hh-row-drop-in whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5')}>
-                            {formatDate(r.start_date)} → {formatDate(r.end_date)}
+                            {IS_V2 ? `${shortDate(r.start_date)} → ${shortDate(r.end_date)}` : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`}
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <Badge status={r.level} />
@@ -843,6 +1001,22 @@ export function RoutinesPage() {
                             })()}
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
+                            {IS_V2 ? (
+                              <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-lg:opacity-100">
+                                <Button variant="ghost" size="iconSm" type="button" className="text-ink-muted" title="Editar datos" aria-label="Editar datos"
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/routines/${r.id}/edit`) }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="iconSm" type="button" className="text-ink-muted" title="Duplicar" aria-label="Duplicar"
+                                  onClick={(e) => { e.stopPropagation(); setDuplicateTarget(r) }}>
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="iconSm" type="button" className="text-ink-muted hover:bg-status-expired/10 hover:text-status-expired" title="Eliminar" aria-label="Eliminar"
+                                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(r) }}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={(e) => {
@@ -875,6 +1049,7 @@ export function RoutinesPage() {
                                 Eliminar
                               </button>
                             </div>
+                            )}
                           </td>
                         </tr>
                         )
