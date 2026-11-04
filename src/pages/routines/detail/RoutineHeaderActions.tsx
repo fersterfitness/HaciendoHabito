@@ -14,6 +14,7 @@ import {
   Trash2,
   UserPlus,
 } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
 import { Popover } from '@/components/ui/Popover'
 import { Spinner } from '@/components/ui/Spinner'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -60,7 +61,7 @@ export function RoutineHeaderActions(p: Props) {
 
   return (
     <div className="flex items-center gap-1">
-      <div className="hidden items-center gap-0.5 sm:flex">
+      <div className={IS_V2 ? 'hidden' : 'hidden items-center gap-0.5 sm:flex'}>
         <button type="button" onClick={p.onGuide} disabled={!p.hasBlocks} className={ghostBtn} title="Guía semanal de progresión (solo entrenador)">
           <Table2 className="h-3.5 w-3.5" />
           <span className="hidden xl:inline">Guía semanal</span>
@@ -142,14 +143,16 @@ export function RoutineHeaderActions(p: Props) {
         )}
       >
         <div className="py-1">
-          <div className="sm:hidden">
+          <div className={IS_V2 ? undefined : 'sm:hidden'}>
             <MenuItem icon={<Table2 />} disabled={!p.hasBlocks} onClick={() => run(p.onGuide)}>Guía semanal</MenuItem>
             <MenuItem icon={<BarChart3 />} disabled={!p.hasBlocks} onClick={() => run(p.onVolume)}>Volumen</MenuItem>
             {p.hasStudent ? <MenuItem icon={<CalendarRange />} onClick={() => run(p.onMacro)}>Calendario</MenuItem> : null}
             {!p.isLibrary ? (
-              <MenuItem icon={p.completed ? <RefreshCw /> : <CheckCircle2 />} onClick={() => run(p.onToggleCompleted)}>
-                {p.completed ? 'Reactivar rutina' : 'Marcar rutina realizada'}
-              </MenuItem>
+              <div className={IS_V2 ? 'sm:hidden' : undefined}>
+                <MenuItem icon={p.completed ? <RefreshCw /> : <CheckCircle2 />} onClick={() => run(p.onToggleCompleted)}>
+                  {p.completed ? 'Reactivar rutina' : 'Marcar rutina realizada'}
+                </MenuItem>
+              </div>
             ) : null}
             <MenuDivider />
           </div>

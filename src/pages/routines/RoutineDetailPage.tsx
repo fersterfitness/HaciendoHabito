@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Plus, X, Calendar, Clock, CheckCircle2 } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
 import { useDebounce } from '@/hooks/useDebounce'
 import { supabase } from '@/lib/supabase'
 import { useRoutines } from '@/hooks/useRoutines'
@@ -1135,6 +1136,43 @@ export function RoutineDetailPage() {
 
       <div className="page-shell-x page-shell-y space-y-4">
 
+        {IS_V2 ? (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-surface-border bg-surface-card px-5 py-4">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] text-ink-muted">{isLibrary ? 'Rutina preestablecida' : routine.name}</p>
+              <h2 className="truncate text-[18px] font-semibold tracking-[-0.01em] text-ink-primary">
+                {isLibrary ? routine.name : (studentLabel ?? '—')}
+              </h2>
+              <p className="mt-1 text-[13px] text-ink-muted">
+                {[
+                  `Desde ${formatDate(routine.start_date)}`,
+                  `${blocks.length} ${blocks.length === 1 ? 'semana' : 'semanas'}`,
+                  `${totalExercises} ejercicios`,
+                ].join(' · ')}
+                {!isLibrary && (checkInWeek.lastWeek || checkInWeek.weekNumber) ? (
+                  <span className={cn('ml-2 font-medium', checkInWeek.lastWeek ? 'text-status-expired' : 'text-ink-primary')}>
+                    {checkInWeek.lastWeek ? 'Última semana' : `Semana ${checkInWeek.weekNumber} de ${blocks.length || '?'}`}
+                  </span>
+                ) : null}
+              </p>
+            </div>
+            {isLibrary ? null : (
+              <select
+                aria-label="Estado de la rutina"
+                value={routine.status}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className="h-9 shrink-0 rounded-full border border-surface-border bg-surface-elevated px-3.5 text-[13px] font-medium text-ink-primary outline-none focus-visible:ring-2 focus-visible:ring-ink-primary/20"
+              >
+                {ROUTINE_STATUSES.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ) : (
+        <>
         {/* Info barra compacta (sticky al scrollear) */}
         <div className="sticky top-14 sm:top-16 z-20 -mx-[var(--density-page-x)] px-[var(--density-page-x)] lg:-mx-[var(--density-page-x-lg)] lg:px-[var(--density-page-x-lg)] pt-1 pb-3 bg-surface-base/92 backdrop-blur-md border-b border-surface-border/50">
         <div className="bg-surface-card border border-surface-border rounded-2xl p-4 space-y-3 shadow-card">
@@ -1199,6 +1237,8 @@ export function RoutineDetailPage() {
           )}
         </div>
         </div>
+        </>
+        )}
 
         {/* Objetivo */}
         {(routine.objective || routine.notes) && (
@@ -1247,8 +1287,8 @@ export function RoutineDetailPage() {
 
         {/* Divisor semanas */}
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-ink-muted ">
-            Semanas / Bloques ({blocks.length})
+          <span className={IS_V2 ? 'text-[13px] font-medium text-ink-primary' : 'text-xs font-semibold text-ink-muted '}>
+            {IS_V2 ? 'Semanas' : `Semanas / Bloques (${blocks.length})`}
           </span>
           <div className="flex-1 h-px bg-surface-border" />
         </div>

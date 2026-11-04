@@ -49,6 +49,7 @@ import {
   nutritionShellClass,
 } from '@/lib/nutrition/nutritionAreaUi'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 import type { NutritionPlanLibrary } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -306,19 +307,30 @@ export function NutritionTemplatesPage() {
 
   return (
     <div>
-      <Header title="Planes de alimentación" />
+      <Header
+        title={IS_V2 ? 'Planes' : 'Planes de alimentación'}
+        actions={
+          IS_V2 ? (
+            <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => void createPlan()}>
+              Crear plan
+            </Button>
+          ) : undefined
+        }
+      />
 
       <DirectoryPageShell className={nutritionShellClass}>
         <NutritionPlansTabs />
 
         <DirectoryTableShell
-          title="Biblioteca de planes"
+          title={IS_V2 ? 'Biblioteca' : 'Biblioteca de planes'}
           subtitle={
             search
               ? `${filteredPlans.length} coincidencias de ${plans.length}`
-              : 'Clic en una fila para editar la grilla'
+              : IS_V2
+                ? undefined
+                : 'Clic en una fila para editar la grilla'
           }
-          count={filteredPlans.length}
+          count={IS_V2 ? undefined : filteredPlans.length}
         >
           <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/20 px-4 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5">
             <div className="min-w-0 flex-1">
@@ -335,7 +347,7 @@ export function NutritionTemplatesPage() {
               variant="gradientSecondary"
               icon={<Plus className="h-3.5 w-3.5" />}
               onClick={() => void createPlan()}
-              className="w-full shrink-0 sm:w-auto"
+              className={IS_V2 ? 'hidden' : 'w-full shrink-0 sm:w-auto'}
             >
               Crear plan
             </Button>

@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Plus, Search, Dumbbell, Trash2, Pencil, Tags, X } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass } from '@/components/v2/tabStyle'
 import { supabase } from '@/lib/supabase'
 import { slugifyMuscleCatalogName, nextMuscleGroupSortOrder } from '@/lib/exercise/muscleGroupCatalog'
 import { useAuthStore } from '@/stores/authStore'
@@ -172,7 +174,16 @@ export function ExercisesPage() {
 
   return (
     <div>
-      <Header title="Base de datos" />
+      <Header
+        title="Base de datos"
+        actions={
+          IS_V2 ? (
+            <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/exercises/new')}>
+              Nuevo ejercicio
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="max-w-[1600px] space-y-3 px-4 py-4 lg:px-6 lg:py-6">
         <ExercisesSectionNav />
@@ -205,9 +216,10 @@ export function ExercisesPage() {
                 'hover:border-surface-inputBorder hover:bg-surface-elevated/90 ',
               )}
             >
-              <span className="hidden sm:inline">Nueva categoría</span>
+              <span className="hidden sm:inline">{IS_V2 ? 'Categoría' : 'Nueva categoría'}</span>
               <span className="sm:hidden">Categoría</span>
             </Button>
+            {IS_V2 ? null : (
             <Button
               type="button"
               variant="gradientSecondary"
@@ -216,6 +228,7 @@ export function ExercisesPage() {
             >
               Nuevo
             </Button>
+            )}
           </div>
         </div>
 
@@ -226,7 +239,7 @@ export function ExercisesPage() {
             <button
               type="button"
               onClick={() => setMuscleFilter(null)}
-              className={cn(
+              className={IS_V2 ? v2TabClass(muscleFilter === null, 'sm') : cn(
                 'inline-flex items-center rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                 muscleFilter === null
                   ? 'border-zinc-700 bg-zinc-800 text-white '
@@ -234,7 +247,7 @@ export function ExercisesPage() {
               )}
             >
               Todos
-              {muscleFilter === null && <span className="ml-1.5 tabular-nums text-ink-muted ">{exercises.length}</span>}
+              {muscleFilter === null && <span className={cn('tabular-nums', IS_V2 ? 'opacity-70' : 'ml-1.5 text-ink-muted ')}>{exercises.length}</span>}
             </button>
 
             {muscleGroups
@@ -249,7 +262,7 @@ export function ExercisesPage() {
                     key={g.id}
                     type="button"
                     onClick={() => setMuscleFilter(isActive ? null : g.id)}
-                    className={cn(
+                    className={IS_V2 ? v2TabClass(isActive, 'sm') : cn(
                       'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                       isActive
                         ? cn(palette.bg, palette.border, palette.text, 'ring-1 ring-inset', palette.border)
@@ -265,7 +278,7 @@ export function ExercisesPage() {
                     <span className={cn('tabular-nums', isActive ? 'opacity-70' : 'text-ink-muted ')}>
                       {count}
                     </span>
-                    {isActive && <X className="h-3 w-3 opacity-60" />}
+                    {isActive && !IS_V2 && <X className="h-3 w-3 opacity-60" />}
                   </button>
                 )
               })}

@@ -11,6 +11,7 @@ import { Header } from '@/components/layout/Header'
 import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { cn } from '@/lib/utils'
 import { IS_V2, setUiVersion } from '@/lib/uiVersion'
+import { v2TabClass } from '@/components/v2/tabStyle'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -85,10 +86,19 @@ export function SettingsPage() {
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-sm font-medium text-ink-primary">Tema</p>
-                <p className="text-xs text-ink-muted mt-0.5">
+                <p className={cn('text-xs text-ink-muted mt-0.5', IS_V2 && 'hidden')}>
                   {theme === 'dark' ? 'Modo oscuro activo' : 'Modo claro activo'}
                 </p>
               </div>
+              {IS_V2 ? (
+                <div role="radiogroup" aria-label="Tema" className="inline-flex gap-1.5">
+                  {(['light', 'dark'] as const).map((t) => (
+                    <button key={t} type="button" role="radio" aria-checked={theme === t} onClick={() => (theme === t ? undefined : toggleTheme())} className={v2TabClass(theme === t)}>
+                      {t === 'light' ? 'Claro' : 'Oscuro'}
+                    </button>
+                  ))}
+                </div>
+              ) : (
               <button
                 type="button"
                 onClick={toggleTheme}
@@ -107,16 +117,26 @@ export function SettingsPage() {
                   </>
                 )}
               </button>
+              )}
             </div>
             <div className="flex items-center justify-between py-1 pt-4 border-t border-surface-border/60">
               <div>
-                <p className="text-sm font-medium text-ink-primary">Densidad de la interfaz</p>
-                <p className="text-xs text-ink-muted mt-0.5">
+                <p className="text-sm font-medium text-ink-primary">{IS_V2 ? 'Densidad' : 'Densidad de la interfaz'}</p>
+                <p className={cn('text-xs text-ink-muted mt-0.5', IS_V2 && 'hidden')}>
                   {density === 'compact'
                     ? 'Más filas visibles en tablas y listados'
                     : 'Espaciado cómodo (recomendado)'}
                 </p>
               </div>
+              {IS_V2 ? (
+                <div role="radiogroup" aria-label="Densidad" className="inline-flex gap-1.5">
+                  {(['comfortable', 'compact'] as const).map((d) => (
+                    <button key={d} type="button" role="radio" aria-checked={density === d} onClick={() => setDensity(d)} className={v2TabClass(density === d)}>
+                      {d === 'comfortable' ? 'Cómoda' : 'Compacta'}
+                    </button>
+                  ))}
+                </div>
+              ) : (
               <button
                 type="button"
                 onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')}
@@ -128,15 +148,16 @@ export function SettingsPage() {
                 <Rows3 className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                 {density === 'compact' ? 'Cómoda' : 'Compacta'}
               </button>
+              )}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border/60 py-1 pt-4">
               <div>
                 <p className="text-sm font-medium text-ink-primary">Diseño</p>
                 <p className="mt-0.5 text-xs text-ink-muted">
-                  {IS_V2 ? 'Versión nueva: más simple, con atajos y buscador' : 'Versión actual'} · se guarda en tu cuenta
+                  {IS_V2 ? 'Se guarda en tu cuenta' : 'Versión actual · se guarda en tu cuenta'}
                 </p>
               </div>
-              <div role="radiogroup" aria-label="Diseño de la interfaz" className="inline-flex rounded-xl border border-surface-border bg-surface-elevated p-0.5">
+              <div role="radiogroup" aria-label="Diseño de la interfaz" className={IS_V2 ? 'inline-flex gap-1.5' : 'inline-flex rounded-xl border border-surface-border bg-surface-elevated p-0.5'}>
                 {(['v1', 'v2'] as const).map((v) => {
                   const on = (v === 'v2') === IS_V2
                   return (
@@ -146,7 +167,7 @@ export function SettingsPage() {
                       role="radio"
                       aria-checked={on}
                       onClick={() => (on ? undefined : void setUiVersion(v))}
-                      className={cn(
+                      className={IS_V2 ? v2TabClass(on) : cn(
                         'rounded-[10px] px-3.5 py-1.5 text-sm font-medium transition-colors',
                         on ? 'bg-surface-card text-ink-primary shadow-xs' : 'text-ink-muted hover:text-ink-primary',
                         appFocusRingClassName,
@@ -161,7 +182,7 @@ export function SettingsPage() {
           </FormSection>
         </Card>
 
-        {(profile?.role === 'trainer' || profile?.role === 'admin') && (
+        {!IS_V2 && (profile?.role === 'trainer' || profile?.role === 'admin') && (
         <Card>
           <FormSection title="Comunicación con alumnos">
             <p className="text-sm text-ink-secondary mb-3">
@@ -214,14 +235,15 @@ export function SettingsPage() {
 
         <Card>
           <FormSection title="Planes Web">
-            <p className="text-sm text-ink-secondary">
+            <p className={cn('text-sm text-ink-secondary', IS_V2 && 'hidden')}>
               Catálogo del formulario público: Servicio integral, Servicio Dual, Entrenamiento, Nutrición y Psicólogo Deportivo. Fotos del equipo,
               ofertas y textos sin tocar código.
             </p>
             <Button asChild variant="secondary" icon={<LayoutTemplate className="h-4 w-4" />}>
               <Link to="/settings/web-plans">Gestionar Planes Web</Link>
             </Button>
-            <p className="text-2xs text-ink-muted mt-2">
+            {IS_V2 ? <p className="-mt-1 text-[13px] text-ink-muted">Catálogo, fotos y accesos del formulario público.</p> : null}
+            <p className={cn('text-2xs text-ink-muted mt-2', IS_V2 && 'hidden')}>
               Solicitudes de acceso al formulario público: en Planes Web, sección «Accesos al formulario web» (o tocá la
               notificación en Inicio).
             </p>

@@ -34,6 +34,7 @@ import {
   nutritionShellClass,
 } from '@/lib/nutrition/nutritionAreaUi'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
 import { filterFoodCatalogEs, type FoodCatalogItemEs } from '@/lib/nutrition/foodCatalogEs'
 import { useAuthStore } from '@/stores/authStore'
@@ -457,10 +458,12 @@ export function NutritionFoodsPage() {
       <DirectoryPageShell className={cn('max-w-[1600px]', nutritionShellClass)}>
         <TrainerMealPlansSectionNav />
         <NutritionLibraryTabs />
+        {IS_V2 ? null : (
         <PageSectionTitle
           title="Biblioteca y carga"
           description="Catálogo en español, USDA FDC o manual. Todo queda en Mi lista por categoría."
         />
+        )}
 
         <div className="grid gap-4 xl:grid-cols-12 xl:items-start xl:gap-5">
           <div className="space-y-4 xl:col-span-8 2xl:col-span-9">
@@ -481,7 +484,7 @@ export function NutritionFoodsPage() {
               </span>
             ) : null}
           </div>
-          <p className={cn('mb-3', nutritionHintClass)}>Tu biblioteca personal, agrupada por categoría.</p>
+          <p className={cn('mb-3', nutritionHintClass, IS_V2 && 'hidden')}>Tu biblioteca personal, agrupada por categoría.</p>
           {loading ? (
             <div className="flex justify-center py-10">
               <Spinner size="md" className="text-ink-muted" variant="spin" />
@@ -560,7 +563,7 @@ export function NutritionFoodsPage() {
             <BookOpen className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
             Catálogo en español
           </h2>
-          <p className={nutritionHintClass}>
+          <p className={cn(nutritionHintClass, IS_V2 && 'hidden')}>
             Buscá por nombre. Carnes/guarniciones en <span className={foodsDetailTertiary}>cocido</span>; cereales/lácteos según
             uso. Nuevos: <span className={foodsDetailTertiary}>USDA FDC</span> en el panel derecho.
           </p>
@@ -583,7 +586,7 @@ export function NutritionFoodsPage() {
               className={nutritionInputClass}
             />
             {catalogQuery.trim().length === 0 ? (
-              <p className={nutritionHintClass} id="nutrition-catalog-results" role="status">
+              <p className={cn(nutritionHintClass, IS_V2 && 'sr-only')} id="nutrition-catalog-results" role="status">
                 La lista aparece cuando escribís al menos un carácter.
               </p>
             ) : !catalogPanelOpen ? (
@@ -707,7 +710,7 @@ export function NutritionFoodsPage() {
                     nutritionInputClass,
                   )}
                 />
-                <p className={cn('mt-1', nutritionHintClass)}>
+                <p className={cn('mt-1', nutritionHintClass, IS_V2 && 'hidden')}>
                   Texto libre · vacío = General · máx. {CATEGORY_MAX} caracteres
                 </p>
               </div>
@@ -794,13 +797,13 @@ export function NutritionFoodsPage() {
                         className={nutritionInputClass}
                       />
                     </div>
-                    <p className={cn('flex-1 pb-0.5', nutritionHintClass)}>
+                    <p className={cn('flex-1 pb-0.5', nutritionHintClass, IS_V2 && 'hidden')}>
                       Define la base al cargar gramos en el plan.
                     </p>
                   </div>
                 ) : null}
               </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              <div className={IS_V2 ? 'grid grid-cols-2 gap-2.5 sm:col-span-2 sm:grid-cols-3' : 'grid grid-cols-2 gap-2.5 sm:grid-cols-3'}>
                 <div>
                   <label className={nutritionLabelClass}>Proteínas (g)</label>
                   <Input value={protein} onChange={(e) => setProtein(e.target.value)} inputMode="decimal" className={cn(nutritionInputClass, 'h-10 text-sm')} />

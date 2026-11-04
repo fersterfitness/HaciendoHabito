@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { ClipboardList, FileDown, Pencil, Plus, Search, Trash2, ChevronDown, Filter, X, ArrowDownUp, Check } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
 import toast from 'react-hot-toast'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -391,7 +392,16 @@ export function MealPlansPage() {
 
   return (
     <div>
-      <Header title="Planes de alimentación" />
+      <Header
+        title="Planes de alimentación"
+        actions={
+          IS_V2 ? (
+            <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/nutrition/planning')}>
+              Nuevo plan
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="max-w-[1600px] space-y-4 px-4 py-6 lg:px-6 lg:py-8">
         <TrainerMealPlansSectionNav />
@@ -441,6 +451,7 @@ export function MealPlansPage() {
             <Button
               type="button"
               variant="gradientSecondary"
+              className={IS_V2 ? 'hidden' : undefined}
               title="Armar plan y asignar"
               onClick={() => navigate('/nutrition/planning')}
               icon={<Plus className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />}

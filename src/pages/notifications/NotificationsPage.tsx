@@ -176,12 +176,13 @@ export function NotificationsPage() {
                               <span className={cn('block truncate text-[13px]', n.is_read ? 'text-ink-secondary' : 'font-medium text-ink-primary')}>
                                 {n.title}
                               </span>
-                              <span className="mt-0.5 block truncate text-[12px] text-ink-muted">
-                                {typeLabel}
-                                {n.body ? ` · ${n.body}` : ''}
-                              </span>
+                              {n.body || typeLabel !== n.type ? (
+                                <span className="mt-0.5 block truncate text-[12px] text-ink-muted">{n.body || typeLabel}</span>
+                              ) : null}
                             </button>
-                            <span className="shrink-0 text-[12px] tabular-nums text-ink-muted">{formatDate(n.created_at, 'HH:mm')}</span>
+                            <span className="shrink-0 text-[12px] tabular-nums text-ink-muted">
+                              {formatDate(n.created_at, group === 'Hoy' || group === 'Ayer' ? 'HH:mm' : group === 'Esta semana' ? 'EEE HH:mm' : 'd MMM')}
+                            </span>
                             {!n.is_read ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-primary" aria-label="Sin leer" /> : null}
                             <Button
                               variant="ghost"

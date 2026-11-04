@@ -8,6 +8,8 @@ import {
   CalendarX,
   FolderOpen,
   LineChart,
+  MoreHorizontal,
+  Archive,
   Plus,
   Search,
   Users,
@@ -37,6 +39,9 @@ import {
 } from '@/components/nutrition/NutritionPatientDirectory'
 import { NutritionPatientDetailView } from '@/pages/nutrition/NutritionPatientDetailPage'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass, v2TabCountClass } from '@/components/v2/tabStyle'
+import { Popover } from '@/components/ui/Popover'
 import type { NutritionPatientFollowup } from '@/types/database'
 import toast from 'react-hot-toast'
 
@@ -68,17 +73,17 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
+      className={IS_V2 ? v2TabClass(active, 'sm') : cn(
         'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
           ? 'border-brand-tertiary bg-brand-tertiary/10 text-brand-tertiary'
           : 'border-surface-border/70 text-ink-muted hover:border-surface-border hover:text-ink-secondary',
       )}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {IS_V2 ? null : <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />}
       {label}
       <span
-        className={cn(
+        className={IS_V2 ? v2TabCountClass(active) : cn(
           'ml-0.5 rounded-full px-1.5 text-3xs tabular-nums',
           active ? 'bg-brand-tertiary/15 text-brand-tertiary' : 'bg-surface-elevated text-ink-muted',
         )}
@@ -89,7 +94,35 @@ function FilterChip({
   )
 }
 
+function PatientsMoreMenu({ onMenus, showDeleted, onToggleDeleted }: { onMenus: () => void; showDeleted: boolean; onToggleDeleted: () => void }) {
+  const [open, setOpen] = useState(false)
+  const item = 'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-ink-primary transition-colors hover:bg-surface-elevated'
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      className="w-52 p-1"
+      trigger={({ ref, onClick, ...a11y }) => (
+        <button ref={ref} type="button" onClick={onClick} className={directoryToolbarBtnClassName} title="Más acciones" aria-label="Más acciones" {...a11y}>
+          <MoreHorizontal className="h-4 w-4 opacity-70" aria-hidden />
+        </button>
+      )}
+    >
+      <button type="button" className={item} onClick={() => { setOpen(false); onMenus() }}>
+        <BookOpen className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+        Menús estacionales
+      </button>
+      <button type="button" className={item} onClick={() => { setOpen(false); onToggleDeleted() }}>
+        <Archive className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+        {showDeleted ? 'Ocultar eliminados' : 'Ver eliminados'}
+      </button>
+    </Popover>
+  )
+}
+
 export function NutritionPage() {
+  const [showDeletedV2, setShowDeletedV2] = useState(false)
   const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
@@ -239,9 +272,18 @@ export function NutritionPage() {
 
   return (
     <div>
-      <Header title="Nutrición · Pacientes" />
+      <Header
+        title={IS_V2 ? 'Pacientes' : 'Nutrición · Pacientes'}
+        actions={
+          IS_V2 ? (
+            <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setNewPatientOpen(true)}>
+              Nuevo paciente
+            </Button>
+          ) : undefined
+        }
+      />
       <DirectoryPageShell className={nutritionShellClass}>
-        <NutritionPatientAreaHeader />
+        {IS_V2 ? null : <NutritionPatientAreaHeader />}
         <PageToolbar>
           <div className="flex flex-col lg:flex-row gap-4 w-full lg:items-center lg:justify-between">
             <div className="w-full max-w-lg">
@@ -253,6 +295,7 @@ export function NutritionPage() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {IS_V2 ? null : (
               <button
                 type="button"
                 className={directoryToolbarBtnClassName}
@@ -261,6 +304,7 @@ export function NutritionPage() {
                 <BookOpen className="h-4 w-4 opacity-70" aria-hidden />
                 Menús estacionales
               </button>
+              )}
               <button
                 type="button"
                 className={directoryToolbarBtnClassName}
@@ -269,6 +313,9 @@ export function NutritionPage() {
                 <LineChart className="h-4 w-4 opacity-70" aria-hidden />
                 Evolución
               </button>
+              {IS_V2 ? (
+                <PatientsMoreMenu onMenus={() => navigate('/nutrition/menus')} showDeleted={showDeletedV2} onToggleDeleted={() => setShowDeletedV2((v) => !v)} />
+              ) : (
               <Button
                 type="button"
                 size="sm"
@@ -278,6 +325,7 @@ export function NutritionPage() {
               >
                 Nuevo paciente
               </Button>
+              )}
             </div>
           </div>
         </PageToolbar>
@@ -299,6 +347,7 @@ export function NutritionPage() {
           entityLabel="Pacientes"
           entityLabelSingular="paciente"
           onRestored={() => setReloadToken((t) => t + 1)}
+          controlledOpen={IS_V2 ? showDeletedV2 : undefined}
         />
 
         {loading ? (
@@ -330,7 +379,7 @@ export function NutritionPage() {
           )
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center justify-between px-0.5">
+            <div className={cn('flex items-center justify-between px-0.5', IS_V2 && 'hidden')}>
               <h2 className="text-sm font-semibold text-ink-primary">
                 Pacientes <span className="font-normal text-ink-muted">· {filteredRows.length}</span>
               </h2>
