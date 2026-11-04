@@ -10,6 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { Header } from '@/components/layout/Header'
 import { ThemeToggleMoonIcon, ThemeToggleSunIcon } from '@/components/ui/ThemeToggleIcons'
 import { cn } from '@/lib/utils'
+import { IS_V2, setUiVersion } from '@/lib/uiVersion'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -127,6 +128,35 @@ export function SettingsPage() {
                 <Rows3 className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                 {density === 'compact' ? 'Cómoda' : 'Compacta'}
               </button>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border/60 py-1 pt-4">
+              <div>
+                <p className="text-sm font-medium text-ink-primary">Diseño</p>
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  {IS_V2 ? 'Versión nueva: más simple, con atajos y buscador' : 'Versión actual'} · se guarda en tu cuenta
+                </p>
+              </div>
+              <div role="radiogroup" aria-label="Diseño de la interfaz" className="inline-flex rounded-xl border border-surface-border bg-surface-elevated p-0.5">
+                {(['v1', 'v2'] as const).map((v) => {
+                  const on = (v === 'v2') === IS_V2
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => (on ? undefined : void setUiVersion(v))}
+                      className={cn(
+                        'rounded-[10px] px-3.5 py-1.5 text-sm font-medium transition-colors',
+                        on ? 'bg-surface-card text-ink-primary shadow-xs' : 'text-ink-muted hover:text-ink-primary',
+                        appFocusRingClassName,
+                      )}
+                    >
+                      {v === 'v1' ? 'Actual' : 'Nueva'}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </FormSection>
         </Card>

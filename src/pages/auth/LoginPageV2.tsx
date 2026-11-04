@@ -265,7 +265,7 @@ export function LoginPageV2() {
                   </span>
                   <div className="flex items-center gap-2">
                     <Link
-                      to="/v2/form"
+                      to="/form"
                       className={cn(
                         'shrink-0 rounded-full border border-white/90 px-4 py-2',
                         'bg-black/50 text-2xs font-semibold text-white shadow-[0_2px_12px_rgba(0,0,0,0.35)]',
@@ -442,7 +442,7 @@ export function LoginPageV2() {
                 <p className="loginv2-fade-up loginv2-d6 mt-6 text-center text-sm text-ink-muted">
                   ¿Querés ser parte del equipo?{' '}
                   <Link
-                    to="/v2/form"
+                    to="/form"
                     className="font-semibold text-[#c93a00] transition-colors hover:text-[#a02e00] dark:text-brand-primary dark:hover:text-brand-primary/80"
                   >
                     Inscribite

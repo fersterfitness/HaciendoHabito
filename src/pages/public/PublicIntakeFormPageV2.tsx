@@ -1,5 +1,5 @@
 /**
- * /v2/form — V2 modernizado en estilo dashboard claro.
+ * /form — V2 modernizado en estilo dashboard claro.
  *
  * Inspirado en interfaces tipo Hotelio / app de cashier: fondo cream neutro,
  * cards blancas con sombras suaves, stepper horizontal arriba, sidebar de
@@ -469,7 +469,7 @@ export function PublicIntakeFormPageV2() {
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Link
-              to="/v2/login"
+              to="/login"
               className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-2xs font-medium whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 sm:gap-1.5 sm:px-3 sm:text-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
             >
               Ya tengo cuenta

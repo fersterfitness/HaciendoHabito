@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { DialogHost } from '@/components/ui/dialogs'
@@ -7,7 +7,8 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/stores/authStore'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AppLayoutV2 } from '@/components/v2/AppLayoutV2'
-import { IS_V2, routerBasename } from '@/lib/uiVersion'
+import { IS_V2, registerUiVersionSaver, syncUiVersionFromAccount } from '@/lib/uiVersion'
+import { supabase } from '@/lib/supabase'
 import { AuthGuard } from '@/components/layout/AuthGuard'
 import { PageRouteFallback } from '@/components/layout/PageRouteFallback'
 import { LoginPageV2 as LoginPage } from '@/pages/auth/LoginPageV2'
@@ -270,9 +271,16 @@ function renderLoggedInRoutes({
   )
 }
 
+// La versión elegida en Configuración también se guarda en la cuenta, para otros dispositivos.
+registerUiVersionSaver((v) => supabase.auth.updateUser({ data: { ui_version: v } }))
+
 function AppRoutes() {
   useAuthInit()
   const { user, profile, profileChecked, loading } = useAuthStore()
+  const accountUiVersion = user?.user_metadata?.ui_version as unknown
+  useEffect(() => {
+    syncUiVersionFromAccount(accountUiVersion)
+  }, [accountUiVersion])
   const role = profile?.role
   // Sesión restaurada pero el perfil (rol) todavía no llegó: no decidir permisos aún.
   const profilePending = Boolean(user && !profile && (loading || !profileChecked))
@@ -373,7 +381,6 @@ export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter
-        basename={routerBasename()}
         future={{
           v7_startTransition: true,
           v7_relativeSplatPath: true,
