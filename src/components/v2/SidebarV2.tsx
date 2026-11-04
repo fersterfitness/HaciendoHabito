@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { NotificationBellBadge } from '@/components/notifications/NotificationBellBadge'
 import { motion, useReducedMotion } from 'motion/react'
 import { flushSync } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -244,15 +245,6 @@ export function SidebarV2() {
         {collapsed ? (
           <>
             <div className="my-2 h-px w-6 bg-surface-border" />
-            <NavLink to="/notifications" className={({ isActive }) => railBtnClass(isActive)} title="Notificaciones" aria-label="Notificaciones">
-              {({ isActive }) => (
-                <>
-                  {isActive ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
-                  <Bell className="h-[17px] w-[17px]" strokeWidth={1.6} />
-                  {unread > 0 ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-pastel-rose-accent" /> : null}
-                </>
-              )}
-            </NavLink>
             {allItems.map((item) => {
               const Icon = item.icon
               const active = isNavPathActive(pathname, item)
@@ -275,6 +267,20 @@ export function SidebarV2() {
         ) : null}
 
         <div className="mt-auto flex flex-col items-center gap-1">
+          <NavLink
+            to="/notifications"
+            className={({ isActive }) => railBtnClass(isActive)}
+            title="Notificaciones"
+            aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'}
+          >
+            {({ isActive }) => (
+              <>
+                {isActive ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
+                <Bell className="h-[17px] w-[17px]" strokeWidth={1.6} />
+                <NotificationBellBadge count={unread} className="right-0.5 top-0.5 scale-90" />
+              </>
+            )}
+          </NavLink>
           <button type="button" onClick={(e) => toggleThemeWithReveal(e, toggleTheme)} className={railBtnClass()} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'} aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
             {theme === 'dark' ? <Sun className="h-[17px] w-[17px]" strokeWidth={1.6} /> : <Moon className="h-[17px] w-[17px]" strokeWidth={1.6} />}
           </button>
@@ -347,18 +353,6 @@ export function SidebarV2() {
                     </NavLink>
                   )
                 })}
-                {i === 0 ? (
-                  <NavLink to="/notifications" className={({ isActive }) => rowClass(isActive)}>
-                    {({ isActive }) => (
-                      <>
-                        {isActive ? <ActivePill id="v2-nav-pill" /> : null}
-                        <Bell className={cn('h-4 w-4 shrink-0', isActive ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
-                        <span className="truncate">Notificaciones</span>
-                        <Count value={unread} />
-                      </>
-                    )}
-                  </NavLink>
-                ) : null}
                 {i === 0 && training ? (
                   <div className="mt-4 flex flex-col gap-px">
                     <GroupTitle>Estado</GroupTitle>
