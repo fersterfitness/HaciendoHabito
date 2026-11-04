@@ -330,7 +330,7 @@ export function NutritionPage() {
           </div>
         </PageToolbar>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className={IS_V2 ? '-mx-4 flex gap-1.5 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:flex-wrap sm:px-0' : 'flex flex-wrap gap-1.5'}>
           {PATIENT_FILTERS.map((f) => (
             <FilterChip
               key={f.id}

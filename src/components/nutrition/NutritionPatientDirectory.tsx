@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, ChevronRight } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import {
   HH_PATIENT_CARD_CLIP_ID,
@@ -48,8 +49,50 @@ export function NutritionPatientCards({
   onUpdateFollowup,
   onAvatarChange,
 }: NutritionPatientCardsProps) {
+  const nextText = (row: NutritionFollowupRow) => {
+    const next = nextConsultLabel(row.followup?.next_consultation_date ?? null)
+    return {
+      ok: next.tone === 'soon' || next.tone === 'far',
+      text: next.tone === 'none' ? 'Sin próximo turno' : next.tone === 'past' ? `Atrasado · ${next.sub}` : `Próx. ${next.label} · ${next.sub}`,
+    }
+  }
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+    <>
+    {IS_V2 ? (
+      <ul className="divide-y divide-surface-border overflow-hidden rounded-2xl border border-surface-border bg-surface-card sm:hidden">
+        {rows.map((row) => {
+          const n = nextText(row)
+          return (
+            <li key={row.id}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(row.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onOpen(row.id)
+                }}
+                className="flex cursor-pointer items-center gap-3 px-4 py-3 active:bg-surface-panel"
+              >
+                <StudentAvatar
+                  studentId={row.id}
+                  fullName={row.full_name}
+                  avatarPath={row.avatar_path}
+                  size="sm"
+                  stopRowNavigation
+                  onPathChange={(path) => onAvatarChange(row.id, path)}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-medium text-ink-primary">{row.full_name}</p>
+                  <p className={cn('truncate text-[12px]', n.ok ? 'text-ink-muted' : 'text-status-expired')}>{n.text}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    ) : null}
+    <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4', IS_V2 && 'max-sm:hidden')}>
       <svg width="0" height="0" className="absolute overflow-hidden" aria-hidden>
         <defs>
           <clipPath id={HH_PATIENT_CARD_CLIP_ID} clipPathUnits="objectBoundingBox">
@@ -167,6 +210,7 @@ export function NutritionPatientCards({
         )
       })}
     </div>
+    </>
   )
 }
 

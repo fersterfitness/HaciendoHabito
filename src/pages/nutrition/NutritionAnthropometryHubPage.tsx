@@ -38,6 +38,7 @@ import {
   restoreDeletedMeasurement,
 } from '@/lib/nutrition/measurementDeletionAccess'
 import { cn, formatDate } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 import type {
   NutritionMeasurement,
   NutritionMeasurementDeletionLogEntry,
@@ -463,7 +464,7 @@ export function NutritionAnthropometryHubPage() {
           {/* Detalle */}
           <section className="lg:col-span-8 xl:col-span-9 space-y-5">
             {!selected ? (
-              <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-surface-border/80 bg-surface-card/50 px-6 py-12 text-center">
+              <div className={cn('flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-surface-border/80 bg-surface-card/50 px-6 py-12 text-center', IS_V2 && 'max-lg:hidden')}>
                 <Activity className="h-9 w-9 text-brand-secondary/70" aria-hidden />
                 <p className="text-base font-semibold text-ink-primary">Elegí un paciente</p>
                 <p className="max-w-sm text-sm text-ink-muted">

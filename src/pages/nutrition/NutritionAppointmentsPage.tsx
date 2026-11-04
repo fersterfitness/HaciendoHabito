@@ -1145,7 +1145,7 @@ export function AppointmentsPage() {
                       : 'text-ink-muted hover:text-ink-secondary',
                   )}
                 >
-                  <UserRound className="h-3.5 w-3.5" aria-hidden /> Alumnos
+                  <UserRound className="h-3.5 w-3.5" aria-hidden /> {personWord === 'paciente' ? 'Pacientes' : 'Alumnos'}
                 </button>
                 <button
                   type="button"
@@ -1298,7 +1298,7 @@ export function AppointmentsPage() {
                 </>
               ) : null}
               {viewMode === 'week' && (
-                <div className="flex flex-col gap-1 lg:w-auto lg:shrink-0">
+                <div className={cn('flex flex-col gap-1 lg:w-auto lg:shrink-0', IS_V2 && 'max-sm:hidden')}>
                   <span className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}>
                     Exportar
                   </span>
