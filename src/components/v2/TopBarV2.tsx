@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Bell, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { getNavSections, isNavPathActive } from '@/config/navigation'
+import { getNavV2, isNavPathActive } from '@/config/navigation'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
 import { openGlobalSearch } from '@/lib/globalSearch'
@@ -11,11 +11,9 @@ import { useAuthStore } from '@/stores/authStore'
 function useCurrentNav() {
   const { pathname } = useLocation()
   const role = useAuthStore((s) => s.profile?.role)
-  for (const section of getNavSections(role)) {
-    const item = section.items.find((i) => isNavPathActive(pathname, i))
-    if (item) return { section: section.title, item }
-  }
-  return null
+  const { main, more } = getNavV2(role)
+  const item = [...main, ...more].find((i) => isNavPathActive(pathname, i))
+  return item ? { item } : null
 }
 
 function RoundIconButton({ label, onClick, children, className }: { label: string; onClick: () => void; children: ReactNode; className?: string }) {
@@ -36,7 +34,7 @@ function RoundIconButton({ label, onClick, children, className }: { label: strin
 }
 
 /**
- * Barra superior de la v2: ruta («Entrenamiento › Asesorías») a la izquierda, acciones de la
+ * Barra superior de la v2: dónde estás («Alumnos», o «Alumnos › Juan» en una ficha) a la izquierda, acciones de la
  * pantalla y campana a la derecha. Reemplaza a la cabecera vieja en todas las pantallas.
  */
 export function TopBarV2({
@@ -71,8 +69,6 @@ export function TopBarV2({
       <nav aria-label="Ubicación" className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px]">
         {nav ? (
           <>
-            <span className="hidden shrink-0 text-ink-muted sm:inline">{nav.section}</span>
-            <ChevronRight className="hidden h-3.5 w-3.5 shrink-0 text-ink-muted/70 sm:block" aria-hidden />
             {!sameAsItem ? (
               <>
                 <button

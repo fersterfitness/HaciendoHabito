@@ -17,10 +17,8 @@ import {
   ArrowDownUp,
   Utensils,
   ChevronRight,
-  UserCheck,
-  PauseCircle,
-  CalendarClock,
-  CalendarX,
+  MoreHorizontal,
+  Archive,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { fetchCurrentAssignmentsForStudents, PAYMENT_STATUS_LABELS, effectivePaymentStatus } from '@/lib/studentPlanAssignments'
@@ -28,7 +26,7 @@ import type { StudentPlanAssignment } from '@/types/database'
 import { StudentTagChips } from '@/components/students/StudentTagChips'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { Header } from '@/components/layout/Header'
-import { ToneTileV2 } from '@/components/v2/ui'
+import { SegmentedV2 } from '@/components/v2/ui'
 import { IS_V2 } from '@/lib/uiVersion'
 import { AdvisoriesSectionNav } from '@/components/layout/AdvisoriesSectionNav'
 import { WomenCycleOverview } from '@/components/students/WomenCycleOverview'
@@ -300,6 +298,7 @@ function FiltersDropdown({
   filterStatus, setFilterStatus,
   filterExpiry, setFilterExpiry,
   filterTag, setFilterTag, allTags,
+  filterGender, setFilterGender,
 }: {
   filterLevel: LevelFilter
   setFilterLevel: (v: LevelFilter) => void
@@ -310,9 +309,13 @@ function FiltersDropdown({
   filterTag: string
   setFilterTag: (v: string) => void
   allTags: string[]
+  /** Solo v2: el filtro por sexo vive acá en vez de pestañas aparte. */
+  filterGender?: '' | 'F' | 'M'
+  setFilterGender?: (v: '' | 'F' | 'M') => void
 }) {
   const [open, setOpen] = useState(false)
-  const activeCount = (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0) + (filterTag ? 1 : 0)
+  const activeCount =
+    (filterLevel ? 1 : 0) + (filterStatus ? 1 : 0) + (filterExpiry ? 1 : 0) + (filterTag ? 1 : 0) + (filterGender ? 1 : 0)
 
   return (
     <div className="relative inline-flex shrink-0">
@@ -381,6 +384,8 @@ function FiltersDropdown({
             ))}
           </div>
 
+          {/* v2: el vencimiento del plan ya está en las pastillas de arriba. */}
+          {setFilterGender ? null : (
           <div className={directoryPopoverDividerClassName}>
             <p className="text-3xs text-ink-muted font-semibold mb-1.5">Plan</p>
             {([
@@ -403,6 +408,28 @@ function FiltersDropdown({
               </button>
             ))}
           </div>
+          )}
+
+          {setFilterGender ? (
+            <div className={directoryPopoverDividerClassName}>
+              <p className="text-3xs text-ink-muted font-semibold mb-1.5">Sexo</p>
+              {([{ value: '' as const, label: 'Todos' }, { value: 'F' as const, label: 'Mujeres' }, { value: 'M' as const, label: 'Hombres' }]).map((opt) => (
+                <button
+                  key={opt.value || 'all-gender'}
+                  type="button"
+                  onClick={() => setFilterGender(opt.value)}
+                  className={cn(
+                    'w-full rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
+                    filterGender === opt.value
+                      ? 'bg-slate-500/12 text-ink-primary font-medium dark:bg-slate-400/14'
+                      : 'text-ink-secondary hover:bg-surface-elevated',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           {allTags.length > 0 && (
             <div className={directoryPopoverDividerClassName}>
@@ -428,7 +455,7 @@ function FiltersDropdown({
           {activeCount > 0 && (
             <button
               type="button"
-              onClick={() => { setFilterLevel(''); setFilterStatus(''); setFilterExpiry(''); setFilterTag(''); setOpen(false) }}
+              onClick={() => { setFilterLevel(''); setFilterStatus(''); setFilterExpiry(''); setFilterTag(''); setFilterGender?.(''); setOpen(false) }}
               className={cn('w-full flex items-center justify-center gap-1 text-xs text-ink-muted transition-colors hover:text-status-expired', directoryPopoverDividerClassName)}
             >
               <X className="h-3 w-3" />
@@ -437,6 +464,34 @@ function FiltersDropdown({
           )}
       </Popover>
     </div>
+  )
+}
+
+/** v2: lo que se usa poco (exportar, eliminados) queda en un menú «…». */
+function MoreActionsMenu({ onExport, showDeleted, onToggleDeleted }: { onExport: () => void; showDeleted: boolean; onToggleDeleted: () => void }) {
+  const [open, setOpen] = useState(false)
+  const item = 'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-ink-primary transition-colors hover:bg-surface-elevated'
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      className="w-52 p-1"
+      trigger={({ ref, onClick, ...a11y }) => (
+        <button ref={ref} type="button" onClick={onClick} className={directoryToolbarBtnClassName} title="Más acciones" aria-label="Más acciones" {...a11y}>
+          <MoreHorizontal className="h-4 w-4 opacity-70" aria-hidden />
+        </button>
+      )}
+    >
+      <button type="button" className={item} onClick={() => { setOpen(false); onExport() }}>
+        <Download className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+        Exportar a CSV
+      </button>
+      <button type="button" className={item} onClick={() => { setOpen(false); onToggleDeleted() }}>
+        <Archive className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+        {showDeleted ? 'Ocultar eliminados' : 'Ver eliminados'}
+      </button>
+    </Popover>
   )
 }
 
@@ -749,8 +804,27 @@ export function StudentsPage() {
         else if (d < 0) vencido++
       }
     }
-    return { activos, pausados, pronto, vencido }
+    return { total: localStudents.length, activos, pausados, pronto, vencido }
   }, [localStudents])
+  const [showDeleted, setShowDeleted] = useState(false)
+
+  /** v2: un solo selector rápido para estado y vencimiento del plan. */
+  type Quick = 'all' | 'activo' | 'pausado' | 'pronto' | 'vencido'
+  const quick: Quick = filterExpiry || (filterStatus === 'activo' || filterStatus === 'pausado' ? filterStatus : 'all')
+  const setQuick = (q: Quick) => {
+    const next: Quick = q === quick ? 'all' : q
+    setFilterStatus(next === 'activo' || next === 'pausado' ? next : '')
+    setFilterExpiry(next === 'pronto' || next === 'vencido' ? next : '')
+  }
+  const quickOptions = (
+    [
+      { value: 'all' as Quick, label: 'Todos', count: v2Summary.total },
+      { value: 'activo' as Quick, label: 'Activos', count: v2Summary.activos },
+      { value: 'pausado' as Quick, label: 'Pausados', count: v2Summary.pausados },
+      { value: 'pronto' as Quick, label: 'Por vencer', count: v2Summary.pronto },
+      { value: 'vencido' as Quick, label: 'Vencidos', count: v2Summary.vencido },
+    ]
+  ).filter((o) => o.value === 'all' || o.count > 0 || o.value === quick)
 
   const newStudentButton = (
     <Button
@@ -795,45 +869,82 @@ export function StudentsPage() {
 
       <DirectoryPageShell>
         <AdvisoriesSectionNav />
-        {IS_V2 ? (
-          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-            <ToneTileV2
-              icon={UserCheck}
-              tone="mint"
-              count={v2Summary.activos}
-              label="Activos"
-              active={filterStatus === 'activo'}
-              onClick={() => setFilterStatus(filterStatus === 'activo' ? '' : 'activo')}
-            />
-            <ToneTileV2
-              icon={PauseCircle}
-              tone="butter"
-              count={v2Summary.pausados}
-              label="Pausados"
-              active={filterStatus === 'pausado'}
-              onClick={() => setFilterStatus(filterStatus === 'pausado' ? '' : 'pausado')}
-            />
-            <ToneTileV2
-              icon={CalendarClock}
-              tone="peach"
-              count={v2Summary.pronto}
-              label="Plan vence en 14 días"
-              active={filterExpiry === 'pronto'}
-              onClick={() => setFilterExpiry(filterExpiry === 'pronto' ? '' : 'pronto')}
-            />
-            <ToneTileV2
-              icon={CalendarX}
-              tone="rose"
-              count={v2Summary.vencido}
-              label="Plan vencido"
-              active={filterExpiry === 'vencido'}
-              onClick={() => setFilterExpiry(filterExpiry === 'vencido' ? '' : 'vencido')}
-            />
-          </div>
-        ) : null}
         {filterGender === 'F' ? (
           <WomenCycleOverview students={filtered} weekByStudent={weekByStudent} />
         ) : null}
+        {IS_V2 ? (
+          <>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="min-w-0 lg:max-w-xs lg:flex-1">
+                <Input
+                  ref={searchRef}
+                  type="search"
+                  placeholder={`Buscar ${entityLabelSingular}…`}
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-label={`Buscar ${entityLabelSingular}`}
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  leftIcon={<Search className="h-4 w-4" />}
+                />
+              </div>
+              <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:shrink-0 lg:overflow-visible lg:px-0 [&>div]:flex-nowrap">
+                <SegmentedV2 value={quick} onChange={setQuick} options={quickOptions} />
+              </div>
+              <div className="flex items-center gap-2 lg:ml-auto">
+                <FiltersDropdown
+                  filterLevel={filterLevel}
+                  setFilterLevel={setFilterLevel}
+                  filterStatus={filterStatus}
+                  setFilterStatus={setFilterStatus}
+                  filterExpiry={filterExpiry}
+                  setFilterExpiry={setFilterExpiry}
+                  filterTag={filterTag}
+                  setFilterTag={setFilterTag}
+                  allTags={allTags}
+                  filterGender={filterGender}
+                  setFilterGender={setFilterGender}
+                />
+                <SortDropdown value={tableSort} onChange={setTableSort} />
+                <MoreActionsMenu
+                  onExport={() => exportStudentsCSV(filtered)}
+                  showDeleted={showDeleted}
+                  onToggleDeleted={() => setShowDeleted((v) => !v)}
+                />
+              </div>
+            </div>
+            {filterLevel || filterTag || filterGender ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {filterLevel ? (
+                  <span className={directoryFilterChipClassName}>
+                    {LEVEL_LABELS[filterLevel]}
+                    <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" onClick={() => setFilterLevel('')} aria-label="Quitar filtro nivel">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </span>
+                ) : null}
+                {filterGender ? (
+                  <span className={directoryFilterChipClassName}>
+                    {filterGender === 'F' ? 'Mujeres' : 'Hombres'}
+                    <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" onClick={() => setFilterGender('')} aria-label="Quitar filtro sexo">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </span>
+                ) : null}
+                {filterTag ? (
+                  <span className={directoryFilterChipClassName}>
+                    <Tag className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                    {filterTag}
+                    <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" onClick={() => setFilterTag('')} aria-label="Quitar etiqueta">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        ) : (
+        <>
         <SegmentedControl
           size="sm"
           ariaLabel="Filtrar por sexo"
@@ -920,11 +1031,14 @@ export function StudentsPage() {
               </span>
             )}
 
-            {IS_V2 ? null : newStudentButton}
+            {newStudentButton}
           </div>
         </div>
+        </>
+        )}
 
         <StudentDeletionHistoryPanel
+          controlledOpen={IS_V2 ? showDeleted : undefined}
           entityLabel={entityLabel}
           entityLabelSingular={entityLabelSingular}
           entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
@@ -1210,7 +1324,7 @@ function StudentDirectoryTable({
               <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5">Nivel</th>
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Estado</th>
               <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Semana</th>
-              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5">Email</th>
+              {IS_V2 ? null : <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5">Email</th>}
               <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
           </thead>
@@ -1253,11 +1367,13 @@ function StudentDirectoryTable({
                           </span>
                           {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{age}a</span>}
                           <div className="flex shrink-0 items-center gap-1">
-                            <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
-                              <span className={indicatorClass(hasRoutine, 'routine')}>
-                                <Dumbbell className="h-3 w-3" />
-                              </span>
-                            </Tooltip>
+                            {IS_V2 ? null : (
+                              <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
+                                <span className={indicatorClass(hasRoutine, 'routine')}>
+                                  <Dumbbell className="h-3 w-3" />
+                                </span>
+                              </Tooltip>
+                            )}
                             <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
                               <span className={indicatorClass(hasPlan, 'plan')}>
                                 <Utensils className="h-3 w-3" />
@@ -1265,7 +1381,7 @@ function StudentDirectoryTable({
                             </Tooltip>
                           </div>
                         </div>
-                        {student.email ? <span className="truncate text-2xs text-ink-muted lg:hidden">{student.email}</span> : null}
+                        {student.email && !IS_V2 ? <span className="truncate text-2xs text-ink-muted lg:hidden">{student.email}</span> : null}
                         <div className="flex flex-wrap items-center gap-1 empty:hidden">
                           {currentPlanByStudent[student.id] ? (() => {
                             const a = currentPlanByStudent[student.id]
@@ -1318,9 +1434,11 @@ function StudentDirectoryTable({
 
                     </div>
                   </td>
-                  <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
-                    <span className="text-xs">{student.email ?? '—'}</span>
-                  </td>
+                  {IS_V2 ? null : (
+                    <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
+                      <span className="text-xs">{student.email ?? '—'}</span>
+                    </td>
+                  )}
                   <td className="hh-row-drop-in px-2 sm:px-3">
                     <div className="flex items-center justify-end gap-1">
                       <button

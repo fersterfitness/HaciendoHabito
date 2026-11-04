@@ -217,6 +217,63 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
   return sections
 }
 
+/**
+ * Menú de la v2: pocas entradas a la vista (lo del día a día) y el resto dentro de «Más».
+ * Sin títulos de grupo: cada rol ve una sola lista corta.
+ */
+export type NavV2 = { main: NavItem[]; more: NavItem[] }
+
+const V2_STUDENTS: NavItem = { label: 'Alumnos', href: '/students', icon: Users }
+const V2_ROUTINES: NavItem = { label: 'Rutinas', href: '/routines', icon: Dumbbell }
+const V2_FEEDBACK: NavItem = { label: 'Consultas', href: '/feedback', icon: MessageSquare }
+const V2_EXERCISES: NavItem = { label: 'Base de datos', href: '/exercises', icon: BookOpen }
+const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', href: '/contexto', icon: Sparkles }
+
+export function getNavV2(role: AppRole | undefined): NavV2 {
+  if (role === 'student' || canSeePsychologistWorkspace(role)) {
+    return { main: flattenSections(getNavSections(role)), more: [] }
+  }
+  const [finance] = NAV_FINANCE
+  if (role === 'nutritionist') {
+    return {
+      main: [NAV_HOME, NAV_APPOINTMENTS, NAV_NUTRITION_PATIENT_ANTHRO[0]!, NAV_NUTRITION_FOOD[0]!, finance!],
+      more: [NAV_NUTRITION_PATIENT_ANTHRO[1]!, NAV_NUTRITION_FOOD[1]!],
+    }
+  }
+  if (role === 'admin') {
+    return {
+      main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_ROUTINES, V2_FEEDBACK, finance!],
+      more: [
+        { label: 'Nutrición', href: '/nutrition', icon: Salad, exactMatch: true },
+        NAV_NUTRITION_PATIENT_ANTHRO[1]!,
+        ...NAV_NUTRITION_FOOD,
+        NAV_MEAL_PLANS_TRAINER,
+        V2_EXERCISES,
+        V2_CONTEXT,
+      ],
+    }
+  }
+  // Entrenador (y cualquier rol sin definir).
+  return {
+    main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_ROUTINES, V2_FEEDBACK, finance!],
+    more: [V2_EXERCISES, NAV_MEAL_PLANS_TRAINER, V2_CONTEXT],
+  }
+}
+
+/** Barra inferior del celu en la v2: los mismos nombres que el menú; el resto va en «Más». */
+export function getMobileNavV2(role: AppRole | undefined): { primary: NavItem[]; drawer: NavSection[] } {
+  const { main, more } = getNavV2(role)
+  const primary =
+    role === 'trainer' || role === 'admin'
+      ? [NAV_HOME, V2_STUDENTS, V2_FEEDBACK]
+      : role === 'nutritionist'
+        ? main.slice(0, 4)
+        : getMobileNavPrimaryItems(role)
+  const keys = new Set(primary.map(navItemKey))
+  const rest = [...main, ...more].filter((i) => !keys.has(navItemKey(i)))
+  return { primary, drawer: rest.length ? [{ title: 'Más', items: rest }] : [] }
+}
+
 /** Bloques del sidebar desktop (icon rail + separadores por sección). */
 export function getSidebarBlocks(role: AppRole | undefined): SidebarBlock[] {
   const sections = getNavSections(role)

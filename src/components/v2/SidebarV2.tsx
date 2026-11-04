@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { NotificationBellBadge } from '@/components/notifications/NotificationBellBadge'
 import { motion, useReducedMotion } from 'motion/react'
 import { flushSync } from 'react-dom'
-import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   Bell,
-  CircleAlert,
-  CircleCheck,
-  CirclePause,
-  Clock3,
+  ChevronRight,
   LogOut,
   Moon,
   PanelLeft,
@@ -19,21 +15,18 @@ import {
   Settings,
   Sun,
   Undo2,
-  type LucideIcon,
 } from 'lucide-react'
 import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 import { Popover } from '@/components/ui/Popover'
-import { canSeeTraining, getNavSections, isNavPathActive, type NavItem } from '@/config/navigation'
+import { canSeeTraining, getNavV2, isNavPathActive, type NavItem } from '@/config/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
-import { fetchStudentList, studentKeys } from '@/data/students'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { openGlobalSearch } from '@/lib/globalSearch'
 import { prefetchRouteChunkByHref } from '@/lib/prefetchRouteChunks'
-import { filterAccessibleStudents } from '@/lib/students/studentAccess'
 import { supabase } from '@/lib/supabase'
 import { leaveV2 } from '@/lib/uiVersion'
-import { cn, daysUntil } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import type { AppRole } from '@/types/database'
 
@@ -46,6 +39,7 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 }
 
 const COLLAPSE_KEY = 'hh-v2-sidebar-collapsed'
+const MORE_KEY = 'hh-v2-sidebar-more'
 
 /**
  * Cambia el tema con un revelado circular que sale del botón (View Transitions). Donde el
@@ -104,61 +98,27 @@ function BrandMarkV2({ className = 'h-7 w-7' }: { className?: string }) {
   )
 }
 
-/** Contadores del grupo «Estado» (misma lista en caché que Alumnos: no suma consultas). */
-function useStudentStatusCounts(enabled: boolean) {
-  const user = useAuthStore((s) => s.user)
-  const { data } = useQuery({
-    queryKey: studentKeys.list(user?.id),
-    queryFn: fetchStudentList,
-    enabled: Boolean(user) && enabled,
-  })
-  return useMemo(() => {
-    const list = filterAccessibleStudents(data ?? [], {})
-    let activos = 0
-    let pausados = 0
-    let pronto = 0
-    let vencido = 0
-    for (const s of list) {
-      if (s.status === 'activo') activos++
-      if (s.status === 'pausado') pausados++
-      if (s.plan_end_date) {
-        const d = daysUntil(s.plan_end_date)
-        if (d >= 0 && d <= 14) pronto++
-        else if (d < 0) vencido++
-      }
-    }
-    return { total: list.length, activos, pausados, pronto, vencido, ready: Boolean(data) }
-  }, [data])
-}
-
-function Count({ value }: { value: number | null | undefined }) {
-  if (value == null) return null
-  return <span className="ml-auto text-[12px] tabular-nums text-ink-muted">{value > 99 ? '99+' : value}</span>
-}
-
-function GroupTitle({ children, action }: { children: ReactNode; action?: { label: string; onClick: () => void } }) {
+/** Una entrada del menú en el panel. */
+function NavRow({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon
   return (
-    <div className="mb-1 flex h-7 items-center justify-between pl-2.5 pr-1">
-      <p className="text-[12px] text-ink-muted">{children}</p>
-      {action ? (
-        <button
-          type="button"
-          onClick={action.onClick}
-          title={action.label}
-          aria-label={action.label}
-          className="flex h-6 w-6 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </button>
-      ) : null}
-    </div>
+    <NavLink
+      to={item.href}
+      className={rowClass(active)}
+      aria-current={active ? 'page' : undefined}
+      onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
+    >
+      {active ? <ActivePill id="v2-nav-pill" /> : null}
+      <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
+      <span className="truncate">{item.label}</span>
+    </NavLink>
   )
 }
 
 /**
  * Barra lateral de la v2 en dos columnas: un riel de acciones (marca, buscar, crear, cuenta) y un
- * panel con las secciones agrupadas, contadores a la derecha y el grupo «Estado» de los alumnos.
- * El panel se puede plegar: queda solo el riel con los íconos de cada sección.
+ * panel con una sola lista corta (lo del día a día) y el resto dentro de «Más».
+ * El panel se puede plegar: queda solo el riel con los íconos.
  */
 export function SidebarV2() {
   const { profile, reset } = useAuthStore()
@@ -174,10 +134,27 @@ export function SidebarV2() {
       return false
     }
   })
-  const sections = getNavSections(role)
+  const nav = getNavV2(role)
   const unread = useUnreadNotificationCount()
   const training = canSeeTraining(role)
-  const counts = useStudentStatusCounts(training)
+  const moreHasActive = nav.more.some((i) => isNavPathActive(pathname, i))
+  const [moreOpen, setMoreOpen] = useState(() => {
+    try {
+      return localStorage.getItem(MORE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const showMore = moreOpen || moreHasActive
+  function toggleMore() {
+    const next = !showMore
+    setMoreOpen(next)
+    try {
+      localStorage.setItem(MORE_KEY, next ? '1' : '0')
+    } catch {
+      /* nada */
+    }
+  }
 
   useEffect(() => {
     try {
@@ -209,19 +186,7 @@ export function SidebarV2() {
   }
 
   const newStudent = () => navigate('/students?create=1')
-  const itemCount = (item: NavItem): number | null => {
-    if (item.href === '/students' && training && counts.ready) return counts.total
-    return null
-  }
-
-  const statusRows: { label: string; icon: LucideIcon; tone: string; to: string; value: number }[] = [
-    { label: 'Activos', icon: CircleCheck, tone: 'text-pastel-mint-accent', to: '/students?estado=activo', value: counts.activos },
-    { label: 'Pausados', icon: CirclePause, tone: 'text-pastel-butter-accent', to: '/students?estado=pausado', value: counts.pausados },
-    { label: 'Plan por vencer', icon: Clock3, tone: 'text-pastel-peach-accent', to: '/students?plan=pronto', value: counts.pronto },
-    { label: 'Plan vencido', icon: CircleAlert, tone: 'text-pastel-rose-accent', to: '/students?plan=vencido', value: counts.vencido },
-  ]
-
-  const allItems = sections.flatMap((s) => s.items)
+  const allItems = [...nav.main, ...nav.more]
 
   return (
     <aside className="sticky top-0 hidden h-screen shrink-0 lg:flex print:hidden" aria-label="Navegación principal">
@@ -327,49 +292,28 @@ export function SidebarV2() {
             <span className="truncate text-[14px] font-medium tracking-[-0.01em] text-ink-primary">Haciéndolo Hábito</span>
           </div>
 
-          <nav className="-mr-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1 scrollbar-hide">
-            {sections.map((section, i) => (
-              <div key={section.title} className="flex flex-col gap-px">
-                {i > 0 ? (
-                  <GroupTitle action={section.title === 'Entrenamiento' && training ? { label: 'Nuevo alumno', onClick: newStudent } : undefined}>
-                    {section.title}
-                  </GroupTitle>
-                ) : null}
-                {section.items.map((item) => {
-                  const active = isNavPathActive(pathname, item)
-                  const Icon = item.icon
-                  return (
-                    <NavLink
-                      key={`${item.href}-${item.label}`}
-                      to={item.href}
-                      className={rowClass(active)}
-                      aria-current={active ? 'page' : undefined}
-                      onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
-                    >
-                      {active ? <ActivePill id="v2-nav-pill" /> : null}
-                      <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
-                      <span className="truncate">{item.label}</span>
-                      <Count value={itemCount(item)} />
-                    </NavLink>
-                  )
-                })}
-                {i === 0 && training ? (
-                  <div className="mt-4 flex flex-col gap-px">
-                    <GroupTitle>Estado</GroupTitle>
-                    {statusRows.map((r) => {
-                      const Icon = r.icon
-                      return (
-                        <NavLink key={r.label} to={r.to} className={rowClass(false)}>
-                          <Icon className={cn('h-4 w-4 shrink-0', r.tone)} strokeWidth={2} />
-                          <span className="truncate">{r.label}</span>
-                          <Count value={counts.ready ? r.value : null} />
-                        </NavLink>
-                      )
-                    })}
-                  </div>
-                ) : null}
-              </div>
+          <nav className="-mr-1 flex min-h-0 flex-1 flex-col gap-px overflow-y-auto pr-1 scrollbar-hide">
+            {nav.main.map((item) => (
+              <NavRow key={`${item.href}-${item.label}`} item={item} active={isNavPathActive(pathname, item)} />
             ))}
+            {nav.more.length ? (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleMore}
+                  aria-expanded={showMore}
+                  className="group mt-3 flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-ink-muted transition-colors hover:text-ink-primary"
+                >
+                  Más
+                  <ChevronRight className={cn('h-3 w-3 transition-transform duration-200', showMore && 'rotate-90')} aria-hidden />
+                </button>
+                {showMore
+                  ? nav.more.map((item) => (
+                      <NavRow key={`${item.href}-${item.label}`} item={item} active={isNavPathActive(pathname, item)} />
+                    ))
+                  : null}
+              </>
+            ) : null}
           </nav>
         </div>
       ) : null}

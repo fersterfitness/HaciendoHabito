@@ -405,7 +405,7 @@ export function SegmentedV2<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors',
+              'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors',
               on ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
             )}
           >

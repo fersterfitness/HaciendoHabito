@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
 import {
   getMobileNavDrawerSections,
+  getMobileNavV2,
   getMobileNavPrimaryItems,
   getMobileQuickActions,
   isNavPathActive,
@@ -198,8 +199,9 @@ export function MobileNav() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
 
-  const primaryItems = getMobileNavPrimaryItems(role)
-  const drawerSections = getMobileNavDrawerSections(role)
+  const navV2 = IS_V2 ? getMobileNavV2(role) : null
+  const primaryItems = navV2 ? navV2.primary : getMobileNavPrimaryItems(role)
+  const drawerSections = navV2 ? navV2.drawer : getMobileNavDrawerSections(role)
   const quickActions = getMobileQuickActions(role)
   const sectionRank = (title: string) => (title === 'Gestión' ? 0 : title === 'Finanzas' ? 1 : 2)
   const drawerItems = [...drawerSections]
