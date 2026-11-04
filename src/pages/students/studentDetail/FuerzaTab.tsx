@@ -1,3 +1,4 @@
+import { fieldSelectClassName } from '@/lib/fieldClasses'
 import { useState, useMemo } from 'react'
 import { Dumbbell, Plus, Zap, X, ChevronDown, Check, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -346,7 +347,7 @@ export function FuerzaTab({
           </div>
           <div className="space-y-3">
             <select
-              className="w-full rounded-xl border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-primary/60"
+              className={fieldSelectClassName}
               value={calcKey}
               onChange={(e) => setCalcKey(e.target.value)}
             >

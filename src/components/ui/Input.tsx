@@ -1,3 +1,4 @@
+import { fieldClassName, fieldInputClassName } from '@/lib/fieldClasses'
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 import { trainerCtaAccentTextClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
@@ -42,13 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             className={cn(
-              'w-full rounded-xl border border-surface-inputBorder bg-surface-input shadow-xs',
-              'text-ink-primary placeholder:text-ink-muted text-sm',
-              'px-3 py-2.5 h-10',
-              'transition-[border-color,box-shadow] duration-200',
-              'hover:border-ink-muted/50',
-              'focus:outline-none focus-visible:border-brand-primary/70 focus-visible:ring-4 focus-visible:ring-brand-primary/15',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+              fieldInputClassName,
               error &&
                 'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/15',
               leftIcon && 'pl-9',
@@ -109,13 +104,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'w-full rounded-xl border border-surface-inputBorder bg-surface-input shadow-xs',
-            'text-ink-primary placeholder:text-ink-muted text-sm',
-            'px-3 py-2.5 min-h-[80px] resize-y',
-            'transition-[border-color,box-shadow] duration-200',
-            'hover:border-ink-muted/50',
-            'focus:outline-none focus-visible:border-brand-primary/70 focus-visible:ring-4 focus-visible:ring-brand-primary/15',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
+            fieldClassName,
+            'min-h-[80px] resize-y px-3 py-2.5',
             error &&
               'border-status-expired focus-visible:border-status-expired focus-visible:ring-status-expired/15',
             className

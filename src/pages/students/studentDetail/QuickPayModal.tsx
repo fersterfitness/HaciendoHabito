@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils'
+import { fieldInputClassName, fieldSelectClassName } from '@/lib/fieldClasses'
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -99,7 +101,7 @@ export function QuickPayModal({
         <h3 className="text-sm font-semibold text-ink-primary">Registrar pago</h3>
         <p className="text-xs text-ink-muted">{studentName}</p>
       </div>
-      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+      <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar" className="-mr-2 h-8 w-8"><X className="h-4 w-4" /></Button>
     </div>
 
     <div className="px-4 py-4 space-y-3">
@@ -110,7 +112,7 @@ export function QuickPayModal({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm font-semibold">$</span>
           <input
             type="number" min={0} step={100} placeholder="0"
-            className="w-full bg-surface-elevated text-ink-primary text-lg font-bold rounded-xl pl-7 pr-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+            className={cn(fieldInputClassName, 'text-lg text-center font-bold pl-7')}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             autoFocus
@@ -123,7 +125,7 @@ export function QuickPayModal({
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Tipo de ingreso / plan</label>
           <select
-            className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
+            className={fieldSelectClassName}
             value={type} onChange={(e) => setType(e.target.value)}
           >
             {INCOME_TYPES.map((t) => (
@@ -135,7 +137,7 @@ export function QuickPayModal({
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Método</label>
           <select
-            className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
+            className={fieldSelectClassName}
             value={method} onChange={(e) => setMethod(e.target.value)}
           >
             {PAYMENT_METHODS.map((m) => (
@@ -150,7 +152,7 @@ export function QuickPayModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
         <input
           type="date"
-          className="w-full rounded-xl border border-surface-inputBorder bg-surface-input px-3 py-2 text-sm text-ink-primary shadow-xs outline-none hover:border-ink-muted/50 focus:border-brand-primary/60"
+          className={fieldInputClassName}
           value={date} onChange={(e) => setDate(e.target.value)}
         />
       </div>
@@ -160,7 +162,7 @@ export function QuickPayModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Notas libres (ej. cuotas)</label>
         <input
           placeholder="ej: quedan 2 cuotas, mes mayo…"
-          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
+          className={fieldInputClassName}
           value={notes} onChange={(e) => setNotes(e.target.value)}
         />
       </div>

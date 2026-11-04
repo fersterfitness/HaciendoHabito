@@ -1,3 +1,4 @@
+import { fieldClassName } from '@/lib/fieldClasses'
 import { useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
@@ -903,16 +904,13 @@ export function StudentDetailView({
                   value={notesValue}
                   onChange={(e) => setNotesValue(e.target.value)}
                   rows={5}
-                  className="w-full resize-none border border-surface-border/80 bg-surface-elevated/60 px-3 py-2 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus:border-brand-primary/60 "
+                  className={cn(fieldClassName, 'resize-none px-3 py-2')}
                   placeholder="Observaciones, lesiones, objetivos..."
                 />
                 <div className="flex items-center gap-2 justify-end">
-                  <button
-                    onClick={() => setEditingNotes(false)}
-                    className="text-xs text-ink-muted hover:text-ink-primary px-3 py-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditingNotes(false)}>
                     Cancelar
-                  </button>
+                  </Button>
                   <Button type="button" size="sm" variant="secondary" loading={savingNotes} icon={<Check className="h-3.5 w-3.5" />} onClick={saveNotes}>
                     {savingNotes ? 'Guardando…' : 'Guardar'}
                   </Button>

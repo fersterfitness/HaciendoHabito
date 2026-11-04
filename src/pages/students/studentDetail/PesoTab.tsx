@@ -1,3 +1,4 @@
+import { fieldInputClassName } from '@/lib/fieldClasses'
 import { CHART_ACCENT } from '@/lib/chartColors'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Scale, X } from 'lucide-react'
@@ -141,7 +142,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Peso (kg) *</label>
                 <input
                   type="number" min={0} step={0.1} placeholder="ej: 75.5"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center font-bold"
+                  className={cn(fieldInputClassName, 'text-center font-bold')}
                   value={weight} onChange={(e) => setWeight(e.target.value)}
                   autoFocus
                 />
@@ -150,7 +151,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Grasa corporal %</label>
                 <input
                   type="number" min={0} max={100} step={0.1} placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                  className={cn(fieldInputClassName, 'text-center')}
                   value={fat} onChange={(e) => setFat(e.target.value)}
                 />
               </div>
@@ -160,7 +161,7 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Fecha</label>
                 <input
                   type="date"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none"
+                  className={fieldInputClassName}
                   value={dateVal} onChange={(e) => setDateVal(e.target.value)}
                 />
               </div>
@@ -168,15 +169,15 @@ export function PesoTab({
                 <label className="block text-3xs text-ink-muted mb-1">Notas</label>
                 <input
                   placeholder="opcional"
-                  className="w-full bg-surface-card text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
+                  className={fieldInputClassName}
                   value={noteVal} onChange={(e) => setNoteVal(e.target.value)}
                 />
               </div>
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowForm(false)} className="text-xs text-ink-muted hover:text-ink-primary px-3 py-1.5 rounded-lg hover:bg-surface-card transition-colors">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
                 Cancelar
-              </button>
+              </Button>
               <Button size="sm" variant="secondary" loading={saving} onClick={handleSave}>
                 Guardar
               </Button>
@@ -320,14 +321,14 @@ export function PesoTab({
                 <input
                   type="number" min={30} max={300} step={0.5} autoFocus
                   placeholder="Peso objetivo (kg)"
-                  className="flex-1 bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                  className={cn(fieldInputClassName, 'flex-1 text-center')}
                   value={goalInput}
                   onChange={(e) => setGoalInput(e.target.value)}
                 />
                 <Button size="sm" variant="gradientSecondary" loading={savingGoal} onClick={() => void saveGoal()}>
                   Guardar
                 </Button>
-                <button onClick={() => setEditingGoal(false)} className="text-xs text-ink-muted hover:text-ink-primary px-2 py-1.5">Cancelar</button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditingGoal(false)}>Cancelar</Button>
               </div>
             ) : (
               <button

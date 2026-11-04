@@ -142,7 +142,7 @@ export function PagosTab({
             <Button size="sm" variant="secondary" loading={savingCuota} onClick={() => void saveCuota()}>
               Guardar
             </Button>
-            <button onClick={() => setEditingCuota(false)} className="text-xs text-ink-muted hover:text-ink-secondary">Cancelar</button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditingCuota(false)}>Cancelar</Button>
           </div>
         ) : cuota ? (
           <div className="flex items-center justify-between">
@@ -204,9 +204,9 @@ export function PagosTab({
             <Button size="sm" variant="secondary" loading={savingWindow} onClick={() => void saveWindow()}>
               Guardar
             </Button>
-            <button type="button" onClick={() => setEditingWindow(false)} className="text-xs text-ink-muted hover:text-ink-secondary">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditingWindow(false)}>
               Cancelar
-            </button>
+            </Button>
           </div>
         ) : (
           <p className="text-sm text-ink-primary">

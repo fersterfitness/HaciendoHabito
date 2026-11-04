@@ -2,10 +2,11 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo-brand.png" />
-    <link rel="apple-touch-icon" href="/logo_mark_original_white_transparent.png" />
+    <link rel="icon" type="image/svg+xml" href="/app-icon.svg" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
+    <link rel="apple-touch-icon" href="/app-icon-180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#FF8C00" />
+    <meta name="theme-color" content="#171719" />
     <meta name="description" content="Haciéndolo Hábito — Plataforma de entrenamiento personalizado" />
     <title>Haciéndolo Hábito</title>
     <script src="/boot-theme.js"></script>
@@ -17,8 +18,8 @@
       .hh-boot img { width: 40px; height: 40px; }
       .hh-boot span { position: relative; overflow: hidden; width: 112px; height: 3px; border-radius: 999px; background: rgba(40, 38, 34, 0.08); }
       html.dark .hh-boot span { background: rgba(236, 236, 234, 0.08); }
-      .hh-boot span::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 999px; background: #ea4200; animation: hh-boot 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
-      html.dark .hh-boot span::after { background: #ff5c1a; }
+      .hh-boot span::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 999px; background: #171719; animation: hh-boot 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+      html.dark .hh-boot span::after { background: #ededeb; }
       @keyframes hh-boot { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
       @media (prefers-reduced-motion: reduce) { .hh-boot span::after { width: 100%; animation: none; opacity: 0.5; } }
     </style>
@@ -32,7 +33,7 @@
   <body class="bg-surface-base text-ink-primary antialiased">
     <div id="root">
       <div class="hh-boot" role="status" aria-label="Cargando">
-        <img src="/logo_mark_original_white_transparent.png" alt="" />
+        <img src="/app-icon.svg" alt="" />
         <span></span>
       </div>
     </div>

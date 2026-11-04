@@ -1,3 +1,4 @@
+import { fieldInputClassName, fieldSelectClassName } from '@/lib/fieldClasses'
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -68,7 +69,7 @@ export function AddRmModal({
     <Modal open onClose={onClose} size="md" bare>
     <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-surface-border">
       <h3 className="text-sm font-semibold text-ink-primary">Registrar 1RM</h3>
-      <button onClick={onClose} className="text-ink-muted hover:text-ink-primary"><X className="h-4 w-4" /></button>
+      <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar" className="-mr-2 h-8 w-8"><X className="h-4 w-4" /></Button>
     </div>
 
     <div className="px-4 py-4 space-y-4">
@@ -76,7 +77,7 @@ export function AddRmModal({
       <div>
         <label className="block text-xs font-medium text-ink-secondary mb-1">Ejercicio *</label>
         <select
-          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none"
+          className={fieldSelectClassName}
           value={exerciseId}
           onChange={(e) => setExerciseId(e.target.value)}
         >
@@ -114,7 +115,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Peso (kg) *</label>
               <input
                 type="number" min={0} step={0.5} placeholder="ej: 120"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                className={cn(fieldInputClassName, 'text-center')}
                 value={epleyWeight}
                 onChange={(e) => setEpleyWeight(e.target.value)}
               />
@@ -123,7 +124,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Reps</label>
               <input
                 type="number" min={1} max={20} placeholder="ej: 5"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                className={cn(fieldInputClassName, 'text-center')}
                 value={epleyReps}
                 onChange={(e) => setEpleyReps(e.target.value)}
               />
@@ -132,7 +133,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">% del RM *</label>
               <input
                 type="number" min={30} max={100} step={1} placeholder="ej: 80"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                className={cn(fieldInputClassName, 'text-center')}
                 value={pctOfRm}
                 onChange={(e) => setPctOfRm(e.target.value)}
               />
@@ -157,7 +158,7 @@ export function AddRmModal({
           <label className="block text-xs font-medium text-ink-secondary mb-1">1RM (kg) *</label>
           <input
             type="number" min={0} step={0.5} placeholder="ej: 120"
-            className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center font-bold"
+            className={cn(fieldInputClassName, 'text-center font-bold')}
             value={rmKg}
             onChange={(e) => setRmKg(e.target.value)}
           />
@@ -169,7 +170,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Peso usado (kg) *</label>
               <input
                 type="number" min={0} step={0.5} placeholder="ej: 100"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                className={cn(fieldInputClassName, 'text-center')}
                 value={epleyWeight}
                 onChange={(e) => setEpleyWeight(e.target.value)}
               />
@@ -178,7 +179,7 @@ export function AddRmModal({
               <label className="block text-xs font-medium text-ink-secondary mb-1">Reps realizadas *</label>
               <input
                 type="number" min={1} max={10} placeholder="ej: 5"
-                className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none text-center"
+                className={cn(fieldInputClassName, 'text-center')}
                 value={epleyReps}
                 onChange={(e) => setEpleyReps(e.target.value)}
               />
@@ -204,7 +205,7 @@ export function AddRmModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Fecha</label>
         <input
           type="date"
-          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none"
+          className={fieldInputClassName}
           value={testedAt}
           onChange={(e) => setTestedAt(e.target.value)}
         />
@@ -214,7 +215,7 @@ export function AddRmModal({
         <label className="block text-xs font-medium text-ink-secondary mb-1">Notas (opcional)</label>
         <input
           placeholder="ej: con cinturón, post competencia..."
-          className="w-full bg-surface-elevated text-ink-primary text-sm rounded-xl px-3 py-2.5 border border-surface-border focus:border-brand-primary/60 outline-none placeholder:text-ink-muted"
+          className={fieldInputClassName}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
