@@ -52,7 +52,7 @@ export function NutritionPatientCards({
   const nextText = (row: NutritionFollowupRow) => {
     const next = nextConsultLabel(row.followup?.next_consultation_date ?? null)
     return {
-      ok: next.tone === 'soon' || next.tone === 'far',
+      ok: next.tone !== 'past',
       text: next.tone === 'none' ? 'Sin próximo turno' : next.tone === 'past' ? `Atrasado · ${next.sub}` : `Próx. ${next.label} · ${next.sub}`,
     }
   }
