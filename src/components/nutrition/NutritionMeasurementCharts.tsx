@@ -20,6 +20,8 @@ import {
 } from '@/lib/nutrition/anthropometryProgramModel'
 import { brandRgb } from '@/theme/brandColors'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
+import { NutritionMeasurementChartsV2 } from './NutritionMeasurementChartsV2'
 
 const CHART_STROKE_SECONDARY = brandRgb('secondary')
 const CHART_STROKE_TERTIARY = brandRgb('tertiary')
@@ -380,7 +382,12 @@ function ChipGroup({
   )
 }
 
+/** v2: versión neutra con nombres completos y sin curva inventada; v1 queda igual. */
 export function NutritionMeasurementCharts({ measurements }: { measurements: NutritionMeasurement[] }) {
+  return IS_V2 ? <NutritionMeasurementChartsV2 measurements={measurements} /> : <NutritionMeasurementChartsV1 measurements={measurements} />
+}
+
+function NutritionMeasurementChartsV1({ measurements }: { measurements: NutritionMeasurement[] }) {
   const { data, perimeters, skinfolds, allVariables } = useMemo(() => {
     const rows = buildTimeSeries(measurements)
     const perim = buildVariables(ANTHRO_PERIMETER_KEYS, 'cm', rows, CHART_STROKE_SECONDARY, 'perimeter')
