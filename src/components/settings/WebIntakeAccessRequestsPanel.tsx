@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 
 type AccessRow = {
   id: string
@@ -171,7 +172,7 @@ export function WebIntakeAccessRequestsPanel({ variant = 'settings' }: Props) {
               .filter((r) => r.status !== 'pending')
               .slice(0, 15)
               .map((r) => (
-                <li key={r.id} className={cn('rounded-lg px-2 py-1', r.status === 'approved' && 'text-emerald-700 dark:text-emerald-300')}>
+                <li key={r.id} className={cn('rounded-lg px-2 py-1', r.status === 'approved' && (IS_V2 ? 'text-status-active' : 'text-emerald-700 dark:text-emerald-300'))}>
                   {r.selected_plan_title || r.selected_web_plan_slug} — {r.status}
                 </li>
               ))}

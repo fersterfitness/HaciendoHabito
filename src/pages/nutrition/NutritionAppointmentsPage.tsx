@@ -1403,7 +1403,7 @@ export function AppointmentsPage() {
                                     className={cn(
                                       'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default',
                                       appointmentInProgress(a) &&
-                                        'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
+                                        (IS_V2 ? 'ring-1 ring-status-expiring/60 motion-safe:animate-pulse' : 'ring-1 ring-amber-400/50 motion-safe:animate-pulse'),
                                       IS_V2
                                         ? a.status === 'confirmed'
                                           ? 'border-surface-border bg-surface-panel text-ink-primary'
@@ -1429,8 +1429,8 @@ export function AppointmentsPage() {
                                 >
                                   <div
                                     className={cn(
-                                      'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default border-violet-400/35 bg-violet-500/[0.12] text-violet-950 dark:text-violet-200/95',
-                                      personalInProgress(p) && 'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
+                                      (IS_V2 ? 'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default border-surface-border bg-surface-panel text-ink-primary' : 'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default border-violet-400/35 bg-violet-500/[0.12] text-violet-950 dark:text-violet-200/95'),
+                                      personalInProgress(p) && (IS_V2 ? 'ring-1 ring-status-expiring/60 motion-safe:animate-pulse' : 'ring-1 ring-amber-400/50 motion-safe:animate-pulse'),
                                     )}
                                   >
                                     {format(parseISO(p.starts_at), 'HH:mm')} {p.title}
@@ -1502,9 +1502,9 @@ export function AppointmentsPage() {
                                   type="button"
                                   onClick={onClick}
                                   className={cn(
-                                    'w-full text-left rounded-lg border px-2 py-1 transition-all border-l-[3px] motion-safe:duration-200 border-violet-500/30 border-l-violet-500 bg-violet-500/[0.08] hover:bg-violet-500/[0.13]',
+                                    (IS_V2 ? 'w-full text-left rounded-lg border px-2 py-1 transition-all motion-safe:duration-200 border-surface-border bg-surface-panel hover:bg-surface-elevated' : 'w-full text-left rounded-lg border px-2 py-1 transition-all border-l-[3px] motion-safe:duration-200 border-violet-500/30 border-l-violet-500 bg-violet-500/[0.08] hover:bg-violet-500/[0.13]'),
                                     personalInProgress(p) &&
-                                      'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
+                                      (IS_V2 ? 'ring-2 ring-status-expiring/50 motion-safe:animate-pulse' : 'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse'),
                                   )}
                                   {...a11y}
                                 >
@@ -1513,7 +1513,7 @@ export function AppointmentsPage() {
                                     {format(parseISO(p.starts_at), 'HH:mm')} — {format(parseISO(p.ends_at), 'HH:mm')}
                                   </p>
                                   {personalInProgress(p) ? (
-                                    <p className="mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95">
+                                    <p className={IS_V2 ? 'mt-0.5 text-3xs font-semibold text-status-expiring' : 'mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95'}>
                                       En curso
                                     </p>
                                   ) : null}
@@ -1594,7 +1594,7 @@ export function AppointmentsPage() {
                                   'w-full text-left rounded-lg px-2 py-1 transition-all motion-safe:duration-200',
                                   !IS_V2 && 'border border-l-[3px]',
                                   appointmentInProgress(a) &&
-                                    'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
+                                    (IS_V2 ? 'ring-2 ring-status-expiring/50 motion-safe:animate-pulse' : 'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse'),
                                   IS_V2
                                     ? cn(
                                         'hover:bg-surface-elevated',
@@ -1620,7 +1620,7 @@ export function AppointmentsPage() {
                                   <p className="mt-0.5 text-3xs font-medium text-ink-muted">A confirmar</p>
                                 ) : null}
                                 {appointmentInProgress(a) ? (
-                                  <p className="mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95">
+                                  <p className={IS_V2 ? 'mt-0.5 text-3xs font-semibold text-status-expiring' : 'mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95'}>
                                     En curso
                                   </p>
                                 ) : null}
@@ -1632,7 +1632,7 @@ export function AppointmentsPage() {
                               {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? '—'}
                             </p>
                             {appointmentInProgress(a) && (
-                              <p className="text-3xs font-semibold text-amber-800 dark:text-amber-300/90">En curso ahora</p>
+                              <p className={IS_V2 ? 'text-3xs font-semibold text-status-expiring' : 'text-3xs font-semibold text-amber-800 dark:text-amber-300/90'}>En curso ahora</p>
                             )}
                             {formatReminderLine(a.reminders) ? (
                               <p className="text-3xs leading-snug text-ink-muted rounded-lg border border-surface-border/70 bg-surface-elevated/35 px-2 py-1.5">
@@ -1721,8 +1721,8 @@ export function AppointmentsPage() {
                       key={p.id}
                       variants={listMotion.item}
                       className={cn(
-                        'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px] border-l-violet-500/75',
-                        personalInProgress(p) && 'ring-1 ring-amber-400/40 shadow-sm shadow-amber-500/5',
+                        (IS_V2 ? 'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px] border-l-ink-muted/40' : 'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px] border-l-violet-500/75'),
+                        personalInProgress(p) && (IS_V2 ? 'ring-1 ring-status-expiring/45' : 'ring-1 ring-amber-400/40 shadow-sm shadow-amber-500/5'),
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -1760,7 +1760,7 @@ export function AppointmentsPage() {
                     className={cn(
                       'rounded-xl border border-surface-border bg-surface-elevated/45 py-2 pl-3 pr-3 border-l-[3px]',
                       agendaCardAccent(a.status),
-                      appointmentInProgress(a) && 'ring-1 ring-amber-400/40 shadow-sm shadow-amber-500/5',
+                      appointmentInProgress(a) && (IS_V2 ? 'ring-1 ring-status-expiring/45' : 'ring-1 ring-amber-400/40 shadow-sm shadow-amber-500/5'),
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1771,7 +1771,7 @@ export function AppointmentsPage() {
                           {new Date(a.starts_at).toLocaleString('es-AR')}
                         </p>
                         {appointmentInProgress(a) ? (
-                          <p className="mt-1 text-3xs font-semibold text-amber-800 dark:text-amber-300/90">
+                          <p className={IS_V2 ? 'mt-1 text-3xs font-semibold text-status-expiring' : 'mt-1 text-3xs font-semibold text-amber-800 dark:text-amber-300/90'}>
                             En curso
                           </p>
                         ) : null}
@@ -2027,8 +2027,8 @@ export function AppointmentsPage() {
             onClose={() => setPersonalOpen(false)}
             title="Nuevo evento personal"
             subtitle="No se asocia a alumnos ni sincroniza con Google Calendar"
-            className="group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-violet-500/60 bg-surface-card dark:border-l-violet-500/45"
-            summaryClassName="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-violet-500/[0.06] px-4 py-3 transition-colors hover:bg-violet-500/[0.1] [&::-webkit-details-marker]:hidden"
+            className={IS_V2 ? 'group overflow-hidden rounded-xl border border-surface-border bg-surface-card' : 'group overflow-hidden rounded-xl border border-surface-border border-l-[3px] border-l-violet-500/60 bg-surface-card dark:border-l-violet-500/45'}
+            summaryClassName={IS_V2 ? 'flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border px-4 py-3 transition-colors hover:bg-surface-elevated [&::-webkit-details-marker]:hidden' : 'flex cursor-pointer list-none items-center justify-between gap-3 border-b border-surface-border bg-violet-500/[0.06] px-4 py-3 transition-colors hover:bg-violet-500/[0.1] [&::-webkit-details-marker]:hidden'}
           >
             <div className={IS_V2 ? 'space-y-4' : 'p-4 sm:p-5 space-y-4'}>
               <div className="grid md:grid-cols-2 gap-3">
@@ -2077,9 +2077,9 @@ export function AppointmentsPage() {
                 </label>
               </div>
               <Button
-                variant="secondary"
+                variant={IS_V2 ? 'primary' : 'secondary'}
                 size="sm"
-                className="border-violet-200/90 bg-violet-100/80 font-semibold text-violet-950 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-950/70"
+                className={IS_V2 ? undefined : 'border-violet-200/90 bg-violet-100/80 font-semibold text-violet-950 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-950/70'}
                 onClick={() => void createPersonalEvent()}
                 loading={personalSaving}
               >
@@ -2108,7 +2108,7 @@ export function AppointmentsPage() {
                     'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px] motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-sm',
                     a.status === 'completed' && 'border-l-brand-primary/85',
                     a.status === 'cancelled' && 'border-l-status-expired/70',
-                    a.status === 'no_show' && 'border-l-amber-500/80',
+                    a.status === 'no_show' && (IS_V2 ? 'border-l-status-expiring/80' : 'border-l-amber-500/80'),
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
