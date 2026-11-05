@@ -8,6 +8,7 @@ import {
   normalizeWeeklyGrid,
 } from '@/lib/nutrition/weeklyPlanGrid'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 
 function MarkdownLine({ text }: { text: string }) {
   return (
@@ -43,7 +44,7 @@ export function WeeklyMealPlanBoard({
               <h3
                 key={day}
                 className="min-w-0 flex-1 text-center text-xs font-semibold tracking-tight text-ink-primary"
-                style={{ color: accent.color }}
+                style={IS_V2 ? undefined : { color: accent.color }}
               >
                 {day}
               </h3>
@@ -71,7 +72,7 @@ export function WeeklyMealPlanBoard({
                     key={`${meal.id}-${day}`}
                     className="flex min-h-[7.5rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
                   >
-                    <div className="h-1 w-full shrink-0" style={{ backgroundColor: accent.color }} />
+                    {IS_V2 ? null : <div className="h-1 w-full shrink-0" style={{ backgroundColor: accent.color }} />}
                     <div className="flex flex-1 flex-col justify-center px-2.5 py-2">
                       {empty ? (
                         <p className="text-center text-xs text-ink-muted">Sin registro</p>

@@ -298,6 +298,25 @@ export function addMealRow(grid: WeeklyPlanGridJson, mergeWeekends: boolean): We
   return { mealRows }
 }
 
+/** Copia el menú y los macros de una casilla a otros días de la misma comida. */
+export function copyMealCell(grid: WeeklyPlanGridJson, mealIdx: number, fromDay: number, toDays: number[]): WeeklyPlanGridJson {
+  const row = grid.mealRows[mealIdx]
+  if (!row) return grid
+  const n = row.columns.length
+  const columns = [...row.columns]
+  const macros = Array.from({ length: n }, (_, i) => row.macros?.[i] ?? null)
+  const srcMacros = macros[fromDay]
+  for (const d of toDays) {
+    if (d === fromDay || d < 0 || d >= n) continue
+    columns[d] = row.columns[fromDay] ?? ''
+    macros[d] = srcMacros ? { ...srcMacros } : null
+  }
+  const { macros: _old, ...rest } = row
+  void _old
+  const nextRow: MealRowModel = macros.some(Boolean) ? { ...rest, columns, macros } : { ...rest, columns }
+  return { mealRows: grid.mealRows.map((r, i) => (i === mealIdx ? nextRow : r)) }
+}
+
 export function removeMealRowAt(grid: WeeklyPlanGridJson, index: number): WeeklyPlanGridJson {
   const mealRows = grid.mealRows.filter((_, i) => i !== index)
   return mealRows.length > 0 ? { mealRows } : grid

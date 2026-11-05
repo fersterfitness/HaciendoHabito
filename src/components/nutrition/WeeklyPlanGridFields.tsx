@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Clock, Columns2, Plus, Trash2 } from 'lucide-react'
+import { Clock, Columns2, Copy, Plus, Trash2 } from 'lucide-react'
 import type { MealMacros, WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
   addMealRow,
@@ -7,12 +7,16 @@ import {
   columnFullLabels,
   columnCount,
   createEmptyWeeklyGrid,
+  copyMealCell,
   dayAccent,
+  dayMacroTotals,
   filledMealCountForDay,
+  formatMacros,
   normalizeWeeklyGrid,
   removeMealRowAt,
 } from '@/lib/nutrition/weeklyPlanGrid'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 import { IS_V2 } from '@/lib/uiVersion'
 
 const planFocusClassName =
@@ -57,6 +61,22 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
     void _old
     meals[mealIdx] = list.some(Boolean) ? { ...rest, macros: list } : rest
     onGridChange({ mealRows: meals })
+  }
+
+  const [copying, setCopying] = useState<{ mi: number; di: number; top: number; left: number } | null>(null)
+  const [targets, setTargets] = useState<number[]>([])
+
+  function openCopy(mi: number, di: number, el: HTMLElement) {
+    const r = el.getBoundingClientRect()
+    const width = 232
+    setCopying({ mi, di, top: Math.min(r.bottom + 6, window.innerHeight - 300), left: Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8)) })
+    setTargets([])
+  }
+
+  function applyCopy() {
+    if (!copying || targets.length === 0) return
+    onGridChange(copyMealCell(normalized, copying.mi, copying.di, targets))
+    setCopying(null)
   }
 
   function updateMealField(mealIdx: number, key: 'label' | 'approxTime', text: string) {
@@ -134,15 +154,26 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
           {days.map((day, di) => {
             const accent = dayAccent(di, mergeWeekends)
             const count = filledMealCountForDay(normalized, di)
+            const totals = IS_V2 ? dayMacroTotals(normalized, di) : null
             return (
               <header key={`h-${day}`} className="flex items-center justify-between gap-2 px-0.5">
                 <h3 className="text-xs font-semibold tracking-tight text-ink-primary">{day}</h3>
-                <span
-                  className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-3xs font-semibold tabular-nums"
-                  style={{ backgroundColor: `${accent.color}22`, color: accent.color }}
-                >
-                  {count}
-                </span>
+                {totals?.kcal != null ? (
+                  <span className="truncate text-3xs font-semibold tabular-nums text-ink-secondary" title={`Total del día: ${formatMacros(totals)}`}>
+                    {totals.kcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-3xs font-semibold tabular-nums',
+                      IS_V2 && 'bg-surface-elevated text-ink-muted',
+                    )}
+                    style={IS_V2 ? undefined : { backgroundColor: `${accent.color}22`, color: accent.color }}
+                    title={IS_V2 ? `${count} comidas cargadas` : undefined}
+                  >
+                    {count}
+                  </span>
+                )}
               </header>
             )
           })}
@@ -156,9 +187,22 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                   key={`${meal.id}-${di}`}
                   className="flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
                 >
-                  <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />
+                  {IS_V2 ? null : <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />}
                   <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
-                    <p className="text-xs font-semibold leading-tight text-ink-primary">{meal.label}</p>
+                    <div className="flex items-start justify-between gap-1">
+                      <p className="text-xs font-semibold leading-tight text-ink-primary">{meal.label}</p>
+                      {IS_V2 && (filled || meal.macros?.[di]) ? (
+                        <button
+                          type="button"
+                          onClick={(e) => openCopy(mi, di, e.currentTarget)}
+                          className="-mr-1 -mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                          title="Copiar a otros días"
+                          aria-label={`Copiar ${meal.label} del ${day} a otros días`}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      ) : null}
+                    </div>
                     {meal.approxTime.trim() ? (
                       <p className="mt-0.5 text-3xs font-medium text-ink-muted">
                         {meal.approxTime}
@@ -197,6 +241,72 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
           )}
         </div>
       </div>
+
+      {copying ? (
+        <>
+          <button type="button" className="fixed inset-0 z-[10060] cursor-default" aria-label="Cerrar" onClick={() => setCopying(null)} />
+          <div
+            role="dialog"
+            aria-label="Copiar a otros días"
+            className="fixed z-[10061] w-[232px] rounded-xl border border-surface-border bg-surface-card p-3 shadow-lg"
+            style={{ top: copying.top, left: copying.left }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setCopying(null)
+            }}
+          >
+            <p className="text-xs font-semibold text-ink-primary">
+              Copiar {normalized.mealRows[copying.mi]?.label ?? 'comida'} del {days[copying.di]} a…
+            </p>
+            <div className="mt-2 flex gap-1.5">
+              <button
+                type="button"
+                className="rounded-md bg-surface-elevated px-2 py-0.5 text-3xs font-medium text-ink-secondary hover:text-ink-primary"
+                onClick={() => setTargets(days.map((_, i) => i).filter((i) => i !== copying.di))}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                className="rounded-md bg-surface-elevated px-2 py-0.5 text-3xs font-medium text-ink-secondary hover:text-ink-primary"
+                onClick={() => setTargets([0, 1, 2, 3, 4].filter((i) => i !== copying.di))}
+              >
+                Lun a vie
+              </button>
+              <button
+                type="button"
+                className="rounded-md px-2 py-0.5 text-3xs font-medium text-ink-muted hover:text-ink-primary"
+                onClick={() => setTargets([])}
+              >
+                Ninguno
+              </button>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
+              {days.map((d, i) =>
+                i === copying.di ? null : (
+                  <label key={d} className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-secondary">
+                    <input
+                      type="checkbox"
+                      className="rounded border-surface-inputBorder accent-brand-primary"
+                      checked={targets.includes(i)}
+                      onChange={(e) => setTargets((prev) => (e.target.checked ? [...prev, i] : prev.filter((x) => x !== i)))}
+                    />
+                    {d}
+                  </label>
+                ),
+              )}
+            </div>
+            <p className="mt-2 text-3xs text-ink-muted">Reemplaza el menú y los macros de esos días.</p>
+            <div className="mt-2.5 flex justify-end gap-2">
+              <button type="button" className="text-xs text-ink-muted hover:text-ink-primary" onClick={() => setCopying(null)}>
+                Cancelar
+              </button>
+              <Button type="button" size="sm" disabled={targets.length === 0} onClick={applyCopy}>
+                Copiar{targets.length ? ` a ${targets.length}` : ''}
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   cleanMacros,
+  copyMealCell,
   dayMacroTotals,
   formatMacros,
   normalizeWeeklyGrid,
@@ -48,6 +49,15 @@ describe('macros por comida', () => {
     const split = reshapeGrid(merged, true, false)
     expect(split.mealRows[0].macros?.[5]?.kcal).toBe(500)
     expect(split.mealRows[0].macros?.[6]?.kcal).toBe(500)
+  })
+
+  it('copia menú y macros a los días elegidos sin tocar el resto', () => {
+    const g = normalizeWeeklyGrid({ mealRows: [row([{ kcal: 380, p: 18 }])] }, false)
+    const out = copyMealCell(g, 0, 0, [1, 2, 0, 9])
+    expect(out.mealRows[0].columns.slice(0, 4)).toEqual(['a', 'a', 'a', 'd'])
+    expect(out.mealRows[0].macros?.[2]).toEqual({ kcal: 380, p: 18, c: null, g: null })
+    expect(out.mealRows[0].macros?.[3]).toBeNull()
+    expect(g.mealRows[0].columns[1]).toBe('b')
   })
 
   it('formatea sólo lo cargado', () => {
