@@ -39,6 +39,8 @@ import {
 } from '@/lib/nutrition/measurementDeletionAccess'
 import { cn, formatDate } from '@/lib/utils'
 import { IS_V2 } from '@/lib/uiVersion'
+import { AnthropometryReportDropZone } from '@/components/nutrition/AnthropometryReportDropZone'
+import { matchPatientByName, nameScore } from '@/lib/nutrition/anthropometryReportImport'
 import type {
   NutritionMeasurement,
   NutritionMeasurementDeletionLogEntry,
@@ -203,6 +205,8 @@ export function NutritionAnthropometryHubPage() {
   const [deletionLog, setDeletionLog] = useState<NutritionMeasurementDeletionLogEntry[]>([])
   const [loadingDeleted, setLoadingDeleted] = useState(false)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -393,6 +397,43 @@ export function NutritionAnthropometryHubPage() {
     }
   }
 
+  /**
+   * Informe PDF arrastrado acá: se identifica al paciente por el nombre del informe (o se usa el elegido)
+   * y se abre su ficha con el informe cargado para revisar y guardar.
+   */
+  async function handleReport(file: File) {
+    setReportError(null)
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+      setReportError(`"${file.name}" no es un PDF. Arrastrá el informe de composición corporal en PDF.`)
+      return
+    }
+    setReportBusy(true)
+    try {
+      const { readAnthropometryReportPdf } = await import('@/lib/nutrition/anthropometryReportPdf')
+      const r = await readAnthropometryReportPdf(file)
+      if (Object.keys(r.values).length < 3) {
+        setReportError(`"${file.name}" no tiene el formato del informe de composición corporal: no encontré las medidas (peso, perímetros, pliegues).`)
+        return
+      }
+      const byName = r.patientName ? matchPatientByName(r.patientName, students) : null
+      const selectedFits = selected && (!r.patientName || nameScore(r.patientName, selected.full_name) > 0)
+      const target = selectedFits ? selected : (byName ?? selected)
+      if (!target) {
+        setReportError(
+          r.patientName
+            ? `El informe es de ${r.patientName} y no lo encontré (o hay más de uno con ese nombre). Elegí el paciente en la lista y volvé a arrastrarlo.`
+            : 'El informe no trae el nombre del paciente. Elegí el paciente en la lista y volvé a arrastrarlo.',
+        )
+        return
+      }
+      navigate(`/nutrition/${target.id}?tab=antropometria`, { state: { importFile: file } })
+    } catch {
+      setReportError(`No pude leer "${file.name}". Puede estar dañado o protegido con contraseña.`)
+    } finally {
+      setReportBusy(false)
+    }
+  }
+
   return (
     <div>
       <Header title="Antropometría" />
@@ -463,6 +504,19 @@ export function NutritionAnthropometryHubPage() {
 
           {/* Detalle */}
           <section className="lg:col-span-8 xl:col-span-9 space-y-5">
+            {IS_V2 ? (
+              <AnthropometryReportDropZone
+                busy={reportBusy}
+                onFile={(f) => void handleReport(f)}
+                error={reportError}
+                title="Cargar control desde el informe PDF"
+                hint={
+                  selected
+                    ? `Arrastrá el informe de composición corporal. Se abre la ficha de ${selected.full_name} (o la del paciente del informe) con las medidas cargadas para revisar y guardar.`
+                    : 'Arrastrá el informe de composición corporal: busco al paciente por el nombre del informe y abro su ficha con las medidas cargadas.'
+                }
+              />
+            ) : null}
             {!selected ? (
               <div className={cn('flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-surface-border/80 bg-surface-card/50 px-6 py-12 text-center', IS_V2 && 'max-lg:hidden')}>
                 <Activity className="h-9 w-9 text-brand-secondary/70" aria-hidden />

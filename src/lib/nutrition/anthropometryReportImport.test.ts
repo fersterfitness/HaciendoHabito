@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupIntoLines, parseAnthropometryReport } from './anthropometryReportImport'
+import { groupIntoLines, matchPatientByName, parseAnthropometryReport } from './anthropometryReportImport'
 
 /** Renglones como los arma pdf.js del informe de Holway (paciente ficticio). */
 const PAGE1 = [
@@ -79,5 +79,21 @@ describe('importar informe de composición corporal', () => {
       { str: '185,00', x: 470, y: 680 },
     ])
     expect(lines).toEqual(['Peso (kg) 84,70', 'Talla (cm) 185,00'])
+  })
+})
+
+describe('buscar el paciente del informe', () => {
+  const list = [
+    { id: 'a', full_name: 'Federico Vazquez Crossetto' },
+    { id: 'b', full_name: 'Florencia Vega' },
+    { id: 'c', full_name: 'Lujan Ayala' },
+    { id: 'd', full_name: 'Luján Ayala' },
+  ]
+  it('encuentra por nombre y apellido aunque falte el segundo apellido', () => {
+    expect(matchPatientByName('Federico Crossetto', list)?.id).toBe('a')
+  })
+  it('no adivina si hay empate o sólo coincide una palabra', () => {
+    expect(matchPatientByName('Luján Ayala', list)).toBeNull()
+    expect(matchPatientByName('Florencia Pérez', list)).toBeNull()
   })
 })

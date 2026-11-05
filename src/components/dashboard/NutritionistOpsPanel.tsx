@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale'
 import { CalendarClock, ClipboardList, FileQuestion, Ruler, ChevronRight } from 'lucide-react'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { loadNutritionistOps, type NutritionistOps, type NutritionOpsPatient } from '@/lib/dashboard/nutritionistOps'
+import { IS_V2 } from '@/lib/uiVersion'
 import { cn } from '@/lib/utils'
 
 const MAX_ROWS = 5
@@ -104,6 +105,8 @@ export function NutritionistOpsPanel({ ownerId }: { ownerId: string }) {
   }
 
   const open = (id: string) => navigate(`/nutrition/${id}`)
+  /** v2: un control atrasado se resuelve cargando el control, así que abre directo Antropometría. */
+  const openControl = (id: string) => navigate(IS_V2 ? `/nutrition/${id}?tab=antropometria` : `/nutrition/${id}`)
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -136,7 +139,7 @@ export function NutritionistOpsPanel({ ownerId }: { ownerId: string }) {
         onSeeAll={() => navigate('/nutrition/anthropometry')}
       >
         {ops.overdueControls.slice(0, MAX_ROWS).map((p) => (
-          <PatientRow key={p.id} p={p} onOpen={open} />
+          <PatientRow key={p.id} p={p} onOpen={openControl} />
         ))}
       </Block>
       <Block

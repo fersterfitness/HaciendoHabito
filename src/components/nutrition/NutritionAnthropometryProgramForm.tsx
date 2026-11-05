@@ -1,9 +1,9 @@
 import { cn } from '@/lib/utils'
 import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FileUp, Loader2 } from 'lucide-react'
+import { AnthropometryReportDropZone } from './AnthropometryReportDropZone'
 import { IS_V2 } from '@/lib/uiVersion'
-import type { ImportedAnthropometry } from '@/lib/nutrition/anthropometryReportImport'
+import { nameScore, type ImportedAnthropometry } from '@/lib/nutrition/anthropometryReportImport'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import type { Json, NutritionMeasurement, Student } from '@/types/database'
@@ -57,15 +57,6 @@ function inputsWithBasicPrefill(
   return base
 }
 
-const normName = (s: string) =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z]+/).filter((w) => w.length > 2)
-
-/** ¿El nombre del informe es del paciente? Alcanza con que compartan una palabra (nombre o apellido). */
-function sameName(a: string, b: string) {
-  const wb = new Set(normName(b))
-  return normName(a).some((w) => wb.has(w))
-}
-
 function numText(v: number | null) {
   return v == null ? '' : String(v).replace('.', ',')
 }
@@ -116,6 +107,8 @@ export function NutritionAnthropometryProgramForm({
   draft,
   onDraftClear,
   onSaved,
+  importFile,
+  onImportConsumed,
 }: {
   ownerId: string
   student: Student
@@ -123,6 +116,9 @@ export function NutritionAnthropometryProgramForm({
   draft?: AnthropometryProgramDraft
   onDraftClear?: () => void
   onSaved: () => void | Promise<void>
+  /** Informe arrastrado en otra pantalla (Antropometría): se importa al abrir la ficha. */
+  importFile?: File | null
+  onImportConsumed?: () => void
 }) {
   const studentId = student.id
 
@@ -151,9 +147,7 @@ export function NutritionAnthropometryProgramForm({
   const [muscleKg, setMuscleKg] = useState('')
   const [imported, setImported] = useState<(ImportedAnthropometry & { fileName: string }) | null>(null)
   const [importing, setImporting] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setImported(null)
@@ -183,6 +177,15 @@ export function NutritionAnthropometryProgramForm({
       setMeta(loaded.meta)
     }
   }, [draft, defaults, measurements])
+
+  const consumedRef = useRef<File | null>(null)
+  useEffect(() => {
+    if (!IS_V2 || !importFile || consumedRef.current === importFile) return
+    consumedRef.current = importFile
+    onImportConsumed?.()
+    void importReport(importFile)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sólo cuando llega un archivo nuevo
+  }, [importFile])
 
   function setCell(key: AnthropometryVariableKey, idx: number, v: string) {
     setInputs((prev) => {
@@ -351,55 +354,12 @@ export function NutritionAnthropometryProgramForm({
 
       {IS_V2 ? (
         <div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf,.pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              e.target.value = ''
-              if (f) void importReport(f)
-            }}
+          <AnthropometryReportDropZone
+            busy={importing}
+            onFile={(f) => void importReport(f)}
+            error={importError}
+            hint="Arrastrá el informe de composición corporal o tocá para elegirlo. Completa las medidas, la fecha, el N°, % grasa y masa muscular."
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragOver(true)
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setDragOver(false)
-              const f = e.dataTransfer.files?.[0]
-              if (f) void importReport(f)
-            }}
-            disabled={importing}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-xl border border-dashed px-4 py-3.5 text-left transition-colors',
-              dragOver ? 'border-brand-primary bg-brand-primary/5' : 'border-surface-border hover:border-ink-muted/60 hover:bg-surface-elevated/40',
-            )}
-          >
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-ink-secondary">
-              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-medium text-ink-primary">
-                {importing ? 'Leyendo el informe…' : 'Importar informe PDF'}
-              </span>
-              <span className="block text-2xs text-ink-muted">
-                Arrastrá el informe de composición corporal o tocá para elegirlo. Completa las medidas, la fecha, el N°, % grasa y masa muscular.
-              </span>
-            </span>
-          </button>
-
-          {importError ? (
-            <p role="alert" className="mt-2 rounded-xl border border-status-expired/30 bg-status-expired/10 px-3 py-2.5 text-2xs font-medium text-status-expired">
-              {importError}
-            </p>
-          ) : null}
 
           {imported ? (
             <div className="mt-2 rounded-xl bg-surface-elevated/60 px-3 py-2.5 text-2xs text-ink-secondary">
@@ -411,7 +371,7 @@ export function NutritionAnthropometryProgramForm({
               {imported.missing.length ? (
                 <p className="mt-1 text-ink-muted">No estaban en el informe: {imported.missing.map((k) => labelForAnthroKey(k)).join(', ')}.</p>
               ) : null}
-              {imported.patientName && !sameName(imported.patientName, student.full_name) ? (
+              {imported.patientName && nameScore(imported.patientName, student.full_name) === 0 ? (
                 <p className="mt-1 font-medium text-status-expired">
                   Ojo: el informe es de {imported.patientName}, no de {student.full_name}.
                 </p>

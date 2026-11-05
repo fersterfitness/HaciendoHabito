@@ -1,6 +1,6 @@
 import { controlBaseClassName, controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { pdf } from '@react-pdf/renderer'
 import {
@@ -229,6 +229,12 @@ export function NutritionPatientDetailView({
   const measurementsSorted = useMemo(() => sortMeasurementsDesc(measurements), [measurements])
   const measurementsCountRef = useRef(0)
   const programFormRef = useRef<HTMLDivElement>(null)
+  /** Informe PDF arrastrado en la pantalla Antropometría: llega por el estado de navegación. */
+  const location = useLocation()
+  const [pendingImport, setPendingImport] = useState<File | null>(() => {
+    const f = (location.state as { importFile?: unknown } | null)?.importFile
+    return f instanceof File ? f : null
+  })
   const [planText, setPlanText] = useState('')
   const [followup, setFollowup] = useState<NutritionPatientFollowup | null>(null)
   const [measurementForm, setMeasurementForm] = useState({
@@ -804,6 +810,13 @@ export function NutritionPatientDetailView({
                   onSaved={() => {
                     setProgramDraft(null)
                     void refreshMeasurements()
+                  }}
+                  importFile={pendingImport}
+                  onImportConsumed={() => {
+                    setPendingImport(null)
+                    // Que volver atrás o recargar no lo importe de nuevo.
+                    navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+                    window.setTimeout(scrollToProgramForm, 50)
                   }}
                 />
               ) : null}

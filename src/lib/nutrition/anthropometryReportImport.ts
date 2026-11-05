@@ -178,3 +178,23 @@ export function parseAnthropometryReport(pages: string[][]): ImportedAnthropomet
     missing: ALL_KEYS.filter((k) => values[k] == null),
   }
 }
+
+const nameWords = (s: string) => norm(s).split(' ').filter((w) => w.length > 2)
+
+/** Palabras de nombre/apellido en común (ignora tildes y mayúsculas). */
+export function nameScore(a: string, b: string): number {
+  const wb = new Set(nameWords(b))
+  return [...new Set(nameWords(a))].filter((w) => wb.has(w)).length
+}
+
+/**
+ * Paciente del informe: el que más palabras comparte con el nombre del PDF.
+ * Pide al menos dos (nombre y apellido) y que no haya empate; si no, devuelve null.
+ */
+export function matchPatientByName<T extends { full_name: string }>(name: string, patients: T[]): T | null {
+  const scored = patients.map((p) => ({ p, s: nameScore(name, p.full_name) })).filter((x) => x.s >= 2)
+  if (!scored.length) return null
+  const best = Math.max(...scored.map((x) => x.s))
+  const top = scored.filter((x) => x.s === best)
+  return top.length === 1 ? top[0].p : null
+}
