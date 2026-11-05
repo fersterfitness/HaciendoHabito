@@ -1404,7 +1404,13 @@ export function AppointmentsPage() {
                                       'truncate rounded border px-1 py-0.5 text-3xs font-medium leading-tight cursor-default',
                                       appointmentInProgress(a) &&
                                         'ring-1 ring-amber-400/50 motion-safe:animate-pulse',
-                                      a.status === 'confirmed'
+                                      IS_V2
+                                        ? a.status === 'confirmed'
+                                          ? 'border-surface-border bg-surface-panel text-ink-primary'
+                                          : a.status === 'scheduled'
+                                            ? 'border-dashed border-surface-inputBorder bg-surface-card text-ink-secondary'
+                                            : 'border-surface-border bg-surface-elevated text-ink-muted'
+                                        : a.status === 'confirmed'
                                         ? 'border-brand-primary/35 bg-brand-primary/[0.14] text-ink-primary dark:text-brand-primary/95'
                                         : a.status === 'scheduled'
                                           ? 'border-brand-tertiary/35 bg-brand-tertiary/10 text-brand-tertiary'
@@ -1591,12 +1597,12 @@ export function AppointmentsPage() {
                                     'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
                                   IS_V2
                                     ? cn(
-                                        'hh-pastel border-0 hover:brightness-[0.97]',
+                                        'hover:bg-surface-elevated',
                                         a.status === 'confirmed'
-                                          ? 'bg-pastel-mint'
+                                          ? 'border border-surface-border bg-surface-panel'
                                           : a.status === 'scheduled'
-                                            ? 'bg-pastel-lavender'
-                                            : 'bg-surface-elevated',
+                                            ? 'border border-dashed border-surface-inputBorder bg-surface-card'
+                                            : 'border border-surface-border bg-surface-elevated opacity-70',
                                       )
                                     : a.status === 'confirmed'
                                       ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
@@ -1610,6 +1616,9 @@ export function AppointmentsPage() {
                                 <p className="text-2xs text-ink-secondary">
                                   {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                                 </p>
+                                {IS_V2 && a.status === 'scheduled' && !appointmentInProgress(a) ? (
+                                  <p className="mt-0.5 text-3xs font-medium text-ink-muted">A confirmar</p>
+                                ) : null}
                                 {appointmentInProgress(a) ? (
                                   <p className="mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95">
                                     En curso

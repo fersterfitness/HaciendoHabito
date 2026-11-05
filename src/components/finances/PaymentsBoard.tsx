@@ -61,7 +61,7 @@ const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing ==
 const STATE_CHIP_V2: Record<PaymentState, string> = {
   pagado: 'hh-pastel bg-pastel-mint text-pastel-mint-ink',
   parcial: 'hh-pastel bg-pastel-sky text-pastel-sky-ink',
-  pendiente: 'hh-pastel bg-pastel-lavender text-pastel-lavender-ink',
+  pendiente: 'hh-pastel bg-pastel-butter text-pastel-butter-ink',
   vencido: 'hh-pastel bg-pastel-rose text-pastel-rose-ink',
   sin_cargo: 'bg-surface-elevated text-ink-muted',
 }

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { fetchCurrentAssignmentsForStudents, PAYMENT_STATUS_LABELS, effectivePaymentStatus } from '@/lib/studentPlanAssignments'
+import type { PlanAssignmentPaymentStatus } from '@/types/database'
 import type { StudentPlanAssignment } from '@/types/database'
 import { StudentTagChips } from '@/components/students/StudentTagChips'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
@@ -1293,6 +1294,7 @@ function StudentDirectoryTable({
                   {currentPlanByStudent[student.id] ? (() => {
                     const a = currentPlanByStudent[student.id]
                     const eff = effectivePaymentStatus(a)
+                    if (IS_V2) return <PlanPillV2 name={a.plan_name_snapshot} status={eff} />
                     const cls =
                       eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
                       eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
@@ -1386,6 +1388,7 @@ function StudentDirectoryTable({
                           {currentPlanByStudent[student.id] ? (() => {
                             const a = currentPlanByStudent[student.id]
                             const eff = effectivePaymentStatus(a)
+                            if (IS_V2) return <PlanPillV2 name={a.plan_name_snapshot} status={eff} />
                             const cls =
                               eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
                               eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
@@ -1464,5 +1467,28 @@ function StudentDirectoryTable({
         </table>
       </div>
     </section>
+  )
+}
+
+/**
+ * v2: el nombre del plan va en gris; el color sólo aparece como estado escrito cuando hay que hacer
+ * algo (vencido, pendiente). Pagado no lleva nada: es lo normal.
+ */
+function PlanPillV2({ name, status }: { name: string; status: PlanAssignmentPaymentStatus }) {
+  const flag =
+    status === 'overdue'
+      ? { text: 'Vencido', cls: 'text-status-expired' }
+      : status === 'pending'
+        ? { text: 'Pendiente', cls: 'text-status-pending' }
+        : status === 'cancelled'
+          ? { text: 'Cancelado', cls: 'text-ink-muted' }
+          : null
+  return (
+    <span className="inline-flex min-w-0 max-w-[14rem] items-center gap-1.5" title={`${name} · ${PAYMENT_STATUS_LABELS[status]}`}>
+      <span className="truncate rounded-full bg-surface-elevated px-2 py-0.5 text-3xs font-medium text-ink-secondary ring-1 ring-inset ring-surface-border">
+        {name}
+      </span>
+      {flag ? <span className={cn('shrink-0 text-3xs font-semibold', flag.cls)}>{flag.text}</span> : null}
+    </span>
   )
 }
