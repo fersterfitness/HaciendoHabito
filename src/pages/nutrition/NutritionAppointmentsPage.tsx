@@ -1164,7 +1164,7 @@ export function AppointmentsPage() {
                   <CalendarClock className="h-3.5 w-3.5" aria-hidden /> Personal
                 </button>
               </div>
-              <div className={IS_V2 ? 'inline-flex gap-1.5' : 'inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px'}>
+              <div className={IS_V2 ? 'inline-flex gap-1.5 max-sm:order-last' : 'inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px'}>
                 <button
                   type="button"
                   onClick={() => setViewMode('week')}
@@ -1202,6 +1202,8 @@ export function AppointmentsPage() {
                   <List className="h-3.5 w-3.5" aria-hidden /> Agenda
                 </button>
               </div>
+              {/* Celu v2: Hoy y las flechas en la fila de Pacientes/Personal, a la derecha. */}
+              <div className={IS_V2 ? 'flex items-center gap-2 max-sm:ml-auto' : 'contents'}>
               {viewMode !== 'agenda' && (
                 <Button
                   type="button"
@@ -1231,6 +1233,7 @@ export function AppointmentsPage() {
                   aria-label="Periodo siguiente">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
+              </div>
               </div>
             </div>
           </PageToolbar>
