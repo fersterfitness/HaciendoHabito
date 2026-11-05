@@ -49,6 +49,7 @@ import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/Nutr
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionResumenDashboardV2 } from '@/components/nutrition/NutritionResumenDashboardV2'
+import { NutritionAnthropometryTabV2 } from '@/components/nutrition/NutritionAnthropometryTabV2'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
 import { NutritionWebIntakePanel } from '@/components/nutrition/NutritionWebIntakePanel'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
@@ -231,6 +232,7 @@ export function NutritionPatientDetailView({
   const programFormRef = useRef<HTMLDivElement>(null)
   /** Informe PDF arrastrado en la pantalla Antropometría: llega por el estado de navegación. */
   const location = useLocation()
+  const [newControlRequest, setNewControlRequest] = useState(0)
   const [pendingImport, setPendingImport] = useState<File | null>(() => {
     const f = (location.state as { importFile?: unknown } | null)?.importFile
     return f instanceof File ? f : null
@@ -772,7 +774,12 @@ export function NutritionPatientDetailView({
             student={student}
             measurements={measurements}
             followup={followup}
-            onGoToTab={handleTabChange}
+            onGoToTab={(tab: string) => {
+              if (tab === 'antropometria-nuevo') {
+                setNewControlRequest((n) => n + 1)
+                handleTabChange('antropometria')
+              } else handleTabChange(tab)
+            }}
             onManageAppointments={() => navigate('/appointments')}
           />
         </TabPanel>
@@ -794,197 +801,222 @@ export function NutritionPatientDetailView({
 
         {/* ───────────── ANTROPOMETRÍA ───────────── */}
         <TabPanel id="antropometria" active={activeTab}>
-          <div className="space-y-6">
-            <Card ref={programFormRef}>
-              <CardTitle className="mb-1">Programa de antropometría</CardTitle>
-              <p className="text-sm text-ink-muted mb-4">
-                Cargá las 5 mediciones por variable; la app calcula la mediana y el % error técnico (TE).
-              </p>
-              {user ? (
-                <NutritionAnthropometryProgramForm
-                  ownerId={user.id}
-                  student={student}
-                  measurements={measurements}
-                  draft={programDraft}
-                  onDraftClear={() => setProgramDraft(null)}
-                  onSaved={() => {
-                    setProgramDraft(null)
-                    void refreshMeasurements()
-                  }}
-                  importFile={pendingImport}
-                  onImportConsumed={() => {
-                    setPendingImport(null)
-                    // Que volver atrás o recargar no lo importe de nuevo.
-                    navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
-                    window.setTimeout(scrollToProgramForm, 50)
-                  }}
-                />
-              ) : null}
-            </Card>
-
-            <Card>
-              <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
-              <p className="text-sm text-ink-muted mb-4">
-                Medianas de perímetros (cm) y pliegues (mm) del programa Holway por fecha. Solo se grafican las
-                variables que cargaste en cada control.
-              </p>
-              <NutritionMeasurementCharts measurements={measurements} />
-            </Card>
-
-            <Card>
-              <NutritionMeasurementHistoryListTitle />
-              <NutritionMeasurementHistoryList
-                measurements={measurementsSorted}
-                selectedId={selectedMeasurementId}
-                onSelect={setSelectedMeasurementId}
-                onEdit={handleEditMeasurement}
-                onClone={handleCloneMeasurement}
-                onDelete={handleDeleteMeasurement}
-                deletingId={deletingMeasurementId}
-              />
-            </Card>
-
-            <Card>
-              <NutritionAnthropometryPresentationPanel
-                patientName={student.full_name}
-                measurements={measurements}
-                selectedMeasurementId={selectedMeasurementId}
-              />
-            </Card>
-
-            <details className="group rounded-2xl border border-surface-border/80 bg-surface-card overflow-hidden">
-              <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between gap-3 select-none hover:bg-surface-elevated/30 transition-colors">
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-ink-primary">Medición rápida (modo express)</span>
-                  <span className="text-xs text-ink-muted">
-                    Solo si ya tenés los valores finales y querés saltearte el programa completo de Holway
-                  </span>
-                </div>
-                <span className="shrink-0 text-xs px-2 py-1 rounded-md bg-surface-elevated text-ink-muted group-open:hidden">
-                  Mostrar
-                </span>
-                <span className="shrink-0 text-xs px-2 py-1 rounded-md bg-surface-elevated text-ink-muted hidden group-open:inline">
-                  Ocultar
-                </span>
-              </summary>
-              <div className="px-4 pb-4 border-t border-surface-border/60 pt-4">
-              <div className="grid md:grid-cols-2 gap-3">
-                <label className="text-xs text-ink-secondary">
-                  Fecha
-                  <input
-                    type="date"
-                    value={measurementForm.measured_at}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, measured_at: e.target.value }))}
-                    className={cn(controlMdClassName, 'mt-1 w-full')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary">
-                  Peso (kg)
-                  <input
-                    type="text"
-                    value={measurementForm.weight_kg}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, weight_kg: e.target.value }))}
-                    placeholder="Ej: 78.4"
-                    className={cn(controlMdClassName, 'mt-1 w-full')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary">
-                  IMC
-                  <input
-                    type="text"
-                    value={measurementForm.bmi}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, bmi: e.target.value }))}
-                    placeholder="Ej: 24.9"
-                    className={cn(controlMdClassName, 'mt-1 w-full')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary">
-                  % Grasa
-                  <input
-                    type="text"
-                    value={measurementForm.body_fat_pct}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, body_fat_pct: e.target.value }))}
-                    placeholder="Ej: 21.3"
-                    className={cn(controlMdClassName, 'mt-1 w-full')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary md:col-span-2">
-                  Masa muscular (kg)
-                  <input
-                    type="text"
-                    value={measurementForm.muscle_mass_kg}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, muscle_mass_kg: e.target.value }))}
-                    placeholder="Ej: 32.1"
-                    className={cn(controlMdClassName, 'mt-1 w-full')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary md:col-span-2">
-                  Perímetros (texto libre)
-                  <textarea
-                    value={measurementForm.perimeters_notes}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, perimeters_notes: e.target.value }))}
-                    rows={3}
-                    placeholder="Ej: Cintura 82 cm, Cadera 98 cm, Brazo 31 cm..."
-                    className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary md:col-span-2">
-                  Pliegues (texto libre)
-                  <textarea
-                    value={measurementForm.skinfolds_notes}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, skinfolds_notes: e.target.value }))}
-                    rows={3}
-                    placeholder="Ej: Tricipital 12 mm, Subescapular 14 mm..."
-                    className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
-                  />
-                </label>
-                <label className="text-xs text-ink-secondary md:col-span-2">
-                  Observaciones
-                  <textarea
-                    value={measurementForm.notes}
-                    onChange={(e) => setMeasurementForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    rows={2}
-                    placeholder="Comentario clínico breve..."
-                    className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
-                  />
-                </label>
-              </div>
-              <div className="mt-3">
-                <Button size="sm" variant="gradientSecondary" onClick={saveMeasurement} loading={savingMeasurement}>
-                  Guardar medición
-                </Button>
-              </div>
-
-              <div className="mt-6 border-t border-surface-border pt-5">
-                <p className="text-xs font-semibold text-ink-secondary mb-3">
-                  Historial de mediciones
+          {IS_V2 && user ? (
+            <NutritionAnthropometryTabV2
+              ownerId={user.id}
+              student={student}
+              measurements={measurementsSorted}
+              onRefresh={refreshMeasurements}
+              draft={programDraft}
+              onDraftClear={() => setProgramDraft(null)}
+              selectedId={selectedMeasurementId}
+              onSelect={setSelectedMeasurementId}
+              onEdit={handleEditMeasurement}
+              onClone={handleCloneMeasurement}
+              onDelete={handleDeleteMeasurement}
+              deletingId={deletingMeasurementId}
+              importFile={pendingImport}
+              onImportConsumed={() => {
+                setPendingImport(null)
+                navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+                window.setTimeout(scrollToProgramForm, 50)
+              }}
+              formRef={programFormRef}
+              openRequest={newControlRequest}
+            />
+          ) : (
+            <div className="space-y-6">
+              <Card ref={programFormRef}>
+                <CardTitle className="mb-1">Programa de antropometría</CardTitle>
+                <p className="text-sm text-ink-muted mb-4">
+                  Cargá las 5 mediciones por variable; la app calcula la mediana y el % error técnico (TE).
                 </p>
-                <div className="space-y-2">
-                  {measurements.slice(0, 12).map((m) => (
-                    <div key={m.id} className="rounded-xl border border-surface-border px-3 py-2 bg-surface-elevated">
-                      <p className="text-xs font-semibold text-ink-primary">
-                        {format(new Date(m.measured_at), 'dd/MM/yyyy')}
-                        {m.measurement_number != null ? ` · Medición n° ${m.measurement_number}` : ''}
-                      </p>
-                      <p className="text-xs text-ink-secondary mt-1">
-                        Peso: {m.weight_kg ?? '—'} kg
-                        {m.height_cm != null ? ` · Talla: ${m.height_cm} cm` : ''}
-                        {m.sitting_height_cm != null ? ` · Talla sentado: ${m.sitting_height_cm} cm` : ''} · IMC: {m.bmi ?? '—'} · % Grasa:{' '}
-                        {m.body_fat_pct ?? '—'} · Masa muscular: {m.muscle_mass_kg ?? '—'} kg
-                      </p>
-                      {m.perimeters_notes && <p className="text-xs text-ink-muted mt-1">Perímetros: {m.perimeters_notes}</p>}
-                      {m.skinfolds_notes && <p className="text-xs text-ink-muted mt-1">Pliegues: {m.skinfolds_notes}</p>}
-                      {m.notes && <p className="text-xs text-ink-muted mt-1">Nota: {m.notes}</p>}
-                    </div>
-                  ))}
-                  {measurements.length === 0 && (
-                    <p className="text-sm text-ink-muted">Todavía no hay mediciones cargadas.</p>
-                  )}
+                {user ? (
+                  <NutritionAnthropometryProgramForm
+                    ownerId={user.id}
+                    student={student}
+                    measurements={measurements}
+                    draft={programDraft}
+                    onDraftClear={() => setProgramDraft(null)}
+                    onSaved={() => {
+                      setProgramDraft(null)
+                      void refreshMeasurements()
+                    }}
+                    importFile={pendingImport}
+                    onImportConsumed={() => {
+                      setPendingImport(null)
+                      // Que volver atrás o recargar no lo importe de nuevo.
+                      navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+                      window.setTimeout(scrollToProgramForm, 50)
+                    }}
+                  />
+                ) : null}
+              </Card>
+
+              <Card>
+                <CardTitle className="mb-1">Evolución y gráficos</CardTitle>
+                <p className="text-sm text-ink-muted mb-4">
+                  Medianas de perímetros (cm) y pliegues (mm) del programa Holway por fecha. Solo se grafican las
+                  variables que cargaste en cada control.
+                </p>
+                <NutritionMeasurementCharts measurements={measurements} />
+              </Card>
+
+              <Card>
+                <NutritionMeasurementHistoryListTitle />
+                <NutritionMeasurementHistoryList
+                  measurements={measurementsSorted}
+                  selectedId={selectedMeasurementId}
+                  onSelect={setSelectedMeasurementId}
+                  onEdit={handleEditMeasurement}
+                  onClone={handleCloneMeasurement}
+                  onDelete={handleDeleteMeasurement}
+                  deletingId={deletingMeasurementId}
+                />
+              </Card>
+
+              <Card>
+                <NutritionAnthropometryPresentationPanel
+                  patientName={student.full_name}
+                  measurements={measurements}
+                  selectedMeasurementId={selectedMeasurementId}
+                />
+              </Card>
+
+              <details className="group rounded-2xl border border-surface-border/80 bg-surface-card overflow-hidden">
+                <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between gap-3 select-none hover:bg-surface-elevated/30 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-ink-primary">Medición rápida (modo express)</span>
+                    <span className="text-xs text-ink-muted">
+                      Solo si ya tenés los valores finales y querés saltearte el programa completo de Holway
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-xs px-2 py-1 rounded-md bg-surface-elevated text-ink-muted group-open:hidden">
+                    Mostrar
+                  </span>
+                  <span className="shrink-0 text-xs px-2 py-1 rounded-md bg-surface-elevated text-ink-muted hidden group-open:inline">
+                    Ocultar
+                  </span>
+                </summary>
+                <div className="px-4 pb-4 border-t border-surface-border/60 pt-4">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <label className="text-xs text-ink-secondary">
+                    Fecha
+                    <input
+                      type="date"
+                      value={measurementForm.measured_at}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, measured_at: e.target.value }))}
+                      className={cn(controlMdClassName, 'mt-1 w-full')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary">
+                    Peso (kg)
+                    <input
+                      type="text"
+                      value={measurementForm.weight_kg}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, weight_kg: e.target.value }))}
+                      placeholder="Ej: 78.4"
+                      className={cn(controlMdClassName, 'mt-1 w-full')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary">
+                    IMC
+                    <input
+                      type="text"
+                      value={measurementForm.bmi}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, bmi: e.target.value }))}
+                      placeholder="Ej: 24.9"
+                      className={cn(controlMdClassName, 'mt-1 w-full')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary">
+                    % Grasa
+                    <input
+                      type="text"
+                      value={measurementForm.body_fat_pct}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, body_fat_pct: e.target.value }))}
+                      placeholder="Ej: 21.3"
+                      className={cn(controlMdClassName, 'mt-1 w-full')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary md:col-span-2">
+                    Masa muscular (kg)
+                    <input
+                      type="text"
+                      value={measurementForm.muscle_mass_kg}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, muscle_mass_kg: e.target.value }))}
+                      placeholder="Ej: 32.1"
+                      className={cn(controlMdClassName, 'mt-1 w-full')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary md:col-span-2">
+                    Perímetros (texto libre)
+                    <textarea
+                      value={measurementForm.perimeters_notes}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, perimeters_notes: e.target.value }))}
+                      rows={3}
+                      placeholder="Ej: Cintura 82 cm, Cadera 98 cm, Brazo 31 cm..."
+                      className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary md:col-span-2">
+                    Pliegues (texto libre)
+                    <textarea
+                      value={measurementForm.skinfolds_notes}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, skinfolds_notes: e.target.value }))}
+                      rows={3}
+                      placeholder="Ej: Tricipital 12 mm, Subescapular 14 mm..."
+                      className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
+                    />
+                  </label>
+                  <label className="text-xs text-ink-secondary md:col-span-2">
+                    Observaciones
+                    <textarea
+                      value={measurementForm.notes}
+                      onChange={(e) => setMeasurementForm((prev) => ({ ...prev, notes: e.target.value }))}
+                      rows={2}
+                      placeholder="Comentario clínico breve..."
+                      className={cn(controlBaseClassName, 'mt-1 w-full px-3 py-2.5 text-sm')}
+                    />
+                  </label>
                 </div>
-              </div>
-              </div>
-            </details>
-          </div>
+                <div className="mt-3">
+                  <Button size="sm" variant="gradientSecondary" onClick={saveMeasurement} loading={savingMeasurement}>
+                    Guardar medición
+                  </Button>
+                </div>
+
+                <div className="mt-6 border-t border-surface-border pt-5">
+                  <p className="text-xs font-semibold text-ink-secondary mb-3">
+                    Historial de mediciones
+                  </p>
+                  <div className="space-y-2">
+                    {measurements.slice(0, 12).map((m) => (
+                      <div key={m.id} className="rounded-xl border border-surface-border px-3 py-2 bg-surface-elevated">
+                        <p className="text-xs font-semibold text-ink-primary">
+                          {format(new Date(m.measured_at), 'dd/MM/yyyy')}
+                          {m.measurement_number != null ? ` · Medición n° ${m.measurement_number}` : ''}
+                        </p>
+                        <p className="text-xs text-ink-secondary mt-1">
+                          Peso: {m.weight_kg ?? '—'} kg
+                          {m.height_cm != null ? ` · Talla: ${m.height_cm} cm` : ''}
+                          {m.sitting_height_cm != null ? ` · Talla sentado: ${m.sitting_height_cm} cm` : ''} · IMC: {m.bmi ?? '—'} · % Grasa:{' '}
+                          {m.body_fat_pct ?? '—'} · Masa muscular: {m.muscle_mass_kg ?? '—'} kg
+                        </p>
+                        {m.perimeters_notes && <p className="text-xs text-ink-muted mt-1">Perímetros: {m.perimeters_notes}</p>}
+                        {m.skinfolds_notes && <p className="text-xs text-ink-muted mt-1">Pliegues: {m.skinfolds_notes}</p>}
+                        {m.notes && <p className="text-xs text-ink-muted mt-1">Nota: {m.notes}</p>}
+                      </div>
+                    ))}
+                    {measurements.length === 0 && (
+                      <p className="text-sm text-ink-muted">Todavía no hay mediciones cargadas.</p>
+                    )}
+                  </div>
+                </div>
+                </div>
+              </details>
+            </div>
+          )}
         </TabPanel>
 
         {/* ───────────── PLAN ───────────── */}

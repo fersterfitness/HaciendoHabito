@@ -31,7 +31,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { nutritionInputClass, nutritionSectionTitleClass } from '@/lib/nutrition/nutritionAreaUi'
 import { formatFunctionsInvokeError } from '@/lib/invokeFunctionError'
-import { parseInlineMarkdown } from '@/lib/nutrition/inlineMarkdown'
+import { AiMarkdown } from '@/components/nutrition/AnthropometryAiMarkdown'
 import {
   deleteMeasurement,
   fetchMeasurementDeletionLog,
@@ -39,8 +39,7 @@ import {
 } from '@/lib/nutrition/measurementDeletionAccess'
 import { cn, formatDate } from '@/lib/utils'
 import { IS_V2 } from '@/lib/uiVersion'
-import { AnthropometryReportDropZone } from '@/components/nutrition/AnthropometryReportDropZone'
-import { matchPatientByName, nameScore } from '@/lib/nutrition/anthropometryReportImport'
+import { NutritionAnthropometryHubV2 } from './NutritionAnthropometryHubV2'
 import type {
   NutritionMeasurement,
   NutritionMeasurementDeletionLogEntry,
@@ -61,76 +60,6 @@ const METRICS: { key: MetricKey; label: string; unit: string; betterWhenLower: b
 function fmtNum(v: number | null | undefined, digits = 1): string {
   if (v == null || !Number.isFinite(v)) return '—'
   return v.toFixed(digits).replace(/\.0$/, '')
-}
-
-function InlineMd({ text }: { text: string }) {
-  return (
-    <>
-      {parseInlineMarkdown(text).map((seg, i) => (
-        <span
-          key={i}
-          className={cn(seg.bold && 'font-semibold text-ink-primary', seg.italic && 'italic')}
-        >
-          {seg.text}
-        </span>
-      ))}
-    </>
-  )
-}
-
-/** Render mínimo del Markdown del análisis IA (## títulos, viñetas, párrafos). */
-function AiMarkdown({ text }: { text: string }) {
-  const lines = text.split('\n')
-  const blocks: JSX.Element[] = []
-  let bullets: string[] = []
-
-  const flushBullets = () => {
-    if (bullets.length === 0) return
-    blocks.push(
-      <ul key={`ul-${blocks.length}`} className="ml-1 space-y-1.5">
-        {bullets.map((b, i) => (
-          <li key={i} className="flex gap-2 text-sm text-ink-secondary">
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-brand-tertiary" aria-hidden />
-            <span className="leading-relaxed">
-              <InlineMd text={b} />
-            </span>
-          </li>
-        ))}
-      </ul>,
-    )
-    bullets = []
-  }
-
-  lines.forEach((raw) => {
-    const line = raw.trimEnd()
-    const heading = /^#{1,6}\s+(.*)$/.exec(line)
-    const bullet = /^\s*[-*]\s+(.*)$/.exec(line)
-    if (heading) {
-      flushBullets()
-      blocks.push(
-        <p
-          key={`h-${blocks.length}`}
-          className="mt-1 text-xs font-semibold text-brand-tertiary"
-        >
-          <InlineMd text={heading[1] ?? ''} />
-        </p>,
-      )
-    } else if (bullet) {
-      bullets.push(bullet[1] ?? '')
-    } else if (line.trim() === '') {
-      flushBullets()
-    } else {
-      flushBullets()
-      blocks.push(
-        <p key={`p-${blocks.length}`} className="text-sm leading-relaxed text-ink-secondary">
-          <InlineMd text={line} />
-        </p>,
-      )
-    }
-  })
-  flushBullets()
-
-  return <div className="space-y-3">{blocks}</div>
 }
 
 function MetricCard({
@@ -182,7 +111,12 @@ function MetricCard({
   )
 }
 
+/** v2: listado de pacientes (todo lo demás está en la ficha); v1 queda igual. */
 export function NutritionAnthropometryHubPage() {
+  return IS_V2 ? <NutritionAnthropometryHubV2 /> : <NutritionAnthropometryHubV1 />
+}
+
+function NutritionAnthropometryHubV1() {
   const { user } = useAuthStore()
   const navigate = useAppNavigate()
   const [students, setStudents] = useState<Student[]>([])
@@ -205,8 +139,6 @@ export function NutritionAnthropometryHubPage() {
   const [deletionLog, setDeletionLog] = useState<NutritionMeasurementDeletionLogEntry[]>([])
   const [loadingDeleted, setLoadingDeleted] = useState(false)
   const [restoringId, setRestoringId] = useState<string | null>(null)
-  const [reportBusy, setReportBusy] = useState(false)
-  const [reportError, setReportError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -397,43 +329,6 @@ export function NutritionAnthropometryHubPage() {
     }
   }
 
-  /**
-   * Informe PDF arrastrado acá: se identifica al paciente por el nombre del informe (o se usa el elegido)
-   * y se abre su ficha con el informe cargado para revisar y guardar.
-   */
-  async function handleReport(file: File) {
-    setReportError(null)
-    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
-      setReportError(`"${file.name}" no es un PDF. Arrastrá el informe de composición corporal en PDF.`)
-      return
-    }
-    setReportBusy(true)
-    try {
-      const { readAnthropometryReportPdf } = await import('@/lib/nutrition/anthropometryReportPdf')
-      const r = await readAnthropometryReportPdf(file)
-      if (Object.keys(r.values).length < 3) {
-        setReportError(`"${file.name}" no tiene el formato del informe de composición corporal: no encontré las medidas (peso, perímetros, pliegues).`)
-        return
-      }
-      const byName = r.patientName ? matchPatientByName(r.patientName, students) : null
-      const selectedFits = selected && (!r.patientName || nameScore(r.patientName, selected.full_name) > 0)
-      const target = selectedFits ? selected : (byName ?? selected)
-      if (!target) {
-        setReportError(
-          r.patientName
-            ? `El informe es de ${r.patientName} y no lo encontré (o hay más de uno con ese nombre). Elegí el paciente en la lista y volvé a arrastrarlo.`
-            : 'El informe no trae el nombre del paciente. Elegí el paciente en la lista y volvé a arrastrarlo.',
-        )
-        return
-      }
-      navigate(`/nutrition/${target.id}?tab=antropometria`, { state: { importFile: file } })
-    } catch {
-      setReportError(`No pude leer "${file.name}". Puede estar dañado o protegido con contraseña.`)
-    } finally {
-      setReportBusy(false)
-    }
-  }
-
   return (
     <div>
       <Header title="Antropometría" />
@@ -504,19 +399,6 @@ export function NutritionAnthropometryHubPage() {
 
           {/* Detalle */}
           <section className="lg:col-span-8 xl:col-span-9 space-y-5">
-            {IS_V2 ? (
-              <AnthropometryReportDropZone
-                busy={reportBusy}
-                onFile={(f) => void handleReport(f)}
-                error={reportError}
-                title="Cargar control desde el informe PDF"
-                hint={
-                  selected
-                    ? `Arrastrá el informe de composición corporal. Se abre la ficha de ${selected.full_name} (o la del paciente del informe) con las medidas cargadas para revisar y guardar.`
-                    : 'Arrastrá el informe de composición corporal: busco al paciente por el nombre del informe y abro su ficha con las medidas cargadas.'
-                }
-              />
-            ) : null}
             {!selected ? (
               <div className={cn('flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-surface-border/80 bg-surface-card/50 px-6 py-12 text-center', IS_V2 && 'max-lg:hidden')}>
                 <Activity className="h-9 w-9 text-brand-secondary/70" aria-hidden />

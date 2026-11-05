@@ -21,9 +21,9 @@ interface Props {
   onManageAppointments: () => void
 }
 
-type Dir = 'down' | 'up' | 'neutral'
+export type Dir = 'down' | 'up' | 'neutral'
 
-interface Metric {
+export interface Metric {
   key: string
   label: string
   short: string
@@ -55,7 +55,7 @@ function sum6Of(m: NutritionMeasurement): number | null {
 }
 
 /** Métricas de composición: se muestran sólo las que tienen algún dato cargado. */
-const METRICS: Metric[] = [
+export const METRICS: Metric[] = [
   { key: 'bmi', label: 'IMC', short: 'IMC', unit: '', dir: 'neutral', get: bmiOf },
   { key: 'fat', label: '% Grasa', short: '% Grasa', unit: '%', dir: 'down', get: (m) => fatOf(m) },
   { key: 'muscle', label: 'Masa muscular', short: 'Músculo', unit: 'kg', dir: 'up', get: (m) => muscleOf(m) },
@@ -64,7 +64,7 @@ const METRICS: Metric[] = [
   { key: 'sum6', label: 'Σ 6 pliegues', short: 'Σ6 pl.', unit: 'mm', dir: 'down', get: (m) => sum6Of(m) },
 ]
 
-const nf = (v: number, d = 1) => v.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d })
+export const nf = (v: number, d = 1) => v.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d })
 
 function signed(v: number, unit: string) {
   const s = v > 0 ? '+' : v < 0 ? '−' : '±'
@@ -76,7 +76,7 @@ function toneOf(delta: number | null, dir: Dir) {
   return (dir === 'down' ? delta < 0 : delta > 0) ? 'text-status-generated' : 'text-status-expired'
 }
 
-function Delta({ value, unit, dir, className }: { value: number | null; unit: string; dir: Dir; className?: string }) {
+export function Delta({ value, unit, dir, className }: { value: number | null; unit: string; dir: Dir; className?: string }) {
   if (value == null) return null
   const Icon = Math.abs(value) < 0.05 ? Minus : value > 0 ? ArrowUpRight : ArrowDownRight
   return (
@@ -162,7 +162,7 @@ export function NutritionResumenDashboardV2({ student, measurements, followup, o
               </p>
             ) : null}
           </div>
-          <Button type="button" size="sm" variant={ordered.length ? 'outline' : 'primary'} onClick={() => onGoToTab('antropometria')}>
+          <Button type="button" size="sm" variant={ordered.length ? 'outline' : 'primary'} onClick={() => onGoToTab('antropometria-nuevo')}>
             {ordered.length ? 'Nuevo control' : 'Cargar primera medición'}
           </Button>
         </div>
@@ -321,7 +321,7 @@ export function NutritionResumenDashboardV2({ student, measurements, followup, o
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <Shortcut icon={<Activity />} label="Nueva antropometría" onClick={() => onGoToTab('antropometria')} />
+        <Shortcut icon={<Activity />} label="Nuevo control" onClick={() => onGoToTab('antropometria-nuevo')} />
         <Shortcut icon={<Utensils />} label="Editar plan" onClick={() => onGoToTab('plan')} />
         <Shortcut icon={<ClipboardList />} label="Nota clínica" onClick={() => onGoToTab('historia')} />
         <Shortcut icon={<Upload />} label="Subir archivo" onClick={() => onGoToTab('archivos')} />
