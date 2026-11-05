@@ -1037,9 +1037,9 @@ export function TrainerCheckInsPage({
                     'rounded-full border px-3 py-1 text-2xs font-semibold transition-colors',
                     historyStatusFilter === opt.id
                       ? opt.id === 'pending'
-                        ? 'border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-200'
+                        ? (IS_V2 ? 'border-status-pending/40 bg-status-pending/15 text-status-pending' : 'border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-200')
                         : opt.id === 'al_dia'
-                          ? 'border-emerald-600/35 bg-emerald-500/12 text-emerald-800 dark:text-emerald-200'
+                          ? (IS_V2 ? 'border-status-active/35 bg-status-active/12 text-status-active' : 'border-emerald-600/35 bg-emerald-500/12 text-emerald-800 dark:text-emerald-200')
                           : 'border-brand-secondary/35 bg-brand-secondary/10 text-ink-primary'
                       : 'border-surface-border text-ink-secondary hover:bg-surface-elevated',
                   )}
@@ -1102,8 +1102,8 @@ export function TrainerCheckInsPage({
                           className={cn(
                             'inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-3xs font-medium disabled:opacity-50',
                             isReplied
-                              ? 'border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                              : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                              ? (IS_V2 ? 'border-status-active/40 bg-status-active/10 text-status-active' : 'border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300')
+                              : (IS_V2 ? 'border-status-pending/40 bg-status-pending/10 text-status-pending' : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'),
                           )}
                         >
                           {isReplied ? (
@@ -1246,8 +1246,8 @@ export function TrainerCheckInsPage({
                             className={cn(
                               'shrink-0 rounded-full border px-2 py-0.5 text-3xs font-medium',
                               isReplied
-                                ? 'border-emerald-600/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                : 'border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                                ? (IS_V2 ? 'border-status-active/35 bg-status-active/10 text-status-active' : 'border-emerald-600/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300')
+                                : (IS_V2 ? 'border-status-pending/35 bg-status-pending/10 text-status-pending' : 'border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300'),
                             )}
                           >
                             {isReplied ? 'Respondido' : 'Pendiente'}
@@ -1297,7 +1297,7 @@ export function TrainerCheckInsPage({
                             </p>
                           </div>
                           {pending > 0 ? (
-                            <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-3xs font-medium text-amber-700 dark:text-amber-300">
+                            <span className={IS_V2 ? 'shrink-0 rounded-full border border-status-pending/35 bg-status-pending/10 px-2 py-0.5 text-3xs font-medium text-status-pending' : 'shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-3xs font-medium text-amber-700 dark:text-amber-300'}>
                               {pending} pend.
                             </span>
                           ) : null}
@@ -1400,11 +1400,11 @@ export function TrainerCheckInsPage({
                           </p>
                         </div>
                         {pending > 0 ? (
-                          <span className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-3xs font-medium text-amber-700 dark:text-amber-300">
+                          <span className={IS_V2 ? 'shrink-0 rounded-full border border-status-pending/35 bg-status-pending/10 px-2 py-0.5 text-3xs font-medium text-status-pending' : 'shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-3xs font-medium text-amber-700 dark:text-amber-300'}>
                             {pending} pend.
                           </span>
                         ) : (
-                          <span className="shrink-0 rounded-full border border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-medium text-emerald-700 dark:text-emerald-300">
+                          <span className={IS_V2 ? 'shrink-0 rounded-full border border-status-active/30 bg-status-active/10 px-2 py-0.5 text-3xs font-medium text-status-active' : 'shrink-0 rounded-full border border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-medium text-emerald-700 dark:text-emerald-300'}>
                             Al día
                           </span>
                         )}
@@ -1618,7 +1618,7 @@ export function TrainerCheckInsPage({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="text-xs h-7 border-emerald-600/45 text-emerald-800 dark:text-emerald-400"
+                      className={IS_V2 ? 'text-xs h-7 border-status-active/45 text-status-active' : 'text-xs h-7 border-emerald-600/45 text-emerald-800 dark:text-emerald-400'}
                       icon={<WhatsAppIcon className="h-3 w-3" />}
                       onClick={openCheckInWhatsAppGroup}
                     >
@@ -1657,7 +1657,7 @@ export function TrainerCheckInsPage({
                           />
                           {s.full_name}
                           {thisWeek ? (
-                            <span className="text-3xs text-emerald-700 dark:text-emerald-300">completó esta semana</span>
+                            <span className={IS_V2 ? 'text-3xs text-status-active' : 'text-3xs text-emerald-700 dark:text-emerald-300'}>completó esta semana</span>
                           ) : inv ? (
                             <span className="text-3xs text-ink-muted">tiene link · puede completar de nuevo</span>
                           ) : null}
@@ -1712,7 +1712,7 @@ export function TrainerCheckInsPage({
                                 <td className="py-2 pr-2">
                                   {thisWeek && resp ? (
                                     <div className="flex flex-col items-start gap-1">
-                                      <span className="text-emerald-600 dark:text-emerald-400">
+                                      <span className={IS_V2 ? 'text-status-active' : 'text-emerald-600 dark:text-emerald-400'}>
                                         Respondió esta semana · {new Date(resp.submitted_at).toLocaleDateString('es-AR')}
                                       </span>
                                       <button
@@ -1724,8 +1724,8 @@ export function TrainerCheckInsPage({
                                         className={cn(
                                           'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium transition-colors disabled:opacity-50',
                                           resp.trainer_replied_at
-                                            ? 'border border-emerald-600/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300'
-                                            : 'border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300',
+                                            ? (IS_V2 ? 'border border-status-active/40 bg-status-active/10 text-status-active hover:bg-status-active/15' : 'border border-emerald-600/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300')
+                                            : (IS_V2 ? 'border border-status-pending/40 bg-status-pending/10 text-status-pending hover:bg-status-pending/15' : 'border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300'),
                                         )}
                                       >
                                         {resp.trainer_replied_at ? (
@@ -1783,7 +1783,7 @@ export function TrainerCheckInsPage({
                                       aria-label={`Enviar link por WhatsApp a ${inv.student?.full_name ?? 'alumno'}`}
                                       className={cn(
                                         inviteTableActionBtnClass,
-                                        '[&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400',
+                                        (IS_V2 ? '[&_svg]:text-status-active' : '[&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400'),
                                       )}
                                       onClick={() => openCheckInWhatsApp(inv)}
                                     >
@@ -1879,7 +1879,7 @@ export function TrainerCheckInsPage({
             </Button>
           </div>
           {!activeFormId ? (
-            <p className="text-2xs text-amber-700 dark:text-amber-400">
+            <p className={IS_V2 ? 'text-2xs text-status-pending' : 'text-2xs text-amber-700 dark:text-amber-400'}>
               Elegí un formulario en la columna izquierda para asociar el recordatorio.
             </p>
           ) : null}

@@ -500,7 +500,7 @@ export function StudentHabitsPanel({
                                 className={cn(
                                   'whitespace-nowrap px-3 py-2 font-semibold',
                                   ev.action === 'assigned'
-                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    ? (IS_V2 ? 'text-status-active' : 'text-emerald-600 dark:text-emerald-400')
                                     : 'text-status-expiring',
                                 )}
                               >
@@ -565,21 +565,21 @@ export function StudentHabitsPanel({
                   <div className="flex items-center justify-between">
                     <p className="text-3xs font-semibold text-ink-muted">Promedio</p>
                     {overallPct >= 70
-                      ? <Trophy className="h-4 w-4 text-emerald-500" />
+                      ? <Trophy className={IS_V2 ? 'h-4 w-4 text-status-active' : 'h-4 w-4 text-emerald-500'} />
                       : overallPct >= 40
-                      ? <TrendingUp className="h-4 w-4 text-amber-500" />
+                      ? <TrendingUp className={IS_V2 ? 'h-4 w-4 text-status-pending' : 'h-4 w-4 text-amber-500'} />
                       : <Zap className="h-4 w-4 text-brand-tertiary" />
                     }
                   </div>
                   <p className={cn(
                     'text-3xl font-bold tabular-nums leading-none',
-                    overallPct >= 70 ? 'text-emerald-600 dark:text-emerald-400' : overallPct >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-brand-tertiary',
+                    overallPct >= 70 ? (IS_V2 ? 'text-status-active' : 'text-emerald-600 dark:text-emerald-400') : overallPct >= 40 ? (IS_V2 ? 'text-status-pending' : 'text-amber-600 dark:text-amber-400') : 'text-brand-tertiary',
                   )}>
                     {overallPct}%
                   </p>
                   <div className="h-1.5 overflow-hidden rounded-full bg-surface-border ">
                     <div
-                      className={cn('h-full rounded-full transition-all', overallPct >= 70 ? 'bg-emerald-500' : overallPct >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
+                      className={cn('h-full rounded-full transition-all', overallPct >= 70 ? (IS_V2 ? 'bg-brand-primary' : 'bg-emerald-500') : overallPct >= 40 ? (IS_V2 ? 'bg-status-pending' : 'bg-amber-500') : 'bg-brand-tertiary')}
                       style={{ width: `${overallPct}%` }}
                     />
                   </div>
@@ -595,13 +595,13 @@ export function StudentHabitsPanel({
                     </div>
                     <p className={cn(
                       'text-3xl font-bold tabular-nums leading-none',
-                      p >= 70 ? 'text-emerald-600 dark:text-emerald-400' : p >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
+                      p >= 70 ? (IS_V2 ? 'text-status-active' : 'text-emerald-600 dark:text-emerald-400') : p >= 40 ? (IS_V2 ? 'text-status-pending' : 'text-amber-500') : 'text-brand-tertiary',
                     )}>
                       {p}%
                     </p>
                     <div className="h-1.5 overflow-hidden rounded-full bg-surface-border ">
                       <div
-                        className={cn('h-full rounded-full transition-all', p >= 70 ? 'bg-emerald-500' : p >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
+                        className={cn('h-full rounded-full transition-all', p >= 70 ? (IS_V2 ? 'bg-brand-primary' : 'bg-emerald-500') : p >= 40 ? (IS_V2 ? 'bg-status-pending' : 'bg-amber-500') : 'bg-brand-tertiary')}
                         style={{ width: `${p}%` }}
                       />
                     </div>
@@ -625,7 +625,7 @@ export function StudentHabitsPanel({
                               key={d}
                               className={cn(
                                 'min-w-[28px] border-b border-surface-border/70 px-0 py-2 text-center text-3xs font-medium ',
-                                isToday ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-surface-elevated/60 text-ink-muted ',
+                                isToday ? (IS_V2 ? 'bg-status-active/10 text-status-active' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400') : 'bg-surface-elevated/60 text-ink-muted ',
                               )}
                             >
                               {d}
@@ -639,11 +639,11 @@ export function StudentHabitsPanel({
                     </thead>
                     <tbody>
                       {stats.map(({ habit, pct: p }, rowIdx) => (
-                        <tr key={habit.id} className={rowIdx % 2 === 0 ? 'bg-white ' : 'bg-surface-elevated/70 '}>
+                        <tr key={habit.id} className={rowIdx % 2 === 0 ? (IS_V2 ? 'bg-surface-card' : 'bg-white ') : 'bg-surface-elevated/70 '}>
                           <td
                             className={cn(
                               'sticky left-0 z-10 max-w-[130px] truncate border-r border-surface-border/70 px-3 py-1.5 text-xs font-medium ',
-                              rowIdx % 2 === 0 ? 'bg-white ' : 'bg-surface-elevated/90 ',
+                              rowIdx % 2 === 0 ? (IS_V2 ? 'bg-surface-card' : 'bg-white ') : 'bg-surface-elevated/90 ',
                             )}
                           >
                             <HabitIcon name={habit.emoji} className="mr-1.5 shrink-0 text-ink-muted" />
@@ -655,15 +655,15 @@ export function StudentHabitsPanel({
                             const isToday =
                               year === today.getFullYear() && month === today.getMonth() && d === today.getDate()
                             return (
-                              <td key={d} className={cn('px-0 py-1 text-center', isToday && 'bg-emerald-500/[0.08] dark:bg-emerald-500/[0.1]')}>
+                              <td key={d} className={cn('px-0 py-1 text-center', isToday && (IS_V2 ? 'bg-status-active/[0.08]' : 'bg-emerald-500/[0.08] dark:bg-emerald-500/[0.1]'))}>
                                 <button
                                   type="button"
                                   onClick={() => toggleDay(habit.id, d)}
                                   className={cn(
                                     'mx-auto flex h-5 w-5 items-center justify-center rounded-md transition-all',
                                     doneCell
-                                      ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
-                                      : 'border border-surface-inputBorder hover:border-emerald-500/50 hover:bg-emerald-500/10 ',
+                                      ? (IS_V2 ? 'bg-brand-primary text-white shadow-sm' : 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500')
+                                      : (IS_V2 ? 'border border-surface-inputBorder hover:border-status-active/50 hover:bg-status-active/10' : 'border border-surface-inputBorder hover:border-emerald-500/50 hover:bg-emerald-500/10 '),
                                   )}
                                   aria-label={doneCell ? 'Quitar día' : 'Marcar día'}
                                 >
@@ -676,7 +676,7 @@ export function StudentHabitsPanel({
                             <span
                               className={cn(
                                 'text-xs font-semibold tabular-nums',
-                                p >= 80 ? 'text-emerald-600 dark:text-emerald-400' : p >= 50 ? 'text-status-expiring' : 'text-status-expired',
+                                p >= 80 ? (IS_V2 ? 'text-status-active' : 'text-emerald-600 dark:text-emerald-400') : p >= 50 ? 'text-status-expiring' : 'text-status-expired',
                               )}
                             >
                               {p}%
@@ -700,14 +700,14 @@ export function StudentHabitsPanel({
                           <span className="truncate text-xs font-medium text-ink-primary">{habit.name}</span>
                           <span className={cn(
                             'shrink-0 text-xs font-semibold tabular-nums',
-                            p >= 70 ? 'text-emerald-600 dark:text-emerald-400' : p >= 40 ? 'text-amber-500' : 'text-brand-tertiary',
+                            p >= 70 ? (IS_V2 ? 'text-status-active' : 'text-emerald-600 dark:text-emerald-400') : p >= 40 ? (IS_V2 ? 'text-status-pending' : 'text-amber-500') : 'text-brand-tertiary',
                           )}>
                             {done}/{total}
                           </span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-surface-border ">
                           <div
-                            className={cn('h-full rounded-full transition-all duration-500', p >= 70 ? 'bg-emerald-500' : p >= 40 ? 'bg-amber-500' : 'bg-brand-tertiary')}
+                            className={cn('h-full rounded-full transition-all duration-500', p >= 70 ? (IS_V2 ? 'bg-brand-primary' : 'bg-emerald-500') : p >= 40 ? (IS_V2 ? 'bg-status-pending' : 'bg-amber-500') : 'bg-brand-tertiary')}
                             style={{ width: `${p}%` }}
                           />
                         </div>
@@ -879,7 +879,7 @@ function HabitLibraryModal({
                   <span
                     className={cn(
                       'pointer-events-none flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors',
-                      isSel ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-surface-inputBorder ',
+                      isSel ? (IS_V2 ? 'border-brand-primary bg-brand-primary' : 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500') : 'border-surface-inputBorder ',
                     )}
                     aria-hidden
                   >
@@ -892,7 +892,7 @@ function HabitLibraryModal({
                 <button
                   type="button"
                   onClick={() => deleteHabit(h.id)}
-                  className="shrink-0 rounded-r-lg border-l border-surface-border/80 px-3 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500 "
+                  className={IS_V2 ? 'shrink-0 rounded-r-lg border-l border-surface-border/80 px-3 text-ink-muted transition-colors hover:bg-status-expired/10 hover:text-status-expired' : 'shrink-0 rounded-r-lg border-l border-surface-border/80 px-3 text-ink-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500 '}
                   aria-label={`Eliminar hábito ${h.name} de la biblioteca`}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -929,7 +929,7 @@ function HabitLibraryModal({
           <div className="flex gap-2">
             <input
               placeholder="Nombre del hábito…"
-              className="flex-1 rounded-xl border border-surface-inputBorder bg-surface-elevated/60 px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus:border-emerald-500"
+              className={IS_V2 ? 'flex-1 rounded-xl border border-surface-inputBorder bg-surface-elevated/60 px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus:border-brand-primary' : 'flex-1 rounded-xl border border-surface-inputBorder bg-surface-elevated/60 px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus:border-emerald-500'}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {
@@ -940,7 +940,7 @@ function HabitLibraryModal({
               type="button"
               onClick={addHabit}
               disabled={adding || !newName.trim()}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-emerald-500"
+              className={IS_V2 ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-primary text-white transition-opacity hover:opacity-90 disabled:opacity-40' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-emerald-500'}
             >
               <Plus className="h-4 w-4" />
             </button>
