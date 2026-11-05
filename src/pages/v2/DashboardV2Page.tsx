@@ -357,6 +357,46 @@ export function DashboardV2Page() {
 
   const fmtTime = (iso: string) => format(new Date(iso), 'HH:mm')
 
+  /** Los números del mes en una franja: abajo en el celu, en la columna derecha en la compu. */
+  const monthStripV2 = (
+    <StatStripV2
+      items={[
+        trains
+          ? {
+              label: 'Feedback',
+              value: missingQ.isPending || loading ? '—' : String(answered),
+              suffix: `/${students.length}`,
+              tone: 'lavender' as const,
+              progress: students.length ? answered / students.length : undefined,
+              onClick: () => navigate('/feedback'),
+            }
+          : {
+              label: 'Turnos hoy',
+              value: appointmentsQ.isPending ? '—' : String(appointmentsToday.length),
+              tone: 'sky' as const,
+              onClick: () => navigate('/appointments'),
+            },
+        {
+          label: trains ? 'Con rutina' : 'Activos',
+          value: loading || (trains && routinesQ.isPending) ? '—' : String(trains ? withRoutine : students.length),
+          suffix: trains ? `/${routineTotal}` : undefined,
+          tone: 'mint' as const,
+          progress: trains && routineTotal ? withRoutine / routineTotal : undefined,
+          onClick: () => navigate(role === 'nutritionist' ? '/nutrition' : '/students'),
+        },
+        ...(handlesMoney
+          ? [{
+              label: 'Cobrado',
+              value: loading ? '—' : shortMoney(money.cobrado),
+              tone: 'peach' as const,
+              progress: money.esperado > 0 ? money.cobrado / money.esperado : undefined,
+              onClick: () => navigate('/finances'),
+            }]
+          : []),
+      ]}
+    />
+  )
+
   return (
     <>
       <TopBarV2
@@ -408,7 +448,7 @@ export function DashboardV2Page() {
             ) : null}
 
             {loading ? (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
                 {[0, 1].map((i) => (
                   <div key={i} className="space-y-3 rounded-2xl border border-surface-border p-4">
                     <Skeleton className="h-4 w-1/2" />
@@ -423,7 +463,7 @@ export function DashboardV2Page() {
                 <p className="mt-1 text-[13px] text-ink-secondary">No hay cobros, feedback ni rutinas pendientes para hoy.</p>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
                 {show('semana')
                   ? weekly.map((r) => {
                       const c = WEEKLY_COPY[r.id]!
@@ -639,6 +679,11 @@ export function DashboardV2Page() {
               </div>
             </CardV2>
 
+            {/* Compu: los números del mes debajo de los turnos. */}
+            <div className="hidden lg:block">
+              <SectionTitleV2>Este mes</SectionTitleV2>
+              {monthStripV2}
+            </div>
             {birthdays.length ? (
             <CardV2 title="Cumpleaños" className="max-lg:order-last">
               {(
@@ -680,46 +725,11 @@ export function DashboardV2Page() {
         </div>
 
         {/* Los números del mes: después de lo de hoy. */}
-        <section className="mt-10">
+        <section className="mt-10 lg:hidden">
           <SectionTitleV2>Este mes</SectionTitleV2>
         {/* Celu: los tres números en una franja. */}
         <div className="md:hidden">
-          <StatStripV2
-            items={[
-              trains
-                ? {
-                    label: 'Feedback',
-                    value: missingQ.isPending || loading ? '—' : String(answered),
-                    suffix: `/${students.length}`,
-                    tone: 'lavender' as const,
-                    progress: students.length ? answered / students.length : undefined,
-                    onClick: () => navigate('/feedback'),
-                  }
-                : {
-                    label: 'Turnos hoy',
-                    value: appointmentsQ.isPending ? '—' : String(appointmentsToday.length),
-                    tone: 'sky' as const,
-                    onClick: () => navigate('/appointments'),
-                  },
-              {
-                label: trains ? 'Con rutina' : 'Activos',
-                value: loading || (trains && routinesQ.isPending) ? '—' : String(trains ? withRoutine : students.length),
-                suffix: trains ? `/${routineTotal}` : undefined,
-                tone: 'mint' as const,
-                progress: trains && routineTotal ? withRoutine / routineTotal : undefined,
-                onClick: () => navigate(role === 'nutritionist' ? '/nutrition' : '/students'),
-              },
-              ...(handlesMoney
-                ? [{
-                    label: 'Cobrado',
-                    value: loading ? '—' : shortMoney(money.cobrado),
-                    tone: 'peach' as const,
-                    progress: money.esperado > 0 ? money.cobrado / money.esperado : undefined,
-                    onClick: () => navigate('/finances'),
-                  }]
-                : []),
-            ]}
-          />
+          {monthStripV2}
         </div>
 
         {/* Números del mes, cada uno con su avance. */}
