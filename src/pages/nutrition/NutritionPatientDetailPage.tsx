@@ -60,6 +60,7 @@ import {
   type InterpretationTone,
 } from '@/lib/nutrition/nutritionEvolutionInterpretation'
 import { cn, slugify } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 import type {
   Student,
   NutritionPatientDocument,
@@ -741,7 +742,9 @@ export function NutritionPatientDetailView({
           className={cn(
             variant === 'page'
               ? 'sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm'
-              : 'sticky top-0 z-20 -mx-4 border-b border-surface-border/60 bg-surface-base/90 px-4 pb-0 pt-2 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
+              : IS_V2
+                ? 'sticky top-0 z-20 border-b border-surface-border/60 bg-surface-base/90 px-4 pb-0 pt-2 backdrop-blur-md sm:px-6 lg:px-8'
+                : 'sticky top-0 z-20 -mx-4 border-b border-surface-border/60 bg-surface-base/90 px-4 pb-0 pt-2 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
           )}
         >
           <Tabs

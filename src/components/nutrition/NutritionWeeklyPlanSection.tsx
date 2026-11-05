@@ -184,10 +184,19 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
           .select('*')
           .single()
 
-        if (insertRow.error) {
-          toast.error(insertRow.error.message)
+        if (insertRow.error?.code === '23505') {
+          // Otra carga en paralelo ya creó la fila (p. ej. doble efecto en dev): se usa esa.
+          const again = await supabase
+            .from('nutrition_week_schedules')
+            .select('*')
+            .eq('owner_id', user.id)
+            .eq('student_id', sid)
+            .maybeSingle()
+          rowData = again.data
+        } else {
+          if (insertRow.error) toast.error(insertRow.error.message)
+          rowData = insertRow.data
         }
-        rowData = insertRow.data
       }
       if (error) toast.error(error.message)
 

@@ -61,7 +61,7 @@ export function ShareMealPlanCardV2({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink-primary">Compartir con {firstName || 'el paciente'}</p>
-          <p className="mt-1 max-w-[52ch] text-xs text-ink-secondary">
+          <p className="mt-1 text-xs text-ink-secondary">
             Le llega un link para abrir el plan en el celu, sin cuenta. Si cambiás el plan, el link muestra la versión nueva.
             Desde ahí también lo puede guardar en PDF.
           </p>
