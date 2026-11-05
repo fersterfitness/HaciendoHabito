@@ -43,12 +43,18 @@ const MUSCLE_PALETTE = [
   { bg: 'bg-teal-500/10 dark:bg-teal-500/15',     border: 'border-teal-500/30',       text: 'text-teal-700 dark:text-teal-400',       dot: '#14b8a6' },
 ]
 
+/** v2: un solo tono neutro para todos los grupos (el color por grupo no significaba nada). */
+const MUSCLE_NEUTRAL_V2 = { bg: 'bg-surface-elevated', border: 'border-surface-border', text: 'text-ink-secondary', dot: '#8082A6' }
+
 function getMuscleColor(index: number) {
+  if (IS_V2) return MUSCLE_NEUTRAL_V2
   return MUSCLE_PALETTE[index % MUSCLE_PALETTE.length]
 }
 
 function difficultyBadgeClass(difficulty: string): string {
   const base = 'inline-flex rounded border px-2 py-0.5 text-3xs font-semibold whitespace-nowrap'
+  // v2: la dificultad es un nivel, no un estado: va neutra, como el nivel de los alumnos.
+  if (IS_V2) return cn(base, 'border-surface-border bg-surface-elevated text-ink-secondary')
   switch (difficulty) {
     case 'basico':
       return cn(base, 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/[0.14] dark:text-emerald-400')

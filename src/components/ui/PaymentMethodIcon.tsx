@@ -5,6 +5,7 @@
  */
 import { Banknote, CreditCard, ArrowRightLeft, Wallet, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 
 /* ── SVGs de marca ───────────────────────────────────────────── */
 
@@ -61,7 +62,7 @@ interface MethodMeta {
   bg: string      // Tailwind bg para el chip
 }
 
-function getMeta(method: Method): MethodMeta {
+function getMetaV1(method: Method): MethodMeta {
   switch (method) {
     case 'efectivo_ars':
       return {
@@ -71,7 +72,7 @@ function getMeta(method: Method): MethodMeta {
       }
     case 'efectivo_debito':
       return {
-        icon: <Wallet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />,
+        icon: <Wallet className={IS_V2 ? 'h-3.5 w-3.5 text-ink-muted' : 'h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400'} />,
         color: 'text-emerald-700 dark:text-emerald-400',
         bg: 'bg-emerald-500/10 border-emerald-500/25',
       }
@@ -89,19 +90,19 @@ function getMeta(method: Method): MethodMeta {
       }
     case 'tarjeta_credito':
       return {
-        icon: <CreditCard className="h-3.5 w-3.5 text-violet-500" />,
+        icon: <CreditCard className={IS_V2 ? 'h-3.5 w-3.5 text-ink-muted' : 'h-3.5 w-3.5 text-violet-500'} />,
         color: 'text-violet-700 dark:text-violet-400',
         bg: 'bg-violet-500/10 border-violet-500/25',
       }
     case 'transferencia':
       return {
-        icon: <ArrowRightLeft className="h-3.5 w-3.5 text-amber-500" />,
+        icon: <ArrowRightLeft className={IS_V2 ? 'h-3.5 w-3.5 text-ink-muted' : 'h-3.5 w-3.5 text-amber-500'} />,
         color: 'text-amber-700 dark:text-amber-400',
         bg: 'bg-amber-500/10 border-amber-500/25',
       }
     case 'debito':
       return {
-        icon: <Banknote className="h-3.5 w-3.5 text-teal-500" />,
+        icon: <Banknote className={IS_V2 ? 'h-3.5 w-3.5 text-ink-muted' : 'h-3.5 w-3.5 text-teal-500'} />,
         color: 'text-teal-700 dark:text-teal-400',
         bg: 'bg-teal-500/10 border-teal-500/25',
       }
@@ -112,6 +113,13 @@ function getMeta(method: Method): MethodMeta {
         bg: 'bg-surface-elevated border-surface-border',
       }
   }
+}
+
+/** v2: todos los medios con el mismo chip neutro; el ícono o logo alcanza para distinguirlos. */
+function getMeta(method: Method): MethodMeta {
+  const meta = getMetaV1(method)
+  if (!IS_V2) return meta
+  return { icon: meta.icon, color: 'text-ink-secondary', bg: 'bg-surface-elevated border-surface-border' }
 }
 
 const METHOD_LABEL: Record<string, string> = {
