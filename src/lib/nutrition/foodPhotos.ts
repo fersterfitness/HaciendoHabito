@@ -102,7 +102,8 @@ const BY_KEYWORD: [RegExp, string[]][] = [
   [/\b(manzana)/, ['1568702846914-96b305d2aaeb']],
   [/\b(banana)/, ['1571771894821-ce9b6c11b08e']],
   [/\b(fruta|pera|mandarina|kiwi|naranja|frutilla|frutos rojos)/, ['1490474418585-ba9bad8fd0ea', '1610832958506-aa56368176cf', '1519996529931-28324d5a630e']],
-  [/\b(mate|te |infusion)/, ['1564890369478-c89ca6d9cde9', '1544787219-7f47ccb76574']],
+  [/\b(mate|yerba)/, ['1585744259332-111384f5def9', '1609541994821-d909982e2f1b', '1662628325105-abdc437c2903', '1687920492018-e21cad9023d9', '1784475844948-e9abada34215']],
+  [/\b(te |infusion)/, ['1564890369478-c89ca6d9cde9', '1544787219-7f47ccb76574']],
   [/\b(cafe)/, ['1495474472287-4d71bcdd2085', '1509042239860-f550ce710b93']],
   [/\b(leche)/, ['1550583724-b2692b85b150']],
 ]

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { fetchSharedMealPlan, type SharedMealPlan } from '@/lib/nutrition/sharedMealPlan'
-import { mealPhotoId, planCoverPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
+import { mealPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
 import {
   columnFullLabels,
   columnLabels,
@@ -40,10 +40,14 @@ function todayColumn(mergeWeekends: boolean): number {
 
 /** Separa los párrafos que la nutricionista arma con emojis como viñetas («✅ … ✅ …»). */
 function splitBullets(text: string): string[] {
-  return text
-    .split(/\s+(?=\p{Extended_Pictographic})/u)
-    .map((t) => t.trim())
-    .filter(Boolean)
+  return (
+    text
+      // Emojis que llegaron rotos a la base («�» o de uso privado): cuentan como viñeta y no se muestran.
+      .split(/[�-]️?/u)
+      .flatMap((t) => t.split(/\s+(?=\p{Extended_Pictographic})/u))
+      .map((t) => t.trim())
+      .filter(Boolean)
+  )
 }
 
 type Cell = { kind: 'empty' } | { kind: 'none' } | { kind: 'meal'; lines: string[] }
@@ -169,15 +173,14 @@ export function PublicMealPlanPage() {
   const notesPreamble = notes.preamble.split(/\n{2,}/).flatMap(splitBullets)
   const notesItems = notes.aclaraciones.flatMap(splitBullets)
   const notesLong = [...notesPreamble, ...notesItems].join(' ').length > 520
-  const props = [
-    plan.total_kcal ? { label: 'Energía', value: `${plan.total_kcal.toLocaleString('es-AR')} kcal por día` } : null,
-    { label: 'Comidas', value: `${rows.length} por día` },
-    next ? { label: 'Próxima consulta', value: format(next, "EEEE d 'de' MMMM", { locale: es }), cap: true } : null,
-    data.professional_name ? { label: 'Nutricionista', value: data.professional_name } : null,
-  ].filter(Boolean) as { label: string; value: string; cap?: boolean }[]
-  const coverId = planCoverPhotoId(token, rows)
   // Si el perfil tiene el email como nombre, el botón no lo repite.
   const proFirst = data.professional_name && !data.professional_name.includes('@') ? data.professional_name.trim().split(/\s+/)[0] : ''
+  const meta = [
+    plan.total_kcal ? `${plan.total_kcal.toLocaleString('es-AR')} kcal por día` : null,
+    `${rows.length} comidas por día`,
+    next ? `Próxima consulta: ${format(next, "EEEE d 'de' MMMM", { locale: es })}` : null,
+    data.professional_name ? `Nutricionista: ${data.professional_name}` : null,
+  ].filter(Boolean) as string[]
 
   return (
     <Shell>
@@ -185,44 +188,30 @@ export function PublicMealPlanPage() {
       <div className="hhp-screen">
         <div className="hhp-brand">
           <span className="hhp-logo">
-            <i>H</i>Haciéndolo Hábito
+            <i>H</i>
+            <span>Haciéndolo Hábito</span>
           </span>
-        </div>
-
-        <div className="hhp-banner">
-          <img
-            src={unsplashUrl(coverId, 1200, 360)}
-            alt=""
-            onError={(e) => {
-              e.currentTarget.style.visibility = 'hidden'
-            }}
-          />
-        </div>
-
-        <section className="hhp-hero">
-          <div className="hhp-titles">
-            {plan.title ? <div className="hhp-eyebrow">{plan.title}</div> : null}
-            <h1>{firstName ? `Plan alimentario de ${firstName}` : 'Tu plan alimentario'}</h1>
-            {plan.objective ? <p className="hhp-goal">{plan.objective}</p> : null}
-          </div>
-          <dl className="hhp-props">
-            {props.map((f) => (
-              <div key={f.label}>
-                <dt>{f.label}</dt>
-                <dd className={f.cap ? 'hhp-cap' : undefined}>{f.value}</dd>
-              </div>
-            ))}
-          </dl>
           <div className="hhp-actions">
-            <button type="button" className="hhp-btn hhp-btn-primary" onClick={() => window.print()}>
+            <button type="button" className="hhp-btn" onClick={() => window.print()}>
               Descargar PDF
             </button>
             {waDigits ? (
-              <a className="hhp-btn" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer">
-                {proFirst ? `Escribir a ${proFirst}` : 'Escribir por WhatsApp'}
+              <a className="hhp-btn hhp-btn-primary" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer">
+                {proFirst ? `Escribir a ${proFirst}` : 'WhatsApp'}
               </a>
             ) : null}
           </div>
+        </div>
+
+        <section className="hhp-hero">
+          {plan.title ? <div className="hhp-eyebrow">{plan.title}</div> : null}
+          <h1>{firstName ? `Plan alimentario de ${firstName}` : 'Tu plan alimentario'}</h1>
+          {plan.objective ? <p className="hhp-goal">{plan.objective}</p> : null}
+          <ul className="hhp-meta">
+            {meta.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
         </section>
 
         <section className="hhp-section">
@@ -377,38 +366,32 @@ const CSS = `
 .hhp button, .hhp a { font: inherit; }
 .hhp button:focus-visible, .hhp a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .hhp-inner { max-width: 880px; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); container-type: inline-size; }
-.hhp-screen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.hhp-screen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .hhp-state { padding: 18vh 0; text-align: center; color: var(--ink-2); }
 .hhp-state h1 { margin: 0 0 6px; font-size: 20px; color: var(--ink); letter-spacing: -0.02em; }
 .hhp-state p { margin: 0 auto; max-width: 40ch; }
 
-.hhp-brand { font-size: 12.5px; color: var(--muted); }
-.hhp-logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); }
-.hhp-logo i { width: 22px; height: 22px; border-radius: 6px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700; }
-
-.hhp-banner { height: 132px; margin: -8px -16px -6px; overflow: hidden; background: var(--elevated); }
-.hhp-banner img { display: block; max-width: none; width: 100%; height: 100%; object-fit: cover; }
-.hhp-hero { display: grid; gap: 18px; min-width: 0; }
-.hhp-titles { min-width: 0; }
-.hhp-hero h1 { margin: 0; font-size: clamp(22px, 7.4vw, 30px); line-height: 1.15; letter-spacing: -0.03em; font-weight: 700; text-wrap: balance; overflow-wrap: break-word; }
-.hhp-eyebrow { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-.hhp-goal { margin: 10px 0 0; color: var(--ink-2); font-size: 15.5px; max-width: 62ch; }
-.hhp-props { margin: 0; display: grid; gap: 2px; font-size: 14px; min-width: 0; align-content: start; }
-.hhp-props div { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 12px; padding: 4px 0; }
-.hhp-props dt { color: var(--muted); }
-.hhp-props dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
-.hhp-cap::first-letter { text-transform: uppercase; }
-.hhp-actions { display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
-.hhp-btn { border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 8px; padding: 8px 14px; font-size: 13.5px; font-weight: 500; cursor: pointer; text-decoration: none; }
+.hhp-brand { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.hhp-logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); min-width: 0; }
+.hhp-logo i { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700; }
+.hhp-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.hhp-btn { border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 7px; padding: 5px 11px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap; }
 .hhp-btn:hover { background: var(--panel); }
 .hhp-btn-primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 .hhp-btn-primary:hover { background: var(--brand); opacity: .92; }
 
-.hhp-section { display: grid; gap: 14px; min-width: 0; border-top: 1px solid var(--border); padding-top: 22px; }
+.hhp-hero { min-width: 0; }
+.hhp-hero h1 { margin: 0; font-size: clamp(22px, 6.6vw, 28px); line-height: 1.15; letter-spacing: -0.03em; font-weight: 700; text-wrap: balance; overflow-wrap: break-word; }
+.hhp-eyebrow { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.hhp-goal { margin: 6px 0 0; color: var(--ink-2); font-size: 14.5px; max-width: 62ch; }
+.hhp-meta { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.hhp-meta li { background: var(--elevated); border-radius: 6px; padding: 2px 8px; overflow-wrap: anywhere; min-width: 0; }
+
+.hhp-section { display: grid; gap: 12px; min-width: 0; border-top: 1px solid var(--border); padding-top: 16px; }
 .hhp-h2, .hhp-daytitle h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
-.hhp-days { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+.hhp-days { position: sticky; top: 0; z-index: 5; background: var(--canvas); display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 5px; overflow-x: auto; scrollbar-width: none; margin: -8px -16px 0; padding: 8px 16px; }
 .hhp-days::-webkit-scrollbar { display: none; }
-.hhp-day { position: relative; border: 1px solid var(--border); background: var(--card); color: var(--ink-2); border-radius: 8px; padding: 8px 10px; text-align: center; cursor: pointer; font-weight: 500; font-size: 14px; white-space: nowrap; }
+.hhp-day { position: relative; min-width: 0; border: 1px solid var(--border); background: var(--card); color: var(--ink-2); border-radius: 8px; padding: 7px 2px; text-align: center; cursor: pointer; font-weight: 500; font-size: 13.5px; line-height: 1.2; }
 .hhp-day:hover { background: var(--panel); }
 .hhp-day[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
 .hhp-today { position: absolute; top: 5px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
@@ -416,14 +399,16 @@ const CSS = `
 .hhp-daytitle span { font-size: 13px; color: var(--muted); }
 
 .hhp-meals { display: grid; gap: 12px; }
-.hhp-meal { display: grid; grid-template-columns: 1fr; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; min-width: 0; box-shadow: 0 1px 2px rgba(15, 15, 15, .04); }
-.hhp-cover { height: 140px; background: var(--elevated); }
+.hhp-meal { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: start; gap: 12px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; min-width: 0; box-shadow: 0 1px 2px rgba(15, 15, 15, .04); }
+/* Miniatura de tamaño fijo: un texto largo no la estira. */
+.hhp-cover { width: 64px; height: 64px; border-radius: 8px; overflow: hidden; background: var(--elevated); }
+.hhp-meal-skip { grid-template-columns: minmax(0, 1fr); }
 .hhp-cover img { display: block; max-width: none; width: 100%; height: 100%; object-fit: cover; }
-.hhp-meal-body { padding: 14px 16px 16px; min-width: 0; }
-.hhp-meal header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
-.hhp-meal h4 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
-.hhp-meal time { margin-left: auto; flex: 0 0 auto; font-size: 12.5px; color: var(--muted); background: var(--elevated); border-radius: 5px; padding: 1px 7px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hhp-meal ul { margin: 0; padding-left: 18px; list-style: disc; display: grid; gap: 5px; color: var(--ink-2); font-size: 14.5px; overflow-wrap: anywhere; }
+.hhp-meal-body { min-width: 0; }
+.hhp-meal header { display: flex; flex-direction: column; gap: 1px; margin-bottom: 7px; }
+.hhp-meal h4 { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+.hhp-meal time { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hhp-meal ul { margin: 0; padding-left: 16px; list-style: disc; display: grid; gap: 4px; color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
 .hhp-meal li::marker { color: var(--muted); }
 .hhp-meal-skip { background: var(--panel); box-shadow: none; }
 .hhp-meal-skip p, .hhp-empty { margin: 0; color: var(--muted); font-size: 14px; }
@@ -438,17 +423,21 @@ const CSS = `
 .hhp-more { justify-self: start; border: 0; background: none; padding: 0; color: var(--ink); font-weight: 500; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border); cursor: pointer; }
 .hhp-foot { margin: 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
 
+@container (max-width: 400px) {
+  .hhp-logo > span { display: none; }
+}
 @container (min-width: 600px) {
-  .hhp-screen { gap: 32px; }
-  .hhp-banner { height: 200px; margin: 0; border-radius: 12px; }
-  .hhp-hero { grid-template-columns: minmax(0, 1fr) auto; column-gap: 32px; row-gap: 20px; }
-  .hhp-titles { grid-column: 1 / -1; }
-  .hhp-hero h1 { font-size: 38px; }
-  .hhp-actions { justify-content: flex-end; }
-  .hhp-props div { grid-template-columns: 140px minmax(0, 1fr); }
+  .hhp-screen { gap: 24px; padding-top: 8px; }
+  .hhp-hero h1 { font-size: 32px; }
   .hhp-days { margin-inline: 0; padding-inline: 0; }
-  .hhp-meal { grid-template-columns: 190px minmax(0, 1fr); }
-  .hhp-cover { height: auto; min-height: 132px; }
+  .hhp-meal { grid-template-columns: 148px minmax(0, 1fr); gap: 18px; padding: 14px; }
+  .hhp-cover { width: 148px; height: 104px; }
+  .hhp-meal-skip { grid-template-columns: minmax(0, 1fr); padding-inline: 16px; }
+  .hhp-meal header { flex-direction: row; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .hhp-meal h4 { font-size: 16px; }
+  .hhp-meal time { margin-left: auto; flex: 0 0 auto; background: var(--elevated); border-radius: 5px; padding: 1px 7px; white-space: nowrap; }
+  .hhp-meal ul { padding-left: 18px; gap: 5px; font-size: 14.5px; }
+  .hhp-day { font-size: 14px; padding-inline: 8px; }
 }
 
 .hhp-print { display: none; }
