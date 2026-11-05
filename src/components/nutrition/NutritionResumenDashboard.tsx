@@ -349,7 +349,7 @@ function useNextAppointment(studentId: string) {
  * Próxima consulta: manda el turno real de la agenda. La fecha cargada a mano en el
  * seguimiento queda solo como sugerida cuando todavía no hay turno.
  */
-function NextConsultationBanner({
+export function NextConsultationBanner({
   studentId,
   followup,
   onManageAppointments,

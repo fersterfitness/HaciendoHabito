@@ -48,6 +48,7 @@ import { NutritionSymptomCheckinsSection } from '@/components/nutrition/Nutritio
 import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/NutritionRequirementsCalculatorCard'
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
+import { NutritionResumenDashboardV2 } from '@/components/nutrition/NutritionResumenDashboardV2'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
 import { NutritionWebIntakePanel } from '@/components/nutrition/NutritionWebIntakePanel'
 import { FersterStudentIntakePanel } from '@/components/students/FersterStudentIntakePanel'
@@ -114,6 +115,9 @@ const FILE_FILTERS: { id: 'all' | NutritionDocumentCategory; label: string }[] =
   { id: 'anamnesis', label: 'Anamnesis' },
   { id: 'laboratorio', label: 'Laboratorios' },
 ]
+
+/** v2: resumen rediseñado; v1 queda igual. */
+const ResumenDashboard = IS_V2 ? NutritionResumenDashboardV2 : NutritionResumenDashboard
 
 const VALID_TABS = ['resumen', 'datos', 'antropometria', 'plan', 'historia', 'archivos'] as const
 type TabId = (typeof VALID_TABS)[number]
@@ -758,7 +762,7 @@ export function NutritionPatientDetailView({
         <div className={cn(variant === 'panel' && 'px-4 pb-8 sm:px-6 lg:px-8')}>
         {/* ───────────── RESUMEN ───────────── */}
         <TabPanel id="resumen" active={activeTab}>
-          <NutritionResumenDashboard
+          <ResumenDashboard
             student={student}
             measurements={measurements}
             followup={followup}
