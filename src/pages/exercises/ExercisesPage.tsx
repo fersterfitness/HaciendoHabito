@@ -395,9 +395,13 @@ export function ExercisesPage() {
                         )}
                       </td>
                       <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 sm:px-4">
-                        <span className={difficultyBadgeClass(exercise.difficulty)}>
-                          {DIFFICULTY_LABEL[exercise.difficulty] ?? exercise.difficulty}
-                        </span>
+                        {IS_V2 && !(DIFFICULTY_LABEL[exercise.difficulty] ?? exercise.difficulty) ? (
+                          <span className="text-ink-muted">—</span>
+                        ) : (
+                          <span className={difficultyBadgeClass(exercise.difficulty)}>
+                            {DIFFICULTY_LABEL[exercise.difficulty] ?? exercise.difficulty}
+                          </span>
+                        )}
                       </td>
                       <td className="hh-row-drop-in hidden max-w-[14rem] truncate px-3 py-2 text-xs text-ink-muted lg:table-cell lg:px-4" title={(exercise.equipment ?? []).join(', ') || undefined}>
                         {exercise.equipment && exercise.equipment.length > 0 ? exercise.equipment.join(', ') : '—'}
