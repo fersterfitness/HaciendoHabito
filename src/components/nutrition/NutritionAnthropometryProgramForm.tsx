@@ -1,6 +1,9 @@
 import { cn } from '@/lib/utils'
 import { controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FileUp, Loader2 } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
+import type { ImportedAnthropometry } from '@/lib/nutrition/anthropometryReportImport'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import type { Json, NutritionMeasurement, Student } from '@/types/database'
@@ -52,6 +55,19 @@ function inputsWithBasicPrefill(
   put('talla_corporal_cm', prefill.talla_corporal_cm)
   put('talla_sentado_cm', prefill.talla_sentado_cm)
   return base
+}
+
+const normName = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z]+/).filter((w) => w.length > 2)
+
+/** ¿El nombre del informe es del paciente? Alcanza con que compartan una palabra (nombre o apellido). */
+function sameName(a: string, b: string) {
+  const wb = new Set(normName(b))
+  return normName(a).some((w) => wb.has(w))
+}
+
+function numText(v: number | null) {
+  return v == null ? '' : String(v).replace('.', ',')
 }
 
 function SectionTitle({ children }: { children: string }) {
@@ -130,18 +146,32 @@ export function NutritionAnthropometryProgramForm({
   const [meta, setMeta] = useState<AnthropometryMeta>(defaults.meta)
   const [measuredAt, setMeasuredAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [saving, setSaving] = useState(false)
+  /** % grasa y masa muscular (v2): vienen del informe importado o se cargan a mano. */
+  const [fatPct, setFatPct] = useState('')
+  const [muscleKg, setMuscleKg] = useState('')
+  const [imported, setImported] = useState<(ImportedAnthropometry & { fileName: string }) | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    setImported(null)
+    setImportError(null)
     if (!draft) {
       setMeta(defaults.meta)
       setInputs(defaults.inputs)
       setMeasuredAt(new Date().toISOString().slice(0, 10))
+      setFatPct('')
+      setMuscleKg('')
       return
     }
     const source = measurements.find((m) => m.id === draft.measurementId)
     if (!source) return
     const loaded = measurementToFormState(source)
     setInputs(loaded.inputs)
+    setFatPct(numText(source.body_fat_pct))
+    setMuscleKg(numText(source.muscle_mass_kg))
     if (draft.mode === 'clone') {
       setMeasuredAt(new Date().toISOString().slice(0, 10))
       setMeta({
@@ -160,6 +190,60 @@ export function NutritionAnthropometryProgramForm({
       row[idx] = v
       return { ...prev, [key]: row }
     })
+  }
+
+  async function importReport(file: File) {
+    const fail = (msg: string) => {
+      setImportError(msg)
+      setImported(null)
+      toast.error(msg, { duration: 6000 })
+    }
+    setImportError(null)
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+      fail(`"${file.name}" no es un PDF. Arrastrá el informe de composición corporal en PDF.`)
+      return
+    }
+    setImporting(true)
+    try {
+      const { readAnthropometryReportPdf } = await import('@/lib/nutrition/anthropometryReportPdf')
+      const r = await readAnthropometryReportPdf(file)
+      const found = Object.keys(r.values).length
+      if (found < 3) {
+        fail(`"${file.name}" no tiene el formato del informe de composición corporal: no encontré las medidas (peso, perímetros, pliegues).`)
+        return
+      }
+      if (r.measuredAt) {
+        const month = r.measuredAt.slice(0, 7)
+        const clash = measurements.find(
+          (m) => m.measured_at.slice(0, 7) === month && !(draft?.mode === 'edit' && m.id === draft.measurementId),
+        )
+        if (clash) {
+          const [y, mo] = month.split('-')
+          const monthName = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+          fail(
+            `Ya hay un control de ${monthName} (${clash.measured_at.slice(0, 10).split('-').reverse().join('/')}). No se importó: editá o borrá ese control si querés reemplazarlo.`,
+          )
+          return
+        }
+      }
+      setInputs((prev) => {
+        const next = { ...prev }
+        for (const [k, v] of Object.entries(r.values)) {
+          next[k as AnthropometryVariableKey] = [numText(v), '', '', '', '']
+        }
+        return next
+      })
+      if (r.measuredAt) setMeasuredAt(r.measuredAt)
+      if (r.measurementNumber != null) setMeta((m) => ({ ...m, measurement_number: r.measurementNumber ?? undefined }))
+      if (r.bodyFatPct != null) setFatPct(numText(r.bodyFatPct))
+      if (r.muscleMassKg != null) setMuscleKg(numText(r.muscleMassKg))
+      setImported({ ...r, fileName: file.name })
+      toast.success(`${found} medidas cargadas del informe. Revisá y guardá.`)
+    } catch {
+      fail(`No pude leer "${file.name}". Puede estar dañado o protegido con contraseña.`)
+    } finally {
+      setImporting(false)
+    }
   }
 
   function blockToSeries(blockKeys: readonly AnthropometryVariableKey[]): AnthropometrySeriesBlock {
@@ -201,8 +285,8 @@ export function NutritionAnthropometryProgramForm({
       height_cm: heightCm,
       sitting_height_cm: sitting,
       bmi,
-      body_fat_pct: null,
-      muscle_mass_kg: null,
+      body_fat_pct: IS_V2 ? parseSeries5FromStrings([fatPct, '', '', '', ''])[0] : null,
+      muscle_mass_kg: IS_V2 ? parseSeries5FromStrings([muscleKg, '', '', '', ''])[0] : null,
       perimeters_notes: perimeters || null,
       skinfolds_notes: skinfolds || null,
       notes: null,
@@ -262,6 +346,78 @@ export function NutritionAnthropometryProgramForm({
           >
             Cancelar
           </button>
+        </div>
+      ) : null}
+
+      {IS_V2 ? (
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              e.target.value = ''
+              if (f) void importReport(f)
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOver(false)
+              const f = e.dataTransfer.files?.[0]
+              if (f) void importReport(f)
+            }}
+            disabled={importing}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-xl border border-dashed px-4 py-3.5 text-left transition-colors',
+              dragOver ? 'border-brand-primary bg-brand-primary/5' : 'border-surface-border hover:border-ink-muted/60 hover:bg-surface-elevated/40',
+            )}
+          >
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-ink-secondary">
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-ink-primary">
+                {importing ? 'Leyendo el informe…' : 'Importar informe PDF'}
+              </span>
+              <span className="block text-2xs text-ink-muted">
+                Arrastrá el informe de composición corporal o tocá para elegirlo. Completa las medidas, la fecha, el N°, % grasa y masa muscular.
+              </span>
+            </span>
+          </button>
+
+          {importError ? (
+            <p role="alert" className="mt-2 rounded-xl border border-status-expired/30 bg-status-expired/10 px-3 py-2.5 text-2xs font-medium text-status-expired">
+              {importError}
+            </p>
+          ) : null}
+
+          {imported ? (
+            <div className="mt-2 rounded-xl bg-surface-elevated/60 px-3 py-2.5 text-2xs text-ink-secondary">
+              <p>
+                <span className="font-semibold text-ink-primary">{25 - imported.missing.length} de 25 medidas</span> cargadas de {imported.fileName}
+                {imported.measuredAt ? ` · fecha ${imported.measuredAt.split('-').reverse().join('/')}` : ''}
+                {imported.measurementNumber != null ? ` · N° ${imported.measurementNumber}` : ''}. Revisá y guardá.
+              </p>
+              {imported.missing.length ? (
+                <p className="mt-1 text-ink-muted">No estaban en el informe: {imported.missing.map((k) => labelForAnthroKey(k)).join(', ')}.</p>
+              ) : null}
+              {imported.patientName && !sameName(imported.patientName, student.full_name) ? (
+                <p className="mt-1 font-medium text-status-expired">
+                  Ojo: el informe es de {imported.patientName}, no de {student.full_name}.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -335,6 +491,32 @@ export function NutritionAnthropometryProgramForm({
               className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
+          {IS_V2 ? (
+            <>
+              <label className="text-2xs text-ink-secondary">
+                % grasa (masa adiposa)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={fatPct}
+                  onChange={(e) => setFatPct(e.target.value)}
+                  placeholder="Ej. 20,87"
+                  className={cn(controlMdClassName, 'mt-1 w-full px-2')}
+                />
+              </label>
+              <label className="text-2xs text-ink-secondary">
+                Masa muscular (kg)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={muscleKg}
+                  onChange={(e) => setMuscleKg(e.target.value)}
+                  placeholder="Ej. 49,2"
+                  className={cn(controlMdClassName, 'mt-1 w-full px-2')}
+                />
+              </label>
+            </>
+          ) : null}
           <label className="text-2xs text-ink-secondary lg:col-span-2">
             % error técnico TE (diámetros/pliegues)
             <div className="mt-1 flex items-center gap-2.5">

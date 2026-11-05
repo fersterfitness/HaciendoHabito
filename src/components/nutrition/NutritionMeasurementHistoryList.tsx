@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { Activity, Copy, Loader2, Pencil, Trash2 } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, ArrowUpDown, Copy, Loader2, Pencil, Trash2 } from 'lucide-react'
+import { IS_V2 } from '@/lib/uiVersion'
 import type { NutritionMeasurement } from '@/types/database'
 import { mergedMediansForPresentation } from '@/lib/nutrition/anthropometryPresentation'
 import { weightOf } from '@/lib/nutrition/measurementDerivatives'
@@ -23,6 +24,29 @@ function weightLabel(m: NutritionMeasurement): string {
   return w != null ? `${w} kg` : '—'
 }
 
+type SortKey = 'num' | 'date' | 'weight'
+type Sort = { key: SortKey; dir: 'asc' | 'desc' }
+
+const TH = 'whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4'
+
+function SortTh({ label, k, sort, onSort }: { label: ReactNode; k: SortKey; sort: Sort; onSort: (k: SortKey) => void }) {
+  if (!IS_V2) return <th className={TH}>{label}</th>
+  const active = sort.key === k
+  const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown
+  return (
+    <th className={TH} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={cn('inline-flex items-center gap-1 transition-colors hover:text-ink-primary', active && 'text-ink-primary')}
+      >
+        {label}
+        <Icon className={cn('h-3 w-3', !active && 'opacity-50')} aria-hidden />
+      </button>
+    </th>
+  )
+}
+
 export function NutritionMeasurementHistoryList({
   measurements,
   selectedId,
@@ -41,6 +65,33 @@ export function NutritionMeasurementHistoryList({
   deletingId?: string | null
 }) {
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [sort, setSort] = useState<Sort>({ key: 'date', dir: 'desc' })
+
+  /** N° de respaldo según el orden cronológico (la lista llega de la más nueva a la más vieja). */
+  const fallbackNum = useMemo(() => new Map(measurements.map((m, i) => [m.id, measurements.length - i])), [measurements])
+
+  const rows = useMemo(() => {
+    if (!IS_V2) return measurements
+    const val = (m: NutritionMeasurement): number | null =>
+      sort.key === 'date'
+        ? new Date(m.measured_at).getTime()
+        : sort.key === 'num'
+          ? (m.measurement_number ?? fallbackNum.get(m.id) ?? null)
+          : weightOf(m)
+    const sign = sort.dir === 'asc' ? 1 : -1
+    return [...measurements].sort((a, b) => {
+      const va = val(a)
+      const vb = val(b)
+      if (va == null && vb == null) return 0
+      if (va == null) return 1
+      if (vb == null) return -1
+      return (va - vb) * sign || (new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime())
+    })
+  }, [measurements, sort, fallbackNum])
+
+  function onSort(k: SortKey) {
+    setSort((prev) => (prev.key === k ? { key: k, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'date' ? 'desc' : 'asc' }))
+  }
 
   if (measurements.length === 0) {
     return (
@@ -62,18 +113,12 @@ export function NutritionMeasurementHistoryList({
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="border-b border-surface-border bg-surface-elevated/40">
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
-                N°
-              </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
-                Fecha
-              </th>
+              <SortTh label="N°" k="num" sort={sort} onSort={onSort} />
+              <SortTh label="Fecha" k="date" sort={sort} onSort={onSort} />
               <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 Tipo
               </th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
-                Peso
-              </th>
+              <SortTh label="Peso" k="weight" sort={sort} onSort={onSort} />
               <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">
                 Talla
               </th>
@@ -83,10 +128,10 @@ export function NutritionMeasurementHistoryList({
             </tr>
           </thead>
           <tbody>
-            {measurements.map((m, index) => {
+            {rows.map((m, index) => {
               const active = m.id === selectedId
               const program = hasProgramData(m)
-              const controlNum = m.measurement_number ?? measurements.length - index
+              const controlNum = m.measurement_number ?? fallbackNum.get(m.id) ?? measurements.length - index
               return (
                 <tr
                   key={m.id}
