@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { fetchSharedMealPlan, type SharedMealPlan } from '@/lib/nutrition/sharedMealPlan'
-import { mealPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
+import { mealPhotoId, planCoverPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
 import {
   columnFullLabels,
   columnLabels,
@@ -172,9 +172,12 @@ export function PublicMealPlanPage() {
   const props = [
     plan.total_kcal ? { label: 'Energía', value: `${plan.total_kcal.toLocaleString('es-AR')} kcal por día` } : null,
     { label: 'Comidas', value: `${rows.length} por día` },
-    next ? { label: 'Próxima consulta', value: format(next, "EEEE d 'de' MMMM", { locale: es }) } : null,
+    next ? { label: 'Próxima consulta', value: format(next, "EEEE d 'de' MMMM", { locale: es }), cap: true } : null,
     data.professional_name ? { label: 'Nutricionista', value: data.professional_name } : null,
-  ].filter(Boolean) as { label: string; value: string }[]
+  ].filter(Boolean) as { label: string; value: string; cap?: boolean }[]
+  const coverId = planCoverPhotoId(token, rows)
+  // Si el perfil tiene el email como nombre, el botón no lo repite.
+  const proFirst = data.professional_name && !data.professional_name.includes('@') ? data.professional_name.trim().split(/\s+/)[0] : ''
 
   return (
     <Shell>
@@ -186,15 +189,27 @@ export function PublicMealPlanPage() {
           </span>
         </div>
 
+        <div className="hhp-banner">
+          <img
+            src={unsplashUrl(coverId, 1200, 360)}
+            alt=""
+            onError={(e) => {
+              e.currentTarget.style.visibility = 'hidden'
+            }}
+          />
+        </div>
+
         <section className="hhp-hero">
-          {plan.title ? <div className="hhp-eyebrow">{plan.title}</div> : null}
-          <h1>{firstName ? `Plan alimentario de ${firstName}` : 'Tu plan alimentario'}</h1>
-          {plan.objective ? <p className="hhp-goal">{plan.objective}</p> : null}
+          <div className="hhp-titles">
+            {plan.title ? <div className="hhp-eyebrow">{plan.title}</div> : null}
+            <h1>{firstName ? `Plan alimentario de ${firstName}` : 'Tu plan alimentario'}</h1>
+            {plan.objective ? <p className="hhp-goal">{plan.objective}</p> : null}
+          </div>
           <dl className="hhp-props">
             {props.map((f) => (
               <div key={f.label}>
                 <dt>{f.label}</dt>
-                <dd>{f.value}</dd>
+                <dd className={f.cap ? 'hhp-cap' : undefined}>{f.value}</dd>
               </div>
             ))}
           </dl>
@@ -204,7 +219,7 @@ export function PublicMealPlanPage() {
             </button>
             {waDigits ? (
               <a className="hhp-btn" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer">
-                Escribir a {data.professional_name?.split(' ')[0] ?? 'tu nutricionista'}
+                {proFirst ? `Escribir a ${proFirst}` : 'Escribir por WhatsApp'}
               </a>
             ) : null}
           </div>
@@ -362,7 +377,7 @@ const CSS = `
 .hhp button, .hhp a { font: inherit; }
 .hhp button:focus-visible, .hhp a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .hhp-inner { max-width: 880px; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); container-type: inline-size; }
-.hhp-screen { display: grid; gap: 28px; }
+.hhp-screen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
 .hhp-state { padding: 18vh 0; text-align: center; color: var(--ink-2); }
 .hhp-state h1 { margin: 0 0 6px; font-size: 20px; color: var(--ink); letter-spacing: -0.02em; }
 .hhp-state p { margin: 0 auto; max-width: 40ch; }
@@ -371,15 +386,19 @@ const CSS = `
 .hhp-logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); }
 .hhp-logo i { width: 22px; height: 22px; border-radius: 6px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700; }
 
-.hhp-hero h1 { margin: 0; font-size: 30px; line-height: 1.15; letter-spacing: -0.03em; font-weight: 700; text-wrap: balance; }
+.hhp-banner { height: 132px; margin: -8px -16px -6px; overflow: hidden; background: var(--elevated); }
+.hhp-banner img { display: block; max-width: none; width: 100%; height: 100%; object-fit: cover; }
+.hhp-hero { display: grid; gap: 18px; min-width: 0; }
+.hhp-titles { min-width: 0; }
+.hhp-hero h1 { margin: 0; font-size: clamp(22px, 7.4vw, 30px); line-height: 1.15; letter-spacing: -0.03em; font-weight: 700; text-wrap: balance; overflow-wrap: break-word; }
 .hhp-eyebrow { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .hhp-goal { margin: 10px 0 0; color: var(--ink-2); font-size: 15.5px; max-width: 62ch; }
-.hhp-props { margin: 18px 0 0; display: grid; gap: 2px; font-size: 14px; }
-.hhp-props div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 4px 0; }
+.hhp-props { margin: 0; display: grid; gap: 2px; font-size: 14px; min-width: 0; align-content: start; }
+.hhp-props div { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 12px; padding: 4px 0; }
 .hhp-props dt { color: var(--muted); }
-.hhp-props dd { margin: 0; color: var(--ink); }
-.hhp-props dd::first-letter { text-transform: uppercase; }
-.hhp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.hhp-props dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.hhp-cap::first-letter { text-transform: uppercase; }
+.hhp-actions { display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
 .hhp-btn { border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 8px; padding: 8px 14px; font-size: 13.5px; font-weight: 500; cursor: pointer; text-decoration: none; }
 .hhp-btn:hover { background: var(--panel); }
 .hhp-btn-primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
@@ -401,7 +420,7 @@ const CSS = `
 .hhp-cover { height: 140px; background: var(--elevated); }
 .hhp-cover img { display: block; max-width: none; width: 100%; height: 100%; object-fit: cover; }
 .hhp-meal-body { padding: 14px 16px 16px; min-width: 0; }
-.hhp-meal header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.hhp-meal header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
 .hhp-meal h4 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
 .hhp-meal time { margin-left: auto; flex: 0 0 auto; font-size: 12.5px; color: var(--muted); background: var(--elevated); border-radius: 5px; padding: 1px 7px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hhp-meal ul { margin: 0; padding-left: 18px; list-style: disc; display: grid; gap: 5px; color: var(--ink-2); font-size: 14.5px; overflow-wrap: anywhere; }
@@ -420,8 +439,13 @@ const CSS = `
 .hhp-foot { margin: 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
 
 @container (min-width: 600px) {
-  .hhp-screen { padding-top: 24px; gap: 32px; }
+  .hhp-screen { gap: 32px; }
+  .hhp-banner { height: 200px; margin: 0; border-radius: 12px; }
+  .hhp-hero { grid-template-columns: minmax(0, 1fr) auto; column-gap: 32px; row-gap: 20px; }
+  .hhp-titles { grid-column: 1 / -1; }
   .hhp-hero h1 { font-size: 38px; }
+  .hhp-actions { justify-content: flex-end; }
+  .hhp-props div { grid-template-columns: 140px minmax(0, 1fr); }
   .hhp-days { margin-inline: 0; padding-inline: 0; }
   .hhp-meal { grid-template-columns: 190px minmax(0, 1fr); }
   .hhp-cover { height: auto; min-height: 132px; }
