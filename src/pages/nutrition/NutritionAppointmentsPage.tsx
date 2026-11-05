@@ -1237,8 +1237,8 @@ export function AppointmentsPage() {
 
           <div className="p-4 sm:p-6">
           <div className="mb-5 space-y-3 sm:mb-6">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-              <div className="min-w-0 flex flex-1 flex-col gap-1">
+            <div className={cn('flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4', IS_V2 && 'max-sm:flex-row max-sm:flex-wrap max-sm:gap-2')}>
+              <div className={cn('min-w-0 flex flex-1 flex-col gap-1', IS_V2 && 'max-sm:basis-full')}>
                 <label
                   htmlFor="appt-search"
                   className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}
@@ -1263,7 +1263,7 @@ export function AppointmentsPage() {
               </div>
               {calendarScope === 'students' ? (
                 <>
-                  <div className="flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0">
+                  <div className={cn('flex flex-col gap-1 sm:w-full sm:max-w-[min(100%,16rem)] lg:w-56 lg:max-w-none lg:shrink-0', IS_V2 && 'max-sm:min-w-0 max-sm:flex-1')}>
                     <span
                       id="appt-status-label"
                       className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}
@@ -1276,7 +1276,7 @@ export function AppointmentsPage() {
                       aria-labelledby="appt-status-label"
                       className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 "
                     >
-                      <option value="all">Programado o confirmado</option>
+                      <option value="all">{IS_V2 ? 'Todos los estados' : 'Programado o confirmado'}</option>
                       <option value="scheduled">Solo programados</option>
                       <option value="confirmed">Solo confirmados</option>
                     </select>
@@ -1292,7 +1292,14 @@ export function AppointmentsPage() {
                         onChange={(e) => setStudentVideoOnly(e.target.checked)}
                         className="h-4 w-4 rounded border-surface-border"
                       />
-                      Solo con enlace
+                      {IS_V2 ? (
+                        <>
+                          <span className="max-sm:hidden">Solo con enlace</span>
+                          <span className="sm:hidden">Con enlace</span>
+                        </>
+                      ) : (
+                        'Solo con enlace'
+                      )}
                     </label>
                   </div>
                 </>
