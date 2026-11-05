@@ -30,6 +30,7 @@ import { PlanGeneralNotesFields } from '@/components/nutrition/PlanGeneralNotesF
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
 import { WeeklyMealPlanBoard } from '@/components/nutrition/WeeklyMealPlanBoard'
 import { NutritionPlansTabs } from '@/components/nutrition/NutritionPlansTabs'
+import { PlanLibraryGalleryV2 } from '@/components/nutrition/PlanLibraryGalleryV2'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -383,6 +384,15 @@ export function NutritionTemplatesPage() {
                 />
               )}
             </div>
+          ) : IS_V2 ? (
+            <PlanLibraryGalleryV2
+              plans={filteredPlans}
+              activeId={editingId}
+              onOpen={openEditor}
+              onClone={(p) => void clonePlan(p)}
+              onDelete={(id) => void deletePlan(id)}
+              onCreate={() => void createPlan()}
+            />
           ) : (
             <div className="px-3 pb-3 pt-1.5 sm:px-4 sm:pb-4">
               <div

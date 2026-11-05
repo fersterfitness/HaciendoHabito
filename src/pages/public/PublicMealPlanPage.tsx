@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { fetchSharedMealPlan, type SharedMealPlan } from '@/lib/nutrition/sharedMealPlan'
+import { mealPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
 import {
   columnFullLabels,
   columnLabels,
@@ -121,6 +122,17 @@ export function PublicMealPlanPage() {
     if (cell.kind === 'empty') return null
     return (
       <article key={r.id} className={cell.kind === 'none' ? 'hhp-meal hhp-meal-skip' : 'hhp-meal'}>
+        {cell.kind === 'meal' ? (
+          <img
+            className="hhp-cover"
+            src={unsplashUrl(mealPhotoId(r.label, cell.lines.join('\n'), `${r.id}:${di}`), 640, 300)}
+            alt=""
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        ) : null}
         <header>
           <h4>{r.label}</h4>
           {r.approxTime ? <time>{r.approxTime}</time> : null}
@@ -389,6 +401,7 @@ const CSS = `
 .hhp-daytitle span { font-size: 12.5px; color: var(--muted); }
 .hhp-meals { display: grid; gap: 10px; }
 .hhp-meal { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 14px 16px 15px; min-width: 0; }
+.hhp-cover { display: block; max-width: none; width: calc(100% + 32px); height: 128px; margin: -14px -16px 12px; object-fit: cover; border-radius: 17px 17px 0 0; background: var(--panel); }
 .hhp-meal header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
 .hhp-meal h4 { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
 .hhp-meal time { margin-left: auto; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
