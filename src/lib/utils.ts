@@ -56,20 +56,13 @@ const AVATAR_TONES = [
   'bg-indigo-500/[0.12] text-indigo-700 dark:text-indigo-300',
 ] as const
 
-/** v2: los mismos avatares con los colores de la paleta (fondo sólido, texto oscuro en modo oscuro). */
-const AVATAR_TONES_V2 = [
-  'hh-pastel bg-pastel-rose text-pastel-rose-ink',
-  'hh-pastel bg-pastel-lavender text-pastel-lavender-ink',
-  'hh-pastel bg-pastel-peach text-pastel-peach-ink',
-  'hh-pastel bg-pastel-sky text-pastel-sky-ink',
-  'hh-pastel bg-pastel-mint text-pastel-mint-ink',
-  'hh-pastel bg-pastel-butter text-pastel-butter-ink',
-] as const
+/** v2: sin foto, todos con el mismo tono sobrio (los colores por persona quedaban desprolijos en las listas). */
+const AVATAR_TONE_V2 = 'bg-surface-elevated text-ink-secondary'
 
 /** Color de iniciales por persona: sale del nombre, así cada alumno conserva el suyo. */
 export function avatarToneClass(name: string): string {
   let h = 0
   for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-  if (IS_V2) return AVATAR_TONES_V2[h % AVATAR_TONES_V2.length]!
+  if (IS_V2) return AVATAR_TONE_V2
   return AVATAR_TONES[h % AVATAR_TONES.length]
 }
