@@ -23,6 +23,8 @@ import type {
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
+import { ShareMealPlanCardV2 } from '@/components/nutrition/ShareMealPlanCardV2'
+import { IS_V2 } from '@/lib/uiVersion'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -357,39 +359,43 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/[0.06] p-3 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-ink-primary flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-brand-secondary" />
-              Exportación premium del plan
-            </p>
-            <p className="text-xs text-ink-secondary mt-1">
-              Generá el PDF con el mismo tablero por días que ve el paciente.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={pdfVariant}
-              onChange={(e) => setPdfVariant(e.target.value as 'compact' | 'detailed')}
-              className={cn(controlSmClassName, 'px-2 cursor-pointer')}
-            >
-              <option value="detailed">PDF detallado</option>
-              <option value="compact">PDF compacto</option>
-            </select>
-            <Button
-              type="button"
-              size="sm"
-              variant="gradientSecondary"
-              icon={<FileDown className="h-4 w-4" />}
-              onClick={() => downloadPdf()}
-              loading={exportingPdf}
-            >
-              Generar PDF ahora
-            </Button>
+      {IS_V2 ? (
+        <ShareMealPlanCardV2 studentId={sid} studentName={student.full_name} studentPhone={student.phone} />
+      ) : (
+        <div className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/[0.06] p-3 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-ink-primary flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-brand-secondary" />
+                Exportación premium del plan
+              </p>
+              <p className="text-xs text-ink-secondary mt-1">
+                Generá el PDF con el mismo tablero por días que ve el paciente.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={pdfVariant}
+                onChange={(e) => setPdfVariant(e.target.value as 'compact' | 'detailed')}
+                className={cn(controlSmClassName, 'px-2 cursor-pointer')}
+              >
+                <option value="detailed">PDF detallado</option>
+                <option value="compact">PDF compacto</option>
+              </select>
+              <Button
+                type="button"
+                size="sm"
+                variant="gradientSecondary"
+                icon={<FileDown className="h-4 w-4" />}
+                onClick={() => downloadPdf()}
+                loading={exportingPdf}
+              >
+                Generar PDF ahora
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-xs text-ink-secondary">
