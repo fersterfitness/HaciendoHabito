@@ -6,6 +6,8 @@ import { fetchSharedMealPlan, type SharedMealPlan } from '@/lib/nutrition/shared
 import { mealPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
 import {
   columnFullLabels,
+  dayMacroTotals,
+  formatMacros,
   columnLabels,
   isNoMealMarker,
   mealContentLines,
@@ -164,12 +166,18 @@ export function PublicMealPlanPage() {
               ))}
             </ul>
           )}
+          {cell.kind === 'meal' && r.macros?.[di] ? (
+            <div className="hhp-macros">
+              <span>{formatMacros(r.macros[di])}</span>
+            </div>
+          ) : null}
         </div>
       </article>
     )
   }
 
   const dayMeals = rows.map((r) => mealCard(r, selected)).filter(Boolean)
+  const dayTotals = dayMacroTotals(grid, selected)
   const notesPreamble = notes.preamble.split(/\n{2,}/).flatMap(splitBullets)
   const notesItems = notes.aclaraciones.flatMap(splitBullets)
   const notesLong = [...notesPreamble, ...notesItems].join(' ').length > 520
@@ -226,6 +234,7 @@ export function PublicMealPlanPage() {
           <div className="hhp-daytitle">
             <h2>{full[selected]}</h2>
             {selected === today ? <span>Hoy</span> : null}
+            {dayTotals ? <em className="hhp-macros-day">Total del día: {formatMacros(dayTotals)}</em> : null}
           </div>
           <div className="hhp-meals">
             {dayMeals.length ? dayMeals : <p className="hhp-empty">No hay comidas cargadas para este día.</p>}
@@ -307,6 +316,7 @@ export function PublicMealPlanPage() {
                               <Md text={l} />
                             </span>
                           ))}
+                      {c.kind === 'meal' && r.macros?.[di] ? <small className="hhp-p-macros">{formatMacros(r.macros[di])}</small> : null}
                     </dd>
                   </div>
                 )
@@ -356,7 +366,7 @@ function Shell({ children }: { children: ReactNode }) {
 const CSS = `
 .hhp {
   --canvas: #FFFFFF; --card: #FFFFFF; --panel: #F7F7F5; --elevated: #F1F1EF; --border: #E9E9E7;
-  --ink: #37352F; --ink-2: #4F4D48; --muted: #8A8883; --brand: #46334F; --brand-ink: #FFFFFF; --accent: #E0861A;
+  --ink: #37352F; --ink-2: #4F4D48; --muted: #8A8883; --brand: #46334F; --brand-ink: #FFFFFF; --accent: #E0861A; --green-ink: #2F7A4D; --green-wash: #EAF6EE;
   min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: light;
   font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
@@ -395,7 +405,8 @@ const CSS = `
 .hhp-day:hover { background: var(--panel); }
 .hhp-day[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
 .hhp-today { position: absolute; top: 5px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.hhp-daytitle { display: flex; align-items: baseline; gap: 10px; }
+.hhp-daytitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.hhp-macros-day { margin-left: auto; font-style: normal; font-size: 12.5px; font-weight: 500; color: var(--green-ink); }
 .hhp-daytitle span { font-size: 13px; color: var(--muted); }
 
 .hhp-meals { display: grid; gap: 12px; }
@@ -411,6 +422,8 @@ const CSS = `
 .hhp-meal ul { margin: 0; padding-left: 16px; list-style: disc; display: grid; gap: 4px; color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
 .hhp-meal li::marker { color: var(--muted); }
 .hhp-meal-skip { background: var(--panel); box-shadow: none; }
+.hhp-macros { display: flex; justify-content: flex-end; margin-top: 8px; }
+.hhp-macros span { font-size: 12px; font-weight: 500; color: var(--green-ink); background: var(--green-wash); border-radius: 6px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
 .hhp-meal-skip p, .hhp-empty { margin: 0; color: var(--muted); font-size: 14px; }
 
 .hhp-notes { position: relative; display: grid; gap: 10px; color: var(--ink-2); font-size: 15px; max-width: 70ch; }
@@ -460,6 +473,7 @@ const CSS = `
   .hhp-p-row { display: grid; grid-template-columns: 30mm minmax(0, 1fr); gap: 10px; padding: 5px 0; border-top: 1px solid #E2DCE6; line-height: 1.45; }
   .hhp-p-row dt { font-weight: 600; } .hhp-p-row dt small { display: block; font-weight: 400; color: #6B6078; font-size: 8.5pt; }
   .hhp-p-row dd { margin: 0; color: #3E3248; }
+  .hhp-p-macros { display: block; margin-top: 1px; color: #2F7A4D; font-size: 8.5pt; }
   .hhp-p-notes { break-inside: avoid; margin-top: 16px; padding-top: 8px; border-top: 1.5px solid #2E2136; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 9.5pt; }
   .hhp-p-notes h3 { margin: 0 0 4px; font-size: 10.5pt; }
   .hhp-p-notes p { margin: 0; white-space: pre-line; }

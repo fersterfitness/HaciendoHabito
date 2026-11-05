@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Clock, Columns2, Plus, Trash2 } from 'lucide-react'
-import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
+import type { MealMacros, WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
   addMealRow,
+  cleanMacros,
   columnFullLabels,
   columnCount,
   createEmptyWeeklyGrid,
@@ -11,9 +13,17 @@ import {
   removeMealRowAt,
 } from '@/lib/nutrition/weeklyPlanGrid'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 
 const planFocusClassName =
   'focus:border-brand-secondary/50 focus:ring-1 focus:ring-brand-secondary/20 outline-none'
+
+const MACRO_FIELDS: { key: keyof MealMacros; label: string; title: string }[] = [
+  { key: 'kcal', label: 'kcal', title: 'Calorías' },
+  { key: 'p', label: 'P', title: 'Proteínas (g)' },
+  { key: 'c', label: 'C', title: 'Carbohidratos (g)' },
+  { key: 'g', label: 'G', title: 'Grasas (g)' },
+]
 
 interface Props {
   mergeWeekends: boolean
@@ -33,6 +43,19 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
     const nextCols = [...meals[mealIdx].columns]
     nextCols[dayIdx] = text
     meals[mealIdx] = { ...meals[mealIdx], columns: nextCols }
+    onGridChange({ mealRows: meals })
+  }
+
+  function updateMacro(mealIdx: number, dayIdx: number, key: keyof MealMacros, text: string) {
+    const meals = [...normalized.mealRows]
+    const row = meals[mealIdx]
+    if (!row) return
+    const list = Array.from({ length: cols }, (_, i) => row.macros?.[i] ?? null)
+    const prev = list[dayIdx] ?? { kcal: null, p: null, c: null, g: null }
+    list[dayIdx] = cleanMacros({ ...prev, [key]: text.trim() === '' ? null : text })
+    const { macros: _old, ...rest } = row
+    void _old
+    meals[mealIdx] = list.some(Boolean) ? { ...rest, macros: list } : rest
     onGridChange({ mealRows: meals })
   }
 
@@ -153,6 +176,20 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                         planFocusClassName,
                       )}
                     />
+                    {IS_V2 ? (
+                      <div className="mt-1.5 grid grid-cols-4 gap-1 border-t border-surface-border/70 pt-1.5">
+                        {MACRO_FIELDS.map((f) => (
+                          <label key={f.key} className="min-w-0" title={f.title}>
+                            <span className="block text-center text-[10px] font-medium leading-none text-ink-muted">{f.label}</span>
+                            <MacroInput
+                              value={meal.macros?.[di]?.[f.key] ?? null}
+                              onCommit={(text) => updateMacro(mi, di, f.key, text)}
+                              ariaLabel={`${f.title} · ${meal.label} · ${day}`}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )
@@ -161,5 +198,32 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
         </div>
       </div>
     </div>
+  )
+}
+
+/** Guarda al tener un número completo o al salir del campo, así se puede escribir «12,5». */
+function MacroInput({ value, onCommit, ariaLabel }: { value: number | null; onCommit: (text: string) => void; ariaLabel: string }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = draft ?? (value == null ? '' : String(value).replace('.', ','))
+  return (
+    <input
+      inputMode="decimal"
+      value={shown}
+      onChange={(e) => {
+        const t = e.target.value.replace(/[^\d.,]/g, '')
+        setDraft(t)
+        if (/^(\d+([.,]\d+)?)?$/.test(t)) onCommit(t)
+      }}
+      onBlur={() => {
+        if (draft != null) onCommit(draft)
+        setDraft(null)
+      }}
+      placeholder="—"
+      aria-label={ariaLabel}
+      className={cn(
+        'mt-0.5 w-full min-w-0 rounded-md bg-surface-elevated/60 px-1 py-0.5 text-center text-2xs tabular-nums text-ink-primary placeholder:text-ink-muted/50',
+        planFocusClassName,
+      )}
+    />
   )
 }

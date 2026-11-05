@@ -1,10 +1,70 @@
 /** Modelo serializado en nutrition_week_schedules.grid y plantillas */
 
+/** Macros opcionales de una casilla (comida de un día). Gramos, salvo kcal. */
+export interface MealMacros {
+  kcal: number | null
+  p: number | null
+  c: number | null
+  g: number | null
+}
+
 export interface MealRowModel {
   id: string
   label: string
   approxTime: string
   columns: string[]
+  /** Paralelo a `columns`; sólo existe si se cargó algún macro (v2). */
+  macros?: (MealMacros | null)[]
+}
+
+const MACRO_KEYS = ['kcal', 'p', 'c', 'g'] as const
+
+function macroNumber(v: unknown): number | null {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v.replace(',', '.')) : NaN
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null
+}
+
+/** null si no hay ningún valor cargado. */
+export function cleanMacros(raw: unknown): MealMacros | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const m: MealMacros = { kcal: macroNumber(r.kcal), p: macroNumber(r.p), c: macroNumber(r.c), g: macroNumber(r.g) }
+  return MACRO_KEYS.some((k) => m[k] != null) ? m : null
+}
+
+/** Suma de los macros de un día (null si ninguna comida tiene macros). */
+export function dayMacroTotals(grid: WeeklyPlanGridJson, dayIndex: number): MealMacros | null {
+  let any = false
+  const t: MealMacros = { kcal: null, p: null, c: null, g: null }
+  for (const row of grid.mealRows) {
+    const m = row.macros?.[dayIndex]
+    if (!m) continue
+    for (const k of MACRO_KEYS) {
+      if (m[k] == null) continue
+      any = true
+      t[k] = Math.round(((t[k] ?? 0) + (m[k] as number)) * 10) / 10
+    }
+  }
+  return any ? t : null
+}
+
+/** «450 kcal · P 30 g · C 50 g · G 12 g» (sólo lo cargado). */
+export function formatMacros(m: MealMacros): string {
+  const n = (v: number) => v.toLocaleString('es-AR', { maximumFractionDigits: 1 })
+  return [
+    m.kcal != null ? `${n(m.kcal)} kcal` : null,
+    m.p != null ? `P ${n(m.p)} g` : null,
+    m.c != null ? `C ${n(m.c)} g` : null,
+    m.g != null ? `G ${n(m.g)} g` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function normalizeMacros(raw: unknown, n: number): (MealMacros | null)[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out = Array.from({ length: n }, (_, i) => cleanMacros(raw[i]))
+  return out.some(Boolean) ? out : undefined
 }
 
 export interface WeeklyPlanGridJson {
@@ -167,11 +227,13 @@ export function normalizeWeeklyGrid(parsed: unknown, mergeWeekends: boolean): We
           const cols = Array.isArray(row.columns) ? [...row.columns] : []
           while (cols.length < n) cols.push('')
           cols.length = n
+          const macros = normalizeMacros(row.macros, n)
           return {
             id: typeof row.id === 'string' && row.id.length > 0 ? row.id : newId(),
             label: typeof row.label === 'string' ? row.label : 'Comida',
             approxTime: typeof row.approxTime === 'string' ? row.approxTime : '',
             columns: cols,
+            ...(macros ? { macros } : {}),
           }
         })
 
@@ -188,22 +250,35 @@ export function reshapeGrid(grid: WeeklyPlanGridJson, fromMerge: boolean, toMerg
     while (cols.length < fromN) cols.push('')
     cols.length = fromN
 
+    const mac = row.macros ? [...row.macros] : null
+    if (mac) {
+      while (mac.length < fromN) mac.push(null)
+      mac.length = fromN
+    }
+
     let nextCols: string[]
+    let nextMac: (MealMacros | null)[] | null = null
     if (!fromMerge && toMerge && fromN === 7) {
       const sat = cols[5] ?? ''
       const dom = cols[6] ?? ''
       const sep = sat && dom ? '\n\n— Domingo —\n\n' : ''
       nextCols = [...cols.slice(0, 5), sat + sep + dom]
+      // Sábado y domingo juntos: quedan los macros del sábado (o los del domingo si el sábado no tenía).
+      if (mac) nextMac = [...mac.slice(0, 5), mac[5] ?? mac[6] ?? null]
     } else if (fromMerge && !toMerge && fromN === 6) {
       const weekend = cols[5] ?? ''
       nextCols = [...cols.slice(0, 5), weekend, weekend]
+      if (mac) nextMac = [...mac.slice(0, 5), mac[5] ?? null, mac[5] ?? null]
     } else {
       nextCols = cols.slice()
       while (nextCols.length < toN) nextCols.push('')
       nextCols.length = toN
+      if (mac) nextMac = mac
     }
 
-    return { ...row, columns: nextCols }
+    const { macros: _old, ...rest } = row
+    void _old
+    return nextMac ? { ...rest, columns: nextCols, macros: nextMac } : { ...rest, columns: nextCols }
   })
 
   return normalizeWeeklyGrid({ mealRows }, toMerge)
