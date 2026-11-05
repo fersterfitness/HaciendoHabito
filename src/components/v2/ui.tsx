@@ -6,7 +6,8 @@ import { v2TabClass, v2TabCountClass } from './tabStyle'
 
 /**
  * Piezas de la v2. Pocas y con una sola forma de usarse: así las pantallas nuevas salen parejas
- * sin estilos a mano. El color lo ponen los pasteles (`Tone`); el resto es blanco, gris y negro.
+ * sin estilos a mano. Casi todo es neutro: el color queda para la acción principal, lo seleccionado y
+ * los estados (`Tone` en etiquetas de estado). Los avances van en el color de marca.
  */
 
 export type Tone = 'lavender' | 'peach' | 'butter' | 'mint' | 'sky' | 'rose'
@@ -38,14 +39,6 @@ const TONE_ACCENT: Record<Tone, string> = {
   rose: 'text-pastel-rose-accent',
 }
 
-const TONE_FILL: Record<Tone, string> = {
-  lavender: 'bg-pastel-lavender-ink/70 dark:bg-pastel-lavender-accent',
-  peach: 'bg-pastel-peach-ink/70 dark:bg-pastel-peach-accent',
-  butter: 'bg-pastel-butter-ink/60 dark:bg-pastel-butter-accent',
-  mint: 'bg-pastel-mint-ink/65 dark:bg-pastel-mint-accent',
-  sky: 'bg-pastel-sky-ink/65 dark:bg-pastel-sky-accent',
-  rose: 'bg-pastel-rose-ink/65 dark:bg-pastel-rose-accent',
-}
 
 /** Contenedor de página: ancho máximo y márgenes iguales en todas las pantallas nuevas. */
 export function PageV2({ children, className }: { children: ReactNode; className?: string }) {
@@ -81,7 +74,7 @@ export function StatStripV2({
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-elevated">
             {it.progress !== undefined ? (
               <div
-                className={cn('h-full rounded-full bg-current transition-[width] duration-700', TONE_ACCENT[it.tone])}
+                className="h-full rounded-full bg-brand-primary transition-[width] duration-700"
                 style={{ width: `${Math.max(0, Math.min(1, it.progress)) * 100}%` }}
               />
             ) : null}
@@ -101,14 +94,12 @@ export function SectionTitleV2({ children, action }: { children: ReactNode; acti
   )
 }
 
-/** Ícono sobre un cuadrado pastel (identifica el tipo de cosa, no decora). */
-export function ToneIcon({ icon: Icon, tone, size = 'md' }: { icon: LucideIcon; tone: Tone; size?: 'sm' | 'md' }) {
+/** Ícono sobre un cuadrado gris. `tone` queda por compatibilidad: el tipo de cosa no lleva color. */
+export function ToneIcon({ icon: Icon, tone: _tone, size = 'md' }: { icon: LucideIcon; tone: Tone; size?: 'sm' | 'md' }) {
   return (
     <span
       className={cn(
-        'hh-pastel flex shrink-0 items-center justify-center rounded-lg',
-        TONE_BG[tone],
-        TONE_INK[tone],
+        'flex shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-ink-secondary',
         size === 'sm' ? 'h-6 w-6' : 'h-8 w-8',
       )}
       aria-hidden
@@ -118,12 +109,12 @@ export function ToneIcon({ icon: Icon, tone, size = 'md' }: { icon: LucideIcon; 
   )
 }
 
-/** Barra en dos tramos: lo hecho en pastel y lo que falta en gris. */
-export function ProgressV2({ value, tone }: { value: number; tone: Tone }) {
+/** Barra en dos tramos: lo hecho en el color de marca y lo que falta en gris. */
+export function ProgressV2({ value, tone: _tone }: { value: number; tone: Tone }) {
   const pct = Math.max(0, Math.min(100, Math.round(value * 100)))
   return (
     <div className="flex h-1.5 gap-1" aria-hidden>
-      {pct > 0 ? <span className={cn('rounded-full', TONE_FILL[tone])} style={{ width: `${pct}%` }} /> : null}
+      {pct > 0 ? <span className="rounded-full bg-brand-primary" style={{ width: `${pct}%` }} /> : null}
       {pct < 100 ? <span className="flex-1 rounded-full bg-surface-elevated" /> : null}
     </div>
   )
@@ -198,7 +189,7 @@ function useCountUp(target: number | null, ms = 700): number | null {
 }
 
 /** Anillo de avance (se llena al aparecer). */
-function RingV2({ value, tone }: { value: number; tone: Tone }) {
+function RingV2({ value }: { value: number }) {
   const pct = Math.max(0, Math.min(1, value))
   const [shown, setShown] = useState(0)
   useEffect(() => {
@@ -208,7 +199,7 @@ function RingV2({ value, tone }: { value: number; tone: Tone }) {
   const r = 21
   const c = 2 * Math.PI * r
   return (
-    <span className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center', TONE_ACCENT[tone])} aria-hidden>
+    <span className="relative flex h-14 w-14 shrink-0 items-center justify-center text-brand-primary" aria-hidden>
       <svg viewBox="0 0 52 52" className="absolute inset-0 -rotate-90">
         <circle cx="26" cy="26" r={r} fill="none" strokeWidth="5" className="stroke-surface-elevated" />
         <circle
@@ -271,7 +262,7 @@ export function PulseCardV2({
         </p>
         <p className="mt-1.5 truncate text-[12px] text-ink-muted">{caption}</p>
       </div>
-      {progress !== undefined && value !== null ? <RingV2 value={progress} tone={tone} /> : null}
+      {progress !== undefined && value !== null ? <RingV2 value={progress} /> : null}
     </button>
   )
 }
@@ -315,9 +306,18 @@ export function ToneTileV2({
   )
 }
 
-/** Etiqueta pastel (tipo de tarea, estado). */
-export function TagV2({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={cn('hh-pastel inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium', TONE_BG[tone], TONE_INK[tone])}>{children}</span>
+/** Etiqueta: gris para el tipo de cosa (`neutral`), color sólo para un estado (vencido, por terminar). */
+export function TagV2({ tone, children }: { tone: Tone | 'neutral'; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium',
+        tone === 'neutral' ? 'bg-surface-elevated text-ink-secondary' : cn('hh-pastel', TONE_BG[tone], TONE_INK[tone]),
+      )}
+    >
+      {children}
+    </span>
+  )
 }
 
 /** Dato chico con borde (fecha, monto, cantidad). */
@@ -468,13 +468,8 @@ export function EmptyV2({ children }: { children: ReactNode }) {
 }
 
 
-const AVATAR_TONES: Tone[] = ['lavender', 'peach', 'mint', 'sky', 'butter', 'rose']
-
-/** Iniciales sobre un pastel fijo por nombre (la misma persona siempre del mismo color). */
+/** Iniciales sobre gris: el mismo tono para todos, como los avatares sin foto del resto de la v2. */
 export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  let h = 0
-  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-  const tone = AVATAR_TONES[h % AVATAR_TONES.length]!
   const initials = name
     .trim()
     .split(/\s+/)
@@ -484,9 +479,7 @@ export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'm
   return (
     <span
       className={cn(
-        'hh-pastel flex shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-surface-card dark:ring-0',
-        TONE_BG[tone],
-        TONE_INK[tone],
+        'flex shrink-0 items-center justify-center rounded-full bg-surface-elevated font-semibold text-ink-secondary ring-2 ring-surface-card dark:ring-0',
         size === 'sm' ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-[11px]',
       )}
       aria-hidden

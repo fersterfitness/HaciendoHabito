@@ -56,9 +56,8 @@ type RoutineWithStudent = Routine & {
 
 const ROUTINE_COLORS = IS_V2
   ? [
-      { bar: 'bg-pastel-lavender-ink/50 dark:bg-pastel-lavender-accent', avatar: 'hh-pastel bg-pastel-lavender text-pastel-lavender-ink' },
-      { bar: 'bg-pastel-sky-ink/50 dark:bg-pastel-sky-accent', avatar: 'hh-pastel bg-pastel-sky text-pastel-sky-ink' },
-      { bar: 'bg-pastel-peach-ink/50 dark:bg-pastel-peach-accent', avatar: 'hh-pastel bg-pastel-peach text-pastel-peach-ink' },
+      // Un solo tono neutro: el color por alumno no significaba nada.
+      { bar: 'bg-ink-muted/30', avatar: 'bg-surface-elevated text-ink-secondary' },
     ]
   : [
       { bar: 'bg-brand-secondary', avatar: 'bg-brand-secondary/15 text-brand-secondary' },

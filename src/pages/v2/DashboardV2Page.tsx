@@ -472,7 +472,7 @@ export function DashboardV2Page() {
                           key={r.id}
                           title={c.title}
                           description={c.meta}
-                          tags={<TagV2 tone="sky">Aviso de la semana</TagV2>}
+                          tags={<TagV2 tone="neutral">Aviso de la semana</TagV2>}
                           meta={<MetaChipV2 icon={CalendarDays}>Hoy</MetaChipV2>}
                           actions={
                             <>
@@ -494,7 +494,7 @@ export function DashboardV2Page() {
                     title={`${missing.length} ${missing.length === 1 ? 'alumno no respondió' : 'alumnos no respondieron'} el feedback`}
                     description={names(missing)}
                     onOpen={() => navigate('/feedback')}
-                    tags={<TagV2 tone="lavender">Feedback semanal</TagV2>}
+                    tags={<TagV2 tone="neutral">Feedback semanal</TagV2>}
                     meta={<MetaChipV2 icon={MessageSquare}>{`${answered}/${students.length}`}</MetaChipV2>}
                     actions={
                       <PillButtonV2 primary onClick={() => navigate('/feedback')}>
@@ -509,7 +509,7 @@ export function DashboardV2Page() {
                     title={`${unreplied} ${unreplied === 1 ? 'respuesta espera' : 'respuestas esperan'} tu devolución`}
                     description="Respuestas del último mes que todavía no contestaste."
                     onOpen={() => navigate('/feedback')}
-                    tags={<TagV2 tone="lavender">Feedback semanal</TagV2>}
+                    tags={<TagV2 tone="neutral">Feedback semanal</TagV2>}
                     actions={
                       <PillButtonV2 primary onClick={() => navigate('/feedback')}>
                         Responder
@@ -530,7 +530,7 @@ export function DashboardV2Page() {
                           onOpen={() => navigate(`/routines/${r.id}`)}
                           tags={
                             <>
-                              <TagV2 tone="butter">Rutina</TagV2>
+                              <TagV2 tone="neutral">Rutina</TagV2>
                               {days <= 2 ? <TagV2 tone="rose">Por terminar</TagV2> : null}
                             </>
                           }
@@ -546,7 +546,7 @@ export function DashboardV2Page() {
                     title={`${routines.without.length} ${routines.without.length === 1 ? 'alumno' : 'alumnos'} sin rutina activa`}
                     description={names(routines.without)}
                     onOpen={() => navigate('/students')}
-                    tags={<TagV2 tone="butter">Rutina</TagV2>}
+                    tags={<TagV2 tone="neutral">Rutina</TagV2>}
                     meta={<MetaChipV2 icon={Users}>{`${withRoutine}/${routineTotal} con rutina`}</MetaChipV2>}
                     actions={<PillButtonV2 onClick={() => navigate('/students')}>Ver alumnos</PillButtonV2>}
                   />
@@ -572,7 +572,7 @@ export function DashboardV2Page() {
                           }
                           tags={
                             <>
-                              <TagV2 tone="peach">Cobro</TagV2>
+                              <TagV2 tone="neutral">Cobro</TagV2>
                               <TagV2 tone={isToday ? 'butter' : 'rose'}>{isToday ? 'Vence hoy' : overdue ? 'Atrasado' : 'Vencido'}</TagV2>
                             </>
                           }
@@ -655,15 +655,15 @@ export function DashboardV2Page() {
                 ) : dayAppointments.length === 0 ? (
                   <p className="rounded-xl bg-surface-panel px-4 py-5 text-center text-[13px] text-ink-muted">Sin turnos este día</p>
                 ) : (
-                  dayAppointments.map((a, i) => (
-                    <div key={a.id} className={cn('hh-pastel rounded-xl px-3.5 py-3', SLOT_BG[i % SLOT_BG.length])}>
+                  dayAppointments.map((a) => (
+                    <div key={a.id} className="rounded-xl bg-surface-panel px-3.5 py-3">
                       <div className="flex items-start gap-2">
                         <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-primary">
                           {a.student?.full_name ?? a.title}
                         </p>
                         {a.status === 'confirmed' ? (
-                          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-white px-2 text-[11px] font-medium text-zinc-700">
-                            <Check className="h-3 w-3 text-pastel-mint-accent" />
+                          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-surface-card px-2 text-[11px] font-medium text-ink-secondary ring-1 ring-inset ring-surface-border">
+                            <Check className="h-3 w-3 text-status-active" />
                             Confirmado
                           </span>
                         ) : null}
@@ -809,5 +809,3 @@ export function DashboardV2Page() {
   )
 }
 
-/** Turnos del día: un pastel por turno, en orden (clases completas para que Tailwind las vea). */
-const SLOT_BG = ['bg-pastel-lavender', 'bg-pastel-sky', 'bg-pastel-butter', 'bg-pastel-mint', 'bg-pastel-peach']
