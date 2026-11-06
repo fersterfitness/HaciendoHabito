@@ -672,11 +672,12 @@ html.ui-v2.dark {
   --ink-primary: 245 241 247;
   --ink-secondary: 208 200 214;
   --ink-muted: 152 144 162;
-  --brand-primary: 242 146 29;
-  --brand-hover: 245 166 70;
+  /* Acción principal en durazno pastel (el naranja F2921D de la paleta, suavizado). */
+  --brand-primary: 244 172 110;
+  --brand-hover: 247 190 140;
   --brand-warm: 42 34 49;
-  --brand-secondary: 242 146 29;
-  --brand-tertiary: 242 146 29;
+  --brand-secondary: 244 172 110;
+  --brand-tertiary: 244 172 110;
   --status-active: 160 162 196;
   --status-generated: 160 162 196;
   /* Pasteles de la paleta: el naranja y el rojo anaranjado fuertes cansaban en las listas. */
