@@ -2,8 +2,8 @@ import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 
 /**
- * La única pestaña de la v2: pastilla, la elegida en negro. Vale para secciones, filtros y vistas,
- * así toda la app se lee igual. `sm` es la misma pieza más chica (barras de herramientas, tarjetas).
+ * Pastilla de la v2, la elegida en negro: filtros y vistas. Las secciones de una ficha (`<Tabs>`) van
+ * como texto con subrayado, para que no se confundan con un filtro. `sm` es la misma pieza más chica.
  */
 export const v2TabListClass = 'inline-flex max-w-full items-center gap-1.5'
 

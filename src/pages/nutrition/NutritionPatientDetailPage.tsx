@@ -122,8 +122,8 @@ const ResumenDashboard = NutritionResumenDashboard
 const VALID_TABS = ['resumen', 'datos', 'antropometria', 'plan', 'historia', 'archivos'] as const
 type TabId = (typeof VALID_TABS)[number]
 
-/** v2: cada paciente abre en Antropometría; v1 sigue abriendo en Resumen. */
-const DEFAULT_TAB: TabId = IS_V2 ? 'antropometria' : 'resumen'
+/** v2: cada paciente abre en Datos personales (la primera pestaña); v1 sigue abriendo en Resumen. */
+const DEFAULT_TAB: TabId = IS_V2 ? 'datos' : 'resumen'
 
 function isValidTab(value: string | null): value is TabId {
   return value !== null && (VALID_TABS as readonly string[]).includes(value)
@@ -631,10 +631,10 @@ export function NutritionPatientDetailView({
     const resumen: TabItem = { id: 'resumen', label: 'Resumen', icon: <LayoutDashboard /> }
     return [
       // v2: sin Resumen (lo que mostraba ya está en Antropometría; el próximo turno va arriba de las pestañas).
-      ...(IS_V2 ? [anthro] : [resumen]),
+      ...(IS_V2 ? [] : [resumen]),
       { id: 'datos', label: 'Datos personales', icon: <UserRound /> },
-      ...(IS_V2 ? [] : [anthro]),
-      { id: 'plan', label: 'Plan', icon: <Utensils /> },
+      anthro,
+      { id: 'plan', label: IS_V2 ? 'Plan alimentario' : 'Plan', icon: <Utensils /> },
       { id: 'historia', label: 'Historia', icon: <ClipboardList /> },
       { id: 'archivos', label: 'Archivos', icon: <FolderOpen />, count: documents.length || undefined },
     ]
@@ -761,7 +761,7 @@ export function NutritionPatientDetailView({
             variant === 'page'
               ? 'sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm'
               : IS_V2
-                ? 'sticky top-0 z-20 border-b border-surface-border/60 bg-surface-base/90 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8'
+                ? 'sticky top-0 z-20 bg-surface-base/90 px-4 pt-1 backdrop-blur-md sm:px-6 lg:px-8'
                 : 'sticky top-0 z-20 -mx-4 border-b border-surface-border/60 bg-surface-base/90 px-4 pb-0 pt-2 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
           )}
         >

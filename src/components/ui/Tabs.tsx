@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { IS_V2 } from '@/lib/uiVersion'
-import { v2TabClass, v2TabCountClass, v2TabListClass } from '@/components/v2/tabStyle'
 
 export interface TabItem {
   id: string
@@ -29,7 +28,9 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        IS_V2 ? cn(v2TabListClass, 'overflow-x-auto scrollbar-hide') : 'flex gap-1 overflow-x-auto scrollbar-hide border-b border-surface-border/70',
+        IS_V2
+          ? 'flex gap-6 overflow-x-auto scrollbar-hide border-b border-surface-border'
+          : 'flex gap-1 overflow-x-auto scrollbar-hide border-b border-surface-border/70',
         className,
       )}
     >
@@ -45,17 +46,22 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
             id={`tab-${tab.id}`}
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.id)}
-            className={IS_V2 ? v2TabClass(isActive) : cn(
+            className={IS_V2 ? cn(
+              // v2: secciones como texto con subrayado (las pastillas quedan para filtros y vistas).
+              'relative -mb-px inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap text-[13.5px] font-medium transition-colors duration-200',
+              appFocusRingClassName,
+              isActive ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-secondary',
+            ) : cn(
               'relative -mb-px inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200 sm:px-3.5',
               appFocusRingClassName,
               isActive ? 'text-ink-primary' : 'text-ink-muted hover:text-ink-secondary',
             )}
           >
-            {isActive && !IS_V2 ? (
+            {isActive ? (
               <motion.span
                 layoutId={indicatorId}
                 aria-hidden
-                className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-brand-gradient"
+                className={cn('absolute -bottom-px h-[2px] rounded-full', IS_V2 ? 'inset-x-0 bg-ink-primary' : 'inset-x-2 bg-brand-gradient')}
                 transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
               />
             ) : null}
@@ -70,7 +76,7 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
               </span>
             ) : null}
             <span className="whitespace-nowrap">{tab.label}</span>
-            {typeof tab.count === 'number' && tab.count > 0 && IS_V2 ? <span className={v2TabCountClass(isActive)}>{tab.count}</span> : null}
+            {typeof tab.count === 'number' && tab.count > 0 && IS_V2 ? <span className="text-[12px] tabular-nums text-ink-muted">{tab.count}</span> : null}
             {typeof tab.count === 'number' && tab.count > 0 && !IS_V2 ? (
               <span
                 className={cn(
