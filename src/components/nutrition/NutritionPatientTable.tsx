@@ -117,24 +117,6 @@ function StatusChip({ row }: { row: NutritionFollowupRow }) {
   return <span className={cn('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium', cls)}>{text}</span>
 }
 
-/** Tendencia de peso de los últimos controles (de más viejo a más nuevo). */
-function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) return null
-  const w = 56
-  const h = 20
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const span = max - min || 1
-  const pts = values.map((v, i) => [(i / (values.length - 1)) * (w - 4) + 2, h - 3 - ((v - min) / span) * (h - 6)] as const)
-  const last = pts[pts.length - 1]!
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0 text-ink-muted" aria-hidden>
-      <polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={last[0]} cy={last[1]} r={2.2} className="fill-ink-primary" />
-    </svg>
-  )
-}
-
 function Checkbox({ checked, indeterminate, onChange, label }: { checked: boolean; indeterminate?: boolean; onChange: () => void; label: string }) {
   return (
     <button
@@ -240,8 +222,8 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                 onPathChange={(path) => onAvatarChange(r.id, path)}
               />
               <div className="min-w-0">
-                <p className="truncate text-[14px] font-medium text-ink-primary">{r.full_name}</p>
-                {r.selectedWebPlanLabel ? <p className="truncate text-[12px] text-ink-muted">{r.selectedWebPlanLabel}</p> : null}
+                <p className="text-[14px] font-medium text-ink-primary">{r.full_name}</p>
+                {r.selectedWebPlanLabel ? <p className="text-[12px] text-ink-muted">{r.selectedWebPlanLabel}</p> : null}
               </div>
             </div>
           )
@@ -324,17 +306,14 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
           const c = row.original.lastControl
           if (c?.weight == null) return <span className="text-[13px] text-ink-muted">—</span>
           return (
-            <div className="flex items-center gap-3">
-              <div>
-                <span className="block text-[13px] tabular-nums text-ink-primary">{nf(c.weight)} kg</span>
-                {c.weightDelta != null ? (
-                  <span className="block text-[12px] tabular-nums text-ink-muted">
-                    {c.weightDelta > 0 ? '+' : c.weightDelta < 0 ? '−' : '±'}
-                    {nf(Math.abs(c.weightDelta))} kg
-                  </span>
-                ) : null}
-              </div>
-              <Sparkline values={c.weights ?? []} />
+            <div>
+              <span className="block text-[13px] tabular-nums text-ink-primary">{nf(c.weight)} kg</span>
+              {c.weightDelta != null ? (
+                <span className="block text-[12px] tabular-nums text-ink-muted">
+                  {c.weightDelta > 0 ? '+' : c.weightDelta < 0 ? '−' : '±'}
+                  {nf(Math.abs(c.weightDelta))} kg
+                </span>
+              ) : null}
             </div>
           )
         },
@@ -411,10 +390,10 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
         </Popover>
       </div>
 
-      {/* overflow-clip (no hidden) para que el encabezado pueda quedar fijo al scrollear la página. */}
+      {/* Las celdas no parten el texto: si no entra, la tabla se desplaza a lo ancho. */}
       <div className="overflow-clip rounded-2xl border border-surface-border bg-surface-card">
-        <div className="max-lg:overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-left">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse whitespace-nowrap text-left">
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
@@ -427,7 +406,7 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                         scope="col"
                         aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                         className={cn(
-                          'sticky top-0 z-[1] border-b border-surface-border bg-surface-card px-3 py-2.5 text-[12px] font-medium text-ink-muted first:rounded-tl-2xl last:rounded-tr-2xl',
+                          'sticky top-0 z-[1] whitespace-nowrap border-b border-surface-border bg-surface-card px-3 py-2.5 text-[12px] font-medium text-ink-muted first:rounded-tl-2xl last:rounded-tr-2xl',
                           h.column.id === 'select' && 'w-10 pl-4 pr-1',
                           h.column.id === 'open' && 'w-10',
                           (h.column.id === 'control' || h.column.id === 'weight') && 'max-lg:hidden',
