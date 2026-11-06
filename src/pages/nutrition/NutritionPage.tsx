@@ -37,6 +37,7 @@ import {
   NutritionPatientCards,
   type NutritionFollowupRow,
 } from '@/components/nutrition/NutritionPatientDirectory'
+import { NutritionPatientTable, NutritionPatientTableSkeleton } from '@/components/nutrition/NutritionPatientTable'
 import { NutritionPatientDetailView } from '@/pages/nutrition/NutritionPatientDetailPage'
 import { cn } from '@/lib/utils'
 import { IS_V2 } from '@/lib/uiVersion'
@@ -142,10 +143,20 @@ export function NutritionPage() {
         { data: students, error: studentsError },
         { data: followups, error: followupsError },
         { data: webPlans, error: webPlansError },
+        { data: controls },
       ] = await Promise.all([
         fetchAccessibleStudents(),
         supabase.from('nutrition_patient_followups').select('*').eq('owner_id', user.id),
         supabase.from('web_plans').select('slug, title'),
+        // Para la tabla de la v2: fecha y peso de los controles (hasta 8 por paciente, para la tendencia).
+        IS_V2
+          ? supabase
+              .from('nutrition_measurements')
+              .select('student_id, measured_at, weight_kg')
+              .eq('owner_id', user.id)
+              .order('measured_at', { ascending: false })
+              .limit(3000)
+          : Promise.resolve({ data: null }),
       ])
 
       if (studentsError || followupsError || webPlansError) {
@@ -160,11 +171,32 @@ export function NutritionPage() {
       const webPlanTitlesBySlug = new Map(
         (webPlans ?? []).map((p) => [p.slug as string, (p.title as string)?.trim() || '']),
       )
-      const merged = (students ?? []).map((s) => ({
-        ...s,
-        followup: followupsByStudent.get(s.id),
-        selectedWebPlanLabel: labelForSelectedWebPlanSlug(s.selected_web_plan_slug, webPlanTitlesBySlug),
-      }))
+      const controlsByStudent = new Map<string, { measured_at: string; weight_kg: number | null }[]>()
+      const controlRows = [...((controls ?? []) as { student_id: string; measured_at: string; weight_kg: number | null }[])].sort((x, y) =>
+        y.measured_at.localeCompare(x.measured_at),
+      )
+      for (const c of controlRows) {
+        const list = controlsByStudent.get(c.student_id) ?? []
+        if (list.length < 8) list.push(c)
+        controlsByStudent.set(c.student_id, list)
+      }
+      const merged = (students ?? []).map((s) => {
+        const list = controlsByStudent.get(s.id) ?? []
+        const [last, prev] = list
+        return {
+          ...s,
+          followup: followupsByStudent.get(s.id),
+          selectedWebPlanLabel: labelForSelectedWebPlanSlug(s.selected_web_plan_slug, webPlanTitlesBySlug),
+          lastControl: last
+            ? {
+                date: last.measured_at,
+                weight: last.weight_kg,
+                weightDelta: last.weight_kg != null && prev?.weight_kg != null ? Math.round((last.weight_kg - prev.weight_kg) * 10) / 10 : null,
+                weights: list.map((c) => c.weight_kg).filter((w): w is number => w != null).reverse(),
+              }
+            : undefined,
+        }
+      })
       setRows(merged)
       setLoading(false)
     })()
@@ -350,7 +382,9 @@ export function NutritionPage() {
           controlledOpen={IS_V2 ? showDeletedV2 : undefined}
         />
 
-        {loading ? (
+        {loading && IS_V2 ? (
+          <NutritionPatientTableSkeleton />
+        ) : loading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="rounded-[2rem] border border-surface-border bg-surface-card p-5">
@@ -384,6 +418,16 @@ export function NutritionPage() {
                 Pacientes <span className="font-normal text-ink-muted">· {filteredRows.length}</span>
               </h2>
             </div>
+            {IS_V2 ? (
+              <NutritionPatientTable
+                className="max-sm:hidden"
+                rows={filteredRows}
+                selectedPatientId={selectedPatientId}
+                onOpen={setSelectedPatientId}
+                onUpdateFollowup={updateFollowup}
+                onAvatarChange={handleAvatarChange}
+              />
+            ) : null}
             <NutritionPatientCards
               rows={filteredRows}
               selectedPatientId={selectedPatientId}

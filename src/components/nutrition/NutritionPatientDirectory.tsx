@@ -15,6 +15,8 @@ export type NutritionFollowupRow = Student & {
   followup?: NutritionPatientFollowup
   /** Plan de entrenamiento elegido en /form (`students.selected_web_plan_slug`). */
   selectedWebPlanLabel?: string | null
+  /** Último control de antropometría (solo la v2 lo carga, para la tabla). */
+  lastControl?: { date: string; weight: number | null; weightDelta: number | null; weights?: number[] }
 }
 
 export const ATTENDANCE_LABELS: Record<NutritionAttendanceStatus, string> = {
@@ -40,7 +42,7 @@ interface NutritionPatientCardsProps {
 
 const cardDateInputClass = cn(nutritionInputClass, 'h-9 px-2.5 text-xs')
 
-/** Grilla de tarjetas de pacientes (responsive: 1 / 2 / 3 columnas). */
+/** Pacientes: grilla de tarjetas en la v1; en la v2, la lista del celular. */
 export function NutritionPatientCards({
   rows,
   selectedPatientId = null,
@@ -92,7 +94,9 @@ export function NutritionPatientCards({
         })}
       </ul>
     ) : null}
-    <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4', IS_V2 && 'max-sm:hidden')}>
+    {/* En la v2, desde tablet va la tabla (NutritionPatientTable); las tarjetas quedan para la v1. */}
+    {IS_V2 ? null : (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
       <svg width="0" height="0" className="absolute overflow-hidden" aria-hidden>
         <defs>
           <clipPath id={HH_PATIENT_CARD_CLIP_ID} clipPathUnits="objectBoundingBox">
@@ -210,6 +214,7 @@ export function NutritionPatientCards({
         )
       })}
     </div>
+    )}
     </>
   )
 }
