@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { Pause, Play, UserRound } from 'lucide-react'
+import { UserRound } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { controlMdClassName } from '@/lib/formControlClasses'
@@ -16,9 +16,9 @@ import {
 } from '@/lib/nutrition/bodyZoneComparison'
 import type { NutritionMeasurement, Student } from '@/types/database'
 import { nf } from './NutritionResumenDashboardV2'
-import type { BodySex } from './body3d/types'
+import type { BodySex } from './body2d/zones'
 
-const BodyViewer = lazy(() => import('./body3d/BodyViewer'))
+const BodyMap2D = lazy(() => import('./body2d/BodyMap2D'))
 
 const CHIP: Record<BodyZoneStatus, string> = {
   good: 'bg-[#22b26b]/12 text-[#1f9d5c] dark:text-[#3fca7f]',
@@ -94,7 +94,6 @@ export function NutritionBodyComparisonCard({
     onStudentUpdated?.({ ...student, gender: s })
   }
   const [selected, setSelected] = useState<BodyZoneId | null>(null)
-  const [spin, setSpin] = useState(true)
 
   const zones = useMemo(() => compareBodyZones(mediansOf(a), mediansOf(b)), [a, b])
   const status = useMemo(() => Object.fromEntries(zones.map((z) => [z.zone.id, z.status])) as Record<BodyZoneId, BodyZoneStatus>, [zones])
@@ -148,19 +147,14 @@ export function NutritionBodyComparisonCard({
         <div className="relative aspect-[4/5] max-h-[620px] w-full overflow-hidden rounded-2xl bg-[#17171b]">
           {sex ? (
             <>
-              <Suspense fallback={<span className="absolute inset-0 grid place-items-center text-xs text-white/60">Cargando visor…</span>}>
-                <BodyViewer sex={sex} status={status} selected={selected} onSelect={setSelected} autoRotate={spin} />
+              <Suspense fallback={<span className="absolute inset-0 grid place-items-center text-xs text-white/60">Cargando cuerpo…</span>}>
+                <BodyMap2D sex={sex} status={status} selected={selected} onSelect={setSelected} />
               </Suspense>
-              <div className="absolute right-3 top-3 flex gap-1.5">
-                {student.gender === 'otro' ? (
-                  <button type="button" onClick={() => setOtherModel(null)} className="h-7 rounded-lg bg-black/40 px-2.5 text-2xs text-white/80 backdrop-blur hover:text-white">
-                    Cambiar cuerpo
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => setSpin((v) => !v)} aria-label={spin ? 'Pausar giro' : 'Girar'} className="grid h-7 w-7 place-items-center rounded-lg bg-black/40 text-white/80 backdrop-blur hover:text-white">
-                  {spin ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              {student.gender === 'otro' ? (
+                <button type="button" onClick={() => setOtherModel(null)} className="absolute left-3 top-3 h-7 rounded-lg bg-black/45 px-2.5 text-2xs text-white/80 backdrop-blur hover:text-white">
+                  Cambiar cuerpo
                 </button>
-              </div>
+              ) : null}
             </>
           ) : (
             <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
