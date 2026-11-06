@@ -17,6 +17,7 @@ import { NutritionMeasurementCharts, summarizeMeasurementVariables } from './Nut
 import { NutritionMeasurementHistoryList } from './NutritionMeasurementHistoryList'
 import { NutritionAnthropometryPresentationPanel } from './NutritionAnthropometryPresentationPanel'
 import { AiMarkdown } from './AnthropometryAiMarkdown'
+import { NutritionBodyComparisonCard } from './NutritionBodyComparisonCard'
 import { Delta, METRICS, nf, type Metric } from './NutritionResumenDashboardV2'
 
 /**
@@ -184,6 +185,8 @@ export function NutritionAnthropometryTabV2(props: Props) {
               </div>
             </div>
           ) : null}
+
+          <NutritionBodyComparisonCard student={student} measurements={measurements} />
 
           <Card padding="md">
             <CardTitle className="mb-3">Evolución</CardTitle>
