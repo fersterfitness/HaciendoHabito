@@ -4,7 +4,9 @@ import { pdf } from '@react-pdf/renderer'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WeeklyPlanGridFields } from '@/components/nutrition/WeeklyPlanGridFields'
 import { WeeklyMealPlanBoard } from '@/components/nutrition/WeeklyMealPlanBoard'
-import { differenceInYears } from 'date-fns'
+import { differenceInYears, format, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { useNextAppointment } from '@/components/nutrition/NutritionResumenDashboard'
 import { FileDown, Sparkles } from 'lucide-react'
 import { colorBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
@@ -30,6 +32,8 @@ import toast from 'react-hot-toast'
 interface Props {
   student: Student
   measurements: NutritionMeasurement[]
+  /** v2: fecha sugerida en el seguimiento, para cuando todavía no hay turno en la agenda. */
+  suggestedNextDate?: string | null
 }
 
 function ageFromStudent(student: Student): string | null {
@@ -41,7 +45,7 @@ function ageFromStudent(student: Student): string | null {
   }
 }
 
-export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
+export function NutritionWeeklyPlanSection({ student, measurements, suggestedNextDate = null }: Props) {
   const { user } = useAuthStore()
   const sid = student.id
   const [loading, setLoading] = useState(true)
@@ -60,6 +64,15 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
   const [legacyTemplates, setLegacyTemplates] = useState<NutritionWeekPlanTemplate[]>([])
   const [usingLegacyStore, setUsingLegacyStore] = useState(false)
   const persistTimer = useRef<number | null>(null)
+  // v2: la próxima consulta del plan sale de la agenda (o de la fecha sugerida); no se carga a mano.
+  const appointment = useNextAppointment(IS_V2 ? sid : '')
+  const agendaDate = IS_V2
+    ? appointment
+      ? format(parseISO(appointment.starts_at), 'yyyy-MM-dd')
+      : suggestedNextDate && suggestedNextDate >= format(new Date(), 'yyyy-MM-dd')
+        ? suggestedNextDate
+        : null
+    : null
 
   const persist = useCallback(
     (opts: {
@@ -213,6 +226,13 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
       setLoading(false)
     })()
   }, [user, sid])
+
+  // Se guarda en el plan para que salga igual en el PDF y en el link que abre el paciente.
+  useEffect(() => {
+    if (loading || !agendaDate || agendaDate === nextConsultDate) return
+    setNextConsultDate(agendaDate)
+    persist({ mergeWeekends, grid: normalizeWeeklyGrid(grid, mergeWeekends), totalKcal, nextConsultDate: agendaDate })
+  }, [loading, agendaDate, nextConsultDate, persist, mergeWeekends, grid, totalKcal])
 
   const kcalPhrase = useMemo(() => {
     const t = totalKcal.trim()
@@ -423,6 +443,15 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             className={cn(controlMdClassName, 'mt-1 w-36 block')}
           />
         </label>
+        {IS_V2 && agendaDate ? (
+          <div className="text-xs text-ink-secondary">
+            Próxima consulta
+            <p className="mt-1 flex h-10 items-center rounded-xl bg-surface-elevated/60 px-3 text-sm text-ink-primary">
+              <span className="first-letter:uppercase">{format(parseISO(agendaDate), "EEEE d 'de' MMMM", { locale: es })}</span>
+              <span className="ml-1.5 text-ink-muted">· {appointment ? 'de la agenda' : 'sugerida'}</span>
+            </p>
+          </div>
+        ) : (
         <label className="text-xs text-ink-secondary">
           Próxima consulta
           <input
@@ -436,6 +465,7 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
             className={cn(controlMdClassName, 'mt-1 block min-w-[10rem]')}
           />
         </label>
+        )}
       </div>
 
       {libraryPlans.length > 0 && (

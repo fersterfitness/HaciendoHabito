@@ -1109,7 +1109,7 @@ export function NutritionPatientDetailView({
                   ? 'Grilla por días y comidas que se entrega en PDF o por link.'
                   : 'Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño. Este plan se entrega en PDF; para que el paciente lo vea en su cuenta, usá «Armar plan» y asignalo (arriba).'}
               </p>
-              <NutritionWeeklyPlanSection student={student} measurements={measurements} />
+              <NutritionWeeklyPlanSection student={student} measurements={measurements} suggestedNextDate={followup?.next_consultation_date ?? null} />
               <div className="border-t border-surface-border pt-6 mt-8 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-ink-primary">Notas libres complementarias</span>
