@@ -15,14 +15,14 @@ import type { NutritionMeasurement, NutritionMeasurementDeletionLogEntry, Studen
 import { NutritionAnthropometryProgramForm, type AnthropometryProgramDraft } from './NutritionAnthropometryProgramForm'
 import { NutritionMeasurementCharts, summarizeMeasurementVariables } from './NutritionMeasurementCharts'
 import { NutritionMeasurementHistoryList } from './NutritionMeasurementHistoryList'
-import { NutritionAnthropometryPresentationPanel } from './NutritionAnthropometryPresentationPanel'
 import { AiMarkdown } from './AnthropometryAiMarkdown'
 import { NutritionBodyComparisonCard } from './NutritionBodyComparisonCard'
 import { Delta, METRICS, nf, type Metric } from './NutritionResumenDashboardV2'
 
 /**
  * Antropometría v2: un solo lugar. Arriba "Nuevo control" (PDF o a mano), después el último control,
- * la evolución y la lista de controles con su detalle.
+ * la evolución y la lista de controles con su detalle. La salida para el paciente es el informe
+ * ilustrado (botón «Informe»); la tabla «Presentación» queda solo en la v1.
  */
 
 const TILES: Metric[] = [
@@ -218,14 +218,6 @@ export function NutritionAnthropometryTabV2(props: Props) {
               deletingId={props.deletingId}
             />
             <DeletedControls studentId={student.id} onRestored={onRefresh} />
-          </Card>
-
-          <Card padding="md">
-            <NutritionAnthropometryPresentationPanel
-              patientName={student.full_name}
-              measurements={measurements}
-              selectedMeasurementId={props.selectedId}
-            />
           </Card>
         </>
       ) : null}
