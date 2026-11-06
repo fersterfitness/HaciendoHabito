@@ -50,6 +50,8 @@ import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/Nutr
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionPatientHeaderV2 } from '@/components/nutrition/NutritionPatientHeaderV2'
+import { NutritionClinicalNotesV2 } from '@/components/nutrition/NutritionClinicalNotesV2'
+import { NutritionSymptomCheckinsV2 } from '@/components/nutrition/NutritionSymptomCheckinsV2'
 import { NutritionAnthropometryTabV2 } from '@/components/nutrition/NutritionAnthropometryTabV2'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
 import { NutritionWebIntakePanel } from '@/components/nutrition/NutritionWebIntakePanel'
@@ -158,21 +160,24 @@ export interface NutritionPatientDetailViewProps {
 
 function HistoriaAnamnesisBlock({ studentId, studentName, student }: { studentId: string; studentName: string; student: Student }) {
   const [anamnesisReloadKey, setAnamnesisReloadKey] = useState(0)
+  const { user } = useAuthStore()
 
   if (IS_V2) {
     // v2: lo que se usa en cada consulta arriba; la anamnesis (se completa una vez) abajo y plegada.
     return (
       <div className="space-y-6">
-        <Card>
-          <CardTitle className="mb-1">Notas de consulta</CardTitle>
-          <p className="mb-4 text-sm text-ink-muted">Lo que pasó en cada consulta, con fecha.</p>
-          <HistoriaClinicalNotes studentId={studentId} />
-        </Card>
-        <Card>
-          <CardTitle className="mb-1">Síntomas y adherencia</CardTitle>
-          <p className="mb-4 text-sm text-ink-muted">Registro breve entre consultas.</p>
-          <HistoriaSymptomCheckins studentId={studentId} />
-        </Card>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+          <Card padding="lg">
+            <CardTitle className="mb-1">Notas de consulta</CardTitle>
+            <p className="mb-5 text-sm text-ink-muted">Lo que pasó en cada consulta, con fecha.</p>
+            {user ? <NutritionClinicalNotesV2 ownerId={user.id} studentId={studentId} /> : null}
+          </Card>
+          <Card padding="lg">
+            <CardTitle className="mb-1">Síntomas y adherencia</CardTitle>
+            <p className="mb-5 text-sm text-ink-muted">Cómo viene entre consultas.</p>
+            {user ? <NutritionSymptomCheckinsV2 ownerId={user.id} studentId={studentId} /> : null}
+          </Card>
+        </div>
         <CollapsibleCard title="Anamnesis alimentaria" subtitle="Primera consulta: el formulario y el link para que lo complete el paciente.">
           <div className="mb-6">
             <NutritionAnamnesisPublicLinkCard
