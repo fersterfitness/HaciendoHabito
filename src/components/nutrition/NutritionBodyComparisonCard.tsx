@@ -21,24 +21,24 @@ import { bodyModelStorageKey, readStoredModel, type BodySex } from './body2d/zon
 const BodyMap2D = lazy(() => import('./body2d/BodyMap2D'))
 
 const CHIP: Record<BodyZoneStatus, string> = {
-  good: 'bg-[#22b26b]/12 text-[#1f9d5c] dark:text-[#3fca7f]',
-  bad: 'bg-[#e5484d]/12 text-[#d93d42] dark:text-[#f06a6e]',
-  alert: 'bg-[#eaa53a]/15 text-[#b07410] dark:text-[#f2b13e]',
+  good: 'bg-[#7cc79a]/12 text-[#3f8f62] dark:text-[#8fd6aa]',
+  bad: 'bg-[#ec8a7a]/12 text-[#c4553f] dark:text-[#f19a8b]',
+  alert: 'bg-[#f0c070]/15 text-[#a0701a] dark:text-[#f2c57c]',
   neutral: 'bg-surface-elevated text-ink-secondary',
   same: 'bg-surface-elevated text-ink-muted',
   nodata: 'bg-surface-elevated text-ink-muted',
 }
 const DELTA: Record<MeasureVerdict, string> = {
-  good: 'text-[#1f9d5c] dark:text-[#3fca7f]',
-  bad: 'text-[#d93d42] dark:text-[#f06a6e]',
+  good: 'text-[#3f8f62] dark:text-[#8fd6aa]',
+  bad: 'text-[#c4553f] dark:text-[#f19a8b]',
   neutral: 'text-ink-secondary',
   same: 'text-ink-muted',
 }
-const COUNT = { good: 'text-[#1f9d5c] dark:text-[#3fca7f]', bad: 'text-[#d93d42] dark:text-[#f06a6e]', alert: 'text-[#b07410] dark:text-[#f2b13e]' } as const
+const COUNT = { good: 'text-[#3f8f62] dark:text-[#8fd6aa]', bad: 'text-[#c4553f] dark:text-[#f19a8b]', alert: 'text-[#a0701a] dark:text-[#f2c57c]' } as const
 const DOT: Record<'good' | 'bad' | 'alert' | 'same', string> = {
-  good: 'bg-[#22b26b]',
-  bad: 'bg-[#e5484d]',
-  alert: 'bg-[#eaa53a]',
+  good: 'bg-[#7cc79a]',
+  bad: 'bg-[#ec8a7a]',
+  alert: 'bg-[#f0c070]',
   same: 'bg-ink-muted',
 }
 
@@ -129,7 +129,7 @@ export function NutritionBodyComparisonCard({
             {asc.map((m, i) => <option key={m.id} value={m.id}>{label(m, i)}</option>)}
           </select>
         </label>
-        {reversed ? <p className="pb-2.5 text-2xs text-[#b07410] dark:text-[#f2b13e]">«Desde» es posterior a «Hasta»: los cambios se leen al revés.</p> : null}
+        {reversed ? <p className="pb-2.5 text-2xs text-[#a0701a] dark:text-[#f2c57c]">«Desde» es posterior a «Hasta»: los cambios se leen al revés.</p> : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
@@ -204,7 +204,7 @@ export function NutritionBodyComparisonCard({
                   ) : (
                     <span className="col-span-2 text-2xs text-ink-muted">Falta la medida en alguno de los dos controles.</span>
                   )}
-                  {z.note ? <span className="col-span-2 text-2xs text-[#b07410] dark:text-[#f2b13e]">{z.note}</span> : null}
+                  {z.note ? <span className="col-span-2 text-2xs text-[#a0701a] dark:text-[#f2c57c]">{z.note}</span> : null}
                 </button>
               </li>
             ))}

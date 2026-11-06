@@ -3,12 +3,15 @@ import { BODY_ZONE_BY_INDEX, ZONE_MAP_STEP, bodyImageUrls, type BodySex, type Bo
 
 /** Carga y pintado del cuerpo 2D (lo usan el visor interactivo y el informe ilustrado). */
 
-/** Tonos de estado (los mismos que los chips de la tarjeta). «Sin cambio» y «sin datos» quedan en el gris original. */
+/**
+ * Tonos de estado en pastel, como la paleta de la app (los mismos que los chips de la tarjeta).
+ * «Sin cambio» y «sin datos» quedan en el gris original.
+ */
 const STATUS_RGB: Partial<Record<BodyZoneStatus, [number, number, number]>> = {
-  good: [34, 178, 107],
-  bad: [229, 72, 77],
-  alert: [234, 165, 58],
-  neutral: [150, 160, 196],
+  good: [124, 199, 154],
+  bad: [236, 138, 122],
+  alert: [240, 192, 112],
+  neutral: [160, 162, 196],
 }
 
 /**
@@ -17,13 +20,13 @@ const STATUS_RGB: Partial<Record<BodyZoneStatus, [number, number, number]>> = {
  */
 const ZONE_SHADE: Record<BodyZoneId, number> = {
   pecho: 1.1,
-  brazo: 0.6,
+  brazo: 0.74,
   antebrazo: 1.12,
-  abdomen: 0.66,
+  abdomen: 0.76,
   costado: 1.25,
-  cadera: 0.72,
+  cadera: 0.8,
   muslo: 1.1,
-  pantorrilla: 0.64,
+  pantorrilla: 0.76,
 }
 
 export interface ViewData {

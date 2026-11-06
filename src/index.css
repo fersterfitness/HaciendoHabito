@@ -646,9 +646,9 @@ html.ui-v2 {
   --brand-tertiary: 70 51 79;
   --status-active: 64 66 110;
   --status-generated: 64 66 110;
-  --status-expiring: 160 82 0;
-  --status-pending: 133 96 0;
-  --status-expired: 176 50 0;
+  --status-expiring: 168 98 30;
+  --status-pending: 140 104 20;
+  --status-expired: 190 80 56;
   --brand-gradient: linear-gradient(rgb(var(--brand-primary)), rgb(var(--brand-primary)));
   --brand-gradient-hover: linear-gradient(rgb(var(--brand-hover)), rgb(var(--brand-hover)));
   --r-lg: 0.5rem;
@@ -679,9 +679,10 @@ html.ui-v2.dark {
   --brand-tertiary: 242 146 29;
   --status-active: 160 162 196;
   --status-generated: 160 162 196;
-  --status-expiring: 242 146 29;
-  --status-pending: 242 194 48;
-  --status-expired: 242 79 19;
+  /* Pasteles de la paleta: el naranja y el rojo anaranjado fuertes cansaban en las listas. */
+  --status-expiring: 240 172 96;
+  --status-pending: 242 200 96;
+  --status-expired: 236 128 108;
 }
 
 /* Barra de listados: botones grises en pastilla, chips de filtro grises. */

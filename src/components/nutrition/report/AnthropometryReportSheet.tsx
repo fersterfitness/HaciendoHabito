@@ -42,9 +42,9 @@ const C = {
   border: '#e9e5ec',
   panel: '#faf8fb',
   elevated: '#f3f0f5',
-  good: '#1f9d5c',
-  bad: '#d93d42',
-  alert: '#b07410',
+  good: '#3f8f62',
+  bad: '#c4553f',
+  alert: '#a0701a',
 }
 
 const TONE_COLOR: Record<ChangeTone, string> = { good: C.good, bad: C.bad, neutral: C.muted, same: C.muted }
@@ -237,7 +237,7 @@ export const AnthropometryReportSheet = forwardRef<HTMLDivElement, Anthropometry
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot(C.good)} {zoneSummary.good} mejoraron</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot(C.bad)} {zoneSummary.bad} empeoraron</span>
               {zoneSummary.alert ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot('#eaa53a')} {zoneSummary.alert} a revisar</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot('#f0c070')} {zoneSummary.alert} a revisar</span>
               ) : null}
             </div>
           ) : null}
