@@ -280,6 +280,11 @@ export function NutritionAnthropometryProgramForm({
       series,
       medians,
     }
+    // Al editar se conservan los textos del informe ilustrado guardados en el control.
+    if (draft?.mode === 'edit') {
+      const prevDetail = measurements.find((m) => m.id === draft.measurementId)?.detail as { report?: unknown } | null | undefined
+      if (prevDetail && typeof prevDetail === 'object' && prevDetail.report) (detail as { report?: unknown }).report = prevDetail.report
+    }
 
     const row = {
       measured_at: measuredAt,

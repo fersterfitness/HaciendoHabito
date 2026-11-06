@@ -298,8 +298,9 @@ export function SidebarV2() {
 
       {/* Panel */}
       {!collapsed ? (
-        <div className="flex w-[13.5rem] flex-col py-3 pr-3">
-          <div className="mb-3 flex h-9 items-center px-2.5">
+        // Tarjeta propia (como el panel del contenido) para que no se funda con el riel.
+        <div className="my-2.5 mr-2.5 flex w-[13.5rem] flex-col rounded-[1.25rem] bg-[rgb(var(--v2-sidebar-panel))] px-2 py-2.5 shadow-[0_0_0_1px_rgb(0_0_0/0.05)] dark:shadow-[0_0_0_1px_rgb(255_255_255/0.06)]">
+          <div className="mb-2 flex h-9 items-center px-2.5">
             <span className="truncate text-[14px] font-medium tracking-[-0.01em] text-ink-primary">Haciéndolo Hábito</span>
           </div>
 

@@ -626,6 +626,8 @@
 html.ui-v2 {
   --v2-canvas: 240 237 242;
   --v2-sidebar-active: 255 255 255;
+  /* Panel de navegación desplegado: entre el lienzo y el blanco del contenido. */
+  --v2-sidebar-panel: 248 246 249;
   --surface-base: 255 255 255;
   --surface-card: 255 255 255;
   --surface-panel: 250 248 251;
@@ -659,6 +661,7 @@ html.ui-v2 {
 html.ui-v2.dark {
   --v2-canvas: 16 12 20;
   --v2-sidebar-active: 48 38 56;
+  --v2-sidebar-panel: 22 17 27;
   --surface-base: 26 20 31;
   --surface-card: 26 20 31;
   --surface-panel: 32 25 38;

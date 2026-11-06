@@ -16,7 +16,7 @@ import {
 } from '@/lib/nutrition/bodyZoneComparison'
 import type { NutritionMeasurement, Student } from '@/types/database'
 import { nf } from './NutritionResumenDashboardV2'
-import type { BodySex } from './body2d/zones'
+import { bodyModelStorageKey, readStoredModel, type BodySex } from './body2d/zones'
 
 const BodyMap2D = lazy(() => import('./body2d/BodyMap2D'))
 
@@ -45,18 +45,7 @@ const DOT: Record<'good' | 'bad' | 'alert' | 'same', string> = {
 const signed = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : '±'}${nf(Math.abs(v))}`
 const mediansOf = (m: NutritionMeasurement | undefined) => (m?.detail as AnthropometryDetail | null)?.medians ?? null
 
-/** Comparación de dos controles sobre un cuerpo 3D: qué zonas mejoraron y cuáles empeoraron. */
-/** Para «Otro», el cuerpo a mostrar se recuerda en este navegador sin tocar la ficha. */
-const modelKey = (id: string) => `hh-body-model:${id}`
-function readStoredModel(id: string): BodySex | null {
-  try {
-    const v = localStorage.getItem(modelKey(id))
-    return v === 'M' || v === 'F' ? v : null
-  } catch {
-    return null
-  }
-}
-
+/** Comparación de dos controles sobre el cuerpo 2D: qué zonas mejoraron y cuáles empeoraron. */
 export function NutritionBodyComparisonCard({
   student,
   measurements,
@@ -79,7 +68,7 @@ export function NutritionBodyComparisonCard({
 
   const chooseSex = async (s: BodySex) => {
     if (student.gender === 'otro') {
-      try { localStorage.setItem(modelKey(student.id), s) } catch { /* sin almacenamiento: vale para esta sesión */ }
+      try { localStorage.setItem(bodyModelStorageKey(student.id), s) } catch { /* sin almacenamiento: vale para esta sesión */ }
       setOtherModel(s)
       return
     }

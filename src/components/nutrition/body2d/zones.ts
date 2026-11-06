@@ -13,3 +13,21 @@ export function bodyImageUrls(sex: BodySex, view: BodyView) {
   const base = `/body2d/${sex === 'F' ? 'mujer' : 'hombre'}-${view}`
   return { image: `${base}.webp`, zones: `${base}-zonas.png` }
 }
+
+/** Para «Otro», el cuerpo a mostrar se recuerda en este navegador sin tocar la ficha. */
+export const bodyModelStorageKey = (studentId: string) => `hh-body-model:${studentId}`
+
+export function readStoredModel(studentId: string): BodySex | null {
+  try {
+    const v = localStorage.getItem(bodyModelStorageKey(studentId))
+    return v === 'M' || v === 'F' ? v : null
+  } catch {
+    return null
+  }
+}
+
+/** Cuerpo que corresponde al paciente: el de su sexo, o el elegido para «Otro». */
+export function bodySexOf(student: { id: string; gender: 'M' | 'F' | 'otro' | null }): BodySex | null {
+  if (student.gender === 'M' || student.gender === 'F') return student.gender
+  return student.gender === 'otro' ? readStoredModel(student.id) : null
+}

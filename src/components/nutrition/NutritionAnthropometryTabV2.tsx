@@ -1,7 +1,7 @@
-import { type RefObject, useEffect, useMemo, useState } from 'react'
+import { type RefObject, Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { AlertCircle, Check, History, Loader2, Plus, RotateCcw, Save, Sparkles, X } from 'lucide-react'
+import { AlertCircle, Check, FileImage, History, Loader2, Plus, RotateCcw, Save, Sparkles, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -19,6 +19,10 @@ import { NutritionAnthropometryPresentationPanel } from './NutritionAnthropometr
 import { AiMarkdown } from './AnthropometryAiMarkdown'
 import { NutritionBodyComparisonCard } from './NutritionBodyComparisonCard'
 import { Delta, METRICS, nf, type Metric } from './NutritionResumenDashboardV2'
+
+const AnthropometryReportView = lazy(() =>
+  import('./report/AnthropometryReportView').then((m) => ({ default: m.AnthropometryReportView })),
+)
 
 /**
  * Antropometría v2: un solo lugar. Arriba "Nuevo control" (PDF o a mano), después el último control,
@@ -57,6 +61,7 @@ export function NutritionAnthropometryTabV2(props: Props) {
   const { ownerId, student, measurements, onRefresh, draft, onDraftClear, importFile, formRef } = props
   const [formOpen, setFormOpen] = useState(measurements.length === 0)
   const ai = useAiAnalysis(ownerId, student.id, measurements)
+  const [reportOpen, setReportOpen] = useState(false)
 
   useEffect(() => {
     if (!draft && !importFile) return
@@ -116,6 +121,11 @@ export function NutritionAnthropometryTabV2(props: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {measurements.length ? (
+            <Button type="button" size="sm" variant="secondary" icon={<FileImage className="h-4 w-4" />} onClick={() => setReportOpen(true)}>
+              Informe
+            </Button>
+          ) : null}
           <AiAnalysisButton ai={ai} />
           {!formOpen ? (
             <Button type="button" size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setFormOpen(true)}>
@@ -164,6 +174,19 @@ export function NutritionAnthropometryTabV2(props: Props) {
       ) : null}
 
       <AiAnalysisPanel ai={ai} />
+
+      {reportOpen ? (
+        <Suspense fallback={null}>
+          <AnthropometryReportView
+            ownerId={ownerId}
+            student={student}
+            measurements={measurements}
+            initialId={props.selectedId}
+            onClose={() => setReportOpen(false)}
+            onSaved={onRefresh}
+          />
+        </Suspense>
+      ) : null}
 
       {latest ? (
         <>
