@@ -17,6 +17,7 @@ import {
   type AnthropometryFormInputs,
 } from '@/lib/nutrition/anthropometryFormState'
 import {
+  ANTHRO_ALL_KEYS,
   ANTHRO_BASIC_KEYS,
   ANTHRO_DIAMETER_KEYS,
   ANTHRO_PERIMETER_KEYS,
@@ -33,6 +34,32 @@ import {
   type AnthropometrySeriesBlock,
 } from '@/lib/nutrition/anthropometryProgramModel'
 import toast from 'react-hot-toast'
+import { checkAnthroValue, previousControlValues } from '@/lib/nutrition/anthropometryEntryCheck'
+
+/** v2 agrega la columna «Anterior» (mediana del control previo). */
+const GRID_COLS = IS_V2
+  ? 'grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(0,0.65fr))_minmax(0,0.55fr)_minmax(0,0.55fr)]'
+  : 'grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(0,0.65fr))_minmax(0,0.55fr)]'
+
+/** Enter baja a la misma serie de la medida siguiente; al terminar la columna sigue con la próxima serie. */
+function moveFocus(from: HTMLInputElement, row: number, col: number, back: boolean) {
+  const grid = from.closest('[data-anthro-grid]')
+  if (!grid) return
+  const rows = ANTHRO_ALL_KEYS.length
+  let r = row + (back ? -1 : 1)
+  let c = col
+  if (r >= rows) {
+    r = 0
+    c += 1
+  } else if (r < 0) {
+    r = rows - 1
+    c -= 1
+  }
+  if (c < 0 || c > 4) return
+  const next = grid.querySelector<HTMLInputElement>(`[data-cell="${r}-${c}"]`)
+  next?.focus()
+  next?.select()
+}
 
 function emptyInputs(): AnthropometryFormInputs {
   const z: [string, string, string, string, string] = ['', '', '', '', '']
@@ -69,28 +96,60 @@ function SeriesRow({
   label,
   values,
   onCell,
+  fieldKey,
+  previous,
 }: {
   label: string
   values: [string, string, string, string, string]
   onCell: (idx: number, v: string) => void
+  fieldKey: AnthropometryVariableKey
+  previous?: number
 }) {
-  const median = useMemo(() => medianOfSeries(parseSeries5FromStrings(values)), [values])
+  const parsed = useMemo(() => parseSeries5FromStrings(values), [values])
+  const median = useMemo(() => medianOfSeries(parsed), [parsed])
+  const row = ANTHRO_ALL_KEYS.indexOf(fieldKey)
   return (
-    <div className="grid grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(0,0.65fr))_minmax(0,0.55fr)] gap-1.5 items-center py-1 border-b border-surface-border/60 last:border-0">
+    <div className={cn('grid gap-1.5 items-center py-1 border-b border-surface-border/60 last:border-0', GRID_COLS)}>
       <span className="text-2xs text-ink-secondary leading-tight pr-1">{label}</span>
-      {values.map((cell, i) => (
-        <input
-          key={i}
-          type="text"
-          inputMode="decimal"
-          value={cell}
-          onChange={(e) => onCell(i, e.target.value)}
-          className={cn(controlSmClassName, 'w-full min-w-0 px-1.5 text-2xs')}
-        />
-      ))}
+      {values.map((cell, i) => {
+        const v = parsed[i]
+        const warning =
+          IS_V2 && v != null
+            ? checkAnthroValue(fieldKey, v, previous, parsed.filter((x, j): x is number => j !== i && x != null))
+            : null
+        return (
+          <input
+            key={i}
+            type="text"
+            inputMode="decimal"
+            enterKeyHint="next"
+            value={cell}
+            data-cell={`${row}-${i}`}
+            aria-label={`${label}, serie ${i + 1}`}
+            aria-invalid={warning ? true : undefined}
+            title={warning ?? undefined}
+            onChange={(e) => onCell(i, e.target.value)}
+            onKeyDown={(e) => {
+              if (!IS_V2 || e.key !== 'Enter') return
+              e.preventDefault()
+              moveFocus(e.currentTarget, row, i, e.shiftKey)
+            }}
+            className={cn(
+              controlSmClassName,
+              'w-full min-w-0 px-1.5 text-2xs',
+              warning && 'border-status-pending bg-status-pending/15 font-semibold ring-2 ring-status-pending/30',
+            )}
+          />
+        )
+      })}
       <span className="text-right text-2xs font-medium text-brand-secondary tabular-nums">
-        {median == null ? '—' : median}
+        {median == null ? '—' : IS_V2 ? String(Math.round(median * 100) / 100).replace('.', ',') : median}
       </span>
+      {IS_V2 ? (
+        <span className="text-right text-2xs tabular-nums text-ink-muted" title="Mediana del control anterior">
+          {previous == null ? '—' : String(previous).replace('.', ',')}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -177,6 +236,28 @@ export function NutritionAnthropometryProgramForm({
       setMeta(loaded.meta)
     }
   }, [draft, defaults, measurements])
+
+  const previous = useMemo(
+    () => (IS_V2 ? previousControlValues(measurements, draft?.mode === 'edit' ? draft.measurementId : null) : {}),
+    [measurements, draft],
+  )
+  /** Valores marcados, para el aviso de antes de guardar. */
+  const warnings = useMemo(() => {
+    if (!IS_V2) return []
+    const out: { key: AnthropometryVariableKey; msg: string }[] = []
+    for (const k of ANTHRO_ALL_KEYS) {
+      const p = parseSeries5FromStrings(inputs[k])
+      for (let i = 0; i < 5; i++) {
+        const v = p[i]
+        if (v == null) continue
+        const msg = checkAnthroValue(k, v, previous[k], p.filter((x, j): x is number => j !== i && x != null))
+        if (msg) {
+          out.push({ key: k, msg: `${labelForAnthroKey(k)}${p.filter((x) => x != null).length > 1 ? ` (serie ${i + 1})` : ''}: ${msg.charAt(0).toLowerCase()}${msg.slice(1)}` })
+        }
+      }
+    }
+    return out
+  }, [inputs, previous])
 
   const consumedRef = useRef<File | null>(null)
   useEffect(() => {
@@ -512,8 +593,13 @@ export function NutritionAnthropometryProgramForm({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-surface-border">
-        <div className="min-w-[720px] p-3 bg-surface-card/80">
-          <div className="grid grid-cols-[minmax(0,1.2fr)_repeat(5,minmax(0,0.65fr))_minmax(0,0.55fr)] gap-1.5 items-end pb-2 mb-2 border-b border-surface-border">
+        <div data-anthro-grid className={cn('p-3 bg-surface-card/80', IS_V2 ? 'min-w-[780px]' : 'min-w-[720px]')}>
+          {IS_V2 ? (
+            <p className="mb-2 text-3xs text-ink-muted">
+              Enter pasa a la medida de abajo (Shift + Enter, a la de arriba). Los valores raros se marcan en amarillo.
+            </p>
+          ) : null}
+          <div className={cn('grid gap-1.5 items-end pb-2 mb-2 border-b border-surface-border', GRID_COLS)}>
             <span className="text-3xs font-semibold uppercase text-ink-muted">Variable</span>
             <span className="text-3xs font-semibold text-center text-ink-muted">Serie 1</span>
             <span className="text-3xs font-semibold text-center text-ink-muted">Serie 2</span>
@@ -521,29 +607,30 @@ export function NutritionAnthropometryProgramForm({
             <span className="text-3xs font-semibold text-center text-ink-muted">Serie 4</span>
             <span className="text-3xs font-semibold text-center text-ink-muted">Serie 5</span>
             <span className="text-3xs font-semibold text-right text-ink-muted">Mediana</span>
+            {IS_V2 ? <span className="text-3xs font-semibold text-right text-ink-muted">Anterior</span> : null}
           </div>
 
           <SectionTitle>Datos básicos</SectionTitle>
           {ANTHRO_BASIC_KEYS.map((k) => (
-            <SeriesRow key={k} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
+            <SeriesRow key={k} fieldKey={k} previous={previous[k]} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
           ))}
 
           <div className="h-3" />
           <SectionTitle>Diámetros (cm)</SectionTitle>
           {ANTHRO_DIAMETER_KEYS.map((k) => (
-            <SeriesRow key={k} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
+            <SeriesRow key={k} fieldKey={k} previous={previous[k]} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
           ))}
 
           <div className="h-3" />
           <SectionTitle>Perímetros (cm)</SectionTitle>
           {ANTHRO_PERIMETER_KEYS.map((k) => (
-            <SeriesRow key={k} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
+            <SeriesRow key={k} fieldKey={k} previous={previous[k]} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
           ))}
 
           <div className="h-3" />
           <SectionTitle>Pliegues cutáneos (mm)</SectionTitle>
           {ANTHRO_SKINFOLD_KEYS.map((k) => (
-            <SeriesRow key={k} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
+            <SeriesRow key={k} fieldKey={k} previous={previous[k]} label={labelForAnthroKey(k)} values={inputs[k]} onCell={(i, v) => setCell(k, i, v)} />
           ))}
         </div>
       </div>
@@ -553,6 +640,20 @@ export function NutritionAnthropometryProgramForm({
         los campos resumen e IMC. Podés complementar con la sección de mediciones rápidas si usás % grasa o masa muscular de
         otro método.
       </p>
+
+      {warnings.length ? (
+        <div role="status" className="rounded-xl border border-status-pending/40 bg-status-pending/10 px-3 py-2.5 text-2xs text-ink-secondary">
+          <p className="font-semibold text-ink-primary">
+            {warnings.length === 1 ? 'Hay un valor para revisar' : `Hay ${warnings.length} valores para revisar`} antes de guardar
+          </p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {warnings.slice(0, 6).map((w, i) => (
+              <li key={i}>{w.msg}</li>
+            ))}
+          </ul>
+          {warnings.length > 6 ? <p className="mt-1 text-ink-muted">y {warnings.length - 6} más, marcados en la tabla.</p> : null}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button

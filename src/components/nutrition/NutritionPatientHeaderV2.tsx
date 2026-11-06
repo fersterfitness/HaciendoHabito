@@ -1,6 +1,6 @@
 import { differenceInYears, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Stethoscope } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { cn } from '@/lib/utils'
@@ -18,13 +18,19 @@ export function NutritionPatientHeaderV2({
   followup,
   onStudentUpdated,
   onManageAppointments,
+  onStartConsultation,
+  appointmentVersion = 0,
 }: {
   student: Student
   followup: NutritionPatientFollowup | null
   onStudentUpdated: (next: Student) => void
   onManageAppointments: () => void
+  /** Abre el modo consulta (medidas, cambios, plan, nota y próximo turno en una pantalla). */
+  onStartConsultation?: () => void
+  /** Sube cuando se agenda un turno desde otro lado, para volver a leerlo. */
+  appointmentVersion?: number
 }) {
-  const appointment = useNextAppointment(student.id)
+  const appointment = useNextAppointment(student.id, appointmentVersion)
   const suggested = followup?.next_consultation_date ?? null
   const age = student.birth_date ? differenceInYears(new Date(), parseISO(student.birth_date)) : null
   const meta = [age != null && age > 0 ? `${age} años` : null, student.gender ? SEX_LABEL[student.gender] : null].filter(Boolean)
@@ -46,6 +52,12 @@ export function NutritionPatientHeaderV2({
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+      {onStartConsultation ? (
+        <Button type="button" icon={<Stethoscope className="h-4 w-4" />} onClick={onStartConsultation}>
+          Iniciar consulta
+        </Button>
+      ) : null}
       <div className="flex items-center gap-3 rounded-2xl border border-surface-border bg-surface-card py-2 pl-3 pr-2">
         <span
           className={cn(
@@ -70,9 +82,10 @@ export function NutritionPatientHeaderV2({
             <p className="text-[13px] text-ink-secondary">Sin turno agendado</p>
           )}
         </div>
-        <Button type="button" size="sm" variant={appointment ? 'secondary' : 'primary'} onClick={onManageAppointments}>
+        <Button type="button" size="sm" variant="secondary" onClick={onManageAppointments}>
           {appointment ? 'Turnos' : 'Agendar'}
         </Button>
+      </div>
       </div>
     </div>
   )

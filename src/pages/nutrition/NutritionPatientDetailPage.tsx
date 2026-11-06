@@ -50,6 +50,7 @@ import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/Nutr
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionPatientHeaderV2 } from '@/components/nutrition/NutritionPatientHeaderV2'
+import { NutritionConsultationFlow } from '@/components/nutrition/NutritionConsultationFlow'
 import { NutritionClinicalNotesV2 } from '@/components/nutrition/NutritionClinicalNotesV2'
 import { NutritionPatientFilesV2 } from '@/components/nutrition/NutritionPatientFilesV2'
 import { NutritionSymptomCheckinsV2 } from '@/components/nutrition/NutritionSymptomCheckinsV2'
@@ -306,6 +307,8 @@ export function NutritionPatientDetailView({
     skinfolds_notes: '',
     notes: '',
   })
+  const [consultOpen, setConsultOpen] = useState(false)
+  const [appointmentVersion, setAppointmentVersion] = useState(0)
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTone, setPdfTone] = useState<InterpretationTone>('empatico')
   const planDebounceRef = useRef<number | null>(null)
@@ -816,6 +819,19 @@ export function NutritionPatientDetailView({
               followup={followup}
               onStudentUpdated={setStudent}
               onManageAppointments={() => navigate('/appointments')}
+              onStartConsultation={() => setConsultOpen(true)}
+              appointmentVersion={appointmentVersion}
+            />
+            <NutritionConsultationFlow
+              open={consultOpen}
+              onClose={() => setConsultOpen(false)}
+              student={student}
+              measurements={measurementsSorted}
+              followup={followup}
+              onMeasurementsChanged={refreshMeasurements}
+              onFollowupChanged={setFollowup}
+              onAppointmentBooked={() => setAppointmentVersion((v) => v + 1)}
+              onStudentUpdated={setStudent}
             />
           </div>
         ) : null}
