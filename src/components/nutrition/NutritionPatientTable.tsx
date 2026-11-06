@@ -117,6 +117,9 @@ function StatusChip({ row }: { row: NutritionFollowupRow }) {
   return <span className={cn('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium', cls)}>{text}</span>
 }
 
+/** Línea suave entre columnas de datos (no junto al tilde ni a la flecha de abrir). */
+const COLUMN_DIVIDER = (id: string) => (id === 'select' || id === 'name' || id === 'open' ? null : 'border-l border-surface-border/70')
+
 function Checkbox({ checked, indeterminate, onChange, label }: { checked: boolean; indeterminate?: boolean; onChange: () => void; label: string }) {
   return (
     <button
@@ -391,7 +394,7 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
       </div>
 
       {/* Las celdas no parten el texto: si no entra, la tabla se desplaza a lo ancho. */}
-      <div className="overflow-clip rounded-2xl border border-surface-border bg-surface-card">
+      <div className="overflow-clip rounded-2xl border border-surface-border bg-surface-card shadow-[0_1px_2px_rgb(46_33_54/0.04),0_12px_32px_-16px_rgb(46_33_54/0.18)] dark:border-white/[0.07] dark:bg-surface-panel dark:shadow-[0_16px_40px_-16px_rgb(0_0_0/0.7)]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse whitespace-nowrap text-left">
             <thead>
@@ -406,9 +409,10 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                         scope="col"
                         aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                         className={cn(
-                          'sticky top-0 z-[1] whitespace-nowrap border-b border-surface-border bg-surface-card px-3 py-2.5 text-[12px] font-medium text-ink-muted first:rounded-tl-2xl last:rounded-tr-2xl',
+                          'sticky top-0 z-[1] whitespace-nowrap border-b border-surface-border bg-surface-panel px-3 dark:bg-surface-elevated py-2.5 text-[12px] font-medium text-ink-muted first:rounded-tl-2xl last:rounded-tr-2xl',
                           h.column.id === 'select' && 'w-10 pl-4 pr-1',
                           h.column.id === 'open' && 'w-10',
+                          COLUMN_DIVIDER(h.column.id),
                           (h.column.id === 'control' || h.column.id === 'weight') && 'max-lg:hidden',
                         )}
                       >
@@ -444,8 +448,8 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                     }}
                     className={cn(
                       'group cursor-pointer border-b border-surface-border/70 transition-colors last:border-b-0',
-                      'hover:bg-surface-panel focus-visible:bg-surface-panel focus-visible:outline-none',
-                      (isOpen || row.getIsSelected()) && 'bg-surface-elevated/70 hover:bg-surface-elevated/70',
+                      'hover:bg-surface-panel focus-visible:bg-surface-panel focus-visible:outline-none dark:hover:bg-surface-elevated/60 dark:focus-visible:bg-surface-elevated/60',
+                      (isOpen || row.getIsSelected()) && 'bg-surface-elevated/70 hover:bg-surface-elevated/70 dark:bg-surface-elevated dark:hover:bg-surface-elevated',
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -455,6 +459,7 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                           'px-3 py-2',
                           cell.column.id === 'select' && 'pl-4 pr-1',
                           cell.column.id === 'open' && 'text-right',
+                          COLUMN_DIVIDER(cell.column.id),
                           (cell.column.id === 'control' || cell.column.id === 'weight') && 'max-lg:hidden',
                         )}
                       >
