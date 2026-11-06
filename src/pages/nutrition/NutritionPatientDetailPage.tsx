@@ -51,6 +51,7 @@ import { NutritionExchangeReferenceCard } from '@/components/nutrition/Nutrition
 import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionPatientHeaderV2 } from '@/components/nutrition/NutritionPatientHeaderV2'
 import { NutritionClinicalNotesV2 } from '@/components/nutrition/NutritionClinicalNotesV2'
+import { NutritionPatientFilesV2 } from '@/components/nutrition/NutritionPatientFilesV2'
 import { NutritionSymptomCheckinsV2 } from '@/components/nutrition/NutritionSymptomCheckinsV2'
 import { NutritionAnthropometryTabV2 } from '@/components/nutrition/NutritionAnthropometryTabV2'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
@@ -1150,6 +1151,17 @@ export function NutritionPatientDetailView({
 
         {/* ───────────── ARCHIVOS ───────────── */}
         <TabPanel id="archivos" active={activeTab}>
+          {IS_V2 ? (
+            <NutritionPatientFilesV2
+              patientName={student.full_name}
+              documents={documents}
+              onUpload={uploadPdf}
+              onOpen={(path) => void openDocument(path)}
+              onDelete={(doc) => void deleteDocument(doc)}
+              deletingId={deletingDocId}
+              onCompare={() => navigate(`/nutrition-pdfs?student=${student.id}`)}
+            />
+          ) : (
           <Card>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
@@ -1159,11 +1171,6 @@ export function NutritionPatientDetailView({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
-                {IS_V2 ? (
-                  <Button size="sm" variant="secondary" icon={<Sparkles className="h-4 w-4" />} onClick={() => navigate(`/nutrition-pdfs?student=${student.id}`)}>
-                    Comparar 2 PDFs
-                  </Button>
-                ) : null}
                 {CATEGORIES.map((cat) => (
                   <label
                     key={cat.key}
@@ -1262,6 +1269,7 @@ export function NutritionPatientDetailView({
               )}
             </div>
           </Card>
+          )}
         </TabPanel>
         </div>
       </div>
