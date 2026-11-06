@@ -8,7 +8,8 @@ import type { Expense, Income } from '@/types/database'
 
 const MES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 const MES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-const C_IN = '#F2921D'
+/** Paleta suave de la v2 (los tonos de la paleta, en pastel). */
+const C_IN = '#F4AC6E'
 const C_OUT = '#8082A6'
 
 type Range = '6' | '12'
