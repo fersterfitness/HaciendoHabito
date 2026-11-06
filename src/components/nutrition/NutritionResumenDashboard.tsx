@@ -376,7 +376,7 @@ export function NextConsultationBanner({
         <div className="min-w-0">
           <p className="text-3xs font-semibold text-ink-muted">Próxima consulta</p>
           {appointment ? (
-            <p className="text-sm font-semibold text-ink-primary capitalize truncate">
+            <p className="text-sm font-semibold text-ink-primary first-letter:uppercase truncate">
               {format(parseISO(appointment.starts_at), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
             </p>
           ) : suggested ? (

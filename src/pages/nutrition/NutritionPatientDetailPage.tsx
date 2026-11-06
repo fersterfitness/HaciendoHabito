@@ -47,8 +47,7 @@ import { NutritionClinicalNotesSection } from '@/components/nutrition/NutritionC
 import { NutritionSymptomCheckinsSection } from '@/components/nutrition/NutritionSymptomCheckinsSection'
 import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/NutritionRequirementsCalculatorCard'
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
-import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
-import { NutritionResumenDashboardV2 } from '@/components/nutrition/NutritionResumenDashboardV2'
+import { NextConsultationBanner, NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
 import { NutritionAnthropometryTabV2 } from '@/components/nutrition/NutritionAnthropometryTabV2'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
 import { NutritionWebIntakePanel } from '@/components/nutrition/NutritionWebIntakePanel'
@@ -117,8 +116,8 @@ const FILE_FILTERS: { id: 'all' | NutritionDocumentCategory; label: string }[] =
   { id: 'laboratorio', label: 'Laboratorios' },
 ]
 
-/** v2: resumen rediseñado; v1 queda igual. */
-const ResumenDashboard = IS_V2 ? NutritionResumenDashboardV2 : NutritionResumenDashboard
+/** Resumen solo existe en la v1: en la v2 su contenido ya está en Antropometría. */
+const ResumenDashboard = NutritionResumenDashboard
 
 const VALID_TABS = ['resumen', 'datos', 'antropometria', 'plan', 'historia', 'archivos'] as const
 type TabId = (typeof VALID_TABS)[number]
@@ -209,12 +208,14 @@ export function NutritionPatientDetailView({
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [panelTab, setPanelTab] = useState<TabId>(DEFAULT_TAB)
-  const activeTab: TabId =
+  const rawTab: TabId =
     variant === 'panel'
       ? panelTab
       : isValidTab(searchParams.get('tab'))
         ? (searchParams.get('tab') as TabId)
         : DEFAULT_TAB
+  // v2: Resumen se fusionó con Antropometría; los links viejos a ?tab=resumen caen ahí.
+  const activeTab: TabId = IS_V2 && rawTab === 'resumen' ? 'antropometria' : rawTab
 
   useEffect(() => {
     if (variant === 'panel') setPanelTab(DEFAULT_TAB)
@@ -629,7 +630,8 @@ export function NutritionPatientDetailView({
     const anthro: TabItem = { id: 'antropometria', label: 'Antropometría', icon: <Activity />, count: measurements.length || undefined }
     const resumen: TabItem = { id: 'resumen', label: 'Resumen', icon: <LayoutDashboard /> }
     return [
-      ...(IS_V2 ? [anthro, resumen] : [resumen]),
+      // v2: sin Resumen (lo que mostraba ya está en Antropometría; el próximo turno va arriba de las pestañas).
+      ...(IS_V2 ? [anthro] : [resumen]),
       { id: 'datos', label: 'Datos personales', icon: <UserRound /> },
       ...(IS_V2 ? [] : [anthro]),
       { id: 'plan', label: 'Plan', icon: <Utensils /> },
@@ -772,7 +774,14 @@ export function NutritionPatientDetailView({
         </div>
 
         <div className={cn(variant === 'panel' && 'px-4 pb-8 sm:px-6 lg:px-8')}>
-        {/* ───────────── RESUMEN ───────────── */}
+        {IS_V2 ? (
+          <div className="mb-5">
+            <NextConsultationBanner studentId={student.id} followup={followup} onManageAppointments={() => navigate('/appointments')} />
+          </div>
+        ) : null}
+
+        {/* ───────────── RESUMEN (solo v1) ───────────── */}
+        {IS_V2 ? null : (
         <TabPanel id="resumen" active={activeTab}>
           <ResumenDashboard
             student={student}
@@ -787,6 +796,7 @@ export function NutritionPatientDetailView({
             onManageAppointments={() => navigate('/appointments')}
           />
         </TabPanel>
+        )}
 
         {/* ───────────── DATOS PERSONALES ───────────── */}
         <TabPanel id="datos" active={activeTab}>
