@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { BodyZoneId, BodyZoneStatus } from '@/lib/nutrition/bodyZoneComparison'
-import { buildProceduralBody } from './proceduralBody'
 import { loadModelBody } from './modelBody'
-import type { BodySex, ZonedGeometry } from './types'
+import { BODY_ZONE_BY_INDEX, type BodyMeshData, type BodySex, type ZonedGeometry } from './types'
 
 /** Colores de estado (mismos tonos que los chips de la tarjeta), un poco apagados hacia arcilla al pintar. */
 const STATUS_HEX: Record<BodyZoneStatus, number> = {
@@ -18,13 +17,40 @@ const STATUS_HEX: Record<BodyZoneStatus, number> = {
 const SKIN_HEX = 0x6f717c
 const CLAY = new THREE.Color(0x8a8c96)
 
+/** El cuerpo generado por código se arma en un Web Worker: así no se traba la pantalla. */
+function buildInWorker(sex: BodySex): Promise<BodyMeshData> {
+  return new Promise((resolve, reject) => {
+    let worker: Worker
+    try {
+      worker = new Worker(new URL('./proceduralBody.worker.ts', import.meta.url), { type: 'module' })
+    } catch (e) {
+      reject(e)
+      return
+    }
+    worker.onmessage = (e: MessageEvent<BodyMeshData>) => { resolve(e.data); worker.terminate() }
+    worker.onerror = (e) => { reject(e); worker.terminate() }
+    worker.postMessage(sex)
+  })
+}
+
+async function proceduralBody(sex: BodySex): Promise<ZonedGeometry> {
+  const data = await buildInWorker(sex).catch(async () => (await import('./proceduralBody')).buildProceduralBodyData(sex))
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.BufferAttribute(data.positions, 3))
+  geometry.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3))
+  geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(data.zones.length * 3), 3))
+  geometry.setIndex(new THREE.BufferAttribute(data.index, 1))
+  geometry.computeBoundingSphere()
+  return { geometry, zones: data.zones, source: 'procedural' }
+}
+
 const cache = new Map<BodySex, Promise<ZonedGeometry>>()
 function bodyFor(sex: BodySex) {
   let p = cache.get(sex)
   if (!p) {
     p = loadModelBody(sex)
       .catch(() => null)
-      .then((m) => m ?? new Promise<ZonedGeometry>((res) => setTimeout(() => res(buildProceduralBody(sex)), 20)))
+      .then((m) => m ?? proceduralBody(sex))
     cache.set(sex, p)
   }
   return p
@@ -44,6 +70,7 @@ export default function BodyViewer({ sex, status, selected, onSelect, autoRotate
     controls: OrbitControls
     setBody: (b: ZonedGeometry) => void
     paint: () => void
+    invalidate: () => void
   } | null>(null)
   const stateRef = useRef({ status, selected, hovered: null as BodyZoneId | null, onSelect, body: null as ZonedGeometry | null })
   const [loading, setLoading] = useState(true)
@@ -55,8 +82,8 @@ export default function BodyViewer({ sex, status, selected, onSelect, autoRotate
     const host = hostRef.current
     const st = stateRef.current
     if (!host) return
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     renderer.domElement.style.display = 'block'
     renderer.domElement.style.width = '100%'
     renderer.domElement.style.height = '100%'
@@ -88,36 +115,42 @@ export default function BodyViewer({ sex, status, selected, onSelect, autoRotate
     scene.add(rim)
 
     const pedestal = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.27, 0.29, 0.04, 64),
+      new THREE.CylinderGeometry(0.27, 0.29, 0.04, 48),
       new THREE.MeshStandardMaterial({ color: 0x3e3f47, roughness: 0.85 }),
     )
     pedestal.position.y = -0.02
     scene.add(pedestal)
 
-    const material = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.45, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.5 })
+    const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.48, metalness: 0 })
     let mesh: THREE.Mesh | null = null
     const white = new THREE.Color(0xffffff)
 
+    // Se dibuja solo cuando algo cambió (giro, arrastre, colores) y la tarjeta está a la vista.
+    let dirty = true
+    let visible = true
+    const invalidate = () => { dirty = true }
+
     const paint = () => {
-      const st = stateRef.current
-      const body = st.body
+      const cur = stateRef.current
+      const body = cur.body
       if (!body) return
       const col = body.geometry.getAttribute('color') as THREE.BufferAttribute
-      const byZone = new Map<BodyZoneId, THREE.Color>()
-      for (const z of Object.keys(st.status) as BodyZoneId[]) {
-        const c = new THREE.Color(STATUS_HEX[st.status[z]]).lerp(CLAY, 0.22)
-        if (z === st.selected) c.lerp(white, 0.28)
-        else if (z === st.hovered) c.lerp(white, 0.14)
-        else if (st.selected) c.multiplyScalar(0.7)
-        byZone.set(z, c)
-      }
-      const skin = new THREE.Color(SKIN_HEX)
-      for (let v = 0; v < body.zones.length; v++) {
-        const z = body.zones[v]
-        const c = (z && byZone.get(z)) || skin
-        col.setXYZ(v, c.r, c.g, c.b)
+      const arr = col.array as Float32Array
+      const palette: THREE.Color[] = BODY_ZONE_BY_INDEX.map((z) => {
+        if (!z) return new THREE.Color(SKIN_HEX)
+        const c = new THREE.Color(STATUS_HEX[cur.status[z] ?? 'nodata']).lerp(CLAY, 0.22)
+        if (z === cur.selected) c.lerp(white, 0.28)
+        else if (z === cur.hovered) c.lerp(white, 0.14)
+        else if (cur.selected) c.multiplyScalar(0.7)
+        return c
+      })
+      const zones = body.zones
+      for (let v = 0, o = 0; v < zones.length; v++, o += 3) {
+        const c = palette[zones[v]!]!
+        arr[o] = c.r; arr[o + 1] = c.g; arr[o + 2] = c.b
       }
       col.needsUpdate = true
+      invalidate()
     }
 
     const setBody = (b: ZonedGeometry) => {
@@ -130,32 +163,36 @@ export default function BodyViewer({ sex, status, selected, onSelect, autoRotate
 
     const ray = new THREE.Raycaster()
     const ptr = new THREE.Vector2()
-    const pick = (e: PointerEvent): BodyZoneId | null => {
+    const pickAt = (clientX: number, clientY: number): BodyZoneId | null => {
       if (!mesh) return null
       const r = renderer.domElement.getBoundingClientRect()
-      ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+      ptr.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1)
       ray.setFromCamera(ptr, camera)
       const hit = ray.intersectObject(mesh, false)[0]
-      return hit?.face ? stateRef.current.body?.zones[hit.face.a] ?? null : null
+      const zones = stateRef.current.body?.zones
+      return hit?.face && zones ? BODY_ZONE_BY_INDEX[zones[hit.face.a]!] ?? null : null
     }
     let down: [number, number] | null = null
+    let hoverAt: [number, number] | null = null
     const onDown = (e: PointerEvent) => { down = [e.clientX, e.clientY] }
     const onUp = (e: PointerEvent) => {
-      if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) stateRef.current.onSelect(pick(e))
+      if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) stateRef.current.onSelect(pickAt(e.clientX, e.clientY))
       down = null
     }
+    // El hover se resuelve una vez por cuadro y nunca mientras se arrastra.
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return
-      const z = pick(e)
-      if (z !== stateRef.current.hovered) {
-        stateRef.current.hovered = z
-        renderer.domElement.style.cursor = z ? 'pointer' : 'grab'
-        paint()
-      }
+      if (e.pointerType === 'mouse' && !down) hoverAt = [e.clientX, e.clientY]
     }
-    renderer.domElement.addEventListener('pointerdown', onDown)
-    renderer.domElement.addEventListener('pointerup', onUp)
-    renderer.domElement.addEventListener('pointermove', onMove)
+    const onLeave = () => {
+      hoverAt = null
+      if (stateRef.current.hovered) { stateRef.current.hovered = null; paint() }
+    }
+    const el = renderer.domElement
+    el.addEventListener('pointerdown', onDown)
+    el.addEventListener('pointerup', onUp)
+    el.addEventListener('pointermove', onMove)
+    el.addEventListener('pointerleave', onLeave)
+    controls.addEventListener('change', invalidate)
 
     const resize = () => {
       const w = host.clientWidth, h = host.clientHeight
@@ -163,32 +200,52 @@ export default function BodyViewer({ sex, status, selected, onSelect, autoRotate
       renderer.setSize(w, h, false)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
+      invalidate()
     }
     const ro = new ResizeObserver(resize)
     ro.observe(host)
     resize()
 
+    const io = new IntersectionObserver(([entry]) => { visible = !!entry?.isIntersecting; if (visible) invalidate() })
+    io.observe(host)
+
     let raf = 0
     const loop = () => {
-      controls.update()
-      renderer.render(scene, camera)
       raf = requestAnimationFrame(loop)
+      if (!visible || document.hidden) return
+      if (hoverAt) {
+        const z = pickAt(hoverAt[0], hoverAt[1])
+        hoverAt = null
+        if (z !== stateRef.current.hovered) {
+          stateRef.current.hovered = z
+          el.style.cursor = z ? 'pointer' : 'grab'
+          paint()
+        }
+      }
+      controls.update()
+      if (dirty) {
+        dirty = false
+        renderer.render(scene, camera)
+      }
     }
     loop()
 
-    sceneRef.current = { controls, setBody, paint }
+    sceneRef.current = { controls, setBody, paint, invalidate }
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
-      renderer.domElement.removeEventListener('pointerdown', onDown)
-      renderer.domElement.removeEventListener('pointerup', onUp)
-      renderer.domElement.removeEventListener('pointermove', onMove)
+      io.disconnect()
+      el.removeEventListener('pointerdown', onDown)
+      el.removeEventListener('pointerup', onUp)
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerleave', onLeave)
+      controls.removeEventListener('change', invalidate)
       controls.dispose()
       material.dispose()
       pedestal.geometry.dispose()
       ;(pedestal.material as THREE.Material).dispose()
       renderer.dispose()
-      renderer.domElement.remove()
+      el.remove()
       sceneRef.current = null
       st.body = null
     }
@@ -213,7 +270,10 @@ export default function BodyViewer({ sex, status, selected, onSelect, autoRotate
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (sceneRef.current) sceneRef.current.controls.autoRotate = autoRotate && !reduce
+    if (sceneRef.current) {
+      sceneRef.current.controls.autoRotate = autoRotate && !reduce
+      sceneRef.current.invalidate()
+    }
   }, [autoRotate])
 
   return (

@@ -123,6 +123,9 @@ const ResumenDashboard = IS_V2 ? NutritionResumenDashboardV2 : NutritionResumenD
 const VALID_TABS = ['resumen', 'datos', 'antropometria', 'plan', 'historia', 'archivos'] as const
 type TabId = (typeof VALID_TABS)[number]
 
+/** v2: cada paciente abre en Antropometría; v1 sigue abriendo en Resumen. */
+const DEFAULT_TAB: TabId = IS_V2 ? 'antropometria' : 'resumen'
+
 function isValidTab(value: string | null): value is TabId {
   return value !== null && (VALID_TABS as readonly string[]).includes(value)
 }
@@ -205,16 +208,16 @@ export function NutritionPatientDetailView({
   const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [panelTab, setPanelTab] = useState<TabId>('resumen')
+  const [panelTab, setPanelTab] = useState<TabId>(DEFAULT_TAB)
   const activeTab: TabId =
     variant === 'panel'
       ? panelTab
       : isValidTab(searchParams.get('tab'))
         ? (searchParams.get('tab') as TabId)
-        : 'resumen'
+        : DEFAULT_TAB
 
   useEffect(() => {
-    if (variant === 'panel') setPanelTab('resumen')
+    if (variant === 'panel') setPanelTab(DEFAULT_TAB)
   }, [id, variant])
   const [fileFilter, setFileFilter] = useState<'all' | NutritionDocumentCategory>('all')
   const [loading, setLoading] = useState(true)
@@ -622,17 +625,18 @@ export function NutritionPatientDetailView({
     return documents.filter((d) => d.category === fileFilter)
   }, [documents, fileFilter])
 
-  const tabs: TabItem[] = useMemo(
-    () => [
-      { id: 'resumen', label: 'Resumen', icon: <LayoutDashboard /> },
+  const tabs: TabItem[] = useMemo(() => {
+    const anthro: TabItem = { id: 'antropometria', label: 'Antropometría', icon: <Activity />, count: measurements.length || undefined }
+    const resumen: TabItem = { id: 'resumen', label: 'Resumen', icon: <LayoutDashboard /> }
+    return [
+      ...(IS_V2 ? [anthro, resumen] : [resumen]),
       { id: 'datos', label: 'Datos personales', icon: <UserRound /> },
-      { id: 'antropometria', label: 'Antropometría', icon: <Activity />, count: measurements.length || undefined },
+      ...(IS_V2 ? [] : [anthro]),
       { id: 'plan', label: 'Plan', icon: <Utensils /> },
       { id: 'historia', label: 'Historia', icon: <ClipboardList /> },
       { id: 'archivos', label: 'Archivos', icon: <FolderOpen />, count: documents.length || undefined },
-    ],
-    [documents.length, measurements.length],
-  )
+    ]
+  }, [documents.length, measurements.length])
 
   if (loading) {
     return (
@@ -807,6 +811,7 @@ export function NutritionPatientDetailView({
               student={student}
               measurements={measurementsSorted}
               onRefresh={refreshMeasurements}
+              onStudentUpdated={setStudent}
               draft={programDraft}
               onDraftClear={() => setProgramDraft(null)}
               selectedId={selectedMeasurementId}

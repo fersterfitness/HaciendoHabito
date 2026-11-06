@@ -1,8 +1,10 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, UserRound } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { Card, CardTitle } from '@/components/ui/Card'
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { formatDate, cn } from '@/lib/utils'
+import { updateAccessibleStudent } from '@/lib/students/studentAccess'
 import type { AnthropometryDetail } from '@/lib/nutrition/anthropometryProgramModel'
 import {
   BODY_ZONE_STATUS_LABEL,
@@ -44,14 +46,53 @@ const signed = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : '±'}${nf(Math.ab
 const mediansOf = (m: NutritionMeasurement | undefined) => (m?.detail as AnthropometryDetail | null)?.medians ?? null
 
 /** Comparación de dos controles sobre un cuerpo 3D: qué zonas mejoraron y cuáles empeoraron. */
-export function NutritionBodyComparisonCard({ student, measurements }: { student: Student; measurements: NutritionMeasurement[] }) {
+/** Para «Otro», el cuerpo a mostrar se recuerda en este navegador sin tocar la ficha. */
+const modelKey = (id: string) => `hh-body-model:${id}`
+function readStoredModel(id: string): BodySex | null {
+  try {
+    const v = localStorage.getItem(modelKey(id))
+    return v === 'M' || v === 'F' ? v : null
+  } catch {
+    return null
+  }
+}
+
+export function NutritionBodyComparisonCard({
+  student,
+  measurements,
+  onStudentUpdated,
+}: {
+  student: Student
+  measurements: NutritionMeasurement[]
+  onStudentUpdated?: (next: Student) => void
+}) {
   const asc = useMemo(() => [...measurements].sort((a, b) => a.measured_at.localeCompare(b.measured_at)), [measurements])
   const lastIdx = asc.length - 1
   const [aId, setAId] = useState<string | null>(null)
   const [bId, setBId] = useState<string | null>(null)
   const a = asc.find((m) => m.id === aId) ?? asc[lastIdx - 1]
   const b = asc.find((m) => m.id === bId) ?? asc[lastIdx]
-  const [sex, setSex] = useState<BodySex>(student.gender === 'F' ? 'F' : 'M')
+  const [otherModel, setOtherModel] = useState<BodySex | null>(() => readStoredModel(student.id))
+  const [savingSex, setSavingSex] = useState(false)
+  // Se carga un solo cuerpo: el que corresponde al sexo de la ficha.
+  const sex: BodySex | null = student.gender === 'M' || student.gender === 'F' ? student.gender : student.gender === 'otro' ? otherModel : null
+
+  const chooseSex = async (s: BodySex) => {
+    if (student.gender === 'otro') {
+      try { localStorage.setItem(modelKey(student.id), s) } catch { /* sin almacenamiento: vale para esta sesión */ }
+      setOtherModel(s)
+      return
+    }
+    setSavingSex(true)
+    const { error } = await updateAccessibleStudent(student.id, { gender: s })
+    setSavingSex(false)
+    if (error) {
+      toast.error('No se pudo guardar el sexo del paciente. Probá de nuevo o cargalo en Datos personales.')
+      return
+    }
+    toast.success('Sexo guardado en la ficha')
+    onStudentUpdated?.({ ...student, gender: s })
+  }
   const [selected, setSelected] = useState<BodyZoneId | null>(null)
   const [spin, setSpin] = useState(true)
 
@@ -105,22 +146,41 @@ export function NutritionBodyComparisonCard({ student, measurements }: { student
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
         <div className="relative aspect-[4/5] max-h-[620px] w-full overflow-hidden rounded-2xl bg-[#17171b]">
-          <Suspense fallback={<span className="absolute inset-0 grid place-items-center text-xs text-ink-muted">Cargando visor…</span>}>
-            <BodyViewer sex={sex} status={status} selected={selected} onSelect={setSelected} autoRotate={spin} />
-          </Suspense>
-          <div className="absolute right-3 top-3 flex gap-1.5">
-            <div className="flex rounded-lg bg-black/40 p-0.5 text-2xs backdrop-blur">
-              {(['M', 'F'] as const).map((s) => (
-                <button key={s} type="button" onClick={() => setSex(s)} aria-pressed={sex === s} className={cn('rounded-md px-2 py-1', sex === s ? 'bg-white/90 font-semibold text-black' : 'text-white/70 hover:text-white')}>
-                  {s === 'M' ? 'Hombre' : 'Mujer'}
+          {sex ? (
+            <>
+              <Suspense fallback={<span className="absolute inset-0 grid place-items-center text-xs text-white/60">Cargando visor…</span>}>
+                <BodyViewer sex={sex} status={status} selected={selected} onSelect={setSelected} autoRotate={spin} />
+              </Suspense>
+              <div className="absolute right-3 top-3 flex gap-1.5">
+                {student.gender === 'otro' ? (
+                  <button type="button" onClick={() => setOtherModel(null)} className="h-7 rounded-lg bg-black/40 px-2.5 text-2xs text-white/80 backdrop-blur hover:text-white">
+                    Cambiar cuerpo
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => setSpin((v) => !v)} aria-label={spin ? 'Pausar giro' : 'Girar'} className="grid h-7 w-7 place-items-center rounded-lg bg-black/40 text-white/80 backdrop-blur hover:text-white">
+                  {spin ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                 </button>
-              ))}
+              </div>
+            </>
+          ) : (
+            <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80"><UserRound className="h-5 w-5" /></span>
+              <p className="text-sm font-semibold text-white">{student.gender === 'otro' ? '¿Qué cuerpo mostramos?' : 'Falta el sexo del paciente'}</p>
+              <p className="max-w-[30ch] text-2xs text-white/60">
+                {student.gender === 'otro'
+                  ? 'En la ficha figura «Otro». Elegí el cuerpo para ver la comparación; no cambia la ficha.'
+                  : 'Lo usamos para mostrar el cuerpo que corresponde. Se guarda en la ficha del paciente.'}
+              </p>
+              <div className="flex gap-2">
+                {(['M', 'F'] as const).map((s) => (
+                  <button key={s} type="button" disabled={savingSex} onClick={() => void chooseSex(s)} className="h-8 rounded-lg bg-white/90 px-3 text-xs font-semibold text-black hover:bg-white disabled:opacity-60">
+                    {s === 'M' ? 'Masculino' : 'Femenino'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button type="button" onClick={() => setSpin((v) => !v)} aria-label={spin ? 'Pausar giro' : 'Girar'} className="grid h-7 w-7 place-items-center rounded-lg bg-black/40 text-white/80 backdrop-blur hover:text-white">
-              {spin ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-          <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap gap-x-3 gap-y-1 text-3xs text-white/70">
+          )}
+          <div className={cn('pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap gap-x-3 gap-y-1 text-3xs text-white/70', !sex && 'hidden')}>
             {(['good', 'bad', 'alert', 'same'] as const).map((s) => (
               <span key={s} className="inline-flex items-center gap-1">
                 <i className={cn('h-2 w-2 rounded-full', DOT[s])} />

@@ -36,6 +36,8 @@ interface Props {
   /** Del más nuevo al más viejo. */
   measurements: NutritionMeasurement[]
   onRefresh: () => Promise<void> | void
+  /** Cuando se completa un dato de la ficha desde la pestaña (p. ej. el sexo). */
+  onStudentUpdated?: (next: Student) => void
   draft: AnthropometryProgramDraft
   onDraftClear: () => void
   selectedId: string | null
@@ -186,7 +188,7 @@ export function NutritionAnthropometryTabV2(props: Props) {
             </div>
           ) : null}
 
-          <NutritionBodyComparisonCard student={student} measurements={measurements} />
+          <NutritionBodyComparisonCard student={student} measurements={measurements} onStudentUpdated={props.onStudentUpdated} />
 
           <Card padding="md">
             <CardTitle className="mb-3">Evolución</CardTitle>

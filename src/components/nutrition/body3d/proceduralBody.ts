@@ -4,9 +4,8 @@
  * convertido a malla con «surface nets». Cada vértice queda asignado a la zona
  * del músculo más cercano.
  */
-import * as THREE from 'three'
 import type { BodyZoneId } from '@/lib/nutrition/bodyZoneComparison'
-import type { BodySex, ZonedGeometry } from './types'
+import { BODY_ZONE_INDEX, type BodyMeshData, type BodySex } from './types'
 
 type V3 = [number, number, number]
 type Zone = BodyZoneId | null
@@ -148,7 +147,8 @@ function field(x: number, y: number, z: number, P: Prim[]) {
   return d
 }
 
-export function buildProceduralBody(sex: BodySex): ZonedGeometry {
+/** Sin dependencias de three: corre en un Web Worker para no trabar la pantalla. */
+export function buildProceduralBodyData(sex: BodySex): BodyMeshData {
   const P = anatomy(sex)
   const h = 0.0075, x0 = -0.46, y0 = -0.005, z0 = -0.18
   const nx = Math.ceil(0.92 / h) + 1, ny = Math.ceil(1.84 / h) + 1, nz = Math.ceil(0.44 / h) + 1
@@ -198,7 +198,7 @@ export function buildProceduralBody(sex: BodySex): ZonedGeometry {
 
   const nv = pos.length / 3
   const nor = new Float32Array(nv * 3)
-  const zones: Zone[] = new Array(nv)
+  const zones = new Uint8Array(nv)
   const e = h * 0.5
   for (let v = 0; v < nv; v++) {
     const x = pos[v * 3]!, y = pos[v * 3 + 1]!, z = pos[v * 3 + 2]!
@@ -213,7 +213,7 @@ export function buildProceduralBody(sex: BodySex): ZonedGeometry {
       const dv = prim(x, y, z, p)
       if (dv < best) { best = dv; bz = p.zone }
     }
-    zones[v] = bz
+    zones[v] = bz ? BODY_ZONE_INDEX[bz] : 0
   }
   for (let t = 0; t < idx.length; t += 3) {
     const a = idx[t]! * 3, b = idx[t + 1]! * 3, c = idx[t + 2]! * 3
@@ -223,10 +223,5 @@ export function buildProceduralBody(sex: BodySex): ZonedGeometry {
     if (fx * nor[a]! + fy * nor[a + 1]! + fz * nor[a + 2]! < 0) { const s = idx[t + 1]!; idx[t + 1] = idx[t + 2]!; idx[t + 2] = s }
   }
 
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
-  geometry.setAttribute('normal', new THREE.BufferAttribute(nor, 3))
-  geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(nv * 3), 3))
-  geometry.setIndex(idx)
-  return { geometry, zones, source: 'procedural' }
+  return { positions: new Float32Array(pos), normals: nor, index: new Uint32Array(idx), zones }
 }

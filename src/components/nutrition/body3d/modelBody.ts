@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { BodyZoneId } from '@/lib/nutrition/bodyZoneComparison'
-import type { BodySex, ZonedGeometry } from './types'
+import { BODY_ZONE_INDEX, type BodySex, type ZonedGeometry } from './types'
 
 export const BODY_MODEL_URL: Record<BodySex, string> = {
   M: '/models/body-male.glb',
@@ -81,8 +81,11 @@ export async function loadModelBody(sex: BodySex): Promise<ZonedGeometry | null>
 
   const tPose = size.x * s > HEIGHT * 0.75
   const pos = geometry.getAttribute('position')
-  const zones: (BodyZoneId | null)[] = new Array(pos.count)
-  for (let i = 0; i < pos.count; i++) zones[i] = zoneAt(pos.getX(i), pos.getY(i), tPose)
+  const zones = new Uint8Array(pos.count)
+  for (let i = 0; i < pos.count; i++) {
+    const z = zoneAt(pos.getX(i), pos.getY(i), tPose)
+    zones[i] = z ? BODY_ZONE_INDEX[z] : 0
+  }
   geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3))
   return { geometry, zones, source: 'model' }
 }
