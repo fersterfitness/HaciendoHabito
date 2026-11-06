@@ -38,6 +38,7 @@ import {
   type NutritionFollowupRow,
 } from '@/components/nutrition/NutritionPatientDirectory'
 import { NutritionPatientTable, NutritionPatientTableSkeleton } from '@/components/nutrition/NutritionPatientTable'
+import { NutritionAttentionPanel } from '@/components/nutrition/NutritionAttentionPanel'
 import { NutritionPatientDetailView } from '@/pages/nutrition/NutritionPatientDetailPage'
 import { cn } from '@/lib/utils'
 import { IS_V2 } from '@/lib/uiVersion'
@@ -361,6 +362,8 @@ export function NutritionPage() {
             </div>
           </div>
         </PageToolbar>
+
+        {IS_V2 && user && !loading ? <NutritionAttentionPanel ownerId={user.id} rows={rows} onOpen={setSelectedPatientId} /> : null}
 
         <div className={IS_V2 ? '-mx-4 flex gap-1.5 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:flex-wrap sm:px-0' : 'flex flex-wrap gap-1.5'}>
           {PATIENT_FILTERS.map((f) => (
