@@ -59,6 +59,9 @@ const NutritionPage = lazy(() => import('@/pages/nutrition/NutritionPage').then(
 const NutritionPatientDetailPage = lazy(() =>
   import('@/pages/nutrition/NutritionPatientDetailPage').then((m) => ({ default: m.NutritionPatientDetailPage })),
 )
+const NutritionAnthropometryReportPage = lazy(() =>
+  import('@/pages/nutrition/NutritionAnthropometryReportPage').then((m) => ({ default: m.NutritionAnthropometryReportPage })),
+)
 const NutritionComparativePage = lazy(() =>
   import('@/pages/nutrition/NutritionComparativePage').then((m) => ({ default: m.NutritionComparativePage })),
 )
@@ -241,6 +244,10 @@ function renderLoggedInRoutes({
       />
       <Route path="nutrition/templates" element={<Navigate to="/nutrition/plans" replace />} />
       <Route path="nutrition/:id" element={canSeeNutrition ? withPageSuspense(<NutritionPatientDetailPage />) : <Navigate to="/dashboard" replace />} />
+      <Route
+        path="nutrition/:id/informe"
+        element={canSeeNutrition ? withPageSuspense(<NutritionAnthropometryReportPage />) : <Navigate to="/dashboard" replace />}
+      />
       <Route path="nutrition-pdfs" element={canSeeNutrition ? withPageSuspense(<NutritionComparativePage />) : <Navigate to="/dashboard" replace />} />
 
       <Route path="appointments" element={canSeeAppointments ? withPageSuspense(<NutritionAppointmentsPage />) : <Navigate to="/dashboard" replace />} />

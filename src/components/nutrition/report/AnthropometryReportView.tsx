@@ -188,7 +188,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
   if (!current || !data) return null
 
   return createPortal(
-    <div id={ROOT_ID} className="fixed inset-0 z-[60] flex flex-col bg-surface-base">
+    <div id={ROOT_ID} className="fixed inset-0 z-[10070] flex flex-col bg-surface-base">
 
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface-card px-3 py-2.5 sm:px-4">

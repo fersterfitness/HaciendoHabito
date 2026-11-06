@@ -1,4 +1,4 @@
-import { type RefObject, Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import { type RefObject, useEffect, useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AlertCircle, Check, FileImage, History, Loader2, Plus, RotateCcw, Save, Sparkles, X } from 'lucide-react'
@@ -19,10 +19,6 @@ import { NutritionAnthropometryPresentationPanel } from './NutritionAnthropometr
 import { AiMarkdown } from './AnthropometryAiMarkdown'
 import { NutritionBodyComparisonCard } from './NutritionBodyComparisonCard'
 import { Delta, METRICS, nf, type Metric } from './NutritionResumenDashboardV2'
-
-const AnthropometryReportView = lazy(() =>
-  import('./report/AnthropometryReportView').then((m) => ({ default: m.AnthropometryReportView })),
-)
 
 /**
  * Antropometría v2: un solo lugar. Arriba "Nuevo control" (PDF o a mano), después el último control,
@@ -61,7 +57,11 @@ export function NutritionAnthropometryTabV2(props: Props) {
   const { ownerId, student, measurements, onRefresh, draft, onDraftClear, importFile, formRef } = props
   const [formOpen, setFormOpen] = useState(measurements.length === 0)
   const ai = useAiAnalysis(ownerId, student.id, measurements)
-  const [reportOpen, setReportOpen] = useState(false)
+  // El informe va en su propia pestaña: así no queda debajo del panel flotante del paciente.
+  const openReport = () => {
+    const q = props.selectedId ? `?control=${encodeURIComponent(props.selectedId)}` : ''
+    window.open(`/nutrition/${student.id}/informe${q}`, '_blank')
+  }
 
   useEffect(() => {
     if (!draft && !importFile) return
@@ -122,7 +122,7 @@ export function NutritionAnthropometryTabV2(props: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           {measurements.length ? (
-            <Button type="button" size="sm" variant="secondary" icon={<FileImage className="h-4 w-4" />} onClick={() => setReportOpen(true)}>
+            <Button type="button" size="sm" variant="secondary" icon={<FileImage className="h-4 w-4" />} onClick={openReport}>
               Informe
             </Button>
           ) : null}
@@ -175,18 +175,6 @@ export function NutritionAnthropometryTabV2(props: Props) {
 
       <AiAnalysisPanel ai={ai} />
 
-      {reportOpen ? (
-        <Suspense fallback={null}>
-          <AnthropometryReportView
-            ownerId={ownerId}
-            student={student}
-            measurements={measurements}
-            initialId={props.selectedId}
-            onClose={() => setReportOpen(false)}
-            onSaved={onRefresh}
-          />
-        </Suspense>
-      ) : null}
 
       {latest ? (
         <>
