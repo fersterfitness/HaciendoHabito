@@ -133,37 +133,37 @@ export function NutritionBodyComparisonCard({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-        <div className="relative aspect-[4/5] max-h-[620px] w-full overflow-hidden rounded-2xl bg-[#17171b]">
+        <div className="relative aspect-[4/5] max-h-[620px] w-full overflow-hidden rounded-2xl bg-[#ebe8ef] dark:bg-[#17171b]">
           {sex ? (
             <>
-              <Suspense fallback={<span className="absolute inset-0 grid place-items-center text-xs text-white/60">Cargando cuerpo…</span>}>
+              <Suspense fallback={<span className="absolute inset-0 grid place-items-center text-xs text-ink-muted dark:text-white/60">Cargando cuerpo…</span>}>
                 <BodyMap2D sex={sex} status={status} selected={selected} onSelect={setSelected} />
               </Suspense>
               {student.gender === 'otro' ? (
-                <button type="button" onClick={() => setOtherModel(null)} className="absolute left-3 top-3 h-7 rounded-lg bg-black/45 px-2.5 text-2xs text-white/80 backdrop-blur hover:text-white">
+                <button type="button" onClick={() => setOtherModel(null)} className="absolute left-3 top-3 h-7 rounded-lg bg-white/80 px-2.5 text-2xs text-ink-secondary shadow-sm backdrop-blur hover:text-ink-primary dark:bg-black/45 dark:text-white/80 dark:shadow-none dark:hover:text-white">
                   Cambiar cuerpo
                 </button>
               ) : null}
             </>
           ) : (
             <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80"><UserRound className="h-5 w-5" /></span>
-              <p className="text-sm font-semibold text-white">{student.gender === 'otro' ? '¿Qué cuerpo mostramos?' : 'Falta el sexo del paciente'}</p>
-              <p className="max-w-[30ch] text-2xs text-white/60">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-black/5 text-ink-secondary dark:bg-white/10 dark:text-white/80"><UserRound className="h-5 w-5" /></span>
+              <p className="text-sm font-semibold text-ink-primary dark:text-white">{student.gender === 'otro' ? '¿Qué cuerpo mostramos?' : 'Falta el sexo del paciente'}</p>
+              <p className="max-w-[30ch] text-2xs text-ink-muted dark:text-white/60">
                 {student.gender === 'otro'
                   ? 'En la ficha figura «Otro». Elegí el cuerpo para ver la comparación; no cambia la ficha.'
                   : 'Lo usamos para mostrar el cuerpo que corresponde. Se guarda en la ficha del paciente.'}
               </p>
               <div className="flex gap-2">
                 {(['M', 'F'] as const).map((s) => (
-                  <button key={s} type="button" disabled={savingSex} onClick={() => void chooseSex(s)} className="h-8 rounded-lg bg-white/90 px-3 text-xs font-semibold text-black hover:bg-white disabled:opacity-60">
+                  <button key={s} type="button" disabled={savingSex} onClick={() => void chooseSex(s)} className="h-8 rounded-lg bg-ink-primary px-3 text-xs font-semibold text-surface-card hover:opacity-90 disabled:opacity-60 dark:bg-white/90 dark:text-black dark:hover:bg-white">
                     {s === 'M' ? 'Masculino' : 'Femenino'}
                   </button>
                 ))}
               </div>
             </div>
           )}
-          <div className={cn('pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap gap-x-3 gap-y-1 text-3xs text-white/70', !sex && 'hidden')}>
+          <div className={cn('pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap gap-x-3 gap-y-1 text-3xs text-ink-secondary dark:text-white/70', !sex && 'hidden')}>
             {(['good', 'bad', 'alert', 'same'] as const).map((s) => (
               <span key={s} className="inline-flex items-center gap-1">
                 <i className={cn('h-2 w-2 rounded-full', DOT[s])} />

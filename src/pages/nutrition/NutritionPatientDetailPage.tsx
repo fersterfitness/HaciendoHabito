@@ -1123,18 +1123,20 @@ export function NutritionPatientDetailView({
         {/* ───────────── PLAN ───────────── */}
         <TabPanel id="plan" active={activeTab}>
           <div className="space-y-6">
-            <NutritionAssignedPlansCard student={student} />
+            {IS_V2 ? null : <NutritionAssignedPlansCard student={student} />}
             <Card>
-              <CardTitle className="mb-1">Plan semanal (PDF)</CardTitle>
-              <p className="text-sm text-ink-muted mb-4">
-                {IS_V2
-                  ? 'Grilla por días y comidas que se entrega en PDF o por link.'
-                  : 'Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño. Este plan se entrega en PDF; para que el paciente lo vea en su cuenta, usá «Armar plan» y asignalo (arriba).'}
-              </p>
+              {IS_V2 ? null : (
+                <>
+                  <CardTitle className="mb-1">Plan semanal (PDF)</CardTitle>
+                  <p className="text-sm text-ink-muted mb-4">
+                    Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño. Este plan se entrega en PDF; para que el paciente lo vea en su cuenta, usá «Armar plan» y asignalo (arriba).
+                  </p>
+                </>
+              )}
               <NutritionWeeklyPlanSection student={student} measurements={measurements} suggestedNextDate={followup?.next_consultation_date ?? null} />
               <div className="border-t border-surface-border pt-6 mt-8 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-ink-primary">Notas libres complementarias</span>
+                  <span className="text-sm font-medium text-ink-primary">{IS_V2 ? 'Notas para el paciente' : 'Notas libres complementarias'}</span>
                   <span className="text-xs text-ink-muted">{savingPlan ? 'Guardando...' : 'Guardado automático'}</span>
                 </div>
                 <textarea
@@ -1144,12 +1146,14 @@ export function NutritionPatientDetailView({
                     setPlanText(next)
                     schedulePlanAutosave(next)
                   }}
-                  rows={10}
+                  rows={IS_V2 ? 4 : 10}
                   placeholder="Recordatorios, generalidades que no están en la grilla, comunicación informal al paciente…"
                   className={cn(controlBaseClassName, 'w-full px-3 py-2.5 text-sm')}
                 />
               </div>
             </Card>
+
+            {IS_V2 ? <NutritionAssignedPlansCard student={student} compact /> : null}
 
             <div className="grid md:grid-cols-2 gap-6">
               <NutritionRequirementsCalculatorCard student={student} latest={IS_V2 ? measurementsSorted[0] ?? null : null} />

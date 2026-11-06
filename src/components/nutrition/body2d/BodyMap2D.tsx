@@ -96,16 +96,16 @@ export default function BodyMap2D({ sex, status, selected, onSelect }: BodyMap2D
         </div>
       </div>
       {!data.frente && !failed ? (
-        <span className="pointer-events-none absolute inset-0 grid place-items-center text-xs text-white/60">Cargando cuerpo…</span>
+        <span className="pointer-events-none absolute inset-0 grid place-items-center text-xs text-ink-muted dark:text-white/60">Cargando cuerpo…</span>
       ) : null}
       {failed ? (
-        <span className="absolute inset-0 grid place-items-center px-6 text-center text-xs text-white/70">No se pudo cargar la imagen del cuerpo. Recargá la página.</span>
+        <span className="absolute inset-0 grid place-items-center px-6 text-center text-xs text-ink-muted dark:text-white/70">No se pudo cargar la imagen del cuerpo. Recargá la página.</span>
       ) : null}
       <button
         type="button"
         onClick={() => setView((v) => (v === 'frente' ? 'espalda' : 'frente'))}
         disabled={view === 'frente' && !data.espalda}
-        className="absolute right-3 top-3 inline-flex h-7 items-center gap-1.5 rounded-lg bg-black/45 px-2.5 text-2xs font-semibold text-white/85 backdrop-blur hover:text-white disabled:opacity-50"
+        className="absolute right-3 top-3 inline-flex h-7 items-center gap-1.5 rounded-lg bg-white/80 px-2.5 text-2xs font-semibold text-ink-secondary shadow-sm backdrop-blur hover:text-ink-primary disabled:opacity-50 dark:bg-black/45 dark:text-white/85 dark:shadow-none dark:hover:text-white"
       >
         <RotateCw className="h-3.5 w-3.5" />
         {view === 'frente' ? 'Ver espalda' : 'Ver frente'}

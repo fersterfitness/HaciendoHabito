@@ -25,7 +25,7 @@ import type {
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
-import { ShareMealPlanCardV2 } from '@/components/nutrition/ShareMealPlanCardV2'
+import { planMenuItemClass, ShareMealPlanActionsV2 } from '@/components/nutrition/ShareMealPlanCardV2'
 import { IS_V2 } from '@/lib/uiVersion'
 import toast from 'react-hot-toast'
 
@@ -386,10 +386,88 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
     return <p className="text-sm text-ink-muted py-4 text-center">Cargando plan semanal…</p>
   }
 
+  const activeVersion = versions.find((v) => v.id === activeVersionId) ?? null
+
   return (
     <div className="space-y-4">
       {IS_V2 ? (
-        <ShareMealPlanCardV2 studentId={sid} studentName={student.full_name} studentPhone={student.phone} />
+        // v2: qué plan es y si está guardado; a la vista solo mandarlo y verlo. El resto, en «⋯».
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-ink-primary">Plan semanal</h3>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">
+              {activeVersion ? `Versión ${activeVersion.version_number}` : 'Plan del paciente'} · {saving ? 'Guardando…' : 'Guardado'}
+            </p>
+          </div>
+          <ShareMealPlanActionsV2
+            studentId={sid}
+            studentName={student.full_name}
+            studentPhone={student.phone}
+            menu={(close) => (
+              <>
+                <button
+                  type="button"
+                  className={planMenuItemClass}
+                  disabled={exportingPdf}
+                  onClick={() => {
+                    close()
+                    void downloadPdf()
+                  }}
+                >
+                  <FileDown className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+                  Descargar PDF
+                </button>
+                {libraryPlans.length > 0 ? (
+                  <label className="block px-2 py-1.5 text-[12px] text-ink-muted">
+                    Traer un plan de la biblioteca
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        const v = e.target.value
+                        e.target.selectedIndex = 0
+                        if (!v) return
+                        close()
+                        void importFromLibrary(v)
+                      }}
+                      className={cn(controlSmClassName, 'mt-1 w-full cursor-pointer px-2 text-[13px]')}
+                    >
+                      <option value="">Elegí un plan…</option>
+                      {libraryPlans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                {versions.length > 1 ? (
+                  <div className="px-2 py-1.5">
+                    <p className="text-[12px] text-ink-muted">Volver a una versión anterior</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {versions.slice(0, 8).map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            close()
+                            if (v.id !== activeVersionId) void activateVersion(v.id)
+                          }}
+                          aria-pressed={v.id === activeVersionId}
+                          className={cn(
+                            'h-7 rounded-md px-2 text-[12px] font-medium tabular-nums transition-colors',
+                            v.id === activeVersionId ? 'bg-ink-primary text-surface-card' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+                          )}
+                        >
+                          V{v.version_number}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
+          />
+        </div>
       ) : (
         <div className="rounded-2xl border border-brand-secondary/25 bg-brand-secondary/[0.06] p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -468,7 +546,7 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         )}
       </div>
 
-      {libraryPlans.length > 0 && (
+      {!IS_V2 && libraryPlans.length > 0 && (
         <label className="flex flex-wrap items-center gap-2 text-xs text-ink-secondary">
           <span>Importar plan desde biblioteca</span>
           <select
@@ -518,7 +596,7 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         </label>
       )}
 
-      {versions.length > 0 && (
+      {!IS_V2 && versions.length > 0 && (
         <div className="rounded-xl border border-surface-border p-3 bg-surface-elevated/40">
           <p className="text-xs font-semibold text-ink-secondary mb-2">Historial de versiones</p>
           <div className="flex flex-wrap gap-2">
@@ -557,6 +635,7 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         </div>
       )}
 
+      {IS_V2 ? null : (
       <div className="flex flex-wrap gap-3 items-center pt-2">
         <Button
           type="button"
@@ -570,6 +649,7 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         </Button>
         <span className="text-xs text-ink-muted">{saving ? 'Guardando…' : 'Sin cambios pendientes'}</span>
       </div>
+      )}
 
       {importDialog ? (
         <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">

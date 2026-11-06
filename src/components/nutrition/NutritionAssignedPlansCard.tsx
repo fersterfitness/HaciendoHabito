@@ -15,7 +15,14 @@ type Row = Pick<TrainerStudentMealPlan, 'id' | 'title' | 'start_date' | 'end_dat
  * Planes asignados que el paciente ve en «Mi plan de alimentación».
  * Se arman en «Armar plan» y se asignan desde ahí; este bloque los lista dentro de la ficha.
  */
-export function NutritionAssignedPlansCard({ student }: { student: Pick<Student, 'id' | 'full_name' | 'profile_id'> }) {
+export function NutritionAssignedPlansCard({
+  student,
+  compact = false,
+}: {
+  student: Pick<Student, 'id' | 'full_name' | 'profile_id'>
+  /** v2: sin planes asignados queda en una línea; con planes, una lista corta. */
+  compact?: boolean
+}) {
   const navigate = useAppNavigate()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,18 +60,36 @@ export function NutritionAssignedPlansCard({ student }: { student: Pick<Student,
 
   const active = rows.filter((r) => !r.completed_at)
 
+  if (compact && !loading && rows.length === 0) {
+    return (
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[13px] text-ink-muted">
+        <ClipboardList className="h-4 w-4 shrink-0" aria-hidden />
+        Si tiene cuenta en la app, también podés armarle un plan para que lo vea ahí.
+        <button
+          type="button"
+          onClick={() => navigate(`/nutrition/planning?student=${student.id}`)}
+          className="font-medium text-ink-primary underline-offset-2 hover:underline"
+        >
+          Armar plan en la app
+        </button>
+      </p>
+    )
+  }
+  if (compact && loading) return null
+
   return (
     <Card>
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle>Planes que ve el paciente</CardTitle>
+          <CardTitle>{compact ? 'Planes en su cuenta de la app' : 'Planes que ve el paciente'}</CardTitle>
           <p className="mt-1 text-sm text-ink-muted">
-            Se arman en «Armar plan» y le aparecen en «Mi plan de alimentación».
-            {student.profile_id ? null : ' Este paciente todavía no tiene la cuenta vinculada: los verá cuando la vincules.'}
+            {compact ? 'Los ve en «Mi plan de alimentación».' : 'Se arman en «Armar plan» y le aparecen en «Mi plan de alimentación».'}
+            {student.profile_id ? null : compact ? ' Todavía no tiene la cuenta vinculada.' : ' Este paciente todavía no tiene la cuenta vinculada: los verá cuando la vincules.'}
           </p>
         </div>
         <Button
           size="sm"
+          variant={compact ? 'secondary' : undefined}
           icon={<Plus className="h-4 w-4" />}
           onClick={() => navigate(`/nutrition/planning?student=${student.id}`)}
         >
