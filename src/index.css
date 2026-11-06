@@ -572,40 +572,40 @@
   --pastel-sky: 241 235 245;
   --pastel-mint: 229 230 241;
   --pastel-butter: 253 243 214;
-  --pastel-rose-ink: 176 50 0;
+  --pastel-rose-ink: 190 80 56;
   --pastel-lavender-ink: 70 51 79;
   --pastel-peach-ink: 160 82 0;
   --pastel-sky-ink: 98 74 112;
   --pastel-mint-ink: 64 66 110;
   --pastel-butter-ink: 133 96 0;
-  --pastel-rose-accent: 242 79 19;
+  --pastel-rose-accent: 236 128 108;
   --pastel-lavender-accent: 70 51 79;
-  --pastel-peach-accent: 242 146 29;
+  --pastel-peach-accent: 244 172 110;
   --pastel-sky-accent: 168 150 184;
   --pastel-mint-accent: 128 130 166;
-  --pastel-butter-accent: 242 194 48;
+  --pastel-butter-accent: 242 200 96;
 }
 
-/* Modo oscuro: los colores de la paleta tal cual, sólidos, con texto negro encima. */
+/* Modo oscuro: los colores de la paleta suavizados (pastel), sólidos, con texto oscuro encima. */
 .dark {
-  --pastel-rose: 242 79 19;
+  --pastel-rose: 236 138 122;
   --pastel-lavender: 168 150 184;
-  --pastel-peach: 242 146 29;
+  --pastel-peach: 244 172 110;
   --pastel-sky: 196 184 208;
   --pastel-mint: 128 130 166;
-  --pastel-butter: 242 194 48;
+  --pastel-butter: 242 200 96;
   --pastel-rose-ink: 30 20 36;
   --pastel-lavender-ink: 30 20 36;
   --pastel-peach-ink: 30 20 36;
   --pastel-sky-ink: 30 20 36;
   --pastel-mint-ink: 30 20 36;
   --pastel-butter-ink: 30 20 36;
-  --pastel-rose-accent: 242 79 19;
+  --pastel-rose-accent: 236 128 108;
   --pastel-lavender-accent: 168 150 184;
-  --pastel-peach-accent: 242 146 29;
+  --pastel-peach-accent: 244 172 110;
   --pastel-sky-accent: 196 184 208;
   --pastel-mint-accent: 128 130 166;
-  --pastel-butter-accent: 242 194 48;
+  --pastel-butter-accent: 242 200 96;
 }
 
 
