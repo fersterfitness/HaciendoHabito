@@ -1,10 +1,11 @@
 import { controlBaseClassName, controlMdClassName, controlSmClassName } from '@/lib/formControlClasses'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { pdf } from '@react-pdf/renderer'
 import {
   Activity,
+  ChevronDown,
   ClipboardList,
   Download,
   FileText,
@@ -47,7 +48,8 @@ import { NutritionClinicalNotesSection } from '@/components/nutrition/NutritionC
 import { NutritionSymptomCheckinsSection } from '@/components/nutrition/NutritionSymptomCheckinsSection'
 import { NutritionRequirementsCalculatorCard } from '@/components/nutrition/NutritionRequirementsCalculatorCard'
 import { NutritionExchangeReferenceCard } from '@/components/nutrition/NutritionExchangeReferenceCard'
-import { NextConsultationBanner, NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
+import { NutritionResumenDashboard } from '@/components/nutrition/NutritionResumenDashboard'
+import { NutritionPatientHeaderV2 } from '@/components/nutrition/NutritionPatientHeaderV2'
 import { NutritionAnthropometryTabV2 } from '@/components/nutrition/NutritionAnthropometryTabV2'
 import { NutritionPatientPersonalDataSection } from '@/components/nutrition/NutritionPatientPersonalDataSection'
 import { NutritionWebIntakePanel } from '@/components/nutrition/NutritionWebIntakePanel'
@@ -154,8 +156,37 @@ export interface NutritionPatientDetailViewProps {
   onClosePanel?: () => void
 }
 
-function HistoriaAnamnesisBlock({ studentId, studentName }: { studentId: string; studentName: string }) {
+function HistoriaAnamnesisBlock({ studentId, studentName, student }: { studentId: string; studentName: string; student: Student }) {
   const [anamnesisReloadKey, setAnamnesisReloadKey] = useState(0)
+
+  if (IS_V2) {
+    // v2: lo que se usa en cada consulta arriba; la anamnesis (se completa una vez) abajo y plegada.
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardTitle className="mb-1">Notas de consulta</CardTitle>
+          <p className="mb-4 text-sm text-ink-muted">Lo que pasó en cada consulta, con fecha.</p>
+          <HistoriaClinicalNotes studentId={studentId} />
+        </Card>
+        <Card>
+          <CardTitle className="mb-1">Síntomas y adherencia</CardTitle>
+          <p className="mb-4 text-sm text-ink-muted">Registro breve entre consultas.</p>
+          <HistoriaSymptomCheckins studentId={studentId} />
+        </Card>
+        <CollapsibleCard title="Anamnesis alimentaria" subtitle="Primera consulta: el formulario y el link para que lo complete el paciente.">
+          <div className="mb-6">
+            <NutritionAnamnesisPublicLinkCard
+              studentId={studentId}
+              studentName={studentName}
+              onRedoComplete={() => setAnamnesisReloadKey((n) => n + 1)}
+            />
+          </div>
+          <NutritionAnamnesisSection studentId={studentId} reloadKey={anamnesisReloadKey} />
+        </CollapsibleCard>
+        <NutritionWebIntakePanel student={student} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -184,6 +215,22 @@ function HistoriaAnamnesisBlock({ studentId, studentName }: { studentId: string;
         <HistoriaSymptomCheckins studentId={studentId} />
       </Card>
     </div>
+  )
+}
+
+function CollapsibleCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Card>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center justify-between gap-3 text-left">
+        <span className="min-w-0">
+          <CardTitle>{title}</CardTitle>
+          <span className="mt-1 block text-sm text-ink-muted">{subtitle}</span>
+        </span>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-ink-muted transition-transform', open && 'rotate-180')} />
+      </button>
+      {open ? <div className="mt-5 border-t border-surface-border pt-5">{children}</div> : null}
+    </Card>
   )
 }
 
@@ -710,7 +757,7 @@ export function NutritionPatientDetailView({
   return (
     <div className={cn(variant === 'panel' && 'flex h-full min-h-0 flex-col bg-surface-base')}>
       {variant === 'page' ? (
-        <Header title={`Carpeta · ${student.full_name}`} showBack actions={headerActions} />
+        <Header title={IS_V2 ? 'Carpeta nutricional' : `Carpeta · ${student.full_name}`} showBack actions={IS_V2 ? undefined : headerActions} />
       ) : (
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-surface-border/80 bg-surface-card/90 px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
@@ -720,10 +767,10 @@ export function NutritionPatientDetailView({
             >
               Carpeta nutricional
             </p>
-            <p className="truncate text-base font-semibold text-ink-primary sm:text-lg">{student.full_name}</p>
+            {IS_V2 ? null : <p className="truncate text-base font-semibold text-ink-primary sm:text-lg">{student.full_name}</p>}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {headerActions}
+            {IS_V2 ? null : headerActions}
             <Button
               type="button"
               variant="ghost"
@@ -756,6 +803,16 @@ export function NutritionPatientDetailView({
           'space-y-6',
         )}
       >
+        {IS_V2 ? (
+          <div className={cn(variant === 'panel' ? 'px-4 pt-6 sm:px-6 lg:px-8' : 'pt-2')}>
+            <NutritionPatientHeaderV2
+              student={student}
+              followup={followup}
+              onStudentUpdated={setStudent}
+              onManageAppointments={() => navigate('/appointments')}
+            />
+          </div>
+        ) : null}
         <div
           className={cn(
             variant === 'page'
@@ -774,12 +831,6 @@ export function NutritionPatientDetailView({
         </div>
 
         <div className={cn(variant === 'panel' && 'px-4 pb-8 sm:px-6 lg:px-8')}>
-        {IS_V2 ? (
-          <div className="mb-5">
-            <NextConsultationBanner studentId={student.id} followup={followup} onManageAppointments={() => navigate('/appointments')} />
-          </div>
-        ) : null}
-
         {/* ───────────── RESUMEN (solo v1) ───────────── */}
         {IS_V2 ? null : (
         <TabPanel id="resumen" active={activeTab}>
@@ -806,9 +857,16 @@ export function NutritionPatientDetailView({
                 student={student}
                 ownerId={user.id}
                 onUpdated={(next) => setStudent(next)}
+                latestControl={IS_V2 ? measurementsSorted[0] ?? null : undefined}
               />
-              <NutritionWebIntakePanel student={student} />
-              <FersterStudentIntakePanel student={student} />
+              {IS_V2 ? (
+                <FersterStudentIntakePanel student={student} onlyIntake />
+              ) : (
+                <>
+                  <NutritionWebIntakePanel student={student} />
+                  <FersterStudentIntakePanel student={student} />
+                </>
+              )}
             </div>
           ) : null}
         </TabPanel>
@@ -838,6 +896,12 @@ export function NutritionPatientDetailView({
               }}
               formRef={programFormRef}
               openRequest={newControlRequest}
+              evolutionPdf={{
+                tone: pdfTone,
+                onToneChange: setPdfTone,
+                exporting: pdfExporting,
+                onExport: () => void handleExportEvolutionPdf(),
+              }}
             />
           ) : (
             <div className="space-y-6">
@@ -1041,8 +1105,9 @@ export function NutritionPatientDetailView({
             <Card>
               <CardTitle className="mb-1">Plan semanal (PDF)</CardTitle>
               <p className="text-sm text-ink-muted mb-4">
-                Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño. Este plan se entrega
-                en PDF; para que el paciente lo vea en su cuenta, usá «Armar plan» y asignalo (arriba).
+                {IS_V2
+                  ? 'Grilla por días y comidas que se entrega en PDF o por link.'
+                  : 'Plan semanal por días, con cards por comida. El PDF sale con el mismo diseño. Este plan se entrega en PDF; para que el paciente lo vea en su cuenta, usá «Armar plan» y asignalo (arriba).'}
               </p>
               <NutritionWeeklyPlanSection student={student} measurements={measurements} />
               <div className="border-t border-surface-border pt-6 mt-8 space-y-2">
@@ -1065,7 +1130,7 @@ export function NutritionPatientDetailView({
             </Card>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <NutritionRequirementsCalculatorCard student={student} />
+              <NutritionRequirementsCalculatorCard student={student} latest={IS_V2 ? measurementsSorted[0] ?? null : null} />
               <Card>
                 <NutritionExchangeReferenceCard />
               </Card>
@@ -1075,7 +1140,7 @@ export function NutritionPatientDetailView({
 
         {/* ───────────── HISTORIA ───────────── */}
         <TabPanel id="historia" active={activeTab}>
-          <HistoriaAnamnesisBlock studentId={student.id} studentName={student.full_name} />
+          <HistoriaAnamnesisBlock studentId={student.id} studentName={student.full_name} student={student} />
         </TabPanel>
 
         {/* ───────────── ARCHIVOS ───────────── */}
@@ -1089,6 +1154,11 @@ export function NutritionPatientDetailView({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
+                {IS_V2 ? (
+                  <Button size="sm" variant="secondary" icon={<Sparkles className="h-4 w-4" />} onClick={() => navigate(`/nutrition-pdfs?student=${student.id}`)}>
+                    Comparar 2 PDFs
+                  </Button>
+                ) : null}
                 {CATEGORIES.map((cat) => (
                   <label
                     key={cat.key}

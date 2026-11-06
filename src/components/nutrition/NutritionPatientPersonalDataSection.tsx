@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/Button'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { updateAccessibleStudent } from '@/lib/students/studentAccess'
 import { personalPatchFromIntakeSnapshot } from '@/lib/students/personalFromIntakeSnapshot'
-import type { Student } from '@/types/database'
+import type { NutritionMeasurement, Student } from '@/types/database'
+import { IS_V2 } from '@/lib/uiVersion'
+import { heightOf, weightOf } from '@/lib/nutrition/measurementDerivatives'
+import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   parseHeightCmFromInput,
@@ -17,6 +20,11 @@ interface Props {
   student: Student
   ownerId: string
   onUpdated: (updated: Student) => void
+  /**
+   * v2: último control antropométrico. Si hay, peso y talla salen de ahí y no se piden de nuevo;
+   * la foto va en el encabezado de la ficha.
+   */
+  latestControl?: NutritionMeasurement | null
 }
 
 type FormState = {
@@ -69,7 +77,7 @@ function ageFromBirth(birth: string): string | null {
   }
 }
 
-export function NutritionPatientPersonalDataSection({ student, onUpdated }: Props) {
+export function NutritionPatientPersonalDataSection({ student, onUpdated, latestControl }: Props) {
   const [form, setForm] = useState<FormState>(() => fromStudent(student))
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -165,10 +173,12 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated }: Prop
       <Card>
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
-              <UserRound className="h-4 w-4" />
-            </span>
-            <CardTitle>Datos personales</CardTitle>
+            {IS_V2 ? null : (
+              <span className="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-brand-primary/15 text-brand-primary dark:text-brand-primary">
+                <UserRound className="h-4 w-4" />
+              </span>
+            )}
+            <CardTitle>{IS_V2 ? 'Contacto e identidad' : 'Datos personales'}</CardTitle>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canImportFromIntake ? (
@@ -197,6 +207,7 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated }: Prop
           </div>
         </div>
 
+        {IS_V2 ? null : (
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 pb-5 border-b border-surface-border/60">
           <StudentAvatar
             studentId={student.id}
@@ -218,6 +229,7 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated }: Prop
             ) : null}
           </div>
         </div>
+        )}
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Nombre completo" required>
@@ -289,6 +301,9 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated }: Prop
         </div>
       </Card>
 
+      {IS_V2 && latestControl ? (
+        <ControlBasics m={latestControl} />
+      ) : (
       <Card>
         <CardTitle className="mb-4">Datos antropométricos básicos</CardTitle>
         <p className="text-xs text-ink-muted mb-4">
@@ -317,6 +332,7 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated }: Prop
           </Field>
         </div>
       </Card>
+      )}
 
       <Card>
         <CardTitle className="mb-4">Plan y notas</CardTitle>
@@ -341,6 +357,30 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated }: Prop
         </div>
       </Card>
     </div>
+  )
+}
+
+/** v2: peso y talla ya medidos en Antropometría; se muestran, no se vuelven a pedir. */
+function ControlBasics({ m }: { m: NutritionMeasurement }) {
+  const weight = weightOf(m)
+  const height = heightOf(m)
+  return (
+    <Card>
+      <CardTitle className="mb-1">Peso y talla</CardTitle>
+      <p className="text-xs text-ink-muted">
+        Del último control ({formatDate(m.measured_at.slice(0, 10))}). Se actualizan con cada control en Antropometría.
+      </p>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-sm">
+        <div className="rounded-xl bg-surface-elevated/60 px-3.5 py-2.5">
+          <p className="text-3xs font-medium text-ink-muted">Peso</p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums text-ink-primary">{weight != null ? `${weight} kg` : '—'}</p>
+        </div>
+        <div className="rounded-xl bg-surface-elevated/60 px-3.5 py-2.5">
+          <p className="text-3xs font-medium text-ink-muted">Talla</p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums text-ink-primary">{height != null ? `${height} cm` : '—'}</p>
+        </div>
+      </div>
+    </Card>
   )
 }
 

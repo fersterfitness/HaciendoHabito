@@ -74,13 +74,26 @@ function Section({
   )
 }
 
-export function FersterStudentIntakePanel({ student }: { student: Student }) {
+const INTAKE_KEYS = [
+  'training_since', 'days_per_week', 'lifestyle', 'training_intensity', 'session_duration', 'equipment', 'main_goal',
+  'pathology', 'discomfort_exercises', 'four_meals', 'sleep_hours', 'supplements', 'payment_preference', 'payment_notes',
+] as const
+
+/**
+ * `onlyIntake` (ficha nutricional v2): solo lo que respondió en el formulario. Los datos de la ficha
+ * (contacto, documento, peso, talla) ya están en «Datos personales» y no se repiten.
+ */
+export function FersterStudentIntakePanel({ student, onlyIntake = false }: { student: Student; onlyIntake?: boolean }) {
   const intake = student.intake_ferster as FersterIntakeStored | null | undefined
   const profile = useAuthStore((s) => s.profile)
   const canUseFinances =
     profile?.role === 'admin' || profile?.role === 'trainer' || profile?.role === 'nutritionist'
-  const hasExtra =
-    Boolean(student.document_id?.trim()) ||
+  const hasExtra = onlyIntake
+    ? INTAKE_KEYS.some((k) => {
+        const v = (intake as Record<string, unknown> | null | undefined)?.[k]
+        return v != null && v !== ''
+      }) || Object.keys(intake?.uploads ?? {}).some((k) => k !== 'profile')
+    : Boolean(student.document_id?.trim()) ||
     Boolean(student.address?.trim()) ||
     student.weight_kg != null ||
     student.height_cm != null ||
@@ -119,7 +132,7 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
   const i = intake
 
   return (
-    <div className="border-t border-surface-border/55 pt-6 ">
+    <div className={onlyIntake ? 'rounded-2xl border border-surface-border bg-surface-card p-5 sm:p-6' : 'border-t border-surface-border/55 pt-6 '}>
       <div className="mb-6 flex flex-col gap-2 border-b border-surface-border/45 pb-4 sm:flex-row sm:items-baseline sm:justify-between ">
         <div className="flex items-start gap-2">
           <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted " aria-hidden />
@@ -141,8 +154,11 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
       </div>
 
       <div className="space-y-8">
-        <Section icon={User} title="Datos personales">
+        {onlyIntake && !(i?.payment_preference || i?.payment_notes?.trim()) ? null : (
+        <Section icon={User} title={onlyIntake ? 'Pago' : 'Datos personales'}>
           <div className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
+            {onlyIntake ? null : (
+            <>
             <Field label="Documento" value={student.document_id} />
             <Field
               label="Género"
@@ -198,6 +214,8 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
             {student.address ? (
               <Field label="Dirección" value={student.address} className="sm:col-span-2" />
             ) : null}
+            </>
+            )}
             <Field
               label="Preferencia de pago (/form)"
               value={
@@ -228,6 +246,7 @@ export function FersterStudentIntakePanel({ student }: { student: Student }) {
             ) : null}
           </div>
         </Section>
+        )}
 
         {i &&
         (i.training_since ||

@@ -520,9 +520,12 @@ export function NutritionWeeklyPlanSection({ student, measurements }: Props) {
         }}
       />
 
-      <div className="rounded-2xl border border-surface-border bg-surface-card p-3 sm:p-4">
-        <WeeklyMealPlanBoard mergeWeekends={mergeWeekends} grid={normalizeWeeklyGrid(grid, mergeWeekends)} />
-      </div>
+      {/* v2: la grilla de arriba ya es el plan; cómo lo ve el paciente está en «Ver como paciente». */}
+      {IS_V2 ? null : (
+        <div className="rounded-2xl border border-surface-border bg-surface-card p-3 sm:p-4">
+          <WeeklyMealPlanBoard mergeWeekends={mergeWeekends} grid={normalizeWeeklyGrid(grid, mergeWeekends)} />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3 items-center pt-2">
         <Button

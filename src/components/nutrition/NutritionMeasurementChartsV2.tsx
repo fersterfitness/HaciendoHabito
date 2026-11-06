@@ -110,7 +110,7 @@ function Delta({ value, unit, dir, className }: { value: number | null; unit: st
 function VariableChip({ v, controls, active, onSelect }: { v: Variable; controls: Control[]; active: boolean; onSelect: () => void }) {
   const pts = points(v, controls)
   const last = pts[pts.length - 1]
-  const prev = pts[pts.length - 2]
+  const first = pts[0]
   return (
     <button
       type="button"
@@ -129,7 +129,7 @@ function VariableChip({ v, controls, active, onSelect }: { v: Variable; controls
           {last ? nf(last.value, 2) : '—'}
           <span className="ml-0.5 text-3xs font-normal text-ink-muted">{v.unit}</span>
         </span>
-        {last && prev ? <Delta value={r1(last.value - prev.value)} unit="" dir={v.dir} className="text-3xs" /> : null}
+        {last && first && pts.length > 1 ? <Delta value={r1(last.value - first.value)} unit="" dir={v.dir} className="text-3xs" /> : null}
       </span>
     </button>
   )
@@ -165,8 +165,8 @@ function Featured({ v, controls }: { v: Variable; controls: Control[] }) {
           <p className="mt-1.5 text-2xs">
             {prev ? (
               <>
-                <Delta value={r1(last.value - prev.value)} unit={v.unit} dir={v.dir} />
-                <span className="ml-1 text-ink-muted">vs anterior</span>
+                <Delta value={r1(last.value - first.value)} unit={v.unit} dir={v.dir} />
+                <span className="ml-1 text-ink-muted">desde el primer control</span>
               </>
             ) : (
               <span className="text-ink-muted">Sin control previo</span>
@@ -208,9 +208,8 @@ function Featured({ v, controls }: { v: Variable; controls: Control[] }) {
               </ResponsiveContainer>
             )}
           </ChartSizedContainer>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-3 gap-2">
             <Stat label="Primer control" value={`${nf(first.value, 2)} ${v.unit}`} sub={first.control.short} />
-            <Stat label="Cambio total" value={<Delta value={r1(last.value - first.value)} unit={v.unit} dir={v.dir} />} sub={`en ${pts.length} controles`} />
             <Stat label="Mínimo" value={`${nf(Math.min(...values), 2)} ${v.unit}`} />
             <Stat label="Máximo" value={`${nf(Math.max(...values), 2)} ${v.unit}`} />
           </div>

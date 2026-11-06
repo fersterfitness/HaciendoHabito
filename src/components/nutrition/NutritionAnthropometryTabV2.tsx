@@ -1,7 +1,9 @@
 import { type RefObject, useEffect, useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { AlertCircle, Check, FileImage, History, Loader2, Plus, RotateCcw, Save, Sparkles, X } from 'lucide-react'
+import { AlertCircle, Check, Download, FileImage, History, Loader2, MoreHorizontal, Plus, RotateCcw, Save, Sparkles, X } from 'lucide-react'
+import { Popover } from '@/components/ui/Popover'
+import { TONE_LABELS, type InterpretationTone } from '@/lib/nutrition/nutritionEvolutionInterpretation'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -25,9 +27,13 @@ import { Delta, METRICS, nf, type Metric } from './NutritionResumenDashboardV2'
  * ilustrado (botón «Informe»); la tabla «Presentación» queda solo en la v1.
  */
 
+/**
+ * Tarjetas del último control: solo medidas globales. Cintura y cadera son de una zona y se ven en
+ * «Comparar controles»; repetirlas acá era decir lo mismo dos veces.
+ */
 const TILES: Metric[] = [
   { key: 'weight', label: 'Peso', short: 'Peso', unit: 'kg', dir: 'neutral', get: (m) => weightOf(m) },
-  ...METRICS,
+  ...METRICS.filter((m) => m.key !== 'waist' && m.key !== 'hip'),
 ]
 
 interface Props {
@@ -51,6 +57,8 @@ interface Props {
   formRef: RefObject<HTMLDivElement>
   /** Sube cada vez que otra pantalla pide "Nuevo control" (abre el formulario). */
   openRequest?: number
+  /** PDF de evolución con texto de devolución (antes en el encabezado de la ficha). */
+  evolutionPdf?: { tone: InterpretationTone; onToneChange: (t: InterpretationTone) => void; exporting: boolean; onExport: () => void }
 }
 
 export function NutritionAnthropometryTabV2(props: Props) {
@@ -127,6 +135,7 @@ export function NutritionAnthropometryTabV2(props: Props) {
             </Button>
           ) : null}
           <AiAnalysisButton ai={ai} />
+          {props.evolutionPdf && measurements.length ? <MoreMenu pdf={props.evolutionPdf} canExport={measurements.length >= 2} /> : null}
           {!formOpen ? (
             <Button type="button" size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setFormOpen(true)}>
               Nuevo control
@@ -181,7 +190,7 @@ export function NutritionAnthropometryTabV2(props: Props) {
           {tiles.length ? (
             <div>
               <p className="mb-2 px-0.5 text-2xs font-semibold text-ink-muted">Último control</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                 {tiles.map(({ mt, v, delta, stale }) => (
                   <div key={mt.key} className="rounded-2xl border border-surface-border/80 bg-surface-card px-3.5 py-3">
                     <p className="truncate text-3xs font-semibold text-ink-muted">{mt.label}</p>
@@ -222,6 +231,57 @@ export function NutritionAnthropometryTabV2(props: Props) {
         </>
       ) : null}
     </div>
+  )
+}
+
+/* ─────────────── Más acciones ─────────────── */
+
+function MoreMenu({ pdf, canExport }: { pdf: NonNullable<Props['evolutionPdf']>; canExport: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      className="w-64 p-3"
+      trigger={(t) => (
+        <Button {...t} type="button" size="sm" variant="secondary" aria-label="Más acciones" title="Más acciones">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      )}
+    >
+      <p className="text-[13px] font-medium text-ink-primary">PDF de evolución</p>
+      <p className="mt-0.5 text-[12px] text-ink-muted">Los dos últimos controles con un texto de devolución.</p>
+      <label className="mt-3 block text-[12px] text-ink-secondary">
+        Tono del texto
+        <select
+          value={pdf.tone}
+          onChange={(e) => pdf.onToneChange(e.target.value as InterpretationTone)}
+          className="mt-1 h-9 w-full cursor-pointer rounded-lg border border-surface-inputBorder bg-surface-input px-2 text-[13px] text-ink-primary"
+        >
+          {(Object.keys(TONE_LABELS) as InterpretationTone[]).map((k) => (
+            <option key={k} value={k}>
+              {TONE_LABELS[k]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Button
+        type="button"
+        size="sm"
+        className="mt-3 w-full"
+        icon={<Download className="h-4 w-4" />}
+        loading={pdf.exporting}
+        disabled={!canExport}
+        title={canExport ? undefined : 'Hacen falta dos controles'}
+        onClick={() => {
+          pdf.onExport()
+          setOpen(false)
+        }}
+      >
+        Descargar PDF
+      </Button>
+    </Popover>
   )
 }
 

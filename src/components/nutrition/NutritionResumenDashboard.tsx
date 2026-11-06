@@ -321,7 +321,7 @@ export function NutritionResumenDashboard({
 }
 
 /** Próximo turno agendado (scheduled / confirmed) del paciente, desde la agenda. */
-function useNextAppointment(studentId: string) {
+export function useNextAppointment(studentId: string) {
   const [next, setNext] = useState<{ starts_at: string } | null>(null)
   useEffect(() => {
     if (!studentId) return

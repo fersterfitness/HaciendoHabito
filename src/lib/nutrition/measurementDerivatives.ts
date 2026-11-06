@@ -25,3 +25,8 @@ export function muscleOf(m: NutritionMeasurement): number | null {
 export function bmiOf(m: NutritionMeasurement): number | null {
   return m.bmi ?? null
 }
+
+/** Talla del control: la mediana del programa o, si no hay, la cargada a mano. */
+export function heightOf(m: NutritionMeasurement): number | null {
+  return medians(m)?.talla_corporal_cm ?? m.height_cm ?? null
+}
