@@ -29,6 +29,7 @@ export function Modal({
   className,
   hideClose = false,
   bare = false,
+  layerClassName = 'z-50',
 }: {
   open: boolean
   onClose: () => void
@@ -43,6 +44,8 @@ export function Modal({
   hideClose?: boolean
   /** Renderiza `children` tal cual dentro del panel (el contenido trae su propio encabezado). */
   bare?: boolean
+  /** Capa del diálogo; más alta cuando se abre sobre otra pantalla completa (p. ej. el modo consulta). */
+  layerClassName?: string
 }) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -98,7 +101,7 @@ export function Modal({
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+    <div className={cn('fixed inset-0 flex items-end justify-center sm:items-center sm:p-4', layerClassName)}>
       <div
         className="absolute inset-0 animate-overlay-in bg-black/50 backdrop-blur-[6px] dark:bg-black/65"
         onClick={onClose}

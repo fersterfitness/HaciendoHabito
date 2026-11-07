@@ -7,7 +7,7 @@ import { WeeklyMealPlanBoard } from '@/components/nutrition/WeeklyMealPlanBoard'
 import { differenceInYears, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNextAppointment } from '@/components/nutrition/NutritionResumenDashboard'
-import { FileDown, Sparkles } from 'lucide-react'
+import { BookmarkPlus, CopyPlus, FileDown, Sparkles } from 'lucide-react'
 import { colorBrandLogoSrc } from '@/lib/pdf/defaultBrandLogoSrc'
 import { NutritionMealPlanPdfDocument } from '@/lib/pdf/NutritionMealPlanPdfDocument'
 import type { WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
@@ -27,6 +27,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { planMenuItemClass, ShareMealPlanActionsV2 } from '@/components/nutrition/ShareMealPlanCardV2'
 import { IS_V2 } from '@/lib/uiVersion'
+import { PlanPickerDialog, SaveAsTemplateDialog } from '@/components/nutrition/NutritionPlanReuseDialogs'
+import { gridHasContent, type ReusablePlan } from '@/lib/nutrition/planReuse'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -64,6 +66,9 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
   const [legacyTemplates, setLegacyTemplates] = useState<NutritionWeekPlanTemplate[]>([])
   const [usingLegacyStore, setUsingLegacyStore] = useState(false)
   const persistTimer = useRef<number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickBusy, setPickBusy] = useState(false)
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
   // v2: la próxima consulta del plan sale de la agenda (o de la fecha sugerida); no se carga a mano.
   const appointment = useNextAppointment(IS_V2 ? sid : '')
   const agendaDate = IS_V2
@@ -356,6 +361,91 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
     }
   }
 
+  /**
+   * v2: copia otro plan (plantilla u otro paciente) como nueva versión activa. La actual queda en
+   * el historial; si el paciente venía del guardado anterior sin versiones, se guarda primero como V1.
+   */
+  async function applyReusablePlan(plan: ReusablePlan) {
+    if (!user) return
+    setPickBusy(true)
+    try {
+      let maxVersion = versions.reduce((acc, v) => Math.max(acc, v.version_number), 0)
+      const currentActive = versions.find((v) => v.id === activeVersionId) ?? versions.find((v) => v.is_active) ?? null
+      let replacedId = currentActive?.id ?? null
+      if (usingLegacyStore && gridHasContent(grid)) {
+        const kcal = parseInt(totalKcal, 10)
+        const { data: legacy, error: legacyErr } = await supabase
+          .from('nutrition_patient_plan_versions')
+          .insert({
+            owner_id: user.id,
+            student_id: sid,
+            source_library_id: null,
+            version_number: maxVersion + 1,
+            is_active: false,
+            replaced_version_id: null,
+            title: 'Plan anterior',
+            merge_weekends: mergeWeekends,
+            total_kcal: Number.isFinite(kcal) ? kcal : null,
+            next_consultation_date: nextConsultDate.trim() || null,
+            grid: normalizeWeeklyGrid(grid, mergeWeekends) as unknown as Record<string, unknown>,
+            notes: null,
+          })
+          .select('id')
+          .single()
+        if (legacyErr) {
+          toast.error(legacyErr.message)
+          return
+        }
+        maxVersion += 1
+        replacedId = (legacy as { id: string }).id
+      }
+      if (currentActive) {
+        const { error: offErr } = await supabase
+          .from('nutrition_patient_plan_versions')
+          .update({ is_active: false })
+          .eq('id', currentActive.id)
+          .eq('owner_id', user.id)
+        if (offErr) {
+          toast.error(offErr.message)
+          return
+        }
+      }
+      const kcal = parseInt(totalKcal, 10)
+      const { data, error } = await supabase
+        .from('nutrition_patient_plan_versions')
+        .insert({
+          owner_id: user.id,
+          student_id: sid,
+          source_library_id: plan.libraryId,
+          version_number: maxVersion + 1,
+          is_active: true,
+          replaced_version_id: replacedId,
+          title: plan.source === 'template' ? plan.name : `Basado en el plan de ${plan.name}`,
+          merge_weekends: plan.mergeWeekends,
+          total_kcal: Number.isFinite(kcal) ? kcal : null,
+          next_consultation_date: nextConsultDate.trim() || null,
+          grid: plan.grid as unknown as Record<string, unknown>,
+          notes: plan.notes,
+        })
+        .select('*')
+        .single()
+      if (error || !data) {
+        toast.error(error?.message ?? 'No se pudo copiar el plan')
+        return
+      }
+      const created = data as NutritionPatientPlanVersion
+      setUsingLegacyStore(false)
+      setActiveVersionId(created.id)
+      setMergeWeekends(created.merge_weekends)
+      setGrid(normalizeWeeklyGrid(created.grid, created.merge_weekends))
+      await reloadVersions()
+      setPickerOpen(false)
+      toast.success(`Listo: versión ${created.version_number}, para adaptar`)
+    } finally {
+      setPickBusy(false)
+    }
+  }
+
   async function activateVersion(versionId: string) {
     if (!user || activeVersionId === versionId) return
     const target = versions.find((v) => v.id === versionId)
@@ -417,28 +507,29 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
                   <FileDown className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
                   Descargar PDF
                 </button>
-                {libraryPlans.length > 0 ? (
-                  <label className="block px-2 py-1.5 text-[12px] text-ink-muted">
-                    Traer un plan de la biblioteca
-                    <select
-                      defaultValue=""
-                      onChange={(e) => {
-                        const v = e.target.value
-                        e.target.selectedIndex = 0
-                        if (!v) return
-                        close()
-                        void importFromLibrary(v)
-                      }}
-                      className={cn(controlSmClassName, 'mt-1 w-full cursor-pointer px-2 text-[13px]')}
-                    >
-                      <option value="">Elegí un plan…</option>
-                      {libraryPlans.map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <button
+                  type="button"
+                  className={planMenuItemClass}
+                  onClick={() => {
+                    close()
+                    setPickerOpen(true)
+                  }}
+                >
+                  <CopyPlus className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+                  Usar otro plan como base…
+                </button>
+                {gridHasContent(grid) ? (
+                  <button
+                    type="button"
+                    className={planMenuItemClass}
+                    onClick={() => {
+                      close()
+                      setSaveTemplateOpen(true)
+                    }}
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+                    Guardar como plantilla…
+                  </button>
                 ) : null}
                 {versions.length > 1 ? (
                   <div className="px-2 py-1.5">
@@ -618,6 +709,19 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         </div>
       )}
 
+      {IS_V2 && !gridHasContent(grid) ? (
+        // v2: plan vacío. Lo más rápido es partir de uno parecido y adaptarlo.
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-surface-border px-4 py-3.5">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-ink-primary">El plan está vacío</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">Partí de una plantilla o del plan de otro paciente y adaptalo, o escribilo abajo.</p>
+          </div>
+          <Button type="button" size="sm" icon={<CopyPlus className="h-4 w-4" />} onClick={() => setPickerOpen(true)}>
+            Elegir un plan
+          </Button>
+        </div>
+      ) : null}
+
       <WeeklyPlanGridFields
         mergeWeekends={mergeWeekends}
         grid={grid}
@@ -650,6 +754,31 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         <span className="text-xs text-ink-muted">{saving ? 'Guardando…' : 'Sin cambios pendientes'}</span>
       </div>
       )}
+
+      {IS_V2 && user ? (
+        <>
+          <PlanPickerDialog
+            open={pickerOpen}
+            ownerId={user.id}
+            studentId={sid}
+            libraryPlans={libraryPlans}
+            busy={pickBusy}
+            onPick={(plan) => void applyReusablePlan(plan)}
+            onClose={() => setPickerOpen(false)}
+          />
+          <SaveAsTemplateDialog
+            open={saveTemplateOpen}
+            ownerId={user.id}
+            grid={normalizeWeeklyGrid(grid, mergeWeekends)}
+            mergeWeekends={mergeWeekends}
+            onSaved={(row) => {
+              setLibraryPlans((prev) => [row, ...prev])
+              setSaveTemplateOpen(false)
+            }}
+            onClose={() => setSaveTemplateOpen(false)}
+          />
+        </>
+      ) : null}
 
       {importDialog ? (
         <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
