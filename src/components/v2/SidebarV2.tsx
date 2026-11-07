@@ -129,9 +129,11 @@ export function SidebarV2() {
   const navigate = useAppNavigate()
   const { theme, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
+  // Sin elección guardada, en pantallas medianas (tablet en horizontal) arranca plegada: así la tabla y la ficha tienen lugar.
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return localStorage.getItem(COLLAPSE_KEY) === '1'
+      const saved = localStorage.getItem(COLLAPSE_KEY)
+      return saved == null ? window.innerWidth < 1280 : saved === '1'
     } catch {
       return false
     }

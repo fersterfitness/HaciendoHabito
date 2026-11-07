@@ -245,7 +245,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
     <div id={ROOT_ID} className="fixed inset-0 z-[10070] flex flex-col bg-surface-base">
 
       {/* Barra superior */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface-card px-3 py-2.5 sm:px-4">
+      <div className="flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface-card px-3 py-2.5 sm:flex-nowrap sm:px-4">
         <button
           type="button"
           onClick={onClose}
@@ -291,8 +291,10 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
           loading={exporting === 'png'}
           disabled={exporting != null}
           onClick={() => void exportSheet('png')}
+          aria-label="Descargar imagen"
+          title="Descargar imagen"
         >
-          Imagen
+          <span className="hidden lg:inline">Imagen</span>
         </Button>
         <Button
           type="button"
@@ -302,9 +304,10 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
           loading={exporting === 'html'}
           disabled={exporting != null}
           onClick={() => void exportSheet('html')}
+          aria-label="Descargar HTML"
+          title="Descargar HTML"
         >
-          <span className="hidden sm:inline">Descargar HTML</span>
-          <span className="sm:hidden">HTML</span>
+          <span className="hidden lg:inline">Descargar HTML</span>
         </Button>
         <Button
           type="button"

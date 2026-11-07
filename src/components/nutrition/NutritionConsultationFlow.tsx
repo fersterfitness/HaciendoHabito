@@ -197,8 +197,10 @@ export function NutritionConsultationFlow({
                     type="button"
                     onClick={() => go(s.id)}
                     aria-current={active ? 'step' : undefined}
+                    aria-label={s.label}
+                    title={s.label}
                     className={cn(
-                      'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors',
+                      'inline-flex h-9 items-center whitespace-nowrap gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors',
                       active ? 'bg-ink-primary text-surface-card' : ok ? 'text-ink-primary hover:bg-surface-elevated' : 'text-ink-muted hover:bg-surface-elevated hover:text-ink-primary',
                     )}
                   >
@@ -210,7 +212,8 @@ export function NutritionConsultationFlow({
                     >
                       {ok ? <Check className="h-3 w-3" /> : i + 1}
                     </span>
-                    {s.label}
+                    {/* Tablet: solo el paso actual con nombre; el resto, el número (todos entran en una línea). */}
+                    <span className={cn(!active && 'hidden lg:inline')}>{s.label}</span>
                   </button>
                 </li>
               )

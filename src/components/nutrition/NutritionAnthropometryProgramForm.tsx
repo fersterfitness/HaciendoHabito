@@ -137,6 +137,8 @@ function SeriesRow({
             className={cn(
               controlSmClassName,
               'w-full min-w-0 px-1.5 text-2xs',
+              // v2 · tablet: casilla más alta para el dedo y 16 px de letra (con menos, el iPad hace zoom al tocarla).
+              IS_V2 && '[@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:text-base',
               warning && 'border-status-pending bg-status-pending/15 font-semibold ring-2 ring-status-pending/30',
             )}
           />
@@ -593,7 +595,7 @@ export function NutritionAnthropometryProgramForm({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-surface-border">
-        <div data-anthro-grid className={cn('p-3 bg-surface-card/80', IS_V2 ? 'min-w-[780px]' : 'min-w-[720px]')}>
+        <div data-anthro-grid className={cn('p-3 bg-surface-card/80', IS_V2 ? 'min-w-[600px]' : 'min-w-[720px]')}>
           {IS_V2 ? (
             <p className="mb-2 text-3xs text-ink-muted">
               Enter pasa a la medida de abajo (Shift + Enter, a la de arriba). Los valores raros se marcan en amarillo.
