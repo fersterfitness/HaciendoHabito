@@ -372,3 +372,51 @@ export function savedReportTexts(m: NutritionMeasurement): SavedReportTexts {
   const r = d && typeof d === 'object' ? d.report : undefined
   return r && typeof r === 'object' ? r : {}
 }
+
+/** Evolución de los números principales a lo largo de los controles, para la lámina. */
+export interface ReportEvolutionRow {
+  key: 'weight' | 'fatKg' | 'muscleKg' | 'sum6'
+  label: string
+  unit: string
+  /** Un valor por control, del más viejo al más nuevo. */
+  values: (number | null)[]
+  /** Cambio desde el primer control mostrado hasta el actual. */
+  total: ReportValue
+}
+
+export interface ReportEvolution {
+  controls: { measuredAt: string; number: number | null }[]
+  rows: ReportEvolutionRow[]
+}
+
+export const MAX_REPORT_EVOLUTION = 6
+
+/**
+ * Hasta los últimos 6 controles hasta el elegido (inclusive). null si hay menos de 3: con dos, los
+ * cambios del control ya cuentan la historia.
+ * `measurements` puede venir en cualquier orden.
+ */
+export function buildReportEvolution(
+  student: Student,
+  measurements: NutritionMeasurement[],
+  currentId: string,
+): ReportEvolution | null {
+  const sorted = [...measurements].sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+  const end = sorted.findIndex((m) => m.id === currentId)
+  if (end < 0) return null
+  const list = sorted.slice(Math.max(0, end - MAX_REPORT_EVOLUTION + 1), end + 1)
+  if (list.length < 3) return null
+  const reports = list.map((m) => buildAnthropometryReport(student, m, null))
+  const total = buildAnthropometryReport(student, list[list.length - 1]!, list[0]!)
+  const defs: { key: ReportEvolutionRow['key']; label: string; unit: string }[] = [
+    { key: 'weight', label: 'Peso', unit: 'kg' },
+    { key: 'fatKg', label: 'Masa grasa', unit: 'kg' },
+    { key: 'muscleKg', label: 'Masa muscular', unit: 'kg' },
+    { key: 'sum6', label: 'Suma de 6 pliegues', unit: 'mm' },
+  ]
+  const rows = defs
+    .map((d) => ({ ...d, values: reports.map((r) => r[d.key].value), total: total[d.key] }))
+    .filter((r) => r.values.filter((v) => v != null).length >= 2)
+  if (!rows.length) return null
+  return { controls: list.map((m) => ({ measuredAt: m.measured_at, number: m.measurement_number })), rows }
+}

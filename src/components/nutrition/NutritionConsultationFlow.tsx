@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { addDays, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, FileText, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -353,9 +353,24 @@ export function NutritionConsultationFlow({
                   </li>
                 ))}
               </ul>
-              <Button className="mt-6" onClick={onClose}>
-                Volver a la ficha
-              </Button>
+              {measurements[0] ? (
+                // El informe del último control, para mandárselo al paciente (se abre en otra pestaña, como desde Antropometría).
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  <Button
+                    icon={<FileText className="h-4 w-4" />}
+                    onClick={() => window.open(`/nutrition/${student.id}/informe?control=${encodeURIComponent(measurements[0]!.id)}`, '_blank')}
+                  >
+                    Informe para el paciente
+                  </Button>
+                  <Button variant="secondary" onClick={onClose}>
+                    Volver a la ficha
+                  </Button>
+                </div>
+              ) : (
+                <Button className="mt-6" onClick={onClose}>
+                  Volver a la ficha
+                </Button>
+              )}
             </div>
           ) : null}
         </div>

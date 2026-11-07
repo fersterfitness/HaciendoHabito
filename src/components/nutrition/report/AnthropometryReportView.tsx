@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO } from 'date-fns'
-import { Check, Code, Download, PencilLine, RotateCcw, Save, X } from 'lucide-react'
+import { Check, Code, Download, PencilLine, RotateCcw, Save, Send, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +13,7 @@ import {
   MAX_REPORT_GOALS,
   REPORT_GOALS,
   buildAnthropometryReport,
+  buildReportEvolution,
   defaultReportReading,
   savedReportTexts,
   type SavedReportTexts,
@@ -23,6 +24,7 @@ import { loadView, paint } from '../body2d/bodyCanvas'
 import { bodySexOf } from '../body2d/zones'
 import { AnthropometryReportSheet, REPORT_SHEET_WIDTH, type ZoneSummary } from './AnthropometryReportSheet'
 import { buildStandaloneHtml, downloadFile, sheetToPng } from './reportExport'
+import { buildWhatsAppGroupPickUrl, buildWhatsAppUrl, normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 
 /**
  * Informe ilustrado de un control a pantalla completa: vista previa de la lámina, textos
@@ -50,6 +52,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
   const previous = measurements[idx + 1] ?? null
 
   const data = useMemo(() => (current ? buildAnthropometryReport(student, current, previous) : null), [student, current, previous])
+  const evolution = useMemo(() => (current ? buildReportEvolution(student, measurements, current.id) : null), [student, measurements, current])
   const autoReading = useMemo(() => (data ? defaultReportReading(data) : ''), [data])
 
   // Textos: lo guardado en el control o el automático.
@@ -68,7 +71,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
     goals.join() !== (saved.goals ?? DEFAULT_REPORT_GOALS).join()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [exporting, setExporting] = useState<'html' | 'png' | null>(null)
+  const [exporting, setExporting] = useState<'html' | 'png' | 'send' | null>(null)
 
   // Cuerpo de frente pintado con los cambios respecto del control anterior.
   const sex = bodySexOf(student)
@@ -162,6 +165,57 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
     }
   }
 
+  /**
+   * Celu o tablet: hoja de compartir del sistema con la imagen (WhatsApp la adjunta directo).
+   * Compu: copia la imagen y abre el chat del paciente con el saludo escrito, para pegarla con Ctrl+V.
+   * Si no se puede copiar, la descarga para adjuntarla.
+   */
+  async function sendToPatient() {
+    if (!sheetRef.current || !current) return
+    const first = student.full_name.trim().split(/\s+/)[0] ?? ''
+    const text = `Hola ${first}, te paso tu evaluación antropométrica del ${format(parseISO(current.measured_at), 'dd/MM/yyyy')}.`
+    const touch = window.matchMedia('(pointer: coarse)').matches
+    const phone = normalizePhoneForWhatsApp(student.phone)
+    // La pestaña se abre ya (con el clic); si se abre después de generar la imagen, el navegador la bloquea.
+    const win = touch ? null : window.open('about:blank', '_blank')
+    setExporting('send')
+    try {
+      const dataUrl = await sheetToPng(sheetRef.current)
+      const blob = await (await fetch(dataUrl)).blob()
+      const file = new File([blob], `${fileBase}.png`, { type: 'image/png' })
+      if (touch && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text })
+        } catch (e) {
+          if (e instanceof DOMException && e.name === 'AbortError') return
+          throw e
+        }
+        return
+      }
+      let copied = false
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        copied = true
+      } catch {
+        downloadFile(dataUrl, `${fileBase}.png`)
+      }
+      const url = phone ? buildWhatsAppUrl(phone, text) : buildWhatsAppGroupPickUrl(text)
+      if (win) win.location.href = url
+      else window.open(url, '_blank')
+      toast.success(
+        copied
+          ? 'Imagen copiada. En el chat de WhatsApp pegala con Ctrl+V y enviá.'
+          : 'Imagen descargada. Adjuntala en el chat de WhatsApp.',
+        { duration: 7000 },
+      )
+    } catch (e) {
+      win?.close()
+      toast.error(e instanceof Error ? e.message : 'No se pudo preparar el informe')
+    } finally {
+      setExporting(null)
+    }
+  }
+
   async function saveTexts() {
     if (!current) return
     setSaving(true)
@@ -243,6 +297,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
         <Button
           type="button"
           size="sm"
+          variant="secondary"
           icon={<Code className="h-4 w-4" />}
           loading={exporting === 'html'}
           disabled={exporting != null}
@@ -250,6 +305,17 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
         >
           <span className="hidden sm:inline">Descargar HTML</span>
           <span className="sm:hidden">HTML</span>
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          icon={<Send className="h-4 w-4" />}
+          loading={exporting === 'send'}
+          disabled={exporting != null}
+          onClick={() => void sendToPatient()}
+          title={student.phone ? undefined : 'El paciente no tiene teléfono cargado: vas a elegir el chat en WhatsApp'}
+        >
+          Enviar al paciente
         </Button>
       </div>
 
@@ -346,6 +412,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
                 goals={goals}
                 bodySrc={bodySrc}
                 zoneSummary={zoneSummary}
+                evolution={evolution}
               />
             </div>
           </div>

@@ -22,6 +22,7 @@ import {
   somatotypeName,
   type AnthropometryReportData,
   type ChangeTone,
+  type ReportEvolution,
   type ReportRow,
   type ReportValue,
 } from '@/lib/nutrition/anthropometryReport'
@@ -74,6 +75,8 @@ export interface AnthropometryReportSheetProps {
   /** Cuerpo de frente ya pintado (data URL). null = sin cuerpo (falta el sexo). */
   bodySrc: string | null
   zoneSummary: ZoneSummary | null
+  /** Últimos controles (3 o más); null = no se muestra. */
+  evolution?: ReportEvolution | null
 }
 
 const card = { border: `1px solid ${C.border}`, borderRadius: 16, background: '#fff' } as const
@@ -170,7 +173,7 @@ const fmtDate = (iso: string) => format(parseISO(iso), "d 'de' MMMM yyyy", { loc
 const dot = (color: string) => <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, display: 'inline-block' }} />
 
 export const AnthropometryReportSheet = forwardRef<HTMLDivElement, AnthropometryReportSheetProps>(function AnthropometryReportSheet(
-  { data: d, reading, objective, goals, bodySrc, zoneSummary },
+  { data: d, reading, objective, goals, bodySrc, zoneSummary, evolution = null },
   ref,
 ) {
   const withDelta = !d.isFirst
@@ -284,6 +287,8 @@ export const AnthropometryReportSheet = forwardRef<HTMLDivElement, Anthropometry
         </p>
       ) : null}
 
+      {evolution ? <Evolution e={evolution} /> : null}
+
       {/* Lectura y objetivo */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: 16, marginTop: 16, alignItems: 'stretch' }}>
         <section style={{ ...card, padding: '22px 26px 24px' }}>
@@ -346,3 +351,78 @@ export const AnthropometryReportSheet = forwardRef<HTMLDivElement, Anthropometry
     </div>
   )
 })
+
+/** Una fila por número principal: mini gráfico, el valor de cada control y el cambio total. */
+function Evolution({ e }: { e: ReportEvolution }) {
+  const n = e.controls.length
+  const cols = `200px 170px repeat(${n}, minmax(0, 1fr)) 150px`
+  const first = e.controls[0]!
+  return (
+    <section style={{ ...card, padding: '18px 24px 14px', marginTop: 16 }}>
+      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.ink }}>
+        Evolución <span style={{ fontWeight: 400, color: C.muted }}>· últimos {n} controles</span>
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: cols, columnGap: 12, alignItems: 'center', marginTop: 10, fontVariantNumeric: 'tabular-nums' }}>
+        <span />
+        <span />
+        {e.controls.map((c, i) => (
+          <span key={i} style={{ fontSize: 13, color: C.muted, textAlign: 'right', lineHeight: 1.25 }}>
+            {c.number != null ? `N° ${c.number}` : ' '}
+            <br />
+            {format(parseISO(c.measuredAt), 'dd/MM/yy')}
+          </span>
+        ))}
+        <span style={{ fontSize: 13, color: C.muted, textAlign: 'right', lineHeight: 1.25 }}>
+          Desde
+          <br />
+          {format(parseISO(first.measuredAt), 'dd/MM/yy')}
+        </span>
+        {e.rows.map((r) => (
+          <div key={r.key} style={{ display: 'contents' }}>
+            <span style={{ fontSize: 15, color: C.ink, padding: '9px 0', borderTop: `1px solid ${C.border}` }}>
+              {r.label} <span style={{ color: C.muted }}>({r.unit})</span>
+            </span>
+            <span style={{ padding: '6px 0', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center' }}>
+              <Sparkline values={r.values} color={TONE_COLOR[r.total.tone === 'same' ? 'neutral' : r.total.tone]} />
+            </span>
+            {r.values.map((v, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: 15,
+                  textAlign: 'right',
+                  padding: '9px 0',
+                  borderTop: `1px solid ${C.border}`,
+                  color: i === n - 1 ? C.ink : C.secondary,
+                  fontWeight: i === n - 1 ? 600 : 400,
+                }}
+              >
+                {v != null ? nfReport(v, 1) : '—'}
+              </span>
+            ))}
+            <span style={{ textAlign: 'right', padding: '9px 0', borderTop: `1px solid ${C.border}` }}>
+              <Delta v={r.total} decimals={1} unit={r.unit} />
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function Sparkline({ values, color }: { values: (number | null)[]; color: string }) {
+  const W = 150
+  const H = 30
+  const pts = values.map((v, i) => ({ v, x: values.length > 1 ? (i / (values.length - 1)) * (W - 8) + 4 : W / 2 })).filter((p): p is { v: number; x: number } => p.v != null)
+  if (pts.length < 2) return null
+  const lo = Math.min(...pts.map((p) => p.v))
+  const hi = Math.max(...pts.map((p) => p.v))
+  const y = (v: number) => (hi === lo ? H / 2 : H - 4 - ((v - lo) / (hi - lo)) * (H - 8))
+  const last = pts[pts.length - 1]!
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden style={{ display: 'block' }}>
+      <polyline points={pts.map((p) => `${p.x},${y(p.v)}`).join(' ')} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last.x} cy={y(last.v)} r={3.5} fill={color} />
+    </svg>
+  )
+}

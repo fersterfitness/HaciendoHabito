@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NutritionMeasurement, Student } from '@/types/database'
-import { buildAnthropometryReport, defaultReportReading, heathCarter, somatotypeName } from './anthropometryReport'
+import { buildAnthropometryReport, buildReportEvolution, defaultReportReading, heathCarter, somatotypeName } from './anthropometryReport'
 
 // Datos de la lámina que hoy arma el nutricionista a mano (primer control de una paciente).
 const MEDIANS = {
@@ -109,5 +109,24 @@ describe('defaultReportReading', () => {
     const t = defaultReportReading(buildAnthropometryReport(student, measurement(), prev))
     expect(t).toContain('tu peso bajó')
     expect(t).toContain('dirección buscada')
+  })
+})
+
+describe('buildReportEvolution', () => {
+  const ms = [
+    measurement({ id: 'a', measured_at: '2026-07-01', measurement_number: 1, weight_kg: 60, body_fat_pct: 30, medians: { ...MEDIANS, peso_bruto_kg: 60 } }),
+    measurement({ id: 'c', measured_at: '2026-09-01', measurement_number: 3, weight_kg: 57, body_fat_pct: 28, medians: { ...MEDIANS, peso_bruto_kg: 57 } }),
+    measurement({ id: 'b', measured_at: '2026-08-01', measurement_number: 2, weight_kg: 58, body_fat_pct: 29, medians: { ...MEDIANS, peso_bruto_kg: 58 } }),
+  ]
+  it('ordena del más viejo al elegido y marca el cambio total', () => {
+    const e = buildReportEvolution(student, ms, 'c')!
+    expect(e.controls.map((c) => c.number)).toEqual([1, 2, 3])
+    const weight = e.rows.find((r) => r.key === 'weight')!
+    expect(weight.values).toEqual([60, 58, 57])
+    expect(weight.total.delta).toBe(-3)
+    expect(e.rows.find((r) => r.key === 'fatKg')!.total.tone).toBe('good')
+  })
+  it('no se muestra con menos de tres controles hasta el elegido', () => {
+    expect(buildReportEvolution(student, ms, 'b')).toBeNull()
   })
 })
