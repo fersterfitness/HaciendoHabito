@@ -307,7 +307,16 @@ export function NutritionPatientDetailView({
     skinfolds_notes: '',
     notes: '',
   })
-  const [consultOpen, setConsultOpen] = useState(false)
+  // v2: ?consulta=1 (desde el Inicio) abre el modo consulta al entrar; el parámetro se saca para que no se reabra.
+  const [consultOpen, setConsultOpen] = useState(() => IS_V2 && variant !== 'panel' && searchParams.get('consulta') === '1')
+  useEffect(() => {
+    if (variant === 'panel' || searchParams.get('consulta') == null) return
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev)
+      params.delete('consulta')
+      return params
+    }, { replace: true })
+  }, [searchParams, setSearchParams, variant])
   const [appointmentVersion, setAppointmentVersion] = useState(0)
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTone, setPdfTone] = useState<InterpretationTone>('empatico')

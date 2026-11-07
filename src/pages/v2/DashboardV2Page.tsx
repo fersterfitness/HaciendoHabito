@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -8,10 +9,13 @@ import {
   CalendarDays,
   CalendarPlus,
   Check,
+  ClipboardList,
   Copy,
+  HeartPulse,
   LayoutGrid,
   MessageSquare,
   Plus,
+  Ruler,
   Users,
   Wallet,
 } from 'lucide-react'
@@ -35,7 +39,7 @@ import {
 import { TopBarV2 } from '@/components/v2/TopBarV2'
 import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
 import { PriceIncreaseNotice } from '@/components/dashboard/PriceIncreaseNotice'
-import { NutritionistOpsPanel } from '@/components/dashboard/NutritionistOpsPanel'
+import { NextConsultCardV2 } from '@/components/dashboard/NextConsultCardV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
@@ -43,6 +47,8 @@ import { markReminderSent, useActiveStudents, useIncomes, useSentReminders } fro
 import { fetchRoutineList, routineKeys } from '@/data/routines'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { loadStudentsMissingCheckIn } from '@/lib/dashboard/dashboardTrainerOps'
+import { loadNutritionistOps } from '@/lib/dashboard/nutritionistOps'
+import { buildNutritionistToday, tomorrowReminderMessage, type TodayAppointment } from '@/lib/dashboard/nutritionistToday'
 import { loadWeeklyPeriodStartYmd, weeklyPeriodMondayUtc } from '@/lib/checkIn/weeklyPeriod'
 import { buildPaymentBoard, monthKey, reminderMessage, type StudentPaymentRow } from '@/lib/finance/studentPayments'
 import { supabase } from '@/lib/supabase'
@@ -60,7 +66,7 @@ type AppointmentLite = {
   student?: { full_name?: string | null } | null
 }
 
-type Filter = 'all' | 'cobros' | 'feedback' | 'rutinas' | 'semana'
+type Filter = 'all' | 'cobros' | 'feedback' | 'rutinas' | 'semana' | 'turnos' | 'seguimiento'
 
 const DAY_MS = 86_400_000
 
@@ -92,6 +98,39 @@ function isDone(id: string): boolean {
     return false
   }
 }
+
+/** Turnos de mañana a los que ya se les mandó (o se descartó) el recordatorio, en este dispositivo. */
+const REMINDED_KEY = 'hh-appt-reminded'
+function readReminded(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(REMINDED_KEY) ?? '[]') as string[])
+  } catch {
+    return new Set()
+  }
+}
+function saveReminded(ids: Set<string>) {
+  try {
+    localStorage.setItem(REMINDED_KEY, JSON.stringify([...ids].slice(-200)))
+  } catch {
+    /* sin almacenamiento: vuelve a salir al recargar */
+  }
+}
+
+/** Cada tarjeta de «Para hoy»: entran en cascada y, al resolverse, se van hacia el costado. */
+// Con forwardRef: AnimatePresence en modo «popLayout» necesita medir cada tarjeta al sacarla.
+const AnimatedTask = forwardRef<HTMLDivElement, { index: number; children: ReactNode }>(function AnimatedTask({ index, children }, ref) {
+  return (
+    <motion.div
+      ref={ref}
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 8) * 0.045, type: 'spring', stiffness: 320, damping: 30 } }}
+      exit={{ opacity: 0, scale: 0.96, x: 24, transition: { duration: 0.22 } }}
+    >
+      {children}
+    </motion.div>
+  )
+})
 
 function daysToBirthday(birthDate: string, today: Date): number {
   const [, m, d] = birthDate.slice(0, 10).split('-').map(Number)
@@ -128,11 +167,18 @@ export function DashboardV2Page() {
   const role = profile?.role
   const trains = canSeeTraining(role)
   const handlesMoney = role === 'admin' || role === 'trainer' || role === 'nutritionist'
-  const peopleWord = role === 'nutritionist' ? 'pacientes' : 'alumnos'
   const [, setTick] = useState(0)
   const [filter, setFilter] = useState<Filter>('all')
 
   const today = useMemo(() => new Date(), [])
+  const isNutri = role === 'nutritionist'
+  // Reloj para la cuenta regresiva de la próxima consulta.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
+  const [reminded, setReminded] = useState(readReminded)
   const period = monthKey(today)
 
   const studentsQ = useActiveStudents()
@@ -190,6 +236,86 @@ export function DashboardV2Page() {
       return count ?? 0
     },
   })
+
+  // Nutricionista: turnos de hoy y mañana (con teléfono), quién tiene turno a futuro, registros de síntomas y seguimiento.
+  const nutriQ = useQuery({
+    queryKey: ['v2', 'nutri-today', user?.id, format(today, 'yyyy-MM-dd')],
+    enabled: Boolean(user) && isNutri,
+    queryFn: async () => {
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const end = new Date(start.getTime() + 2 * DAY_MS)
+      const since = new Date(start.getTime() - 14 * DAY_MS).toISOString().slice(0, 10)
+      const [appts, future, checkins, ops] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('id, student_id, title, starts_at, ends_at, status, student:students(full_name, phone)')
+          .eq('owner_id', user!.id)
+          .in('status', ['scheduled', 'confirmed'])
+          .gte('starts_at', start.toISOString())
+          .lt('starts_at', end.toISOString())
+          .order('starts_at'),
+        supabase
+          .from('appointments')
+          .select('student_id')
+          .eq('owner_id', user!.id)
+          .in('status', ['scheduled', 'confirmed'])
+          .gte('starts_at', new Date().toISOString())
+          .limit(1000),
+        supabase
+          .from('nutrition_symptom_checkins')
+          .select('student_id, logged_at, digestive_discomfort_0_10, adherence_1_5')
+          .eq('owner_id', user!.id)
+          .gte('logged_at', since)
+          .limit(2000),
+        loadNutritionistOps(user!.id),
+      ])
+      type Row = {
+        id: string
+        student_id: string | null
+        title: string | null
+        starts_at: string
+        ends_at: string | null
+        status: string
+        student?: { full_name?: string | null; phone?: string | null } | null
+      }
+      return {
+        appointments: ((appts.data ?? []) as unknown as Row[]).map<TodayAppointment>((a) => ({
+          id: a.id,
+          student_id: a.student_id,
+          starts_at: a.starts_at,
+          ends_at: a.ends_at,
+          status: a.status,
+          title: a.title,
+          full_name: a.student?.full_name ?? a.title ?? 'Turno',
+          phone: a.student?.phone ?? null,
+        })),
+        withFuture: new Set(
+          ((future.data ?? []) as { student_id: string | null }[]).map((r) => r.student_id).filter((x): x is string => !!x),
+        ),
+        checkins: (checkins.data ?? []) as {
+          student_id: string
+          logged_at: string
+          digestive_discomfort_0_10: number | null
+          adherence_1_5: number | null
+        }[],
+        ops,
+      }
+    },
+  })
+  const nutri = useMemo(
+    () =>
+      buildNutritionistToday({
+        appointments: nutriQ.data?.appointments ?? [],
+        withFutureAppointment: nutriQ.data?.withFuture ?? new Set(),
+        checkins: nutriQ.data?.checkins ?? [],
+        patients: students.map((s) => ({ id: s.id, full_name: s.full_name, phone: s.phone ?? null })),
+        overdueControls: nutriQ.data?.ops.overdueControls ?? [],
+        pendingAnamnesis: nutriQ.data?.ops.pendingAnamnesis ?? [],
+        reminded,
+        now,
+      }),
+    [nutriQ.data, students, reminded, now],
+  )
 
   const board = useMemo(() => {
     const incomes = (incomesQ.data ?? []).filter((i) => (i.scope ?? 'business') === 'business' && i.student_id)
@@ -253,14 +379,22 @@ export function DashboardV2Page() {
   const appointmentsToday = weekAppointments.filter((a) => dayIndex(a.starts_at) === todayIndex)
   const dayAppointments = weekAppointments.filter((a) => dayIndex(a.starts_at) === selectedDay)
 
+  const nutriCounts = isNutri
+    ? {
+        turnos: nutri.tomorrow.length,
+        seguimiento: nutri.symptoms.length + (nutri.overdue.length ? 1 : 0) + (nutri.anamnesis.length ? 1 : 0),
+      }
+    : { turnos: 0, seguimiento: 0 }
   const pendingCount =
+    nutriCounts.turnos +
+    nutriCounts.seguimiento +
     weekly.length +
     (handlesMoney ? payItems.length : 0) +
     (missing.length ? 1 : 0) +
     (unreplied ? 1 : 0) +
     routines.ending.length +
     (trains && routines.without.length ? 1 : 0)
-  const loading = studentsQ.isPending || (handlesMoney && incomesQ.isPending)
+  const loading = studentsQ.isPending || (handlesMoney && incomesQ.isPending) || (isNutri && nutriQ.isPending)
 
   async function sendOrCopy(message: string, phone: string | null | undefined) {
     const digits = normalizePhoneForWhatsApp(phone)
@@ -295,6 +429,20 @@ export function DashboardV2Page() {
     else toast.success(`${firstName(r.fullName)} salió de la lista`)
   }
 
+  function markReminded(id: string) {
+    setReminded((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      saveReminded(next)
+      return next
+    })
+  }
+
+  async function remindAppointment(a: TodayAppointment) {
+    await sendOrCopy(tomorrowReminderMessage(a.full_name, a.starts_at), a.phone)
+    markReminded(a.id)
+  }
+
   function markWeeklyDone(id: string) {
     try {
       localStorage.setItem(`hh-reminder-done:${id}`, doneKey())
@@ -316,6 +464,8 @@ export function DashboardV2Page() {
     feedback: (missing.length ? 1 : 0) + (unreplied ? 1 : 0),
     rutinas: routines.ending.length + (trains && routines.without.length ? 1 : 0),
     semana: weekly.length,
+    turnos: nutriCounts.turnos,
+    seguimiento: nutriCounts.seguimiento,
   }
   const show = (f: Exclude<Filter, 'all'>) => filter === 'all' || filter === f
   const toggle = (f: Filter) => setFilter((cur) => (cur === f || f === 'all' ? 'all' : f))
@@ -325,6 +475,16 @@ export function DashboardV2Page() {
     label: string
     visible: boolean
   }[] = [
+    {
+      key: 'turnos',
+      label: 'Turnos',
+      visible: isNutri,
+    },
+    {
+      key: 'seguimiento',
+      label: 'Seguimiento',
+      visible: isNutri,
+    },
     {
       key: 'feedback',
       label: 'Feedback',
@@ -356,6 +516,12 @@ export function DashboardV2Page() {
       .join(', ') + (list.length > 4 ? ` y ${list.length - 4} más` : '')
 
   const fmtTime = (iso: string) => format(new Date(iso), 'HH:mm')
+  let taskIndex = 0
+  const T = (key: string, node: ReactNode) => (
+    <AnimatedTask key={key} index={taskIndex++}>
+      {node}
+    </AnimatedTask>
+  )
 
   /** Los números del mes en una franja: abajo en el celu, en la columna derecha en la compu. */
   const monthStripV2 = (
@@ -397,8 +563,21 @@ export function DashboardV2Page() {
     />
   )
 
+  const nextConsult =
+    isNutri && nutri.next ? (
+      <NextConsultCardV2
+        appointment={nutri.next}
+        inProgress={nutri.nextInProgress}
+        later={nutri.laterToday}
+        symptom={nutri.symptoms.find((x) => x.id === nutri.next!.student_id) ?? null}
+        now={now}
+        onOpen={() => navigate(`/nutrition/${nutri.next!.student_id}`)}
+        onStart={() => navigate(`/nutrition/${nutri.next!.student_id}?consulta=1`)}
+      />
+    ) : null
+
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <TopBarV2
         title="Inicio"
         actions={
@@ -433,8 +612,11 @@ export function DashboardV2Page() {
               : 'No hay nada urgente.'}
         </GreetingV2>
 
+        {/* Celu y tablet: la próxima consulta va antes que la agenda (en la compu, arriba de «Para hoy»). */}
+        {nextConsult ? <div className="mb-8 lg:hidden">{nextConsult}</div> : null}
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
           <section className="min-w-0">
+            {nextConsult ? <div className="mb-8 hidden lg:block">{nextConsult}</div> : null}
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
             {!loading && filterTiles.length > 1 ? (
@@ -458,18 +640,125 @@ export function DashboardV2Page() {
                 ))}
               </div>
             ) : pendingCount === 0 ? (
-              <div className="hh-pastel rounded-2xl bg-pastel-mint px-5 py-8 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="hh-pastel rounded-2xl bg-pastel-mint px-5 py-8 text-center"
+              >
+                <motion.span
+                  initial={{ scale: 0, rotate: -30 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 16, delay: 0.1 }}
+                  className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-surface-card text-pastel-mint-ink"
+                >
+                  <Check className="h-5 w-5" />
+                </motion.span>
                 <p className="text-[15px] font-medium text-pastel-mint-ink">Todo al día</p>
-                <p className="mt-1 text-[13px] text-ink-secondary">No hay cobros, feedback ni rutinas pendientes para hoy.</p>
-              </div>
+                <p className="mt-1 text-[13px] text-ink-secondary">
+                  {isNutri
+                    ? 'No hay turnos para recordar, cobros ni pacientes para revisar.'
+                    : 'No hay cobros, feedback ni rutinas pendientes para hoy.'}
+                </p>
+              </motion.div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
+                <AnimatePresence mode="popLayout" initial>
+                {show('turnos')
+                  ? nutri.tomorrow.map((a) =>
+                      T(
+                        `turno-${a.id}`,
+                        <TaskCardV2
+                          title={a.full_name}
+                          mark={<AvatarV2 name={a.full_name} />}
+                          description={`Mañana a las ${fmtTime(a.starts_at)}. Mandale el recordatorio para que confirme.`}
+                          onOpen={a.student_id ? () => navigate(`/nutrition/${a.student_id}`) : undefined}
+                          tags={<TagV2 tone="neutral">Turno de mañana</TagV2>}
+                          meta={<MetaChipV2 icon={CalendarClock}>{fmtTime(a.starts_at)}</MetaChipV2>}
+                          actions={
+                            <>
+                              <PillButtonV2 onClick={() => markReminded(a.id)} title="Sacarlo de la lista sin mandar nada">
+                                Ya le avisé
+                              </PillButtonV2>
+                              <PillButtonV2 primary icon={WhatsAppIcon} onClick={() => void remindAppointment(a)}>
+                                Recordar
+                              </PillButtonV2>
+                            </>
+                          }
+                        />,
+                      ),
+                    )
+                  : null}
+
+                {show('seguimiento')
+                  ? nutri.symptoms.map((p) =>
+                      T(
+                        `sintoma-${p.id}`,
+                        <TaskCardV2
+                          title={p.full_name}
+                          mark={<AvatarV2 name={p.full_name} />}
+                          description={`${p.detail} en su registro del ${fmtDay(p.loggedAt.slice(0, 10))}. Conviene escribirle antes de la próxima consulta.`}
+                          onOpen={() => navigate(`/nutrition/${p.id}?tab=historia`)}
+                          tags={
+                            <>
+                              <TagV2 tone="neutral">Seguimiento</TagV2>
+                              <TagV2 tone="rose">Malestar o adherencia</TagV2>
+                            </>
+                          }
+                          meta={<MetaChipV2 icon={HeartPulse}>{fmtDay(p.loggedAt.slice(0, 10))}</MetaChipV2>}
+                          actions={
+                            <>
+                              <PillButtonV2 icon={WhatsAppIcon} title="Escribirle por WhatsApp" onClick={() => void sendOrCopy(`Hola ${firstName(p.full_name)}, vi tu registro. ¿Cómo seguís?`, p.phone)} />
+                              <PillButtonV2 primary onClick={() => navigate(`/nutrition/${p.id}?tab=historia`)}>
+                                Ver registro
+                              </PillButtonV2>
+                            </>
+                          }
+                        />,
+                      ),
+                    )
+                  : null}
+
+                {show('seguimiento') && nutri.overdue.length
+                  ? T(
+                      'controles',
+                      <TaskCardV2
+                        title={`${nutri.overdue.length} ${nutri.overdue.length === 1 ? 'paciente necesita' : 'pacientes necesitan'} control y no tienen turno`}
+                        description={names(nutri.overdue)}
+                        onOpen={() => navigate('/nutrition')}
+                        tags={<TagV2 tone="neutral">Seguimiento</TagV2>}
+                        meta={<MetaChipV2 icon={Ruler}>Más de 6 semanas</MetaChipV2>}
+                        actions={
+                          <PillButtonV2 primary onClick={() => navigate('/nutrition')}>
+                            Ver pacientes
+                          </PillButtonV2>
+                        }
+                      />,
+                    )
+                  : null}
+
+                {show('seguimiento') && nutri.anamnesis.length
+                  ? T(
+                      'anamnesis',
+                      <TaskCardV2
+                        title={`${nutri.anamnesis.length} ${nutri.anamnesis.length === 1 ? 'anamnesis sin responder' : 'anamnesis sin responder'}`}
+                        description={`${names(nutri.anamnesis)}. Les mandaste el link y todavía no la completaron.`}
+                        onOpen={() => navigate(`/nutrition/${nutri.anamnesis[0]!.id}`)}
+                        tags={<TagV2 tone="neutral">Seguimiento</TagV2>}
+                        meta={<MetaChipV2 icon={ClipboardList}>Link enviado</MetaChipV2>}
+                        actions={
+                          <PillButtonV2 onClick={() => navigate(`/nutrition/${nutri.anamnesis[0]!.id}`)}>
+                            Abrir
+                          </PillButtonV2>
+                        }
+                      />,
+                    )
+                  : null}
+
                 {show('semana')
                   ? weekly.map((r) => {
                       const c = WEEKLY_COPY[r.id]!
                       return (
-                        <TaskCardV2
-                          key={r.id}
+                        T(`semana-${r.id}`, <TaskCardV2
                           title={c.title}
                           description={c.meta}
                           tags={<TagV2 tone="neutral">Aviso de la semana</TagV2>}
@@ -484,13 +773,13 @@ export function DashboardV2Page() {
                               </PillButtonV2>
                             </>
                           }
-                        />
+                        />)
                       )
                     })
                   : null}
 
                 {show('feedback') && missing.length ? (
-                  <TaskCardV2
+                  T('feedback-missing', <TaskCardV2
                     title={`${missing.length} ${missing.length === 1 ? 'alumno no respondió' : 'alumnos no respondieron'} el feedback`}
                     description={names(missing)}
                     onOpen={() => navigate('/feedback')}
@@ -501,11 +790,11 @@ export function DashboardV2Page() {
                         Enviar
                       </PillButtonV2>
                     }
-                  />
+                  />)
                 ) : null}
 
                 {show('feedback') && unreplied ? (
-                  <TaskCardV2
+                  T('feedback-unreplied', <TaskCardV2
                     title={`${unreplied} ${unreplied === 1 ? 'respuesta espera' : 'respuestas esperan'} tu devolución`}
                     description="Respuestas del último mes que todavía no contestaste."
                     onOpen={() => navigate('/feedback')}
@@ -515,15 +804,14 @@ export function DashboardV2Page() {
                         Responder
                       </PillButtonV2>
                     }
-                  />
+                  />)
                 ) : null}
 
                 {show('rutinas')
                   ? routines.ending.map(({ r, days }) => {
                       const who = r.student?.full_name ?? 'Alumno'
                       return (
-                        <TaskCardV2
-                          key={r.id}
+                        T(`rutina-${r.id}`, <TaskCardV2
                           title={r.name}
                           mark={<AvatarV2 name={who} />}
                           description={`${who}. ${days === 0 ? 'Termina hoy' : days === 1 ? 'Termina mañana' : `Termina en ${days} días`}: armá la que sigue.`}
@@ -536,20 +824,20 @@ export function DashboardV2Page() {
                           }
                           meta={<MetaChipV2 icon={CalendarDays}>{fmtDay(r.end_date.slice(0, 10))}</MetaChipV2>}
                           actions={<PillButtonV2 onClick={() => navigate(`/routines/${r.id}`)}>Abrir</PillButtonV2>}
-                        />
+                        />)
                       )
                     })
                   : null}
 
                 {show('rutinas') && trains && routines.without.length ? (
-                  <TaskCardV2
+                  T('rutinas-without', <TaskCardV2
                     title={`${routines.without.length} ${routines.without.length === 1 ? 'alumno' : 'alumnos'} sin rutina activa`}
                     description={names(routines.without)}
                     onOpen={() => navigate('/students')}
                     tags={<TagV2 tone="neutral">Rutina</TagV2>}
                     meta={<MetaChipV2 icon={Users}>{`${withRoutine}/${routineTotal} con rutina`}</MetaChipV2>}
                     actions={<PillButtonV2 onClick={() => navigate('/students')}>Ver alumnos</PillButtonV2>}
-                  />
+                  />)
                 ) : null}
 
                 {show('cobros')
@@ -558,11 +846,10 @@ export function DashboardV2Page() {
                       const isToday = r.timing === 'hoy'
                       const overdue = r.reminder === 'overdue'
                       return (
-                        <TaskCardV2
-                          key={r.studentId}
+                        T(`cobro-${r.studentId}`, <TaskCardV2
                           title={r.fullName}
                           mark={<AvatarV2 name={r.fullName} />}
-                          onOpen={() => navigate(`/students/${r.studentId}`)}
+                          onOpen={() => navigate(isNutri ? `/nutrition/${r.studentId}` : `/students/${r.studentId}`)}
                           description={
                             isToday
                               ? 'Hoy es su día de pago. Mandale el recordatorio armado.'
@@ -592,11 +879,12 @@ export function DashboardV2Page() {
                               </PillButtonV2>
                             </>
                           }
-                        />
+                        />)
                       )
                     })
                   : null}
 
+                </AnimatePresence>
                 {filter !== 'all' && counts[filter] === 0 ? (
                   <p className="col-span-full rounded-2xl bg-surface-panel px-5 py-6 text-center text-[13px] text-ink-muted">
                     Nada pendiente acá.
@@ -789,12 +1077,6 @@ export function DashboardV2Page() {
         <div className="mt-10 space-y-4">
           {handlesMoney ? <PriceIncreaseNotice /> : null}
           {handlesMoney ? <RoutinePaymentsPanel compact /> : null}
-          {role === 'nutritionist' && user ? (
-            <section>
-              <SectionTitleV2>Seguimiento de {peopleWord}</SectionTitleV2>
-              <NutritionistOpsPanel ownerId={user.id} />
-            </section>
-          ) : null}
           {role === 'admin' || role === 'trainer' ? <WebIntakeAccessRequestsPanel variant="dashboard" /> : null}
           <button
             type="button"
@@ -805,7 +1087,7 @@ export function DashboardV2Page() {
           </button>
         </div>
       </PageV2>
-    </>
+    </MotionConfig>
   )
 }
 
