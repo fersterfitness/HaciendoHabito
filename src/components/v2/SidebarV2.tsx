@@ -106,13 +106,23 @@ function NavRow({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <NavLink
       to={item.href}
-      className={rowClass(active)}
+      className={cn(rowClass(active), item.hint && 'h-auto min-h-8 items-start py-1.5')}
       aria-current={active ? 'page' : undefined}
       onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
     >
       {active ? <ActivePill id="v2-nav-pill" /> : null}
-      <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
-      <span className="truncate">{item.label}</span>
+      <Icon
+        className={cn('h-4 w-4 shrink-0', item.hint && 'mt-px', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')}
+        strokeWidth={1.6}
+      />
+      {item.hint ? (
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate">{item.label}</span>
+          <span className="truncate text-[11px] font-normal leading-4 text-ink-muted">{item.hint}</span>
+        </span>
+      ) : (
+        <span className="truncate">{item.label}</span>
+      )}
     </NavLink>
   )
 }
@@ -222,7 +232,7 @@ export function SidebarV2() {
                   key={`${item.href}-${item.label}`}
                   to={item.href}
                   className={railBtnClass(active)}
-                  title={item.label}
+                  title={item.hint ? `${item.label}: ${item.hint}` : item.label}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
                   onMouseEnter={() => prefetchRouteChunkByHref(item.href)}

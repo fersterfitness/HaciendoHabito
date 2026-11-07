@@ -309,11 +309,11 @@ export function NutritionTemplatesPage() {
   return (
     <div>
       <Header
-        title={IS_V2 ? 'Planes' : 'Planes de alimentación'}
+        title={IS_V2 ? 'Plantillas de planes' : 'Planes de alimentación'}
         actions={
           IS_V2 ? (
             <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => void createPlan()}>
-              Crear plan
+              Nueva plantilla
             </Button>
           ) : undefined
         }
@@ -323,7 +323,7 @@ export function NutritionTemplatesPage() {
         <NutritionPlansTabs />
 
         <DirectoryTableShell
-          title={IS_V2 ? 'Biblioteca' : 'Biblioteca de planes'}
+          title={IS_V2 ? 'Tus plantillas' : 'Biblioteca de planes'}
           subtitle={
             search
               ? `${filteredPlans.length} coincidencias de ${plans.length}`
@@ -368,10 +368,14 @@ export function NutritionTemplatesPage() {
               {plans.length === 0 ? (
                 <EmptyState
                   icon={<BookOpen className="h-8 w-8" />}
-                  title="Sin planes guardados"
-                  description="Creá tu primer plan con el botón Crear plan."
+                  title={IS_V2 ? 'Todavía no tenés plantillas' : 'Sin planes guardados'}
+                  description={
+                    IS_V2
+                      ? 'Armá un plan base una vez y después copialo a cada paciente desde su ficha («Usar otro plan como base»).'
+                      : 'Creá tu primer plan con el botón Crear plan.'
+                  }
                   action={{
-                    label: 'Crear plan',
+                    label: IS_V2 ? 'Nueva plantilla' : 'Crear plan',
                     onClick: () => void createPlan(),
                     icon: <Plus className="h-3.5 w-3.5" />,
                   }}

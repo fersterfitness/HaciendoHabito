@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Search, Snowflake, Sun, Calendar, Flame, Wheat, Copy, ChevronRight } from 'lucide-react'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
+import { IS_V2 } from '@/lib/uiVersion'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -78,7 +79,7 @@ export function NutritionSeasonalMenusPage() {
 
   return (
     <div>
-      <Header title="Biblioteca" />
+      <Header title={IS_V2 ? 'Alimentos y menús' : 'Biblioteca'} />
       <DirectoryPageShell className={nutritionShellClass}>
         <NutritionLibraryTabs />
         <Card>

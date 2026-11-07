@@ -2,6 +2,7 @@ import { ClipboardList, FileText } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { canSeeNutrition } from '@/config/navigation'
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/SegmentedControl'
+import { IS_V2 } from '@/lib/uiVersion'
 
 /**
  * Pestañas de Planes del nutricionista: biblioteca de plantillas (`/nutrition/plans`)
@@ -12,7 +13,7 @@ export function NutritionPlansTabs({ className }: { className?: string }) {
   // La biblioteca de plantillas requiere rol de nutrición; los entrenadores solo usan el constructor.
   const items: SegmentedItem[] = [
     ...(canSeeNutrition(role)
-      ? [{ id: 'plans', to: '/nutrition/plans', label: 'Planes', icon: FileText } satisfies SegmentedItem]
+      ? [{ id: 'plans', to: '/nutrition/plans', label: IS_V2 ? 'Plantillas' : 'Planes', icon: FileText } satisfies SegmentedItem]
       : []),
     { id: 'planning', to: '/nutrition/planning', label: 'Armar plan', icon: ClipboardList },
   ]

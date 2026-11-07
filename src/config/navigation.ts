@@ -32,6 +32,8 @@ export type NavItem = {
   exactMatch?: boolean
   /** Other prefixes that keep this item highlighted (p. ej. Asesorías → /routines). */
   alsoMatch?: string[]
+  /** v2: para qué sirve la sección, en pocas palabras (debajo del nombre en el menú y en la barra superior). */
+  hint?: string
 }
 
 export type SidebarBlock =
@@ -235,9 +237,26 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
   }
   const [finance] = NAV_FINANCE
   if (role === 'nutritionist') {
+    // Nombres que dicen qué hay adentro y una línea de para qué sirve: alguien que entra por primera vez
+    // no tiene por qué saber que «Planes» son plantillas o que «Biblioteca» son los alimentos.
     return {
-      main: [NAV_HOME, NAV_APPOINTMENTS, NAV_NUTRITION_PATIENT_ANTHRO[0]!, NAV_NUTRITION_FOOD[0]!, finance!],
-      more: [NAV_NUTRITION_PATIENT_ANTHRO[1]!, NAV_NUTRITION_FOOD[1]!],
+      main: [
+        { ...NAV_HOME, hint: 'Lo que tenés para hoy' },
+        { ...NAV_APPOINTMENTS, hint: 'Agenda y recordatorios' },
+        { ...NAV_NUTRITION_PATIENT_ANTHRO[0]!, hint: 'Fichas, consultas y planes' },
+        {
+          ...NAV_NUTRITION_FOOD[0]!,
+          label: 'Plantillas de planes',
+          shortLabel: 'Plantillas',
+          hint: 'Planes base para reusar',
+          alsoMatch: ['/nutrition/planning'],
+        },
+        { ...finance!, hint: 'Cobros y gastos' },
+      ],
+      more: [
+        { ...NAV_NUTRITION_PATIENT_ANTHRO[1]!, hint: 'Controles e informes PDF' },
+        { ...NAV_NUTRITION_FOOD[1]!, label: 'Alimentos y menús', shortLabel: 'Alimentos', hint: 'Tu base de alimentos', alsoMatch: ['/nutrition/menus'] },
+      ],
     }
   }
   if (role === 'admin') {

@@ -453,7 +453,7 @@ export function NutritionFoodsPage() {
 
   return (
     <div className="min-h-0">
-      <Header title="Biblioteca" />
+      <Header title={IS_V2 ? 'Alimentos y menús' : 'Biblioteca'} />
 
       <DirectoryPageShell className={cn('max-w-[1600px]', nutritionShellClass)}>
         <TrainerMealPlansSectionNav />

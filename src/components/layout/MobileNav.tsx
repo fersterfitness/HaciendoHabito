@@ -185,7 +185,10 @@ function DrawerTile({ item, active, onClose }: { item: NavItem; active: boolean;
       >
         <Icon className="h-[18px] w-[18px]" />
       </span>
-      <span className="text-xs font-semibold leading-tight text-ink-primary">{item.label}</span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-xs font-semibold leading-tight text-ink-primary">{item.label}</span>
+        {item.hint ? <span className="text-[11px] leading-tight text-ink-muted">{item.hint}</span> : null}
+      </span>
     </NavLink>
   )
 }

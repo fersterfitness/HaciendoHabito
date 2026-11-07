@@ -40,6 +40,7 @@ import { TopBarV2 } from '@/components/v2/TopBarV2'
 import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
 import { PriceIncreaseNotice } from '@/components/dashboard/PriceIncreaseNotice'
 import { NextConsultCardV2 } from '@/components/dashboard/NextConsultCardV2'
+import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
@@ -612,6 +613,11 @@ export function DashboardV2Page() {
               : 'No hay nada urgente.'}
         </GreetingV2>
 
+        {isNutri && user && !studentsQ.isPending ? (
+          <div className="mb-8 empty:hidden">
+            <GettingStartedV2 ownerId={user.id} hasPatients={students.length > 0} onGo={(href) => navigate(href)} />
+          </div>
+        ) : null}
         {/* Celu y tablet: la próxima consulta va antes que la agenda (en la compu, arriba de «Para hoy»). */}
         {nextConsult ? <div className="mb-8 lg:hidden">{nextConsult}</div> : null}
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">

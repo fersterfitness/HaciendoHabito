@@ -87,6 +87,9 @@ export function TopBarV2({
           {Icon && sameAsItem ? <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden /> : null}
           <span className="truncate">{title}</span>
         </h1>
+        {sameAsItem && nav.item.hint ? (
+          <span className="hidden min-w-0 truncate text-ink-muted md:inline">· {nav.item.hint}</span>
+        ) : null}
       </nav>
       <div className="flex shrink-0 items-center gap-1.5">
         {actions}

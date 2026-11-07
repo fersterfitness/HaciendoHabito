@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   AlarmClock,
@@ -131,7 +132,14 @@ export function NutritionPage() {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState<PatientFilter>('all')
   const [rows, setRows] = useState<NutritionFollowupRow[]>([])
-  const [newPatientOpen, setNewPatientOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [newPatientOpen, setNewPatientOpen] = useState(() => IS_V2 && searchParams.get('nuevo') === '1')
+  useEffect(() => {
+    if (searchParams.get('nuevo') == null) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('nuevo')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
   const [reloadToken, setReloadToken] = useState(0)
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const patientPanelRef = useRef<HTMLDivElement>(null)
