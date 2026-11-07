@@ -117,6 +117,12 @@ function StatusChip({ row }: { row: NutritionFollowupRow }) {
   return <span className={cn('inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium', cls)}>{text}</span>
 }
 
+/**
+ * Tablet en vertical (menos de lg): se ocultan Estado (lo mismo que dice Próximo turno) y Última consulta,
+ * así entran turno, control y peso sin desplazar la tabla.
+ */
+const NARROW_HIDDEN = new Set(['status', 'last'])
+
 /** Línea suave entre columnas de datos (no junto al tilde ni a la flecha de abrir). */
 const COLUMN_DIVIDER = (id: string) => (id === 'select' || id === 'name' || id === 'open' ? null : 'border-l border-surface-border/70')
 
@@ -396,7 +402,7 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
       {/* Las celdas no parten el texto: si no entra, la tabla se desplaza a lo ancho. */}
       <div className="overflow-clip rounded-2xl border border-surface-border bg-surface-card shadow-[0_1px_2px_rgb(46_33_54/0.04),0_12px_32px_-16px_rgb(46_33_54/0.18)] dark:border-white/[0.07] dark:bg-surface-panel dark:shadow-[0_16px_40px_-16px_rgb(0_0_0/0.7)]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse whitespace-nowrap text-left">
+          <table className="w-full border-collapse lg:min-w-[760px] whitespace-nowrap text-left">
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
@@ -413,7 +419,7 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                           h.column.id === 'select' && 'w-10 pl-4 pr-1',
                           h.column.id === 'open' && 'w-10',
                           COLUMN_DIVIDER(h.column.id),
-                          (h.column.id === 'control' || h.column.id === 'weight') && 'max-lg:hidden',
+                          NARROW_HIDDEN.has(h.column.id) && 'max-lg:hidden',
                         )}
                       >
                         {h.column.getCanSort() ? (
@@ -460,7 +466,7 @@ export function NutritionPatientTable({ rows, selectedPatientId = null, onOpen, 
                           cell.column.id === 'select' && 'pl-4 pr-1',
                           cell.column.id === 'open' && 'text-right',
                           COLUMN_DIVIDER(cell.column.id),
-                          (cell.column.id === 'control' || cell.column.id === 'weight') && 'max-lg:hidden',
+                          NARROW_HIDDEN.has(cell.column.id) && 'max-lg:hidden',
                         )}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

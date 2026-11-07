@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { Clock, Columns2, Copy, Plus, Trash2 } from 'lucide-react'
 import type { MealMacros, WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
@@ -28,6 +28,15 @@ const MACRO_FIELDS: { key: keyof MealMacros; label: string; title: string }[] = 
   { key: 'c', label: 'C', title: 'Carbohidratos (g)' },
   { key: 'g', label: 'G', title: 'Grasas (g)' },
 ]
+
+/** v2: tablet en vertical o menos (por debajo de lg): el plan se edita de a un día. */
+const NARROW_QUERY = '(max-width: 1023.98px)'
+function subscribeNarrow(cb: () => void) {
+  const mq = window.matchMedia(NARROW_QUERY)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+const isNarrow = () => window.matchMedia(NARROW_QUERY).matches
 
 interface Props {
   mergeWeekends: boolean
@@ -63,6 +72,9 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
     onGridChange({ mealRows: meals })
   }
 
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrow, () => false) && IS_V2
+  const [activeDay, setActiveDay] = useState(0)
+  const dayIdx = Math.min(activeDay, cols - 1)
   const [copying, setCopying] = useState<{ mi: number; di: number; top: number; left: number } | null>(null)
   const [targets, setTargets] = useState<number[]>([])
 
@@ -84,6 +96,69 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
     if (!meals[mealIdx]) return
     meals[mealIdx] = { ...meals[mealIdx], [key]: text }
     onGridChange({ mealRows: meals })
+  }
+
+  // Casilla de una comida en un día (la usan la grilla de la semana y la vista por día de la tablet).
+  function renderCell(meal: (typeof normalized.mealRows)[number], mi: number, di: number, day: string) {
+    const accent = dayAccent(di, mergeWeekends)
+    const filled = (meal.columns[di] ?? '').trim().length > 0
+    return (
+          <div
+            key={`${meal.id}-${di}`}
+            className="flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
+          >
+            {IS_V2 ? null : <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />}
+            <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
+              <div className="flex items-start justify-between gap-1">
+                <p className="text-xs font-semibold leading-tight text-ink-primary">{meal.label}</p>
+                {IS_V2 && (filled || meal.macros?.[di]) ? (
+                  <button
+                    type="button"
+                    onClick={(e) => openCopy(mi, di, e.currentTarget)}
+                    className="-mr-1 -mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary [@media(pointer:coarse)]:-my-1.5 [@media(pointer:coarse)]:h-8 [@media(pointer:coarse)]:w-8"
+                    title="Copiar a otros días"
+                    aria-label={`Copiar ${meal.label} del ${day} a otros días`}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                ) : null}
+              </div>
+              {meal.approxTime.trim() ? (
+                <p className="mt-0.5 text-3xs font-medium text-ink-muted">
+                  {meal.approxTime}
+                </p>
+              ) : null}
+              <textarea
+                value={meal.columns[di] ?? ''}
+                onChange={(e) => updateCell(mi, di, e.target.value)}
+                placeholder="Escribí el menú…"
+                rows={narrow ? 5 : 4}
+                className={cn(
+                  'mt-1.5 min-h-[4.75rem] w-full flex-1 resize-none rounded-md border-0 bg-transparent px-0 py-1 text-xs leading-relaxed text-ink-primary',
+          // v2 · táctil: 16 px (con menos, el iPad hace zoom al tocar el campo).
+          IS_V2 && '[@media(pointer:coarse)]:text-base',
+                  'placeholder:text-ink-muted/55',
+                  filled ? '' : 'opacity-90',
+                  planFocusClassName,
+                )}
+              />
+              {IS_V2 ? (
+                <div className="mt-1.5 grid grid-cols-4 gap-1 border-t border-surface-border/70 pt-1.5">
+                  {MACRO_FIELDS.map((f) => (
+                    <label key={f.key} className="min-w-0" title={f.title}>
+                      <span className="block text-center text-[10px] font-medium leading-none text-ink-muted">{f.label}</span>
+                      <MacroInput
+                        value={meal.macros?.[di]?.[f.key] ?? null}
+                        onCommit={(text) => updateMacro(mi, di, f.key, text)}
+                        ariaLabel={`${f.title} · ${meal.label} · ${day}`}
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+    )
   }
 
   return (
@@ -146,101 +221,75 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
         </button>
       </div>
 
-      <div className="overflow-x-auto -mx-1 rounded-2xl border border-surface-border/60 bg-surface-base px-2 py-3">
-        <div
-          className="grid min-w-[54rem] items-stretch gap-x-2.5 gap-y-2.5"
-          style={{ gridTemplateColumns: `repeat(${cols}, minmax(8.75rem, 1fr))` }}
-        >
-          {days.map((day, di) => {
-            const accent = dayAccent(di, mergeWeekends)
-            const count = filledMealCountForDay(normalized, di)
-            const totals = IS_V2 ? dayMacroTotals(normalized, di) : null
-            return (
-              <header key={`h-${day}`} className="flex items-center justify-between gap-2 px-0.5">
-                <h3 className="text-xs font-semibold tracking-tight text-ink-primary">{day}</h3>
-                {totals?.kcal != null ? (
-                  <span className="truncate text-3xs font-semibold tabular-nums text-ink-secondary" title={`Total del día: ${formatMacros(totals)}`}>
-                    {totals.kcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-3xs font-semibold tabular-nums',
-                      IS_V2 && 'bg-surface-elevated text-ink-muted',
-                    )}
-                    style={IS_V2 ? undefined : { backgroundColor: `${accent.color}22`, color: accent.color }}
-                    title={IS_V2 ? `${count} comidas cargadas` : undefined}
-                  >
-                    {count}
-                  </span>
-                )}
-              </header>
-            )
-          })}
-
-          {normalized.mealRows.map((meal, mi) =>
-            days.map((day, di) => {
-              const accent = dayAccent(di, mergeWeekends)
-              const filled = (meal.columns[di] ?? '').trim().length > 0
+      {narrow ? (
+        // Tablet en vertical: los días arriba y las comidas del día elegido en dos columnas, con más lugar para escribir.
+        <div className="-mx-1 rounded-2xl border border-surface-border/60 bg-surface-base px-2 py-3">
+          <div role="tablist" aria-label="Día del plan" className="flex gap-1.5 overflow-x-auto px-0.5 pb-3">
+            {days.map((day, di) => {
+              const count = filledMealCountForDay(normalized, di)
+              const totals = dayMacroTotals(normalized, di)
+              const on = di === dayIdx
               return (
-                <div
-                  key={`${meal.id}-${di}`}
-                  className="flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card"
+                <button
+                  key={day}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setActiveDay(di)}
+                  className={cn(
+                    'flex h-11 shrink-0 flex-col items-start justify-center rounded-xl px-3 text-left transition-colors',
+                    on ? 'bg-ink-primary text-surface-card' : 'bg-surface-card text-ink-secondary hover:text-ink-primary',
+                  )}
                 >
-                  {IS_V2 ? null : <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: accent.color }} />}
-                  <div className="flex flex-1 flex-col px-2.5 pb-2 pt-2">
-                    <div className="flex items-start justify-between gap-1">
-                      <p className="text-xs font-semibold leading-tight text-ink-primary">{meal.label}</p>
-                      {IS_V2 && (filled || meal.macros?.[di]) ? (
-                        <button
-                          type="button"
-                          onClick={(e) => openCopy(mi, di, e.currentTarget)}
-                          className="-mr-1 -mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-                          title="Copiar a otros días"
-                          aria-label={`Copiar ${meal.label} del ${day} a otros días`}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </button>
-                      ) : null}
-                    </div>
-                    {meal.approxTime.trim() ? (
-                      <p className="mt-0.5 text-3xs font-medium text-ink-muted">
-                        {meal.approxTime}
-                      </p>
-                    ) : null}
-                    <textarea
-                      value={meal.columns[di] ?? ''}
-                      onChange={(e) => updateCell(mi, di, e.target.value)}
-                      placeholder="Escribí el menú…"
-                      rows={4}
-                      className={cn(
-                        'mt-1.5 min-h-[4.75rem] w-full flex-1 resize-none rounded-md border-0 bg-transparent px-0 py-1 text-xs leading-relaxed text-ink-primary',
-                        'placeholder:text-ink-muted/55',
-                        filled ? '' : 'opacity-90',
-                        planFocusClassName,
-                      )}
-                    />
-                    {IS_V2 ? (
-                      <div className="mt-1.5 grid grid-cols-4 gap-1 border-t border-surface-border/70 pt-1.5">
-                        {MACRO_FIELDS.map((f) => (
-                          <label key={f.key} className="min-w-0" title={f.title}>
-                            <span className="block text-center text-[10px] font-medium leading-none text-ink-muted">{f.label}</span>
-                            <MacroInput
-                              value={meal.macros?.[di]?.[f.key] ?? null}
-                              onCommit={(text) => updateMacro(mi, di, f.key, text)}
-                              ariaLabel={`${f.title} · ${meal.label} · ${day}`}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
+                  <span className="whitespace-nowrap text-[13px] font-semibold leading-tight">{day}</span>
+                  <span className={cn('whitespace-nowrap text-[11px] tabular-nums leading-tight', on ? 'opacity-75' : 'text-ink-muted')}>
+                    {totals?.kcal != null ? `${totals.kcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : `${count} de ${normalized.mealRows.length}`}
+                  </span>
+                </button>
               )
-            }),
-          )}
+            })}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {normalized.mealRows.map((meal, mi) => renderCell(meal, mi, dayIdx, days[dayIdx]!))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="overflow-x-auto -mx-1 rounded-2xl border border-surface-border/60 bg-surface-base px-2 py-3">
+          <div
+            className="grid min-w-[54rem] items-stretch gap-x-2.5 gap-y-2.5"
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(8.75rem, 1fr))` }}
+          >
+            {days.map((day, di) => {
+              const accent = dayAccent(di, mergeWeekends)
+              const count = filledMealCountForDay(normalized, di)
+              const totals = IS_V2 ? dayMacroTotals(normalized, di) : null
+              return (
+                <header key={`h-${day}`} className="flex items-center justify-between gap-2 px-0.5">
+                  <h3 className="text-xs font-semibold tracking-tight text-ink-primary">{day}</h3>
+                  {totals?.kcal != null ? (
+                    <span className="truncate text-3xs font-semibold tabular-nums text-ink-secondary" title={`Total del día: ${formatMacros(totals)}`}>
+                      {totals.kcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-3xs font-semibold tabular-nums',
+                        IS_V2 && 'bg-surface-elevated text-ink-muted',
+                      )}
+                      style={IS_V2 ? undefined : { backgroundColor: `${accent.color}22`, color: accent.color }}
+                      title={IS_V2 ? `${count} comidas cargadas` : undefined}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </header>
+              )
+            })}
+
+            {normalized.mealRows.map((meal, mi) => days.map((day, di) => renderCell(meal, mi, di, day)))}
+          </div>
+        </div>
+      )}
 
       {copying ? (
         <>
@@ -332,6 +381,7 @@ function MacroInput({ value, onCommit, ariaLabel }: { value: number | null; onCo
       aria-label={ariaLabel}
       className={cn(
         'mt-0.5 w-full min-w-0 rounded-md bg-surface-elevated/60 px-1 py-0.5 text-center text-2xs tabular-nums text-ink-primary placeholder:text-ink-muted/50',
+        '[@media(pointer:coarse)]:py-1.5 [@media(pointer:coarse)]:text-base',
         planFocusClassName,
       )}
     />
