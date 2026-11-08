@@ -841,6 +841,10 @@ export function NutritionPatientDetailView({
               onFollowupChanged={setFollowup}
               onAppointmentBooked={() => setAppointmentVersion((v) => v + 1)}
               onStudentUpdated={setStudent}
+              onNextPatient={(nextId) => {
+                setConsultOpen(false)
+                navigate(`/nutrition/${nextId}?consulta=1`)
+              }}
             />
           </div>
         ) : null}
@@ -1317,5 +1321,6 @@ export function NutritionPatientDetailPage() {
       </div>
     )
   }
-  return <NutritionPatientDetailView patientId={id} variant="page" />
+  // v2: la clave remonta la ficha al pasar de un paciente a otro (modo consultorio: «Siguiente paciente»).
+  return <NutritionPatientDetailView key={IS_V2 ? id : undefined} patientId={id} variant="page" />
 }

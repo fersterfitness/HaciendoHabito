@@ -41,6 +41,7 @@ import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
 import { PriceIncreaseNotice } from '@/components/dashboard/PriceIncreaseNotice'
 import { NextConsultCardV2 } from '@/components/dashboard/NextConsultCardV2'
 import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
+import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
@@ -598,6 +599,9 @@ export function DashboardV2Page() {
         onOpen={() => navigate(`/nutrition/${nutri.next!.student_id}`)}
         onStart={() => navigate(`/nutrition/${nutri.next!.student_id}?consulta=1`)}
       />
+    ) : isNutri && user && !nutriQ.isPending ? (
+      // Sin más consultas hoy: cómo cerró el día (si hubo agenda).
+      <DaySummaryCardV2 ownerId={user.id} tomorrowToRemind={nutri.tomorrow.length} onGo={(href) => navigate(href)} />
     ) : null
 
   return (
@@ -642,10 +646,10 @@ export function DashboardV2Page() {
           </div>
         ) : null}
         {/* Celu y tablet: la próxima consulta va antes que la agenda (en la compu, arriba de «Para hoy»). */}
-        {nextConsult ? <div className="mb-8 lg:hidden">{nextConsult}</div> : null}
+        {nextConsult ? <div className="mb-8 empty:hidden lg:hidden">{nextConsult}</div> : null}
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
           <section className="min-w-0">
-            {nextConsult ? <div className="mb-8 hidden lg:block">{nextConsult}</div> : null}
+            {nextConsult ? <div className="mb-8 hidden lg:block lg:empty:hidden">{nextConsult}</div> : null}
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
             {!loading && filterTiles.length > 1 ? (

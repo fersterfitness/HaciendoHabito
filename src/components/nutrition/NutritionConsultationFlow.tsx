@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { createPortal } from 'react-dom'
 import { addDays, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, FileText, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, FileText, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -26,6 +27,9 @@ import { NutritionBodyComparisonCard } from './NutritionBodyComparisonCard'
 import { NutritionWeeklyPlanSection } from './NutritionWeeklyPlanSection'
 import { Delta, METRICS, nf, type Metric } from './NutritionResumenDashboardV2'
 import { useNextAppointment } from './NutritionResumenDashboard'
+import { ConsultationPaymentCard } from './ConsultationPaymentCard'
+import { ConsultBriefing } from './ConsultBriefing'
+import { currentAppointmentFor, nextAppointmentAfter, type DayAppointment } from '@/lib/nutrition/consultDay'
 
 /**
  * Modo consulta: todo lo que se hace con el paciente adelante, en orden y en una sola pantalla.
@@ -96,6 +100,7 @@ export function NutritionConsultationFlow({
   onFollowupChanged,
   onAppointmentBooked,
   onStudentUpdated,
+  onNextPatient,
 }: {
   open: boolean
   onClose: () => void
@@ -107,12 +112,42 @@ export function NutritionConsultationFlow({
   onFollowupChanged: (next: NutritionPatientFollowup) => void
   onAppointmentBooked: () => void
   onStudentUpdated?: (next: Student) => void
+  /** Modo consultorio: abrir la consulta del paciente que sigue en la agenda de hoy. */
+  onNextPatient?: (studentId: string) => void
 }) {
   const { user, profile } = useAuthStore()
   const [step, setStep] = useState<StepId>('medidas')
   const [done, setDone] = useState<Partial<Record<StepId, string>>>({})
   const [bookedVersion, setBookedVersion] = useState(0)
   const today = format(new Date(), 'yyyy-MM-dd')
+
+  // Turnos de hoy: para cerrar el turno de esta consulta y saber quién sigue.
+  const dayQ = useQuery({
+    queryKey: ['consult-day', user?.id, today],
+    enabled: open && Boolean(user),
+    queryFn: async () => {
+      const start = new Date(`${today}T00:00:00`)
+      const end = new Date(start.getTime() + 86_400_000)
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, student_id, starts_at, status, title, student:students(full_name)')
+        .eq('owner_id', user!.id)
+        .gte('starts_at', start.toISOString())
+        .lt('starts_at', end.toISOString())
+        .order('starts_at')
+      type Row = { id: string; student_id: string | null; starts_at: string; status: string; title: string | null; student?: { full_name?: string | null } | null }
+      return ((data ?? []) as unknown as Row[]).map<DayAppointment>((r) => ({
+        id: r.id,
+        student_id: r.student_id,
+        starts_at: r.starts_at,
+        status: r.status,
+        full_name: r.student?.full_name ?? r.title ?? 'Turno',
+      }))
+    },
+  })
+  const queue = useMemo(() => dayQ.data ?? [], [dayQ.data])
+  const currentAppt = useMemo(() => currentAppointmentFor(queue, student.id, new Date()), [queue, student.id])
+  const nextAppt = useMemo(() => nextAppointmentAfter(queue, currentAppt, student.id), [queue, currentAppt, student.id])
 
   useEffect(() => {
     if (!open) return
@@ -173,6 +208,12 @@ export function NutritionConsultationFlow({
         .single()
       if (error) toast.error(error.message)
       else onFollowupChanged(data as NutritionPatientFollowup)
+      // El turno de esta consulta queda como atendido (sale de «pendientes» en la agenda y en el Inicio).
+      if (currentAppt && (currentAppt.status === 'scheduled' || currentAppt.status === 'confirmed')) {
+        const { error: apptErr } = await supabase.from('appointments').update({ status: 'completed' }).eq('id', currentAppt.id).eq('owner_id', user.id)
+        if (apptErr) console.warn('No se pudo marcar el turno como atendido', apptErr.message)
+        else void dayQ.refetch()
+      }
     }
     go('fin')
   }
@@ -236,6 +277,7 @@ export function NutritionConsultationFlow({
 
       <div id="consulta-scroll" className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+          {step === 'medidas' && user ? <ConsultBriefing ownerId={user.id} studentId={student.id} measurements={measurements} /> : null}
           {step === 'medidas' ? (
             <StepShell
               title="Medidas de hoy"
@@ -356,10 +398,32 @@ export function NutritionConsultationFlow({
                   </li>
                 ))}
               </ul>
+              {user ? (
+                <div className="mt-4">
+                  <ConsultationPaymentCard ownerId={user.id} studentId={student.id} studentName={student.full_name} today={today} />
+                </div>
+              ) : null}
+              {nextAppt?.student_id && onNextPatient ? (
+                <button
+                  type="button"
+                  onClick={() => onNextPatient(nextAppt.student_id!)}
+                  className="group mt-4 flex w-full items-center gap-3 rounded-2xl bg-ink-primary px-4 py-3 text-left text-surface-base transition-opacity hover:opacity-90"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12px] opacity-70">Sigue · {format(new Date(nextAppt.starts_at), 'HH:mm')}</span>
+                    <span className="block truncate text-[15px] font-medium">{nextAppt.full_name}</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-[13px] font-medium">
+                    Empezar consulta
+                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </button>
+              ) : null}
               {measurements[0] ? (
                 // El informe del último control, para mandárselo al paciente (se abre en otra pestaña, como desde Antropometría).
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   <Button
+                    variant={nextAppt && onNextPatient ? 'secondary' : undefined}
                     icon={<FileText className="h-4 w-4" />}
                     onClick={() => window.open(`/nutrition/${student.id}/informe?control=${encodeURIComponent(measurements[0]!.id)}`, '_blank')}
                   >
