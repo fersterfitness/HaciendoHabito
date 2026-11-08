@@ -1,5 +1,6 @@
 import { controlSmClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
+import { UnmarkedAppointmentsV2 } from '@/components/v2/UnmarkedAppointmentsV2'
 import { v2TabClass } from '@/components/v2/tabStyle'
 import { Modal } from '@/components/ui/Modal'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -507,6 +508,19 @@ export function AppointmentsPage() {
 
   const upcoming = useMemo(() => appointments.filter((a) => a.status === 'scheduled' || a.status === 'confirmed'), [appointments])
   const history = useMemo(() => appointments.filter((a) => a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show'), [appointments])
+  // v2: turnos de las últimas dos semanas que ya pasaron y nadie marcó si vino o faltó.
+  const unmarked = useMemo(() => {
+    if (!IS_V2) return []
+    const now = Date.now()
+    const from = now - 14 * 86_400_000
+    return upcoming
+      .filter((a) => {
+        const t = new Date(a.starts_at).getTime()
+        return t < now - 15 * 60_000 && t >= from
+      })
+      .sort((a, b) => b.starts_at.localeCompare(a.starts_at))
+      .map((a) => ({ id: a.id, starts_at: a.starts_at, name: a.student?.full_name ?? a.title ?? 'Turno', title: a.student?.full_name ? a.title : null }))
+  }, [upcoming])
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(weekAnchor, index)), [weekAnchor])
   const monthDays = useMemo(() => {
     const first = startOfMonth(monthAnchor)
@@ -975,7 +989,7 @@ export function AppointmentsPage() {
     id: string,
     status: AppointmentStatus,
     sessionNotes?: string,
-    opts?: { allowUndo?: boolean },
+    opts?: { allowUndo?: boolean; quiet?: boolean },
   ) {
     if (!user) return
     const prev = appointments.find((a) => a.id === id)
@@ -1025,7 +1039,7 @@ export function AppointmentsPage() {
       )
     }
 
-    if (status === 'completed' && prev) {
+    if (status === 'completed' && prev && !opts?.quiet) {
       const studentName = prev.student?.full_name ?? '—'
       const phoneRaw = prev.student?.phone ?? students.find((s) => s.id === prev.student_id)?.phone
       const feedbackUrl = buildAppointmentFeedbackWaUrl({
@@ -1326,6 +1340,15 @@ export function AppointmentsPage() {
                 </div>
               )}
             </div>
+            {calendarScope === 'students' && unmarked.length ? (
+              <UnmarkedAppointmentsV2
+                items={unmarked}
+                onMark={async (id, status) => {
+                  await updateStatus(id, status, undefined, { allowUndo: false, quiet: true })
+                  toast.success(status === 'completed' ? 'Marcado: vino' : 'Marcado: faltó')
+                }}
+              />
+            ) : null}
             <p className={cn('flex items-start gap-2 border-t border-surface-border/70 pt-3 text-3xs leading-relaxed text-ink-muted', IS_V2 && 'hidden')}>
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500/85" aria-hidden />
               <span>
