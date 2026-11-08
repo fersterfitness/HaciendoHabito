@@ -100,7 +100,11 @@ function isDone(id: string): boolean {
   }
 }
 
-/** Turnos de mañana a los que ya se les mandó (o se descartó) el recordatorio, en este dispositivo. */
+/**
+ * Turnos de mañana a los que ya se les mandó (o se descartó) el recordatorio. Se guarda en
+ * `appointment_reminders` (canal whatsapp) para que valga en todos los dispositivos; esta copia local
+ * hace que la tarjeta se vaya al instante y cubre si la escritura falla.
+ */
 const REMINDED_KEY = 'hh-appt-reminded'
 function readReminded(): Set<string> {
   try {
@@ -270,6 +274,15 @@ export function DashboardV2Page() {
           .limit(2000),
         loadNutritionistOps(user!.id),
       ])
+      const apptIds = ((appts.data ?? []) as { id: string }[]).map((a) => a.id)
+      const sent = apptIds.length
+        ? await supabase
+            .from('appointment_reminders')
+            .select('appointment_id')
+            .in('appointment_id', apptIds)
+            .eq('channel', 'whatsapp')
+            .eq('status', 'sent')
+        : { data: [] }
       type Row = {
         id: string
         student_id: string | null
@@ -300,9 +313,11 @@ export function DashboardV2Page() {
           adherence_1_5: number | null
         }[],
         ops,
+        remindedIds: ((sent.data ?? []) as { appointment_id: string }[]).map((r) => r.appointment_id),
       }
     },
   })
+  const remindedAll = useMemo(() => new Set([...reminded, ...(nutriQ.data?.remindedIds ?? [])]), [reminded, nutriQ.data])
   const nutri = useMemo(
     () =>
       buildNutritionistToday({
@@ -312,10 +327,10 @@ export function DashboardV2Page() {
         patients: students.map((s) => ({ id: s.id, full_name: s.full_name, phone: s.phone ?? null })),
         overdueControls: nutriQ.data?.ops.overdueControls ?? [],
         pendingAnamnesis: nutriQ.data?.ops.pendingAnamnesis ?? [],
-        reminded,
+        reminded: remindedAll,
         now,
       }),
-    [nutriQ.data, students, reminded, now],
+    [nutriQ.data, students, remindedAll, now],
   )
 
   const board = useMemo(() => {
@@ -437,6 +452,14 @@ export function DashboardV2Page() {
       saveReminded(next)
       return next
     })
+    if (!user) return
+    const at = new Date().toISOString()
+    void supabase
+      .from('appointment_reminders')
+      .insert({ owner_id: user.id, appointment_id: id, channel: 'whatsapp', scheduled_for: at, sent_at: at, status: 'sent', error_message: null })
+      .then(({ error }) => {
+        if (error) console.warn('No se pudo guardar el recordatorio', error.message)
+      })
   }
 
   async function remindAppointment(a: TodayAppointment) {
