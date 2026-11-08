@@ -181,7 +181,7 @@ export function ExercisesPage() {
   return (
     <div>
       <Header
-        title="Base de datos"
+        title={IS_V2 ? 'Ejercicios y circuitos' : 'Base de datos'}
         actions={
           IS_V2 ? (
             <Button size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/exercises/new')}>

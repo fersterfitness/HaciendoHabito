@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, Boxes, X, ChevronDown, ChevronRight } from 'lucid
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
+import { IS_V2 } from '@/lib/uiVersion'
 import { ExercisesSectionNav } from '@/components/exercises/ExercisesSectionNav'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -200,7 +201,7 @@ export function PresetBlocksPage() {
 
   return (
     <div>
-      <Header title="Base de datos" />
+      <Header title={IS_V2 ? 'Ejercicios y circuitos' : 'Base de datos'} />
       <div className="page-shell-x page-shell-y space-y-5">
         <ExercisesSectionNav />
 

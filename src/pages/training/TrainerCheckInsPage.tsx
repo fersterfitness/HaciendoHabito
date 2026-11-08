@@ -988,7 +988,7 @@ export function TrainerCheckInsPage({
         {checkInView === 'student' ? (
           <div className="space-y-4">
 
-            {studentPanel === 'sin_respuesta' && user ? <CheckInSendBoard ownerId={user.id} /> : null}
+            {studentPanel === 'sin_respuesta' && user ? <CheckInSendBoard ownerId={user.id} onCreateForm={IS_V2 ? () => setCheckInView('form') : undefined} /> : null}
 
             {studentPanel === 'seguimiento' ? <StudentRoutineWeekPanel /> : null}
 

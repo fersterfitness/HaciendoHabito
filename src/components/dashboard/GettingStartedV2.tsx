@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { CalendarPlus, Check, ChevronRight, FileText, UserPlus, X, type LucideIcon } from 'lucide-react'
+import { CalendarPlus, Check, ChevronRight, Dumbbell, FileText, UserPlus, X, type LucideIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -9,7 +9,7 @@ const HIDDEN_KEY = 'hh-primeros-pasos-oculto'
 
 type Step = { id: string; icon: LucideIcon; title: string; detail: string; href: string; done: boolean }
 
-async function hasAny(table: 'appointments' | 'nutrition_plan_library', ownerId: string) {
+async function hasAny(table: 'appointments' | 'nutrition_plan_library' | 'routines', ownerId: string) {
   const { data, error } = await supabase.from(table).select('id').eq('owner_id', ownerId).limit(1)
   if (error) throw error
   return (data?.length ?? 0) > 0
@@ -24,16 +24,30 @@ function readHidden() {
 }
 
 /**
- * v2 · Inicio del nutricionista recién llegado: los tres pasos para arrancar, en el orden en que se
- * usan. Cada uno se tilda solo cuando ya existe lo que pide; cuando están los tres, desaparece.
+ * v2 · Inicio del profesional recién llegado (nutricionista o entrenador): los tres pasos para
+ * arrancar, en el orden en que se usan. Cada uno se tilda solo cuando ya existe lo que pide; cuando
+ * están los tres, desaparece.
  */
-export function GettingStartedV2({ ownerId, hasPatients, onGo }: { ownerId: string; hasPatients: boolean; onGo: (href: string) => void }) {
+export function GettingStartedV2({
+  ownerId,
+  hasPatients,
+  onGo,
+  variant = 'nutritionist',
+}: {
+  ownerId: string
+  hasPatients: boolean
+  onGo: (href: string) => void
+  variant?: 'nutritionist' | 'trainer'
+}) {
   const [hidden, setHidden] = useState(readHidden)
   const q = useQuery({
-    queryKey: ['v2', 'getting-started', ownerId],
+    queryKey: ['v2', 'getting-started', variant, ownerId],
     queryFn: async () => {
-      const [appointments, templates] = await Promise.all([hasAny('appointments', ownerId), hasAny('nutrition_plan_library', ownerId)])
-      return { appointments, templates }
+      const [appointments, third] = await Promise.all([
+        hasAny('appointments', ownerId),
+        hasAny(variant === 'trainer' ? 'routines' : 'nutrition_plan_library', ownerId),
+      ])
+      return { appointments, third }
     },
     enabled: !hidden,
     staleTime: 60_000,
@@ -41,32 +55,60 @@ export function GettingStartedV2({ ownerId, hasPatients, onGo }: { ownerId: stri
 
   if (hidden || !q.data) return null
 
-  const steps: Step[] = [
-    {
-      id: 'paciente',
-      icon: UserPlus,
-      title: 'Cargá tu primer paciente',
-      detail: 'En Pacientes queda su ficha: consultas, mediciones y su plan.',
-      href: '/nutrition?nuevo=1',
-      done: hasPatients,
-    },
-    {
-      id: 'turno',
-      icon: CalendarPlus,
-      title: 'Agendá un turno',
-      detail: 'Desde Turnos. El día anterior te avisamos acá para mandarle el recordatorio.',
-      href: '/appointments',
-      done: q.data.appointments,
-    },
-    {
-      id: 'plantilla',
-      icon: FileText,
-      title: 'Armá una plantilla de plan',
-      detail: 'Un plan base que después copiás a cada paciente y ajustás.',
-      href: '/nutrition/plans',
-      done: q.data.templates,
-    },
-  ]
+  const trainer = variant === 'trainer'
+  const steps: Step[] = trainer
+    ? [
+        {
+          id: 'alumno',
+          icon: UserPlus,
+          title: 'Cargá tu primer alumno',
+          detail: 'En Alumnos queda su ficha: rutinas, pagos y cómo viene cada semana.',
+          href: '/students?create=1',
+          done: hasPatients,
+        },
+        {
+          id: 'rutina',
+          icon: Dumbbell,
+          title: 'Armá su primera rutina',
+          detail: 'Desde Rutinas, de cero o partiendo de una preestablecida.',
+          href: '/routines?create=1',
+          done: q.data.third,
+        },
+        {
+          id: 'turno',
+          icon: CalendarPlus,
+          title: 'Agendá un turno',
+          detail: 'Desde Turnos. El día anterior te avisamos acá para mandarle el recordatorio.',
+          href: '/appointments',
+          done: q.data.appointments,
+        },
+      ]
+    : [
+        {
+          id: 'paciente',
+          icon: UserPlus,
+          title: 'Cargá tu primer paciente',
+          detail: 'En Pacientes queda su ficha: consultas, mediciones y su plan.',
+          href: '/nutrition?nuevo=1',
+          done: hasPatients,
+        },
+        {
+          id: 'turno',
+          icon: CalendarPlus,
+          title: 'Agendá un turno',
+          detail: 'Desde Turnos. El día anterior te avisamos acá para mandarle el recordatorio.',
+          href: '/appointments',
+          done: q.data.appointments,
+        },
+        {
+          id: 'plantilla',
+          icon: FileText,
+          title: 'Armá una plantilla de plan',
+          detail: 'Un plan base que después copiás a cada paciente y ajustás.',
+          href: '/nutrition/plans',
+          done: q.data.third,
+        },
+      ]
   const doneCount = steps.filter((s) => s.done).length
   if (doneCount === steps.length) return null
   const nextId = steps.find((s) => !s.done)?.id
@@ -92,7 +134,7 @@ export function GettingStartedV2({ ownerId, hasPatients, onGo }: { ownerId: stri
         <div className="min-w-0">
           <h2 className="text-[15px] font-medium text-ink-primary">Primeros pasos</h2>
           <p className="mt-0.5 text-[13px] text-ink-secondary">
-            {doneCount} de {steps.length} listos. Con esto ya podés atender tu primera consulta.
+            {doneCount} de {steps.length} listos. {trainer ? 'Con esto ya podés arrancar con tu primer alumno.' : 'Con esto ya podés atender tu primera consulta.'}
           </p>
         </div>
         <button

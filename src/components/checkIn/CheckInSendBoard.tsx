@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Check, Copy, ExternalLink, MoreHorizontal } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Popover } from '@/components/ui/Popover'
 import { ListSkeleton } from '@/components/ui/Skeleton'
@@ -32,7 +33,7 @@ type Row = StudentLite & { answered: Set<string>; owed: string[]; currentDone: b
  * Consulta semanal › Enviar: el link general arriba y, por alumno, si respondió esta semana y qué
  * semanas quedó debiendo, con un WhatsApp por semana (cada respuesta queda en la suya).
  */
-export function CheckInSendBoard({ ownerId }: { ownerId: string }) {
+export function CheckInSendBoard({ ownerId, onCreateForm }: { ownerId: string; /** Lleva a «Formularios» cuando todavía no hay uno. */ onCreateForm?: () => void }) {
   const [form, setForm] = useState<WeeklyForm | null>(null)
   const [sendDow, setSendDow] = useState(DEFAULT_SEND_DOW)
   const [students, setStudents] = useState<StudentLite[]>([])
@@ -148,6 +149,11 @@ export function CheckInSendBoard({ ownerId }: { ownerId: string }) {
       <Card padding="lg" className="space-y-2">
         <p className="text-sm font-semibold text-ink-primary">Falta el formulario de feedback semanal</p>
         <p className="text-2xs text-ink-muted">Crealo en «Formularios» con la plantilla semanal y guardalo para tener el link general.</p>
+        {onCreateForm ? (
+          <Button size="sm" className="mt-1" onClick={onCreateForm}>
+            Crear el formulario
+          </Button>
+        ) : null}
       </Card>
     )
   }

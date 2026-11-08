@@ -225,11 +225,23 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
  */
 export type NavV2 = { main: NavItem[]; more: NavItem[] }
 
-const V2_STUDENTS: NavItem = { label: 'Alumnos', href: '/students', icon: Users }
-const V2_ROUTINES: NavItem = { label: 'Rutinas', href: '/routines', icon: Dumbbell }
-const V2_FEEDBACK: NavItem = { label: 'Consultas', href: '/feedback', icon: MessageSquare }
-const V2_EXERCISES: NavItem = { label: 'Base de datos', href: '/exercises', icon: BookOpen }
-const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', href: '/contexto', icon: Sparkles }
+const V2_STUDENTS: NavItem = { label: 'Alumnos', href: '/students', icon: Users, hint: 'Fichas, pagos y progreso' }
+const V2_ROUTINES: NavItem = { label: 'Rutinas', href: '/routines', icon: Dumbbell, hint: 'Entrenamientos por alumno' }
+const V2_FEEDBACK: NavItem = {
+  label: 'Consultas semanales',
+  shortLabel: 'Consultas',
+  href: '/feedback',
+  icon: MessageSquare,
+  hint: 'Lo que te cuentan tus alumnos',
+}
+const V2_EXERCISES: NavItem = {
+  label: 'Ejercicios y circuitos',
+  shortLabel: 'Ejercicios',
+  href: '/exercises',
+  icon: BookOpen,
+  hint: 'Catálogo y métodos',
+}
+const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles, hint: 'Pregunta de los miércoles' }
 
 export function getNavV2(role: AppRole | undefined): NavV2 {
   if (role === 'student' || canSeePsychologistWorkspace(role)) {
@@ -274,8 +286,15 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
   }
   // Entrenador (y cualquier rol sin definir).
   return {
-    main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_ROUTINES, V2_FEEDBACK, finance!],
-    more: [V2_EXERCISES, NAV_MEAL_PLANS_TRAINER, V2_CONTEXT],
+    main: [
+      { ...NAV_HOME, hint: 'Lo que tenés para hoy' },
+      { ...NAV_APPOINTMENTS, hint: 'Agenda y recordatorios' },
+      V2_STUDENTS,
+      V2_ROUTINES,
+      V2_FEEDBACK,
+      { ...finance!, hint: 'Cobros y gastos' },
+    ],
+    more: [V2_EXERCISES, { ...NAV_MEAL_PLANS_TRAINER, hint: 'Planes para tus alumnos' }, V2_CONTEXT],
   }
 }
 

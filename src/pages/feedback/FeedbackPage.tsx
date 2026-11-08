@@ -48,7 +48,7 @@ export function FeedbackPage() {
   if (IS_V2) {
     return (
       <div>
-        <Header title="Consultas" />
+        <Header title="Consultas semanales" />
         <TrainerCheckInsPage
           embedded
           startInResources={mainSection === 'recursos'}

@@ -640,9 +640,14 @@ export function DashboardV2Page() {
               : 'No hay nada urgente.'}
         </GreetingV2>
 
-        {isNutri && user && !studentsQ.isPending ? (
+        {(isNutri || role === 'trainer') && user && !studentsQ.isPending ? (
           <div className="mb-8 empty:hidden">
-            <GettingStartedV2 ownerId={user.id} hasPatients={students.length > 0} onGo={(href) => navigate(href)} />
+            <GettingStartedV2
+              ownerId={user.id}
+              hasPatients={students.length > 0}
+              onGo={(href) => navigate(href)}
+              variant={isNutri ? 'nutritionist' : 'trainer'}
+            />
           </div>
         ) : null}
         {/* Celu y tablet: la próxima consulta va antes que la agenda (en la compu, arriba de «Para hoy»). */}
