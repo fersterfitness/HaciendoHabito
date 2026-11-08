@@ -200,18 +200,19 @@ const STATE_ORDER: Record<PaymentState, number> = { vencido: 0, parcial: 1, pend
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name
 
-/** Aviso del día de pago (texto del entrenador). */
-export function dueReminderMessage(studentName: string): string {
-  return `Hola ${firstName(studentName)}, ¿cómo estás? 👋
-Te escribo para recordarte que hoy es la fecha de pago que acordamos para tu asesoría. Cuando puedas, realiza el pago correspondiente y me avisas para dejarlo registrado.
-Si por algún motivo no te viene bien en este momento, o tienes cualquier inconveniente con el pago, escríbeme sin problema y lo vemos juntos. ¡Gracias y que tengas buen día!`
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+/**
+ * Aviso dentro de los días de pago (texto del entrenador, oct-2026). Sin emojis: WhatsApp de
+ * escritorio los rompe cuando el mensaje va en el link.
+ */
+export function dueReminderMessage(studentName: string, date: Date = new Date()): string {
+  return `Hola ${firstName(studentName)}! Este es un mensaje AUTOMÁTICO para recordarte nuestra fecha de pago (${date.getDate()} de ${MONTHS[date.getMonth()]}). Si contás con algún inconveniente o algo, no dudes en escribirme y lo resolvemos juntos!`
 }
 
-/** Aviso a los 7 días hábiles sin pago (texto del entrenador). */
+/** Aviso cuando ya pasaron sus días hábiles de pago (texto del entrenador, oct-2026). */
 export function overduePaymentMessage(studentName: string): string {
-  return `Hola ${firstName(studentName)}, ¿cómo estás? Te escribo porque noté que todavía no se ha registrado el pago de tu asesoría, y ya pasaron los 7 días hábiles desde la fecha que acordamos.
-Entiendo que a veces surgen cosas, así que, si tuviste algún inconveniente o necesitas coordinar el pago de otra forma, avísame y lo resolvemos sin problema. Si ya lo realizaste, por favor envíame el comprobante para poder registrarlo.
-Quedo atento. ¡Gracias!`
+  return `Hola ${firstName(studentName)}! Este es un mensaje AUTOMÁTICO para recordarte que nuestra fecha de pago ya se encuentra vencida. Recordá que, si contás con algún problema o inconveniente, todo es charlado: no dudes en consultarme!`
 }
 
 export function reminderMessage(kind: PaymentReminderKind, studentName: string): string {

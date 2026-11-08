@@ -31,10 +31,10 @@ import { cn, formatCurrency } from '@/lib/utils'
 import type { Income } from '@/types/database'
 
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
-  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: IS_V2 ? '#8082A6' : '#10b981' },
-  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? '#F2C860' : '#3b82f6' },
-  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? '#F4AC6E' : '#f59e0b' },
-  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: IS_V2 ? '#EC806C' : '#f43f5e' },
+  pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: IS_V2 ? '#22A55A' : '#10b981' },
+  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? '#F4AC6E' : '#3b82f6' },
+  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? '#F5C542' : '#f59e0b' },
+  vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: IS_V2 ? '#E0483C' : '#f43f5e' },
   sin_cargo: { label: 'Sin cargo', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
 }
 
@@ -56,17 +56,23 @@ type Filter = 'all' | 'vencido' | 'pendiente' | 'al_dia' | 'pagado'
 
 /** Todavía no llegó su día de pago: no debe nada aún. */
 const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing === 'antes'
-/** Chip del estado: «Al día» va neutro (todavía no debe), el resto según su estado. */
-/** v2: los estados con los colores de la paleta. */
-const STATE_CHIP_V2: Record<PaymentState, string> = {
-  pagado: 'hh-pastel bg-pastel-mint text-pastel-mint-ink',
-  parcial: 'hh-pastel bg-pastel-sky text-pastel-sky-ink',
-  pendiente: 'hh-pastel bg-pastel-butter text-pastel-butter-ink',
-  vencido: 'hh-pastel bg-pastel-rose text-pastel-rose-ink',
-  sin_cargo: 'bg-surface-elevated text-ink-muted',
+/**
+ * v2: colores que se leen de un vistazo (pedido del entrenador): al día y abonó en verde, abonan hoy
+ * en amarillo, falta pagar y vencido en rojo, parcial en naranja.
+ */
+const GREEN_CHIP = 'bg-[#22A55A]/20 text-[#16793F] dark:bg-[#22A55A]/20 dark:text-[#5DD68C]'
+const YELLOW_CHIP = 'bg-[#F5C542]/25 text-[#8A6100] dark:bg-[#F5C542]/15 dark:text-[#F5C542]'
+function stateChipV2(r: StudentPaymentRow): string {
+  if (r.gifted || r.state === 'sin_cargo') return 'bg-surface-elevated text-ink-muted'
+  if (r.state === 'pagado') return GREEN_CHIP
+  if (isAlDia(r)) return 'bg-[#22A55A]/[0.08] text-[#16793F] ring-1 ring-inset ring-[#22A55A]/30 dark:text-[#5DD68C]'
+  if (r.state === 'pendiente' && r.timing === 'hoy') return YELLOW_CHIP
+  if (r.state === 'parcial') return 'bg-status-pending/15 text-status-pending'
+  if (r.state === 'vencido') return 'bg-status-expired/20 text-status-expired'
+  return 'bg-status-expired/10 text-status-expired'
 }
 const stateChip = (r: StudentPaymentRow) =>
-  isAlDia(r) && !r.gifted ? 'bg-surface-elevated text-ink-secondary' : IS_V2 ? STATE_CHIP_V2[r.state] : STATE_META[r.state].chip
+  IS_V2 ? stateChipV2(r) : isAlDia(r) && !r.gifted ? 'bg-surface-elevated text-ink-secondary' : STATE_META[r.state].chip
 const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state === 'parcial') && !isAlDia(r)
 
 /**

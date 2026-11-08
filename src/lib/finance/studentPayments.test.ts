@@ -124,8 +124,10 @@ describe('buildPaymentBoard', () => {
 
 describe('textos', () => {
   it('avisos con el primer nombre', () => {
-    expect(dueReminderMessage('Gustavo Cabral')).toMatch(/^Hola Gustavo, ¿cómo estás\? 👋\nTe escribo para recordarte que hoy es la fecha de pago/)
-    expect(overduePaymentMessage('Rosa Villar')).toMatch(/^Hola Rosa, ¿cómo estás\? Te escribo porque noté/)
+    expect(dueReminderMessage('Gustavo Cabral', new Date(2026, 10, 10))).toBe(
+      'Hola Gustavo! Este es un mensaje AUTOMÁTICO para recordarte nuestra fecha de pago (10 de noviembre). Si contás con algún inconveniente o algo, no dudes en escribirme y lo resolvemos juntos!',
+    )
+    expect(overduePaymentMessage('Rosa Villar')).toMatch(/^Hola Rosa! Este es un mensaje AUTOMÁTICO para recordarte que nuestra fecha de pago ya se encuentra vencida\./)
   })
   it('etiqueta del día de pago', () => {
     expect(paymentWindowLabel(30, 30)).toBe('Día 30')
