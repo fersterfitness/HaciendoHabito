@@ -848,7 +848,7 @@ export function TrainerResourcesPage({ embedded = false }: { embedded?: boolean 
                     type="button"
                     variant="gradientSecondary"
                     size="sm"
-                    icon={<MessageCircle className="h-4 w-4" />}
+                    icon={<WhatsAppIcon className="h-4 w-4" v1={<MessageCircle className="h-4 w-4" />} />}
                     onClick={() => void openAllWhatsApp()}
                   >
                     Abrir WhatsApp (todos los marcados)

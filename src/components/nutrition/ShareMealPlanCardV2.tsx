@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from 'react'
-import { Copy, ExternalLink, MoreHorizontal, RefreshCw, Send } from 'lucide-react'
+import { Copy, ExternalLink, MoreHorizontal, RefreshCw } from 'lucide-react'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { Popover } from '@/components/ui/Popover'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
@@ -72,7 +73,7 @@ export function ShareMealPlanCardV2({
         <Button
           type="button"
           size="sm"
-          icon={<Send className="h-3.5 w-3.5" />}
+          icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
           loading={busy === 'wa'}
           onClick={() =>
             void withLink('wa', async (url) => {
@@ -194,7 +195,7 @@ export function ShareMealPlanActionsV2({
       <Button
         type="button"
         size="sm"
-        icon={<Send className="h-3.5 w-3.5" />}
+        icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
         loading={busy === 'wa'}
         title="Le llega un link para abrir el plan en el celu, sin cuenta. Siempre muestra la versión vigente."
         onClick={() =>

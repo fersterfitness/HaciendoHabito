@@ -13,6 +13,7 @@ import { MetricCardV2 } from '@/components/v2/ui'
 import { IS_V2 } from '@/lib/uiVersion'
 import { v2TabClass } from '@/components/v2/tabStyle'
 import { Button } from '@/components/ui/Button'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
@@ -560,7 +561,7 @@ export function StudentDetailView({
                         onClick={(e) => e.stopPropagation()}
                         className={contactLinkClassName}
                       >
-                        <MessageCircle className="h-3 w-3 opacity-70" aria-hidden />
+                        <WhatsAppIcon className="h-3 w-3" v1={<MessageCircle className="h-3 w-3 opacity-70" aria-hidden />} />
                         WhatsApp
                       </a>
                     </>

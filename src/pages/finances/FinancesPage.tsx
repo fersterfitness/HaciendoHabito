@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, useMemo, type ReactNode } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { CountUp } from '@/components/ui/CountUp'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import {
   Plus,
   TrendingUp,
@@ -855,7 +856,7 @@ export function FinancesPage() {
                         rel="noopener noreferrer"
                         className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-surface-inputBorder/70 bg-transparent px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-surface-inputBorder hover:bg-surface-elevated hover:text-ink-primary "
                       >
-                        <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                        <WhatsAppIcon className="h-3.5 w-3.5" v1={<MessageCircle className="h-3.5 w-3.5" aria-hidden />} />
                         Recordar
                       </a>
                     ) : (

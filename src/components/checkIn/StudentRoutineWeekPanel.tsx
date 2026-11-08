@@ -348,7 +348,7 @@ export function StudentRoutineWeekPanel() {
                           size="sm"
                           variant="outline"
                           className="h-7 rounded-full text-3xs"
-                          icon={<MessageCircle className="h-3 w-3" />}
+                          icon={<WhatsAppIcon className="h-3 w-3" v1={<MessageCircle className="h-3 w-3" />} />}
                           onClick={() => void sendMonthlyWa(row)}
                         >
                           Enviar feedback mensual

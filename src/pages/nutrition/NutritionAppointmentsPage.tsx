@@ -2,6 +2,7 @@ import { controlSmClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
 import { v2TabClass } from '@/components/v2/tabStyle'
 import { Modal } from '@/components/ui/Modal'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { Header } from '@/components/layout/Header'
@@ -122,7 +123,7 @@ function whatsappToast(title: string, whatsappUrl: string, dismissLabel = 'Listo
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-primary text-white text-xs font-semibold hover:bg-brand-primary shadow-sm"
             onClick={() => toast.dismiss(t.id)}
           >
-            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+            <WhatsAppIcon className="h-3.5 w-3.5" v1={<MessageCircle className="h-3.5 w-3.5 shrink-0" />} />
             Abrir WhatsApp
           </a>
           <button type="button" className="text-xs text-ink-muted hover:text-ink-secondary px-2 py-1" onClick={() => toast.dismiss(t.id)}>
@@ -1683,7 +1684,7 @@ export function AppointmentsPage() {
                                       : 'Abre WhatsApp para pedir que el alumno confirme que va a asistir.'
                                   }
                                 >
-                                  <MessageCircle className="h-3 w-3" />
+                                  <WhatsAppIcon className="h-3 w-3" v1={<MessageCircle className="h-3 w-3" />} />
                                   {a.status === 'confirmed' ? 'WhatsApp prep videollamada' : 'WhatsApp pedir confirmación'}
                                 </button>
                                 <button
@@ -1890,7 +1891,7 @@ export function AppointmentsPage() {
                           }
                           className="text-2xs px-2.5 py-1 rounded-lg border border-brand-primary/38 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1"
                         >
-                          <MessageCircle className="h-3 w-3" />
+                          <WhatsAppIcon className="h-3 w-3" v1={<MessageCircle className="h-3 w-3" />} />
                           {a.status === 'confirmed' ? 'Prep videollamada WA' : 'Pedir confirmación WA'}
                         </button>
                       </div>
@@ -2141,7 +2142,7 @@ export function AppointmentsPage() {
                       title="Pedir feedback por WhatsApp (misma plantilla que al completar)."
                       className="mt-2 text-2xs px-2.5 py-1.5 rounded-lg border border-brand-primary/40 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1.5"
                     >
-                      <MessageCircle className="h-3 w-3" />
+                      <WhatsAppIcon className="h-3 w-3" v1={<MessageCircle className="h-3 w-3" />} />
                       Feedback WA
                     </button>
                   )}

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO } from 'date-fns'
 import { Check, Code, Download, PencilLine, RotateCcw, Save, Send, X } from 'lucide-react'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
@@ -312,7 +313,7 @@ export function AnthropometryReportView({ ownerId, student, measurements, initia
         <Button
           type="button"
           size="sm"
-          icon={<Send className="h-4 w-4" />}
+          icon={<WhatsAppIcon className="h-4 w-4" v1={<Send className="h-4 w-4" />} />}
           loading={exporting === 'send'}
           disabled={exporting != null}
           onClick={() => void sendToPatient()}
