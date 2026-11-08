@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
 import { reportError } from '@/lib/errorReporting'
+import { isChunkLoadError, reloadOnceForNewVersion } from '@/lib/chunkReload'
 
 type Props = { children: ReactNode; /** Pantalla completa (fallo de toda la app) o dentro del layout. */ fullScreen?: boolean }
 type State = { error: Error | null }
@@ -17,6 +18,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Código de la pantalla que no se pudo bajar (versión nueva publicada): se arregla recargando.
+    if (isChunkLoadError(error) && reloadOnceForNewVersion()) return
     const withStack = new Error(error.message)
     withStack.stack = `${error.stack ?? ''}\n\nComponentes:${info.componentStack ?? ''}`
     void reportError(withStack, 'render')
@@ -24,6 +27,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.error) return this.props.children
+    // Si no se pudo bajar el código, «Reintentar» sin recargar vuelve a fallar (el import queda roto).
+    const stale = isChunkLoadError(this.state.error)
     return (
       <div className={this.props.fullScreen ? 'flex min-h-screen items-center justify-center bg-surface-base p-6' : 'flex flex-1 items-center justify-center p-6'}>
         <div className="hh-alert hh-alert-strong hh-alert-danger flex max-w-md flex-col items-start gap-3 rounded-2xl p-5">
@@ -31,18 +36,20 @@ export class ErrorBoundary extends Component<Props, State> {
             <AlertTriangle className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="text-base font-semibold text-ink-primary">Algo falló en esta pantalla</h2>
+            <h2 className="text-base font-semibold text-ink-primary">{stale ? 'No se pudo cargar esta pantalla' : 'Algo falló en esta pantalla'}</h2>
             <p className="mt-1 text-sm text-ink-secondary">
-              Ya quedó registrado. Probá de nuevo; si sigue pasando, avisanos qué estabas haciendo.
+              {stale
+                ? 'Puede que haya una versión nueva de la app o que se haya cortado la conexión. Recargá la página.'
+                : 'Ya quedó registrado. Probá de nuevo; si sigue pasando, avisanos qué estabas haciendo.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => this.setState({ error: null })}
+              onClick={() => (stale ? window.location.reload() : this.setState({ error: null }))}
               className="inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-3 py-2 text-sm font-semibold text-white hover:bg-brand-primary/90"
             >
-              <RotateCcw className="h-4 w-4" /> Reintentar
+              <RotateCcw className="h-4 w-4" /> {stale ? 'Recargar' : 'Reintentar'}
             </button>
             <button
               type="button"
