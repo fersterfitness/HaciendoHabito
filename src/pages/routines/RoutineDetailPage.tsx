@@ -1528,7 +1528,7 @@ export function RoutineDetailPage() {
             </div>
             {presetList.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-muted">
-                No tenés preestablecidos. Crealos en <strong>Base de datos → Circuitos</strong>.
+                No tenés preestablecidos. Crealos en <strong>{IS_V2 ? 'Ejercicios y circuitos' : 'Base de datos'} → Circuitos</strong>.
               </p>
             ) : (
               <ul className="space-y-2">

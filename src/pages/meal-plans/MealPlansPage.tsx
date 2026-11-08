@@ -469,9 +469,9 @@ export function MealPlansPage() {
           <EmptyState
             icon={<ClipboardList className="h-8 w-8" />}
             title="No hay planes asignados"
-            description="Asigná un plan desde Plan de alimentación o desde la ficha del alumno."
+            description={IS_V2 ? 'Creá uno con «Nuevo plan» o desde la ficha del alumno.' : 'Asigná un plan desde Plan de alimentación o desde la ficha del alumno.'}
             action={{
-              label: 'Nuevo Plan',
+              label: IS_V2 ? 'Nuevo plan' : 'Nuevo Plan',
               onClick: () => navigate('/nutrition/planning'),
               icon: <Plus className="h-4 w-4" />,
             }}

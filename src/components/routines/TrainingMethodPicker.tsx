@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ListSkeleton } from '@/components/ui/Skeleton'
+import { IS_V2 } from '@/lib/uiVersion'
 import { ChevronDown, BookOpen, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -118,7 +119,7 @@ export function TrainingMethodPicker({ exercise, onApply, onApplyWeekPlan, onApp
             <ListSkeleton rows={2} className="px-2 py-3" />
           ) : methods.length === 0 ? (
             <p className="px-2 py-3 text-xs text-ink-muted leading-relaxed">
-              No hay métodos. Cargalos en Base de datos → Métodos.
+              No hay métodos. Cargalos en {IS_V2 ? 'Ejercicios y circuitos' : 'Base de datos'} → Métodos.
             </p>
           ) : (
             grouped.map((g) => (

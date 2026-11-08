@@ -1,6 +1,7 @@
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { useEffect, useMemo, useState } from 'react'
 import { ListSkeleton } from '@/components/ui/Skeleton'
+import { IS_V2 } from '@/lib/uiVersion'
 import { Library } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -99,7 +100,7 @@ export function AssignPresetRoutineModal({
       <ListSkeleton className="py-4" />
     ) : items.length === 0 ? (
       <p className="py-6 text-sm text-ink-muted">
-        Todavía no hay variantes. Guardá una desde el detalle de una rutina (Base de datos → Rutinas preestablecidas).
+        Todavía no hay variantes. Guardá una desde el detalle de una rutina ({IS_V2 ? 'Ejercicios y circuitos' : 'Base de datos'} → Preestablecidas).
       </p>
     ) : (
       <div className="mt-4 space-y-3">

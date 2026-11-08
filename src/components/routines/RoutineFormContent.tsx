@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { controlSmClassName } from '@/lib/formControlClasses'
+import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -551,7 +552,7 @@ export function RoutineFormContent({
                 </p>
               ) : (
                 <p className="text-xs leading-relaxed text-ink-secondary ">
-                  Copiá bloques, días y ejercicios de otra rutina ya creada. Las variantes preestablecidas se asignan desde la ficha del alumno o desde Base de datos.
+                  Copiá bloques, días y ejercicios de otra rutina ya creada. Las variantes preestablecidas se asignan desde la ficha del alumno o desde {IS_V2 ? 'Ejercicios y circuitos' : 'Base de datos'}.
                 </p>
               )}
               {routineTemplates.length > 0 && !templateBlueprintId ? (

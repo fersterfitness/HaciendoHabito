@@ -75,7 +75,10 @@ const owesNow = (r: StudentPaymentRow) => (r.state === 'pendiente' || r.state ==
  */
 /** Tablero de cobros del mes. Comparte la caché de finanzas con el resto de la app. */
 export function PaymentsBoard() {
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
+  // v2: el nutricionista habla de pacientes, no de alumnos.
+  const patients = IS_V2 && profile?.role === 'nutritionist'
+  const people = patients ? 'pacientes' : 'alumnos'
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const studentsQuery = useActiveStudents()
   const incomesQuery = useIncomes()
@@ -187,7 +190,7 @@ export function PaymentsBoard() {
       {/* Encabezado + navegación de meses (cada mes queda «cerrado» con lo generado) */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-2xs font-semibold text-ink-muted">Cobros de alumnos</p>
+          <p className="text-2xs font-semibold text-ink-muted">Cobros de {people}</p>
           <h2 className="flex items-center gap-2 text-lg font-semibold capitalize tracking-tight text-ink-primary">
             {format(month, "MMMM yyyy", { locale: es })}
             {isPastMonth ? (
@@ -283,7 +286,7 @@ export function PaymentsBoard() {
             ]}
           />
           <p className={cn('ml-auto text-3xs text-ink-muted', IS_V2 && 'hidden')}>
-            Todos tus alumnos activos. Lo esperado sale de la rutina con precio o de la cuota mensual; $0 = bonificada.
+            Todos tus {people} activos. Lo esperado sale de la rutina con precio o de la cuota mensual; $0 = bonificada.
           </p>
         </div>
 
@@ -296,7 +299,7 @@ export function PaymentsBoard() {
         ) : visible.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-ink-muted">
             {rows.length === 0
-              ? 'No hay alumnos activos en este mes.'
+              ? `No hay ${people} activos en este mes.`
               : 'Nada en este filtro.'}
           </p>
         ) : (
@@ -367,7 +370,7 @@ export function PaymentsBoard() {
             <table className="hh-table w-full min-w-[760px] border-collapse text-body-sm">
               <thead className="border-b border-surface-border/70">
                 <tr className="text-left">
-                  {['Alumno', 'Día de pago', 'Debe', 'Cobrado', 'Estado', ''].map((h, i) => (
+                  {[patients ? 'Paciente' : 'Alumno', 'Día de pago', 'Debe', 'Cobrado', 'Estado', ''].map((h, i) => (
                     <th
                       key={h || i}
                       className={cn(
@@ -460,8 +463,8 @@ export function PaymentsBoard() {
       {/* Análisis del mes */}
       {rows.length > 0 ? (
         <div className={IS_V2 ? 'hidden gap-3 sm:grid lg:grid-cols-3' : 'grid gap-3 lg:grid-cols-3'}>
-          <ChartCard title="Estado de los alumnos">
-            <DonutWithLegend data={stateChart} format={(v) => `${v} alumno${v === 1 ? '' : 's'}`} />
+          <ChartCard title={`Estado de los ${people}`}>
+            <DonutWithLegend data={stateChart} format={(v) => `${v} ${patients ? 'paciente' : 'alumno'}${v === 1 ? '' : 's'}`} />
           </ChartCard>
           <ChartCard title="Cobrado por medio de pago">
             {methodChart.length ? (
@@ -470,7 +473,7 @@ export function PaymentsBoard() {
               <p className="py-8 text-center text-xs text-ink-muted">Sin cobros este mes.</p>
             )}
           </ChartCard>
-          <ChartCard title="Saldo pendiente por alumno">
+          <ChartCard title={`Saldo pendiente por ${patients ? 'paciente' : 'alumno'}`}>
             {debtChart.length ? (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={debtChart} layout="vertical" margin={{ top: 4, right: 12, bottom: 0, left: 4 }}>

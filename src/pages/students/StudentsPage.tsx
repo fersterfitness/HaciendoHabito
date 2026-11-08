@@ -876,7 +876,7 @@ export function StudentsPage() {
         {IS_V2 ? (
           <>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="min-w-0 lg:max-w-xs lg:flex-1">
+              <div className="min-w-0 lg:w-56 lg:shrink-0">
                 <Input
                   ref={searchRef}
                   type="search"
@@ -889,7 +889,8 @@ export function StudentsPage() {
                   leftIcon={<Search className="h-4 w-4" />}
                 />
               </div>
-              <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:shrink-0 lg:overflow-visible lg:px-0 [&>div]:flex-nowrap">
+              {/* En pantallas medianas los filtros rápidos se deslizan, para que el buscador no quede aplastado. */}
+              <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:min-w-0 lg:flex-1 lg:px-0 [&>div]:flex-nowrap">
                 <SegmentedV2 value={quick} onChange={setQuick} options={quickOptions} />
               </div>
               <div className="flex items-center gap-2 lg:ml-auto">
