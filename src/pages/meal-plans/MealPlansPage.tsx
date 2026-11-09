@@ -252,6 +252,24 @@ function MealPlansSortDropdown({ value, onChange }: { value: MealPlanTableSort; 
   )
 }
 
+/** v2 · Vencimiento del plan asignado: «Vence 12/11», en ámbar la última semana y en rojo si venció. */
+function PlanExpiryChip({ endDate }: { endDate: string }) {
+  const [y, m, d] = endDate.slice(0, 10).split('-').map(Number)
+  const now = new Date()
+  const days = Math.round((new Date(y!, m! - 1, d!).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86_400_000)
+  const label = days < 0 ? 'Vencido' : days === 0 ? 'Vence hoy' : `Vence ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`
+  return (
+    <span
+      className={cn(
+        'ml-2 inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium',
+        days < 0 ? 'bg-status-expired/15 text-status-expired' : days <= 7 ? 'bg-[#F5C542]/25 text-[#8A6100] dark:text-[#F5C542]' : 'bg-surface-elevated text-ink-secondary',
+      )}
+    >
+      {label}
+    </span>
+  )
+}
+
 function planWorkbookFromRow(row: PlanRow | null): PlanningWorkbookStateV1 | null {
   if (!row) return null
   const parsed = parsePlanningData(row.data as Json)
@@ -599,6 +617,7 @@ export function MealPlansPage() {
                         </td>
                         <td className={cn('hh-row-drop-in whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5')}>
                           {formatDate(p.updated_at)}
+                          {IS_V2 && p.end_date && !p.completed_at ? <PlanExpiryChip endDate={p.end_date} /> : null}
                         </td>
                         <td className={cn('hh-row-drop-in max-w-[16rem] px-4 py-2.5 sm:px-5')}>
                           {(() => {

@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { ChevronRight } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { v2TabClass, v2TabCountClass } from './tabStyle'
 
@@ -342,6 +342,8 @@ export function TaskCardV2({
   actions,
   onOpen,
   mark,
+  onCheck,
+  urgent,
 }: {
   title: ReactNode
   description?: ReactNode
@@ -351,14 +353,38 @@ export function TaskCardV2({
   onOpen?: () => void
   /** Algo a la derecha del título (avatar, aviso). */
   mark?: ReactNode
+  /** Misiones: la casilla de la izquierda tilda la tarea. */
+  onCheck?: () => void
+  /** Alerta (borde rojo a la izquierda). */
+  urgent?: boolean
 }) {
   return (
-    <article className="rounded-2xl border border-surface-border bg-surface-card transition-shadow hover:shadow-[0_2px_10px_rgb(0_0_0/0.04)]">
+    <article
+      className={cn(
+        'rounded-2xl border border-surface-border bg-surface-card transition-shadow hover:shadow-[0_2px_10px_rgb(0_0_0/0.04)]',
+        urgent && 'border-l-[3px] border-l-status-expired',
+      )}
+    >
       <div className={cn('px-4 pb-3.5 pt-4', onOpen && 'cursor-pointer')} onClick={onOpen}>
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>
-            <span className="h-3 w-3 rounded-full border-[1.5px] border-ink-muted/70" />
-          </span>
+          {onCheck ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onCheck()
+              }}
+              title="Marcar como hecha"
+              aria-label="Marcar como hecha"
+              className="group/check mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[1.5px] border-ink-muted/50 transition-colors hover:border-[#F26B1D] hover:bg-[#F26B1D]/10"
+            >
+              <Check className="h-3.5 w-3.5 text-[#F26B1D] opacity-0 transition-opacity group-hover/check:opacity-100" strokeWidth={2.5} />
+            </button>
+          ) : (
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>
+              <span className="h-3 w-3 rounded-full border-[1.5px] border-ink-muted/70" />
+            </span>
+          )}
           <h3 className="min-w-0 flex-1 text-[14px] font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
           {mark}
         </div>

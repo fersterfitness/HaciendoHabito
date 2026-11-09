@@ -157,6 +157,17 @@ function approxAgeFromBirthDate(birthIso: string | null | undefined): number | n
   return age
 }
 
+/** Hoy y sumas de días en YYYY-MM-DD (hora local), para la duración del plan asignado. */
+function ymdToday(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function addDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const x = new Date(y!, m! - 1, d! + days)
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
+}
+
 /** Valores por 100 g guardados en Guía → columnas HC/P/G/kcal del plan */
 function formatLibNutrientForPlanning(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return '0'
@@ -1442,6 +1453,8 @@ export function NutritionPlanningPage() {
                   const firstName = first?.full_name.split(' ')[0] ?? ''
                   setAssignStudentId(first?.id ?? presetStudentId ?? '')
                   setAssignTitle(firstName ? `Plan ${MONTHS[now.getMonth()]} · ${firstName}` : `Plan ${MONTHS[now.getMonth()]}`)
+                  // v2 · Arranca hoy: el profesional elige la duración y queda la fecha de vencimiento.
+                  if (IS_V2 && !assignStartDate) setAssignStartDate(ymdToday())
                   setAssignOpen(true)
                 }}
               >
@@ -3359,6 +3372,37 @@ export function NutritionPlanningPage() {
             </select>
             <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Título del plan</label>
             <Input className="mb-4" value={assignTitle} onChange={(e) => setAssignTitle(e.target.value)} placeholder="Ej. Plan marzo · déficit" />
+            {IS_V2 ? (
+              <div className="mb-3">
+                <p className="mb-1.5 text-2xs font-semibold text-ink-muted">Duración</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[2, 4, 6, 8, 12].map((w) => {
+                    const start = assignStartDate || ymdToday()
+                    const end = addDaysYmd(start, w * 7 - 1)
+                    const on = assignEndDate === end
+                    return (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => {
+                          setAssignStartDate(start)
+                          setAssignEndDate(on ? '' : end)
+                        }}
+                        className={cn(
+                          'h-8 rounded-full px-3 text-[12.5px] transition-colors',
+                          on ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',
+                        )}
+                      >
+                        {w} semanas
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-1.5 text-[12px] text-ink-muted">
+                  {assignEndDate ? 'Una semana antes de que venza te avisamos en el Inicio.' : 'Sin fecha de fin no hay aviso de vencimiento.'}
+                </p>
+              </div>
+            ) : null}
             <div className="mb-5 grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-2xs font-semibold text-ink-muted mb-1.5">Desde</label>

@@ -10,6 +10,8 @@ import {
   CalendarPlus,
   Check,
   ClipboardList,
+  RotateCcw,
+  UtensilsCrossed,
   Copy,
   HeartPulse,
   LayoutGrid,
@@ -45,7 +47,9 @@ import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
-import { markReminderSent, useActiveStudents, useIncomes, useSentReminders } from '@/data/finance'
+import { markReminderSent, unmarkReminderSent, useActiveStudents, useIncomes, useSentReminders } from '@/data/finance'
+import { useDailyMissions, ymdLocal, type DailyTaskRow, type MissionDef, type TaskCategory } from '@/data/dailyTasks'
+import { loadWeekStatusByOwner } from '@/lib/checkIn/routineWeekProgress'
 import { fetchRoutineList, routineKeys } from '@/data/routines'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { loadStudentsMissingCheckIn } from '@/lib/dashboard/dashboardTrainerOps'
@@ -71,6 +75,11 @@ type AppointmentLite = {
 type Filter = 'all' | 'cobros' | 'feedback' | 'rutinas' | 'semana' | 'turnos' | 'seguimiento'
 
 const DAY_MS = 86_400_000
+
+/** Misiones: el naranja del «Para hoy» del entrenador (pedido oct-7: naranja y negro). */
+const MISSION_ORANGE = '#F26B1D'
+const CATEGORY_FILTER: Record<TaskCategory, Filter> = { feedback: 'feedback', rutinas: 'rutinas', avisos: 'semana', cobros: 'cobros' }
+const CATEGORY_LABEL: Record<TaskCategory, string> = { feedback: 'Feedback', rutinas: 'Rutina', avisos: 'Aviso', cobros: 'Cobro' }
 
 /** Copy de los avisos semanales del entrenador (los mismos que el Inicio anterior). */
 const WEEKLY_COPY: Record<string, { title: string; meta: string; cta: string; href: string }> = {
@@ -138,6 +147,15 @@ const AnimatedTask = forwardRef<HTMLDivElement, { index: number; children: React
   )
 })
 
+function names(list: { full_name: string | null }[]) {
+  return (
+    list
+      .slice(0, 4)
+      .map((m) => firstName(m.full_name))
+      .join(', ') + (list.length > 4 ? ` y ${list.length - 4} más` : '')
+  )
+}
+
 function daysToBirthday(birthDate: string, today: Date): number {
   const [, m, d] = birthDate.slice(0, 10).split('-').map(Number)
   const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -172,6 +190,8 @@ export function DashboardV2Page() {
   const navigate = useAppNavigate()
   const role = profile?.role
   const trains = canSeeTraining(role)
+  /** «Para hoy» como misiones (tildar, deshacer, vencidas): el Inicio del entrenador. */
+  const missionsOn = trains
   const handlesMoney = role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [, setTick] = useState(0)
   const [filter, setFilter] = useState<Filter>('all')
@@ -240,6 +260,36 @@ export function DashboardV2Page() {
         .gte('submitted_at', since.toISOString())
         .is('trainer_replied_at', null)
       return count ?? 0
+    },
+  })
+
+  // Entrenador: alumnos que en su último feedback marcaron que cerraron el mes o están en la última semana.
+  const closingQ = useQuery({
+    queryKey: ['v2', 'closing-month', user?.id],
+    enabled: Boolean(user) && trains,
+    queryFn: async () => [...(await loadWeekStatusByOwner(user!.id)).entries()],
+  })
+
+  // Entrenador: planes de alimentación que vencen en una semana (o vencieron hace poco) y siguen vigentes.
+  const mealPlansQ = useQuery({
+    queryKey: ['v2', 'meal-plans-ending', user?.id, format(today, 'yyyy-MM-dd')],
+    enabled: Boolean(user) && trains,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('trainer_student_meal_plans')
+        .select('id, title, end_date, student_id, student:students(full_name, status)')
+        .eq('owner_id', user!.id)
+        .is('completed_at', null)
+        .not('end_date', 'is', null)
+        .gte('end_date', ymdLocal(new Date(today.getTime() - 14 * DAY_MS)))
+        .lte('end_date', ymdLocal(new Date(today.getTime() + 7 * DAY_MS)))
+      return ((data ?? []) as unknown as {
+        id: string
+        title: string
+        end_date: string
+        student_id: string
+        student?: { full_name?: string | null; status?: string | null } | null
+      }[]).filter((m) => (m.student?.status ?? 'activo') === 'activo')
     },
   })
 
@@ -386,7 +436,7 @@ export function DashboardV2Page() {
   )
 
   const weekly = trains
-    ? TRAINER_WEEKLY_REMINDERS.filter((r) => WEEKLY_COPY[r.id] && isTrainerReminderHighlightedToday(r, today) && !isDone(r.id))
+    ? TRAINER_WEEKLY_REMINDERS.filter((r) => WEEKLY_COPY[r.id] && isTrainerReminderHighlightedToday(r, today) && (missionsOn || !isDone(r.id)))
     : []
   const missing = trains ? (missingQ.data ?? []) : []
   const unreplied = trains ? (unrepliedQ.data ?? 0) : 0
@@ -396,14 +446,100 @@ export function DashboardV2Page() {
   const appointmentsToday = weekAppointments.filter((a) => dayIndex(a.starts_at) === todayIndex)
   const dayAppointments = weekAppointments.filter((a) => dayIndex(a.starts_at) === selectedDay)
 
+  const weekKey = ymdLocal(weekStart)
+  const todayKey = ymdLocal(today)
+  const closing = useMemo(() => {
+    if (!trains) return []
+    const byId = new Map(students.map((s) => [s.id, s]))
+    return (closingQ.data ?? [])
+      .filter(([, st]) => st.finished || st.lastWeek)
+      .map(([id, st]) => ({ student: byId.get(id), st }))
+      .filter((x): x is { student: NonNullable<typeof x.student>; st: (typeof x)['st'] } => Boolean(x.student))
+  }, [closingQ.data, students, trains])
+  const mealPlansEnding = useMemo(
+    () => (trains ? (mealPlansQ.data ?? []) : []).map((m) => ({ m, days: daysFromToday(m.end_date, today) })).sort((a, b) => a.days - b.days),
+    [mealPlansQ.data, today, trains],
+  )
+
+  const missionKeys = {
+    closing: (studentId: string, at: string | null) => `cierre:${studentId}:${(at ?? '').slice(0, 10)}`,
+    weekly: (id: string) => `aviso:${id}:${todayKey}`,
+    mealPlan: (id: string) => `plan-fin:${id}`,
+    missing: `feedback-faltan:${weekKey}`,
+    unreplied: `feedback-devolucion:${weekKey}`,
+    routineEnd: (id: string) => `rutina-fin:${id}`,
+    without: `rutina-sin:${weekKey}`,
+    cobro: (r: StudentPaymentRow) => `cobro:${r.studentId}:${period}:${r.reminder}`,
+  }
+
+  const missionDefs = useMemo<MissionDef[]>(() => {
+    if (!missionsOn) return []
+    const out: MissionDef[] = []
+    for (const r of weekly) {
+      const c = WEEKLY_COPY[r.id]!
+      out.push({ key: missionKeys.weekly(r.id), category: 'avisos', title: c.title, detail: c.meta, href: c.href })
+    }
+    for (const { m, days } of mealPlansEnding) {
+      const who = m.student?.full_name ?? 'Alumno'
+      out.push({
+        key: missionKeys.mealPlan(m.id),
+        category: 'avisos',
+        title: `Plan de alimentación de ${who}`,
+        detail: days < 0 ? 'Venció: armá el que sigue.' : 'Está por vencer: armá el que sigue.',
+        href: '/meal-plans',
+      })
+    }
+    if (missing.length)
+      out.push({ key: missionKeys.missing, category: 'feedback', title: `${missing.length} sin responder el feedback`, detail: names(missing), href: '/feedback' })
+    if (unreplied)
+      out.push({ key: missionKeys.unreplied, category: 'feedback', title: `${unreplied} respuestas esperan tu devolución`, href: '/feedback' })
+    for (const { student, st } of closing)
+      out.push({
+        key: missionKeys.closing(student.id, st.submittedAt),
+        category: 'rutinas',
+        title: `${student.full_name} ${st.finished ? 'cerró su mes' : 'está en su última semana'}: armá la que sigue`,
+        href: `/students/${student.id}`,
+      })
+    for (const { r } of routines.ending)
+      out.push({ key: missionKeys.routineEnd(r.id), category: 'rutinas', title: `${r.name} · ${r.student?.full_name ?? 'Alumno'}`, detail: 'Termina pronto: armá la que sigue.', href: `/routines/${r.id}` })
+    if (routines.without.length)
+      out.push({ key: missionKeys.without, category: 'rutinas', title: `${routines.without.length} sin rutina activa`, detail: names(routines.without), href: '/students' })
+    if (handlesMoney)
+      for (const r of payItems)
+        out.push({ key: missionKeys.cobro(r), category: 'cobros', title: `Cobrar a ${r.fullName}`, href: `/students/${r.studentId}` })
+    return out
+    // missionKeys/names son funciones puras de lo que ya está en las dependencias.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missionsOn, weekly.map((w) => w.id).join(), mealPlansEnding, missing, unreplied, closing, routines, payItems, handlesMoney, weekKey, todayKey, period])
+
+  const missions = useDailyMissions(missionsOn ? user?.id : undefined, missionDefs, today)
+  const defByKey = useMemo(() => new Map(missionDefs.map((d) => [d.key, d])), [missionDefs])
+  /** ¿Se muestra la tarjeta? Con misiones, las ya tildadas pasan a «Hechas hoy». */
+  const isOpen = (key: string) => !missionsOn || !missions.stateOf(key).done
+  const complete = (key: string) => {
+    const d = defByKey.get(key)
+    if (missionsOn && d) missions.complete(d)
+  }
+  const missionCard = (key: string) => (missionsOn ? { onCheck: () => complete(key) } : {})
+  const overdueTag = (key: string) => (missionsOn && missions.stateOf(key).overdue ? <TagV2 tone="rose">Vencida</TagV2> : null)
+  async function undoMission(row: DailyTaskRow) {
+    missions.undo(row)
+    // Cobro: también vuelve a la lista de avisos de pago (si se había marcado como avisado).
+    const m = /^cobro:([^:]+):([^:]+):(due|overdue)$/.exec(row.task_key)
+    if (m) await unmarkReminderSent({ student_id: m[1]!, period: m[2]!, kind: m[3] as 'due' | 'overdue' })
+  }
+  const openDefs = missionDefs.filter((d) => isOpen(d.key))
+  const orphans = missionsOn ? missions.orphans : []
+
   const nutriCounts = isNutri
     ? {
         turnos: nutri.tomorrow.length,
         seguimiento: nutri.symptoms.length + (nutri.overdue.length ? 1 : 0) + (nutri.anamnesis.length ? 1 : 0),
       }
     : { turnos: 0, seguimiento: 0 }
-  const pendingCount =
-    nutriCounts.turnos +
+  const pendingCount = missionsOn
+    ? openDefs.length + orphans.length + nutriCounts.turnos + nutriCounts.seguimiento
+    : nutriCounts.turnos +
     nutriCounts.seguimiento +
     weekly.length +
     (handlesMoney ? payItems.length : 0) +
@@ -411,7 +547,8 @@ export function DashboardV2Page() {
     (unreplied ? 1 : 0) +
     routines.ending.length +
     (trains && routines.without.length ? 1 : 0)
-  const loading = studentsQ.isPending || (handlesMoney && incomesQ.isPending) || (isNutri && nutriQ.isPending)
+  const loading =
+    studentsQ.isPending || (handlesMoney && incomesQ.isPending) || (isNutri && nutriQ.isPending) || (missionsOn && !missions.ready)
 
   async function sendOrCopy(message: string, phone: string | null | undefined) {
     const digits = normalizePhoneForWhatsApp(phone)
@@ -484,14 +621,27 @@ export function DashboardV2Page() {
   const withRoutine = Math.max(0, routineTotal - routines.without.length)
   const answered = Math.max(0, students.length - missing.length)
 
-  const counts = {
-    cobros: handlesMoney ? payItems.length : 0,
-    feedback: (missing.length ? 1 : 0) + (unreplied ? 1 : 0),
-    rutinas: routines.ending.length + (trains && routines.without.length ? 1 : 0),
-    semana: weekly.length,
-    turnos: nutriCounts.turnos,
-    seguimiento: nutriCounts.seguimiento,
-  }
+  const missionCount = (c: TaskCategory) =>
+    openDefs.filter((d) => d.category === c).length + orphans.filter((r) => r.category === c).length
+  const counts = missionsOn
+    ? {
+        cobros: missionCount('cobros'),
+        feedback: missionCount('feedback'),
+        rutinas: missionCount('rutinas'),
+        semana: missionCount('avisos'),
+        turnos: nutriCounts.turnos,
+        seguimiento: nutriCounts.seguimiento,
+      }
+    : {
+        cobros: handlesMoney ? payItems.length : 0,
+        feedback: (missing.length ? 1 : 0) + (unreplied ? 1 : 0),
+        rutinas: routines.ending.length + (trains && routines.without.length ? 1 : 0),
+        semana: weekly.length,
+        turnos: nutriCounts.turnos,
+        seguimiento: nutriCounts.seguimiento,
+      }
+  const doneToday = missionsOn ? missions.completedToday.filter((r) => filter === 'all' || CATEGORY_FILTER[r.category] === filter) : []
+  const doneTotal = missionsOn ? missions.completedToday.length : 0
   const show = (f: Exclude<Filter, 'all'>) => filter === 'all' || filter === f
   const toggle = (f: Filter) => setFilter((cur) => (cur === f || f === 'all' ? 'all' : f))
 
@@ -532,13 +682,8 @@ export function DashboardV2Page() {
     },
   ]
 
-  const filterTiles = tiles.filter((t) => t.visible && (counts[t.key] > 0 || filter === t.key))
+  const filterTiles = tiles.filter((t) => t.visible && (missionsOn || counts[t.key] > 0 || filter === t.key))
 
-  const names = (list: { full_name: string | null }[]) =>
-    list
-      .slice(0, 4)
-      .map((m) => firstName(m.full_name))
-      .join(', ') + (list.length > 4 ? ` y ${list.length - 4} más` : '')
 
   const fmtTime = (iso: string) => format(new Date(iso), 'HH:mm')
   let taskIndex = 0
@@ -657,6 +802,34 @@ export function DashboardV2Page() {
             {nextConsult ? <div className="mb-8 hidden lg:block lg:empty:hidden">{nextConsult}</div> : null}
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
+            {missionsOn && !loading && doneTotal + pendingCount > 0 ? (
+              <div className="mb-4 rounded-2xl bg-[#17151A] px-4 py-3 text-white ring-1 ring-inset ring-white/10">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-[14px] font-medium">
+                    Hoy completaste{' '}
+                    <span className="tabular-nums" style={{ color: MISSION_ORANGE }}>
+                      {doneTotal}/{doneTotal + pendingCount}
+                    </span>
+                  </p>
+                  <p className="text-[12px] opacity-70">
+                    {pendingCount === 0 ? '¡Misiones cumplidas!' : `${pendingCount} ${pendingCount === 1 ? 'pendiente' : 'pendientes'}`}
+                  </p>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: MISSION_ORANGE }}
+                    initial={false}
+                    animate={{ width: `${(doneTotal / (doneTotal + pendingCount)) * 100}%` }}
+                    transition={{ type: 'spring', stiffness: 160, damping: 24 }}
+                  />
+                </div>
+                {!missions.persistent ? (
+                  <p className="mt-2 text-[11.5px] opacity-70">Falta correr el SQL 20261109120000_trainer_daily_tasks.sql: lo que tildes se pierde al recargar.</p>
+                ) : null}
+              </div>
+            ) : null}
+
             {!loading && filterTiles.length > 1 ? (
               <div className="-mx-4 mb-4 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0 max-md:[&>div]:flex-nowrap">
                 <SegmentedV2
@@ -695,12 +868,46 @@ export function DashboardV2Page() {
                 <p className="mt-1 text-[13px] text-ink-secondary">
                   {isNutri
                     ? 'No hay turnos para recordar, cobros ni pacientes para revisar.'
-                    : 'No hay cobros, feedback ni rutinas pendientes para hoy.'}
+                    : missionsOn && doneTotal
+                      ? `Cumpliste las ${doneTotal} misiones de hoy.`
+                      : 'No hay cobros, feedback ni rutinas pendientes para hoy.'}
                 </p>
               </motion.div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
                 <AnimatePresence mode="popLayout" initial>
+                {orphans
+                  .filter((row) => show(CATEGORY_FILTER[row.category] as Exclude<Filter, 'all'>))
+                  .map((row) =>
+                    T(
+                      `orphan-${row.task_key}`,
+                      <TaskCardV2
+                        onCheck={() => missions.complete(row)}
+                        title={row.title}
+                        description={row.detail ?? undefined}
+                        onOpen={row.href ? () => navigate(row.href!) : undefined}
+                        tags={
+                          <>
+                            <TagV2 tone="neutral">{CATEGORY_LABEL[row.category]}</TagV2>
+                            <TagV2 tone="rose">Vencida</TagV2>
+                          </>
+                        }
+                        meta={<MetaChipV2 icon={CalendarDays}>{`Del ${fmtDay(row.first_seen_on)}`}</MetaChipV2>}
+                        actions={
+                          row.href ? (
+                            <PillButtonV2
+                              onClick={() => {
+                                missions.complete(row)
+                                navigate(row.href!)
+                              }}
+                            >
+                              Abrir
+                            </PillButtonV2>
+                          ) : undefined
+                        }
+                      />,
+                    ),
+                  )}
                 {show('turnos')
                   ? nutri.tomorrow.map((a) =>
                       T(
@@ -795,18 +1002,29 @@ export function DashboardV2Page() {
                 {show('semana')
                   ? weekly.map((r) => {
                       const c = WEEKLY_COPY[r.id]!
+                      const key = missionKeys.weekly(r.id)
+                      if (!isOpen(key)) return null
                       return (
                         T(`semana-${r.id}`, <TaskCardV2
+                          {...missionCard(key)}
                           title={c.title}
                           description={c.meta}
                           tags={<TagV2 tone="neutral">Aviso de la semana</TagV2>}
                           meta={<MetaChipV2 icon={CalendarDays}>Hoy</MetaChipV2>}
                           actions={
                             <>
-                              <PillButtonV2 icon={Check} onClick={() => markWeeklyDone(r.id)} title="Sacarlo por hoy">
-                                Listo
-                              </PillButtonV2>
-                              <PillButtonV2 primary onClick={() => navigate(c.href)}>
+                              {missionsOn ? null : (
+                                <PillButtonV2 icon={Check} onClick={() => markWeeklyDone(r.id)} title="Sacarlo por hoy">
+                                  Listo
+                                </PillButtonV2>
+                              )}
+                              <PillButtonV2
+                                primary
+                                onClick={() => {
+                                  complete(key)
+                                  navigate(c.href)
+                                }}
+                              >
                                 {c.cta}
                               </PillButtonV2>
                             </>
@@ -816,29 +1034,91 @@ export function DashboardV2Page() {
                     })
                   : null}
 
-                {show('feedback') && missing.length ? (
+                {show('semana')
+                  ? mealPlansEnding.map(({ m, days }) => {
+                      const key = missionKeys.mealPlan(m.id)
+                      if (!isOpen(key)) return null
+                      const who = m.student?.full_name ?? 'Alumno'
+                      return T(
+                        key,
+                        <TaskCardV2
+                          {...missionCard(key)}
+                          urgent={days <= 0}
+                          title={`Plan de alimentación de ${who}`}
+                          mark={<AvatarV2 name={who} />}
+                          description={`«${m.title}». ${days < 0 ? `Venció hace ${-days} ${days === -1 ? 'día' : 'días'}` : days === 0 ? 'Vence hoy' : days === 1 ? 'Vence mañana' : `Vence en ${days} días`}: armá el que sigue.`}
+                          onOpen={() => navigate(`/students/${m.student_id}`)}
+                          tags={
+                            <>
+                              <TagV2 tone="neutral">Alimentación</TagV2>
+                              {days <= 0 ? <TagV2 tone="rose">{days < 0 ? 'Vencido' : 'Vence hoy'}</TagV2> : null}
+                              {overdueTag(key)}
+                            </>
+                          }
+                          meta={<MetaChipV2 icon={UtensilsCrossed}>{fmtDay(m.end_date.slice(0, 10))}</MetaChipV2>}
+                          actions={
+                            <PillButtonV2
+                              primary
+                              onClick={() => {
+                                complete(key)
+                                navigate('/nutrition/planning')
+                              }}
+                            >
+                              Armar el que sigue
+                            </PillButtonV2>
+                          }
+                        />,
+                      )
+                    })
+                  : null}
+
+                {show('feedback') && missing.length && isOpen(missionKeys.missing) ? (
                   T('feedback-missing', <TaskCardV2
+                    {...missionCard(missionKeys.missing)}
                     title={`${missing.length} ${missing.length === 1 ? 'alumno no respondió' : 'alumnos no respondieron'} el feedback`}
                     description={names(missing)}
                     onOpen={() => navigate('/feedback')}
-                    tags={<TagV2 tone="neutral">Feedback semanal</TagV2>}
+                    tags={
+                      <>
+                        <TagV2 tone="neutral">Feedback semanal</TagV2>
+                        {overdueTag(missionKeys.missing)}
+                      </>
+                    }
                     meta={<MetaChipV2 icon={MessageSquare}>{`${answered}/${students.length}`}</MetaChipV2>}
                     actions={
-                      <PillButtonV2 primary onClick={() => navigate('/feedback')}>
+                      <PillButtonV2
+                        primary
+                        onClick={() => {
+                          complete(missionKeys.missing)
+                          navigate('/feedback')
+                        }}
+                      >
                         Enviar
                       </PillButtonV2>
                     }
                   />)
                 ) : null}
 
-                {show('feedback') && unreplied ? (
+                {show('feedback') && unreplied && isOpen(missionKeys.unreplied) ? (
                   T('feedback-unreplied', <TaskCardV2
+                    {...missionCard(missionKeys.unreplied)}
                     title={`${unreplied} ${unreplied === 1 ? 'respuesta espera' : 'respuestas esperan'} tu devolución`}
                     description="Respuestas del último mes que todavía no contestaste."
                     onOpen={() => navigate('/feedback')}
-                    tags={<TagV2 tone="neutral">Feedback semanal</TagV2>}
+                    tags={
+                      <>
+                        <TagV2 tone="neutral">Feedback semanal</TagV2>
+                        {overdueTag(missionKeys.unreplied)}
+                      </>
+                    }
                     actions={
-                      <PillButtonV2 primary onClick={() => navigate('/feedback')}>
+                      <PillButtonV2
+                        primary
+                        onClick={() => {
+                          complete(missionKeys.unreplied)
+                          navigate('/feedback')
+                        }}
+                      >
                         Responder
                       </PillButtonV2>
                     }
@@ -846,10 +1126,49 @@ export function DashboardV2Page() {
                 ) : null}
 
                 {show('rutinas')
+                  ? closing.map(({ student, st }) => {
+                      const key = missionKeys.closing(student.id, st.submittedAt)
+                      if (!isOpen(key)) return null
+                      return T(
+                        key,
+                        <TaskCardV2
+                          {...missionCard(key)}
+                          urgent
+                          title={`${student.full_name} ${st.finished ? 'cerró su mes' : 'está en su última semana'}: armá la que sigue`}
+                          mark={<AvatarV2 name={student.full_name} />}
+                          description={`Lo contó en su feedback${st.submittedAt ? ` del ${fmtDay(st.submittedAt.slice(0, 10))}` : ''}.`}
+                          onOpen={() => navigate(`/students/${student.id}`)}
+                          tags={
+                            <>
+                              <TagV2 tone="neutral">Rutina</TagV2>
+                              <TagV2 tone="rose">{st.finished ? 'Cerró el mes' : 'Última semana'}</TagV2>
+                              {overdueTag(key)}
+                            </>
+                          }
+                          actions={
+                            <PillButtonV2
+                              primary
+                              onClick={() => {
+                                complete(key)
+                                navigate(`/students/${student.id}`)
+                              }}
+                            >
+                              Abrir ficha
+                            </PillButtonV2>
+                          }
+                        />,
+                      )
+                    })
+                  : null}
+
+                {show('rutinas')
                   ? routines.ending.map(({ r, days }) => {
                       const who = r.student?.full_name ?? 'Alumno'
+                      const key = missionKeys.routineEnd(r.id)
+                      if (!isOpen(key)) return null
                       return (
                         T(`rutina-${r.id}`, <TaskCardV2
+                          {...missionCard(key)}
                           title={r.name}
                           mark={<AvatarV2 name={who} />}
                           description={`${who}. ${days === 0 ? 'Termina hoy' : days === 1 ? 'Termina mañana' : `Termina en ${days} días`}: armá la que sigue.`}
@@ -858,23 +1177,48 @@ export function DashboardV2Page() {
                             <>
                               <TagV2 tone="neutral">Rutina</TagV2>
                               {days <= 2 ? <TagV2 tone="rose">Por terminar</TagV2> : null}
+                              {overdueTag(key)}
                             </>
                           }
                           meta={<MetaChipV2 icon={CalendarDays}>{fmtDay(r.end_date.slice(0, 10))}</MetaChipV2>}
-                          actions={<PillButtonV2 onClick={() => navigate(`/routines/${r.id}`)}>Abrir</PillButtonV2>}
+                          actions={
+                            <PillButtonV2
+                              onClick={() => {
+                                complete(key)
+                                navigate(`/routines/${r.id}`)
+                              }}
+                            >
+                              Abrir
+                            </PillButtonV2>
+                          }
                         />)
                       )
                     })
                   : null}
 
-                {show('rutinas') && trains && routines.without.length ? (
+                {show('rutinas') && trains && routines.without.length && isOpen(missionKeys.without) ? (
                   T('rutinas-without', <TaskCardV2
+                    {...missionCard(missionKeys.without)}
                     title={`${routines.without.length} ${routines.without.length === 1 ? 'alumno' : 'alumnos'} sin rutina activa`}
                     description={names(routines.without)}
                     onOpen={() => navigate('/students')}
-                    tags={<TagV2 tone="neutral">Rutina</TagV2>}
+                    tags={
+                      <>
+                        <TagV2 tone="neutral">Rutina</TagV2>
+                        {overdueTag(missionKeys.without)}
+                      </>
+                    }
                     meta={<MetaChipV2 icon={Users}>{`${withRoutine}/${routineTotal} con rutina`}</MetaChipV2>}
-                    actions={<PillButtonV2 onClick={() => navigate('/students')}>Ver alumnos</PillButtonV2>}
+                    actions={
+                      <PillButtonV2
+                        onClick={() => {
+                          complete(missionKeys.without)
+                          navigate('/students')
+                        }}
+                      >
+                        Ver alumnos
+                      </PillButtonV2>
+                    }
                   />)
                 ) : null}
 
@@ -883,8 +1227,11 @@ export function DashboardV2Page() {
                       const debt = Math.max(0, r.expected - r.paid)
                       const isToday = r.timing === 'hoy'
                       const overdue = r.reminder === 'overdue'
+                      const key = missionKeys.cobro(r)
+                      if (!isOpen(key)) return null
                       return (
                         T(`cobro-${r.studentId}`, <TaskCardV2
+                          {...missionCard(key)}
                           title={r.fullName}
                           mark={<AvatarV2 name={r.fullName} />}
                           onOpen={() => navigate(isNutri ? `/nutrition/${r.studentId}` : `/students/${r.studentId}`)}
@@ -899,6 +1246,7 @@ export function DashboardV2Page() {
                             <>
                               <TagV2 tone="neutral">Cobro</TagV2>
                               <TagV2 tone={isToday ? 'butter' : 'rose'}>{isToday ? 'Vence hoy' : overdue ? 'Atrasado' : 'Vencido'}</TagV2>
+                              {overdueTag(key)}
                             </>
                           }
                           meta={
@@ -909,10 +1257,23 @@ export function DashboardV2Page() {
                           }
                           actions={
                             <>
-                              <PillButtonV2 onClick={() => void dismiss(r)} title="Sacarlo de la lista sin mandar nada">
+                              <PillButtonV2
+                                onClick={() => {
+                                  complete(key)
+                                  void dismiss(r)
+                                }}
+                                title="Sacarlo de la lista sin mandar nada"
+                              >
                                 Ya le avisé
                               </PillButtonV2>
-                              <PillButtonV2 primary icon={WhatsAppIcon} onClick={() => void remind(r)}>
+                              <PillButtonV2
+                                primary
+                                icon={WhatsAppIcon}
+                                onClick={() => {
+                                  complete(key)
+                                  void remind(r)
+                                }}
+                              >
                                 Recordar
                               </PillButtonV2>
                             </>
@@ -930,6 +1291,41 @@ export function DashboardV2Page() {
                 ) : null}
               </div>
             )}
+            {doneToday.length ? (
+              <div className="mt-5">
+                <p className="mb-2 text-[12px] font-medium text-ink-muted">Hechas hoy · {doneToday.length}</p>
+                <ul className="space-y-1.5">
+                  <AnimatePresence initial={false}>
+                    {doneToday.map((row) => (
+                      <motion.li
+                        key={row.task_key}
+                        layout
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex items-center gap-3 rounded-xl bg-[#22A55A]/[0.08] px-3 py-2"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#22A55A] text-white">
+                          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-ink-secondary line-through decoration-ink-muted/60">
+                          {row.title}
+                        </span>
+                        <span className="hidden shrink-0 text-[11.5px] text-ink-muted sm:inline">{CATEGORY_LABEL[row.category]}</span>
+                        <button
+                          type="button"
+                          onClick={() => void undoMission(row)}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[12px] text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                          title="Volver a pendiente"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Deshacer
+                        </button>
+                      </motion.li>
+                    ))}
+                  </AnimatePresence>
+                </ul>
+              </div>
+            ) : null}
           </section>
 
           <aside className="space-y-4 max-lg:contents">

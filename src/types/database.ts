@@ -266,6 +266,13 @@ export interface Database {
         Update: Partial<Omit<Appointment, 'id' | 'created_at'>>
         Relationships: []
       }
+      trainer_daily_tasks: {
+        Row: TrainerDailyTask
+        Insert: Omit<TrainerDailyTask, 'id' | 'created_at' | 'owner_id' | 'first_seen_on' | 'completed_at'> &
+          Partial<Pick<TrainerDailyTask, 'owner_id' | 'first_seen_on' | 'completed_at'>>
+        Update: Partial<Omit<TrainerDailyTask, 'id' | 'created_at'>>
+        Relationships: []
+      }
       appointment_reminders: {
         Row: AppointmentReminder
         Insert: Omit<AppointmentReminder, 'id' | 'created_at'>
@@ -1095,6 +1102,20 @@ export interface TrainerStudentMealPlan {
   completed_at: string | null
   created_at: string
   updated_at: string
+}
+
+/** Misión del «Para hoy» del entrenador (ver src/data/dailyTasks.ts). */
+export interface TrainerDailyTask {
+  id: string
+  owner_id: string
+  task_key: string
+  category: 'feedback' | 'rutinas' | 'avisos' | 'cobros'
+  title: string
+  detail: string | null
+  href: string | null
+  first_seen_on: string
+  completed_at: string | null
+  created_at: string
 }
 
 export interface NutritionFoodLibrary {
