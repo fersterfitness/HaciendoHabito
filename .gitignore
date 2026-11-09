@@ -31,3 +31,7 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+# Kit de la taste-skill (39 MB, se instala desde github.com/Leonxlnx/taste-skill)
+.claude/skills/design-taste-frontend/
+.taste-skill/
