@@ -4,10 +4,13 @@ import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Check, Copy, Arr
 import { useDebounce } from '@/hooks/useDebounce'
 import { Textarea } from '@/components/ui/Input'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { blockColor, blockTypeLabel, type BlockTypeId } from '@/lib/macrocycle/macrocycle'
-import { usePhaseTypes } from '@/lib/macrocycle/phaseTypes'
+import { findPhaseType, usePhaseTypes } from '@/lib/macrocycle/phaseTypes'
+import { IS_V2 } from '@/lib/uiVersion'
+import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 import type { StudentRmLookup } from '@/lib/routine/studentRmLookup'
 import type { CyclePhaseInfo } from '@/lib/routine/menstrualCyclePlanning'
 import type { RoutineBlock, RoutineDay, RoutineExercise, TrainingMethod } from '@/types/database'
@@ -64,6 +67,12 @@ export function BlockCard({
   const phaseTypes = usePhaseTypes()
   const phaseLabel = blockTypeLabel(block.phase_type)
   const phaseColor = phaseLabel ? blockColor(block.phase_type, null) : null
+  /** v2 · La semana se lee por defecto; fechas, fase y aclaración se editan con «Editar». */
+  const [editing, setEditing] = useState(false)
+  const showEditFields = !IS_V2 || editing
+  /** v2 · Una fase vieja (p. ej. «Descarga») aparece como opción marcada en vez de quedar sin opción. */
+  const legacyPhase = IS_V2 && block.phase_type && !phaseTypes.some((t) => t.id === block.phase_type) ? findPhaseType(block.phase_type) : undefined
+  const pickerTypes = legacyPhase ? [...phaseTypes, legacyPhase] : phaseTypes
 
   useEffect(() => {
     setBlockNotes(block.notes ?? '')
@@ -160,50 +169,85 @@ export function BlockCard({
         <span className="hidden whitespace-nowrap text-xs text-ink-muted sm:inline">{block.days.length} días</span>
         {expanded ? <ChevronDown className="h-4 w-4 text-ink-muted" /> : <ChevronRight className="h-4 w-4 text-ink-muted" />}
 
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button title="Copiar días a otra semana" aria-label="Copiar días a otra semana" type="button" onClick={onOpenCopyMenu} className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-brand-primary', appFocusRingClassName)}>
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-          {showCopyMenu && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={onCloseCopyMenu} />
-              <div className="absolute right-0 top-6 z-40 bg-surface-card border border-surface-border rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
-                <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted ">Copiar días a…</p>
-                {otherBlocks.length === 0
-                  ? <p className="px-3 py-2 text-xs text-ink-muted">No hay otras semanas</p>
-                  : otherBlocks.map((b) => (
-                      <button key={b.id} type="button" onClick={() => onCopyTo(b.id)} className={cn('w-full rounded-sm px-3 py-2 text-left text-xs text-ink-primary transition-colors hover:bg-surface-elevated', appFocusRingClassName)}>
-                        {b.name}
-                      </button>
-                    ))
-                }
-              </div>
-            </>
-          )}
-        </div>
+        {IS_V2 ? (
+          <>
+            <Button
+              type="button"
+              variant={editing ? 'primary' : 'soft'}
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (!expanded) onToggle()
+                setEditing((v) => !v)
+              }}
+              aria-pressed={editing}
+              className="shrink-0 rounded-full"
+            >
+              {editing ? 'Listo' : 'Editar'}
+            </Button>
+            <ActionMenuV2
+              label={`Acciones de ${block.name}`}
+              items={[
+                { heading: 'Copiar los días a…' },
+                ...(otherBlocks.length
+                  ? otherBlocks.map((b) => ({ label: b.name, icon: <Copy />, onClick: () => onCopyTo(b.id) }))
+                  : [{ label: 'No hay otras semanas', disabled: true, onClick: () => undefined }]),
+                'divider',
+                { label: 'Subir semana', icon: <ArrowUp />, onClick: () => onMoveBlock('up') },
+                { label: 'Bajar semana', icon: <ArrowDown />, onClick: () => onMoveBlock('down') },
+                'divider',
+                { label: 'Borrar semana', icon: <Trash2 />, danger: true, onClick: () => setShowDelete(true) },
+              ]}
+            />
+          </>
+        ) : (
+          <>
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button title="Copiar días a otra semana" aria-label="Copiar días a otra semana" type="button" onClick={onOpenCopyMenu} className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-brand-primary', appFocusRingClassName)}>
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+              {showCopyMenu && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={onCloseCopyMenu} />
+                  <div className="absolute right-0 top-6 z-40 bg-surface-card border border-surface-border rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
+                    <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted ">Copiar días a…</p>
+                    {otherBlocks.length === 0
+                      ? <p className="px-3 py-2 text-xs text-ink-muted">No hay otras semanas</p>
+                      : otherBlocks.map((b) => (
+                          <button key={b.id} type="button" onClick={() => onCopyTo(b.id)} className={cn('w-full rounded-sm px-3 py-2 text-left text-xs text-ink-primary transition-colors hover:bg-surface-elevated', appFocusRingClassName)}>
+                            {b.name}
+                          </button>
+                        ))
+                    }
+                  </div>
+                </>
+              )}
+            </div>
 
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onMoveBlock('up') }}
-          title="Mover semana arriba"
-          aria-label="Mover semana arriba"
-          className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
-        >
-          <ArrowUp className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onMoveBlock('down') }}
-          title="Mover semana abajo"
-          aria-label="Mover semana abajo"
-          className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
-        >
-          <ArrowDown className="h-3.5 w-3.5" />
-        </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onMoveBlock('up') }}
+              title="Mover semana arriba"
+              aria-label="Mover semana arriba"
+              className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onMoveBlock('down') }}
+              title="Mover semana abajo"
+              aria-label="Mover semana abajo"
+              className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+            </button>
 
-        <button type="button" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} title="Borrar semana" aria-label="Borrar semana" className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-status-expired', appFocusRingClassName)}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} title="Borrar semana" aria-label="Borrar semana" className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-status-expired', appFocusRingClassName)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
       </div>
 
       {expanded && (
@@ -228,7 +272,8 @@ export function BlockCard({
               ))}
             </div>
           ) : null}
-          {/* Fechas del bloque */}
+          {/* Fechas del bloque (v2: solo al editar; en lectura van en la cabecera) */}
+          {showEditFields ? (
           <div className="grid grid-cols-2 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
             <div>
               <label htmlFor={`block-start-${block.id}`} className="block text-3xs text-ink-muted mb-1 ">Fecha inicio</label>
@@ -264,12 +309,13 @@ export function BlockCard({
               <p className="mt-0.5 text-3xs text-ink-muted">Editable manualmente</p>
             </div>
           </div>
+          ) : null}
 
-          {onPhaseChange ? (
+          {onPhaseChange && showEditFields ? (
             <div className="pt-1" onClick={(e) => e.stopPropagation()}>
               <label className="block text-3xs text-ink-muted mb-1 ">Fase del macrociclo · se marca en el calendario (el alumno no la ve)</label>
               <div className="flex flex-wrap gap-1.5">
-                {phaseTypes.map((t) => {
+                {pickerTypes.map((t) => {
                   const active = block.phase_type === t.id
                   return (
                     <button
@@ -294,7 +340,10 @@ export function BlockCard({
           ) : null}
 
           {/* Aclaración general: reemplazada por la fase; se muestra solo si la semana ya tenía texto. */}
-          {blockNotes || block.notes ? (
+          {(blockNotes || block.notes) && !showEditFields ? (
+            <p className="whitespace-pre-wrap rounded-xl bg-surface-elevated/60 px-3 py-2 text-xs leading-relaxed text-ink-secondary">{blockNotes}</p>
+          ) : null}
+          {(blockNotes || block.notes) && showEditFields ? (
           <div className="pt-1" onClick={(e) => e.stopPropagation()}>
             <label className="block text-3xs text-ink-muted mb-1 ">Aclaración general del bloque</label>
             <Textarea

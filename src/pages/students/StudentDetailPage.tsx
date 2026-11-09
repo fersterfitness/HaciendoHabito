@@ -305,6 +305,12 @@ export function StudentDetailView({
     if (!showRoutineTab && sheetTab === 'rutina') setSheetTab('ficha')
   }, [showRoutineTab, sheetTab])
 
+  // v2 · La ficha abre donde trabaja cada rol: el entrenador en Rutina. Si ya eligió otra solapa, se respeta.
+  const sheetTabPicked = useRef(false)
+  useEffect(() => {
+    if (IS_V2 && showRoutineTab && !sheetTabPicked.current && sheetTab === 'ficha') setSheetTab('rutina')
+  }, [showRoutineTab, sheetTab])
+
   useEffect(() => {
     if (student?.gender !== 'F' && seguimientoTab === 'ciclo') setSeguimientoTab('peso')
   }, [student?.gender, seguimientoTab])
@@ -826,7 +832,10 @@ export function StudentDetailView({
                     aria-selected={active}
                     aria-label={label}
                     title={label}
-                    onClick={() => setSheetTab(key)}
+                    onClick={() => {
+                      sheetTabPicked.current = true
+                      setSheetTab(key)
+                    }}
                     className={cn(
                       v2Page
                         ? v2TabClass(active)

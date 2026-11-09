@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-env node */
 /* global process, console, URL */
 /**
  * Control de consistencia visual: cuenta en src/**\/*.tsx los valores que esquivan el sistema de

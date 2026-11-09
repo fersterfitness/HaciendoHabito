@@ -14,6 +14,8 @@ import type { RoutineDay, RoutineExercise, TrainingMethod } from '@/types/databa
 import toast from 'react-hot-toast'
 import { type DayWithEx, WARMUP_PRESETS, groupExercises } from './routineDetailShared'
 import { ExerciseRow } from './ExerciseRow'
+import { IS_V2 } from '@/lib/uiVersion'
+import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 
 export function DayCard({
   day,
@@ -106,51 +108,70 @@ export function DayCard({
         {focus && <span className="text-xs text-ink-muted">{focus}</span>}
         <span className="hh-day-count text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
-        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="hh-hit -m-1.5 ml-1 text-ink-muted" title="Mover día arriba" aria-label="Mover día arriba">
-          <ArrowUp className="h-3 w-3" />
-        </Button>
-        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="hh-hit -m-1.5 ml-1 text-ink-muted" title="Mover día abajo" aria-label="Mover día abajo">
-          <ArrowDown className="h-3 w-3" />
-        </Button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="hh-hit hh-focus ml-1 text-ink-muted transition-colors hover:text-brand-primary" title="Duplicar día en esta semana" aria-label="Duplicar día en esta semana">
-          <Copy className="h-3 w-3" />
-        </button>
-        <div className="relative ml-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setCopyToWeekOpen((v) => !v)}
-            className="hh-hit hh-focus text-ink-muted transition-colors hover:text-brand-primary"
-            title="Duplicar este día a otra semana"
-            aria-label="Duplicar este día a otra semana"
-            disabled={otherWeeks.length === 0}
-          >
-            <CopyPlus className="h-3 w-3" />
-          </button>
-          {copyToWeekOpen ? (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setCopyToWeekOpen(false)} />
-              <div className="absolute right-0 top-6 z-40 min-w-[160px] overflow-hidden rounded-xl border border-surface-border bg-surface-card py-1 shadow-lg">
-                <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted">Copiar día a…</p>
-                {otherWeeks.map((w) => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    className="w-full px-3 py-2 text-left text-xs text-ink-primary hover:bg-surface-elevated"
-                    onClick={() => {
-                      setCopyToWeekOpen(false)
-                      onCopyDayToWeek(w.id)
-                    }}
-                  >
-                    {w.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : null}
-        </div>
-        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="hh-hit -m-1.5 ml-1 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired" title="Borrar día" aria-label="Borrar día">
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        {IS_V2 ? (
+          <ActionMenuV2
+            label={`Acciones de ${dayName || 'este día'}`}
+            items={[
+              { label: 'Subir día', icon: <ArrowUp />, onClick: () => onMoveDay('up') },
+              { label: 'Bajar día', icon: <ArrowDown />, onClick: () => onMoveDay('down') },
+              'divider',
+              { label: 'Duplicar en esta semana', icon: <Copy />, onClick: onDuplicateDay },
+              ...(otherWeeks.length
+                ? [{ heading: 'Duplicar en otra semana' } as const, ...otherWeeks.map((w) => ({ label: w.name, icon: <CopyPlus />, onClick: () => onCopyDayToWeek(w.id) }))]
+                : []),
+              'divider',
+              { label: 'Borrar día', icon: <Trash2 />, danger: true, onClick: () => setShowDelete(true) },
+            ]}
+          />
+        ) : (
+          <>
+            <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="hh-hit -m-1.5 ml-1 text-ink-muted" title="Mover día arriba" aria-label="Mover día arriba">
+              <ArrowUp className="h-3 w-3" />
+            </Button>
+            <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="hh-hit -m-1.5 ml-1 text-ink-muted" title="Mover día abajo" aria-label="Mover día abajo">
+              <ArrowDown className="h-3 w-3" />
+            </Button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="hh-hit hh-focus ml-1 text-ink-muted transition-colors hover:text-brand-primary" title="Duplicar día en esta semana" aria-label="Duplicar día en esta semana">
+              <Copy className="h-3 w-3" />
+            </button>
+            <div className="relative ml-1" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setCopyToWeekOpen((v) => !v)}
+                className="hh-hit hh-focus text-ink-muted transition-colors hover:text-brand-primary"
+                title="Duplicar este día a otra semana"
+                aria-label="Duplicar este día a otra semana"
+                disabled={otherWeeks.length === 0}
+              >
+                <CopyPlus className="h-3 w-3" />
+              </button>
+              {copyToWeekOpen ? (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setCopyToWeekOpen(false)} />
+                  <div className="absolute right-0 top-6 z-40 min-w-[160px] overflow-hidden rounded-xl border border-surface-border bg-surface-card py-1 shadow-lg">
+                    <p className="px-3 py-1.5 text-3xs font-semibold text-ink-muted">Copiar día a…</p>
+                    {otherWeeks.map((w) => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-xs text-ink-primary hover:bg-surface-elevated"
+                        onClick={() => {
+                          setCopyToWeekOpen(false)
+                          onCopyDayToWeek(w.id)
+                        }}
+                      >
+                        {w.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </div>
+            <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="hh-hit -m-1.5 ml-1 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired" title="Borrar día" aria-label="Borrar día">
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </>
+        )}
       </div>
 
       {expanded && (

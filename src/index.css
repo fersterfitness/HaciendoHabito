@@ -685,12 +685,12 @@ html.ui-v2.dark {
   --ink-primary: 245 241 247;
   --ink-secondary: 208 200 214;
   --ink-muted: 152 144 162;
-  /* Acción principal en durazno pastel (el naranja F2921D de la paleta, suavizado). */
-  --brand-primary: 244 172 110;
-  --brand-hover: 247 190 140;
+  /* Acción principal en ciruela clara: la misma marca que en claro (el naranja queda para avisos y progreso). */
+  --brand-primary: 214 190 228;
+  --brand-hover: 228 210 238;
   --brand-warm: 42 34 49;
-  --brand-secondary: 244 172 110;
-  --brand-tertiary: 244 172 110;
+  --brand-secondary: 214 190 228;
+  --brand-tertiary: 214 190 228;
   --status-active: 160 162 196;
   --status-generated: 160 162 196;
   /* Pasteles de la paleta: el naranja y el rojo anaranjado fuertes cansaban en las listas. */
@@ -1066,23 +1066,10 @@ html.ui-v2 .hh-hit-pad::after {
   }
 }
 
-/* v2 · Fila de un día en la rutina: con los botones táctiles, el nombre no se parte y en celular
-   se oculta el conteo de ejercicios (se ve al abrir el día). */
+/* v2 · Fila de un día en la rutina: el nombre no se parte en dos líneas. */
 html.ui-v2 .hh-day-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-@media (max-width: 639px) {
-  html.ui-v2 .hh-day-count {
-    display: none;
-  }
-  html.ui-v2 .hh-day-row {
-    gap: 0.25rem;
-  }
-  html.ui-v2 .hh-day-row .hh-hit {
-    min-width: 2rem;
-    min-height: 2.25rem;
-  }
 }

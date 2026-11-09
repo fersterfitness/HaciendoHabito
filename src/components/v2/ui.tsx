@@ -331,8 +331,8 @@ export function MetaChipV2({ icon: Icon, children }: { icon?: LucideIcon; childr
 }
 
 /**
- * Tarjeta de una cosa por hacer: título, detalle, etiquetas y, separado por una línea punteada,
- * los datos y las acciones.
+ * Una cosa por hacer, en una fila: casilla, título, etiquetas y detalle en una línea, y las acciones
+ * a la derecha (en el celular, debajo). Va dentro de una lista con divisores (`TASK_LIST_V2`).
  */
 export function TaskCardV2({
   title,
@@ -355,19 +355,41 @@ export function TaskCardV2({
   mark?: ReactNode
   /** Misiones: la casilla de la izquierda tilda la tarea. */
   onCheck?: () => void
-  /** Alerta (borde rojo a la izquierda). */
+  /** Alerta (franja roja a la izquierda). */
   urgent?: boolean
 }) {
   return (
     <article
       className={cn(
-        'rounded-2xl border border-surface-border bg-surface-card transition-shadow hover:shadow-[0_2px_10px_rgb(0_0_0/0.04)]',
-        urgent && 'border-l-[3px] border-l-status-expired',
+        'flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-card px-3 py-2.5 transition-colors sm:flex-nowrap sm:px-4',
+        onOpen && 'hover:bg-surface-panel',
+        urgent && 'shadow-[inset_3px_0_0_rgb(var(--status-expired))]',
       )}
     >
+      {onCheck ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onCheck()
+          }}
+          title="Marcar como hecha"
+          aria-label="Marcar como hecha"
+          className="group/check -m-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-md border-[1.5px] border-ink-muted/50 transition-colors group-hover/check:border-status-progress group-hover/check:bg-status-progress/10">
+            <Check className="h-3.5 w-3.5 text-status-progress opacity-0 transition-opacity group-hover/check:opacity-100" strokeWidth={2.5} />
+          </span>
+        </button>
+      ) : (
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>
+          <span className="h-2.5 w-2.5 rounded-full border-[1.5px] border-ink-muted/70" />
+        </span>
+      )}
       <div
-        className={cn('px-4 pb-3.5 pt-4', onOpen && 'hh-focus cursor-pointer rounded-t-2xl')}
+        className={cn('min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto', onOpen && 'hh-focus cursor-pointer rounded-md')}
         onClick={onOpen}
+        title={typeof description === 'string' ? description : undefined}
         {...(onOpen
           ? {
               role: 'button',
@@ -380,40 +402,24 @@ export function TaskCardV2({
             }
           : {})}
       >
-        <div className="flex items-start gap-3">
-          {onCheck ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onCheck()
-              }}
-              title="Marcar como hecha"
-              aria-label="Marcar como hecha"
-              className="group/check mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[1.5px] border-ink-muted/50 transition-colors hover:border-status-progress hover:bg-status-progress/10"
-            >
-              <Check className="h-3.5 w-3.5 text-status-progress opacity-0 transition-opacity group-hover/check:opacity-100" strokeWidth={2.5} />
-            </button>
-          ) : (
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>
-              <span className="h-3 w-3 rounded-full border-[1.5px] border-ink-muted/70" />
-            </span>
-          )}
-          <h3 className="min-w-0 flex-1 text-[14px] font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
-          {mark}
-        </div>
-        {description ? <p className="mt-2 pl-9 text-[13px] leading-relaxed text-ink-secondary">{description}</p> : null}
-        {tags ? <div className="mt-3 flex flex-wrap gap-1.5 pl-9">{tags}</div> : null}
+        <h3 className="truncate text-sm font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
+        {tags || description ? (
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs leading-snug text-ink-secondary">
+            {tags ? <span className="flex shrink-0 items-center gap-1 [&>span]:h-5 [&>span]:px-1.5 [&>span]:text-3xs">{tags}</span> : null}
+            {description ? <span className="min-w-0 truncate">{description}</span> : null}
+          </div>
+        ) : null}
       </div>
-      {meta || actions ? (
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-dashed border-surface-border px-4 py-3">
-          {meta}
-          {actions ? <div className="ml-auto flex flex-wrap items-center gap-1.5">{actions}</div> : null}
-        </div>
-      ) : null}
+      {mark ? <span className="hidden shrink-0 sm:block">{mark}</span> : null}
+      {meta ? <div className="hidden shrink-0 items-center gap-1.5 lg:flex">{meta}</div> : null}
+      {actions ? <div className="ml-8 flex shrink-0 items-center justify-end gap-1.5 max-sm:ml-auto max-sm:w-[calc(100%-2rem)] sm:ml-0">{actions}</div> : null}
     </article>
   )
 }
+
+/** Contenedor de las filas de tareas: una sola tarjeta con divisores. */
+export const TASK_LIST_V2 =
+  'overflow-hidden rounded-2xl border border-surface-border bg-surface-card [&>*+*]:border-t [&>*+*]:border-surface-border'
 
 /** Botón de tarjeta: pastilla gris (o negra si es la acción del momento). */
 export function PillButtonV2({

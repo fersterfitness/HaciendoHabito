@@ -37,6 +37,7 @@ import {
   StatStripV2,
   TagV2,
   TaskCardV2,
+  TASK_LIST_V2,
 } from '@/components/v2/ui'
 import { TopBarV2 } from '@/components/v2/TopBarV2'
 import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
@@ -841,12 +842,14 @@ export function DashboardV2Page() {
             ) : null}
 
             {loading ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
-                {[0, 1].map((i) => (
-                  <div key={i} className="space-y-3 rounded-2xl border border-surface-border p-4">
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-3/4" />
-                    <Skeleton className="h-6 w-1/3" />
+              <div className={TASK_LIST_V2}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <Skeleton className="h-5 w-5 rounded-md" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-3.5 w-1/2" />
+                      <Skeleton className="h-3 w-3/4" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -874,7 +877,7 @@ export function DashboardV2Page() {
                 </p>
               </motion.div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
+              <div className={TASK_LIST_V2}>
                 <AnimatePresence mode="popLayout" initial>
                 {orphans
                   .filter((row) => show(CATEGORY_FILTER[row.category] as Exclude<Filter, 'all'>))
@@ -1330,7 +1333,8 @@ export function DashboardV2Page() {
 
           <aside className="space-y-4 max-lg:contents">
             <CardV2
-              className="max-lg:order-first"
+              // En el celu: para la nutricionista la agenda va primero; para el entrenador, «Para hoy».
+              className={isNutri ? 'max-lg:order-first' : undefined}
               title={selectedDay === todayIndex ? 'Turnos de hoy' : `Turnos del ${format(new Date(weekStart.getTime() + selectedDay * DAY_MS), 'EEEE d', { locale: es })}`}
               action={
                 <button
