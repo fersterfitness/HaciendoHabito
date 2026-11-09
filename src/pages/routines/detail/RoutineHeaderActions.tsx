@@ -79,6 +79,19 @@ export function RoutineHeaderActions(p: Props) {
         <span className="mx-1 h-5 w-px bg-surface-border" aria-hidden />
       </div>
 
+      {IS_V2 ? (
+        <button
+          type="button"
+          onClick={p.onVolume}
+          disabled={!p.hasBlocks}
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-primary transition-colors hover:bg-surface-border/60 disabled:opacity-50"
+          title={p.hasBlocks ? 'Volumen semanal: series por músculo y mapa del cuerpo' : 'Cargá semanas para ver el volumen'}
+        >
+          <BarChart3 className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Volumen</span>
+        </button>
+      ) : null}
+
       {p.isLibrary ? (
         <button
           type="button"
@@ -145,7 +158,9 @@ export function RoutineHeaderActions(p: Props) {
         <div className="py-1">
           <div className={IS_V2 ? undefined : 'sm:hidden'}>
             <MenuItem icon={<Table2 />} disabled={!p.hasBlocks} onClick={() => run(p.onGuide)}>Guía semanal</MenuItem>
-            <MenuItem icon={<BarChart3 />} disabled={!p.hasBlocks} onClick={() => run(p.onVolume)}>Volumen</MenuItem>
+            {IS_V2 ? null : (
+              <MenuItem icon={<BarChart3 />} disabled={!p.hasBlocks} onClick={() => run(p.onVolume)}>Volumen</MenuItem>
+            )}
             {p.hasStudent ? <MenuItem icon={<CalendarRange />} onClick={() => run(p.onMacro)}>Calendario</MenuItem> : null}
             {!p.isLibrary ? (
               <div className={IS_V2 ? 'sm:hidden' : undefined}>
