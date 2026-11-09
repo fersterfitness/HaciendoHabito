@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
+    "check:tokens": "node scripts/check-design-tokens.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"

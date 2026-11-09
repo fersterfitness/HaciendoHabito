@@ -22,6 +22,11 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+/** Número en formato argentino (coma decimal, punto de miles). */
+export function formatNumber(n: number, maxDigits = 1, minDigits = 0): string {
+  return n.toLocaleString('es-AR', { minimumFractionDigits: minDigits, maximumFractionDigits: maxDigits })
+}
+
 export function daysUntil(date: string | Date): number {
   const d = typeof date === 'string' ? parseISO(date) : date
   return differenceInDays(d, new Date())

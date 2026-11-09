@@ -172,7 +172,7 @@ export function NotificationsPage() {
                             <span className={cn(n.is_read && 'opacity-60')}>
                               <ToneIcon icon={Icon} tone={TYPE_TONE[n.type] ?? 'sky'} />
                             </span>
-                            <button type="button" onClick={() => void openNotification(n)} className="min-w-0 flex-1 text-left outline-none">
+                            <button type="button" onClick={() => void openNotification(n)} className="hh-focus min-w-0 flex-1 rounded-sm text-left outline-none">
                               <span className={cn('block truncate text-[13px]', n.is_read ? 'text-ink-secondary' : 'font-medium text-ink-primary')}>
                                 {n.title}
                               </span>

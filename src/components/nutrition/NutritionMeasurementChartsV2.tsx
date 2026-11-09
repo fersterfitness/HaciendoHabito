@@ -12,7 +12,7 @@ import {
 } from '@/lib/nutrition/anthropometryProgramModel'
 import { ChartSizedContainer } from '@/components/charts/ChartSizedContainer'
 import { ChartTooltip, chartActiveDot, chartAxis, chartCursor, chartGrid } from '@/components/charts/chartKit'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 
 /**
  * Evolución de perímetros y pliegues (v2): neutro, nombres completos, coma decimal y el cambio
@@ -43,7 +43,7 @@ const SUM6 = ['triceps_mm', 'subescapular_mm', 'supraespinal_mm', 'abdominal_mm'
 /** Bajar es mejora: pliegues y cintura. El resto depende del objetivo del paciente. */
 const DOWN_IS_BETTER = new Set<string>([...ANTHRO_SKINFOLD_KEYS, 'sum6', 'cintura_min_cm'])
 
-const nf = (v: number, d = 1) => v.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d })
+const nf = (v: number, d = 1) => formatNumber(v, d)
 const r1 = (v: number) => Math.round(v * 10) / 10
 
 function shortLabel(key: string, group: Group): string {

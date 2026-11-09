@@ -4,10 +4,10 @@ import { motion, useReducedMotion } from 'motion/react'
 import { FolderOpen, Stethoscope } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import { startsInText, type SymptomFlag, type TodayAppointment } from '@/lib/dashboard/nutritionistToday'
 
-const nf = (n: number) => n.toLocaleString('es-AR', { maximumFractionDigits: 1 })
+const nf = (n: number) => formatNumber(n)
 const hhmm = (iso: string) => format(new Date(iso), 'HH:mm')
 
 /**

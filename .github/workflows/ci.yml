@@ -29,6 +29,8 @@ jobs:
         run: npx tsc -b
       - name: Lint
         run: npx eslint . --max-warnings=200
+      - name: Sistema de diseño (no sumar valores sueltos)
+        run: node scripts/check-design-tokens.mjs
       - name: Tests
         run: npx vitest run
       - name: Build

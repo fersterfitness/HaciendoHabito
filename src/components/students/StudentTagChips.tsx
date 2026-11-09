@@ -45,7 +45,7 @@ export function StudentTagChips({
               type="button"
               title={`Filtrar por ${t}`}
               onClick={() => onTagClick(t)}
-              className={classNames}
+              className={cn(classNames, 'hh-hit-pad')}
             >
               <Tag className="h-2.5 w-2.5 shrink-0 opacity-60" aria-hidden />
               {chip}

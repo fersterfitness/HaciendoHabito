@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Plus, ChevronDown, ChevronRight, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { AUTOFOCUS_SEARCH } from '@/lib/pointer'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
@@ -134,11 +135,11 @@ export function ExercisePicker({
         <h3 className="text-sm font-semibold text-ink-primary">{title}</h3>
         {subtitle ? <p className="text-2xs text-ink-muted mt-1 leading-snug">{subtitle}</p> : null}
       </div>
-      <Button variant="ghost" size="iconSm" onClick={onClose} className="-m-1.5 shrink-0 text-ink-muted"><X className="h-4 w-4" /></Button>
+      <Button variant="ghost" size="iconSm" onClick={onClose} className="hh-hit -m-1.5 shrink-0 text-ink-muted" aria-label="Cerrar"><X className="h-4 w-4" /></Button>
     </div>
     <div className="px-4 py-3">
       <input
-        autoFocus
+        autoFocus={AUTOFOCUS_SEARCH}
         placeholder="Buscar por nombre o grupo muscular..."
         className={cn(controlMdClassName, 'w-full')}
         value={search}

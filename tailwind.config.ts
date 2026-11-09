@@ -25,6 +25,7 @@ const config: Config = {
           border: 'rgb(var(--surface-border) / <alpha-value>)',
           inputBorder: 'rgb(var(--surface-input-border) / <alpha-value>)',
           sidebar: 'rgb(var(--surface-sidebar) / <alpha-value>)',
+          inverse: 'rgb(var(--surface-inverse) / <alpha-value>)',
         },
         ink: {
           primary: 'rgb(var(--ink-primary) / <alpha-value>)',
@@ -49,6 +50,11 @@ const config: Config = {
           sent: 'rgb(var(--status-sent) / <alpha-value>)',
           error: 'rgb(var(--status-error) / <alpha-value>)',
           pending: 'rgb(var(--status-pending) / <alpha-value>)',
+          ok: 'rgb(var(--status-ok) / <alpha-value>)',
+          'ok-ink': 'rgb(var(--status-ok-ink) / <alpha-value>)',
+          warn: 'rgb(var(--status-warn) / <alpha-value>)',
+          'warn-ink': 'rgb(var(--status-warn-ink) / <alpha-value>)',
+          progress: 'rgb(var(--status-progress) / <alpha-value>)',
         },
       },
       fontFamily: {

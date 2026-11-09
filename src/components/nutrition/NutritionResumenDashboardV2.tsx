@@ -11,7 +11,7 @@ import { NextConsultationBanner } from './NutritionResumenDashboard'
 import { fatOf, muscleOf, waistOf, weightOf } from '@/lib/nutrition/measurementDerivatives'
 import type { AnthropometryDetail } from '@/lib/nutrition/anthropometryProgramModel'
 import type { NutritionMeasurement, NutritionPatientFollowup, Student } from '@/types/database'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 
 interface Props {
   student?: Student | null
@@ -64,7 +64,7 @@ export const METRICS: Metric[] = [
   { key: 'sum6', label: 'Σ 6 pliegues', short: 'Σ6 pl.', unit: 'mm', dir: 'down', get: (m) => sum6Of(m) },
 ]
 
-export const nf = (v: number, d = 1) => v.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d })
+export const nf = (v: number, d = 1) => formatNumber(v, d)
 
 function signed(v: number, unit: string) {
   const s = v > 0 ? '+' : v < 0 ? '−' : '±'

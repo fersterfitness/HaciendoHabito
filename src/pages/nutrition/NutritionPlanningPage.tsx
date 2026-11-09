@@ -2011,7 +2011,7 @@ export function NutritionPlanningPage() {
         </details>
 
         <details className={cn('group w-full p-5', PLAN_SECTION_CARD)}>
-          <summary className="cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none outline-none select-none [&::-webkit-details-marker]:hidden">
+          <summary className="hh-focus cursor-pointer flex items-start gap-2 text-base font-semibold text-ink-primary list-none outline-none select-none [&::-webkit-details-marker]:hidden">
             <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-ink-muted transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
             Información sobre objetivos
           </summary>

@@ -161,7 +161,7 @@ export function BlockCard({
         {expanded ? <ChevronDown className="h-4 w-4 text-ink-muted" /> : <ChevronRight className="h-4 w-4 text-ink-muted" />}
 
         <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button title="Copiar días a otra semana" type="button" onClick={onOpenCopyMenu} className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-brand-primary', appFocusRingClassName)}>
+          <button title="Copiar días a otra semana" aria-label="Copiar días a otra semana" type="button" onClick={onOpenCopyMenu} className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-brand-primary', appFocusRingClassName)}>
             <Copy className="h-3.5 w-3.5" />
           </button>
           {showCopyMenu && (
@@ -186,7 +186,8 @@ export function BlockCard({
           type="button"
           onClick={(e) => { e.stopPropagation(); onMoveBlock('up') }}
           title="Mover semana arriba"
-          className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
+          aria-label="Mover semana arriba"
+          className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
         >
           <ArrowUp className="h-3.5 w-3.5" />
         </button>
@@ -194,12 +195,13 @@ export function BlockCard({
           type="button"
           onClick={(e) => { e.stopPropagation(); onMoveBlock('down') }}
           title="Mover semana abajo"
-          className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
+          aria-label="Mover semana abajo"
+          className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-ink-primary', appFocusRingClassName)}
         >
           <ArrowDown className="h-3.5 w-3.5" />
         </button>
 
-        <button type="button" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className={cn('rounded-md p-1 text-ink-muted transition-colors hover:text-status-expired', appFocusRingClassName)}>
+        <button type="button" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} title="Borrar semana" aria-label="Borrar semana" className={cn('hh-hit rounded-md p-1 text-ink-muted transition-colors hover:text-status-expired', appFocusRingClassName)}>
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -229,8 +231,9 @@ export function BlockCard({
           {/* Fechas del bloque */}
           <div className="grid grid-cols-2 gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
             <div>
-              <label className="block text-3xs text-ink-muted mb-1 ">Fecha inicio</label>
+              <label htmlFor={`block-start-${block.id}`} className="block text-3xs text-ink-muted mb-1 ">Fecha inicio</label>
               <input
+                id={`block-start-${block.id}`}
                 type="date"
                 className={cn(
                   'w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary',
@@ -246,8 +249,9 @@ export function BlockCard({
               />
             </div>
             <div>
-              <label className="block text-3xs text-ink-muted mb-1 ">Fecha fin</label>
+              <label htmlFor={`block-end-${block.id}`} className="block text-3xs text-ink-muted mb-1 ">Fecha fin</label>
               <input
+                id={`block-end-${block.id}`}
                 type="date"
                 className={cn(
                   'w-full rounded-lg border border-surface-border bg-surface-elevated px-2 py-1.5 text-xs text-ink-primary',

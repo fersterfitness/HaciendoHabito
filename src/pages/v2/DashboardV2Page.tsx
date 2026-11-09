@@ -77,7 +77,7 @@ type Filter = 'all' | 'cobros' | 'feedback' | 'rutinas' | 'semana' | 'turnos' | 
 const DAY_MS = 86_400_000
 
 /** Misiones: el naranja del «Para hoy» del entrenador (pedido oct-7: naranja y negro). */
-const MISSION_ORANGE = '#F26B1D'
+const MISSION_ORANGE = 'rgb(var(--status-progress))'
 const CATEGORY_FILTER: Record<TaskCategory, Filter> = { feedback: 'feedback', rutinas: 'rutinas', avisos: 'semana', cobros: 'cobros' }
 const CATEGORY_LABEL: Record<TaskCategory, string> = { feedback: 'Feedback', rutinas: 'Rutina', avisos: 'Aviso', cobros: 'Cobro' }
 
@@ -803,7 +803,7 @@ export function DashboardV2Page() {
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
             {missionsOn && !loading && doneTotal + pendingCount > 0 ? (
-              <div className="mb-4 rounded-2xl bg-[#17151A] px-4 py-3 text-white ring-1 ring-inset ring-white/10">
+              <div className="mb-4 rounded-2xl bg-surface-inverse px-4 py-3 text-white ring-1 ring-inset ring-white/10">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-[14px] font-medium">
                     Hoy completaste{' '}
@@ -1303,9 +1303,9 @@ export function DashboardV2Page() {
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="flex items-center gap-3 rounded-xl bg-[#22A55A]/[0.08] px-3 py-2"
+                        className="flex items-center gap-3 rounded-xl bg-status-ok/[0.08] px-3 py-2"
                       >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#22A55A] text-white">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-status-ok text-white">
                           <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                         </span>
                         <span className="min-w-0 flex-1 truncate text-[13px] text-ink-secondary line-through decoration-ink-muted/60">

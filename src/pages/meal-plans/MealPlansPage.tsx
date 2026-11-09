@@ -262,7 +262,7 @@ function PlanExpiryChip({ endDate }: { endDate: string }) {
     <span
       className={cn(
         'ml-2 inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium',
-        days < 0 ? 'bg-status-expired/15 text-status-expired' : days <= 7 ? 'bg-[#F5C542]/25 text-[#8A6100] dark:text-[#F5C542]' : 'bg-surface-elevated text-ink-secondary',
+        days < 0 ? 'bg-status-expired/15 text-status-expired' : days <= 7 ? 'bg-status-warn/25 text-status-warn-ink' : 'bg-surface-elevated text-ink-secondary',
       )}
     >
       {label}

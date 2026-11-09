@@ -365,7 +365,21 @@ export function TaskCardV2({
         urgent && 'border-l-[3px] border-l-status-expired',
       )}
     >
-      <div className={cn('px-4 pb-3.5 pt-4', onOpen && 'cursor-pointer')} onClick={onOpen}>
+      <div
+        className={cn('px-4 pb-3.5 pt-4', onOpen && 'hh-focus cursor-pointer rounded-t-2xl')}
+        onClick={onOpen}
+        {...(onOpen
+          ? {
+              role: 'button',
+              tabIndex: 0,
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return
+                e.preventDefault()
+                onOpen()
+              },
+            }
+          : {})}
+      >
         <div className="flex items-start gap-3">
           {onCheck ? (
             <button
@@ -376,9 +390,9 @@ export function TaskCardV2({
               }}
               title="Marcar como hecha"
               aria-label="Marcar como hecha"
-              className="group/check mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[1.5px] border-ink-muted/50 transition-colors hover:border-[#F26B1D] hover:bg-[#F26B1D]/10"
+              className="group/check mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[1.5px] border-ink-muted/50 transition-colors hover:border-status-progress hover:bg-status-progress/10"
             >
-              <Check className="h-3.5 w-3.5 text-[#F26B1D] opacity-0 transition-opacity group-hover/check:opacity-100" strokeWidth={2.5} />
+              <Check className="h-3.5 w-3.5 text-status-progress opacity-0 transition-opacity group-hover/check:opacity-100" strokeWidth={2.5} />
             </button>
           ) : (
             <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated" aria-hidden>

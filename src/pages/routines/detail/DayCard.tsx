@@ -101,26 +101,27 @@ export function DayCard({
 
   return (
     <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
-        <span className="flex-1 text-base font-bold text-ink-primary tracking-wide">{dayName}</span>
+      <div className="hh-day-row flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
+        <span className="hh-day-name flex-1 text-base font-bold text-ink-primary tracking-wide">{dayName}</span>
         {focus && <span className="text-xs text-ink-muted">{focus}</span>}
-        <span className="text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
+        <span className="hh-day-count text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
-        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="-m-1.5 ml-1 text-ink-muted" title="Mover día arriba">
+        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('up') }} className="hh-hit -m-1.5 ml-1 text-ink-muted" title="Mover día arriba" aria-label="Mover día arriba">
           <ArrowUp className="h-3 w-3" />
         </Button>
-        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="-m-1.5 ml-1 text-ink-muted" title="Mover día abajo">
+        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); onMoveDay('down') }} className="hh-hit -m-1.5 ml-1 text-ink-muted" title="Mover día abajo" aria-label="Mover día abajo">
           <ArrowDown className="h-3 w-3" />
         </Button>
-        <button onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="text-ink-muted hover:text-brand-primary transition-colors ml-1" title="Duplicar día en esta semana">
+        <button type="button" onClick={(e) => { e.stopPropagation(); onDuplicateDay() }} className="hh-hit hh-focus ml-1 text-ink-muted transition-colors hover:text-brand-primary" title="Duplicar día en esta semana" aria-label="Duplicar día en esta semana">
           <Copy className="h-3 w-3" />
         </button>
         <div className="relative ml-1" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={() => setCopyToWeekOpen((v) => !v)}
-            className="text-ink-muted hover:text-brand-primary transition-colors"
+            className="hh-hit hh-focus text-ink-muted transition-colors hover:text-brand-primary"
             title="Duplicar este día a otra semana"
+            aria-label="Duplicar este día a otra semana"
             disabled={otherWeeks.length === 0}
           >
             <CopyPlus className="h-3 w-3" />
@@ -147,7 +148,7 @@ export function DayCard({
             </>
           ) : null}
         </div>
-        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="-m-1.5 ml-1 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired">
+        <Button variant="ghost" size="iconSm" onClick={(e) => { e.stopPropagation(); setShowDelete(true) }} className="hh-hit -m-1.5 ml-1 text-ink-muted hover:bg-status-expired/10 hover:text-status-expired" title="Borrar día" aria-label="Borrar día">
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>

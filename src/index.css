@@ -62,6 +62,13 @@
     --status-generated: 22 163 74;
     --status-sent: 37 99 235;
     --status-paused: 107 107 107;
+    /* Estados de «bien», «atención» y progreso (los usa la v2; mismos valores en ambas versiones). */
+    --status-ok: 34 165 90;
+    --status-ok-ink: 22 121 63;
+    --status-warn: 245 197 66;
+    --status-warn-ink: 138 97 0;
+    --status-progress: 242 107 29;
+    --surface-inverse: 23 21 26;
   }
 
   :root[data-density='compact'] {
@@ -110,6 +117,12 @@
     --status-generated: 34 197 94;
     --status-sent: 59 130 246;
     --status-paused: 107 107 107;
+    --status-ok: 34 165 90;
+    --status-ok-ink: 93 214 140;
+    --status-warn: 245 197 66;
+    --status-warn-ink: 245 197 66;
+    --status-progress: 242 107 29;
+    --surface-inverse: 23 21 26;
   }
 
   * {
@@ -1006,5 +1019,70 @@ html.ui-v2 .v2-undo-pending {
 @media (prefers-reduced-motion: reduce) {
   .v2-ring {
     transition: none;
+  }
+}
+
+/*
+ * v2 · Objetivo táctil mínimo para botones de solo ícono (32 px con mouse, 40 px en pantallas
+ * táctiles). En la v1 la clase no hace nada. Los 44 px de las guías llegan cuando esas acciones
+ * pasen a un menú «…» (etapa 3 del refactor).
+ */
+html.ui-v2 .hh-hit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  margin: 0;
+  border-radius: 0.5rem;
+}
+html.ui-v2 .hh-hit:not(:disabled):hover {
+  background-color: rgb(var(--surface-elevated));
+}
+@media (pointer: coarse) {
+  html.ui-v2 .hh-hit {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+}
+/* v2 · Anillo de foco con teclado donde la clase del elemento anula el outline. */
+html.ui-v2 .hh-focus:focus-visible {
+  outline: 2px solid rgb(var(--brand-primary) / 0.5);
+  outline-offset: 2px;
+}
+
+/* v2 · Agranda la zona que se puede tocar de un control chico sin mover el diseño. */
+html.ui-v2 .hh-hit-pad {
+  position: relative;
+}
+html.ui-v2 .hh-hit-pad::after {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
+}
+@media (pointer: coarse) {
+  html.ui-v2 .hh-hit-pad::after {
+    inset: -12px -6px;
+  }
+}
+
+/* v2 · Fila de un día en la rutina: con los botones táctiles, el nombre no se parte y en celular
+   se oculta el conteo de ejercicios (se ve al abrir el día). */
+html.ui-v2 .hh-day-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 639px) {
+  html.ui-v2 .hh-day-count {
+    display: none;
+  }
+  html.ui-v2 .hh-day-row {
+    gap: 0.25rem;
+  }
+  html.ui-v2 .hh-day-row .hh-hit {
+    min-width: 2rem;
+    min-height: 2.25rem;
   }
 }

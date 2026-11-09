@@ -16,7 +16,7 @@ import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { Popover } from '@/components/ui/Popover'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { NUTRITION_CONTROL_OVERDUE_DAYS } from '@/lib/dashboard/nutritionistOps'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import type { NutritionAttendanceStatus, NutritionPatientFollowup } from '@/types/database'
 import { ATTENDANCE_LABELS, formatNextConsult, type NutritionFollowupRow } from './NutritionPatientDirectory'
 
@@ -45,7 +45,7 @@ function agoText(days: number) {
   return `hace ${Math.round(days / 30)} meses`
 }
 
-const nf = (n: number, d = 1) => n.toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d })
+const nf = (n: number, d = 1) => formatNumber(n, d, d)
 
 /** Fecha que se ve como texto y se vuelve campo al tocarla. */
 function DateCell({

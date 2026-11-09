@@ -60,12 +60,12 @@ const isAlDia = (r: StudentPaymentRow) => r.state === 'pendiente' && r.timing ==
  * v2: colores que se leen de un vistazo (pedido del entrenador): al día y abonó en verde, abonan hoy
  * en amarillo, falta pagar y vencido en rojo, parcial en naranja.
  */
-const GREEN_CHIP = 'bg-[#22A55A]/20 text-[#16793F] dark:bg-[#22A55A]/20 dark:text-[#5DD68C]'
-const YELLOW_CHIP = 'bg-[#F5C542]/25 text-[#8A6100] dark:bg-[#F5C542]/15 dark:text-[#F5C542]'
+const GREEN_CHIP = 'bg-status-ok/20 text-status-ok-ink'
+const YELLOW_CHIP = 'bg-status-warn/25 text-status-warn-ink dark:bg-status-warn/15'
 function stateChipV2(r: StudentPaymentRow): string {
   if (r.gifted || r.state === 'sin_cargo') return 'bg-surface-elevated text-ink-muted'
   if (r.state === 'pagado') return GREEN_CHIP
-  if (isAlDia(r)) return 'bg-[#22A55A]/[0.08] text-[#16793F] ring-1 ring-inset ring-[#22A55A]/30 dark:text-[#5DD68C]'
+  if (isAlDia(r)) return 'bg-status-ok/[0.08] text-status-ok-ink ring-1 ring-inset ring-status-ok/30'
   if (r.state === 'pendiente' && r.timing === 'hoy') return YELLOW_CHIP
   if (r.state === 'parcial') return 'bg-status-pending/15 text-status-pending'
   if (r.state === 'vencido') return 'bg-status-expired/20 text-status-expired'
@@ -333,7 +333,7 @@ export function PaymentsBoard() {
                         <button
                           type="button"
                           onClick={() => setWindowFor(r)}
-                          className="inline-flex items-center gap-1 text-3xs text-ink-muted underline-offset-2 hover:underline"
+                          className="hh-hit-pad inline-flex items-center gap-1 text-3xs text-ink-muted underline-offset-2 hover:underline"
                           title="Cambiar el día de pago"
                         >
                           {paymentWindowLabel(r.dayFrom, r.dayTo)}
@@ -407,7 +407,7 @@ export function PaymentsBoard() {
                         <button
                           type="button"
                           onClick={() => setWindowFor(r)}
-                          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
+                          className="hh-hit-pad inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
                           title="Cambiar el día de pago"
                         >
                           {paymentWindowLabel(r.dayFrom, r.dayTo)}
