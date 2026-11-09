@@ -36,6 +36,7 @@ import { StudentHabitsPanel } from '@/components/students/StudentHabitsPanel'
 import { StudentEngagementStatsPanel } from '@/components/students/StudentEngagementStatsPanel'
 import { StudentProgressPanel } from '@/components/students/StudentProgressPanel'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
+import { StudentVolumeMini } from '@/components/routines/volumeBody/StudentVolumeMini'
 import { HabitsViewToolbar } from '@/components/habits/HabitsViewToolbar'
 import { canSeeTraining } from '@/config/navigation'
 import type { Student, Routine, StudentRmRecord, TrainerStudentMealPlan, Income } from '@/types/database'
@@ -1016,6 +1017,7 @@ export function StudentDetailView({
 
             {/* ── Rutina activa ── */}
             {activeRoutine ? (
+              <>
               <section className="rounded-xl border border-surface-border/70 bg-surface-elevated/60 overflow-hidden">
                 {/* Barra de progreso top */}
                 <div className="h-1 w-full bg-surface-border/70 ">
@@ -1144,6 +1146,16 @@ export function StudentDetailView({
                   </div>
                 </div>
               </section>
+              {/* v2 · Mapa muscular chico de la semana en curso */}
+              {IS_V2 && id ? (
+                <StudentVolumeMini
+                  routineId={activeRoutine.id}
+                  studentId={id}
+                  gender={student.gender ?? null}
+                  onOpen={() => navigate(`/routines/${activeRoutine.id}?volumen=1`)}
+                />
+              ) : null}
+              </>
             ) : (
               /* ── Empty state sin rutina ── */
               <div className="rounded-xl border border-dashed border-surface-inputBorder/80 overflow-hidden">

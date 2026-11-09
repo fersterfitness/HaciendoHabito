@@ -77,7 +77,8 @@ export function RoutineDetailPage() {
     setRmLookup(await fetchStudentRmLookup(studentId))
   }, [])
   const [showProgressionGuide, setShowProgressionGuide] = useState(false)
-  const [showVolume, setShowVolume] = useState(false)
+  // v2 · La ficha del alumno abre la rutina con ?volumen=1 para ir directo al panel.
+  const [showVolume, setShowVolume] = useState(() => IS_V2 && new URLSearchParams(window.location.search).has('volumen'))
   const [showMacro, setShowMacro] = useState(false)
   const [lastMenstrualCycle, setLastMenstrualCycle] = useState<MenstrualCycle | null>(null)
   const [checkInWeek, setCheckInWeek] = useState<LatestWeekStatus>({

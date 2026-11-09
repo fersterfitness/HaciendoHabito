@@ -107,6 +107,7 @@ function Figure({
   active,
   onHover,
   pains,
+  compact = false,
 }: {
   sex: BodySex
   view: BodyView
@@ -114,6 +115,7 @@ function Figure({
   active: MuscleId | null
   onHover: (m: MuscleId | null) => void
   pains: BodyPain[]
+  compact?: boolean
 }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const [data, setData] = useState<ViewData | null>(null)
@@ -154,7 +156,7 @@ function Figure({
   return (
     <figure className="flex flex-col items-center">
       {/* La imagen es 2:3 y el cuerpo ocupa el centro: se recorta el aire de los costados. */}
-      <div className="relative w-[150px] overflow-hidden sm:w-[190px]" style={{ aspectRatio: String((2 / 3) * (1 - 2 * SIDE_CROP)) }}>
+      <div className={cn('relative overflow-hidden', compact ? 'w-[96px]' : 'w-[150px] sm:w-[190px]')} style={{ aspectRatio: String((2 / 3) * (1 - 2 * SIDE_CROP)) }}>
         <div className="absolute inset-y-0" style={{ left: `${(-SIDE_CROP / (1 - 2 * SIDE_CROP)) * 100}%`, width: `${100 / (1 - 2 * SIDE_CROP)}%` }}>
           <canvas
             ref={ref}
@@ -178,7 +180,7 @@ function Figure({
         {!data && !failed ? <span className="absolute inset-0 grid place-items-center text-xs text-ink-muted">Cargando…</span> : null}
         {failed ? <span className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-ink-muted">No se pudo cargar la imagen.</span> : null}
       </div>
-      <figcaption className="mt-1 text-[12px] text-ink-muted">{view === 'frente' ? 'Frente' : 'Espalda'}</figcaption>
+      <figcaption className={cn('mt-1 text-ink-muted', compact ? 'text-[11px]' : 'text-[12px]')}>{view === 'frente' ? 'Frente' : 'Espalda'}</figcaption>
     </figure>
   )
 }
@@ -235,6 +237,20 @@ export function VolumeBodyMap({
           )
         })}
       </ul>
+    </div>
+  )
+}
+
+/** v2 · Versión chica (ficha del alumno): solo las dos figuras, con el músculo bajo el puntero nombrado abajo. */
+export function VolumeBodyMini({ sex, status, pains }: { sex: BodySex; status: Record<MuscleId, VolumeStatus>; pains: BodyPain[] }) {
+  const [active, setActive] = useState<MuscleId | null>(null)
+  return (
+    <div className="flex flex-col items-center">
+      <div className="flex justify-center gap-1">
+        <Figure compact sex={sex} view="frente" status={status} active={active} onHover={setActive} pains={pains} />
+        <Figure compact sex={sex} view="espalda" status={status} active={active} onHover={setActive} pains={pains} />
+      </div>
+      <p className="mt-0.5 h-4 text-[11.5px] text-ink-secondary">{active ? LABEL[active] : ''}</p>
     </div>
   )
 }
