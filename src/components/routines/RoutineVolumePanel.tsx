@@ -21,6 +21,10 @@ import { ChartTooltip, chartAxis, chartBarCursor, chartBarRadius, chartGrid } fr
 import { controlSmClassName } from '@/lib/formControlClasses'
 import { ExerciseVolumeFactorsField } from '@/components/exercises/ExerciseVolumeFactorsField'
 import { draftToFactors, factorsToDraft, type FactorsDraft } from '@/lib/volume/factorsDraft'
+import { IS_V2 } from '@/lib/uiVersion'
+import { painMuscles } from '@/lib/volume/painMuscles'
+import { VolumeBodyMap, type BodyPain } from '@/components/routines/volumeBody/VolumeBodyMap'
+import { bodySexOf } from '@/components/nutrition/body2d/zones'
 import { loadPainEvents, painInRange, type PainEvent } from '@/lib/checkIn/painEvents'
 import {
   buildSessionVolume,
@@ -69,6 +73,8 @@ type Props = {
   /** Alumno de la rutina: permite ajustar el volumen de un ejercicio solo para él y ver sus molestias. */
   studentId?: string | null
   studentName?: string | null
+  /** v2 · Para dibujar el cuerpo que corresponde en el mapa muscular. */
+  studentGender?: 'M' | 'F' | 'otro' | null
 }
 
 const STATUS_COLOR = VOLUME_STATUS_COLOR
@@ -744,7 +750,16 @@ function StudentFactorsModal({
 // ─── Panel principal ─────────────────────────────────────────────────────────
 
 /** Contador inteligente de series efectivas por músculo y semana (solo entrenador). */
-export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefresh, studentId = null, studentName = null }: Props) {
+export function RoutineVolumePanel({
+  open,
+  onClose,
+  routineName,
+  blocks,
+  onRefresh,
+  studentId = null,
+  studentName = null,
+  studentGender = null,
+}: Props) {
   const [data, setData] = useState<VolumeData | null>(null)
   const [pains, setPains] = useState<PainEvent[]>([])
   const [adjusting, setAdjusting] = useState<VolumeRow | null>(null)
@@ -804,6 +819,23 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
   const week = weeks[safeIdx]
 
   const sessions = useMemo(() => buildSessionVolume(weeks), [weeks])
+
+  // v2 · Mapa muscular de la semana: estado por músculo y molestias ubicadas en el músculo que nombró el alumno.
+  const bodyStatus = useMemo(
+    () =>
+      week
+        ? (Object.fromEntries(MUSCLE_IDS.map((id) => [id, volumeStatus(week.weighted[id], muscleTarget(settings, id))])) as Record<MuscleId, VolumeStatus>)
+        : null,
+    [week, settings],
+  )
+  const bodyPains: BodyPain[] = useMemo(
+    () =>
+      (weekPains[safeIdx] ?? []).flatMap((p) =>
+        painMuscles(p.note).map((muscle) => ({ muscle, text: `${p.date.slice(8, 10)}/${p.date.slice(5, 7)} · ${p.note || 'sin aclaración'}` })),
+      ),
+    [weekPains, safeIdx],
+  )
+  const bodySex = (studentId && studentGender ? bodySexOf({ id: studentId, gender: studentGender }) : null) ?? 'M'
 
   const notesById = useMemo(() => {
     const map = new Map<string, string | null>()
@@ -921,12 +953,20 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
                     <p className="font-semibold text-ink-primary">
                       {studentFirstName ?? 'El alumno'} reportó {weekPains[safeIdx]!.length === 1 ? 'una molestia' : `${weekPains[safeIdx]!.length} molestias`} esta semana
                     </p>
-                    {weekPains[safeIdx]!.map((p) => (
-                      <p key={`${p.submittedAt}-${p.date}`}>
-                        <span className="tabular-nums">{p.date.slice(8, 10)}/{p.date.slice(5, 7)}</span>
-                        {p.approximate ? ' (día del check-in)' : ''} · {p.note || 'sin aclaración'}
-                      </p>
-                    ))}
+                    {weekPains[safeIdx]!.map((p) => {
+                      const muscles = IS_V2 ? painMuscles(p.note) : []
+                      return (
+                        <p key={`${p.submittedAt}-${p.date}`}>
+                          <span className="tabular-nums">{p.date.slice(8, 10)}/{p.date.slice(5, 7)}</span>
+                          {p.approximate ? ' (día del check-in)' : ''} · {p.note || 'sin aclaración'}
+                          {muscles.length ? (
+                            <span className="ml-1.5 font-medium text-status-expired">
+                              → {muscles.map((m) => VOLUME_MUSCLES.find((v) => v.id === m)!.label).join(', ')}
+                            </span>
+                          ) : null}
+                        </p>
+                      )
+                    })}
                   </div>
                 </div>
               ) : null}
@@ -941,6 +981,25 @@ export function RoutineVolumePanel({ open, onClose, routineName, blocks, onRefre
                     {[...new Set(week.unmapped.map((r) => r.name))].join(', ')}. Tocá el nombre en la tabla para cargar su volumen en la biblioteca.
                   </span>
                 </div>
+              ) : null}
+
+              {IS_V2 && bodyStatus ? (
+                <section className="rounded-2xl border border-surface-border bg-surface-card p-4">
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-ink-primary">Mapa muscular · {labels[safeIdx]?.replace(' ⚡', '')}</h3>
+                    <p className="text-3xs text-ink-muted">
+                      Verde: en rango · ámbar: por debajo · rojo: por encima · gris: sin series
+                      {bodyPains.length ? ' · alerta: molestia del check-in' : ''}
+                    </p>
+                  </div>
+                  <VolumeBodyMap
+                    sex={bodySex}
+                    weighted={week.weighted}
+                    status={bodyStatus}
+                    targetOf={(m) => muscleTarget(settings, m)}
+                    pains={bodyPains}
+                  />
+                </section>
               ) : null}
 
               <div className="grid gap-4 xl:grid-cols-[3fr_2fr]">

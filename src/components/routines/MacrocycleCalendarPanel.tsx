@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/Button'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { confirmDialog } from '@/components/ui/dialogs'
 import { loadPainEvents, type PainEvent } from '@/lib/checkIn/painEvents'
+import { IS_V2 } from '@/lib/uiVersion'
+import { painMuscles } from '@/lib/volume/painMuscles'
 import { controlSmClassName } from '@/lib/formControlClasses'
 import {
   assignLanes,
@@ -61,6 +63,13 @@ import {
   type PlanBlock,
 } from '@/lib/macrocycle/macrocycleData'
 import { computeWeekVolume, overloadedMuscles, VOLUME_MUSCLES, type MuscleId } from '@/lib/volume/trainingVolume'
+
+/** v2 · «Hombro → Deltoides»: el músculo de la molestia, si se reconoce en lo que escribió el alumno. */
+function painMuscleText(note: string): string {
+  return painMuscles(note)
+    .map((m) => VOLUME_MUSCLES.find((v) => v.id === m)!.label)
+    .join(', ')
+}
 import { FACTORY_PROFILE, loadVolumeData } from '@/lib/volume/volumeData'
 
 const CW = 30
@@ -995,9 +1004,15 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                     <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Volumen por encima del rango
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-2xs text-ink-secondary">
-                    <span className="rounded-full bg-amber-400 p-[1px] text-zinc-900">
-                      <Zap className="h-2 w-2" />
-                    </span>
+                    {IS_V2 ? (
+                      <span className="rounded-full bg-status-expired p-[1px] text-white">
+                        <AlertTriangle className="h-2 w-2" />
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-400 p-[1px] text-zinc-900">
+                        <Zap className="h-2 w-2" />
+                      </span>
+                    )}
                     Molestia del check-in
                   </span>
                 </div>
@@ -1105,13 +1120,23 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                             {alertDays.has(d) && cov ? <span className="absolute right-0.5 top-0.5 h-1 w-1 rounded-full bg-rose-500" /> : null}
                             {painByDay.has(d) ? (
                               <span
-                                className="absolute -left-0.5 -top-0.5 z-[1] rounded-full bg-amber-400 p-[1px] text-zinc-900 shadow-xs"
+                                className={cn(
+                                  'absolute -left-0.5 -top-0.5 z-[1] rounded-full p-[1px] shadow-xs',
+                                  IS_V2 ? 'bg-status-expired text-white' : 'bg-amber-400 text-zinc-900',
+                                )}
                                 title={painByDay
                                   .get(d)!
-                                  .map((p) => `Molestia${p.approximate ? ' (día del check-in)' : ''}: ${p.note || 'sin aclaración'}`)
+                                  .map((p) => {
+                                    const muscle = IS_V2 ? painMuscleText(p.note) : ''
+                                    return `Molestia${muscle ? ` · ${muscle}` : ''}${p.approximate ? ' (día del check-in)' : ''}: ${p.note || 'sin aclaración'}`
+                                  })
                                   .join('\n')}
                               >
-                                <Zap className="h-2 w-2" aria-label="Molestia reportada" />
+                                {IS_V2 ? (
+                                  <AlertTriangle className="h-2 w-2" aria-label="Molestia reportada" />
+                                ) : (
+                                  <Zap className="h-2 w-2" aria-label="Molestia reportada" />
+                                )}
                               </span>
                             ) : null}
                           </div>
@@ -1305,7 +1330,8 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
               {pains.length ? (
                 <section className="rounded-2xl border border-surface-border/90 bg-surface-card p-4 shadow-card">
                   <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-primary">
-                    <Zap className="h-4 w-4 text-amber-500" /> Molestias reportadas en el check-in
+                    {IS_V2 ? <AlertTriangle className="h-4 w-4 text-status-expired" /> : <Zap className="h-4 w-4 text-amber-500" />} Molestias reportadas en el
+                    check-in
                   </h3>
                   <p className="mb-3 text-2xs text-ink-muted">Lo que contó el alumno, con el día y la rutina en la que cayó. Tocá una para verla en el calendario.</p>
                   <ul className="divide-y divide-surface-border/60">
@@ -1325,7 +1351,12 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
                               {fmtLong(p.date)}
                               {p.approximate ? <span className="ml-1 text-3xs font-normal text-ink-muted">(día del check-in)</span> : null}
                             </span>
-                            <span className="min-w-0 flex-1 text-xs text-ink-secondary">{p.note || 'Sin aclaración'}</span>
+                            <span className="min-w-0 flex-1 text-xs text-ink-secondary">
+                              {p.note || 'Sin aclaración'}
+                              {IS_V2 && painMuscleText(p.note) ? (
+                                <span className="ml-1.5 font-medium text-status-expired">→ {painMuscleText(p.note)}</span>
+                              ) : null}
+                            </span>
                             {hit ? <span className="shrink-0 text-3xs text-ink-muted">{hit.title}</span> : null}
                           </button>
                         </li>

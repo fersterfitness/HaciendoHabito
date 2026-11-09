@@ -60,9 +60,18 @@ function pixels(img: HTMLImageElement) {
 
 export function loadView(sex: BodySex, view: BodyView): Promise<ViewData> {
   const urls = bodyImageUrls(sex, view)
-  let p = cache.get(urls.image)
+  return loadLabeledView(urls.image, urls.zones, ZONE_MAP_STEP)
+}
+
+/**
+ * Imagen del cuerpo + un mapa de etiquetas del mismo tamaño (valor = índice * step). Lo usan las
+ * zonas antropométricas y el mapa de músculos del volumen.
+ */
+export function loadLabeledView(imageUrl: string, mapUrl: string, step: number): Promise<ViewData> {
+  const key = `${imageUrl}|${mapUrl}`
+  let p = cache.get(key)
   if (!p) {
-    p = Promise.all([loadImage(urls.image), loadImage(urls.zones)]).then(([img, map]) => {
+    p = Promise.all([loadImage(imageUrl), loadImage(mapUrl)]).then(([img, map]) => {
       const base = pixels(img)
       const z = pixels(map)
       const n = img.naturalWidth * img.naturalHeight
@@ -70,12 +79,12 @@ export function loadView(sex: BodySex, view: BodyView): Promise<ViewData> {
       const zone = new Uint8Array(n)
       for (let i = 0, o = 0; i < n; i++, o += 4) {
         lum[i] = (base[o]! + base[o + 1]! + base[o + 2]!) / 3
-        zone[i] = base[o + 3]! > 127 ? Math.round(z[o]! / ZONE_MAP_STEP) : 0
+        zone[i] = base[o + 3]! > 127 ? Math.round(z[o]! / step) : 0
       }
       return { w: img.naturalWidth, h: img.naturalHeight, base, lum, zone }
     })
-    p.catch(() => cache.delete(urls.image))
-    cache.set(urls.image, p)
+    p.catch(() => cache.delete(key))
+    cache.set(key, p)
   }
   return p
 }

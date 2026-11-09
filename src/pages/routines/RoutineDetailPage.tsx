@@ -1497,6 +1497,7 @@ export function RoutineDetailPage() {
         onRefresh={refreshBlocks}
         studentId={routine.student_id}
         studentName={routine.student?.full_name ?? null}
+        studentGender={routine.student?.gender ?? null}
       />
 
       <RoutineProgressionGuidePanel
