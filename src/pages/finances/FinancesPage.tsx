@@ -836,8 +836,9 @@ export function FinancesPage() {
           </section>
         )}
 
-        {deudores.length > 0 && (
-          <section className={cn('overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4', IS_V2 && 'max-sm:hidden')}>
+        {/* v2: no se muestra; la tabla de cobros de arriba ya lista a quién le falta pagar, con «Recordar» y «Marcar pagado». */}
+        {!IS_V2 && deudores.length > 0 && (
+          <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-status-expiring" aria-hidden />
               <p className="text-sm font-semibold text-ink-primary">Cuotas pendientes — {MES_LABELS_FULL[now.getMonth()]}</p>
