@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 import {
   BILLING_PERIOD_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -113,10 +114,20 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
   return (
     <Card padding="md">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-ink-secondary" />
-          Plan vigente
-        </CardTitle>
+        {IS_V2 ? (
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-ink-secondary" />
+              Plan contratado
+            </CardTitle>
+            <p className="mt-0.5 text-2xs text-ink-muted">El servicio que paga el alumno: período, monto y vencimiento. No es el plan de alimentación.</p>
+          </div>
+        ) : (
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-ink-secondary" />
+            Plan vigente
+          </CardTitle>
+        )}
         <Button
           type="button"
           variant="secondary"
@@ -131,6 +142,8 @@ export function StudentPlanCard({ studentId, onRequestAssign, onRequestEdit, ref
       <CardContent>
         {loading ? (
           <ListSkeleton rows={2} />
+        ) : !current && IS_V2 ? (
+          <p className="text-body-sm text-ink-muted">Sin plan contratado.</p>
         ) : !current ? (
           <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed border-surface-border p-4">
             <p className="text-sm text-ink-secondary">Este alumno todavía no tiene un plan asignado.</p>

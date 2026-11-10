@@ -170,6 +170,21 @@ export function StudentDetailView({
   /** Rutina a la que se le está registrando el cobro (modal de medio y monto). */
   const [payingRoutine, setPayingRoutine] = useState<Routine | null>(null)
 
+  const [reactivating, setReactivating] = useState(false)
+  /** v2 · Vuelve a activa una rutina cuyas fechas siguen corriendo (la habían marcado completada). */
+  async function reactivateRoutine(routineId: string) {
+    setReactivating(true)
+    const now = new Date().toISOString()
+    const { error } = await supabase.from('routines').update({ status: 'activa', completed_at: null, last_status_change: now }).eq('id', routineId)
+    setReactivating(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setRoutines((prev) => prev.map((r) => (r.id === routineId ? { ...r, status: 'activa', completed_at: null, last_status_change: now } : r)))
+    toast.success('La rutina volvió a activa')
+  }
+
   async function saveRoutinePaid(routineId: string, isPaid: boolean) {
     const routine = routines.find((r) => r.id === routineId)
     if (!routine) return
@@ -729,10 +744,17 @@ export function StudentDetailView({
           </section>
   )
 
+  // v2 · Sin rutina activa, la tarjeta muestra la que sigue en fechas (aunque la hayan marcado completada).
+  const cardRoutine =
+    activeRoutine ??
+    routines.find((r) => {
+      const today = new Date().toLocaleDateString('sv')
+      return r.start_date && r.end_date && r.start_date.slice(0, 10) <= today && today <= r.end_date.slice(0, 10)
+    })
   const routineProgress = (() => {
-    if (!activeRoutine) return null
-    const t0 = new Date(`${activeRoutine.start_date.slice(0, 10)}T00:00:00`).getTime()
-    const t1 = new Date(`${activeRoutine.end_date.slice(0, 10)}T00:00:00`).getTime()
+    if (!cardRoutine) return null
+    const t0 = new Date(`${cardRoutine.start_date.slice(0, 10)}T00:00:00`).getTime()
+    const t1 = new Date(`${cardRoutine.end_date.slice(0, 10)}T00:00:00`).getTime()
     const now = Date.now()
     const left = Math.ceil((t1 - now) / 86_400_000)
     return { value: t1 > t0 ? (now - t0) / (t1 - t0) : 1, left }
@@ -746,7 +768,7 @@ export function StudentDetailView({
           tone="butter"
           title="Rutina"
           link={{ label: 'Ver rutina', onClick: () => setSheetTab('rutina') }}
-          label={activeRoutine?.name ?? 'Sin rutina activa'}
+          label={cardRoutine?.name ?? 'Sin rutina activa'}
           value={
             routineProgress
               ? routineProgress.left < 0
@@ -794,7 +816,7 @@ export function StudentDetailView({
       {variant === 'page' ? (
         <Header title={student.full_name} showBack />
       ) : (
-        <div className="flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-surface-border/80 bg-white/90 px-4 py-3.5 ">
+        <div className={cn('flex shrink-0 items-center justify-between gap-3 rounded-t-lg border-b border-surface-border/80 px-4 py-3.5', IS_V2 ? 'bg-surface-card' : 'bg-white/90')}>
           <div className="min-w-0 flex-1">
             <p id="student-sheet-title" className="text-3xs font-semibold text-ink-muted">
               {entitySingularCapitalized}
@@ -982,7 +1004,7 @@ export function StudentDetailView({
           const historialRoutines = routines.filter(
             (r) => r.status !== 'completada' && !(IS_V2 && activeRoutine && r.id === activeRoutine.id),
           )
-          const rutinaHistorialVacío = historialRoutines.length === 0
+          const rutinaHistorialVacío = IS_V2 ? routines.length === 0 : historialRoutines.length === 0
           const fi = student.intake_ferster as Record<string, unknown> | null
 
           // Labels para chips de perfil de entrenamiento
@@ -1048,6 +1070,62 @@ export function StudentDetailView({
               />
             ) : null
 
+          /* v2 · Un solo historial (vencidas, pausadas y completadas), de la más nueva a la más vieja. Sin rutina
+             activa, la que cubre la fecha de hoy se muestra arriba como «Actual». */
+          const pastRoutines = routines
+            .filter((r) => !(activeRoutine && r.id === activeRoutine.id))
+            .sort((x, y) => (y.start_date ?? '').localeCompare(x.start_date ?? ''))
+          const todayLocal = new Date().toLocaleDateString('sv')
+          const currentPastId = activeRoutine
+            ? null
+            : (pastRoutines.find((r) => r.start_date && r.end_date && r.start_date.slice(0, 10) <= todayLocal && todayLocal <= r.end_date.slice(0, 10))?.id ?? null)
+          const currentPast = pastRoutines.find((r) => r.id === currentPastId) ?? null
+          // La que está en curso ya se muestra arriba como «Actual»: no se repite en la lista.
+          const listedPast = pastRoutines.filter((r) => r.id !== currentPastId)
+          const pastRoutinesV2 = listedPast.length === 0 ? null : (
+            <section>
+              <div className="flex items-center justify-between gap-3 border-b border-surface-border/55 pb-3">
+                <h3 className="text-sm font-semibold text-ink-primary">
+                  Rutinas anteriores <span className="ml-1 font-normal tabular-nums text-ink-muted">{listedPast.length}</span>
+                </h3>
+                <Button variant="ghost" size="sm" icon={<Plus className="h-3.5 w-3.5" />} className="!h-8 text-xs" onClick={() => navigate(`/routines?create=1&student=${id}`)}>
+                  Nueva
+                </Button>
+              </div>
+              <ul className="divide-y divide-surface-border/70">
+                {listedPast.map((r) => {
+                  const weeks = routineWeeks(r)
+                  return (
+                    <li key={r.id} className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/routines/${r.id}`)}
+                        className="group flex w-full min-w-0 items-center gap-3 py-3 text-left"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-body-sm font-semibold text-ink-primary group-hover:underline group-hover:underline-offset-4">{r.name}</p>
+                          <p className="mt-0.5 flex items-center gap-2 text-2xs tabular-nums text-ink-muted">
+                            <span>{formatDate(r.start_date)} → {formatDate(r.end_date)}</span>
+                            {weeks != null ? <span className="rounded bg-surface-elevated px-1.5 py-px font-medium">{weeks} sem.</span> : null}
+                          </p>
+                        </div>
+                        {r.status === 'completada' ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 text-2xs font-medium text-status-ok-ink">
+                            <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                            {r.completed_at ? `Completada ${formatDate(r.completed_at.slice(0, 10))}` : 'Completada'}
+                          </span>
+                        ) : (
+                          <span className={routineStatusPillClass(r.status, true)}>{intakeRoutinePhrase(r.status)}</span>
+                        )}
+                      </button>
+                      {routineRowMenu(r)}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )
+
           return (
           <div className="space-y-8">
 
@@ -1062,7 +1140,7 @@ export function StudentDetailView({
             {/* ── Rutina activa ── */}
             {activeRoutine ? (
               <>
-              <section className="rounded-xl border border-surface-border/70 bg-surface-elevated/60 overflow-hidden">
+              <section className={cn('overflow-hidden rounded-xl border bg-surface-elevated/60', IS_V2 ? 'border-status-ok/45' : 'border-surface-border/70')}>
                 {/* Barra de progreso top */}
                 <div className="h-1 w-full bg-surface-border/70 ">
                   <div
@@ -1073,7 +1151,14 @@ export function StudentDetailView({
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-3xs font-semibold text-ink-muted ">Rutina activa</p>
+                      {IS_V2 ? (
+                        <p className="inline-flex items-center gap-1 rounded-full bg-status-ok/12 px-2 py-0.5 text-2xs font-semibold text-status-ok-ink">
+                          <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                          Actual
+                        </p>
+                      ) : (
+                        <p className="text-3xs font-semibold text-ink-muted ">Rutina activa</p>
+                      )}
                       <p className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-primary ">{activeRoutine.name}</p>
                       {activeRoutine.objective?.trim() ? (
                         <p className="mt-1 max-w-lg text-body-sm leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
@@ -1208,6 +1293,38 @@ export function StudentDetailView({
                 />
               ) : null}
               </>
+            ) : IS_V2 && currentPast ? (
+              /* v2 · Sin rutina activa, pero hay una cuyas fechas siguen corriendo (la marcaron completada o venció antes). */
+              <section className="rounded-xl border border-status-ok/45 bg-surface-elevated/60 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="inline-flex items-center gap-1 rounded-full bg-status-ok/12 px-2 py-0.5 text-2xs font-semibold text-status-ok-ink">
+                      <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                      Actual
+                    </p>
+                    <p className="mt-1.5 text-lg font-semibold tracking-tight text-ink-primary">{currentPast.name}</p>
+                    <p className="mt-1 text-body-sm text-ink-muted">
+                      {formatDate(currentPast.start_date)} → {formatDate(currentPast.end_date)}
+                      {' · '}
+                      {currentPast.status === 'completada'
+                        ? `Marcada como completada${currentPast.completed_at ? ` el ${formatDate(currentPast.completed_at.slice(0, 10))}` : ''}, aunque sus fechas siguen hasta el ${formatDate(currentPast.end_date)}.`
+                        : `Figura como ${intakeRoutinePhrase(currentPast.status).toLowerCase()}, aunque sus fechas siguen hasta el ${formatDate(currentPast.end_date)}.`}
+                    </p>
+                  </div>
+                  <span className={routineStatusPillClass(currentPast.status)}>{intakeRoutinePhrase(currentPast.status)}</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button size="sm" variant="gradientSecondary" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate(`/routines?create=1&student=${id}`)}>
+                    Armar la que sigue
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => navigate(`/routines/${currentPast.id}`)}>
+                    Ver rutina
+                  </Button>
+                  <Button size="sm" variant="secondary" loading={reactivating} onClick={() => void reactivateRoutine(currentPast.id)}>
+                    Volver a activa
+                  </Button>
+                </div>
+              </section>
             ) : (
               /* ── Empty state sin rutina ── */
               <div className="rounded-xl border border-dashed border-surface-inputBorder/80 overflow-hidden">
@@ -1275,6 +1392,8 @@ export function StudentDetailView({
               </>
             ) : null}
 
+            {IS_V2 ? pastRoutinesV2 : (
+            <>
             {/* ── Historial ── */}
             <section>
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border/55 pb-3 ">
@@ -1378,6 +1497,8 @@ export function StudentDetailView({
                   })}
                 </ul>
               </section>
+            )}
+            </>
             )}
           </div>
           )

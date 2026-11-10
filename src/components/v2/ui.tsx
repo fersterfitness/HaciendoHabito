@@ -363,7 +363,9 @@ export function TaskCardV2({
   return (
     <article
       className={cn(
-        'flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-card px-3 py-2.5 transition-colors sm:flex-nowrap sm:px-4',
+        // En la compu cada fila usa las columnas de la lista (subgrid): casilla, texto, avatar y botones
+        // quedan alineados entre filas aunque cada una traiga botones de distinto ancho.
+        'flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-card px-3 py-2.5 transition-colors sm:col-span-full sm:grid sm:grid-cols-subgrid sm:px-4',
         onOpen && 'hover:bg-surface-panel',
         urgent && 'shadow-[inset_3px_0_0_rgb(var(--status-expired))]',
       )}
@@ -389,7 +391,7 @@ export function TaskCardV2({
         </span>
       )}
       <div
-        className={cn('min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto', onOpen && 'hh-focus cursor-pointer rounded-md')}
+        className={cn('min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto', !mark && 'sm:col-span-2', onOpen && 'hh-focus cursor-pointer rounded-md')}
         onClick={onOpen}
         title={typeof description === 'string' ? description : undefined}
         {...(onOpen
@@ -404,24 +406,35 @@ export function TaskCardV2({
             }
           : {})}
       >
-        <h3 className="truncate text-sm font-medium leading-snug tracking-[-0.01em] text-ink-primary">{title}</h3>
-        {tags || description ? (
+        <h3 className="truncate text-sm font-medium leading-snug tracking-[-0.01em] text-ink-primary sm:line-clamp-2 sm:whitespace-normal">{title}</h3>
+        {tags || meta || description ? (
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs leading-snug text-ink-secondary">
             {tags ? <span className="flex shrink-0 items-center gap-1 [&>span]:h-5 [&>span]:px-1.5 [&>span]:text-3xs">{tags}</span> : null}
+            {/* El dato (fecha, contador) va con las etiquetas: a la derecha solo quedan avatar y botón, siempre en el mismo lugar. */}
+            {meta ? (
+              <span className="flex shrink-0 items-center gap-1.5 [&>span]:h-5 [&>span]:border-0 [&>span]:px-0 [&>span]:text-2xs [&>span]:font-medium">{meta}</span>
+            ) : null}
             {description ? <span className="min-w-0 truncate">{description}</span> : null}
           </div>
         ) : null}
       </div>
+      {/* Columnas fijas: el avatar y el botón quedan alineados entre filas aunque alguna no los tenga. */}
       {mark ? <span className="hidden shrink-0 sm:block">{mark}</span> : null}
-      {meta ? <div className="hidden shrink-0 items-center gap-1.5 lg:flex">{meta}</div> : null}
-      {actions ? <div className="ml-8 flex shrink-0 items-center justify-end gap-1.5 max-sm:ml-auto max-sm:w-[calc(100%-2rem)] sm:ml-0">{actions}</div> : null}
+      {actions ? (
+        <div className="ml-8 flex shrink-0 items-center justify-end gap-1.5 max-sm:ml-auto max-sm:w-[calc(100%-2rem)] sm:ml-0">{actions}</div>
+      ) : (
+        <span className="hidden sm:block" aria-hidden />
+      )}
     </article>
   )
 }
 
-/** Contenedor de las filas de tareas: una sola tarjeta con divisores. */
+/**
+ * Contenedor de las filas de tareas: una sola tarjeta con divisores. En la compu es una grilla de 4 columnas
+ * (casilla, texto, avatar, botones) que comparten todas las filas.
+ */
 export const TASK_LIST_V2 =
-  'overflow-hidden rounded-2xl border border-surface-border bg-surface-card [&>*+*]:border-t [&>*+*]:border-surface-border'
+  'overflow-hidden rounded-2xl border border-surface-border bg-surface-card [&>*+*]:border-t [&>*+*]:border-surface-border sm:grid sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:[&>*]:col-span-full'
 
 /** Botón de tarjeta: pastilla gris (o negra si es la acción del momento). */
 export function PillButtonV2({

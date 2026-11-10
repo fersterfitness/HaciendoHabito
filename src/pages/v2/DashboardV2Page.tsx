@@ -139,6 +139,7 @@ const AnimatedTask = forwardRef<HTMLDivElement, { index: number; children: React
     <motion.div
       ref={ref}
       layout
+      className="sm:grid sm:grid-cols-subgrid"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 8) * 0.045, type: 'spring', stiffness: 320, damping: 30 } }}
       exit={{ opacity: 0, scale: 0.96, x: 24, transition: { duration: 0.22 } }}
