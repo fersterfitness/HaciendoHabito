@@ -28,6 +28,7 @@ import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
 import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProgressLogPdf'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
+import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
 import type { BlockTypeId } from '@/lib/macrocycle/macrocycle'
@@ -41,6 +42,8 @@ import { type ExWithExercise, type DayWithEx, type BlockWithDays, type RoutineFu
 import { BlockCard } from './detail/BlockCard'
 import { RoutineHeaderActions } from './detail/RoutineHeaderActions'
 import { ExercisePicker } from './detail/ExercisePicker'
+
+const COMPARE_KEY = 'hh-routine-compare'
 
 export function RoutineDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -80,6 +83,24 @@ export function RoutineDetailPage() {
   // v2 · La ficha del alumno abre la rutina con ?volumen=1 para ir directo al panel.
   const [showVolume, setShowVolume] = useState(() => IS_V2 && new URLSearchParams(window.location.search).has('volumen'))
   const [showMacro, setShowMacro] = useState(false)
+  // v2 · Pantalla dividida con otra rutina del alumno; queda abierta para la próxima rutina que se arme.
+  const [comparing, setComparing] = useState(() => {
+    if (!IS_V2) return false
+    try {
+      return localStorage.getItem(COMPARE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  function toggleCompare(next: boolean) {
+    setComparing(next)
+    try {
+      if (next) localStorage.setItem(COMPARE_KEY, '1')
+      else localStorage.removeItem(COMPARE_KEY)
+    } catch {
+      /* sin almacenamiento: solo dura esta visita */
+    }
+  }
   const [lastMenstrualCycle, setLastMenstrualCycle] = useState<MenstrualCycle | null>(null)
   const [checkInWeek, setCheckInWeek] = useState<LatestWeekStatus>({
     finished: false,
@@ -1083,6 +1104,7 @@ export function RoutineDetailPage() {
   const isLibrary = !routine.student_id && !routine.former_student_name
   const studentLabel = routine.student?.full_name
     ?? (routine.former_student_name ? `${routine.former_student_name} (eliminado)` : null)
+  const showCompare = IS_V2 && comparing && !!routine.student_id
 
   /** Preestablecida: sincroniza el blueprint antes de abrir el alta con él. */
   function assignLibraryRoutine() {
@@ -1121,6 +1143,9 @@ export function RoutineDetailPage() {
             generatingPdf={generatingPdf}
             onGuide={() => setShowProgressionGuide(true)}
             onVolume={() => setShowVolume(true)}
+            canCompare={!!routine.student_id}
+            comparing={showCompare}
+            onCompare={() => toggleCompare(!showCompare)}
             onMacro={() => setShowMacro(true)}
             onProgressLog={() => void handleDownloadProgressLog()}
             onToggleCompleted={() => void handleStatusChange(routine.status === 'completada' ? 'activa' : 'completada')}
@@ -1135,7 +1160,17 @@ export function RoutineDetailPage() {
         }
       />
 
-      <div className="page-shell-x page-shell-y space-y-4">
+      <div className={showCompare ? 'lg:flex lg:items-start' : undefined}>
+      {showCompare && routine.student_id ? (
+        <RoutineComparePane
+          studentId={routine.student_id}
+          currentRoutineId={routine.id}
+          currentStartDate={routine.start_date}
+          onClose={() => toggleCompare(false)}
+          className="hidden border-r border-surface-border lg:sticky lg:top-16 lg:flex lg:h-[calc(100dvh-4rem)] lg:w-[42%] lg:max-w-[560px] lg:shrink-0"
+        />
+      ) : null}
+      <div className={cn('page-shell-x page-shell-y space-y-4', showCompare && 'lg:min-w-0 lg:flex-1')}>
 
         {IS_V2 ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-surface-border bg-surface-card px-5 py-4">
@@ -1393,6 +1428,7 @@ export function RoutineDetailPage() {
         <Button variant="secondary" className="w-full" icon={<Plus className="h-4 w-4" />} onClick={addBlock}>
           Agregar semana / bloque
         </Button>
+      </div>
       </div>
 
       {showExercisePicker && (

@@ -3,6 +3,7 @@ import {
   BarChart3,
   CalendarRange,
   CheckCircle2,
+  Columns2,
   ClipboardList,
   Copy,
   FileText,
@@ -35,6 +36,10 @@ type Props = {
   generatingPdf: boolean
   onGuide: () => void
   onVolume: () => void
+  /** v2 · Pantalla dividida con otra rutina del alumno. */
+  canCompare?: boolean
+  comparing?: boolean
+  onCompare?: () => void
   onMacro: () => void
   onProgressLog: () => void
   onToggleCompleted: () => void
@@ -89,6 +94,22 @@ export function RoutineHeaderActions(p: Props) {
         >
           <BarChart3 className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Volumen</span>
+        </button>
+      ) : null}
+
+      {IS_V2 && p.canCompare && p.onCompare ? (
+        <button
+          type="button"
+          onClick={p.onCompare}
+          aria-pressed={!!p.comparing}
+          className={cn(
+            'hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors lg:flex',
+            p.comparing ? 'bg-ink-primary text-surface-card' : 'bg-surface-elevated text-ink-primary hover:bg-surface-border/60',
+          )}
+          title={p.comparing ? 'Cerrar la comparación' : 'Ver otra rutina del alumno al lado, para armar esta mirando la anterior'}
+        >
+          <Columns2 className="h-3.5 w-3.5" />
+          <span>Comparar</span>
         </button>
       ) : null}
 
