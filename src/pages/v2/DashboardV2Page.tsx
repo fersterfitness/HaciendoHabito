@@ -6,6 +6,10 @@ import { es } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import {
   CalendarClock,
+  CheckCheck,
+  Dumbbell,
+  Megaphone,
+  MessageSquareReply,
   CalendarDays,
   CalendarPlus,
   Check,
@@ -21,6 +25,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -81,6 +86,7 @@ const DAY_MS = 86_400_000
 const MISSION_ORANGE = 'rgb(var(--status-progress))'
 const CATEGORY_FILTER: Record<TaskCategory, Filter> = { feedback: 'feedback', rutinas: 'rutinas', avisos: 'semana', cobros: 'cobros' }
 const CATEGORY_LABEL: Record<TaskCategory, string> = { feedback: 'Feedback', rutinas: 'Rutina', avisos: 'Aviso', cobros: 'Cobro' }
+const CATEGORY_ICON: Record<TaskCategory, LucideIcon> = { feedback: MessageSquare, rutinas: Dumbbell, avisos: Megaphone, cobros: Wallet }
 
 /** Copy de los avisos semanales del entrenador (los mismos que el Inicio anterior). */
 const WEEKLY_COPY: Record<string, { title: string; meta: string; cta: string; href: string }> = {
@@ -523,7 +529,7 @@ export function DashboardV2Page() {
     if (missionsOn && d) missions.complete(d)
   }
   const missionCard = (key: string) => (missionsOn ? { onCheck: () => complete(key) } : {})
-  const overdueTag = (key: string) => (missionsOn && missions.stateOf(key).overdue ? <TagV2 tone="rose">Vencida</TagV2> : null)
+  const overdueTag = (key: string) => (missionsOn && missions.stateOf(key).overdue ? <TagV2 tone="rose">Atrasada</TagV2> : null)
   async function undoMission(row: DailyTaskRow) {
     missions.undo(row)
     // Cobro: también vuelve a la lista de avisos de pago (si se había marcado como avisado).
@@ -886,6 +892,7 @@ export function DashboardV2Page() {
                     T(
                       `orphan-${row.task_key}`,
                       <TaskCardV2
+                        icon={CATEGORY_ICON[row.category]}
                         onCheck={() => missions.complete(row)}
                         title={row.title}
                         description={row.detail ?? undefined}
@@ -971,6 +978,7 @@ export function DashboardV2Page() {
                   ? T(
                       'controles',
                       <TaskCardV2
+                        icon={Ruler}
                         title={`${nutri.overdue.length} ${nutri.overdue.length === 1 ? 'paciente necesita' : 'pacientes necesitan'} control y no tienen turno`}
                         description={names(nutri.overdue)}
                         onOpen={() => navigate('/nutrition')}
@@ -989,6 +997,7 @@ export function DashboardV2Page() {
                   ? T(
                       'anamnesis',
                       <TaskCardV2
+                        icon={ClipboardList}
                         title={`${nutri.anamnesis.length} ${nutri.anamnesis.length === 1 ? 'anamnesis sin responder' : 'anamnesis sin responder'}`}
                         description={`${names(nutri.anamnesis)}. Les mandaste el link y todavía no la completaron.`}
                         onOpen={() => navigate(`/nutrition/${nutri.anamnesis[0]!.id}`)}
@@ -1010,6 +1019,7 @@ export function DashboardV2Page() {
                       if (!isOpen(key)) return null
                       return (
                         T(`semana-${r.id}`, <TaskCardV2
+                          icon={Megaphone}
                           {...missionCard(key)}
                           title={c.title}
                           description={c.meta}
@@ -1078,6 +1088,7 @@ export function DashboardV2Page() {
 
                 {show('feedback') && missing.length && isOpen(missionKeys.missing) ? (
                   T('feedback-missing', <TaskCardV2
+                    icon={MessageSquare}
                     {...missionCard(missionKeys.missing)}
                     title={`${missing.length} ${missing.length === 1 ? 'alumno no respondió' : 'alumnos no respondieron'} el feedback`}
                     description={names(missing)}
@@ -1105,6 +1116,7 @@ export function DashboardV2Page() {
 
                 {show('feedback') && unreplied && isOpen(missionKeys.unreplied) ? (
                   T('feedback-unreplied', <TaskCardV2
+                    icon={MessageSquareReply}
                     {...missionCard(missionKeys.unreplied)}
                     title={`${unreplied} ${unreplied === 1 ? 'respuesta espera' : 'respuestas esperan'} tu devolución`}
                     description="Respuestas del último mes que todavía no contestaste."
@@ -1138,7 +1150,12 @@ export function DashboardV2Page() {
                         <TaskCardV2
                           {...missionCard(key)}
                           urgent
-                          title={`${student.full_name} ${st.finished ? 'cerró su mes' : 'está en su última semana'}: armá la que sigue`}
+                          title={
+                            <>
+                              {student.full_name}{' '}
+                              <span className="font-normal text-ink-secondary">{st.finished ? 'cerró su mes' : 'está en su última semana'} · armá la que sigue</span>
+                            </>
+                          }
                           mark={<AvatarV2 name={student.full_name} />}
                           description={`Lo contó en su feedback${st.submittedAt ? ` del ${fmtDay(st.submittedAt.slice(0, 10))}` : ''}.`}
                           onOpen={() => navigate(`/students/${student.id}`)}
@@ -1202,6 +1219,7 @@ export function DashboardV2Page() {
 
                 {show('rutinas') && trains && routines.without.length && isOpen(missionKeys.without) ? (
                   T('rutinas-without', <TaskCardV2
+                    icon={Users}
                     {...missionCard(missionKeys.without)}
                     title={`${routines.without.length} ${routines.without.length === 1 ? 'alumno' : 'alumnos'} sin rutina activa`}
                     description={names(routines.without)}
@@ -1266,10 +1284,9 @@ export function DashboardV2Page() {
                                   complete(key)
                                   void dismiss(r)
                                 }}
-                                title="Sacarlo de la lista sin mandar nada"
-                              >
-                                Ya le avisé
-                              </PillButtonV2>
+                                icon={CheckCheck}
+                                title="Ya le avisé: sacarlo de la lista sin mandar nada"
+                              />
                               <PillButtonV2
                                 primary
                                 icon={WhatsAppIcon}

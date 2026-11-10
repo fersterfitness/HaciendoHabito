@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { Button } from '@/components/ui/Button'
 import type { LucideIcon } from 'lucide-react'
@@ -309,7 +309,20 @@ export function ToneTileV2({
 }
 
 /** Etiqueta: gris para el tipo de cosa (`neutral`), color sólo para un estado (vencido, por terminar). */
+/** Dentro de una fila de tareas las etiquetas van como texto (con punto de color), no como pastillas. */
+const TagInlineContext = createContext(false)
+
 export function TagV2({ tone, children }: { tone: Tone | 'neutral'; children: ReactNode }) {
+  const inline = useContext(TagInlineContext)
+  if (inline) {
+    if (tone === 'neutral') return <span className="text-ink-muted">{children}</span>
+    return (
+      <span className="inline-flex items-center gap-1.5 font-medium text-ink-primary">
+        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full bg-current', TONE_ACCENT[tone])} aria-hidden />
+        {children}
+      </span>
+    )
+  }
   return (
     <span
       className={cn(
@@ -344,6 +357,7 @@ export function TaskCardV2({
   actions,
   onOpen,
   mark,
+  icon: LeadIcon,
   onCheck,
   urgent,
 }: {
@@ -353,8 +367,10 @@ export function TaskCardV2({
   meta?: ReactNode
   actions?: ReactNode
   onOpen?: () => void
-  /** Algo a la derecha del título (avatar, aviso). */
+  /** A la izquierda del título: el avatar de la persona. */
   mark?: ReactNode
+  /** Sin persona: ícono de la categoría en el mismo lugar que el avatar. */
+  icon?: LucideIcon
   /** Misiones: la casilla de la izquierda tilda la tarea. */
   onCheck?: () => void
   /** Alerta (franja roja a la izquierda). */
@@ -363,7 +379,7 @@ export function TaskCardV2({
   return (
     <article
       className={cn(
-        // En la compu cada fila usa las columnas de la lista (subgrid): casilla, texto, avatar y botones
+        // En la compu cada fila usa las columnas de la lista (subgrid): casilla, avatar, texto y botones
         // quedan alineados entre filas aunque cada una traiga botones de distinto ancho.
         'flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-card px-3 py-2.5 transition-colors sm:col-span-full sm:grid sm:grid-cols-subgrid sm:px-4',
         onOpen && 'hover:bg-surface-panel',
@@ -390,8 +406,16 @@ export function TaskCardV2({
           <span className="h-2.5 w-2.5 rounded-full border-[1.5px] border-ink-muted/70" />
         </span>
       )}
+      <span className="hidden w-8 shrink-0 justify-center sm:flex" aria-hidden={!mark}>
+        {mark ??
+          (LeadIcon ? (
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-elevated text-ink-secondary">
+              <LeadIcon className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+          ) : null)}
+      </span>
       <div
-        className={cn('min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto', !mark && 'sm:col-span-2', onOpen && 'hh-focus cursor-pointer rounded-md')}
+        className={cn('min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto', onOpen && 'hh-focus cursor-pointer rounded-md')}
         onClick={onOpen}
         title={typeof description === 'string' ? description : undefined}
         {...(onOpen
@@ -409,17 +433,20 @@ export function TaskCardV2({
         <h3 className="truncate text-sm font-medium leading-snug tracking-[-0.01em] text-ink-primary sm:line-clamp-2 sm:whitespace-normal">{title}</h3>
         {tags || meta || description ? (
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs leading-snug text-ink-secondary">
-            {tags ? <span className="flex shrink-0 items-center gap-1 [&>span]:h-5 [&>span]:px-1.5 [&>span]:text-3xs">{tags}</span> : null}
+            {tags ? (
+              <span className="flex shrink-0 items-center gap-x-2.5">
+                <TagInlineContext.Provider value>{tags}</TagInlineContext.Provider>
+              </span>
+            ) : null}
             {/* El dato (fecha, contador) va con las etiquetas: a la derecha solo quedan avatar y botón, siempre en el mismo lugar. */}
             {meta ? (
-              <span className="flex shrink-0 items-center gap-1.5 [&>span]:h-5 [&>span]:border-0 [&>span]:px-0 [&>span]:text-2xs [&>span]:font-medium">{meta}</span>
+              <span className="flex shrink-0 items-center gap-2.5 [&>span]:h-5 [&>span]:gap-1 [&>span]:border-0 [&>span]:px-0 [&>span]:text-xs">{meta}</span>
             ) : null}
             {description ? <span className="min-w-0 truncate">{description}</span> : null}
           </div>
         ) : null}
       </div>
       {/* Columnas fijas: el avatar y el botón quedan alineados entre filas aunque alguna no los tenga. */}
-      {mark ? <span className="hidden shrink-0 sm:block">{mark}</span> : null}
       {actions ? (
         <div className="ml-8 flex shrink-0 items-center justify-end gap-1.5 max-sm:ml-auto max-sm:w-[calc(100%-2rem)] sm:ml-0">{actions}</div>
       ) : (
@@ -431,10 +458,10 @@ export function TaskCardV2({
 
 /**
  * Contenedor de las filas de tareas: una sola tarjeta con divisores. En la compu es una grilla de 4 columnas
- * (casilla, texto, avatar, botones) que comparten todas las filas.
+ * (casilla, avatar o ícono, texto, botones) que comparten todas las filas.
  */
 export const TASK_LIST_V2 =
-  'overflow-hidden rounded-2xl border border-surface-border bg-surface-card [&>*+*]:border-t [&>*+*]:border-surface-border sm:grid sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:[&>*]:col-span-full'
+  'overflow-hidden rounded-2xl border border-surface-border bg-surface-card [&>*+*]:border-t [&>*+*]:border-surface-border sm:grid sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:[&>*]:col-span-full'
 
 /** Botón de tarjeta: pastilla gris (o negra si es la acción del momento). */
 export function PillButtonV2({
