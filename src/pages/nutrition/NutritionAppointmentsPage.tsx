@@ -31,6 +31,7 @@ import {
   Search,
   Sparkles,
   UserRound,
+  Video,
 } from 'lucide-react'
 import {
   buildAppointmentConfirmationWaUrl,
@@ -1128,9 +1129,21 @@ export function AppointmentsPage() {
       <div className={cn('px-4 lg:px-6 space-y-8', IS_V2 ? 'py-6' : 'py-8')}>
         <Card className="overflow-hidden p-0 gap-0">
           <PageToolbar
-            className="rounded-none border-0 border-b border-surface-border bg-surface-elevated/35 dark:bg-surface-elevated/15"
-            title="Calendario"
+            className={cn(
+              'rounded-none border-0 border-b border-surface-border',
+              IS_V2 ? 'bg-transparent dark:bg-transparent' : 'bg-surface-elevated/35 dark:bg-surface-elevated/15',
+            )}
+            title={
+              !IS_V2
+                ? 'Calendario'
+                : viewMode === 'agenda'
+                  ? calendarScope === 'personal' ? 'Eventos propios' : 'Próximos turnos'
+                  : viewMode === 'month'
+                    ? format(monthAnchor, 'MMMM yyyy', { locale: es }).replace(/^./, (c) => c.toUpperCase())
+                    : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
+            }
             description={
+              IS_V2 ? undefined :
               calendarScope === 'personal'
                 ? viewMode === 'agenda'
                   ? 'Eventos propios (no visibles para alumnos)'
@@ -1144,7 +1157,7 @@ export function AppointmentsPage() {
                     : `Semana del ${format(weekAnchor, "d 'de' MMMM", { locale: es })}`
             }
           >
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={cn('flex flex-wrap items-center gap-2', IS_V2 && 'w-full')}>
               <div className={IS_V2 ? 'inline-flex gap-1.5' : 'inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px'}>
                 <button
                   type="button"
@@ -1179,6 +1192,7 @@ export function AppointmentsPage() {
                   <CalendarClock className="h-3.5 w-3.5" aria-hidden /> Personal
                 </button>
               </div>
+              {IS_V2 ? <span className="h-5 w-px bg-surface-border max-sm:hidden" aria-hidden /> : null}
               <div className={IS_V2 ? 'inline-flex gap-1.5 max-sm:order-last' : 'inline-flex rounded-lg border border-surface-border bg-surface-card/70 dark:bg-surface-card/40 p-0.5 gap-px'}>
                 <button
                   type="button"
@@ -1218,7 +1232,7 @@ export function AppointmentsPage() {
                 </button>
               </div>
               {/* Celu v2: Hoy y las flechas en la fila de Pacientes/Personal, a la derecha. */}
-              <div className={IS_V2 ? 'flex items-center gap-2 max-sm:ml-auto' : 'contents'}>
+              <div className={IS_V2 ? 'ml-auto flex items-center gap-2' : 'contents'}>
               {viewMode !== 'agenda' && (
                 <Button
                   type="button"
@@ -1230,11 +1244,15 @@ export function AppointmentsPage() {
                   Hoy
                 </Button>
               )}
-              <div className="flex items-center rounded-lg border border-surface-border overflow-hidden">
+              <div className={IS_V2 ? 'flex items-center gap-1' : 'flex items-center rounded-lg border border-surface-border overflow-hidden'}>
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="p-1.5 text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors border-r border-surface-border"
+                  className={
+                    IS_V2
+                      ? 'hh-focus flex h-8 w-8 items-center justify-center rounded-full bg-surface-elevated text-ink-primary transition-colors hover:bg-surface-border'
+                      : 'p-1.5 text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary transition-colors border-r border-surface-border'
+                  }
                   aria-label="Periodo anterior"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1244,7 +1262,7 @@ export function AppointmentsPage() {
                   size="iconSm"
                   type="button"
                   onClick={handleNext}
-                  className="text-ink-muted"
+                  className={IS_V2 ? 'h-8 w-8 bg-surface-elevated text-ink-primary hover:bg-surface-border' : 'text-ink-muted'}
                   aria-label="Periodo siguiente">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -1256,7 +1274,7 @@ export function AppointmentsPage() {
           <div className="p-4 sm:p-6">
           <div className="mb-5 space-y-3 sm:mb-6">
             <div className={cn('flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4', IS_V2 && 'max-sm:flex-row max-sm:flex-wrap max-sm:gap-2')}>
-              <div className={cn('min-w-0 flex flex-1 flex-col gap-1', IS_V2 && 'max-sm:basis-full')}>
+              <div className={cn('min-w-0 flex flex-1 flex-col gap-1', IS_V2 && 'max-sm:basis-full lg:w-64 lg:flex-none')}>
                 <label
                   htmlFor="appt-search"
                   className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}
@@ -1292,7 +1310,12 @@ export function AppointmentsPage() {
                       value={upcomingStatusFilter}
                       onChange={(e) => setUpcomingStatusFilter(e.target.value as 'all' | 'scheduled' | 'confirmed')}
                       aria-labelledby="appt-status-label"
-                      className="h-9 w-full rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-sm text-ink-primary outline-none transition-shadow focus:border-brand-secondary/40 focus:ring-1 focus:ring-brand-secondary/30 "
+                      className={cn(
+                        'h-9 w-full px-3 text-ink-primary outline-none transition-shadow focus:ring-1 focus:ring-brand-secondary/30',
+                        IS_V2
+                          ? 'cursor-pointer rounded-full border border-transparent bg-surface-elevated text-xs font-medium hover:bg-surface-border'
+                          : 'rounded-lg border border-surface-inputBorder bg-surface-input text-sm focus:border-brand-secondary/40',
+                      )}
                     >
                       <option value="all">{IS_V2 ? 'Todos los estados' : 'Programado o confirmado'}</option>
                       <option value="scheduled">Solo programados</option>
@@ -1303,13 +1326,24 @@ export function AppointmentsPage() {
                     <span className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}>
                       Videollamada
                     </span>
-                    <label className="inline-flex h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-surface-inputBorder bg-surface-input px-3 text-xs text-ink-secondary ">
+                    <label
+                      className={cn(
+                        'inline-flex h-9 cursor-pointer select-none items-center gap-2 px-3 text-xs',
+                        IS_V2
+                          ? cn(
+                              'rounded-full font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-primary/40',
+                              studentVideoOnly ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-primary hover:bg-surface-border',
+                            )
+                          : 'rounded-lg border border-surface-inputBorder bg-surface-input text-ink-secondary',
+                      )}
+                    >
                       <input
                         type="checkbox"
                         checked={studentVideoOnly}
                         onChange={(e) => setStudentVideoOnly(e.target.checked)}
-                        className="h-4 w-4 rounded border-surface-border"
+                        className={IS_V2 ? 'sr-only' : 'h-4 w-4 rounded border-surface-border'}
                       />
+                      {IS_V2 ? <Video className="h-3.5 w-3.5" aria-hidden /> : null}
                       {IS_V2 ? (
                         <>
                           <span className="max-sm:hidden">Solo con enlace</span>
@@ -1323,7 +1357,7 @@ export function AppointmentsPage() {
                 </>
               ) : null}
               {viewMode === 'week' && (
-                <div className={cn('flex flex-col gap-1 lg:w-auto lg:shrink-0', IS_V2 && 'max-sm:hidden')}>
+                <div className={cn('flex flex-col gap-1 lg:w-auto lg:shrink-0', IS_V2 && 'max-sm:hidden lg:ml-auto')}>
                   <span className={cn('text-3xs font-semibold text-ink-muted leading-none', IS_V2 && 'sr-only')}>
                     Exportar
                   </span>
@@ -1486,9 +1520,13 @@ export function AppointmentsPage() {
                       key={day.toISOString()}
                       className={cn(
                         'rounded-xl border p-2 transition-shadow motion-safe:duration-300', IS_V2 ? 'md:min-h-44' : 'min-h-44',
-                        dayIsToday
-                          ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
-                          : 'border-surface-border bg-surface-elevated/50',
+                        IS_V2
+                          ? dayIsToday
+                            ? 'border-surface-inputBorder bg-surface-card'
+                            : 'border-transparent bg-surface-panel'
+                          : dayIsToday
+                            ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
+                            : 'border-surface-border bg-surface-elevated/50',
                       )}
                     >
                       <p
@@ -1498,18 +1536,25 @@ export function AppointmentsPage() {
                         )}
                       >
                         {format(day, 'EEE', { locale: es })}
-                        {dayIsToday ? (
+                        {dayIsToday && !IS_V2 ? (
                           <span className="ml-1.5 align-middle text-3xs font-semibold text-brand-primary">
                             · Hoy
                           </span>
                         ) : null}
                       </p>
-                      <p className={cn('text-sm font-semibold', dayIsToday ? 'text-ink-primary ' : 'text-ink-primary')}>
+                      <p
+                      className={cn(
+                        'text-sm font-semibold text-ink-primary',
+                        IS_V2 && 'mt-0.5',
+                        IS_V2 && dayIsToday && 'inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink-primary px-1.5 text-surface-base',
+                      )}
+                      aria-current={dayIsToday ? 'date' : undefined}
+                    >
                         {format(day, 'd')}
                       </p>
                       <div className="mt-2 space-y-1.5">
                         {dayPersonalItems.length === 0 ? (
-                          <p className="text-2xs text-ink-secondary">Sin eventos</p>
+                          <p className={cn('text-2xs text-ink-secondary', IS_V2 && 'md:hidden')}>Sin eventos</p>
                         ) : (
                           dayPersonalItems.map((p) => (
                             <Popover
@@ -1575,9 +1620,13 @@ export function AppointmentsPage() {
                     key={day.toISOString()}
                     className={cn(
                       'rounded-xl border p-2 transition-shadow motion-safe:duration-300', IS_V2 ? 'md:min-h-44' : 'min-h-44',
-                      dayIsToday
-                        ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
-                        : 'border-surface-border bg-surface-elevated/50',
+                      IS_V2
+                        ? dayIsToday
+                          ? 'border-surface-inputBorder bg-surface-card'
+                          : 'border-transparent bg-surface-panel'
+                        : dayIsToday
+                          ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
+                          : 'border-surface-border bg-surface-elevated/50',
                     )}
                   >
                     <p
@@ -1587,18 +1636,25 @@ export function AppointmentsPage() {
                       )}
                     >
                       {format(day, 'EEE', { locale: es })}
-                      {dayIsToday ? (
+                      {dayIsToday && !IS_V2 ? (
                         <span className="ml-1.5 align-middle text-3xs font-semibold text-brand-primary">
                           · Hoy
                         </span>
                       ) : null}
                     </p>
-                    <p className={cn('text-sm font-semibold', dayIsToday ? 'text-ink-primary ' : 'text-ink-primary')}>
+                    <p
+                      className={cn(
+                        'text-sm font-semibold text-ink-primary',
+                        IS_V2 && 'mt-0.5',
+                        IS_V2 && dayIsToday && 'inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink-primary px-1.5 text-surface-base',
+                      )}
+                      aria-current={dayIsToday ? 'date' : undefined}
+                    >
                       {format(day, 'd')}
                     </p>
                     <div className="mt-2 space-y-1.5">
                       {dayAppointments.length === 0 ? (
-                        <p className="text-2xs text-ink-secondary">Sin turnos</p>
+                        <p className={cn('text-2xs text-ink-secondary', IS_V2 && 'md:hidden')}>Sin turnos</p>
                       ) : (
                         dayAppointments.map((a) => (
                           <Popover
