@@ -731,6 +731,11 @@ html.ui-v2 .hh-table > thead th {
 html.ui-v2 .hh-table > tbody > tr:hover {
   background-color: rgb(var(--surface-panel));
 }
+/* La cabecera no tapa las esquinas redondeadas de la tarjeta (el fondo ya lo pone la tarjeta). */
+html.ui-v2 .hh-table > thead {
+  background-color: transparent;
+  backdrop-filter: none;
+}
 
 /* Contenido de las pantallas viejas dentro de la v2: centrado, con el mismo aire que las nuevas. */
 html.ui-v2 .v2-main > div {

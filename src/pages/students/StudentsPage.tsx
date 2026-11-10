@@ -1374,7 +1374,7 @@ function StudentDirectoryTable({
                           >
                             {student.full_name}
                           </Link>
-                          {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{age}a</span>}
+                          {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{IS_V2 ? `${age} años` : `${age}a`}</span>}
                           <div className="flex shrink-0 items-center gap-1">
                             {IS_V2 ? null : (
                               <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
@@ -1383,11 +1383,13 @@ function StudentDirectoryTable({
                                 </span>
                               </Tooltip>
                             )}
-                            <Tooltip content={hasPlan ? 'Con plan' : 'Sin plan'}>
-                              <span className={indicatorClass(hasPlan, 'plan')}>
-                                <Utensils className="h-3 w-3" />
-                              </span>
-                            </Tooltip>
+                            {IS_V2 && !hasPlan ? null : (
+                              <Tooltip content={hasPlan ? (IS_V2 ? 'Tiene plan de alimentación' : 'Con plan') : 'Sin plan'}>
+                                <span className={indicatorClass(hasPlan, 'plan')}>
+                                  <Utensils className="h-3 w-3" />
+                                </span>
+                              </Tooltip>
+                            )}
                           </div>
                         </div>
                         {student.email && !IS_V2 ? <span className="truncate text-2xs text-ink-muted lg:hidden">{student.email}</span> : null}
@@ -1431,7 +1433,7 @@ function StudentDirectoryTable({
                           lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
                         />
                       ) : (
-                        <span className="text-2xs text-ink-muted/50">—</span>
+                        <span className={IS_V2 ? 'text-xs text-ink-muted' : 'text-2xs text-ink-muted/50'}>{IS_V2 ? 'Sin rutina' : '—'}</span>
                       )}
                       {rmTestDueIds.has(student.id) ? (
                         <span

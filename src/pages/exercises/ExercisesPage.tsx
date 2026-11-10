@@ -1,4 +1,8 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { directoryToolbarBtnClassName } from '@/lib/primaryGradientCtaClasses'
+import { IconButton } from '@/components/ui/IconButton'
+import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
+import { SegmentedV2 } from '@/components/v2/ui'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Plus, Search, Dumbbell, Trash2, Pencil, Tags, X } from 'lucide-react'
@@ -132,6 +136,8 @@ export function ExercisesPage() {
       return matchSearch && matchMuscle
     })
   }, [exercises, search, muscleFilter])
+  /** v2: la columna «Nivel» solo aparece si algún ejercicio lo tiene cargado. */
+  const showLevel = !IS_V2 || filtered.some((e) => Boolean(DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty))
 
   // Grupos que tienen al menos 1 ejercicio
   const activeGroupIds = useMemo(() => {
@@ -194,7 +200,54 @@ export function ExercisesPage() {
       <div className="max-w-[1600px] space-y-3 px-4 py-4 lg:px-6 lg:py-6">
         <ExercisesSectionNav />
 
+        {IS_V2 ? (
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="min-w-0 lg:w-56 lg:shrink-0">
+              <Input
+                ref={exercisesSearchRef}
+                type="search"
+                placeholder="Buscar ejercicio…"
+                autoComplete="off"
+                spellCheck={false}
+                leftIcon={<Search className="h-4 w-4" />}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Buscar ejercicios por nombre, músculo o equipamiento"
+              />
+            </div>
+            <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:min-w-0 lg:flex-1 lg:px-0 [&>div]:flex-nowrap">
+              <SegmentedV2
+                value={muscleFilter ?? 'all'}
+                onChange={(v) => setMuscleFilter(v === 'all' || v === muscleFilter ? null : v)}
+                options={[
+                  { value: 'all', label: 'Todos', count: exercises.length },
+                  ...muscleGroups
+                    .filter((g) => activeGroupIds.has(g.id))
+                    .map((g) => ({
+                      value: g.id,
+                      label: g.name.charAt(0).toUpperCase() + g.name.slice(1),
+                      count: exercises.filter((e) => e.muscle_group?.id === g.id).length,
+                    })),
+                ]}
+              />
+            </div>
+            <div className="flex items-center gap-2 lg:ml-auto">
+              <Button
+                type="button"
+                variant="soft"
+                onClick={() => setShowCategoryPanel((v) => !v)}
+                aria-expanded={showCategoryPanel}
+                className={directoryToolbarBtnClassName}
+              >
+                <Tags className="h-4 w-4 opacity-70" aria-hidden />
+                Categoría
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {/* ── Barra de búsqueda + acciones ── */}
+        {IS_V2 ? null : (
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="min-h-10 min-w-0 flex-1">
             <Input
@@ -237,9 +290,10 @@ export function ExercisesPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* ── Chips de filtro por grupo muscular ── */}
-        {muscleGroups.length > 0 && (
+        {!IS_V2 && muscleGroups.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {/* Chip "Todos" */}
             <button
@@ -350,13 +404,13 @@ export function ExercisesPage() {
             }
           />
         ) : (
-          <div className="w-full overflow-x-auto rounded-md border border-surface-border/70 bg-surface-card ">
+          <div className={cn('w-full overflow-x-auto border bg-surface-card', IS_V2 ? 'rounded-2xl border-surface-border' : 'rounded-md border-surface-border/70')}>
             <table className="w-full border-collapse text-body-sm leading-snug hh-table">
               <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                 <tr className="text-left">
-                  <th className="w-[32%] px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Ejercicio</th>
+                  <th className={cn('px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 ? 'sm:w-[32%]' : 'w-[32%]')}>Ejercicio</th>
                   <th className="hidden w-[18%] px-3 py-2 text-3xs font-medium text-ink-muted sm:table-cell sm:px-4">Músculo</th>
-                  <th className="w-[13%] px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Nivel</th>
+                  {showLevel ? <th className="w-[13%] px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Nivel</th> : null}
                   <th className="hidden px-3 py-2 text-3xs font-medium text-ink-muted lg:table-cell lg:px-4">Equipo</th>
                   <th className="w-24 px-2 py-2 sm:w-28" aria-label="Acciones" />
                 </tr>
@@ -374,6 +428,9 @@ export function ExercisesPage() {
                       <td className="hh-row-drop-in px-3 py-2 sm:px-4">
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           <span className="font-semibold tracking-tight text-ink-primary">{exercise.name}</span>
+                          {IS_V2 && exercise.muscle_group ? (
+                            <span className="w-full text-xs capitalize text-ink-muted sm:hidden">{exercise.muscle_group.name}</span>
+                          ) : null}
                           {!exercise.is_active && (
                             <span className="rounded border border-surface-inputBorder/65 bg-zinc-500/[0.08] px-1.5 py-px text-3xs font-semibold text-ink-secondary ">
                               Inactivo
@@ -382,7 +439,9 @@ export function ExercisesPage() {
                         </div>
                       </td>
                       <td className="hh-row-drop-in hidden px-3 py-2 sm:table-cell sm:px-4">
-                        {exercise.muscle_group && palette ? (
+                        {IS_V2 && exercise.muscle_group ? (
+                          <span className="capitalize text-ink-secondary">{exercise.muscle_group.name}</span>
+                        ) : exercise.muscle_group && palette ? (
                           <span className={cn(
                             'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-3xs font-semibold ',
                             palette.bg, palette.border, palette.text,
@@ -394,6 +453,7 @@ export function ExercisesPage() {
                           <span className="text-ink-muted">—</span>
                         )}
                       </td>
+                      {showLevel ? (
                       <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 sm:px-4">
                         {IS_V2 && !(DIFFICULTY_LABEL[exercise.difficulty] ?? exercise.difficulty) ? (
                           <span className="text-ink-muted">—</span>
@@ -403,10 +463,25 @@ export function ExercisesPage() {
                           </span>
                         )}
                       </td>
+                      ) : null}
                       <td className="hh-row-drop-in hidden max-w-[14rem] truncate px-3 py-2 text-xs text-ink-muted lg:table-cell lg:px-4" title={(exercise.equipment ?? []).join(', ') || undefined}>
                         {exercise.equipment && exercise.equipment.length > 0 ? exercise.equipment.join(', ') : '—'}
                       </td>
                       <td className="hh-row-drop-in px-2 py-1.5 sm:px-3">
+                        {IS_V2 ? (
+                        <div className="flex items-center justify-end gap-0.5">
+                          <IconButton
+                            onClick={() => navigate(`/exercises/${exercise.id}/edit`)}
+                            label={`Editar ${exercise.name}`}
+                            title="Editar"
+                            icon={<Pencil className="h-3.5 w-3.5" />}
+                          />
+                          <ActionMenuV2
+                            label={`Más acciones de ${exercise.name}`}
+                            items={[{ label: 'Eliminar', icon: <Trash2 />, danger: true, onClick: () => setDeleteTarget(exercise) }]}
+                          />
+                        </div>
+                        ) : (
                         <div className="flex items-center justify-end gap-0.5">
                           <Button
                             variant="ghost"
@@ -429,6 +504,7 @@ export function ExercisesPage() {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </div>
+                        )}
                       </td>
                     </tr>
                   )

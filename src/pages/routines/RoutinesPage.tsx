@@ -1,4 +1,6 @@
 import { controlMdClassName } from '@/lib/formControlClasses'
+import { directoryFilterChipClassName, directoryToolbarBtnClassName } from '@/lib/primaryGradientCtaClasses'
+import { Input } from '@/components/ui/Input'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { rowLinkClick } from '@/lib/rowLink'
 import { IS_V2 } from '@/lib/uiVersion'
@@ -188,7 +190,7 @@ function RoutinesMoreMenu({ showDeleted, onToggleDeleted }: { showDeleted: boole
           onClick={onClick}
           title="Más acciones"
           aria-label="Más acciones"
-          className="inline-flex h-10 items-center justify-center rounded-md border border-surface-border/75 px-3 text-ink-secondary transition-colors hover:text-ink-primary"
+          className={directoryToolbarBtnClassName}
           {...a11y}
         >
           <MoreHorizontal className="h-4 w-4 opacity-70" aria-hidden />
@@ -235,7 +237,7 @@ function RoutinesFiltersDropdown({
             ref={ref}
             type="button"
             onClick={onClick}
-            className={cn(
+            className={IS_V2 ? directoryToolbarBtnClassName : cn(
               'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-ink-primary transition-colors',
               activeCount > 0
                 ? 'border-surface-inputBorder/90 bg-surface-elevated/80 '
@@ -331,7 +333,7 @@ function RoutinesSortDropdown({ value, onChange }: { value: RoutineTableSort; on
             aria-label={`Ordenar. ${selectedLabel}`}
             title={selectedLabel}
             onClick={onClick}
-            className={cn(
+            className={IS_V2 ? directoryToolbarBtnClassName : cn(
               'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-surface-border/70 px-3.5 text-sm font-medium text-ink-primary transition-colors',
               'bg-transparent hover:border-surface-inputBorder hover:bg-surface-elevated/80 ',
             )}
@@ -686,11 +688,8 @@ export function RoutinesPage() {
 
             {IS_V2 ? (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <div className="relative min-w-0 lg:max-w-xs lg:flex-1">
-                  <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2">
-                    <Search className="h-4 w-4 text-ink-muted" aria-hidden />
-                  </span>
-                  <input
+                <div className="min-w-0 lg:w-56 lg:shrink-0">
+                  <Input
                     ref={searchRef}
                     type="search"
                     placeholder="Buscar rutina o alumno…"
@@ -699,10 +698,10 @@ export function RoutinesPage() {
                     aria-label="Buscar rutinas"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="h-10 w-full rounded-md border border-surface-border/75 bg-transparent pl-10 pr-3 text-sm text-ink-primary outline-none placeholder:text-ink-muted focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50"
+                    leftIcon={<Search className="h-4 w-4" />}
                   />
                 </div>
-                <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:shrink-0 lg:overflow-visible lg:px-0 [&>div]:flex-nowrap">
+                <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide lg:mx-0 lg:min-w-0 lg:flex-1 lg:px-0 [&>div]:flex-nowrap">
                   <SegmentedV2
                     value={filterStatus || ('all' as const)}
                     onChange={(v) => setFilterStatus(v === 'all' || v === filterStatus ? '' : (v as RoutineStatusFilter))}
@@ -719,7 +718,7 @@ export function RoutinesPage() {
                   <RoutinesSortDropdown value={tableSort} onChange={setTableSort} />
                   <RoutinesMoreMenu showDeleted={showDeleted} onToggleDeleted={() => setShowDeleted((v) => !v)} />
                   {filterLevel ? (
-                    <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-surface-border/75 px-2.5 text-xs font-medium text-ink-primary">
+                    <span className={directoryFilterChipClassName}>
                       {LEVEL_LABELS[filterLevel]}
                       <Button variant="ghost" size="iconSm" type="button" className="-m-1.5 text-ink-muted" aria-label="Quitar filtro nivel" onClick={() => setFilterLevel('')}>
                         <X className="h-3.5 w-3.5" />
@@ -861,7 +860,6 @@ export function RoutinesPage() {
                 {IS_V2 ? (
                   <ul className="divide-y divide-surface-border/70 sm:hidden">
                     {filteredSorted.map((r) => {
-                      const colors = ROUTINE_COLORS[strColorIdx(routineStudentName(r) || r.id)]
                       const st = weekStatusOrEmpty(weekByStudent, r.student_id ?? '')
                       return (
                         <li key={r.id} className="relative">
@@ -870,7 +868,6 @@ export function RoutinesPage() {
                             onClick={() => navigate(`/routines/${r.id}`)}
                             className="flex w-full items-start gap-3 py-3 pl-4 pr-3 text-left"
                           >
-                            <span className={cn('absolute inset-y-0 left-0 w-1', colors.bar)} aria-hidden />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-semibold text-ink-primary">{r.name}</p>
                               <p className="mt-0.5 truncate text-xs text-ink-muted">
@@ -878,12 +875,14 @@ export function RoutinesPage() {
                               </p>
                               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                 <Badge status={r.status} />
-                                <RoutineWeekSquares
-                                  totalWeeks={blocksByRoutine.get(r.id) ?? 0}
-                                  currentWeek={st.weekNumber}
-                                  finished={st.finished}
-                                  lastWeek={st.lastWeek}
-                                />
+                                {(blocksByRoutine.get(r.id) ?? 0) > 0 ? (
+                                  <RoutineWeekSquares
+                                    totalWeeks={blocksByRoutine.get(r.id) ?? 0}
+                                    currentWeek={st.weekNumber}
+                                    finished={st.finished}
+                                    lastWeek={st.lastWeek}
+                                  />
+                                ) : null}
                               </div>
                             </div>
                             <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
@@ -922,7 +921,7 @@ export function RoutinesPage() {
                           {/* Rutina con barra de color + rename inline */}
                           <td className={cn('hh-row-drop-in min-w-[10rem] px-0 py-0 sm:min-w-[12rem]')}>
                             <div className="flex items-stretch gap-0">
-                              <div className={cn('w-1 self-stretch shrink-0', colors.bar)} />
+                              {IS_V2 ? null : <div className={cn('w-1 self-stretch shrink-0', colors.bar)} />}
                               <div className="flex-1 px-4 py-2.5 sm:px-5">
                                 {renamingId === r.id ? (
                                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -988,8 +987,8 @@ export function RoutinesPage() {
                           <td className={cn('hh-row-drop-in whitespace-nowrap px-4 py-2.5 text-xs text-ink-muted sm:px-5')}>
                             {IS_V2 ? `${shortDate(r.start_date)} → ${shortDate(r.end_date)}` : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`}
                           </td>
-                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
-                            <Badge status={r.level} />
+                          <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5', IS_V2 && 'text-body-sm text-ink-secondary')}>
+                            {IS_V2 ? (LEVEL_LABELS[r.level] ?? '—') : <Badge status={r.level} />}
                           </td>
                           <td className={cn('hh-row-drop-in px-4 py-2.5 sm:px-5')}>
                             <Badge status={r.status} />
