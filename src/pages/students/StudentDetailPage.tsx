@@ -1,4 +1,5 @@
 import { controlTextareaClassName } from '@/lib/formControlClasses'
+import { ShareRoutineActionsV2 } from '@/components/routines/ShareRoutineActionsV2'
 import { DuplicateRoutineModal } from '@/components/routines/DuplicateRoutineModal'
 import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 import { onTabListKeyDown } from '@/lib/tabKeyboard'
@@ -1186,6 +1187,14 @@ export function StudentDetailView({
                     >
                       PDF
                     </Button>
+                    {IS_V2 && id ? (
+                      <ShareRoutineActionsV2
+                        studentId={id}
+                        studentName={student.full_name}
+                        studentPhone={student.phone ?? null}
+                        className="flex flex-wrap items-center gap-2 sm:ml-auto"
+                      />
+                    ) : null}
                   </div>
                 </div>
               </section>

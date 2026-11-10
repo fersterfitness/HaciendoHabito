@@ -85,6 +85,7 @@ const StudentMealPlanDetailPage = lazy(() =>
 const PublicIntakeFormPage = lazy(() => import('@/pages/public/PublicIntakeFormPageV2').then((m) => ({ default: m.PublicIntakeFormPageV2 })))
 const PublicCheckInPage = lazy(() => import('@/pages/public/PublicCheckInPage').then((m) => ({ default: m.PublicCheckInPage })))
 const PublicMealPlanPage = lazy(() => import('@/pages/public/PublicMealPlanPage').then((m) => ({ default: m.PublicMealPlanPage })))
+const PublicRoutinePage = lazy(() => import('@/pages/public/PublicRoutinePage').then((m) => ({ default: m.PublicRoutinePage })))
 const TrainingSectionRedirect = lazy(() =>
   import('@/pages/training/TrainingSectionRedirect').then((m) => ({ default: m.TrainingSectionRedirect })),
 )
@@ -327,6 +328,7 @@ function AppRoutes() {
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />
       <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
       <Route path="/plan/:token" element={withPageSuspense(<PublicMealPlanPage />)} />
+      <Route path="/rutina/:token" element={withPageSuspense(<PublicRoutinePage />)} />
 
       <Route element={<AuthGuard />}>
         <Route element={IS_V2 ? <AppLayoutV2 /> : <AppLayout />}>
