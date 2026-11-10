@@ -523,7 +523,7 @@ export function StudentDetailView({
 
   const profileSection = (
           <section className={v2Page ? 'rounded-2xl border border-surface-border bg-surface-card p-5 lg:p-6' : 'pb-2'}>
-            <div className="flex flex-row items-start justify-between gap-4 sm:gap-6">
+            <div className={cn('flex items-start justify-between gap-4 sm:gap-6', v2Page ? 'flex-row-reverse' : 'flex-row')}>
               <div className="min-w-0 flex-1">
                 <h2 className={cn('text-balance text-ink-primary', v2Page ? 'text-[24px] font-medium tracking-[-0.025em]' : 'text-lg font-semibold tracking-tight')}>{student.full_name}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs font-medium ">
@@ -753,14 +753,25 @@ export function StudentDetailView({
         label="Peso · altura"
         value={`${student.weight_kg ? `${student.weight_kg} kg` : '—'} · ${student.height_cm ? `${student.height_cm} cm` : '—'}`}
       />
-      <MetricCardV2
-        icon={CreditCard}
-        tone="lavender"
-        title="Plan"
-        link={{ label: 'Registrar pago', onClick: () => setShowPayModal(true) }}
-        label={(student.level && DETAIL_LEVEL_LABEL[student.level]) || 'Nivel sin cargar'}
-        value={selectedPlanLabel ?? 'Sin plan web'}
-      />
+      {showRoutineTab && activeRoutine ? (
+        <MetricCardV2
+          icon={CreditCard}
+          tone="lavender"
+          title="Pago"
+          link={{ label: 'Registrar pago', onClick: () => setShowPayModal(true) }}
+          label={activeRoutine.price ? `Rutina actual · ${formatCurrency(activeRoutine.price)}` : 'Rutina actual'}
+          value={activeRoutine.is_paid ? 'Abonada' : 'Pendiente'}
+        />
+      ) : (
+        <MetricCardV2
+          icon={CreditCard}
+          tone="lavender"
+          title="Plan"
+          link={{ label: 'Registrar pago', onClick: () => setShowPayModal(true) }}
+          label={(student.level && DETAIL_LEVEL_LABEL[student.level]) || 'Nivel sin cargar'}
+          value={selectedPlanLabel ?? 'Sin plan web'}
+        />
+      )}
     </div>
   ) : null
 
@@ -994,10 +1005,8 @@ export function StudentDetailView({
             return Math.max(1, Math.round(days / 7))
           }
 
-          return (
-          <div className="space-y-8">
-
-            {/* ── Calendario anual del macrociclo (solo entrenador) ── */}
+          /* Bloques secundarios de la pestaña: en la v1 van arriba; en la v2, debajo de la rutina activa. */
+          const macroEntry = (
             <button
               type="button"
               onClick={() => setMacroOpen(true)}
@@ -1012,19 +1021,27 @@ export function StudentDetailView({
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5" />
             </button>
-
-            {/* ── Notas para la próxima rutina ── */}
-            {id ? <StudentRoutineNotesPanel studentId={id} /> : null}
-
-            {/* ── Plan vigente ── */}
-            {id ? (
+          )
+          const notesPanel = id ? <StudentRoutineNotesPanel studentId={id} /> : null
+          const planCard = id ? (
               <StudentPlanCard
                 studentId={id}
                 refreshKey={planRefreshKey}
                 onRequestAssign={() => { setEditPlanAssignment(null); setAssignPlanOpen(true) }}
                 onRequestEdit={(a) => { setEditPlanAssignment(a); setAssignPlanOpen(true) }}
               />
-            ) : null}
+            ) : null
+
+          return (
+          <div className="space-y-8">
+
+            {IS_V2 ? null : (
+              <>
+                {macroEntry}
+                {notesPanel}
+                {planCard}
+              </>
+            )}
 
             {/* ── Rutina activa ── */}
             {activeRoutine ? (
@@ -1132,7 +1149,7 @@ export function StudentDetailView({
                     <Button
                       size="sm"
                       variant="gradientSecondary"
-                      className="sm:flex-1"
+                      className={IS_V2 ? undefined : 'sm:flex-1'}
                       onClick={() => navigate(`/routines/${activeRoutine.id}`)}
                     >
                       Abrir rutina
@@ -1141,7 +1158,7 @@ export function StudentDetailView({
                       variant="secondary"
                       size="sm"
                       onClick={() => setAssignPresetOpen(true)}
-                      className="sm:flex-1"
+                      className={IS_V2 ? undefined : 'sm:flex-1'}
                     >
                       Preestablecida
                     </Button>
@@ -1150,7 +1167,7 @@ export function StudentDetailView({
                       size="sm"
                       icon={<FileText className="h-3.5 w-3.5" />}
                       onClick={() => navigate('/routine-pdfs')}
-                      className="sm:flex-1"
+                      className={IS_V2 ? undefined : 'sm:flex-1'}
                     >
                       PDF
                     </Button>
@@ -1225,6 +1242,14 @@ export function StudentDetailView({
                 </div>
               </div>
             )}
+
+            {IS_V2 ? (
+              <>
+                {notesPanel}
+                {macroEntry}
+                {planCard}
+              </>
+            ) : null}
 
             {/* ── Historial ── */}
             <section>

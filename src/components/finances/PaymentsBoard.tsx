@@ -1,4 +1,5 @@
 import { IS_V2 } from '@/lib/uiVersion'
+import { IconButton } from '@/components/ui/IconButton'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addMonths, format } from 'date-fns'
@@ -407,7 +408,11 @@ export function PaymentsBoard() {
                         <button
                           type="button"
                           onClick={() => setWindowFor(r)}
-                          className="hh-hit-pad inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary"
+                          className={
+                            IS_V2
+                              ? 'hh-focus inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-elevated px-3 text-xs text-ink-primary transition-colors hover:bg-surface-border'
+                              : 'hh-hit-pad inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary'
+                          }
                           title="Cambiar el día de pago"
                         >
                           {paymentWindowLabel(r.dayFrom, r.dayTo)}
@@ -436,8 +441,23 @@ export function PaymentsBoard() {
                       </td>
                       <td className="px-4 py-2.5">
                         {/* Con mouse, las acciones aparecen al pasar por la fila: la tabla queda limpia. */}
-                        <div className="flex items-center justify-end gap-1.5 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
-                          {wa ? (
+                        <div
+                          className={cn(
+                            'flex items-center justify-end gap-1.5',
+                            !IS_V2 &&
+                              'transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100',
+                          )}
+                        >
+                          {wa && IS_V2 ? (
+                            <IconButton
+                              variant="soft"
+                              className="h-8 w-8"
+                              onClick={() => void remind(r, wa)}
+                              label={`Recordar el pago a ${r.fullName} por WhatsApp`}
+                              title="Recordar el pago por WhatsApp"
+                              icon={<WhatsAppIcon className="h-4 w-4" />}
+                            />
+                          ) : wa ? (
                             <Button
                               type="button"
                               variant="outline"
@@ -481,7 +501,7 @@ export function PaymentsBoard() {
           </ChartCard>
           <ChartCard title={`Saldo pendiente por ${patients ? 'paciente' : 'alumno'}`}>
             {debtChart.length ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={IS_V2 ? Math.max(120, debtChart.length * 30 + 16) : 200}>
                 <BarChart data={debtChart} layout="vertical" margin={{ top: 4, right: 12, bottom: 0, left: 4 }}>
                   <CartesianGrid horizontal={false} stroke="rgb(var(--surface-border))" />
                   <XAxis type="number" hide />
