@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Copy, ExternalLink, MoreHorizontal } from 'lucide-react'
+import { Check, Copy, ExternalLink, MoreHorizontal, Send, SkipForward, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
@@ -21,6 +21,7 @@ import {
   WHATSAPP_DIRECT_PASTE_HINT,
 } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
 
 /** Semanas que se miran hacia atrás (la actual + 4). */
 const WEEKS_BACK = 5
@@ -41,6 +42,13 @@ export function CheckInSendBoard({ ownerId, onCreateForm }: { ownerId: string; /
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'faltan' | 'todos'>('faltan')
   const [menuFor, setMenuFor] = useState<string | null>(null)
+  /**
+   * v2 · «Enviar a todos»: el navegador no deja abrir varios WhatsApp de una, así que es una fila:
+   * cada clic abre el chat del alumno que toca y pasa al siguiente.
+   */
+  const [queue, setQueue] = useState<string[] | null>(null)
+  const [queueIdx, setQueueIdx] = useState(0)
+  const [sentIds, setSentIds] = useState<Set<string>>(() => new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -130,6 +138,39 @@ export function CheckInSendBoard({ ownerId, onCreateForm }: { ownerId: string; /
     if (res.mode === 'clipboard') toast.success(WHATSAPP_DIRECT_PASTE_HINT, { duration: 6000 })
   }
 
+  const withPhone = pending.filter((r) => normalizePhoneForWhatsApp(r.phone))
+  const noPhone = pending.length - withPhone.length
+  const queueRow = queue ? rows.find((r) => r.id === queue[queueIdx]) ?? null : null
+
+  function startQueue() {
+    const ids = withPhone.filter((r) => !sentIds.has(r.id)).map((r) => r.id)
+    if (!ids.length) {
+      toast.success('Ya les mandaste a todos los pendientes')
+      return
+    }
+    setQueue(ids)
+    setQueueIdx(0)
+  }
+
+  function advanceQueue() {
+    if (!queue) return
+    if (queueIdx + 1 >= queue.length) {
+      setQueue(null)
+      toast.success('Listo: recorriste todos los pendientes')
+      return
+    }
+    setQueueIdx(queueIdx + 1)
+  }
+
+  async function sendQueued() {
+    if (!queueRow) return
+    // Envío masivo: solo la semana actual; si ya la respondió, la última que debe (no todo el atraso).
+    if (!queueRow.currentDone) await send(queueRow, 'current')
+    else if (queueRow.owed[0]) await send(queueRow, 'owed', queueRow.owed[0])
+    setSentIds((prev) => new Set(prev).add(queueRow.id))
+    advanceQueue()
+  }
+
   async function copyGeneral() {
     if (!baseUrl) return
     if (await copyWhatsAppMessage(baseUrl)) toast.success('Link general copiado')
@@ -200,6 +241,11 @@ export function CheckInSendBoard({ ownerId, onCreateForm }: { ownerId: string; /
               atrasada no pisa la de esta semana.
             </p>
           </div>
+          {IS_V2 && withPhone.length > 1 && !queue ? (
+            <Button size="sm" variant="soft" className="rounded-full sm:ml-auto" icon={<Send className="h-3.5 w-3.5" aria-hidden />} onClick={startQueue}>
+              Enviar a todos ({withPhone.filter((r) => !sentIds.has(r.id)).length})
+            </Button>
+          ) : null}
           <SegmentedControl
             size="sm"
             ariaLabel="Filtro de alumnos"
@@ -211,12 +257,37 @@ export function CheckInSendBoard({ ownerId, onCreateForm }: { ownerId: string; /
             ]}
           />
         </div>
+        {queue && queueRow ? (
+          <div className="flex flex-wrap items-center gap-3 border-b border-surface-border bg-surface-elevated/60 px-4 py-3" role="status" aria-live="polite">
+            <div className="min-w-0 flex-1">
+              <p className="text-2xs text-ink-muted">
+                Enviando {queueIdx + 1} de {queue.length} · solo el link de esta semana
+                {noPhone > 0 ? ` · ${noPhone} sin teléfono quedan afuera` : ''}
+              </p>
+              <p className="truncate text-sm font-semibold text-ink-primary">{queueRow.full_name}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button size="sm" className="rounded-full" icon={<WhatsAppIcon className="h-3.5 w-3.5" />} onClick={() => void sendQueued()}>
+                Abrir WhatsApp
+              </Button>
+              <Button size="sm" variant="ghost" className="rounded-full" icon={<SkipForward className="h-3.5 w-3.5" aria-hidden />} onClick={advanceQueue}>
+                Saltear
+              </Button>
+              <Button size="sm" variant="ghost" className="rounded-full" icon={<X className="h-3.5 w-3.5" aria-hidden />} onClick={() => setQueue(null)}>
+                Terminar
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {visible.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-ink-muted">Nadie debe feedback. 🎉</p>
         ) : (
           <ul className="divide-y divide-surface-border/70">
             {visible.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+              <li
+                key={r.id}
+                className={cn('flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3', queueRow?.id === r.id && 'bg-surface-elevated/60')}
+              >
                 <div className="min-w-0 basis-full sm:basis-0 sm:flex-1">
                   <Link to={`/students/${r.id}`} className="block truncate text-sm font-medium text-ink-primary hover:underline">
                     {r.full_name}
@@ -226,6 +297,12 @@ export function CheckInSendBoard({ ownerId, onCreateForm }: { ownerId: string; /
                       {r.currentDone ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden /> : null}
                       Esta semana ({periodLabel(current)}): {r.currentDone ? 'respondió' : 'falta'}
                     </span>
+                    {IS_V2 && sentIds.has(r.id) ? (
+                      <span className="inline-flex items-center gap-1 font-medium text-ink-secondary">
+                        <Check className="h-3 w-3" aria-hidden />
+                        Enviado recién
+                      </span>
+                    ) : null}
                     {r.owed.length ? (
                       <span className="font-medium text-status-expired">
                         No completó: {r.owed.map(periodLabel).join(', ')}
