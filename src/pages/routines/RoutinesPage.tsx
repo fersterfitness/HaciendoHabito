@@ -1,4 +1,5 @@
 import { controlMdClassName } from '@/lib/formControlClasses'
+import { duplicateRoutine } from '@/lib/routine/duplicateRoutine'
 import { directoryFilterChipClassName, directoryToolbarBtnClassName } from '@/lib/primaryGradientCtaClasses'
 import { Input } from '@/components/ui/Input'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -388,6 +389,12 @@ export function RoutinesPage() {
   }, [setSearchParams])
 
   const closeNewRoutineModal = useCallback(() => {
+    if (IS_V2) {
+      // v2: no hay listado detrás; se vuelve a la ficha del alumno (o a Alumnos).
+      const sid = searchParams.get('student')
+      navigate(sid ? `/students/${sid}` : '/students', { replace: true })
+      return
+    }
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -398,7 +405,7 @@ export function RoutinesPage() {
       },
       { replace: true },
     )
-  }, [setSearchParams])
+  }, [setSearchParams, searchParams, navigate])
   const { user } = useAuthStore()
   const { routines, loading, fetchRoutines, deleteRoutine, updateRoutine } = useRoutines()
   const [search, setSearch] = useState('')
@@ -437,97 +444,12 @@ export function RoutinesPage() {
     if (!duplicateTarget || !dupStudentId || !user) return
     setDuplicating(true)
     try {
-      const { data: blocks } = await supabase
-        .from('routine_blocks')
-        .select('*')
-        .eq('routine_id', duplicateTarget.id)
-        .order('sort_order')
-      const blockIds = (blocks ?? []).map((b) => b.id as string)
-      const [{ data: days }, { data: exercises }] = await Promise.all([
-        blockIds.length
-          ? supabase.from('routine_days').select('*').in('block_id', blockIds).order('sort_order')
-          : Promise.resolve({ data: [] }),
-        blockIds.length
-          ? supabase.from('routine_exercises').select('*').in('day_id',
-              ((await supabase.from('routine_days').select('id').in('block_id', blockIds)).data ?? []).map((d) => d.id as string)
-            ).order('sort_order')
-          : Promise.resolve({ data: [] }),
-      ])
-
-      const { data: newRoutine, error: routineErr } = await supabase
-        .from('routines')
-        .insert({
-          owner_id: user.id,
-          student_id: dupStudentId,
-          name: `${duplicateTarget.name} (copia)`,
-          objective: duplicateTarget.objective,
-          level: duplicateTarget.level,
-          start_date: duplicateTarget.start_date,
-          end_date: duplicateTarget.end_date,
-          duration_days: duplicateTarget.duration_days,
-          price: duplicateTarget.price,
-          status: 'activa',
-          notes: duplicateTarget.notes,
-        })
-        .select('id')
-        .single()
-      if (routineErr || !newRoutine) {
-        toast.error(routineErr?.message ?? 'Error al duplicar')
-        return
-      }
-
-      const blockIdMap = new Map<string, string>()
-      for (const b of blocks ?? []) {
-        const { data: nb } = await supabase
-          .from('routine_blocks')
-          .insert({
-            routine_id: newRoutine.id,
-            name: b.name,
-            sort_order: b.sort_order,
-            notes: b.notes,
-            start_date: b.start_date,
-            end_date: b.end_date,
-          })
-          .select('id')
-          .single()
-        if (nb) blockIdMap.set(b.id as string, nb.id as string)
-      }
-
-      const dayIdMap = new Map<string, string>()
-      for (const d of days ?? []) {
-        const newBlockId = blockIdMap.get(d.block_id as string)
-        if (!newBlockId) continue
-        const { data: nd } = await supabase
-          .from('routine_days')
-          .insert({
-            block_id: newBlockId,
-            day_name: d.day_name,
-            day_of_week: d.day_of_week,
-            muscle_focus: d.muscle_focus,
-            warmup_notes: d.warmup_notes,
-            sort_order: d.sort_order,
-          })
-          .select('id')
-          .single()
-        if (nd) dayIdMap.set(d.id as string, nd.id as string)
-      }
-
-      const exRows = (exercises ?? [])
-        .map((ex) => {
-          const newDayId = dayIdMap.get(ex.day_id as string)
-          if (!newDayId) return null
-          const { id: _id, day_id: _day, exercise: _ex, ...rest } = ex as Record<string, unknown>
-          void _id
-          void _day
-          void _ex
-          return { ...rest, day_id: newDayId }
-        })
-        .filter(Boolean)
-      if (exRows.length) await supabase.from('routine_exercises').insert(exRows)
-
+      await duplicateRoutine(duplicateTarget, user.id, dupStudentId)
       toast.success('Rutina duplicada')
       fetchRoutines()
       setDuplicateTarget(null)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al duplicar')
     } finally {
       setDuplicating(false)
     }
@@ -627,11 +549,26 @@ export function RoutinesPage() {
   if (tabPlantillas) {
     return <Navigate to="/exercises/blueprints" replace />
   }
+  if (IS_V2 && !tabPdfs) {
+    // v2: las rutinas se ven en la ficha de cada alumno. Acá solo queda el alta.
+    return showNewRoutineModal ? (
+      <NewRoutineModal
+        open
+        title="Registrar rutina"
+        onClose={closeNewRoutineModal}
+        onCreated={(id) => navigate(id ? `/routines/${id}` : '/exercises/blueprints')}
+        initialStudentId={searchParams.get('student') ?? undefined}
+        initialBlueprintId={searchParams.get('blueprint') ?? undefined}
+      />
+    ) : (
+      <Navigate to="/students" replace />
+    )
+  }
 
   return (
     <div>
       <Header
-        title="Rutinas"
+        title={IS_V2 ? 'PDFs de rutinas' : 'Rutinas'}
         actions={
           IS_V2 ? (
             <Button size="sm" title="Nueva rutina" onClick={openNewRoutineModal} icon={<Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />}>
@@ -644,7 +581,7 @@ export function RoutinesPage() {
         <AdvisoriesSectionNav />
       </div>
 
-      <div className="px-4 lg:px-6">
+      <div className={cn('px-4 lg:px-6', IS_V2 && 'hidden')}>
         <SegmentedControl
           size="sm"
           ariaLabel="Rutinas"

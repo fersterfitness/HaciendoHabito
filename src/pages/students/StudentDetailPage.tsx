@@ -1,4 +1,6 @@
 import { controlTextareaClassName } from '@/lib/formControlClasses'
+import { DuplicateRoutineModal } from '@/components/routines/DuplicateRoutineModal'
+import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
@@ -103,6 +105,8 @@ export function StudentDetailView({
 
   const [assignPlanOpen, setAssignPlanOpen] = useState(false)
   const [assignPresetOpen, setAssignPresetOpen] = useState(false)
+  /** v2: «Duplicar» desde el historial de la ficha (antes solo estaba en la sección Rutinas). */
+  const [dupSource, setDupSource] = useState<Routine | null>(null)
   const [savingRoutinePaid, setSavingRoutinePaid] = useState(false)
     const [editPlanAssignment, setEditPlanAssignment] = useState<import('@/types/database').StudentPlanAssignment | null>(null)
   const [planRefreshKey, setPlanRefreshKey] = useState(0)
@@ -282,6 +286,15 @@ export function StudentDetailView({
   const showHabitsTab = canSeeTraining(profile?.role)
   const showRoutineTab = canSeeTraining(profile?.role)
   const [macroOpen, setMacroOpen] = useState(false)
+
+  function routineRowMenu(r: Routine) {
+    return (
+      <ActionMenuV2
+        label={`Más acciones de ${r.name}`}
+        items={[{ label: 'Duplicar…', hint: 'Para este u otro alumno', icon: <Copy />, onClick: () => setDupSource(r) }]}
+      />
+    )
+  }
 
   async function reloadRoutines() {
     if (!id || !user) return
@@ -965,7 +978,9 @@ export function StudentDetailView({
         {/* ── Rutina ── */}
         {sheetTab === 'rutina' && (() => {
           const completedRoutines = routines.filter((r) => r.status === 'completada')
-          const historialRoutines = routines.filter((r) => r.status !== 'completada')
+          const historialRoutines = routines.filter(
+            (r) => r.status !== 'completada' && !(IS_V2 && activeRoutine && r.id === activeRoutine.id),
+          )
           const rutinaHistorialVacío = historialRoutines.length === 0
           const fi = student.intake_ferster as Record<string, unknown> | null
 
@@ -1283,11 +1298,11 @@ export function StudentDetailView({
                   {historialRoutines.map((r) => {
                     const weeks = routineWeeks(r)
                     return (
-                      <li key={r.id}>
+                      <li key={r.id} className={IS_V2 ? 'flex items-center gap-1' : undefined}>
                         <button
                           type="button"
                           onClick={() => navigate(`/routines/${r.id}`)}
-                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
+                          className="group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-body-sm font-semibold text-ink-primary ">{r.name}</p>
@@ -1305,6 +1320,7 @@ export function StudentDetailView({
                             <span className="text-ink-muted/50 transition-colors group-hover:text-ink-muted ">›</span>
                           </div>
                         </button>
+                        {IS_V2 ? routineRowMenu(r) : null}
                       </li>
                     )
                   })}
@@ -1325,11 +1341,11 @@ export function StudentDetailView({
                   {completedRoutines.map((r) => {
                     const weeks = routineWeeks(r)
                     return (
-                      <li key={r.id}>
+                      <li key={r.id} className={IS_V2 ? 'flex items-center gap-1' : undefined}>
                         <button
                           type="button"
                           onClick={() => navigate(`/routines/${r.id}`)}
-                          className="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
+                          className="group flex w-full min-w-0 items-center gap-3 py-3 text-left transition-colors hover:bg-surface-elevated/80 "
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-body-sm font-semibold text-ink-primary ">{r.name}</p>
@@ -1347,6 +1363,7 @@ export function StudentDetailView({
                           </div>
                           <span className="text-ink-muted/50 transition-colors group-hover:text-ink-muted ">›</span>
                         </button>
+                        {IS_V2 ? routineRowMenu(r) : null}
                       </li>
                     )
                   })}
@@ -1574,6 +1591,20 @@ export function StudentDetailView({
         onClose={() => setPayingRoutine(null)}
         onConfirm={confirmRoutinePaid}
       />
+
+      {dupSource && user ? (
+        <DuplicateRoutineModal
+          source={dupSource}
+          ownerId={user.id}
+          currentStudentId={id ?? ''}
+          onClose={() => setDupSource(null)}
+          onDone={(newId, studentId) => {
+            setDupSource(null)
+            if (studentId === id) void reloadRoutines()
+            navigate(`/routines/${newId}`)
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={showDelete}

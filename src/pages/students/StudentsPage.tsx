@@ -1130,7 +1130,8 @@ export function StudentsPage() {
               'fixed z-[9991] flex flex-col overflow-hidden border border-surface-border/85 bg-surface-panel shadow-lg dark:bg-surface-panel dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]',
               'rounded-2xl motion-reduce:animate-none motion-safe:max-sm:animate-none motion-safe:sm:animate-panel-slide-in',
               'left-3 right-3 top-3 bottom-3 w-auto h-[calc(100dvh-1.5rem)] max-h-[calc(100dvh-1.5rem)]',
-              'sm:inset-auto sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:max-h-none sm:w-full sm:max-w-3xl lg:right-6 lg:top-6 lg:bottom-6 lg:max-w-4xl',
+              'sm:inset-auto sm:left-auto sm:right-5 sm:top-5 sm:bottom-5 sm:h-[calc(100dvh-2.5rem)] sm:max-h-none sm:w-full sm:max-w-3xl lg:right-6 lg:top-6 lg:bottom-6',
+              IS_V2 ? 'lg:max-w-5xl' : 'lg:max-w-4xl',
             )}
           >
             <StudentDetailView

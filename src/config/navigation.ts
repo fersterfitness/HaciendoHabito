@@ -225,8 +225,8 @@ export function getNavSections(role: AppRole | undefined): NavSection[] {
  */
 export type NavV2 = { main: NavItem[]; more: NavItem[] }
 
-const V2_STUDENTS: NavItem = { label: 'Alumnos', href: '/students', icon: Users, hint: 'Fichas, pagos y progreso' }
-const V2_ROUTINES: NavItem = { label: 'Rutinas', href: '/routines', icon: Dumbbell, hint: 'Entrenamientos por alumno' }
+/** En la v2 las rutinas se ven desde la ficha del alumno (pestaña Rutina): no hay sección aparte. */
+const V2_STUDENTS: NavItem = { label: 'Alumnos', href: '/students', icon: Users, hint: 'Fichas, rutinas y pagos', alsoMatch: ['/routines'] }
 const V2_FEEDBACK: NavItem = {
   label: 'Consultas semanales',
   shortLabel: 'Consultas',
@@ -273,7 +273,7 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
   }
   if (role === 'admin') {
     return {
-      main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_ROUTINES, V2_FEEDBACK, finance!],
+      main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_FEEDBACK, finance!],
       more: [
         { label: 'Nutrición', href: '/nutrition', icon: Salad, exactMatch: true },
         NAV_NUTRITION_PATIENT_ANTHRO[1]!,
@@ -290,7 +290,6 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
       { ...NAV_HOME, hint: 'Lo que tenés para hoy' },
       { ...NAV_APPOINTMENTS, hint: 'Agenda y recordatorios' },
       V2_STUDENTS,
-      V2_ROUTINES,
       V2_FEEDBACK,
       { ...finance!, hint: 'Cobros y gastos' },
     ],
