@@ -1,4 +1,7 @@
 import { controlSelectClassName } from '@/lib/formControlClasses'
+import { directoryToolbarBtnClassName } from '@/lib/primaryGradientCtaClasses'
+import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
+import { IconButton } from '@/components/ui/IconButton'
 import { IS_V2 } from '@/lib/uiVersion'
 import { SegmentedV2 } from '@/components/v2/ui'
 import { useEffect, useState, useRef, useMemo, type ReactNode } from 'react'
@@ -487,16 +490,37 @@ export function FinancesPage() {
 
         {/* Tabs (estilo rutinas / listados) */}
         {IS_V2 ? (
-          <div className="flex items-center gap-3 pt-4">
-            <h2 className="text-[14px] font-medium text-ink-primary">Movimientos</h2>
-            <SegmentedV2
-              value={tab}
-              onChange={(v) => switchTab(v)}
-              options={[
-                { value: 'income' as const, label: 'Ingresos', count: incomesFiltered.length },
-                { value: 'expenses' as const, label: 'Gastos', count: expensesFiltered.length },
-              ]}
-            />
+          <div className="flex flex-col gap-3 pt-4 lg:flex-row lg:items-center">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-medium text-ink-primary">Movimientos</h2>
+              <SegmentedV2
+                value={tab}
+                onChange={(v) => switchTab(v)}
+                options={[
+                  { value: 'income' as const, label: 'Ingresos', count: incomesFiltered.length },
+                  { value: 'expenses' as const, label: 'Gastos', count: expensesFiltered.length },
+                ]}
+              />
+            </div>
+            <div className="flex items-center gap-2 lg:ml-auto">
+              <div className="min-w-0 flex-1 lg:w-64 lg:flex-none">
+                <Input
+                  ref={financesSearchRef}
+                  type="search"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder={tab === 'income' ? 'Buscar ingreso…' : 'Buscar gasto…'}
+                  leftIcon={<Search className="h-4 w-4" />}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label={tab === 'income' ? 'Buscar ingresos por alumno, tipo o categoría' : 'Buscar gastos por descripción o categoría'}
+                />
+              </div>
+              <Button type="button" variant="soft" onClick={exportCSV} title="Exportar a CSV" className={directoryToolbarBtnClassName}>
+                <Download className="h-4 w-4 opacity-70" aria-hidden />
+                CSV
+              </Button>
+            </div>
           </div>
         ) : null}
         <SegmentedControl
@@ -511,8 +535,9 @@ export function FinancesPage() {
         />
 
         {/* Búsqueda + acciones (como otros módulos) */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+        <div className={cn('flex flex-col gap-3 md:flex-row md:items-center md:gap-3', IS_V2 && 'hidden')}>
           <div className="min-h-10 min-w-0 flex-1">
+            {IS_V2 ? null : (
             <Input
               ref={financesSearchRef}
               placeholder={
@@ -529,6 +554,7 @@ export function FinancesPage() {
                 'focus-visible:border-surface-inputBorder focus-visible:ring-1 focus-visible:ring-surface-inputBorder/50 ',
               )}
             />
+            )}
           </div>
           <div className={cn('relative md:w-[210px]', IS_V2 && 'hidden')}>
             <select
@@ -596,6 +622,23 @@ export function FinancesPage() {
           const entries = Object.entries(byMethod).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
           if (entries.length === 0) return null
           const grandTotal = entries.reduce((s, [, v]) => s + v, 0)
+          if (IS_V2)
+            return (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-secondary">
+                <span className="text-ink-muted">{tab === 'income' ? 'Cobrado' : 'Gastado'} por medio</span>
+                {entries.map(([method, total]) => (
+                  <span key={method} className="inline-flex items-center gap-2">
+                    <PaymentMethodBadge method={method as Income['payment_method']} />
+                    <span className="font-medium tabular-nums text-ink-primary">{formatCurrency(total)}</span>
+                  </span>
+                ))}
+                {entries.length > 1 ? (
+                  <span className="sm:ml-auto">
+                    Total <span className="ml-1 font-semibold tabular-nums text-ink-primary">{formatCurrency(grandTotal)}</span>
+                  </span>
+                ) : null}
+              </div>
+            )
           return (
             <div className="rounded-md border border-surface-border/70 bg-surface-card px-4 py-3 ">
               <p className="mb-2.5 text-2xs font-semibold text-ink-muted">
@@ -637,22 +680,22 @@ export function FinancesPage() {
               action={{ label: 'Nuevo ingreso', onClick: () => navigate('/finances/income/new'), icon: <Plus className="h-4 w-4" /> }}
             />
           ) : (
-            <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card shadow-none ">
-              <div className="border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2 ">
+            <section className={cn('overflow-hidden border bg-surface-card shadow-none', IS_V2 ? 'rounded-2xl border-surface-border' : 'rounded-md border-surface-border/70')}>
+              <div className={cn('border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2', IS_V2 && 'hidden')}>
                 <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
                 <p className="truncate text-2xs text-ink-muted">{filteredIncomes.length === 1 ? '1 movimiento' : `${filteredIncomes.length} movimientos`}</p>
               </div>
               <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
-                <table className="w-full min-w-[900px] border-collapse text-body-sm leading-snug hh-table">
+                <table className={cn('w-full border-collapse text-body-sm leading-snug hh-table', IS_V2 ? 'sm:min-w-[900px]' : 'min-w-[900px]')}>
                   <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                     <tr className="text-left">
-                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Fecha</th>
+                      <th className={cn('whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>Fecha</th>
                       <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Concepto</th>
                       <th className="hidden px-3 py-2 text-3xs font-medium text-ink-muted md:table-cell md:px-4">Tipo · categoría</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Monto</th>
-                      <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Estado</th>
-                      <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Medio · notas</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Acciones</th>
+                      <th className={cn('whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>Estado</th>
+                      <th className={cn('px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>Medio · notas</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">{IS_V2 ? <span className="sr-only">Acciones</span> : 'Acciones'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border/70 bg-surface-card">
@@ -662,12 +705,13 @@ export function FinancesPage() {
                         style={tableRowEnterStyle(rowIndex)}
                         className="transition-colors hover:bg-surface-elevated/85 "
                       >
-                        <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(income.income_date)}</td>
+                        <td className={cn('hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>{formatDate(income.income_date)}</td>
                         <td className="hh-row-drop-in max-w-[12rem] px-3 py-2 sm:max-w-none sm:px-4">
                           <p className="truncate font-semibold text-ink-primary" title={income.student?.full_name ?? income.description}>
                             {income.student?.full_name ?? income.description}
                           </p>
                           <p className="truncate text-2xs text-ink-muted md:hidden">
+                            {IS_V2 ? <span className="sm:hidden">{formatDate(income.income_date)} · </span> : null}
                             {income.income_type} · {income.category}
                           </p>
                         </td>
@@ -676,11 +720,12 @@ export function FinancesPage() {
                         </td>
                         <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-ink-primary sm:px-4">
                           {formatCurrency(income.amount)}
+                          {IS_V2 && income.status !== 'cobrado' ? <Badge status={income.status} className="ml-auto mt-1 flex w-fit text-3xs sm:hidden" /> : null}
                         </td>
-                        <td className="hh-row-drop-in px-3 py-2 sm:px-4">
+                        <td className={cn('hh-row-drop-in px-3 py-2 sm:px-4', IS_V2 && 'max-sm:hidden')}>
                           <Badge status={income.status} className="text-3xs" />
                         </td>
-                        <td className="hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4">
+                        <td className={cn('hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4', IS_V2 && 'max-sm:hidden')}>
                           <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
                             <PaymentMethodBadge method={income.payment_method} className="shrink-0" />
                             {income.notes?.trim() ? (
@@ -694,29 +739,11 @@ export function FinancesPage() {
                           </div>
                         </td>
                         <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="iconSm"
-                              onClick={() => navigate(`/finances/income/${income.id}/edit`)}
-                              title="Editar"
-                              aria-label="Editar"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="iconSm"
-                              onClick={() => setDeleteIncomeTarget(income)}
-                              className="hover:bg-status-expired/10 hover:text-status-expired"
-                              title="Eliminar"
-                              aria-label="Eliminar"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
+                          <MovementRowActions
+                            name={income.student?.full_name ?? income.description ?? 'ingreso'}
+                            onEdit={() => navigate(`/finances/income/${income.id}/edit`)}
+                            onDelete={() => setDeleteIncomeTarget(income)}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -733,22 +760,22 @@ export function FinancesPage() {
             action={{ label: 'Nuevo gasto', onClick: () => navigate('/finances/expenses/new'), icon: <Plus className="h-4 w-4" /> }}
           />
         ) : (
-          <section className="overflow-hidden rounded-md border border-surface-border/70 bg-surface-card shadow-none ">
-            <div className="border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2 ">
+          <section className={cn('overflow-hidden border bg-surface-card shadow-none', IS_V2 ? 'rounded-2xl border-surface-border' : 'rounded-md border-surface-border/70')}>
+            <div className={cn('border-b border-surface-border/55 bg-surface-elevated/35 px-3 py-2', IS_V2 && 'hidden')}>
               <h2 className="text-sm font-semibold tracking-tight text-ink-primary">Listado</h2>
               <p className="truncate text-2xs text-ink-muted">{filteredExpenses.length === 1 ? '1 gasto' : `${filteredExpenses.length} gastos`}</p>
             </div>
             <div className="max-h-[min(60vh,28rem)] overflow-auto lg:max-h-[min(65vh,32rem)]">
-              <table className="w-full min-w-[760px] border-collapse text-body-sm leading-snug hh-table">
+              <table className={cn('w-full border-collapse text-body-sm leading-snug hh-table', IS_V2 ? 'sm:min-w-[760px]' : 'min-w-[760px]')}>
                 <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
                   <tr className="text-left">
-                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Fecha</th>
+                    <th className={cn('whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>Fecha</th>
                     <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Descripción</th>
                     <th className="hidden px-3 py-2 text-3xs font-medium text-ink-muted sm:table-cell sm:px-4">Categoría</th>
                     <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Monto</th>
-                    <th className="whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Tipo</th>
-                    <th className="px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4">Medio · notas</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">Acciones</th>
+                    <th className={cn('whitespace-nowrap px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>Tipo</th>
+                    <th className={cn('px-3 py-2.5 text-3xs font-semibold text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>Medio · notas</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-right text-3xs font-medium text-ink-muted sm:px-4">{IS_V2 ? <span className="sr-only">Acciones</span> : 'Acciones'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border/70 bg-surface-card">
@@ -758,26 +785,30 @@ export function FinancesPage() {
                       style={tableRowEnterStyle(rowIndex)}
                       className="transition-colors hover:bg-surface-elevated/85 "
                     >
-                      <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4">{formatDate(expense.expense_date)}</td>
+                      <td className={cn('hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>{formatDate(expense.expense_date)}</td>
                       <td className="hh-row-drop-in max-w-[14rem] px-3 py-2 sm:max-w-none sm:px-4">
                         <p className="truncate font-semibold text-ink-primary" title={expense.description}>
                           {expense.description}
                         </p>
-                        {expense.subcategory && (
+                        {IS_V2 ? (
+                          <p className="truncate text-2xs text-ink-muted sm:hidden">
+                            {formatDate(expense.expense_date)} · {expense.category}
+                          </p>
+                        ) : expense.subcategory ? (
                           <p className="truncate text-2xs text-ink-muted sm:hidden">{expense.subcategory}</p>
-                        )}
+                        ) : null}
                       </td>
                       <td className="hh-row-drop-in hidden truncate px-3 py-2 text-ink-secondary sm:table-cell sm:px-4" title={expense.category}>
                         {expense.category}
                         {expense.subcategory ? ` · ${expense.subcategory}` : ''}
                       </td>
                       <td className="hh-row-drop-in whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-ink-primary sm:px-4">{formatCurrency(expense.amount)}</td>
-                      <td className="hh-row-drop-in px-3 py-2 sm:px-4">
+                      <td className={cn('hh-row-drop-in px-3 py-2 sm:px-4', IS_V2 && 'max-sm:hidden')}>
                         <span className={expenseTypePillClass(expense.expense_type)}>
                           {expense.expense_type === 'fijo' ? 'Fijo' : 'Variable'}
                         </span>
                       </td>
-                      <td className="hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4">
+                      <td className={cn('hh-row-drop-in max-w-[20rem] px-3 py-2 sm:px-4', IS_V2 && 'max-sm:hidden')}>
                         <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
                           <PaymentMethodBadge method={expense.payment_method} className="shrink-0" />
                           {expense.notes?.trim() ? (
@@ -791,29 +822,11 @@ export function FinancesPage() {
                         </div>
                       </td>
                       <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="iconSm"
-                            onClick={() => navigate(`/finances/expenses/${expense.id}/edit`)}
-                            title="Editar"
-                            aria-label="Editar"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="iconSm"
-                            onClick={() => setDeleteExpenseTarget(expense)}
-                            className="hover:bg-status-expired/10 hover:text-status-expired"
-                            title="Eliminar"
-                            aria-label="Eliminar"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        <MovementRowActions
+                          name={expense.description}
+                          onEdit={() => navigate(`/finances/expenses/${expense.id}/edit`)}
+                          onDelete={() => setDeleteExpenseTarget(expense)}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -926,6 +939,35 @@ export function FinancesPage() {
         confirmLabel="Sí, eliminar"
         loading={deleting}
       />
+    </div>
+  )
+}
+
+/** Acciones de una fila de movimientos. v2: «Editar» a la vista y «Eliminar» dentro del menú «…». */
+function MovementRowActions({ name, onEdit, onDelete }: { name: string; onEdit: () => void; onDelete: () => void }) {
+  if (IS_V2)
+    return (
+      <div className="flex items-center justify-end gap-0.5">
+        <IconButton onClick={onEdit} label={`Editar ${name}`} title="Editar" icon={<Pencil className="h-3.5 w-3.5" />} />
+        <ActionMenuV2 label={`Más acciones de ${name}`} items={[{ label: 'Eliminar', icon: <Trash2 />, danger: true, onClick: onDelete }]} />
+      </div>
+    )
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Button type="button" variant="ghost" size="iconSm" onClick={onEdit} title="Editar" aria-label="Editar">
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="iconSm"
+        onClick={onDelete}
+        className="hover:bg-status-expired/10 hover:text-status-expired"
+        title="Eliminar"
+        aria-label="Eliminar"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
     </div>
   )
 }
