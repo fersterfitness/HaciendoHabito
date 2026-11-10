@@ -1,9 +1,11 @@
 import { controlMdClassName } from '@/lib/formControlClasses'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
+import { rowLinkClick } from '@/lib/rowLink'
 import { IS_V2 } from '@/lib/uiVersion'
 import { SegmentedV2 } from '@/components/v2/ui'
 import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { useSlashSearchFocus } from '@/hooks/useSlashSearchFocus'
-import { useSearchParams, Navigate } from 'react-router-dom'
+import { Link, useSearchParams, Navigate } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import {
   Archive,
@@ -947,7 +949,13 @@ export function RoutinesPage() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2 group/title">
-                                    <span className="break-words font-semibold leading-snug tracking-tight text-ink-primary">{r.name}</span>
+                                    <Link
+                                      to={`/routines/${r.id}`}
+                                      onClick={rowLinkClick}
+                                      className={cn('break-words rounded-sm font-semibold leading-snug tracking-tight text-ink-primary', appFocusRingClassName)}
+                                    >
+                                      {r.name}
+                                    </Link>
                                     <button
                                       type="button"
                                       title="Renombrar"

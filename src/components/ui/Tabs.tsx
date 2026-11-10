@@ -1,4 +1,5 @@
 import { type ReactNode, useId } from 'react'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
@@ -25,7 +26,7 @@ export function Tabs({ tabs, active, onChange, className, ariaLabel }: TabsProps
   const reduceMotion = useReducedMotion()
   return (
     <div
-      role="tablist"
+      role="tablist" onKeyDown={onTabListKeyDown}
       aria-label={ariaLabel}
       className={cn(
         IS_V2

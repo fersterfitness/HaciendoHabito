@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconButton } from '@/components/ui/IconButton'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { CalendarPlus, Check, ChevronRight, Dumbbell, FileText, UserPlus, X, type LucideIcon } from 'lucide-react'
@@ -137,15 +138,7 @@ export function GettingStartedV2({
             {doneCount} de {steps.length} listos. {trainer ? 'Con esto ya podés arrancar con tu primer alumno.' : 'Con esto ya podés atender tu primera consulta.'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={hide}
-          className="-mr-2 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
-          title="Ocultar primeros pasos"
-          aria-label="Ocultar primeros pasos"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <IconButton onClick={hide} className="-mr-2 -mt-1 h-8 w-8 shrink-0" label="Ocultar primeros pasos" icon={<X className="h-4 w-4" />} />
       </div>
 
       <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-elevated" aria-hidden>

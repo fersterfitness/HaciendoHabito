@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { ChevronRight, Search } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -183,7 +184,7 @@ export function NutritionAnthropometryHubV2() {
               className={cn(nutritionInputClass, 'h-9 w-full pl-9 pr-3 text-sm')}
             />
           </div>
-          <div className="flex gap-1.5" role="tablist" aria-label="Filtrar pacientes">
+          <div className="flex gap-1.5" role="tablist" onKeyDown={onTabListKeyDown} aria-label="Filtrar pacientes">
             {(
               [
                 ['all', 'Todos'],
@@ -196,6 +197,7 @@ export function NutritionAnthropometryHubV2() {
                 type="button"
                 role="tab"
                 aria-selected={filter === k}
+                tabIndex={filter === k ? 0 : -1}
                 onClick={() => setFilter(k)}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',

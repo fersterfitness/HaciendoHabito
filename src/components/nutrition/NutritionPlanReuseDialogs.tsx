@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Search } from 'lucide-react'
@@ -152,7 +153,7 @@ export function PlanPickerDialog({
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-xl bg-surface-elevated p-0.5" role="tablist">
+        <div className="inline-flex rounded-xl bg-surface-elevated p-0.5" role="tablist" onKeyDown={onTabListKeyDown}>
           {(
             [
               ['template', `Plantillas (${templates.length})`],
@@ -164,6 +165,7 @@ export function PlanPickerDialog({
               type="button"
               role="tab"
               aria-selected={tab === k}
+              tabIndex={tab === k ? 0 : -1}
               onClick={() => {
                 setTab(k)
                 setSelectedId(null)

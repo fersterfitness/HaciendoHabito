@@ -1,4 +1,5 @@
 import { IS_V2 } from '@/lib/uiVersion'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { v2TabClass } from '@/components/v2/tabStyle'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
@@ -1482,7 +1483,7 @@ export function NutritionPlanningPage() {
           className={IS_V2 ? '' : '-mx-4 border-b border-surface-border px-4 pt-4 lg:-mx-6 lg:px-6'}
           aria-label="Secciones del plan"
         >
-          <div role="tablist" className={IS_V2 ? 'inline-flex flex-wrap gap-1.5' : 'flex flex-wrap gap-2'}>
+          <div role="tablist" onKeyDown={onTabListKeyDown} className={IS_V2 ? 'inline-flex flex-wrap gap-1.5' : 'flex flex-wrap gap-2'}>
             {PLANNING_MAIN_TAB_DEFS.map(({ id, label, hint, Icon }) => {
               const sel = planningTab === id
               return (
@@ -1491,6 +1492,7 @@ export function NutritionPlanningPage() {
                   type="button"
                   role="tab"
                   aria-selected={sel}
+                  tabIndex={sel ? 0 : -1}
                   title={hint}
                   id={`planning-tab-${id}`}
                   aria-controls={`planning-panel-${id}`}

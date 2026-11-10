@@ -1,9 +1,10 @@
-import { type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useId, useRef } from 'react'
+import { type PointerEvent as ReactPointerEvent, type ReactNode, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { cn } from '@/lib/utils'
 import { IS_V2 } from '@/lib/uiVersion'
+import { useDialogLayer } from '@/lib/dialogLayer'
 
 const SIZE = {
   sm: 'sm:max-w-sm',
@@ -52,22 +53,7 @@ export function Modal({
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
-  useEffect(() => {
-    if (!open) return
-    const prevFocus = document.activeElement as HTMLElement | null
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    panelRef.current?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-      prevFocus?.focus?.()
-    }
-  }, [open])
+  useDialogLayer(open, onClose, panelRef)
 
   // v2 · celu: se cierra arrastrando la agarradera hacia abajo (solo transform, sin recalcular diseño).
   const drag = useRef<{ y0: number; dy: number; t0: number } | null>(null)

@@ -1,4 +1,5 @@
 import { type RefObject, useEffect, useMemo, useState } from 'react'
+import { IconButton } from '@/components/ui/IconButton'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AlertCircle, Check, Download, FileImage, History, Loader2, MoreHorizontal, Plus, RotateCcw, Save, Sparkles, X } from 'lucide-react'
@@ -154,15 +155,7 @@ export function NutritionAnthropometryTabV2(props: Props) {
               </p>
             </div>
             {measurements.length ? (
-              <button
-                type="button"
-                onClick={closeForm}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
-                aria-label="Cerrar"
-                title="Cerrar"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <IconButton onClick={closeForm} className="shrink-0" label="Cerrar" icon={<X className="h-4 w-4" />} />
             ) : null}
           </div>
           <NutritionAnthropometryProgramForm
@@ -405,14 +398,7 @@ function AiAnalysisPanel({ ai }: { ai: Ai }) {
           Análisis con IA
         </CardTitle>
         {!ai.loading ? (
-          <button
-            type="button"
-            onClick={ai.clear}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
-            aria-label="Cerrar análisis"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <IconButton onClick={ai.clear} label="Cerrar análisis" icon={<X className="h-4 w-4" />} />
         ) : null}
       </div>
       {ai.loading ? (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PillButtonV2 } from '@/components/v2/ui'
 import { AnimatePresence, motion } from 'motion/react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -60,20 +61,12 @@ export function UnmarkedAppointmentsV2({
                 </span>
               </span>
               <span className={cn('flex shrink-0 gap-1.5', busy === a.id && 'pointer-events-none opacity-60')}>
-                <button
-                  type="button"
-                  onClick={() => void mark(a.id, 'no_show')}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-surface-elevated px-3 text-[12.5px] text-ink-secondary transition-colors hover:text-ink-primary"
-                >
-                  <UserX className="h-3.5 w-3.5" /> Faltó
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void mark(a.id, 'completed')}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-ink-primary px-3 text-[12.5px] font-medium text-surface-base transition-opacity hover:opacity-90"
-                >
-                  <Check className="h-3.5 w-3.5" /> Vino
-                </button>
+                <PillButtonV2 icon={UserX} onClick={() => void mark(a.id, 'no_show')}>
+                  Faltó
+                </PillButtonV2>
+                <PillButtonV2 icon={Check} primary onClick={() => void mark(a.id, 'completed')}>
+                  Vino
+                </PillButtonV2>
               </span>
             </motion.li>
           ))}

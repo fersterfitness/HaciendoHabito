@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from 'react'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { Clock, Columns2, Copy, Plus, Trash2 } from 'lucide-react'
 import type { MealMacros, WeeklyPlanGridJson } from '@/lib/nutrition/weeklyPlanGrid'
 import {
@@ -224,7 +225,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
       {narrow ? (
         // Tablet en vertical: los días arriba y las comidas del día elegido en dos columnas, con más lugar para escribir.
         <div className="-mx-1 rounded-2xl border border-surface-border/60 bg-surface-base px-2 py-3">
-          <div role="tablist" aria-label="Día del plan" className="flex gap-1.5 overflow-x-auto px-0.5 pb-3">
+          <div role="tablist" onKeyDown={onTabListKeyDown} aria-label="Día del plan" className="flex gap-1.5 overflow-x-auto px-0.5 pb-3">
             {days.map((day, di) => {
               const count = filledMealCountForDay(normalized, di)
               const totals = dayMacroTotals(normalized, di)
@@ -235,6 +236,7 @@ export function WeeklyPlanGridFields({ mergeWeekends, onMergeWeekendsChange, gri
                   type="button"
                   role="tab"
                   aria-selected={on}
+                  tabIndex={on ? 0 : -1}
                   onClick={() => setActiveDay(di)}
                   className={cn(
                     'flex h-11 shrink-0 flex-col items-start justify-center rounded-xl px-3 text-left transition-colors',

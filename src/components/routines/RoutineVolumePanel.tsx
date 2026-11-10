@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { FullscreenPanel } from '@/components/ui/FullscreenPanel'
 import {
   Bar,
   BarChart,
@@ -864,8 +865,7 @@ export function RoutineVolumePanel({
     : null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/70 p-1 backdrop-blur-sm sm:p-3" role="dialog" aria-modal aria-labelledby="volume-panel-title">
-      <div className="mx-auto flex h-full w-full max-w-[92rem] flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-base shadow-pop">
+    <FullscreenPanel onClose={onClose} labelledBy="volume-panel-title">
         <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-card px-4 py-3">
           <div className="min-w-0">
             <p className="text-3xs font-semibold text-brand-primary">Solo entrenador · no PDF ni alumno</p>
@@ -1046,7 +1046,6 @@ export function RoutineVolumePanel({
             </>
           )}
         </div>
-      </div>
 
       {studentId && adjusting && data ? (
         <StudentFactorsModal
@@ -1078,6 +1077,6 @@ export function RoutineVolumePanel({
           void reload()
         }}
       />
-    </div>
+    </FullscreenPanel>
   )
 }

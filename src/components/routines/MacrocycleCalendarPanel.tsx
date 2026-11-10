@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { FullscreenPanel } from '@/components/ui/FullscreenPanel'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -917,8 +918,7 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/70 p-1 backdrop-blur-sm sm:p-3" role="dialog" aria-modal aria-labelledby="macro-title">
-      <div className="mx-auto flex h-full w-full max-w-[96rem] flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-base shadow-pop">
+    <FullscreenPanel onClose={onClose} labelledBy="macro-title" className="max-w-[96rem]">
         <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-surface-border bg-surface-card px-4 py-3">
           <div className="min-w-0">
             <p className="text-3xs font-semibold text-brand-primary">Solo entrenador · el alumno no lo ve</p>
@@ -1403,7 +1403,6 @@ export function MacrocycleCalendarPanel({ open, onClose, studentId, studentName,
             </>
           )}
         </div>
-      </div>
-    </div>
+    </FullscreenPanel>
   )
 }

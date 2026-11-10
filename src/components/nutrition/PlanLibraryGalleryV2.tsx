@@ -1,4 +1,5 @@
 import { formatDistanceToNow, parseISO } from 'date-fns'
+import { IconButton } from '@/components/ui/IconButton'
 import { es } from 'date-fns/locale'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { normalizeWeeklyGrid } from '@/lib/nutrition/weeklyPlanGrid'
@@ -7,8 +8,8 @@ import { cn } from '@/lib/utils'
 import type { NutritionPlanLibrary } from '@/types/database'
 
 const chipClass = 'inline-flex items-center rounded-md bg-surface-elevated px-1.5 py-0.5 text-3xs font-medium text-ink-secondary'
-const iconBtnClass =
-  'inline-flex h-7 w-7 items-center justify-center rounded-lg bg-surface-card/90 text-ink-secondary shadow-sm backdrop-blur transition-colors hover:text-ink-primary'
+/** Sobre la tapa del plan: fondo blanco translúcido para que el ícono se lea sobre la imagen. */
+const iconBtnClass = 'bg-surface-card/90 text-ink-secondary shadow-sm backdrop-blur hover:text-ink-primary'
 
 function updatedAgo(iso: string): string {
   try {
@@ -69,18 +70,8 @@ export function PlanLibraryGalleryV2({
                 className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
                 onClick={(e) => e.stopPropagation()}
               >
-                <button type="button" className={iconBtnClass} title="Clonar" aria-label="Clonar plan" onClick={() => onClone(p)}>
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  className={cn(iconBtnClass, 'hover:text-status-expired')}
-                  title="Eliminar"
-                  aria-label="Eliminar plan"
-                  onClick={() => onDelete(p.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <IconButton className={iconBtnClass} title="Clonar" label="Clonar plan" onClick={() => onClone(p)} icon={<Copy className="h-3.5 w-3.5" />} />
+                <IconButton className={iconBtnClass} tone="danger" title="Eliminar" label="Eliminar plan" onClick={() => onDelete(p.id)} icon={<Trash2 className="h-3.5 w-3.5" />} />
               </div>
             </div>
             <div className="flex flex-1 flex-col gap-2 p-3.5">

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { IconButton } from '@/components/ui/IconButton'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ExternalLink, FileText, Loader2, Sparkles, Trash2, Upload } from 'lucide-react'
@@ -181,25 +182,20 @@ export function NutritionPatientFilesV2({
                         </span>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-sm:opacity-100">
-                        <button
-                          type="button"
+                        <IconButton
                           onClick={() => onOpen(doc.file_path)}
-                          aria-label={`Abrir ${doc.title}`}
+                          label={`Abrir ${doc.title}`}
                           title="Abrir"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-elevated hover:text-ink-primary"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
+                          icon={<ExternalLink className="h-4 w-4" />}
+                        />
+                        <IconButton
                           onClick={() => onDelete(doc)}
                           disabled={deletingId === doc.id}
-                          aria-label={`Eliminar ${doc.title}`}
+                          label={`Eliminar ${doc.title}`}
                           title="Eliminar"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-status-expired/10 hover:text-status-expired disabled:opacity-50"
-                        >
-                          {deletingId === doc.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </button>
+                          tone="danger"
+                          icon={deletingId === doc.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        />
                       </div>
                     </li>
                   )

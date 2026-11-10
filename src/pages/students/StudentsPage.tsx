@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
+import { rowLinkClick } from '@/lib/rowLink'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { StudentDetailView } from './StudentDetailPage'
 import {
@@ -1365,9 +1367,13 @@ function StudentDirectoryTable({
                       />
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="min-w-0 flex-1 truncate text-body-sm font-semibold leading-snug text-ink-primary">
+                          <Link
+                            to={`/students/${student.id}`}
+                            onClick={rowLinkClick}
+                            className={cn('min-w-0 flex-1 truncate rounded-sm text-body-sm font-semibold leading-snug text-ink-primary', appFocusRingClassName)}
+                          >
                             {student.full_name}
-                          </span>
+                          </Link>
                           {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{age}a</span>}
                           <div className="flex shrink-0 items-center gap-1">
                             {IS_V2 ? null : (

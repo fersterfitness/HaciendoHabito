@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { IconButton } from '@/components/ui/IconButton'
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Trash2 } from 'lucide-react'
@@ -150,15 +151,14 @@ export function NutritionClinicalNotesV2({ ownerId, studentId }: { ownerId: stri
                   <div className="min-w-0 flex-1 pb-1">
                     <div className="relative pr-8">
                       <p className="text-[14px] font-medium text-ink-primary">{r.title}</p>
-                      <button
-                        type="button"
+                      <IconButton
                         onClick={() => void remove(r.id)}
-                        aria-label="Eliminar nota"
+                        label="Eliminar nota"
                         title="Eliminar"
-                        className="absolute -top-1 right-0 inline-flex h-7 w-7 items-center justify-center rounded-lg text-ink-muted opacity-0 transition hover:bg-surface-elevated hover:text-status-expired focus-visible:opacity-100 group-hover:opacity-100"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                        tone="danger"
+                        className="absolute -top-1 right-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                        icon={<Trash2 className="h-3.5 w-3.5" />}
+                      />
                     </div>
                     {r.body ? <p className="mt-1 whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-secondary">{r.body}</p> : null}
                   </div>

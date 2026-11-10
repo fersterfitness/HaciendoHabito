@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IconButton } from '@/components/ui/IconButton'
 import { useLocation } from 'react-router-dom'
 import { Bell, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { getNavV2, isNavPathActive } from '@/config/navigation'
@@ -18,18 +19,13 @@ function useCurrentNav() {
 
 function RoundIconButton({ label, onClick, children, className }: { label: string; onClick: () => void; children: ReactNode; className?: string }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      size="md"
       onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={cn(
-        'relative flex h-9 w-9 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary',
-        className,
-      )}
-    >
-      {children}
-    </button>
+      label={label}
+      className={cn('relative rounded-full text-ink-secondary', className)}
+      icon={children}
+    />
   )
 }
 

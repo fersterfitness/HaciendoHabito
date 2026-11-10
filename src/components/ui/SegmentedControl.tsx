@@ -6,6 +6,7 @@ import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { IS_V2 } from '@/lib/uiVersion'
 import { v2TabClass, v2TabCountClass } from '@/components/v2/tabStyle'
 import { cn } from '@/lib/utils'
+import { onTabListKeyDown, tabIndexFor } from '@/lib/tabKeyboard'
 
 export type SegmentedItem = {
   id: string
@@ -49,6 +50,8 @@ export function SegmentedControl({
   const pillId = useId()
   const reduceMotion = useReducedMotion()
   const sz = SIZE[size]
+  const isNav = items.some((i) => i.to)
+  const anySelected = items.some((i) => i.id === value)
 
   function content(item: SegmentedItem, active: boolean) {
     const Icon = item.icon
@@ -105,8 +108,9 @@ export function SegmentedControl({
 
   return (
     <div
-      role={items.some((i) => i.to) ? 'navigation' : 'tablist'}
+      role={isNav ? 'navigation' : 'tablist'}
       aria-label={ariaLabel}
+      onKeyDown={isNav ? undefined : onTabListKeyDown}
       className={cn(
         'inline-flex max-w-full items-center overflow-x-auto scrollbar-hide',
         IS_V2 ? 'gap-1.5' : sz.wrap,
@@ -116,7 +120,7 @@ export function SegmentedControl({
         size === 'md' && 'max-w-full',
       )}
     >
-      {items.map((item) =>
+      {items.map((item, i) =>
         item.to ? (
           <NavLink key={item.id} to={item.to} end={item.end} title={item.title} className={({ isActive }) => itemBase(isActive)}>
             {({ isActive }) => content(item, isActive)}
@@ -127,6 +131,7 @@ export function SegmentedControl({
             type="button"
             role="tab"
             aria-selected={value === item.id}
+            tabIndex={tabIndexFor(value === item.id, i, anySelected)}
             title={item.title}
             onClick={() => onChange?.(item.id)}
             className={itemBase(value === item.id)}

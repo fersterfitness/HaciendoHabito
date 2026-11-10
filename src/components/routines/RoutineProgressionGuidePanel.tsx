@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState, type KeyboardEvent } from 'react'
+import { FullscreenPanel } from '@/components/ui/FullscreenPanel'
 import { RefreshCw, X } from 'lucide-react'
 import { buildGuideWeekLabels, buildRoutineProgressionGuide } from '@/lib/routine/routineProgressionGuide'
 import type { GuideBlock } from '@/lib/routine/routineProgressionGuide'
@@ -118,13 +119,12 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/75 p-1 sm:p-3"
-      role="dialog"
-      aria-modal
-      aria-labelledby="progression-guide-title"
+    <FullscreenPanel
+      onClose={onClose}
+      labelledBy="progression-guide-title"
+      overlayClassName="bg-black/75 backdrop-blur-none"
+      className="rounded-xl border-zinc-700 bg-zinc-950 shadow-2xl"
     >
-      <div className="mx-auto flex h-full w-full max-w-[92rem] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
           <div className="min-w-0">
             <p className="text-3xs font-semibold text-brand-primary">
@@ -241,7 +241,6 @@ export function RoutineProgressionGuidePanel({ open, onClose, routineName, block
             })
           )}
         </div>
-      </div>
-    </div>
+    </FullscreenPanel>
   )
 }

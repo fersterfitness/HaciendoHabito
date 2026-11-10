@@ -1,4 +1,5 @@
 import { controlTextareaClassName } from '@/lib/formControlClasses'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
@@ -817,7 +818,7 @@ export function StudentDetailView({
             variant === 'panel' &&
               'sticky top-0 z-[5] bg-surface-base/85 backdrop-blur-md supports-[backdrop-filter]:bg-surface-base/70',
           )}
-          role="tablist"
+          role="tablist" onKeyDown={onTabListKeyDown}
           aria-label="Secciones de la ficha"
         >
           <div className={v2Page ? '' : 'pt-3'}>
@@ -830,6 +831,7 @@ export function StudentDetailView({
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    tabIndex={active ? 0 : -1}
                     aria-label={label}
                     title={label}
                     onClick={() => {
@@ -1434,7 +1436,7 @@ export function StudentDetailView({
           <div className="space-y-4">
             <div
               className={v2Page ? 'inline-flex gap-1.5' : '-mx-px flex border-b border-surface-border/60 '}
-              role="tablist"
+              role="tablist" onKeyDown={onTabListKeyDown}
               aria-label="Seguimiento"
             >
               {(
@@ -1450,6 +1452,7 @@ export function StudentDetailView({
                   type="button"
                   role="tab"
                   aria-selected={seguimientoTab === value}
+                  tabIndex={seguimientoTab === value ? 0 : -1}
                   onClick={() => setSeguimientoTab(value)}
                   className={
                     v2Page

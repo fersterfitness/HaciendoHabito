@@ -1,4 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { onTabListKeyDown } from '@/lib/tabKeyboard'
+import { Button } from '@/components/ui/Button'
 import type { LucideIcon } from 'lucide-react'
 import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -438,8 +440,10 @@ export function PillButtonV2({
   iconClassName?: string
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="soft"
+      size="sm"
       onClick={(e) => {
         e.stopPropagation()
         onClick()
@@ -447,16 +451,14 @@ export function PillButtonV2({
       title={title}
       aria-label={children ? undefined : title}
       className={cn(
-        'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors',
-        primary
-          ? 'bg-ink-primary text-surface-base hover:bg-ink-primary/85'
-          : 'bg-surface-elevated text-ink-primary hover:bg-surface-border',
-        !children && 'w-8 justify-center px-0',
+        'rounded-full text-xs font-medium active:scale-100',
+        primary ? 'bg-ink-primary text-surface-base hover:bg-ink-primary/85' : 'hover:bg-surface-border',
+        !children && 'w-8 px-0',
       )}
     >
       {Icon ? <Icon className={cn('h-3.5 w-3.5', iconClassName)} /> : null}
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -473,7 +475,7 @@ export function SegmentedV2<T extends string>({
   size?: 'sm' | 'md'
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5" role="tablist">
+    <div className="flex flex-wrap gap-1.5" role="tablist" onKeyDown={onTabListKeyDown}>
       {options.map((o) => {
         const on = o.value === value
         return (
@@ -482,6 +484,7 @@ export function SegmentedV2<T extends string>({
             type="button"
             role="tab"
             aria-selected={on}
+            tabIndex={on ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={v2TabClass(on, size)}
           >
