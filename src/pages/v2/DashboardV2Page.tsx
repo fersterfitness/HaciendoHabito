@@ -56,6 +56,7 @@ import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
+import { useNavCounts } from '@/stores/navCounts'
 import { markReminderSent, unmarkReminderSent, useActiveStudents, useIncomes, useSentReminders } from '@/data/finance'
 import { useDailyMissions, ymdLocal, type DailyTaskRow, type MissionDef, type TaskCategory } from '@/data/dailyTasks'
 import { loadWeekStatusByOwner } from '@/lib/checkIn/routineWeekProgress'
@@ -727,6 +728,18 @@ export function DashboardV2Page() {
 
 
   const fmtTime = (iso: string) => format(new Date(iso), 'HH:mm')
+  // Números del día para el menú lateral.
+  const setNavCounts = useNavCounts((st) => st.setCounts)
+  const overduePayments = payItems.filter((r) => r.timing !== 'hoy').length
+  useEffect(() => {
+    if (!missionsOn || loading) return
+    setNavCounts({
+      ...(pendingCount ? { '/dashboard': { n: pendingCount, tone: 'accent' as const } } : {}),
+      ...(missing.length ? { '/feedback': { n: missing.length } } : {}),
+      ...(handlesMoney && overduePayments ? { '/finances': { n: overduePayments, tone: 'alert' as const } } : {}),
+    })
+  }, [missionsOn, loading, pendingCount, missing.length, handlesMoney, overduePayments, setNavCounts])
+
   let taskIndex = 0
   let lateShown = 0
   let onTimeShown = 0

@@ -6,11 +6,10 @@ import { flushSync } from 'react-dom'
 import toast from 'react-hot-toast'
 import {
   Bell,
-  ChevronRight,
+  ChevronsUpDown,
   LogOut,
   Moon,
   PanelLeft,
-  Plus,
   Search,
   Settings,
   Sun,
@@ -20,7 +19,7 @@ import {
 import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount'
 import { AvatarOrInitials } from '@/components/account/AvatarOrInitials'
 import { Popover } from '@/components/ui/Popover'
-import { canSeeTraining, getNavV2, isNavPathActive, type NavItem } from '@/config/navigation'
+import { getNavV2, isNavPathActive, type NavItem } from '@/config/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { openGlobalSearch } from '@/lib/globalSearch'
@@ -30,6 +29,7 @@ import { supabase } from '@/lib/supabase'
 import { leaveV2 } from '@/lib/uiVersion'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
+import { useNavCounts, type NavCount } from '@/stores/navCounts'
 import type { AppRole } from '@/types/database'
 
 const ROLE_LABEL: Partial<Record<AppRole, string>> = {
@@ -41,7 +41,6 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
 }
 
 const COLLAPSE_KEY = 'hh-v2-sidebar-collapsed'
-const MORE_KEY = 'hh-v2-sidebar-more'
 
 /**
  * Cambia el tema con un revelado circular que sale del botón (View Transitions). Donde el
@@ -100,37 +99,46 @@ function BrandMarkV2({ className = 'h-7 w-7' }: { className?: string }) {
   )
 }
 
-/** Una entrada del menú en el panel. */
-function NavRow({ item, active }: { item: NavItem; active: boolean }) {
+/** Contador del día al lado de un ítem. */
+function CountBadge({ count }: { count: NavCount }) {
+  return (
+    <span
+      className={cn(
+        'ml-auto shrink-0 rounded-md px-1.5 text-2xs font-medium leading-[18px] tabular-nums',
+        count.tone === 'accent'
+          ? 'bg-status-ok text-[rgb(36_53_11)]'
+          : count.tone === 'alert'
+            ? 'bg-status-expired/12 text-status-expired'
+            : 'bg-black/[0.06] text-ink-secondary dark:bg-white/[0.08]',
+      )}
+    >
+      {count.n > 99 ? '99+' : count.n}
+    </span>
+  )
+}
+
+/** Una entrada del menú: ícono, nombre y, si hay, el contador del día. La ayuda va al pasar el mouse. */
+function NavRow({ item, active, count }: { item: NavItem; active: boolean; count?: NavCount }) {
   const Icon = item.icon
   return (
     <NavLink
       to={item.href}
-      className={cn(rowClass(active), item.hint && 'h-auto min-h-8 items-start py-1.5')}
+      className={rowClass(active)}
+      title={item.hint}
       aria-current={active ? 'page' : undefined}
       onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
     >
       {active ? <ActivePill id="v2-nav-pill" /> : null}
-      <Icon
-        className={cn('h-4 w-4 shrink-0', item.hint && 'mt-px', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')}
-        strokeWidth={1.6}
-      />
-      {item.hint ? (
-        <span className="flex min-w-0 flex-col">
-          <span className="truncate">{item.label}</span>
-          <span className="truncate text-[11px] font-normal leading-4 text-ink-muted">{item.hint}</span>
-        </span>
-      ) : (
-        <span className="truncate">{item.label}</span>
-      )}
+      <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-ink-primary' : 'text-ink-muted group-hover:text-ink-secondary')} strokeWidth={1.6} />
+      <span className="truncate">{item.label}</span>
+      {count ? <CountBadge count={count} /> : null}
     </NavLink>
   )
 }
 
 /**
- * Barra lateral de la v2 en dos columnas: un riel de acciones (marca, buscar, crear, cuenta) y un
- * panel con una sola lista corta (lo del día a día) y el resto dentro de «Más».
- * El panel se puede plegar: queda solo el riel con los íconos.
+ * Barra lateral de la v2 en una sola columna: marca, buscador, el menú con los contadores del día
+ * y la cuenta al pie. Se puede plegar: queda un riel con los íconos.
  */
 export function SidebarV2() {
   const { profile, reset } = useAuthStore()
@@ -150,25 +158,7 @@ export function SidebarV2() {
   })
   const nav = getNavV2(role)
   const unread = useUnreadNotificationCount()
-  const training = canSeeTraining(role)
-  const moreHasActive = nav.more.some((i) => isNavPathActive(pathname, i))
-  const [moreOpen, setMoreOpen] = useState(() => {
-    try {
-      return localStorage.getItem(MORE_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
-  const showMore = moreOpen || moreHasActive
-  function toggleMore() {
-    const next = !showMore
-    setMoreOpen(next)
-    try {
-      localStorage.setItem(MORE_KEY, next ? '1' : '0')
-    } catch {
-      /* nada */
-    }
-  }
+  const counts = useNavCounts((st) => st.counts)
 
   useEffect(() => {
     try {
@@ -199,153 +189,165 @@ export function SidebarV2() {
     toast.success('Sesión cerrada', { position: 'bottom-center' })
   }
 
-  const newStudent = () => navigate('/students?create=1')
   const allItems = [...nav.main, ...nav.more]
 
-  return (
-    <aside className="sticky top-0 hidden h-screen shrink-0 lg:flex print:hidden" aria-label="Navegación principal">
-      {/* Riel */}
-      <div className="flex w-14 flex-col items-center gap-1 py-3">
-        <NavLink to="/dashboard" className="mb-3 flex h-9 w-9 items-center justify-center" title="Inicio" aria-label="Inicio">
+  const accountMenu = (trigger: Parameters<typeof Popover>[0]['trigger']) => (
+    <Popover open={menuOpen} onOpenChange={setMenuOpen} side="right" align="end" className="w-56 p-1" trigger={trigger}>
+      <div className="px-2 pb-1.5 pt-1">
+        <p className="truncate text-[13px] font-medium text-ink-primary">{profile?.full_name ?? 'Mi cuenta'}</p>
+        <p className="truncate text-[11px] text-ink-muted">{(role && ROLE_LABEL[role]) || 'Cuenta'}</p>
+      </div>
+      <div className="my-1 h-px bg-surface-border" />
+      <MenuButton
+        icon={Bell}
+        onClick={() => {
+          setMenuOpen(false)
+          navigate('/notifications')
+        }}
+      >
+        Notificaciones{unread > 0 ? ` · ${unread}` : ''}
+      </MenuButton>
+      <MenuButton icon={theme === 'dark' ? Sun : Moon} onClick={(e) => toggleThemeWithReveal(e, toggleTheme)}>
+        {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+      </MenuButton>
+      <MenuButton
+        icon={Settings}
+        onClick={() => {
+          setMenuOpen(false)
+          navigate('/settings')
+        }}
+      >
+        Configuración
+      </MenuButton>
+      <MenuButton
+        icon={Keyboard}
+        onClick={() => {
+          setMenuOpen(false)
+          openShortcutsHelp()
+        }}
+      >
+        Atajos de teclado
+      </MenuButton>
+      <MenuButton icon={Undo2} onClick={leaveV2}>
+        Volver a la versión actual
+      </MenuButton>
+      <div className="my-1 h-px bg-surface-border" />
+      <MenuButton icon={LogOut} onClick={() => void logout()}>
+        Cerrar sesión
+      </MenuButton>
+    </Popover>
+  )
+  const collapseLabel = collapsed ? 'Mostrar menú' : 'Plegar menú'
+
+  if (collapsed) {
+    return (
+      <aside className="sticky top-0 hidden h-screen w-14 shrink-0 flex-col items-center gap-1 py-3 lg:flex print:hidden" aria-label="Navegación principal">
+        <NavLink to="/dashboard" className="mb-2 flex h-9 w-9 items-center justify-center" title="Inicio" aria-label="Inicio">
           <BrandMarkV2 />
         </NavLink>
-        <button type="button" onClick={() => setCollapsed((c) => !c)} className={railBtnClass()} title={collapsed ? 'Mostrar panel' : 'Ocultar panel'} aria-label={collapsed ? 'Mostrar panel' : 'Ocultar panel'}>
+        <button type="button" onClick={() => setCollapsed(false)} className={railBtnClass()} title={collapseLabel} aria-label={collapseLabel} aria-expanded={false}>
           <PanelLeft className="h-[17px] w-[17px]" strokeWidth={1.6} />
         </button>
         <button type="button" onClick={() => openGlobalSearch()} className={railBtnClass()} title="Buscar ( / )" aria-label="Buscar">
           <Search className="h-[17px] w-[17px]" strokeWidth={1.6} />
         </button>
-        {training ? (
-          <button type="button" onClick={newStudent} className={railBtnClass()} title="Nuevo alumno" aria-label="Nuevo alumno">
-            <Plus className="h-[18px] w-[18px]" strokeWidth={1.6} />
-          </button>
-        ) : null}
-
-        {collapsed ? (
-          <>
-            <div className="my-2 h-px w-6 bg-surface-border" />
-            {allItems.map((item) => {
-              const Icon = item.icon
-              const active = isNavPathActive(pathname, item)
-              return (
-                <NavLink
-                  key={`${item.href}-${item.label}`}
-                  to={item.href}
-                  className={railBtnClass(active)}
-                  title={item.hint ? `${item.label}: ${item.hint}` : item.label}
-                  aria-label={item.label}
-                  aria-current={active ? 'page' : undefined}
-                  onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
-                >
-                  {active ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
-                  <Icon className="h-[17px] w-[17px]" strokeWidth={1.6} />
-                </NavLink>
-              )
-            })}
-          </>
-        ) : null}
-
-        <div className="mt-auto flex flex-col items-center gap-1">
-          <NavLink
-            to="/notifications"
-            className={({ isActive }) => railBtnClass(isActive)}
-            title="Notificaciones"
-            aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
-                <Bell className="h-[17px] w-[17px]" strokeWidth={1.6} />
-                <NotificationBellBadge count={unread} className="right-0.5 top-0.5 scale-90" />
-              </>
-            )}
-          </NavLink>
-          <button type="button" onClick={(e) => toggleThemeWithReveal(e, toggleTheme)} className={railBtnClass()} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'} aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
-            {theme === 'dark' ? <Sun className="h-[17px] w-[17px]" strokeWidth={1.6} /> : <Moon className="h-[17px] w-[17px]" strokeWidth={1.6} />}
-          </button>
-          <Popover
-            open={menuOpen}
-            onOpenChange={setMenuOpen}
-            side="right"
-            align="end"
-            className="w-56 p-1"
-            trigger={(t) => (
-              <button {...t} type="button" className="mt-1 rounded-full" title="Cuenta" aria-label="Cuenta">
-                <AvatarOrInitials fullName={profile?.full_name ?? '?'} avatarUrl={profile?.avatar_url ?? null} size="sm" />
-              </button>
-            )}
-          >
-            <div className="px-2 pb-1.5 pt-1">
-              <p className="truncate text-[13px] font-medium text-ink-primary">{profile?.full_name ?? 'Mi cuenta'}</p>
-              <p className="truncate text-[11px] text-ink-muted">{(role && ROLE_LABEL[role]) || 'Cuenta'}</p>
-            </div>
-            <div className="my-1 h-px bg-surface-border" />
-            <MenuButton
-              icon={Settings}
-              onClick={() => {
-                setMenuOpen(false)
-                navigate('/settings')
-              }}
+        <div className="my-2 h-px w-6 bg-surface-border" />
+        {allItems.map((item) => {
+          const Icon = item.icon
+          const active = isNavPathActive(pathname, item)
+          const count = counts[item.href]
+          return (
+            <NavLink
+              key={`${item.href}-${item.label}`}
+              to={item.href}
+              className={railBtnClass(active)}
+              title={`${item.label}${count ? ` · ${count.n}` : ''}`}
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
+              onMouseEnter={() => prefetchRouteChunkByHref(item.href)}
             >
-              Configuración
-            </MenuButton>
-            <MenuButton
-              icon={Keyboard}
-              onClick={() => {
-                setMenuOpen(false)
-                openShortcutsHelp()
-              }}
-            >
-              Atajos de teclado
-            </MenuButton>
-            <MenuButton icon={Undo2} onClick={leaveV2}>
-              Volver a la versión actual
-            </MenuButton>
-            <MenuButton icon={LogOut} onClick={() => void logout()}>
-              Cerrar sesión
-            </MenuButton>
-          </Popover>
+              {active ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
+              <Icon className="h-[17px] w-[17px]" strokeWidth={1.6} />
+              {count ? (
+                <span className={cn('absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full', count.tone === 'alert' ? 'bg-status-expired' : count.tone === 'accent' ? 'bg-status-ok ring-1 ring-black/15' : 'bg-ink-muted')} aria-hidden />
+              ) : null}
+            </NavLink>
+          )
+        })}
+        <div className="mt-auto">
+          {accountMenu((t) => (
+            <button {...t} type="button" className="relative rounded-full" title="Cuenta" aria-label="Cuenta">
+              <AvatarOrInitials fullName={profile?.full_name ?? '?'} avatarUrl={profile?.avatar_url ?? null} size="sm" />
+              <NotificationBellBadge count={unread} className="-right-0.5 -top-0.5 scale-90" />
+            </button>
+          ))}
         </div>
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="sticky top-0 hidden h-screen w-[14.5rem] shrink-0 flex-col px-2.5 py-3 lg:flex print:hidden" aria-label="Navegación principal">
+      <div className="mb-3 flex h-9 items-center gap-2.5 pl-1.5">
+        <NavLink to="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5" title="Inicio">
+          <BrandMarkV2 className="h-6 w-6" />
+          <span className="truncate text-[14px] font-medium tracking-[-0.01em] text-ink-primary">Haciéndolo Hábito</span>
+        </NavLink>
+        <button type="button" onClick={() => setCollapsed(true)} className={cn(railBtnClass(), 'h-8 w-8')} title={collapseLabel} aria-label={collapseLabel} aria-expanded>
+          <PanelLeft className="h-4 w-4" strokeWidth={1.6} />
+        </button>
       </div>
 
-      {/* Panel */}
-      {!collapsed ? (
-        // Tarjeta propia (como el panel del contenido) para que no se funda con el riel.
-        <div className="my-2.5 mr-2.5 flex w-[13.5rem] flex-col rounded-[1.25rem] bg-[rgb(var(--v2-sidebar-panel))] px-2 py-2.5 shadow-[0_0_0_1px_rgb(0_0_0/0.05)] dark:shadow-[0_0_0_1px_rgb(255_255_255/0.06)]">
-          <div className="mb-2 flex h-9 items-center px-2.5">
-            <span className="truncate text-[14px] font-medium tracking-[-0.01em] text-ink-primary">Haciéndolo Hábito</span>
-          </div>
+      <button
+        type="button"
+        onClick={() => openGlobalSearch()}
+        className="v2-nav-pill mb-3 flex h-8 items-center gap-2 rounded-lg px-2.5 text-left text-[13px] text-ink-muted transition-colors hover:text-ink-primary"
+        aria-label="Buscar"
+      >
+        <Search className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+        Buscar
+        <kbd className="ml-auto rounded bg-black/[0.05] px-1.5 font-mono text-2xs leading-[18px] text-ink-muted dark:bg-white/[0.08]">/</kbd>
+      </button>
 
-          <nav className="-mr-1 flex min-h-0 flex-1 flex-col gap-px overflow-y-auto pr-1 scrollbar-hide">
-            {nav.main.map((item) => (
-              <NavRow key={`${item.href}-${item.label}`} item={item} active={isNavPathActive(pathname, item)} />
+      <nav className="-mr-1 flex min-h-0 flex-1 flex-col gap-px overflow-y-auto pr-1 scrollbar-hide">
+        {nav.main.map((item) => (
+          <NavRow key={`${item.href}-${item.label}`} item={item} active={isNavPathActive(pathname, item)} count={counts[item.href]} />
+        ))}
+        {nav.more.length ? (
+          <>
+            <p className="mb-1 mt-4 px-2.5 text-2xs font-medium text-ink-muted">Más</p>
+            {nav.more.map((item) => (
+              <NavRow key={`${item.href}-${item.label}`} item={item} active={isNavPathActive(pathname, item)} count={counts[item.href]} />
             ))}
-            {nav.more.length ? (
-              <>
-                <button
-                  type="button"
-                  onClick={toggleMore}
-                  aria-expanded={showMore}
-                  className="group mt-3 flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-ink-muted transition-colors hover:text-ink-primary"
-                >
-                  Más
-                  <ChevronRight className={cn('h-3 w-3 transition-transform duration-200', showMore && 'rotate-90')} aria-hidden />
-                </button>
-                {showMore
-                  ? nav.more.map((item) => (
-                      <NavRow key={`${item.href}-${item.label}`} item={item} active={isNavPathActive(pathname, item)} />
-                    ))
-                  : null}
-              </>
-            ) : null}
-          </nav>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </nav>
+
+      <div className="mt-2">
+        {accountMenu((t) => (
+          <button
+            {...t}
+            type="button"
+            className={cn('flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors', NAV_HOVER)}
+            title="Cuenta"
+          >
+            <span className="relative shrink-0">
+              <AvatarOrInitials fullName={profile?.full_name ?? '?'} avatarUrl={profile?.avatar_url ?? null} size="sm" />
+              <NotificationBellBadge count={unread} className="-right-0.5 -top-0.5 scale-90" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-[13px] font-medium leading-tight text-ink-primary">{profile?.full_name ?? 'Mi cuenta'}</span>
+              <span className="truncate text-2xs leading-tight text-ink-muted">{(role && ROLE_LABEL[role]) || 'Cuenta'}</span>
+            </span>
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+          </button>
+        ))}
+      </div>
     </aside>
   )
 }
 
-function MenuButton({ icon: Icon, onClick, children }: { icon: typeof Settings; onClick: () => void; children: ReactNode }) {
+function MenuButton({ icon: Icon, onClick, children }: { icon: typeof Settings; onClick: (e: React.MouseEvent) => void; children: ReactNode }) {
   return (
     <button
       type="button"
