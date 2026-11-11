@@ -25,6 +25,8 @@ import { serializeBlocksToBlueprint } from '@/lib/routine/routineBlueprint'
 import { syncLibraryBlueprintPayload } from '@/lib/routine/libraryRoutine'
 import { cascadeWeekDatesFromBlock, initialDatesForNewBlock } from '@/lib/routine/weekBlockDates'
 import { sendRoutinePdfViaWhatsApp } from '@/lib/routine/sendRoutinePdfWhatsApp'
+import { ensureRoutineShareToken, sharedRoutineMessage, sharedRoutineUrl } from '@/lib/routine/sharedRoutine'
+import { normalizePhoneForWhatsApp, shareToWhatsApp } from '@/lib/whatsapp'
 import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProgressLogPdf'
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
@@ -283,6 +285,18 @@ export function RoutineDetailPage() {
     if (!id || !user || !routine?.student) return
     setSendingWa(true)
     try {
+      // v2: el alumno recibe el link fijo de la app (/rutina/:token), que no vence y siempre muestra la
+      // rutina vigente con el feedback de la semana. El PDF queda para descargar.
+      if (IS_V2 && routine.student_id) {
+        const token = await ensureRoutineShareToken(user.id, routine.student_id)
+        const firstName = routine.student.full_name.trim().split(/\s+/)[0] ?? ''
+        const r = await shareToWhatsApp({
+          message: sharedRoutineMessage(firstName, sharedRoutineUrl(token)),
+          phoneDigits: normalizePhoneForWhatsApp(routine.student.phone),
+        })
+        if (r.mode === 'clipboard') toast.success(r.copied ? 'Mensaje copiado: pegalo en el chat.' : 'Abrí el chat y pegá el link.')
+        return
+      }
       await recoverStaleRoutinePdfs(user.id)
       const { data: latestPdf } = await supabase
         .from('routine_pdfs')

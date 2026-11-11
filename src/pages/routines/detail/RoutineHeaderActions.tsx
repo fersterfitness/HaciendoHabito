@@ -144,7 +144,11 @@ export function RoutineHeaderActions(p: Props) {
             onClick={p.onWhatsApp}
             disabled={p.sendingWa || !p.canSendWa}
             className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 bg-surface-elevated text-ink-primary hover:bg-surface-border/60 [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
-            title={`Enviar rutina por WhatsApp (${TRAINER_CONTACT_WHATSAPP_DISPLAY})`}
+            title={
+              IS_V2
+                ? 'Le llega el link de la rutina para verla en el celu, sin cuenta, con el feedback de la semana.'
+                : `Enviar rutina por WhatsApp (${TRAINER_CONTACT_WHATSAPP_DISPLAY})`
+            }
           >
             {p.sendingWa ? <Spinner className="h-3.5 w-3.5" /> : <WhatsAppIcon className="h-3.5 w-3.5" />}
             <span className="hidden md:inline">{p.sendingWa ? 'Enviando…' : 'WhatsApp'}</span>
