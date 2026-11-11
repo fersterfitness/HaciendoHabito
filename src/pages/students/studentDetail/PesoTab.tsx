@@ -272,10 +272,10 @@ export function PesoTab({
                       {goal ? (
                         <ReferenceLine
                           y={goal}
-                          stroke="#10b981"
+                          stroke="rgb(var(--chart-ok))"
                           strokeDasharray="5 4"
                           strokeOpacity={0.8}
-                          label={{ value: `Meta ${goal} kg`, position: 'insideTopRight', fontSize: 10, fill: '#10b981' }}
+                          label={{ value: `Meta ${goal} kg`, position: 'insideTopRight', fontSize: 10, fill: 'rgb(var(--chart-ok-ink))' }}
                         />
                       ) : null}
                       <Tooltip

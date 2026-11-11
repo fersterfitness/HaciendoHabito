@@ -114,7 +114,7 @@ function VolumeChart({ week, settings }: { week: WeekVolume; settings: VolumeSet
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 18, right: 8, bottom: 0, left: 0 }} barGap={-18}>
         <CartesianGrid {...chartGrid} />
-        <ReferenceArea y1={settings.targetMin} y2={settings.targetMax} fill="#10b981" fillOpacity={0.07} stroke="#10b981" strokeOpacity={0.25} strokeDasharray="4 4" />
+        <ReferenceArea y1={settings.targetMin} y2={settings.targetMax} fill="rgb(var(--chart-ok))" fillOpacity={0.07} stroke="rgb(var(--chart-ok))" strokeOpacity={0.25} strokeDasharray="4 4" />
         <XAxis dataKey="label" {...chartAxis} interval={0} />
         <YAxis {...chartAxis} width={28} allowDecimals={false} />
         <Tooltip

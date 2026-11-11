@@ -362,7 +362,7 @@ function AppRoutes() {
 }
 
 /** Verde éxito (toasts success). */
-const TOAST_SUCCESS_ICON = '#16a34a'
+const TOAST_SUCCESS_ICON = IS_V2 ? 'rgb(var(--chart-ok-ink))' : '#16a34a'
 /** Marca (toasts loading / spinner); alineado a --brand-primary. */
 const TOAST_LOADING_ICON = brandHex('primary')
 
@@ -389,12 +389,12 @@ function ThemedToaster() {
           duration: 2800,
           iconTheme: { primary: TOAST_SUCCESS_ICON, secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
           style: {
-            borderColor: isDark ? 'rgba(34, 197, 94, 0.35)' : 'rgba(22, 163, 74, 0.25)',
+            borderColor: IS_V2 ? 'rgb(var(--chart-ok) / 0.4)' : isDark ? 'rgba(34, 197, 94, 0.35)' : 'rgba(22, 163, 74, 0.25)',
           },
         },
         error: {
           duration: 4800,
-          iconTheme: { primary: '#EF4444', secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
+          iconTheme: { primary: IS_V2 ? 'rgb(var(--chart-bad))' : '#EF4444', secondary: isDark ? '#1E1E1E' : '#FFFFFF' },
         },
         loading: {
           iconTheme: { primary: TOAST_LOADING_ICON, secondary: isDark ? '#1E1E1E' : '#FFFFFF' },

@@ -191,8 +191,8 @@ export type VolumeStatus = 'none' | 'low' | 'ok' | 'high'
 export const VOLUME_STATUS_COLOR: Record<VolumeStatus, string> = {
   none: 'rgb(var(--ink-muted) / 0.35)',
   low: '#f59e0b',
-  ok: '#10b981',
-  high: '#f43f5e',
+  ok: 'rgb(var(--chart-ok))',
+  high: 'rgb(var(--chart-bad))',
 }
 
 export function volumeStatus(value: number, target: { min: number; max: number }): VolumeStatus {

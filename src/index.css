@@ -108,6 +108,10 @@
     --tw-rose-800: 159 18 57;
     --tw-rose-900: 136 19 55;
     --tw-rose-950: 76 5 25;
+    /* Gráficos: «bien / meta» y «mal / pasado de rosca». La v2 los redefine junto con los verdes y rojos. */
+    --chart-ok: 16 185 129;
+    --chart-ok-ink: 16 185 129;
+    --chart-bad: 244 63 94;
     /* Estados de «bien», «atención» y progreso. */
     --status-ok: 34 165 90;
     --status-ok-ink: 22 121 63;
@@ -686,6 +690,10 @@ html.ui-v2 {
   /* Verdes y rojos de la v2: verde flúor claro y rojo frambuesa (los mismos de la página del alumno). */
   --status-ok: 195 255 77;
   --status-ok-ink: 63 98 18;
+  /* En gráficos sobre fondo claro la línea va un tono más oscura que el flúor, para que se vea. */
+  --chart-ok: 132 204 22;
+  --chart-ok-ink: 77 124 15;
+  --chart-bad: 194 37 61;
   --tw-emerald-50: 247 255 230;
   --tw-emerald-100: 238 255 204;
   --tw-emerald-200: 224 255 163;
@@ -766,6 +774,9 @@ html.ui-v2 {
 
 html.ui-v2.dark {
   --status-ok-ink: 195 255 77;
+  --chart-ok: 195 255 77;
+  --chart-ok-ink: 195 255 77;
+  --chart-bad: 226 84 108;
   --tw-emerald-500: 195 255 77;
   --tw-emerald-600: 178 238 62;
   --tw-emerald-700: 210 255 122;

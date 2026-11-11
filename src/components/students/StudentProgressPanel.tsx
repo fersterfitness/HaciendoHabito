@@ -318,7 +318,7 @@ export function StudentProgressPanel({
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="label" {...chartAxis} interval="preserveStartEnd" />
                 <YAxis domain={[0, 100]} {...chartAxis} width={36} tickFormatter={(v: number) => `${v}%`} />
-                <ReferenceLine y={ADHERENCE_GOAL} stroke="#10b981" strokeDasharray="5 4" strokeOpacity={0.7} />
+                <ReferenceLine y={ADHERENCE_GOAL} stroke="rgb(var(--chart-ok))" strokeDasharray="5 4" strokeOpacity={0.7} />
                 <Tooltip cursor={chartCursor} content={<ChartTooltip formatValue={(v) => `${v}%`} />} />
                 <Area type="monotone" dataKey="adherencia" name="Adherencia" stroke={BRAND} strokeWidth={2.5} fill="url(#progress-adherence)" activeDot={chartActiveDot(BRAND)} connectNulls />
                 <Line type="monotone" dataKey="entrenamiento" name="Entrenamiento" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
@@ -333,7 +333,7 @@ export function StudentProgressPanel({
                 { label: 'Entrenamiento', color: '#3b82f6' },
                 { label: 'Comidas', color: '#10b981' },
                 { label: 'Hábitos', color: '#a855f7' },
-                { label: `Objetivo ${ADHERENCE_GOAL}%`, color: '#10b981' },
+                { label: `Objetivo ${ADHERENCE_GOAL}%`, color: 'rgb(var(--chart-ok))' },
               ]}
             />
           </>
@@ -425,7 +425,7 @@ export function StudentProgressPanel({
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="label" {...chartAxis} interval="preserveStartEnd" />
                 <YAxis {...chartAxis} width={40} tickFormatter={(v: number) => (v ? `${nf(v / 1000)}k` : '')} />
-                <ReferenceLine y={STEPS_GOAL} stroke="#10b981" strokeDasharray="5 4" strokeOpacity={0.7} label={{ value: `${nf(STEPS_GOAL)}`, position: 'insideTopRight', fontSize: 10, fill: '#10b981' }} />
+                <ReferenceLine y={STEPS_GOAL} stroke="rgb(var(--chart-ok))" strokeDasharray="5 4" strokeOpacity={0.7} label={{ value: `${nf(STEPS_GOAL)}`, position: 'insideTopRight', fontSize: 10, fill: 'rgb(var(--chart-ok-ink))' }} />
                 <Tooltip cursor={chartBarCursor} content={<ChartTooltip formatValue={(v) => `≈ ${nf(v)} pasos`} />} />
                 <Bar dataKey="pasos" name="Pasos/día" fill="url(#progress-steps)" radius={chartBarRadius} maxBarSize={28} />
               </BarChart>
