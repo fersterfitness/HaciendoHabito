@@ -49,13 +49,56 @@ export function PageV2({ children, className }: { children: ReactNode; className
 }
 
 /** Saludo o título de la página, sin nada colgando al costado. */
-export function GreetingV2({ title, eyebrow, children }: { title: ReactNode; eyebrow?: ReactNode; children?: ReactNode }) {
+export function GreetingV2({
+  title,
+  eyebrow,
+  children,
+  lead,
+}: {
+  title: ReactNode
+  eyebrow?: ReactNode
+  children?: ReactNode
+  /** A la izquierda del saludo (por ejemplo, el anillo de avance del día). */
+  lead?: ReactNode
+}) {
   return (
-    <div className="mb-6 lg:mb-7">
-      {eyebrow ? <p className="mb-1 text-[12px] font-medium text-ink-muted">{eyebrow}</p> : null}
-      <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-ink-primary lg:text-[26px]">{title}</h1>
-      {children ? <p className="mt-1 text-[13px] text-ink-muted">{children}</p> : null}
+    <div className="mb-6 flex items-center gap-4 lg:mb-7">
+      {lead}
+      <div className="min-w-0">
+        {eyebrow ? <p className="mb-1 text-[12px] font-medium text-ink-muted">{eyebrow}</p> : null}
+        <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-ink-primary lg:text-[26px]">{title}</h1>
+        {children ? <p className="mt-1 text-[13px] text-ink-muted">{children}</p> : null}
+      </div>
     </div>
+  )
+}
+
+/** Anillo de avance: cuánto del día ya está hecho. */
+export function ProgressRingV2({ done, total }: { done: number; total: number }) {
+  const r = 20
+  const c = 2 * Math.PI * r
+  const ratio = total > 0 ? Math.min(1, done / total) : 0
+  return (
+    <span className="relative flex h-14 w-14 shrink-0 items-center justify-center" role="img" aria-label={`${done} de ${total} hechas`}>
+      <svg viewBox="0 0 48 48" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden>
+        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4.5" className="stroke-surface-elevated" />
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          fill="none"
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - ratio)}
+          className="stroke-brand-primary transition-[stroke-dashoffset] duration-500 ease-out"
+        />
+      </svg>
+      <span className="text-xs font-semibold tabular-nums tracking-[-0.02em] text-ink-primary">
+        {done}
+        <span className="font-medium text-ink-muted">/{total}</span>
+      </span>
+    </span>
   )
 }
 
@@ -361,6 +404,7 @@ export function TaskCardV2({
   icon: LeadIcon,
   onCheck,
   urgent: _urgent,
+  late: _late,
 }: {
   title: ReactNode
   description?: ReactNode
@@ -376,14 +420,16 @@ export function TaskCardV2({
   onCheck?: () => void
   /** Alerta (franja roja a la izquierda). */
   urgent?: boolean
+  /** Viene de días anteriores: la lista la agrupa bajo «Atrasado». */
+  late?: boolean
 }) {
   return (
     <article
       className={cn(
         // En la compu cada fila usa las columnas de la lista (subgrid): casilla, avatar, texto y botones
         // quedan alineados entre filas aunque cada una traiga botones de distinto ancho.
-        'flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-2xl border border-surface-border bg-surface-card px-3.5 py-3 transition-colors sm:col-span-full sm:grid sm:grid-cols-subgrid sm:px-4',
-        onOpen && 'hover:border-ink-muted/35',
+        'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-3.5 py-2.5 transition-colors sm:col-span-full sm:grid sm:grid-cols-subgrid sm:px-4',
+        onOpen && 'hover:bg-surface-panel/60',
 
       )}
     >
@@ -407,11 +453,11 @@ export function TaskCardV2({
           <span className="h-2.5 w-2.5 rounded-full border-[1.5px] border-ink-muted/70" />
         </span>
       )}
-      <span className="hidden w-9 shrink-0 justify-center sm:flex [&>span]:h-9 [&>span]:w-9" aria-hidden={!mark}>
+      <span className="hidden w-8 shrink-0 justify-center sm:flex [&>span]:h-8 [&>span]:w-8" aria-hidden={!mark}>
         {mark ??
           (LeadIcon ? (
-            <span className="flex items-center justify-center rounded-xl border border-surface-border bg-surface-panel text-ink-secondary">
-              <LeadIcon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            <span className="flex items-center justify-center rounded-full bg-surface-elevated text-ink-secondary">
+              <LeadIcon className="h-4 w-4" strokeWidth={1.6} />
             </span>
           ) : null)}
       </span>
@@ -458,11 +504,14 @@ export function TaskCardV2({
 }
 
 /**
- * Contenedor de las filas de tareas: cada tarea es su propia tarjeta. En la compu es una grilla de 4 columnas
- * (casilla, avatar o ícono, texto, botones) que comparten todas las filas.
+ * Contenedor de las filas de tareas: una sola tarjeta con filas separadas por una línea. En la compu es una
+ * grilla de 4 columnas (casilla, avatar o ícono, texto, botones) que comparten todas las filas.
  */
 export const TASK_LIST_V2 =
-  'flex flex-col gap-2 sm:grid sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:gap-y-2 sm:[&>*]:col-span-full'
+  '-mt-px flex flex-col [&>*]:border-t [&>*]:border-surface-border sm:grid sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:[&>*]:col-span-full'
+
+/** Tarjeta que envuelve los filtros y la lista de tareas. */
+export const TASK_PANEL_V2 = 'overflow-hidden rounded-2xl border border-surface-border bg-surface-card'
 
 /** Botón de tarjeta: pastilla gris (o negra si es la acción del momento). */
 export function PillButtonV2({

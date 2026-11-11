@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { forwardRef, isValidElement, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import {
   CalendarClock,
   CheckCheck,
+  ChevronDown,
   Dumbbell,
   Megaphone,
   MessageSquareReply,
@@ -36,6 +37,7 @@ import {
   MetaChipV2,
   PageV2,
   PillButtonV2,
+  ProgressRingV2,
   PulseCardV2,
   SectionTitleV2,
   SegmentedV2,
@@ -43,6 +45,7 @@ import {
   TagV2,
   TaskCardV2,
   TASK_LIST_V2,
+  TASK_PANEL_V2,
 } from '@/components/v2/ui'
 import { TopBarV2 } from '@/components/v2/TopBarV2'
 import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
@@ -139,11 +142,13 @@ function saveReminded(ids: Set<string>) {
 
 /** Cada tarjeta de «Para hoy»: entran en cascada y, al resolverse, se van hacia el costado. */
 // Con forwardRef: AnimatePresence en modo «popLayout» necesita medir cada tarjeta al sacarla.
-const AnimatedTask = forwardRef<HTMLDivElement, { index: number; children: ReactNode }>(function AnimatedTask({ index, children }, ref) {
+const AnimatedTask = forwardRef<HTMLDivElement, { index: number; late?: boolean; children: ReactNode }>(function AnimatedTask({ index, late, children }, ref) {
   return (
     <motion.div
       ref={ref}
       layout
+      // Lo atrasado va arriba (order 1) y lo de hoy abajo (order 3); los títulos de grupo ocupan 0 y 2.
+      style={{ order: late ? 1 : 3 }}
       className="sm:grid sm:grid-cols-subgrid"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index, 8) * 0.045, type: 'spring', stiffness: 320, damping: 30 } }}
@@ -202,6 +207,7 @@ export function DashboardV2Page() {
   const handlesMoney = role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [, setTick] = useState(0)
   const [filter, setFilter] = useState<Filter>('all')
+  const [doneOpen, setDoneOpen] = useState(false)
 
   const today = useMemo(() => new Date(), [])
   const isNutri = role === 'nutritionist'
@@ -530,8 +536,9 @@ export function DashboardV2Page() {
     const d = defByKey.get(key)
     if (missionsOn && d) missions.complete(d)
   }
-  const missionCard = (key: string) => (missionsOn ? { onCheck: () => complete(key) } : {})
-  const overdueTag = (key: string) => (missionsOn && missions.stateOf(key).overdue ? <TagV2 tone="neutral">Atrasada</TagV2> : null)
+  const missionCard = (key: string) => (missionsOn ? { onCheck: () => complete(key), late: missions.stateOf(key).overdue } : {})
+  // Lo atrasado ya no lleva etiqueta: la lista lo agrupa bajo «Atrasado».
+  const overdueTag = (_key: string) => null
   async function undoMission(row: DailyTaskRow) {
     missions.undo(row)
     // Cobro: también vuelve a la lista de avisos de pago (si se había marcado como avisado).
@@ -697,10 +704,22 @@ export function DashboardV2Page() {
 
   const fmtTime = (iso: string) => format(new Date(iso), 'HH:mm')
   let taskIndex = 0
-  const T = (key: string, node: ReactNode) => (
-    <AnimatedTask key={key} index={taskIndex++}>
-      {node}
-    </AnimatedTask>
+  let lateShown = 0
+  let onTimeShown = 0
+  const T = (key: string, node: ReactNode) => {
+    const late = isValidElement<{ late?: boolean }>(node) && !!node.props.late
+    if (late) lateShown++
+    else onTimeShown++
+    return (
+      <AnimatedTask key={key} index={taskIndex++} late={late}>
+        {node}
+      </AnimatedTask>
+    )
+  }
+  const groupTitle = (label: string, count: number, order: number) => (
+    <p style={{ order }} className="bg-surface-panel/50 px-3.5 py-1.5 text-2xs font-medium text-ink-muted sm:px-4">
+      {label} · <span className="tabular-nums">{count}</span>
+    </p>
   )
 
   /** Los números del mes en una franja: abajo en el celu, en la columna derecha en la compu. */
@@ -787,12 +806,20 @@ export function DashboardV2Page() {
         }
       />
       <PageV2>
-        <GreetingV2 eyebrow={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)} title={`${greeting}${greetName(profile?.full_name) ? `, ${greetName(profile?.full_name)}` : ''}`}>
+        <GreetingV2
+          eyebrow={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
+          title={`${greeting}${greetName(profile?.full_name) ? `, ${greetName(profile?.full_name)}` : ''}`}
+          lead={missionsOn && !loading && doneTotal + pendingCount > 0 ? <ProgressRingV2 done={doneTotal} total={doneTotal + pendingCount} /> : undefined}
+        >
           {loading
             ? 'Cargando lo de hoy…'
-            : pendingCount
-              ? `Tenés ${pendingCount} ${pendingCount === 1 ? 'cosa' : 'cosas'} para resolver.`
-              : 'No hay nada urgente.'}
+            : missionsOn && doneTotal + pendingCount > 0
+              ? pendingCount
+                ? `${pendingCount === 1 ? 'Queda 1 cosa' : `Quedan ${pendingCount} cosas`} para resolver hoy.`
+                : '¡Misiones cumplidas!'
+              : pendingCount
+                ? `Tenés ${pendingCount} ${pendingCount === 1 ? 'cosa' : 'cosas'} para resolver.`
+                : 'No hay nada urgente.'}
         </GreetingV2>
 
         {(isNutri || role === 'trainer') && user && !studentsQ.isPending ? (
@@ -812,41 +839,12 @@ export function DashboardV2Page() {
             {nextConsult ? <div className="mb-8 hidden lg:block lg:empty:hidden">{nextConsult}</div> : null}
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
-            {missionsOn && !loading && doneTotal + pendingCount > 0 ? (
-              <div className="mb-4 rounded-2xl border border-surface-border bg-surface-card px-4 py-3.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-sm font-medium text-ink-primary">
-                    Hoy completaste <span className="tabular-nums">{doneTotal} de {doneTotal + pendingCount}</span>
-                  </p>
-                  <p className="text-2xs text-ink-muted">
-                    {pendingCount === 0 ? '¡Misiones cumplidas!' : `${pendingCount} ${pendingCount === 1 ? 'pendiente' : 'pendientes'}`}
-                  </p>
-                </div>
-                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-elevated">
-                  <motion.div
-                    className="h-full rounded-full bg-brand-primary"
-                    initial={false}
-                    animate={{ width: `${(doneTotal / (doneTotal + pendingCount)) * 100}%` }}
-                    transition={{ type: 'spring', stiffness: 160, damping: 24 }}
-                  />
-                </div>
-                {!missions.persistent ? (
-                  <p className="mt-2 text-2xs text-ink-muted">Falta correr el SQL 20261109120000_trainer_daily_tasks.sql: lo que tildes se pierde al recargar.</p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {!loading && filterTiles.length > 1 ? (
-              <div className="-mx-4 mb-4 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0 max-md:[&>div]:flex-nowrap">
-                <SegmentedV2
-                  value={filter}
-                  onChange={(f) => toggle(f)}
-                  options={[{ value: 'all' as Filter, label: 'Todo', count: pendingCount }, ...filterTiles.map((t) => ({ value: t.key as Filter, label: t.label, count: counts[t.key] }))]}
-                />
-              </div>
+            {missionsOn && !loading && !missions.persistent && doneTotal + pendingCount > 0 ? (
+              <p className="mb-3 text-2xs text-ink-muted">Falta correr el SQL 20261109120000_trainer_daily_tasks.sql: lo que tildes se pierde al recargar.</p>
             ) : null}
 
             {loading ? (
+              <div className={TASK_PANEL_V2}>
               <div className={TASK_LIST_V2}>
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="flex items-center gap-3 px-4 py-3">
@@ -857,6 +855,7 @@ export function DashboardV2Page() {
                     </div>
                   </div>
                 ))}
+              </div>
               </div>
             ) : pendingCount === 0 ? (
               <motion.div
@@ -882,6 +881,17 @@ export function DashboardV2Page() {
                 </p>
               </motion.div>
             ) : (
+              <div className={TASK_PANEL_V2}>
+              {filterTiles.length > 1 ? (
+                <div className="overflow-x-auto px-3.5 py-3 scrollbar-hide sm:px-4 max-md:[&>div]:flex-nowrap">
+                  <SegmentedV2
+                    size="sm"
+                    value={filter}
+                    onChange={(f) => toggle(f)}
+                    options={[{ value: 'all' as Filter, label: 'Todo', count: pendingCount }, ...filterTiles.map((t) => ({ value: t.key as Filter, label: t.label, count: counts[t.key] }))]}
+                  />
+                </div>
+              ) : null}
               <div className={TASK_LIST_V2}>
                 <AnimatePresence mode="popLayout" initial>
                 {orphans
@@ -891,6 +901,7 @@ export function DashboardV2Page() {
                       `orphan-${row.task_key}`,
                       <TaskCardV2
                         icon={CATEGORY_ICON[row.category]}
+                        late
                         onCheck={() => missions.complete(row)}
                         title={row.title}
                         description={row.detail ?? undefined}
@@ -1252,6 +1263,7 @@ export function DashboardV2Page() {
                       return (
                         T(`cobro-${r.studentId}`, <TaskCardV2
                           {...missionCard(key)}
+                          late={!isToday || (missionsOn && missions.stateOf(key).overdue)}
                           title={r.fullName}
                           mark={<AvatarV2 name={r.fullName} path={photo(r.fullName)} />}
                           onOpen={() => navigate(isNutri ? `/nutrition/${r.studentId}` : `/students/${r.studentId}`)}
@@ -1303,17 +1315,32 @@ export function DashboardV2Page() {
                   : null}
 
                 </AnimatePresence>
+                {/* Los títulos solo si hay de las dos clases; el orden visual lo da `order`. */}
+                {lateShown > 0 && onTimeShown > 0 ? groupTitle('Atrasado', lateShown, 0) : null}
+                {lateShown > 0 && onTimeShown > 0 ? groupTitle('Hoy', onTimeShown, 2) : null}
                 {filter !== 'all' && counts[filter] === 0 ? (
-                  <p className="col-span-full rounded-2xl bg-surface-panel px-5 py-6 text-center text-[13px] text-ink-muted">
+                  <p className="col-span-full px-5 py-6 text-center text-[13px] text-ink-muted">
                     Nada pendiente acá.
                   </p>
                 ) : null}
               </div>
+              </div>
             )}
             {doneToday.length ? (
-              <div className="mt-5">
-                <p className="mb-2 text-[12px] font-medium text-ink-muted">Hechas hoy · {doneToday.length}</p>
-                <ul className="space-y-1.5">
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDoneOpen((v) => !v)}
+                  aria-expanded={doneOpen}
+                  className="rounded-full text-xs font-medium text-ink-muted"
+                >
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${doneOpen ? '' : '-rotate-90'}`} />
+                  Hechas hoy · {doneToday.length}
+                </Button>
+                {doneOpen ? (
+                <ul className="mt-1 space-y-0.5">
                   <AnimatePresence initial={false}>
                     {doneToday.map((row) => (
                       <motion.li
@@ -1343,6 +1370,7 @@ export function DashboardV2Page() {
                     ))}
                   </AnimatePresence>
                 </ul>
+                ) : null}
               </div>
             ) : null}
           </section>
