@@ -173,8 +173,22 @@ function StatusToggle({
             title="Cambiar estado"
             {...a11y}
           >
-            <Badge status={student.status} />
-            <ChevronDown className="h-3 w-3 shrink-0 text-ink-muted" />
+            {IS_V2 ? (
+              // v2: «Activo» es lo normal y va en gris; solo resalta lo que no lo es.
+              <span className={cn('inline-flex items-center gap-1.5 text-xs', student.status === 'activo' ? 'text-ink-secondary' : 'font-medium text-ink-primary')}>
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 shrink-0 rounded-full',
+                    student.status === 'activo' ? 'bg-status-ok' : student.status === 'pausado' ? 'bg-status-pending' : student.status === 'baja' ? 'bg-status-expired' : 'bg-ink-muted',
+                  )}
+                  aria-hidden
+                />
+                {STATUS_OPTIONS.find((o) => o.value === student.status)?.label ?? student.status}
+              </span>
+            ) : (
+              <Badge status={student.status} />
+            )}
+            <ChevronDown className={cn('h-3 w-3 shrink-0 text-ink-muted', IS_V2 && 'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100')} />
           </button>
         )}
       >
@@ -1331,7 +1345,8 @@ function StudentDirectoryTable({
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{entityLabelColumn}</th>
               <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5">Nivel</th>
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Estado</th>
-              <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Semana</th>
+              <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{IS_V2 ? 'Rutina' : 'Semana'}</th>
+              {IS_V2 ? <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted md:table-cell sm:px-5">Plan y pago</th> : null}
               {IS_V2 ? null : <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5">Email</th>}
               <th scope="col" className="w-[7rem]" aria-hidden />
             </tr>
@@ -1401,7 +1416,8 @@ function StudentDirectoryTable({
                           {currentPlanByStudent[student.id] ? (() => {
                             const a = currentPlanByStudent[student.id]
                             const eff = effectivePaymentStatus(a)
-                            if (IS_V2) return <PlanPillV2 name={a.plan_name_snapshot} status={eff} />
+                            // v2: el plan tiene su columna; en pantallas angostas (sin esa columna) queda acá.
+                            if (IS_V2) return <span className="md:hidden"><PlanPillV2 name={a.plan_name_snapshot} status={eff} /></span>
                             const cls =
                               eff === 'paid' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25' :
                               eff === 'overdue' ? 'bg-red-500/15 text-red-600 dark:text-red-300 ring-red-500/25' :
@@ -1429,7 +1445,14 @@ function StudentDirectoryTable({
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col items-start gap-1 whitespace-nowrap">
-                      {hasRoutine ? (
+                      {hasRoutine && IS_V2 ? (
+                        <WeekProgressV2
+                          totalWeeks={weeksByStudent.get(student.id) ?? 0}
+                          currentWeek={weekStatusOrEmpty(weekByStudent, student.id).weekNumber}
+                          finished={weekStatusOrEmpty(weekByStudent, student.id).finished}
+                          lastWeek={weekStatusOrEmpty(weekByStudent, student.id).lastWeek}
+                        />
+                      ) : hasRoutine ? (
                         <RoutineWeekSquares
                           totalWeeks={weeksByStudent.get(student.id) ?? 0}
                           currentWeek={weekStatusOrEmpty(weekByStudent, student.id).weekNumber}
@@ -1450,6 +1473,15 @@ function StudentDirectoryTable({
 
                     </div>
                   </td>
+                  {IS_V2 ? (
+                    <td className="hidden px-4 py-2.5 md:table-cell sm:px-5">
+                      {currentPlanByStudent[student.id] ? (
+                        <PlanCellV2 name={currentPlanByStudent[student.id].plan_name_snapshot} status={effectivePaymentStatus(currentPlanByStudent[student.id])} />
+                      ) : (
+                        <span className="text-xs text-ink-muted">Sin plan</span>
+                      )}
+                    </td>
+                  ) : null}
                   {IS_V2 ? null : (
                     <td className="hh-row-drop-in hidden max-w-[12rem] truncate text-ink-muted lg:table-cell lg:max-w-none lg:px-5 lg:py-2.5">
                       <span className="text-xs">{student.email ?? '—'}</span>
@@ -1480,6 +1512,52 @@ function StudentDirectoryTable({
         </table>
       </div>
     </section>
+  )
+}
+
+/** v2 · columna «Rutina»: barra de avance y en qué semana va, en palabras. */
+function WeekProgressV2({
+  totalWeeks,
+  currentWeek,
+  finished,
+  lastWeek,
+}: {
+  totalWeeks: number
+  currentWeek: number | null | undefined
+  finished: boolean
+  lastWeek?: boolean
+}) {
+  if (totalWeeks <= 0) return <span className="text-xs text-ink-secondary">Con rutina</span>
+  const week = finished ? totalWeeks : currentWeek ?? (lastWeek ? totalWeeks : 0)
+  const label = finished ? 'Mes cerrado' : lastWeek ? 'Última semana' : week ? `Semana ${week} de ${totalWeeks}` : `${totalWeeks} semanas · sin feedback`
+  return (
+    <div className="flex w-36 flex-col gap-1" title={label}>
+      <span className={cn('text-xs tabular-nums', lastWeek && !finished ? 'font-medium text-status-expired' : week ? 'text-ink-primary' : 'text-ink-muted')}>{label}</span>
+      <span className="h-1.5 overflow-hidden rounded-full bg-surface-elevated" aria-hidden>
+        <span
+          className={cn('block h-full rounded-full', lastWeek && !finished ? 'bg-status-expired' : finished ? 'bg-status-ok' : 'bg-brand-primary')}
+          style={{ width: `${Math.min(100, (week / totalWeeks) * 100)}%` }}
+        />
+      </span>
+    </div>
+  )
+}
+
+/** v2 · columna «Plan y pago»: nombre del plan y, debajo, cómo viene el pago. */
+function PlanCellV2({ name, status }: { name: string; status: PlanAssignmentPaymentStatus }) {
+  const pay =
+    status === 'overdue'
+      ? { text: 'Pago vencido', cls: 'font-medium text-status-expired' }
+      : status === 'pending'
+        ? { text: 'Pago pendiente', cls: 'font-medium text-status-pending' }
+        : status === 'cancelled'
+          ? { text: 'Cancelado', cls: 'text-ink-muted' }
+          : { text: 'Al día', cls: 'text-ink-muted' }
+  return (
+    <div className="flex max-w-[13rem] flex-col gap-0.5">
+      <span className="truncate text-xs text-ink-primary" title={name}>{name}</span>
+      <span className={cn('text-2xs', pay.cls)}>{pay.text}</span>
+    </div>
   )
 }
 
