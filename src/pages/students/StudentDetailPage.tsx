@@ -1140,7 +1140,7 @@ export function StudentDetailView({
             {/* ── Rutina activa ── */}
             {activeRoutine ? (
               <>
-              <section className={cn('overflow-hidden rounded-xl border bg-surface-elevated/60', IS_V2 ? 'border-status-ok/45' : 'border-surface-border/70')}>
+              <section className={cn('overflow-hidden rounded-xl border', IS_V2 ? 'border-surface-border bg-surface-card' : 'border-surface-border/70 bg-surface-elevated/60')}>
                 {/* Barra de progreso top */}
                 <div className="h-1 w-full bg-surface-border/70 ">
                   <div
@@ -1152,7 +1152,7 @@ export function StudentDetailView({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       {IS_V2 ? (
-                        <p className="inline-flex items-center gap-1 rounded-full bg-status-ok/12 px-2 py-0.5 text-2xs font-semibold text-status-ok-ink">
+                        <p className="inline-flex items-center gap-1 rounded-full bg-status-ok/15 px-2.5 py-0.5 text-2xs font-semibold text-status-ok-ink">
                           <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
                           Actual
                         </p>
@@ -1164,7 +1164,13 @@ export function StudentDetailView({
                         <p className="mt-1 max-w-lg text-body-sm leading-relaxed text-ink-muted ">{activeRoutine.objective}</p>
                       ) : null}
                     </div>
-                    <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
+                    {IS_V2 ? (
+                      activeRoutine.status === 'por_vencer' ? (
+                        <span className="hh-pastel rounded-full bg-pastel-butter px-2.5 py-0.5 text-2xs font-semibold text-pastel-butter-ink">Por vencer</span>
+                      ) : null
+                    ) : (
+                      <span className={routineStatusPillClass(activeRoutine.status)}>{intakeRoutinePhrase(activeRoutine.status)}</span>
+                    )}
                   </div>
 
                   <dl className="mt-4 grid grid-cols-3 gap-4 border-t border-surface-border/60 pt-4 ">
@@ -1215,11 +1221,11 @@ export function StudentDetailView({
                       <span className="text-xs tabular-nums text-ink-secondary">{formatCurrency(activeRoutine.price)}</span>
                     ) : null}
                     {activeRoutine.is_paid ? (
-                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-semibold text-emerald-700 dark:text-emerald-300">
+                      <span className={IS_V2 ? 'rounded-full bg-status-ok/15 px-2 py-0.5 text-3xs font-semibold text-status-ok-ink' : 'rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-3xs font-semibold text-emerald-700 dark:text-emerald-300'}>
                         Abonada
                       </span>
                     ) : (
-                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-3xs font-semibold text-amber-700 dark:text-amber-300">
+                      <span className={IS_V2 ? 'hh-pastel rounded-full bg-pastel-butter px-2 py-0.5 text-3xs font-semibold text-pastel-butter-ink' : 'rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-3xs font-semibold text-amber-700 dark:text-amber-300'}>
                         Pendiente
                       </span>
                     )}
@@ -1295,10 +1301,10 @@ export function StudentDetailView({
               </>
             ) : IS_V2 && currentPast ? (
               /* v2 · Sin rutina activa, pero hay una cuyas fechas siguen corriendo (la marcaron completada o venció antes). */
-              <section className="rounded-xl border border-status-ok/45 bg-surface-elevated/60 p-4 sm:p-5">
+              <section className="rounded-xl border border-surface-border bg-surface-card p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="inline-flex items-center gap-1 rounded-full bg-status-ok/12 px-2 py-0.5 text-2xs font-semibold text-status-ok-ink">
+                    <p className="inline-flex items-center gap-1 rounded-full bg-status-ok/15 px-2.5 py-0.5 text-2xs font-semibold text-status-ok-ink">
                       <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
                       Actual
                     </p>
@@ -1311,7 +1317,6 @@ export function StudentDetailView({
                         : `Figura como ${intakeRoutinePhrase(currentPast.status).toLowerCase()}, aunque sus fechas siguen hasta el ${formatDate(currentPast.end_date)}.`}
                     </p>
                   </div>
-                  <span className={routineStatusPillClass(currentPast.status)}>{intakeRoutinePhrase(currentPast.status)}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button size="sm" variant="gradientSecondary" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate(`/routines?create=1&student=${id}`)}>

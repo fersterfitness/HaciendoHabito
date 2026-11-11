@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import { IS_V2 } from '@/lib/uiVersion'
 import { useEffect, useState } from 'react'
 import { Plus, X, Check, AlertCircle } from 'lucide-react'
@@ -128,7 +129,12 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
           {notes.map((n) => (
             <li
               key={n.id}
-              className="flex items-start gap-2 rounded-lg border border-amber-200/50 bg-white/70 px-2.5 py-2 dark:border-amber-800/30 dark:bg-zinc-900/40"
+              className={
+                IS_V2
+                  ? // Planos: la pendiente en amarillo pastel, la resuelta en gris.
+                    cn('flex items-start gap-2.5 rounded-xl px-3 py-2.5', n.is_done ? 'bg-surface-panel' : 'hh-pastel bg-pastel-butter')
+                  : 'flex items-start gap-2 rounded-lg border border-amber-200/50 bg-white/70 px-2.5 py-2 dark:border-amber-800/30 dark:bg-zinc-900/40'
+              }
             >
               <button
                 type="button"
@@ -136,9 +142,13 @@ export function StudentRoutineNotesPanel({ studentId }: { studentId: string }) {
                 title={n.is_done ? 'Marcar como pendiente' : 'Marcar como resuelta'}
                 className={
                   'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ' +
-                  (n.is_done
-                    ? 'border-emerald-500 bg-emerald-500 text-white'
-                    : 'border-zinc-400 hover:border-emerald-500 dark:border-zinc-600')
+                  (IS_V2
+                    ? n.is_done
+                      ? 'border-transparent bg-ink-muted text-surface-card'
+                      : 'border-ink-muted/60 hover:border-ink-primary'
+                    : n.is_done
+                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                      : 'border-zinc-400 hover:border-emerald-500 dark:border-zinc-600')
                 }
               >
                 {n.is_done && <Check className="h-3 w-3" />}
