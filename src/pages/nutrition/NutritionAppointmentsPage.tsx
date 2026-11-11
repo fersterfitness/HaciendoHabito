@@ -2,6 +2,7 @@ import { controlSmClassName } from '@/lib/formControlClasses'
 import { IS_V2 } from '@/lib/uiVersion'
 import { UnmarkedAppointmentsV2 } from '@/components/v2/UnmarkedAppointmentsV2'
 import { v2TabClass } from '@/components/v2/tabStyle'
+import { AvatarV2 } from '@/components/v2/ui'
 import { Modal } from '@/components/ui/Modal'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
@@ -108,7 +109,7 @@ async function syncAppointmentGoogleCalendar(appointmentId: string): Promise<str
 }
 
 type AppointmentRow = Appointment & {
-  student?: Pick<Student, 'full_name' | 'phone'> | null
+  student?: Pick<Student, 'full_name' | 'phone' | 'avatar_path'> | null
   reminders?: AppointmentReminder[] | null
 }
 
@@ -447,7 +448,7 @@ export function AppointmentsPage() {
           fetchAccessibleStudents(),
           supabase
             .from('appointments')
-            .select('*, student:students(full_name, phone)')
+            .select('*, student:students(full_name, phone, avatar_path)')
             .eq('owner_id', user.id)
             .order('starts_at', { ascending: true }),
           supabase
@@ -753,7 +754,7 @@ export function AppointmentsPage() {
         const { data: recData, error: recErr } = await supabase
           .from('appointments')
           .insert(rows)
-          .select('*, student:students(full_name, phone)')
+          .select('*, student:students(full_name, phone, avatar_path)')
         if (recErr) { toast.error(recErr.message); return }
         const recAppts = recData as AppointmentRow[]
         setAppointments((prev) => [...prev, ...recAppts].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
@@ -822,7 +823,7 @@ export function AppointmentsPage() {
           notes: form.notes.trim() || null,
           status: 'scheduled',
         })
-        .select('*, student:students(full_name, phone)')
+        .select('*, student:students(full_name, phone, avatar_path)')
         .single()
 
       if (error) {
@@ -1621,9 +1622,7 @@ export function AppointmentsPage() {
                     className={cn(
                       'rounded-xl border p-2 transition-shadow motion-safe:duration-300', IS_V2 ? 'md:min-h-44' : 'min-h-44',
                       IS_V2
-                        ? dayIsToday
-                          ? 'border-surface-inputBorder bg-surface-card'
-                          : 'border-transparent bg-surface-panel'
+                        ? cn('rounded-none border-0 border-t-[3px] bg-transparent px-0 pb-1 pt-2.5', dayIsToday ? 'border-t-ink-primary' : 'border-t-surface-border')
                         : dayIsToday
                           ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
                           : 'border-surface-border bg-surface-elevated/50',
@@ -1671,19 +1670,20 @@ export function AppointmentsPage() {
                                 type="button"
                                 onClick={onClick}
                                 className={cn(
-                                  'w-full text-left rounded-lg px-2 py-1 transition-all motion-safe:duration-200',
+                                  'w-full text-left transition-all motion-safe:duration-200',
+                                  IS_V2 ? 'rounded-2xl p-2.5' : 'rounded-lg px-2 py-1',
                                   !IS_V2 && 'border border-l-[3px]',
                                   appointmentInProgress(a) &&
-                                    (IS_V2 ? 'ring-2 ring-status-expiring/50 motion-safe:animate-pulse' : 'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse'),
+                                    (IS_V2 ? 'ring-2 ring-ink-primary ring-offset-2 ring-offset-surface-base' : 'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse'),
                                   IS_V2
-                                    ? cn(
-                                        'hover:bg-surface-elevated',
-                                        a.status === 'confirmed'
-                                          ? 'border border-surface-border bg-surface-panel'
-                                          : a.status === 'scheduled'
-                                            ? 'border border-dashed border-surface-inputBorder bg-surface-card'
-                                            : 'border border-surface-border bg-surface-elevated opacity-70',
-                                      )
+                                    ? // Tablero: el color del relleno dice el estado (confirmado en flúor, a confirmar en blanco).
+                                      a.status === 'confirmed'
+                                      ? 'bg-status-ok hover:brightness-95'
+                                      : a.status === 'scheduled'
+                                        ? 'bg-surface-card text-ink-primary shadow-[0_0_0_1px_rgb(var(--surface-border))] hover:bg-surface-panel'
+                                        : a.status === 'completed'
+                                          ? 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/70'
+                                          : 'bg-status-expired/10 text-status-expired hover:bg-status-expired/15'
                                     : a.status === 'confirmed'
                                       ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
                                       : a.status === 'scheduled'
@@ -1692,14 +1692,41 @@ export function AppointmentsPage() {
                                 )}
                                 {...a11y}
                               >
+                                {IS_V2 ? (
+                                  <>
+                                    <span className="flex items-baseline justify-between gap-2">
+                                      <span className="text-sm font-semibold tabular-nums tracking-[-0.01em]">{format(parseISO(a.starts_at), 'HH:mm')}</span>
+                                      <span className="truncate text-3xs font-medium opacity-75">
+                                        {appointmentInProgress(a)
+                                          ? 'En curso'
+                                          : a.status === 'scheduled'
+                                            ? 'A confirmar'
+                                            : a.status === 'confirmed'
+                                              ? 'Confirmado'
+                                              : a.status === 'completed'
+                                                ? 'Atendido'
+                                                : a.status === 'no_show'
+                                                  ? 'Faltó'
+                                                  : 'Cancelado'}
+                                      </span>
+                                    </span>
+                                    <span className="mt-2 flex items-center gap-2">
+                                      <AvatarV2 size="sm" name={a.student?.full_name ?? '?'} path={a.student?.avatar_path ?? null} />
+                                      <span className="min-w-0">
+                                        <span className="block truncate text-xs font-medium leading-tight">{a.student?.full_name ?? 'Paciente'}</span>
+                                        <span className="block truncate text-3xs leading-tight opacity-70">{a.title}</span>
+                                      </span>
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
                                 <p className="text-xs font-medium text-ink-primary truncate">{a.title}</p>
                                 <p className="text-2xs text-ink-secondary">
                                   {format(parseISO(a.starts_at), 'HH:mm')} · {a.student?.full_name ?? 'Paciente'}
                                 </p>
-                                {IS_V2 && a.status === 'scheduled' && !appointmentInProgress(a) ? (
-                                  <p className="mt-0.5 text-3xs font-medium text-ink-muted">A confirmar</p>
-                                ) : null}
-                                {appointmentInProgress(a) ? (
+                                  </>
+                                )}
+                                {appointmentInProgress(a) && !IS_V2 ? (
                                   <p className={IS_V2 ? 'mt-0.5 text-3xs font-semibold text-status-expiring' : 'mt-0.5 text-3xs font-semibold text-amber-800 dark:text-amber-300/95'}>
                                     En curso
                                   </p>
