@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { ArrowLeft, Check, ChevronDown, ClipboardCheck, Dumbbell, Flame, MessageCircle, Play, Repeat } from 'lucide-react'
 import {
   currentBlockIndex,
   exerciseDetails,
@@ -10,6 +11,7 @@ import {
   groupExercises,
   logSharedSet,
   parseKg,
+  repsText,
   setsRepsText,
   type SharedRoutine,
   type SharedRoutineDay,
@@ -27,14 +29,16 @@ import {
   serializeDrafts,
   validateDrafts,
   type CheckInAnswerDraft,
+  type CheckInQuestion,
 } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
 
 /**
  * Rutina que abre el alumno desde el link (sin cuenta). Dos cosas separadas:
- * - «Tu entrenamiento»: la rutina, donde anota los kilos de cada serie (el entrenador los ve en su rutina).
- * - «Tu semana»: el feedback semanal, que se responde acá mismo y queda a la vista hasta que se envía.
- * En el celu va todo en una columna; en la compu el feedback queda fijo a la derecha.
+ * - El entrenamiento: días de la semana y ejercicios, donde anota los kilos de cada serie (el entrenador los ve).
+ * - El feedback de la semana: tarjeta propia que se responde acá mismo, pregunta por pregunta, y queda
+ *   a la vista (y en la barra de abajo en el celu) hasta que se envía.
+ * En el celu es una columna; en la compu, a la izquierda el resumen y el feedback, a la derecha el entrenamiento.
  */
 
 function todayYmd(): string {
@@ -67,16 +71,35 @@ function loggedFrom(data: SharedRoutine | null): LoggedMap {
   return out
 }
 
-function dayProgress(day: SharedRoutineDay, logged: LoggedMap): { done: number; total: number } {
+function exerciseProgress(ex: SharedRoutineExercise, logged: LoggedMap): { done: number; total: number } {
+  const total = setCount(ex)
+  const m = logged[ex.id] ?? {}
   let done = 0
-  let total = 0
-  for (const ex of day.exercises) {
-    const n = setCount(ex)
-    total += n
-    const m = logged[ex.id] ?? {}
-    for (let s = 1; s <= n; s++) if (m[s] != null) done += 1
-  }
+  for (let s = 1; s <= total; s++) if (m[s] != null) done += 1
   return { done, total }
+}
+
+function dayProgress(day: SharedRoutineDay, logged: LoggedMap): { done: number; total: number } {
+  return day.exercises.reduce(
+    (acc, ex) => {
+      const p = exerciseProgress(ex, logged)
+      return { done: acc.done + p.done, total: acc.total + p.total }
+    },
+    { done: 0, total: 0 },
+  )
+}
+
+/** Como los días de un calendario: «Día A» → «Día» / «A»; «Lunes» → «Lun» / número del día. */
+function dayChip(name: string | null | undefined, i: number): { label: string; big: string } {
+  const t = name?.trim() ?? ''
+  const m = /^d[ií]a\s+(\S{1,3})$/i.exec(t)
+  if (m) return { label: 'Día', big: m[1]!.toUpperCase() }
+  return { label: t ? t.slice(0, 3) : 'Día', big: String(i + 1) }
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return (parts[0]?.[0] ?? '').toUpperCase() + (parts[1]?.[0] ?? '').toUpperCase() || 'H'
 }
 
 const TILE_TONES = ['lav', 'peach', 'sky', 'mint', 'rose'] as const
@@ -89,10 +112,11 @@ export function PublicRoutinePage() {
   const [week, setWeek] = useState<number | null>(null)
   const [day, setDay] = useState(0)
   const [logged, setLogged] = useState<LoggedMap>({})
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({})
   const [feedbackSent, setFeedbackSent] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [feedbackVisible, setFeedbackVisible] = useState(true)
   const feedbackRef = useRef<HTMLElement | null>(null)
+  const trainRef = useRef<HTMLElement | null>(null)
 
   useLightPage()
 
@@ -130,15 +154,6 @@ export function PublicRoutinePage() {
     document.title = firstName ? `Rutina de ${firstName}` : 'Tu rutina'
   }, [firstName])
 
-  // Recordatorio abajo en el celu mientras la tarjeta del feedback no está a la vista.
-  useEffect(() => {
-    const el = feedbackRef.current
-    if (!el || !feedbackPending) return
-    const io = new IntersectionObserver(([e]) => setFeedbackVisible(!!e?.isIntersecting), { threshold: 0.15 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [feedbackPending, state.status])
-
   const onSaved = useCallback((exId: string, set: number, kg: number | null) => {
     setLogged((prev) => {
       const m = { ...(prev[exId] ?? {}) }
@@ -151,7 +166,12 @@ export function PublicRoutinePage() {
   if (state.status === 'loading') {
     return (
       <Shell>
-        <p className="hhr-state">Cargando tu rutina…</p>
+        <div className="hhr-skeleton" aria-busy="true" aria-label="Cargando tu rutina">
+          <span className="hhr-sk hhr-sk-title" />
+          <span className="hhr-sk hhr-sk-hero" />
+          <span className="hhr-sk hhr-sk-card" />
+          <span className="hhr-sk hhr-sk-card" />
+        </div>
       </Shell>
     )
   }
@@ -159,6 +179,9 @@ export function PublicRoutinePage() {
     return (
       <Shell>
         <div className="hhr-state">
+          <span className="hhr-state-icon" aria-hidden>
+            <Dumbbell size={26} strokeWidth={1.8} />
+          </span>
           <h1>Este link no funciona</h1>
           <p>Puede que tu entrenador haya generado uno nuevo. Pedile el link actualizado.</p>
         </div>
@@ -190,6 +213,14 @@ export function PublicRoutinePage() {
   )
   const pct = weekProgress.total ? Math.round((weekProgress.done / weekProgress.total) * 100) : 0
   const todayLabel = format(new Date(), "EEEE d 'de' MMMM", { locale: es })
+  const selectedProgress = selectedDay ? dayProgress(selectedDay, logged) : { done: 0, total: 0 }
+  // Abierto por defecto: el primer ejercicio del día que todavía no está completo.
+  const firstPendingId = selectedDay?.exercises.find((ex) => {
+    const p = exerciseProgress(ex, logged)
+    return p.done < p.total
+  })?.id
+  const isOpen = (id: string) => (id in openMap ? !!openMap[id] : id === firstPendingId)
+  const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
   let number = 0
 
   function openFeedback() {
@@ -197,78 +228,115 @@ export function PublicRoutinePage() {
     requestAnimationFrame(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
+  function card(ex: SharedRoutineExercise) {
+    const n = ++number
+    return (
+      <ExerciseCard
+        key={ex.id}
+        ex={ex}
+        n={n}
+        token={token}
+        logged={logged[ex.id] ?? {}}
+        open={isOpen(ex.id)}
+        onToggle={() => toggle(ex.id)}
+        onSaved={onSaved}
+      />
+    )
+  }
+
+  const showBar = feedbackPending || !!waDigits
+
   return (
     <Shell>
-      <header className="hhr-top">
-        <span className="hhr-logo">
-          <i>H</i>
-          <span>Haciéndolo Hábito</span>
-        </span>
-        {waDigits ? (
-          <a className="hhr-chip-btn" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer">
-            {proFirst ? `Escribir a ${proFirst}` : 'Escribir por WhatsApp'}
-          </a>
-        ) : null}
-      </header>
-
-      <div className="hhr-layout">
-        <section className="hhr-hero-area">
-          <p className="hhr-today">{todayLabel}</p>
-          <h1 className="hhr-title">{firstName ? `Hola, ${firstName}` : 'Tu rutina'}</h1>
+      <div className={showBar ? 'hhr-app has-bar' : 'hhr-app'}>
+        <aside className="hhr-side">
+          <header className="hhr-top">
+            <span className="hhr-avatar" aria-hidden>
+              {initials(firstName || 'Hola')}
+            </span>
+            <div className="hhr-hello">
+              <span className="hhr-today">{todayLabel}</span>
+              <h1>{firstName ? `Hola, ${firstName}` : 'Tu rutina'}</h1>
+            </div>
+            {waDigits ? (
+              <a
+                className="hhr-round-btn"
+                href={`https://wa.me/${waDigits}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={proFirst ? `Escribir a ${proFirst} por WhatsApp` : 'Escribir por WhatsApp'}
+              >
+                <MessageCircle size={20} strokeWidth={1.8} aria-hidden />
+                <span className="hhr-round-btn-text">{proFirst ? `Escribir a ${proFirst}` : 'Escribir'}</span>
+              </a>
+            ) : null}
+          </header>
 
           <div className="hhr-hero">
             <div className="hhr-hero-text">
-              <span className="hhr-hero-kicker">{routine?.name || 'Tu rutina'}</span>
-              <b>{blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Tu semana'}</b>
-              <span>
-                {weekProgress.total
-                  ? `${weekProgress.done} de ${weekProgress.total} series anotadas`
-                  : 'Anotá los kilos de cada serie a medida que entrenás'}
-                {until ? ` · hasta el ${until}` : ''}
+              <span className="hhr-hero-kicker">
+                {blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Esta semana'}
+              </span>
+              <span className="hhr-hero-big">
+                {weekProgress.done}/{weekProgress.total || 0}
+                <small> series</small>
+              </span>
+              <span className="hhr-hero-sub">
+                {weekProgress.total === 0
+                  ? 'Todavía no hay series cargadas'
+                  : pct === 100
+                    ? 'Semana completa'
+                    : weekProgress.done === 0
+                      ? 'Anotá los kilos a medida que entrenás'
+                      : 'Vas bien, seguí anotando'}
               </span>
             </div>
             <Ring pct={pct} />
+            <div className="hhr-hero-foot">
+              <span>{routine?.name || 'Tu rutina'}</span>
+              {until ? <span>Hasta el {until}</span> : null}
+              {routine?.objective ? <p className="hhr-hero-goal">{routine.objective}</p> : null}
+            </div>
           </div>
-          {routine?.objective ? <p className="hhr-goal">{routine.objective}</p> : null}
-        </section>
 
-        {data.feedback ? (
-          <aside className="hhr-fb-area" ref={feedbackRef} aria-label="Feedback de la semana">
-            {feedbackPending ? (
-              <FeedbackCard
-                publicToken={data.feedback.public_token}
-                email={data.feedback.email}
-                gender={data.feedback.gender ?? null}
-                proLabel={proLabel}
-                open={feedbackOpen}
-                onOpen={() => setFeedbackOpen(true)}
-                onSent={() => setFeedbackSent(true)}
-              />
-            ) : (
-              <div className="hhr-fb hhr-fb-done" role="status">
-                <span className="hhr-fb-tag">Tu semana</span>
-                <div className="hhr-fb-done-row">
-                  <span className="hhr-check" aria-hidden>
-                    ✓
+          {data.feedback ? (
+            <section className="hhr-fb-area" ref={feedbackRef} aria-label="Feedback de la semana">
+              {feedbackPending ? (
+                <FeedbackCard
+                  publicToken={data.feedback.public_token}
+                  email={data.feedback.email}
+                  gender={data.feedback.gender ?? null}
+                  proLabel={proLabel}
+                  open={feedbackOpen}
+                  onOpen={() => setFeedbackOpen(true)}
+                  onSent={() => setFeedbackSent(true)}
+                />
+              ) : (
+                <div className="hhr-fb hhr-fb-done" role="status">
+                  <span className="hhr-icon-tile hhr-tone-ok" aria-hidden>
+                    <Check size={22} strokeWidth={2.2} />
                   </span>
-                  <div>
+                  <div className="hhr-fb-done-text">
                     <b>Feedback enviado</b>
-                    <p>¡Gracias! {proFirst ? `${proFirst} ya lo puede ver.` : 'Tu entrenador ya lo puede ver.'} El próximo se habilita la semana que viene.</p>
+                    <p>{proFirst ? `${proFirst} ya lo puede ver.` : 'Tu entrenador ya lo puede ver.'} El próximo se habilita la semana que viene.</p>
                   </div>
                 </div>
-              </div>
-            )}
-          </aside>
-        ) : null}
+              )}
+            </section>
+          ) : null}
+        </aside>
 
-        <section className="hhr-train" aria-label="Tu entrenamiento">
-          <div className="hhr-section-head">
+        <main className="hhr-main" ref={trainRef} aria-label="Tu entrenamiento">
+          <div className="hhr-main-head">
             <h2>Tu entrenamiento</h2>
-            <span>Anotá los kilos que usaste: {proLabel} los ve.</span>
+            <span>{proFirst ? `${proFirst} ve los kilos que anotás` : 'Tu entrenador ve los kilos que anotás'}</span>
           </div>
 
           {!routine || blocks.length === 0 ? (
             <div className="hhr-card hhr-empty-card">
+              <span className="hhr-icon-tile hhr-tone-lav" aria-hidden>
+                <Dumbbell size={22} strokeWidth={1.8} />
+              </span>
               <b>Tu rutina todavía no está cargada</b>
               <p>Cuando {proLabel} la arme, la vas a ver en este mismo link.</p>
             </div>
@@ -288,23 +356,30 @@ export function PublicRoutinePage() {
                       }}
                     >
                       {b.name || `Semana ${i + 1}`}
-                      {i === currentWeek ? <span className="hhr-now" aria-label="semana actual" /> : null}
+                      {i === currentWeek ? <span className="hhr-now" aria-label="(semana actual)" /> : null}
                     </button>
                   ))}
                 </nav>
               ) : null}
 
               {days.length > 1 ? (
-                <nav className="hhr-days" aria-label="Días">
+                <nav className="hhr-card hhr-days" aria-label="Días">
                   {days.map((d, i) => {
                     const p = dayProgress(d, logged)
-                    const complete = p.total > 0 && p.done >= p.total
+                    const dpct = p.total ? p.done / p.total : 0
+                    const chip = dayChip(d.day_name, i)
                     return (
-                      <button key={d.id} type="button" className="hhr-day" aria-pressed={i === di} onClick={() => setDay(i)}>
-                        <span className="hhr-day-name">{d.day_name || `Día ${i + 1}`}</span>
-                        <span className={complete ? 'hhr-day-meta is-done' : 'hhr-day-meta'}>
-                          {complete ? '✓ Hecho' : p.done ? `${p.done}/${p.total}` : `${d.exercises.length} ejercicios`}
-                        </span>
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="hhr-day"
+                        aria-pressed={i === di}
+                        aria-label={`${d.day_name || `Día ${i + 1}`}: ${p.done} de ${p.total} series`}
+                        onClick={() => setDay(i)}
+                      >
+                        <span className="hhr-day-label">{chip.label}</span>
+                        <span className="hhr-day-num">{chip.big}</span>
+                        <MiniArc value={dpct} />
                       </button>
                     )
                   })}
@@ -312,17 +387,42 @@ export function PublicRoutinePage() {
               ) : null}
 
               {selectedDay ? (
-                <>
-                  {selectedDay.muscle_focus || days.length <= 1 ? (
-                    <div className="hhr-daytitle">
+                <section className="hhr-card hhr-daycard">
+                  <header className="hhr-daycard-head">
+                    <div>
                       <h3>{selectedDay.day_name || 'Entrenamiento'}</h3>
-                      {selectedDay.muscle_focus ? <span>{selectedDay.muscle_focus}</span> : null}
+                      <span>
+                        {selectedDay.muscle_focus ? `${selectedDay.muscle_focus} · ` : ''}
+                        {selectedDay.exercises.length} {selectedDay.exercises.length === 1 ? 'ejercicio' : 'ejercicios'}
+                      </span>
                     </div>
-                  ) : null}
+                    {selectedProgress.total ? (
+                      <span className={selectedProgress.done >= selectedProgress.total ? 'hhr-pill is-ok' : 'hhr-pill'}>
+                        {selectedProgress.done >= selectedProgress.total ? (
+                          <>
+                            <Check size={14} strokeWidth={2.4} aria-hidden /> Hecho
+                          </>
+                        ) : (
+                          `${selectedProgress.done}/${selectedProgress.total} series`
+                        )}
+                      </span>
+                    ) : null}
+                  </header>
 
                   {warmup.length ? (
-                    <details className="hhr-card hhr-warmup">
-                      <summary>Entrada en calor</summary>
+                    <details className="hhr-warmup">
+                      <summary>
+                        <span className="hhr-icon-tile hhr-tone-peach hhr-icon-sm" aria-hidden>
+                          <Flame size={18} strokeWidth={1.8} />
+                        </span>
+                        <span className="hhr-warmup-title">
+                          <b>Entrada en calor</b>
+                          <small>
+                            {warmup.length} {warmup.length === 1 ? 'paso' : 'pasos'} antes de empezar
+                          </small>
+                        </span>
+                        <ChevronDown className="hhr-chev" size={18} strokeWidth={1.8} aria-hidden />
+                      </summary>
                       <ul>
                         {warmup.map((l, i) => (
                           <li key={i}>{l}</li>
@@ -330,31 +430,25 @@ export function PublicRoutinePage() {
                       </ul>
                     </details>
                   ) : null}
+                </section>
+              ) : null}
 
-                  <div className="hhr-list">
-                    {selectedDay.exercises.length === 0 ? <p className="hhr-muted">No hay ejercicios cargados para este día.</p> : null}
-                    {groupExercises(selectedDay.exercises).map((g) =>
-                      g.circuit ? (
-                        <div key={g.items[0]!.id} className="hhr-circuit">
-                          <p className="hhr-circuit-label">Circuito · hacé estos ejercicios seguidos</p>
-                          {g.items.map((ex) => {
-                            const n = ++number
-                            return <ExerciseCard key={ex.id} ex={ex} n={n} token={token} logged={logged[ex.id] ?? {}} onSaved={onSaved} />
-                          })}
-                        </div>
-                      ) : (
-                        <ExerciseCard
-                          key={g.items[0]!.id}
-                          ex={g.items[0]!}
-                          n={++number}
-                          token={token}
-                          logged={logged[g.items[0]!.id] ?? {}}
-                          onSaved={onSaved}
-                        />
-                      ),
-                    )}
-                  </div>
-                </>
+              {selectedDay ? (
+                <div className="hhr-list">
+                  {selectedDay.exercises.length === 0 ? <p className="hhr-muted">No hay ejercicios cargados para este día.</p> : null}
+                  {groupExercises(selectedDay.exercises).map((g) =>
+                    g.circuit ? (
+                      <div key={g.items[0]!.id} className="hhr-circuit">
+                        <p className="hhr-circuit-label">
+                          <Repeat size={15} strokeWidth={2} aria-hidden /> Circuito · hacé estos ejercicios seguidos
+                        </p>
+                        <div className="hhr-circuit-list">{g.items.map((ex) => card(ex))}</div>
+                      </div>
+                    ) : (
+                      card(g.items[0]!)
+                    ),
+                  )}
+                </div>
               ) : (
                 <p className="hhr-muted">Esta semana no tiene días cargados.</p>
               )}
@@ -363,46 +457,87 @@ export function PublicRoutinePage() {
 
           <p className="hhr-foot">
             {updated ? `Rutina actualizada el ${updated}. ` : ''}Si {proLabel} la cambia, este link muestra la versión nueva.
+            <span className="hhr-brand">Haciéndolo Hábito</span>
           </p>
-        </section>
+        </main>
       </div>
 
-      {feedbackPending && !feedbackVisible ? (
-        <div className="hhr-nudge" role="region" aria-label="Recordatorio de feedback">
-          <span>
-            <b>Te falta el feedback</b> de esta semana
-          </span>
-          <button type="button" onClick={openFeedback}>
-            Responder
+      {showBar ? (
+        <nav className="hhr-bar" aria-label="Accesos">
+          <button type="button" className="hhr-bar-btn" aria-label="Ir al entrenamiento" onClick={() => trainRef.current?.scrollIntoView({ behavior: 'smooth' })}>
+            <Dumbbell size={21} strokeWidth={1.8} aria-hidden />
           </button>
-        </div>
+          {feedbackPending ? (
+            <button type="button" className="hhr-bar-fb" onClick={openFeedback}>
+              <span className="hhr-dot" aria-hidden />
+              <ClipboardCheck size={18} strokeWidth={1.9} aria-hidden />
+              Responder feedback
+            </button>
+          ) : data.feedback ? (
+            <span className="hhr-bar-btn is-static" aria-label="Feedback enviado">
+              <ClipboardCheck size={21} strokeWidth={1.8} aria-hidden />
+            </span>
+          ) : null}
+          {waDigits ? (
+            <a className="hhr-bar-btn" href={`https://wa.me/${waDigits}`} target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp">
+              <MessageCircle size={21} strokeWidth={1.8} aria-hidden />
+            </a>
+          ) : null}
+        </nav>
       ) : null}
     </Shell>
   )
 }
 
 function Ring({ pct }: { pct: number }) {
-  const r = 30
+  const r = 34
   const c = 2 * Math.PI * r
   return (
-    <span className="hhr-ring" aria-label={`${pct}% de la semana anotada`}>
-      <svg viewBox="0 0 72 72" width="72" height="72" aria-hidden>
-        <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="7" />
+    <span className="hhr-ring" role="img" aria-label={`${pct}% de la semana anotada`}>
+      <svg viewBox="0 0 84 84" width="84" height="84" aria-hidden>
+        <circle cx="42" cy="42" r={r} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="8" />
         <circle
-          cx="36"
-          cy="36"
+          cx="42"
+          cy="42"
           r={r}
           fill="none"
-          stroke="#fff"
-          strokeWidth="7"
+          stroke="var(--ring)"
+          strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - pct / 100)}
-          transform="rotate(-90 36 36)"
+          transform="rotate(-90 42 42)"
+          opacity={pct === 0 ? 0 : 1}
         />
       </svg>
       <b>{pct}%</b>
     </span>
+  )
+}
+
+/** Arco chico debajo de cada día, como el calendario de la referencia. */
+function MiniArc({ value }: { value: number }) {
+  const r = 9
+  const c = 2 * Math.PI * r
+  const done = value >= 1
+  return (
+    <svg className={done ? 'hhr-arc is-done' : 'hhr-arc'} viewBox="0 0 24 24" width="24" height="24" aria-hidden>
+      <circle cx="12" cy="12" r={r} fill="none" stroke="var(--arc-track)" strokeWidth="3" />
+      {value > 0 ? (
+        <circle
+          cx="12"
+          cy="12"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - Math.min(value, 1))}
+          transform="rotate(-90 12 12)"
+        />
+      ) : null}
+    </svg>
   )
 }
 
@@ -411,52 +546,95 @@ function ExerciseCard({
   n,
   token,
   logged,
+  open,
+  onToggle,
   onSaved,
 }: {
   ex: SharedRoutineExercise
   n: number
   token: string
   logged: Record<number, number>
+  open: boolean
+  onToggle: () => void
   onSaved: (exId: string, set: number, kg: number | null) => void
 }) {
   const main = setsRepsText(ex)
-  const { chips, seriesPlan, notes } = exerciseDetails(ex)
+  const { chips, notes } = exerciseDetails(ex)
   const sets = setCount(ex)
-  const done = Array.from({ length: sets }, (_, i) => logged[i + 1] != null).every(Boolean)
+  const done = Array.from({ length: sets }, (_, i) => logged[i + 1] != null).filter(Boolean).length
+  const complete = done >= sets
   const tone = TILE_TONES[(n - 1) % TILE_TONES.length]
+  const panelId = `hhr-ex-${ex.id}`
+  const sub = [main, chips[0]].filter(Boolean).join(' · ')
   return (
-    <article className={done ? 'hhr-card hhr-ex is-done' : 'hhr-card hhr-ex'}>
-      <span className={`hhr-tile hhr-tone-${tone}`} aria-hidden>
-        {done ? '✓' : n}
-      </span>
-      <div className="hhr-ex-body">
-        <header>
-          <h4>{ex.name || 'Ejercicio'}</h4>
-          {main ? <strong>{main}</strong> : null}
-        </header>
-        {chips.length ? (
-          <ul className="hhr-chips">
-            {chips.map((c) => (
-              <li key={c}>{c}</li>
-            ))}
-          </ul>
-        ) : null}
-        {seriesPlan ? <p className="hhr-plan">{seriesPlan}</p> : null}
-        {notes ? <p className="hhr-notes">{notes}</p> : null}
-        {ex.video_url ? (
-          <a className="hhr-video" href={ex.video_url} target="_blank" rel="noopener noreferrer">
-            ▶ Ver video
-          </a>
-        ) : null}
-        <KgInputs ex={ex} sets={sets} token={token} logged={logged} onSaved={onSaved} />
-      </div>
+    <article className={`hhr-card hhr-ex${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
+      <button type="button" className="hhr-ex-head" aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
+        {ex.image_url ? (
+          <span className="hhr-thumb has-img" aria-hidden>
+            <img src={ex.image_url} alt="" loading="lazy" />
+            {complete ? (
+              <span className="hhr-thumb-check">
+                <Check size={14} strokeWidth={2.6} />
+              </span>
+            ) : null}
+          </span>
+        ) : (
+          <span className={complete ? 'hhr-thumb hhr-tone-ok' : `hhr-thumb hhr-tone-${tone}`} aria-hidden>
+            {complete ? <Check size={24} strokeWidth={2.2} /> : n}
+          </span>
+        )}
+        <span className="hhr-ex-info">
+          <span className="hhr-ex-name">{ex.name || 'Ejercicio'}</span>
+          {sub ? <span className="hhr-ex-sub">{sub}</span> : null}
+          <span className="hhr-bar-track" aria-hidden>
+            <span className="hhr-bar-fill" style={{ width: `${(done / sets) * 100}%` }} />
+          </span>
+          <span className="hhr-ex-count">
+            {complete ? 'Completo' : `${done} de ${sets} ${sets === 1 ? 'serie anotada' : 'series anotadas'}`}
+          </span>
+        </span>
+        <ChevronDown className="hhr-chev" size={20} strokeWidth={1.8} aria-hidden />
+      </button>
+
+      {open ? (
+        <div className="hhr-ex-panel" id={panelId}>
+          {chips.length > 1 || notes || ex.video_url ? (
+            <div className="hhr-ex-extra">
+              {chips.length > 1 ? (
+                <ul className="hhr-chips">
+                  {chips.slice(1).map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {notes ? <p className="hhr-notes">{notes}</p> : null}
+              {ex.video_url ? (
+                <a className="hhr-video" href={ex.video_url} target="_blank" rel="noopener noreferrer">
+                  <Play size={14} strokeWidth={2.2} aria-hidden /> Ver video
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+          <KgInputs ex={ex} sets={sets} token={token} logged={logged} onSaved={onSaved} />
+        </div>
+      ) : null}
     </article>
   )
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-/** Kilos por serie. Se guarda solo (al dejar de escribir o al salir del campo). */
+/** Lo indicado para la serie i: «10 reps · 60 kg». */
+function setTarget(ex: SharedRoutineExercise, plan: { kg?: string; reps?: string }[], i: number): string {
+  const scheme = repsText(ex)
+  const parts = scheme.includes('/') ? scheme.split('/').map((s) => s.trim()) : []
+  const reps = plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
+  const kgRaw = plan[i]?.kg?.trim()
+  const kg = kgRaw ? kgRaw.replace('.', ',') : ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : ''
+  return [reps ? `${reps} reps` : '', kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
+}
+
+/** Kilos por serie, una fila por serie. Se guarda solo (al dejar de escribir o al salir del campo). */
 function KgInputs({
   ex,
   sets,
@@ -484,7 +662,7 @@ function KgInputs({
   function placeholder(i: number): string {
     const k = plan[i]?.kg?.trim()
     if (k) return k.replace('.', ',')
-    return ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : 'kg'
+    return ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : '–'
   }
 
   function setStatusAt(i: number, s: SaveState) {
@@ -520,35 +698,57 @@ function KgInputs({
   const anyError = status.includes('error')
   return (
     <div className="hhr-kg">
-      <span className="hhr-kg-label">Tus kilos</span>
-      <div className="hhr-kg-row">
-        {values.map((v, i) => (
-          <label key={i} className={`hhr-set is-${status[i]}${v.trim() && status[i] === 'idle' ? ' is-filled' : ''}`}>
-            <span>{sets > 1 ? `Serie ${i + 1}` : 'Kilos'}</span>
-            <input
-              inputMode="decimal"
-              autoComplete="off"
-              enterKeyHint="done"
-              maxLength={6}
-              value={v}
-              placeholder={placeholder(i)}
-              aria-label={`${ex.name || 'Ejercicio'}, kilos de la serie ${i + 1}`}
-              onChange={(e) => onChange(i, e.target.value)}
-              onBlur={(e) => void save(i, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-            />
-          </label>
-        ))}
-      </div>
-      {anyError ? <p className="hhr-kg-error">No se pudo guardar. Revisá el número (por ejemplo 62,5) y probá de nuevo.</p> : null}
+      <ol className="hhr-sets">
+        {values.map((v, i) => {
+          const isLogged = status[i] === 'saved' || (status[i] === 'idle' && v.trim() !== '' && logged[i + 1] != null)
+          const target = setTarget(ex, plan, i)
+          return (
+            <li key={i} className={`hhr-setrow is-${status[i]}${isLogged ? ' is-logged' : ''}`}>
+              <span className="hhr-setno" aria-hidden>
+                {i + 1}
+              </span>
+              <span className="hhr-settarget">
+                <b>{sets > 1 ? `Serie ${i + 1}` : 'Serie'}</b>
+                {target ? <small>{target}</small> : null}
+              </span>
+              <label className="hhr-kgfield">
+                <input
+                  inputMode="decimal"
+                  autoComplete="off"
+                  enterKeyHint="done"
+                  maxLength={6}
+                  value={v}
+                  placeholder={placeholder(i)}
+                  aria-label={`${ex.name || 'Ejercicio'}, kilos de la serie ${i + 1}`}
+                  onChange={(e) => onChange(i, e.target.value)}
+                  onBlur={(e) => void save(i, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  }}
+                />
+                <span aria-hidden>kg</span>
+              </label>
+              <span className="hhr-setcheck" aria-hidden>
+                {isLogged ? <Check size={15} strokeWidth={2.8} /> : null}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      {anyError ? <p className="hhr-error">No se pudo guardar. Revisá el número (por ejemplo 62,5) y probá de nuevo.</p> : null}
     </div>
   )
 }
 
 type FormPayload = { ok: boolean; title?: string; questions?: Json; error?: string }
 
+function isAnswered(q: CheckInQuestion, d: CheckInAnswerDraft | undefined): boolean {
+  if (!d) return false
+  if (q.type === 'choice') return !!d.optionId
+  return !!d.text.trim()
+}
+
+/** Feedback de la semana: tarjeta cerrada con el botón, y al abrirla una pregunta por vez. */
 function FeedbackCard({
   publicToken,
   email,
@@ -568,6 +768,7 @@ function FeedbackCard({
 }) {
   const [payload, setPayload] = useState<FormPayload | null>(null)
   const [drafts, setDrafts] = useState<Record<string, CheckInAnswerDraft>>({})
+  const [step, setStep] = useState(0)
   const [responderEmail, setResponderEmail] = useState(email ?? '')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -584,17 +785,30 @@ function FeedbackCard({
 
   const allQuestions = useMemo(() => (payload?.ok && payload.questions ? parseQuestions(payload.questions) : []), [payload])
   const questions = useMemo(() => allQuestions.filter((q) => isQuestionVisible(q, gender)), [allQuestions, gender])
-  const answered = questions.filter((q) => {
-    const d = drafts[q.id]
-    if (!d) return false
-    if (q.type === 'choice') return !!d.optionId
-    return !!d.text.trim()
-  }).length
+  const total = questions.length
+  const si = Math.min(step, Math.max(0, total - 1))
+  const q = questions[si]
+  const last = si === total - 1
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responderEmail.trim())
-  const duration = questions.length <= 4 ? 'un minuto' : `unos ${Math.round(questions.length / 3)} minutos`
+  const duration = total <= 4 ? 'un minuto' : `unos ${Math.round(total / 3)} minutos`
+
+  function next() {
+    if (!q) return
+    const err = validateDrafts([q], drafts, gender)
+    if (err) {
+      setError(err)
+      return
+    }
+    setError(null)
+    setStep(si + 1)
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (!last) {
+      next()
+      return
+    }
     const err = validateDrafts(allQuestions, drafts, gender)
     if (err) {
       setError(err)
@@ -614,11 +828,7 @@ function FeedbackCard({
     })
     setSending(false)
     const res = data as { ok?: boolean; error?: string } | null
-    if (!rpcError && res?.ok) {
-      onSent()
-      return
-    }
-    if (res?.error === 'already_submitted') {
+    if ((!rpcError && res?.ok) || res?.error === 'already_submitted') {
       onSent()
       return
     }
@@ -631,34 +841,64 @@ function FeedbackCard({
     )
   }
 
-  return (
-    <div className="hhr-fb">
-      <div className="hhr-fb-head">
-        <span className="hhr-fb-tag">Tu semana</span>
-        <span className="hhr-fb-badge">Pendiente</span>
-      </div>
-      <b className="hhr-fb-title">¿Cómo te fue esta semana?</b>
-      <p className="hhr-fb-text">
-        {questions.length ? `${questions.length} preguntas, ${duration}. ` : ''}Lo lee {proLabel} para ajustar tu rutina.
-      </p>
-
-      {!open ? (
-        <button type="button" className="hhr-fb-cta" onClick={onOpen}>
+  if (!open) {
+    return (
+      <div className="hhr-fb">
+        <div className="hhr-fb-row">
+          <span className="hhr-icon-tile hhr-tone-violet" aria-hidden>
+            <ClipboardCheck size={22} strokeWidth={1.8} />
+          </span>
+          <div className="hhr-fb-text">
+            <span className="hhr-fb-badge">Pendiente</span>
+            <b>Feedback de la semana</b>
+            <span>{total ? `${total} preguntas · ${duration}` : `Lo lee ${proLabel} para ajustar tu rutina`}</span>
+          </div>
+        </div>
+        <button type="button" className="hhr-cta" onClick={onOpen}>
           Responder ahora
         </button>
-      ) : !payload ? (
-        <p className="hhr-fb-text">Cargando preguntas…</p>
-      ) : !payload.ok || questions.length === 0 ? (
-        <p className="hhr-fb-text">El formulario no está disponible ahora. Avisale a {proLabel}.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="hhr-fb is-open">
+      <div className="hhr-fb-row">
+        <span className="hhr-icon-tile hhr-tone-violet hhr-icon-sm" aria-hidden>
+          <ClipboardCheck size={18} strokeWidth={1.8} />
+        </span>
+        <div className="hhr-fb-text">
+          <b>¿Cómo te fue esta semana?</b>
+          <span>Lo lee {proLabel} para ajustar tu rutina.</span>
+        </div>
+      </div>
+
+      {!payload ? (
+        <p className="hhr-fb-note">Cargando preguntas…</p>
+      ) : !payload.ok || total === 0 || !q ? (
+        <p className="hhr-fb-note">El formulario no está disponible ahora. Avisale a {proLabel}.</p>
       ) : (
         <form className="hhr-fb-form" onSubmit={(e) => void submit(e)}>
-          <div className="hhr-fb-progress" aria-hidden>
-            <span style={{ width: `${(answered / questions.length) * 100}%` }} />
+          <div className="hhr-steps" aria-hidden>
+            {questions.map((qq, i) => (
+              <span key={qq.id} className={i < si || (i === si && isAnswered(qq, drafts[qq.id])) ? 'is-on' : i === si ? 'is-cur' : ''} />
+            ))}
           </div>
-          <p className="hhr-fb-count">
-            {answered} de {questions.length} respondidas
+          <p className="hhr-fb-count" aria-live="polite">
+            Pregunta {si + 1} de {total}
           </p>
-          {!email ? (
+          <div className="hhr-q" key={q.id}>
+            <CheckInQuestionFields
+              question={q}
+              index={si}
+              draft={drafts[q.id] ?? emptyAnswerDraft()}
+              onChange={(nextDraft) => {
+                setError(null)
+                setDrafts((prev) => ({ ...prev, [q.id]: nextDraft }))
+              }}
+            />
+          </div>
+          {last && !email ? (
             <label className="hhr-fb-email">
               <span>Tu correo (el mismo con el que te inscribiste)</span>
               <input
@@ -670,25 +910,29 @@ function FeedbackCard({
               />
             </label>
           ) : null}
-          <div className="hhr-fb-questions">
-            {questions.map((q, idx) => (
-              <CheckInQuestionFields
-                key={q.id}
-                question={q}
-                index={idx}
-                draft={drafts[q.id] ?? emptyAnswerDraft()}
-                onChange={(next) => setDrafts((prev) => ({ ...prev, [q.id]: next }))}
-              />
-            ))}
-          </div>
           {error ? (
-            <p className="hhr-kg-error" role="alert">
+            <p className="hhr-error" role="alert">
               {error}
             </p>
           ) : null}
-          <button type="submit" className="hhr-fb-cta" disabled={sending || answered < questions.length}>
-            {sending ? 'Enviando…' : answered < questions.length ? `Faltan ${questions.length - answered}` : 'Enviar feedback'}
-          </button>
+          <div className="hhr-fb-actions">
+            {si > 0 ? (
+              <button
+                type="button"
+                className="hhr-ghost"
+                aria-label="Pregunta anterior"
+                onClick={() => {
+                  setError(null)
+                  setStep(si - 1)
+                }}
+              >
+                <ArrowLeft size={18} strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+            <button type="submit" className="hhr-cta" disabled={sending || !isAnswered(q, drafts[q.id])}>
+              {sending ? 'Enviando…' : last ? 'Enviar feedback' : 'Siguiente'}
+            </button>
+          </div>
         </form>
       )}
     </div>
@@ -719,155 +963,249 @@ function Shell({ children }: { children: ReactNode }) {
 /** Estilos propios (no dependen del tema ni de la versión que tenga guardada quien la abre). */
 const CSS = `
 .hhr {
-  --canvas: #F3F2EF; --card: #FFFFFF; --soft: #F6F5F3; --line: #ECEAE6;
-  --ink: #1E1B22; --ink-2: #4E4A53; --muted: #8C8890; --brand: #46334F; --brand-2: #2A2131;
-  --brand-wash: #F2ECF5; --accent: #E0861A; --ok: #2F7A4D; --ok-wash: #E6F4EC; --err: #B4233A;
-  --lav: #ECE7F6; --peach: #FCEBDD; --sky: #E3EEF9; --mint: #E3F3EA; --rose: #F9E5EA;
+  --canvas: #F4F4F2; --card: #FFFFFF; --soft: #F5F4F2; --soft-2: #EEEDEA;
+  --ink: #17151C; --ink-2: #57535E; --muted: #8E8A95; --faint: #BEBAC2;
+  --violet: #7B61D9; --violet-ink: #4D3B94; --violet-wash: #F0ECFC; --hero: #221C31; --hero-2: #2E2545; --ring: #B8A7F2;
+  --accent: #F08A24; --ok: #2E8A55; --ok-wash: #E3F4EA; --err: #B4233A; --arc-track: #ECEBE8;
+  --lav: #ECE6FB; --peach: #FDEBDC; --sky: #E1EEFB; --mint: #E0F3E8; --rose: #FBE4EA;
+  --shadow: 0 1px 2px rgba(23,21,28,.04), 0 10px 28px -16px rgba(23,21,28,.16);
   min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: light;
-  font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  font-family: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased;
 }
 .hhr * { box-sizing: border-box; }
-.hhr button, .hhr a, .hhr input { font: inherit; }
-.hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.hhr-inner { max-width: 1120px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right)) 96px max(16px, env(safe-area-inset-left)); display: grid; gap: 18px; }
-.hhr-state { padding: 18vh 0; text-align: center; color: var(--ink-2); }
-.hhr-state h1 { margin: 0 0 6px; font-size: 20px; color: var(--ink); letter-spacing: -0.02em; }
-.hhr-state p { margin: 0 auto; max-width: 40ch; }
-.hhr-muted { margin: 0; color: var(--muted); }
+.hhr button, .hhr a, .hhr input { font: inherit; -webkit-tap-highlight-color: transparent; }
+.hhr button { cursor: pointer; }
+.hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.hhr-inner { max-width: 1200px; margin: 0 auto; padding: 18px max(18px, env(safe-area-inset-right)) 32px max(18px, env(safe-area-inset-left)); }
+.hhr-muted { margin: 4px 4px; color: var(--muted); }
 
-.hhr-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.hhr-logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; min-width: 0; }
-.hhr-logo i { width: 28px; height: 28px; border-radius: 9px; background: var(--brand); color: #fff; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; }
-.hhr-chip-btn { background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap; box-shadow: 0 1px 2px rgba(20,16,24,.06); }
-.hhr-chip-btn:hover { background: var(--soft); }
+/* Estados */
+.hhr-state { padding: 20vh 0; text-align: center; color: var(--ink-2); display: grid; justify-items: center; gap: 6px; }
+.hhr-state-icon { width: 60px; height: 60px; border-radius: 20px; background: var(--lav); color: var(--violet-ink); display: grid; place-items: center; margin-bottom: 8px; }
+.hhr-state h1 { margin: 0; font-size: 22px; color: var(--ink); letter-spacing: -0.02em; }
+.hhr-state p { margin: 0; max-width: 36ch; }
+.hhr-skeleton { display: grid; gap: 16px; max-width: 520px; margin: 0 auto; padding-top: 12px; }
+.hhr-sk { display: block; border-radius: 24px; background: linear-gradient(90deg, #ECEBE8 0%, #F6F5F3 50%, #ECEBE8 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
+.hhr-sk-title { height: 44px; width: 60%; border-radius: 14px; }
+.hhr-sk-hero { height: 150px; }
+.hhr-sk-card { height: 92px; }
+@keyframes hhr-sh { to { background-position: -200% 0; } }
 
-.hhr-layout { display: grid; gap: 18px; grid-template-areas: "hero" "fb" "train"; grid-template-columns: minmax(0, 1fr); min-width: 0; }
-.hhr-hero-area { grid-area: hero; min-width: 0; }
-.hhr-fb-area { grid-area: fb; min-width: 0; scroll-margin-top: 16px; }
-.hhr-train { grid-area: train; min-width: 0; display: grid; gap: 14px; align-content: start; }
+/* Composición */
+.hhr-app { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+.hhr-app.has-bar { padding-bottom: 88px; }
+.hhr-side, .hhr-main { display: grid; gap: 16px; align-content: start; min-width: 0; }
 
-.hhr-today { margin: 0; color: var(--muted); font-size: 13px; }
+/* Cabecera */
+.hhr-top { display: flex; align-items: center; gap: 12px; }
+.hhr-avatar { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; background: var(--lav); color: var(--violet-ink); display: grid; place-items: center; font-weight: 700; font-size: 16px; letter-spacing: .02em; }
+.hhr-hello { flex: 1 1 auto; min-width: 0; display: grid; }
+.hhr-today { color: var(--muted); font-size: 13px; }
 .hhr-today::first-letter { text-transform: uppercase; }
-.hhr-title { margin: 2px 0 14px; font-size: clamp(26px, 7vw, 34px); line-height: 1.1; letter-spacing: -0.03em; font-weight: 700; }
-.hhr-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 20px 20px 22px; border-radius: 24px; color: #fff;
-  background: radial-gradient(120% 140% at 100% 0%, #5B4466 0%, var(--brand) 45%, var(--brand-2) 100%); box-shadow: 0 10px 30px -12px rgba(42,33,49,.55); }
-.hhr-hero-text { display: grid; gap: 2px; min-width: 0; }
-.hhr-hero-kicker { font-size: 12.5px; opacity: .72; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-hero-text b { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
-.hhr-hero-text > span:last-child { font-size: 13px; opacity: .82; }
-.hhr-ring { position: relative; flex: 0 0 auto; width: 72px; height: 72px; display: grid; place-items: center; }
+.hhr-hello h1 { margin: 0; font-size: 24px; line-height: 1.15; letter-spacing: -0.03em; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-round-btn { flex: 0 0 auto; height: 46px; min-width: 46px; border-radius: 999px; background: var(--card); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: var(--shadow); font-size: 14px; font-weight: 600; }
+.hhr-round-btn:hover { background: var(--soft); }
+.hhr-round-btn-text { display: none; }
+
+/* Tarjeta oscura de la semana */
+.hhr-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 16px; padding: 22px 22px 18px; border-radius: 28px; color: #fff;
+  background: linear-gradient(140deg, var(--hero-2) 0%, var(--hero) 60%); box-shadow: 0 18px 40px -22px rgba(34,28,49,.7); }
+.hhr-hero::after { content: ''; position: absolute; right: -60px; top: -80px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(184,167,242,.22), transparent 70%); pointer-events: none; }
+.hhr-hero-text { display: grid; gap: 4px; min-width: 0; }
+.hhr-hero-kicker { font-size: 13px; color: rgba(255,255,255,.66); font-weight: 500; }
+.hhr-hero-big { font-size: 38px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.hhr-hero-big small { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: rgba(255,255,255,.7); }
+.hhr-hero-sub { font-size: 14px; color: rgba(255,255,255,.8); }
+.hhr-ring { position: relative; width: 84px; height: 84px; display: grid; place-items: center; }
 .hhr-ring svg { position: absolute; inset: 0; }
-.hhr-ring circle { transition: stroke-dashoffset .5s ease; }
-.hhr-ring b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.hhr-goal { margin: 12px 2px 0; color: var(--ink-2); font-size: 14px; }
+.hhr-ring circle { transition: stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1); }
+.hhr-ring b { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.hhr-hero-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; color: rgba(255,255,255,.62); }
+.hhr-hero-foot span:first-child { color: rgba(255,255,255,.88); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.hhr-hero-goal { flex: 1 0 100%; margin: 4px 0 0; color: rgba(255,255,255,.62); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Feedback: tarjeta propia, en lila, separada de la rutina. */
-.hhr-fb { display: grid; gap: 8px; padding: 18px; border-radius: 24px; background: var(--brand-wash); border: 1px solid #E4DAEA; }
-.hhr-fb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.hhr-fb-tag { font-size: 12px; font-weight: 600; color: var(--brand); text-transform: uppercase; letter-spacing: .06em; }
-.hhr-fb-badge { font-size: 12px; font-weight: 600; color: #8A4B0B; background: #FCE9CF; border-radius: 999px; padding: 2px 10px; display: inline-flex; align-items: center; gap: 6px; }
-.hhr-fb-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
-@keyframes hhr-pulse { 50% { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { .hhr-fb-badge::before { animation: none; } }
-.hhr-fb-title { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
-.hhr-fb-text { margin: 0; color: var(--ink-2); font-size: 14px; }
-.hhr-fb-cta { margin-top: 6px; border: 0; border-radius: 999px; background: var(--brand); color: #fff; padding: 13px 18px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; }
-.hhr-fb-cta:hover { background: var(--brand-2); }
-.hhr-fb-cta:disabled { opacity: .55; cursor: default; background: var(--brand); }
-.hhr-fb-form { display: grid; gap: 10px; margin-top: 6px; }
-.hhr-fb-progress { height: 6px; border-radius: 99px; background: rgba(70,51,79,.12); overflow: hidden; }
-.hhr-fb-progress span { display: block; height: 100%; background: var(--brand); border-radius: inherit; transition: width .3s ease; }
-.hhr-fb-count { margin: -4px 0 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hhr-fb-questions { display: grid; gap: 10px; }
-.hhr-fb-questions > section { background: var(--card); border-color: transparent; box-shadow: none; }
-.hhr-fb-email { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
-.hhr-fb-email input { border: 1px solid var(--line); border-radius: 14px; padding: 11px 14px; background: var(--card); font-size: 15px; }
-.hhr-fb-done { background: var(--ok-wash); border-color: #D2EBDC; }
-.hhr-fb-done .hhr-fb-tag { color: var(--ok); }
-.hhr-fb-done-row { display: flex; gap: 12px; align-items: flex-start; }
-.hhr-fb-done b { font-size: 16px; }
-.hhr-fb-done p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
-.hhr-check { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
-
-.hhr-section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin-top: 4px; }
-.hhr-section-head h2 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; }
-.hhr-section-head span { color: var(--muted); font-size: 13px; }
-
-.hhr-weeks { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 8px 16px; background: var(--canvas); }
-.hhr-weeks::-webkit-scrollbar { display: none; }
-.hhr-week { position: relative; flex: 0 0 auto; border: 0; background: var(--card); color: var(--ink-2); border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(20,16,24,.05); }
-.hhr-week:hover { color: var(--ink); }
-.hhr-week[aria-pressed="true"] { background: var(--ink); color: #fff; }
-.hhr-now { position: absolute; top: 4px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.hhr-days { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
-.hhr-day { border: 0; background: var(--card); color: var(--ink-2); border-radius: 18px; padding: 10px 8px; cursor: pointer; display: grid; gap: 1px; text-align: center; box-shadow: 0 1px 2px rgba(20,16,24,.05); min-width: 0; }
-.hhr-day-name { font-size: 15px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-day-meta { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hhr-day-meta.is-done { color: var(--ok); font-weight: 600; }
-.hhr-day[aria-pressed="true"] { background: var(--ink); }
-.hhr-day[aria-pressed="true"] .hhr-day-name { color: #fff; }
-.hhr-day[aria-pressed="true"] .hhr-day-meta { color: rgba(255,255,255,.7); }
-.hhr-daytitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
-.hhr-daytitle h3 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
-.hhr-daytitle span { color: var(--muted); font-size: 14px; }
-
-.hhr-card { background: var(--card); border-radius: 22px; box-shadow: 0 1px 2px rgba(20,16,24,.05); }
-.hhr-empty-card { padding: 28px 20px; text-align: center; }
-.hhr-empty-card p { margin: 4px 0 0; color: var(--ink-2); }
-.hhr-warmup { padding: 14px 18px; }
-.hhr-warmup summary { cursor: pointer; font-weight: 600; font-size: 14.5px; }
-.hhr-warmup ul { margin: 8px 0 2px; padding-left: 18px; display: grid; gap: 3px; color: var(--ink-2); font-size: 14px; }
-
-.hhr-list { display: grid; gap: 10px; }
-.hhr-ex { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 16px; }
-.hhr-tile { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 15px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* Tarjetas y tiles */
+.hhr-card { background: var(--card); border-radius: 24px; box-shadow: var(--shadow); }
+.hhr-icon-tile { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; color: var(--ink); }
+.hhr-icon-sm { width: 40px; height: 40px; border-radius: 14px; }
 .hhr-tone-lav { background: var(--lav); } .hhr-tone-peach { background: var(--peach); } .hhr-tone-sky { background: var(--sky); }
 .hhr-tone-mint { background: var(--mint); } .hhr-tone-rose { background: var(--rose); }
-.hhr-ex.is-done .hhr-tile { background: var(--ok); color: #fff; }
-.hhr-ex-body { min-width: 0; display: grid; gap: 8px; }
-.hhr-ex header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
-.hhr-ex h4 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-.hhr-ex strong { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.hhr-tone-violet { background: var(--violet-wash); color: var(--violet-ink); }
+.hhr-tone-ok { background: var(--ok); color: #fff; }
+.hhr-empty-card { padding: 30px 22px; text-align: center; display: grid; justify-items: center; gap: 6px; }
+.hhr-empty-card b { margin-top: 6px; font-size: 16px; }
+.hhr-empty-card p { margin: 0; color: var(--ink-2); max-width: 34ch; }
+.hhr-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--soft); color: var(--ink-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hhr-pill.is-ok { background: var(--ok-wash); color: var(--ok); }
+
+/* Feedback de la semana */
+.hhr-fb-area { scroll-margin-top: 16px; }
+.hhr-fb { display: grid; gap: 16px; padding: 18px; border-radius: 26px; background: var(--card); box-shadow: var(--shadow); position: relative; }
+.hhr-fb::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, var(--violet-wash), rgba(240,236,252,0) 70%); pointer-events: none; }
+.hhr-fb > * { position: relative; }
+.hhr-fb-row { display: flex; align-items: center; gap: 14px; }
+.hhr-fb-text { display: grid; gap: 2px; min-width: 0; }
+.hhr-fb-text b { font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
+.hhr-fb-text > span:last-child { color: var(--ink-2); font-size: 13.5px; }
+.hhr-fb-badge { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #93500F; background: #FDEEDC; border-radius: 999px; padding: 2px 10px 2px 8px; margin-bottom: 2px; }
+.hhr-fb-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
+@keyframes hhr-pulse { 50% { opacity: .3; } }
+.hhr-fb-note { margin: 0; color: var(--ink-2); font-size: 14px; }
+.hhr-fb-form { display: grid; gap: 12px; }
+.hhr-steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.hhr-steps span { height: 6px; border-radius: 99px; background: var(--soft-2); transition: background .25s ease; }
+.hhr-steps span.is-cur { background: #D9D0F7; }
+.hhr-steps span.is-on { background: var(--violet); }
+.hhr-fb-count { margin: -4px 0 0; font-size: 12.5px; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.hhr-q { animation: hhr-in .25s ease; }
+@keyframes hhr-in { from { opacity: 0; transform: translateY(6px); } }
+.hhr-q > section { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+.hhr-q > section > p:first-child { font-size: 17px; letter-spacing: -0.01em; }
+.hhr-q [role="group"] button { border: 0 !important; background: var(--soft) !important; color: var(--ink-2) !important; border-radius: 16px; }
+.hhr-q [role="group"] button[aria-pressed="true"] { background: var(--ink) !important; color: #fff !important; }
+.hhr-q [role="radio"] { border: 0 !important; background-color: var(--soft); box-shadow: none !important; border-radius: 16px; }
+.hhr-q textarea, .hhr-q input { border: 0 !important; background: var(--soft) !important; border-radius: 16px !important; box-shadow: none !important; }
+.hhr-fb-email { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.hhr-fb-email input { border: 0; border-radius: 16px; padding: 13px 16px; background: var(--soft); font-size: 16px; }
+.hhr-fb-actions { display: flex; gap: 10px; }
+.hhr-fb-actions .hhr-cta { flex: 1 1 auto; }
+.hhr-cta { border: 0; border-radius: 999px; background: var(--ink); color: #fff; height: 52px; padding: 0 22px; font-size: 15.5px; font-weight: 600; width: 100%; transition: transform .12s ease, background .15s ease, opacity .15s ease; }
+.hhr-cta:hover { background: #2C2833; }
+.hhr-cta:active { transform: scale(.98); }
+.hhr-cta:disabled { opacity: .35; cursor: default; transform: none; background: var(--ink); }
+.hhr-ghost { flex: 0 0 auto; width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--soft); color: var(--ink); display: grid; place-items: center; }
+.hhr-ghost:hover { background: var(--soft-2); }
+.hhr-fb-done { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; }
+.hhr-fb-done::before { background: linear-gradient(160deg, var(--ok-wash), rgba(227,244,234,0) 75%); }
+.hhr-fb-done-text b { font-size: 16px; }
+.hhr-fb-done-text p { margin: 2px 0 0; color: var(--ink-2); font-size: 13.5px; }
+
+/* Entrenamiento */
+.hhr-main-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin: 6px 2px 0; }
+.hhr-main-head h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+.hhr-main-head span { color: var(--muted); font-size: 13px; }
+
+.hhr-weeks { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 2px 18px 4px; }
+.hhr-weeks::-webkit-scrollbar { display: none; }
+.hhr-week { position: relative; flex: 0 0 auto; border: 0; background: var(--card); color: var(--ink-2); border-radius: 999px; height: 44px; padding: 0 20px; font-size: 14px; font-weight: 500; box-shadow: var(--shadow); transition: background .15s ease, color .15s ease; }
+.hhr-week:hover { color: var(--ink); }
+.hhr-week[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.hhr-now { position: absolute; top: 8px; right: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.hhr-days { display: flex; justify-content: space-around; gap: 4px; padding: 10px; }
+.hhr-day { flex: 0 1 84px; border: 0; background: transparent; border-radius: 18px; padding: 10px 2px 8px; display: grid; justify-items: center; gap: 2px; color: var(--violet); min-width: 0; transition: background .15s ease; }
+.hhr-day:hover { background: var(--soft); }
+.hhr-day[aria-pressed="true"] { background: var(--soft-2); }
+.hhr-day-label { font-size: 12.5px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-day-num { font-size: 21px; font-weight: 650; color: var(--ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.hhr-arc { margin-top: 4px; }
+.hhr-arc.is-done { color: var(--ok); }
+
+.hhr-daycard { padding: 18px 18px; display: grid; gap: 14px; }
+.hhr-daycard-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hhr-daycard-head h3 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
+.hhr-daycard-head div > span { color: var(--muted); font-size: 13.5px; }
+.hhr-warmup { border-radius: 18px; background: var(--soft); }
+.hhr-warmup summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; cursor: pointer; }
+.hhr-warmup summary::-webkit-details-marker { display: none; }
+.hhr-warmup-title { flex: 1 1 auto; display: grid; min-width: 0; }
+.hhr-warmup-title b { font-size: 14.5px; font-weight: 600; }
+.hhr-warmup-title small { color: var(--muted); font-size: 12.5px; }
+.hhr-warmup[open] .hhr-chev { transform: rotate(180deg); }
+.hhr-warmup ul { margin: 0; padding: 0 18px 14px 34px; display: grid; gap: 4px; color: var(--ink-2); font-size: 14px; }
+.hhr-chev { flex: 0 0 auto; color: var(--muted); transition: transform .2s ease; }
+
+/* Ejercicios */
+.hhr-list { display: grid; gap: 12px; align-items: start; }
+.hhr-ex { overflow: hidden; }
+.hhr-ex-head { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; }
+.hhr-thumb { position: relative; flex: 0 0 auto; width: 76px; height: 76px; border-radius: 20px; display: grid; place-items: center; font-size: 22px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; overflow: hidden; }
+.hhr-thumb.has-img { background: var(--soft); }
+.hhr-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.hhr-thumb-check { position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; }
+.hhr-ex-info { flex: 1 1 auto; min-width: 0; display: grid; gap: 3px; }
+.hhr-ex-name { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; overflow-wrap: anywhere; line-height: 1.25; }
+.hhr-ex-sub { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hhr-bar-track { display: block; height: 8px; border-radius: 99px; background: var(--soft-2); overflow: hidden; margin-top: 6px; max-width: 220px; }
+.hhr-bar-fill { display: block; height: 100%; border-radius: inherit; background: var(--ink); transition: width .35s cubic-bezier(.2,.8,.2,1); }
+.hhr-ex.is-done .hhr-bar-fill { background: var(--ok); }
+.hhr-ex-count { font-size: 12px; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.hhr-ex.is-done .hhr-ex-count { color: var(--ok); }
+.hhr-ex.is-open .hhr-ex-head .hhr-chev { transform: rotate(180deg); }
+.hhr-ex-panel { padding: 0 14px 14px; display: grid; gap: 12px; animation: hhr-in .2s ease; }
+.hhr-ex-extra { display: grid; gap: 8px; padding: 0 4px; }
 .hhr-chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-.hhr-chips li { background: var(--soft); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.hhr-plan { margin: 0; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hhr-chips li { background: var(--soft); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .hhr-notes { margin: 0; font-size: 14px; color: var(--ink-2); white-space: pre-line; }
-.hhr-video { justify-self: start; font-size: 13.5px; font-weight: 500; color: var(--brand); text-decoration: none; }
-.hhr-video:hover { text-decoration: underline; }
+.hhr-video { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; }
+.hhr-video:hover { background: #2C2833; }
 
-.hhr-kg { display: grid; gap: 6px; margin-top: 2px; padding-top: 10px; border-top: 1px dashed var(--line); }
-.hhr-kg-label { font-size: 12px; font-weight: 600; color: var(--muted); }
-.hhr-kg-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.hhr-set { position: relative; display: grid; gap: 2px; width: 76px; }
-.hhr-set span { font-size: 11px; color: var(--muted); }
-.hhr-set input { width: 100%; border: 1px solid transparent; background: var(--soft); border-radius: 12px; padding: 9px 10px; font-size: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; text-align: center; }
-.hhr-set input::placeholder { color: #B7B3BA; font-weight: 500; }
-.hhr-set input:focus { outline: none; border-color: var(--brand); background: var(--card); }
-.hhr-set.is-saved input, .hhr-set.is-filled input { background: var(--ok-wash); }
-.hhr-set.is-saved::after { content: '✓'; position: absolute; right: 7px; bottom: 9px; font-size: 11px; color: var(--ok); font-weight: 700; }
-.hhr-set.is-saving input { opacity: .7; }
-.hhr-set.is-error input { border-color: var(--err); }
-.hhr-kg-error { margin: 0; font-size: 12.5px; color: var(--err); }
+/* Series */
+.hhr-kg { display: grid; gap: 8px; }
+.hhr-sets { margin: 0; padding: 6px; list-style: none; display: grid; gap: 4px; border-radius: 20px; background: var(--soft); }
+.hhr-setrow { display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 6px; border-radius: 16px; transition: background .2s ease; }
+.hhr-setrow.is-logged { background: var(--card); }
+.hhr-setno { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 11px; background: var(--card); display: grid; place-items: center; font-size: 13px; font-weight: 650; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hhr-setrow.is-logged .hhr-setno { background: var(--soft); }
+.hhr-settarget { flex: 1 1 auto; min-width: 0; display: grid; }
+.hhr-settarget b { font-size: 14px; font-weight: 600; }
+.hhr-settarget small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-kgfield { flex: 0 0 auto; position: relative; width: 96px; }
+.hhr-kgfield input { width: 100%; height: 44px; border: 1.5px solid transparent; background: var(--card); border-radius: 14px; padding: 0 30px 0 12px; font-size: 17px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; transition: border-color .15s ease; }
+.hhr-setrow.is-logged .hhr-kgfield input { background: var(--soft); }
+.hhr-kgfield input::placeholder { color: var(--faint); font-weight: 500; }
+.hhr-kgfield input:focus { outline: none; border-color: var(--violet); background: var(--card); }
+.hhr-kgfield span { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 12.5px; color: var(--muted); pointer-events: none; }
+.hhr-setcheck { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #DCDAD6; display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.hhr-setrow.is-logged .hhr-setcheck { background: var(--ok); border-color: var(--ok); animation: hhr-pop .3s ease; }
+.hhr-setrow.is-saving .hhr-setcheck { border-color: var(--violet); border-right-color: transparent; animation: hhr-spin .7s linear infinite; }
+.hhr-setrow.is-error .hhr-setcheck { border-color: var(--err); }
+.hhr-setrow.is-error .hhr-kgfield input { border-color: var(--err); }
+@keyframes hhr-pop { 50% { transform: scale(1.15); } }
+@keyframes hhr-spin { to { transform: rotate(360deg); } }
+.hhr-error { margin: 0; font-size: 13px; color: var(--err); }
 
-.hhr-circuit { display: grid; gap: 8px; padding: 10px; border-radius: 26px; background: #EAE8E4; }
-.hhr-circuit-label { margin: 2px 8px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-.hhr-foot { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.hhr-circuit { display: grid; gap: 8px; padding: 8px; border-radius: 30px; background: #E9E6F3; }
+.hhr-circuit-label { margin: 6px 10px 2px; font-size: 13px; font-weight: 600; color: var(--violet-ink); display: flex; align-items: center; gap: 6px; }
+.hhr-circuit-list { display: grid; gap: 8px; align-items: start; }
 
-.hhr-nudge { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 10px 10px 10px 18px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; box-shadow: 0 12px 30px -10px rgba(20,16,24,.55); max-width: 560px; margin: 0 auto; }
-.hhr-nudge b { font-weight: 600; }
-.hhr-nudge button { flex: 0 0 auto; border: 0; border-radius: 999px; background: #fff; color: var(--ink); padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.hhr-foot { margin: 8px 4px 0; font-size: 12.5px; color: var(--muted); display: grid; gap: 6px; }
+.hhr-brand { font-weight: 600; color: var(--faint); }
 
-@media (max-width: 420px) { .hhr-logo > span { display: none; } .hhr-ex { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 14px; } .hhr-tile { width: 36px; height: 36px; border-radius: 12px; font-size: 14px; } }
+/* Barra flotante del celu */
+.hhr-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; background: var(--ink); box-shadow: 0 16px 36px -14px rgba(23,21,28,.6); max-width: calc(100% - 28px); }
+.hhr-bar-btn { width: 50px; height: 50px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.75); display: grid; place-items: center; text-decoration: none; }
+.hhr-bar-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+.hhr-bar-btn.is-static { color: #7BD3A0; }
+.hhr-bar-fb { position: relative; height: 50px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; padding: 0 20px 0 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; }
+.hhr-dot { position: absolute; top: 9px; left: 30px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px #fff; animation: hhr-pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hhr *, .hhr *::before { animation: none !important; transition: none !important; }
+}
+@media (max-width: 380px) {
+  .hhr-thumb { width: 60px; height: 60px; border-radius: 17px; font-size: 19px; }
+  .hhr-ex-head { gap: 12px; }
+  .hhr-kgfield { width: 84px; }
+  .hhr-settarget small { display: none; }
+}
 @media (min-width: 640px) {
-  .hhr-inner { padding-top: 24px; gap: 22px; }
+  .hhr-inner { padding-top: 28px; }
   .hhr-weeks { margin-inline: 0; padding-inline: 0; }
-  .hhr-ex { padding: 18px 20px; }
+  .hhr-round-btn { padding: 0 18px 0 14px; }
+  .hhr-round-btn-text { display: inline; }
 }
 @media (min-width: 1024px) {
-  .hhr-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "hero fb" "train fb"; column-gap: 28px; align-items: start; }
-  .hhr-fb-area { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; border-radius: 24px; }
-  .hhr-nudge { display: none; }
+  .hhr-inner { padding: 36px 32px 48px; }
+  .hhr-app { grid-template-columns: 360px minmax(0, 1fr); column-gap: 36px; align-items: start; }
+  .hhr-app.has-bar { padding-bottom: 0; }
+  .hhr-side { position: sticky; top: 24px; }
+  .hhr-round-btn { padding: 0; width: 46px; }
+  .hhr-round-btn-text { display: none; }
+  .hhr-main-head { margin-top: 0; }
+  .hhr-main-head h2 { font-size: 28px; }
+  .hhr-main { max-width: 760px; }
+  .hhr-bar { display: none; }
 }
 `
