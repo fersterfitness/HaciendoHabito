@@ -6,6 +6,7 @@ export interface ExerciseSetLog {
   set_number: number
   weight_kg: number | null
   reps: number | null
+  completed?: boolean
   updated_at: string
 }
 
@@ -19,14 +20,14 @@ export type ExerciseLogsByExercise = Map<string, ExerciseSetLog[]>
 export async function fetchRoutineExerciseLogs(routineId: string): Promise<ExerciseLogsByExercise> {
   const { data, error } = await supabase
     .from('routine_exercise_logs')
-    .select('routine_exercise_id, set_number, weight_kg, reps, updated_at')
+    .select('*')
     .eq('routine_id', routineId)
     .order('set_number')
   const out: ExerciseLogsByExercise = new Map()
   if (error || !data) return out
   for (const row of data as (ExerciseSetLog & { routine_exercise_id: string })[]) {
     const list = out.get(row.routine_exercise_id) ?? []
-    list.push({ set_number: row.set_number, weight_kg: row.weight_kg, reps: row.reps, updated_at: row.updated_at })
+    list.push({ set_number: row.set_number, weight_kg: row.weight_kg, reps: row.reps, completed: row.completed, updated_at: row.updated_at })
     out.set(row.routine_exercise_id, list)
   }
   return out

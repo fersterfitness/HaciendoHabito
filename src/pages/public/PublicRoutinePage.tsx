@@ -9,7 +9,8 @@ import {
   fetchSharedRoutine,
   formatKg,
   groupExercises,
-  logSharedSet,
+  saveSharedSet,
+  isSetComplete,
   parseKg,
   repsText,
   setsRepsText,
@@ -32,6 +33,8 @@ import {
   type CheckInQuestion,
 } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
+import './public-routine.css'
+import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
 
 /**
  * Rutina que abre el alumno desde el link (sin cuenta). Dos cosas separadas:
@@ -40,7 +43,7 @@ import type { Json } from '@/types/database'
  *   a la vista (y en la barra de abajo en el celu) hasta que se envía.
  * En el celu es una columna; en la compu, a la izquierda el resumen y el feedback, a la derecha el entrenamiento.
  *
- * Ilustraciones 3D opcionales en public/3d/<nombre>.png (ver ART). Si falta alguna, se ve el número o un ícono de línea.
+ * Recursos locales compartidos con la app; los ejercicios conservan su foto cuando está disponible.
  */
 
 function todayYmd(): string {
@@ -82,15 +85,16 @@ function setCount(ex: SharedRoutineExercise): number {
 }
 
 /** Kilos anotados: id de ejercicio → número de serie → kg. */
-type LoggedMap = Record<string, Record<number, number>>
+type LoggedSet = { kg: number | null; completed: boolean }
+type LoggedMap = Record<string, Record<number, LoggedSet>>
 
 function loggedFrom(data: SharedRoutine | null): LoggedMap {
   const out: LoggedMap = {}
   for (const b of data?.routine?.blocks ?? [])
     for (const d of b.days)
       for (const ex of d.exercises) {
-        const m: Record<number, number> = {}
-        for (const l of ex.logs ?? []) if (l.weight_kg != null) m[l.set] = Number(l.weight_kg)
+        const m: Record<number, LoggedSet> = {}
+        for (const l of ex.logs ?? []) m[l.set] = { kg: l.weight_kg == null ? null : Number(l.weight_kg), completed: isSetComplete(l) }
         out[ex.id] = m
       }
   return out
@@ -100,7 +104,7 @@ function exerciseProgress(ex: SharedRoutineExercise, logged: LoggedMap): { done:
   const total = setCount(ex)
   const m = logged[ex.id] ?? {}
   let done = 0
-  for (let s = 1; s <= total; s++) if (m[s] != null) done += 1
+  for (let s = 1; s <= total; s++) if (m[s]?.completed) done += 1
   return { done, total }
 }
 
@@ -127,7 +131,7 @@ function initials(name: string): string {
   return (parts[0]?.[0] ?? '').toUpperCase() + (parts[1]?.[0] ?? '').toUpperCase() || 'H'
 }
 
-/** Ilustraciones 3D (public/3d). */
+/** Categorías visuales de los ejercicios y recursos de la página. */
 type ArtName = 'piernas' | 'empuje' | 'traccion' | 'core' | 'cardio' | 'movilidad' | 'general' | 'calor' | 'feedback' | 'semana'
 
 /** Tipo de ejercicio por el nombre, para elegir la ilustración. El orden importa: «plancha … glúteo» es core. */
@@ -146,8 +150,10 @@ function exerciseArt(name: string | null | undefined): ArtName {
 /** Imagen 3D con respaldo: si el archivo no está, muestra `fallback`. */
 function Art({ name, fallback, className }: { name: ArtName; fallback: ReactNode; className?: string }) {
   const [failed, setFailed] = useState(false)
+  const asset = name === 'feedback' ? 'notebook' : name === 'semana' ? 'clock' : name === 'calor' ? null : 'routines'
+  if (!asset) return <>{fallback}</>
   if (failed) return <>{fallback}</>
-  return <img className={className ?? 'hhr-art'} src={`/3d/${name}.png`} alt="" loading="lazy" onError={() => setFailed(true)} />
+  return <img className={className ?? 'hhr-art'} src={`/icons/3dicons/kpi/${asset}.png`} alt="" loading="lazy" onError={() => setFailed(true)} />
 }
 
 export function PublicRoutinePage() {
@@ -200,11 +206,10 @@ export function PublicRoutinePage() {
     document.title = firstName ? `Rutina de ${firstName}` : 'Tu rutina'
   }, [firstName])
 
-  const onSaved = useCallback((exId: string, set: number, kg: number | null) => {
+  const onSaved = useCallback((exId: string, set: number, value: LoggedSet) => {
     setLogged((prev) => {
       const m = { ...(prev[exId] ?? {}) }
-      if (kg == null) delete m[set]
-      else m[set] = kg
+      m[set] = value
       return { ...prev, [exId]: m }
     })
   }, [])
@@ -246,6 +251,7 @@ export function PublicRoutinePage() {
   const waDigits = normalizePhoneForWhatsApp(data.professional_phone)
   const proFirst = data.professional_name && !data.professional_name.includes('@') ? niceCase(data.professional_name.trim().split(/\s+/)[0]) : ''
   const proLabel = proFirst || 'tu entrenador'
+  const athlete = routineAthlete(data.student_gender ?? data.feedback?.gender)
   const until = dateLabel(routine?.end_date)
   const updated = dateLabel(routine?.updated_at)
   const warmup = selectedDay?.warmup_notes ? formatWarmupDisplayLines(selectedDay.warmup_notes) : []
@@ -260,12 +266,8 @@ export function PublicRoutinePage() {
   const pct = weekProgress.total ? Math.round((weekProgress.done / weekProgress.total) * 100) : 0
   const todayLabel = format(new Date(), "EEEE d 'de' MMMM", { locale: es })
   const selectedProgress = selectedDay ? dayProgress(selectedDay, logged) : { done: 0, total: 0 }
-  // Abierto por defecto: el primer ejercicio del día que todavía no está completo.
-  const firstPendingId = selectedDay?.exercises.find((ex) => {
-    const p = exerciseProgress(ex, logged)
-    return p.done < p.total
-  })?.id
-  const isOpen = (id: string) => (id in openMap ? !!openMap[id] : id === firstPendingId)
+  // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
+  const isOpen = (id: string) => !!openMap[id]
   const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
   let number = 0
 
@@ -280,6 +282,7 @@ export function PublicRoutinePage() {
       <ExerciseCard
         key={ex.id}
         ex={ex}
+        athlete={athlete}
         n={n}
         flat={inCircuit}
         token={token}
@@ -291,18 +294,22 @@ export function PublicRoutinePage() {
     )
   }
 
-  const showBar = feedbackPending || !!waDigits
+  const showBar = true
   const heroLine =
     weekProgress.total === 0
       ? 'Todavía no hay series cargadas'
       : pct === 100
         ? 'Semana completa'
         : weekProgress.done === 0
-          ? 'Anotá los kilos a medida que entrenás'
+          ? 'Marcá tus series a medida que entrenás'
           : `Te faltan ${weekProgress.total - weekProgress.done} series esta semana`
 
   return (
     <Shell>
+      <div className="hhr-masthead">
+        <span className="hhr-wordmark"><span className="hhr-brand-mark"><Dumbbell size={19} aria-hidden /></span> haciéndolo<span>hábito</span><span className="hhr-brand-period">.</span></span>
+        <span className="hhr-space-label">TU ESPACIO DE ENTRENAMIENTO</span>
+      </div>
       <div className={showBar ? 'hhr-app has-bar' : 'hhr-app'}>
         <aside className="hhr-side">
           <header className="hhr-top">
@@ -326,18 +333,24 @@ export function PublicRoutinePage() {
             ) : null}
           </header>
 
-          <div className="hhr-hero">
+          <div className={`hhr-hero hhr-hero-${athlete ?? 'neutral'}`}>
             <div className="hhr-hero-top">
               <span className="hhr-hero-kicker">{blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Esta semana'}</span>
               {until ? <span className="hhr-hero-until">Hasta el {until}</span> : null}
             </div>
+            <h2 className="hhr-hero-heading">Un poco más fuerte.<br />Un día a la vez.</h2>
+            <button type="button" className="hhr-start" onClick={() => trainRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <Play size={13} fill="currentColor" aria-hidden /> A entrenar
+            </button>
+          </div>
+          <section className="hhr-overview" aria-label="Tu progreso semanal">
             <div className="hhr-hero-mid">
               <div className="hhr-hero-text">
                 <span className="hhr-hero-big">
                   {weekProgress.done}
                   <span>/{weekProgress.total || 0}</span>
                 </span>
-                <span className="hhr-hero-unit">series anotadas</span>
+                <span className="hhr-hero-unit">series completadas</span>
               </div>
               <Ring pct={pct} />
             </div>
@@ -346,7 +359,7 @@ export function PublicRoutinePage() {
               <b>{niceCase(routine?.name) || 'Tu rutina'}</b>
               {routine?.objective ? <span>{routine.objective.trim()}</span> : null}
             </div>
-          </div>
+          </section>
 
           {data.feedback ? (
             <section className="hhr-fb-area" ref={feedbackRef} aria-label="Feedback de la semana">
@@ -378,7 +391,7 @@ export function PublicRoutinePage() {
         <main className="hhr-main" ref={trainRef} aria-label="Tu entrenamiento">
           <div className="hhr-main-head">
             <h2>Tu entrenamiento</h2>
-            <span>{proFirst ? `${proFirst} ve los kilos que anotás` : 'Tu entrenador ve los kilos que anotás'}</span>
+            <span>Elegí tu día. Encontrá tu ritmo.</span>
           </div>
 
           {!routine || blocks.length === 0 ? (
@@ -523,7 +536,7 @@ export function PublicRoutinePage() {
           {feedbackPending ? (
             <button type="button" className="hhr-bar-fb" onClick={openFeedback}>
               <span className="hhr-dot" aria-hidden />
-              Responder feedback
+              Mi feedback
             </button>
           ) : data.feedback ? (
             <span className="hhr-bar-btn is-static" aria-label="Feedback enviado">
@@ -545,7 +558,7 @@ function Ring({ pct }: { pct: number }) {
   const r = 38
   const c = 2 * Math.PI * r
   return (
-    <span className="hhr-ring" role="img" aria-label={`${pct}% de la semana anotada`}>
+    <span className="hhr-ring" role="img" aria-label={`${pct}% de la semana completada`}>
       <svg viewBox="0 0 92 92" width="92" height="92" aria-hidden>
         <circle cx="46" cy="46" r={r} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="9" />
         <circle
@@ -599,6 +612,7 @@ function MiniArc({ value }: { value: number }) {
 
 function ExerciseCard({
   ex,
+  athlete,
   n,
   flat,
   token,
@@ -608,30 +622,32 @@ function ExerciseCard({
   onSaved,
 }: {
   ex: SharedRoutineExercise
+  athlete: Athlete | null
   n: number
   flat: boolean
   token: string
-  logged: Record<number, number>
+  logged: Record<number, LoggedSet>
   open: boolean
   onToggle: () => void
-  onSaved: (exId: string, set: number, kg: number | null) => void
+  onSaved: (exId: string, set: number, value: LoggedSet) => void
 }) {
   const main = setsRepsText(ex)
   const { chips, notes } = exerciseDetails(ex)
   const sets = setCount(ex)
-  const done = Array.from({ length: sets }, (_, i) => logged[i + 1] != null).filter(Boolean).length
+  const done = Array.from({ length: sets }, (_, i) => logged[i + 1]?.completed).filter(Boolean).length
   const complete = done >= sets
   const panelId = `hhr-ex-${ex.id}`
   const name = niceCase(ex.name) || 'Ejercicio'
+  const artwork = movementArtwork(ex.name, athlete)
   const tags = [main.replace(/''/g, '″'), chips[0]].filter(Boolean) as string[]
   return (
     <article className={`hhr-ex${flat ? ' is-flat' : ' hhr-card'}${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
       <button type="button" className="hhr-ex-head" aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
-        <span className="hhr-tile" aria-hidden>
+        <span className={`hhr-tile hhr-tile-${exerciseArt(ex.name)}`} aria-hidden>
           {ex.image_url ? (
             <img className="hhr-photo" src={ex.image_url} alt="" loading="lazy" />
           ) : (
-            <Art name={exerciseArt(ex.name)} fallback={<span className="hhr-tile-num">{String(n).padStart(2, '0')}</span>} />
+            artwork ? <span className="hhr-movement" style={{ backgroundImage: `url("${artwork.url}")`, backgroundPosition: artwork.position }} /> : <Dumbbell size={30} strokeWidth={1.4} />
           )}
           {complete ? (
             <span className="hhr-tile-check">
@@ -652,7 +668,7 @@ function ExerciseCard({
             <span className="hhr-progress-track" aria-hidden>
               <span className="hhr-progress-fill" style={{ width: `${(done / sets) * 100}%` }} />
             </span>
-            <span className="hhr-progress-label">{complete ? 'Listo' : `${done}/${sets}`}</span>
+            <span className="hhr-progress-label">{complete ? 'Listo' : `${done}/${sets} series`}</span>
           </span>
         </span>
         <ChevronDown className="hhr-chev" size={20} strokeWidth={1.8} aria-hidden />
@@ -660,6 +676,7 @@ function ExerciseCard({
 
       {open ? (
         <div className="hhr-ex-panel" id={panelId}>
+          <span className="hhr-register-title">Ejercicio {String(n).padStart(2, '0')} · Registro de series</span>
           {chips.length > 1 || notes || ex.video_url ? (
             <div className="hhr-ex-extra">
               {chips.length > 1 ? (
@@ -669,7 +686,7 @@ function ExerciseCard({
                   ))}
                 </ul>
               ) : null}
-              {notes ? <p className="hhr-notes">{notes}</p> : null}
+              {notes ? <p className="hhr-notes">{niceCase(notes)}</p> : null}
               {ex.video_url ? (
                 <a className="hhr-video" href={ex.video_url} target="_blank" rel="noopener noreferrer">
                   <Play size={13} strokeWidth={2.4} fill="currentColor" aria-hidden /> Ver video
@@ -703,25 +720,22 @@ function setTarget(ex: SharedRoutineExercise, plan: { kg?: string; reps?: string
   return [withReps(reps), kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
 }
 
-/** Kilos por serie, una fila por serie. Se guarda solo (al dejar de escribir o al salir del campo). */
-function KgInputs({
-  ex,
-  sets,
-  token,
-  logged,
-  onSaved,
-}: {
+/** Peso opcional y check independiente. Solo se confirma el progreso al guardar en el servidor. */
+function KgInputs({ ex, sets, token, logged, onSaved }: {
   ex: SharedRoutineExercise
   sets: number
   token: string
-  logged: Record<number, number>
-  onSaved: (exId: string, set: number, kg: number | null) => void
+  logged: Record<number, LoggedSet>
+  onSaved: (exId: string, set: number, value: LoggedSet) => void
 }) {
   const plan = useMemo(() => parseExerciseMeta(ex.technical_notes).meta.seriesPlan ?? [], [ex.technical_notes])
-  const [values, setValues] = useState<string[]>(() => Array.from({ length: sets }, (_, i) => formatKg(logged[i + 1])))
+  const [values, setValues] = useState<string[]>(() => Array.from({ length: sets }, (_, i) => formatKg(logged[i + 1]?.kg)))
   const [status, setStatus] = useState<SaveState[]>(() => Array.from({ length: sets }, () => 'idle'))
+  const [errors, setErrors] = useState<Record<number, string>>({})
   const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
-  const lastSaved = useRef<Record<number, number | null>>({})
+  const inFlight = useRef(new Set<number>())
+  const attempts = useRef<Record<number, { raw: string; completed?: boolean }>>({})
+  const lastSaved = useRef<Record<number, LoggedSet>>({ ...logged })
 
   useEffect(() => {
     const t = timers.current
@@ -731,30 +745,43 @@ function KgInputs({
   function placeholder(i: number): string {
     const k = plan[i]?.kg?.trim()
     if (k) return k.replace('.', ',')
-    return ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : '–'
+    return ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : '—'
   }
 
   function setStatusAt(i: number, s: SaveState) {
     setStatus((prev) => prev.map((v, j) => (j === i ? s : v)))
   }
 
-  async function save(i: number, raw: string) {
+  async function save(i: number, raw: string, explicitCompleted?: boolean) {
     clearTimeout(timers.current[i])
+    if (inFlight.current.has(i)) return
+    attempts.current[i] = { raw, completed: explicitCompleted }
     const kg = parseKg(raw)
     if (kg === undefined) {
+      setErrors((prev) => ({ ...prev, [i]: 'Revisá los kilos: usá un número entre 0 y 1000, o dejalos vacíos.' }))
       setStatusAt(i, 'error')
       return
     }
-    const before = i + 1 in lastSaved.current ? lastSaved.current[i + 1] : (logged[i + 1] ?? null)
-    if (kg === before) return
+    const before = lastSaved.current[i + 1] ?? { kg: null, completed: false }
+    // Anotar kilos sigue completando la serie; borrarlos no desmarca una serie ya hecha.
+    const completed = explicitCompleted ?? (kg != null || before.completed)
+    if (kg === before.kg && completed === before.completed) {
+      setStatusAt(i, 'idle')
+      return
+    }
+    inFlight.current.add(i)
     setStatusAt(i, 'saving')
     try {
-      await logSharedSet(token, ex.id, i + 1, kg)
-      lastSaved.current[i + 1] = kg
-      onSaved(ex.id, i + 1, kg)
-      setStatusAt(i, kg == null ? 'idle' : 'saved')
-    } catch {
+      await saveSharedSet(token, ex.id, i + 1, kg, completed)
+      const next = { kg, completed }
+      lastSaved.current[i + 1] = next
+      onSaved(ex.id, i + 1, next)
+      setStatusAt(i, 'saved')
+    } catch (error) {
+      setErrors((prev) => ({ ...prev, [i]: error instanceof Error ? error.message : 'No se pudo guardar. Intentá de nuevo.' }))
       setStatusAt(i, 'error')
+    } finally {
+      inFlight.current.delete(i)
     }
   }
 
@@ -764,49 +791,45 @@ function KgInputs({
     timers.current[i] = setTimeout(() => void save(i, raw), 900)
   }
 
-  const anyError = status.includes('error')
   return (
     <div className="hhr-kg">
+      <p className="hhr-kg-hint">Tildá cada serie al terminar. Los kilos son opcionales.</p>
       <div className="hhr-sets-head" aria-hidden>
-        <span>Serie</span>
-        <span>Indicado</span>
-        <span>Tus kilos</span>
+        <span>Serie</span><span>Indicado</span><span>Kg opcionales</span>
       </div>
       <ol className="hhr-sets">
         {values.map((v, i) => {
-          const isLogged = status[i] === 'saved' || (status[i] === 'idle' && v.trim() !== '' && logged[i + 1] != null)
+          const completed = logged[i + 1]?.completed ?? false
+          const saving = status[i] === 'saving'
           const target = setTarget(ex, plan, i)
+          const errorId = `hhr-save-error-${ex.id}-${i}`
           return (
-            <li key={i} className={`hhr-setrow is-${status[i]}${isLogged ? ' is-logged' : ''}`}>
-              <span className="hhr-setno" aria-hidden>
-                {i + 1}
-              </span>
+            <li key={i} className={`hhr-setrow is-${status[i]}${completed ? ' is-logged' : ''}`} aria-busy={saving}>
+              <span className="hhr-setno" aria-hidden>{i + 1}</span>
               <span className="hhr-settarget">{target || '—'}</span>
               <label className="hhr-kgfield">
                 <input
-                  inputMode="decimal"
-                  autoComplete="off"
-                  enterKeyHint="done"
-                  maxLength={6}
-                  value={v}
-                  placeholder={placeholder(i)}
-                  aria-label={`${niceCase(ex.name) || 'Ejercicio'}, kilos de la serie ${i + 1}`}
+                  inputMode="decimal" autoComplete="off" enterKeyHint="done" maxLength={6}
+                  value={v} disabled={saving} placeholder={placeholder(i)}
+                  aria-label={`${niceCase(ex.name) || 'Ejercicio'}, kilos opcionales de la serie ${i + 1}`}
+                  aria-invalid={status[i] === 'error'} aria-describedby={status[i] === 'error' ? errorId : undefined}
                   onChange={(e) => onChange(i, e.target.value)}
                   onBlur={(e) => void save(i, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                 />
                 <span aria-hidden>kg</span>
               </label>
-              <span className="hhr-setcheck" aria-hidden>
-                {isLogged ? <Check size={14} strokeWidth={3} /> : null}
-              </span>
+              <button type="button" className="hhr-setcheck" aria-pressed={completed} disabled={saving}
+                aria-label={`${completed ? 'Desmarcar' : 'Completar'} serie ${i + 1} de ${niceCase(ex.name) || 'ejercicio'}`}
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => void save(i, v, !completed)}>
+                {completed && !saving ? <Check size={18} strokeWidth={3} aria-hidden /> : null}
+              </button>
+              {status[i] === 'error' ? <p className="hhr-error hhr-row-error" id={errorId} role="alert">{errors[i]} <button type="button" onClick={() => void save(i, attempts.current[i]?.raw ?? v, attempts.current[i]?.completed)}>Reintentar</button></p> : null}
             </li>
           )
         })}
       </ol>
-      {anyError ? <p className="hhr-error">No se pudo guardar. Revisá el número (por ejemplo 62,5) y probá de nuevo.</p> : null}
     </div>
   )
 }
@@ -1044,270 +1067,7 @@ function useLightPage() {
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="hhr">
-      <style>{CSS}</style>
       <div className="hhr-inner">{children}</div>
     </div>
   )
 }
-
-/**
- * Estilos propios (no dependen del tema ni de la versión que tenga guardada quien la abre).
- * Paleta: neutros cálidos, negro para acciones y progreso, un solo acento violeta (anillo y detalles).
- */
-const CSS = `
-.hhr {
-  --canvas: #F2F2F0; --card: #FFFFFF; --soft: #F5F5F3; --soft-2: #ECECE9; --line: #EDEDEA;
-  --ink: #111114; --ink-2: #4B4B52; --muted: #8B8B92; --faint: #C2C2C7;
-  --accent: #6F5BD3; --accent-soft: #EEEBFB; --ring: #B4A6F6;
-  --hero: #16141D; --err: #C2253D; --arc-track: #E9E9E6;
-  --r-xl: 28px; --r-lg: 24px; --r-md: 18px;
-  --shadow: 0 1px 1px rgba(17,17,20,.03), 0 6px 24px -10px rgba(17,17,20,.10);
-  min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: light;
-  font-family: 'Plus Jakarta Sans', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased;
-}
-.hhr * { box-sizing: border-box; }
-.hhr button, .hhr a, .hhr input { font: inherit; -webkit-tap-highlight-color: transparent; }
-.hhr button { cursor: pointer; }
-.hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.hhr-inner { max-width: 1180px; margin: 0 auto; padding: 20px max(18px, env(safe-area-inset-right)) 32px max(18px, env(safe-area-inset-left)); }
-.hhr-muted { margin: 4px; color: var(--muted); }
-
-/* Estados */
-.hhr-state { padding: 20vh 0; text-align: center; color: var(--ink-2); display: grid; justify-items: center; gap: 6px; }
-.hhr-state-icon { width: 72px; height: 72px; border-radius: 24px; background: var(--card); box-shadow: var(--shadow); color: var(--ink); display: grid; place-items: center; margin-bottom: 10px; }
-.hhr-state h1 { margin: 0; font-size: 22px; color: var(--ink); letter-spacing: -0.02em; }
-.hhr-state p { margin: 0; max-width: 36ch; }
-.hhr-skeleton { display: grid; gap: 16px; max-width: 520px; margin: 0 auto; padding-top: 12px; }
-.hhr-sk { display: block; border-radius: var(--r-lg); background: linear-gradient(90deg, #EAEAE7 0%, #F5F5F3 50%, #EAEAE7 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
-.hhr-sk-title { height: 48px; width: 62%; border-radius: 16px; }
-.hhr-sk-hero { height: 210px; border-radius: var(--r-xl); }
-.hhr-sk-card { height: 100px; }
-@keyframes hhr-sh { to { background-position: -200% 0; } }
-
-/* Composición */
-.hhr-app { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
-.hhr-app.has-bar { padding-bottom: 92px; }
-.hhr-side, .hhr-main { display: grid; gap: 16px; align-content: start; min-width: 0; }
-
-/* Cabecera */
-.hhr-top { display: flex; align-items: center; gap: 12px; padding: 0 2px; }
-.hhr-avatar { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 16px; }
-.hhr-hello { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; }
-.hhr-today { color: var(--muted); font-size: 13px; font-weight: 500; }
-.hhr-today::first-letter { text-transform: uppercase; }
-.hhr-hello h1 { margin: 0; font-size: 25px; line-height: 1.12; letter-spacing: -0.02em; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-round-btn { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: var(--ink); display: grid; place-items: center; text-decoration: none; box-shadow: var(--shadow); }
-.hhr-round-btn:hover { background: var(--soft); }
-
-/* Tarjeta de la semana */
-.hhr-hero { position: relative; overflow: hidden; display: grid; gap: 14px; padding: 20px 22px 20px; border-radius: var(--r-xl); color: #fff; background: var(--hero); box-shadow: 0 22px 44px -26px rgba(22,20,29,.75); isolation: isolate; }
-.hhr-hero::before { content: ''; position: absolute; z-index: -1; right: -90px; top: -110px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(111,91,211,.55), rgba(111,91,211,0) 68%); }
-.hhr-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; }
-.hhr-hero-kicker { font-weight: 600; background: rgba(255,255,255,.1); border-radius: 999px; padding: 5px 11px; }
-.hhr-hero-until { color: rgba(255,255,255,.55); }
-.hhr-hero-mid { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.hhr-hero-text { display: grid; gap: 2px; min-width: 0; }
-.hhr-hero-big { font-size: 52px; font-weight: 800; letter-spacing: -0.02em; line-height: .95; font-variant-numeric: tabular-nums; }
-.hhr-hero-big span { color: rgba(255,255,255,.38); font-weight: 700; }
-.hhr-hero-unit { font-size: 14px; color: rgba(255,255,255,.7); font-weight: 500; }
-.hhr-ring { position: relative; flex: 0 0 auto; width: 92px; height: 92px; display: grid; place-items: center; }
-.hhr-ring svg { position: absolute; inset: 0; }
-.hhr-ring circle { transition: stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1); }
-.hhr-ring b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.hhr-ring small { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); margin-left: 1px; }
-.hhr-hero-line { margin: -4px 0 0; font-size: 14px; color: rgba(255,255,255,.82); }
-.hhr-hero-foot { display: grid; gap: 2px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.09); font-size: 13px; }
-.hhr-hero-foot b { font-weight: 600; color: rgba(255,255,255,.92); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-hero-foot span { color: rgba(255,255,255,.55); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-/* Tiles e ilustraciones */
-.hhr-card { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow); }
-.hhr-tile { position: relative; flex: 0 0 auto; width: 72px; height: 72px; border-radius: 20px; background: var(--soft); display: grid; place-items: center; color: var(--ink); }
-.hhr-tile-sm { width: 44px; height: 44px; border-radius: 14px; }
-.hhr-tile-num { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
-.hhr-art { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(17,17,20,.12)); }
-.hhr-art-lg { width: 52px; height: 52px; object-fit: contain; }
-.hhr-photo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
-.hhr-tile-check { position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--card); }
-.hhr-empty-card { padding: 30px 22px; text-align: center; display: grid; justify-items: center; gap: 6px; }
-.hhr-empty-card b { margin-top: 8px; font-size: 16px; }
-.hhr-empty-card p { margin: 0; color: var(--ink-2); max-width: 34ch; }
-
-/* Feedback de la semana */
-.hhr-fb-area { scroll-margin-top: 16px; }
-.hhr-fb { display: grid; gap: 16px; padding: 18px; border-radius: var(--r-lg); background: var(--card); box-shadow: var(--shadow); }
-.hhr-fb-row { display: flex; align-items: center; gap: 14px; }
-.hhr-fb-art { flex: 0 0 auto; width: 60px; height: 60px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
-.hhr-fb-art.is-done { background: var(--ink); color: #fff; }
-.hhr-fb-text { display: grid; gap: 2px; min-width: 0; }
-.hhr-fb-text b { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
-.hhr-fb-text > span:last-child { color: var(--muted); font-size: 13.5px; }
-.hhr-fb-badge { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--accent); margin-bottom: 1px; }
-.hhr-fb-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
-@keyframes hhr-pulse { 50% { opacity: .25; } }
-.hhr-fb-note { margin: 0; color: var(--ink-2); font-size: 14px; }
-.hhr-fb-form { display: grid; gap: 14px; }
-.hhr-fb-progress { display: grid; gap: 8px; }
-.hhr-fb-count { font-size: 12.5px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
-.hhr-steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
-.hhr-steps span { height: 5px; border-radius: 99px; background: var(--soft-2); transition: background .25s ease; }
-.hhr-steps span.is-cur { background: #CFC8F3; }
-.hhr-steps span.is-on { background: var(--accent); }
-.hhr-fb-bar { display: block; height: 5px; border-radius: 99px; background: var(--soft-2); overflow: hidden; }
-.hhr-fb-bar span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .3s ease; }
-.hhr-q { animation: hhr-in .25s ease; }
-@keyframes hhr-in { from { opacity: 0; transform: translateY(6px); } }
-.hhr-q > section { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-.hhr-q > section > p:first-child { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
-.hhr-q > section > p:first-child > span:first-child { display: none; }
-.hhr-q [role="group"] button { border: 0 !important; background: var(--soft) !important; color: var(--ink-2) !important; border-radius: 16px; }
-.hhr-q [role="group"] button[aria-pressed="true"] { background: var(--ink) !important; color: #fff !important; }
-.hhr-q [role="radio"] { border: 0 !important; background-color: var(--soft); box-shadow: none !important; border-radius: 16px; color: var(--ink) !important; }
-.hhr-q [role="radio"][aria-checked="true"] { background-color: var(--ink) !important; color: #fff !important; }
-.hhr-q [role="radio"] > span:first-child { border-color: var(--faint) !important; background: transparent !important; }
-.hhr-q [role="radio"][aria-checked="true"] > span:first-child { border-color: #fff !important; background: #fff !important; color: var(--ink); }
-.hhr-q [role="radio"][aria-checked="true"] > span:first-child svg { color: var(--ink) !important; }
-.hhr-q textarea, .hhr-q input { border: 0 !important; background: var(--soft) !important; border-radius: 16px !important; box-shadow: none !important; font-size: 16px !important; }
-.hhr-fb-email { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
-.hhr-fb-email input { border: 0; border-radius: 16px; padding: 14px 16px; background: var(--soft); font-size: 16px; }
-.hhr-fb-actions { display: flex; gap: 10px; }
-.hhr-fb-actions .hhr-cta { flex: 1 1 auto; }
-.hhr-cta { border: 0; border-radius: 999px; background: var(--ink); color: #fff; height: 54px; padding: 0 22px; font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; width: 100%; transition: transform .12s ease, background .15s ease, opacity .15s ease; }
-.hhr-cta:hover { background: #26262B; }
-.hhr-cta:active { transform: scale(.98); }
-.hhr-cta:disabled { opacity: .28; cursor: default; transform: none; background: var(--ink); }
-.hhr-ghost { flex: 0 0 auto; width: 54px; height: 54px; border: 0; border-radius: 50%; background: var(--soft); color: var(--ink); display: grid; place-items: center; }
-.hhr-ghost:hover { background: var(--soft-2); }
-.hhr-fb-done .hhr-fb-text > span:last-child { color: var(--ink-2); }
-
-/* Entrenamiento */
-.hhr-main-head { display: grid; gap: 2px; margin: 8px 2px 0; }
-.hhr-main-head h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
-.hhr-main-head span { color: var(--muted); font-size: 13.5px; }
-
-.hhr-weeks { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 2px 18px 6px; }
-.hhr-weeks::-webkit-scrollbar { display: none; }
-.hhr-week { position: relative; flex: 0 0 auto; border: 0; background: var(--card); color: var(--ink-2); border-radius: 999px; height: 46px; padding: 0 22px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); transition: background .15s ease, color .15s ease; }
-.hhr-week:hover { color: var(--ink); }
-.hhr-week[aria-pressed="true"] { background: var(--ink); color: #fff; box-shadow: 0 10px 20px -12px rgba(17,17,20,.7); }
-.hhr-now { position: absolute; top: 9px; right: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.hhr-week[aria-pressed="true"] .hhr-now { background: var(--ring); }
-
-.hhr-days { display: flex; justify-content: space-around; gap: 4px; padding: 10px; }
-.hhr-day { flex: 0 1 84px; border: 0; background: transparent; border-radius: 20px; padding: 10px 2px 8px; display: grid; justify-items: center; gap: 1px; color: var(--accent); min-width: 0; transition: background .15s ease; }
-.hhr-day:hover { background: var(--soft); }
-.hhr-day[aria-pressed="true"] { background: var(--ink); color: var(--ring); }
-.hhr-day-label { font-size: 12px; font-weight: 500; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-day-num { font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
-.hhr-day[aria-pressed="true"] .hhr-day-label { color: rgba(255,255,255,.55); }
-.hhr-day[aria-pressed="true"] .hhr-day-num { color: #fff; }
-.hhr-day[aria-pressed="true"] { --arc-track: rgba(255,255,255,.14); }
-.hhr-arc { margin-top: 4px; }
-
-.hhr-dayhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 2px 0; }
-.hhr-dayhead-text { display: grid; gap: 1px; min-width: 0; }
-.hhr-dayhead h3 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
-.hhr-dayhead-text span { color: var(--muted); font-size: 13.5px; }
-.hhr-count { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
-.hhr-count b { color: var(--ink); font-size: 17px; font-weight: 800; }
-.hhr-count.is-done { color: var(--ink); }
-
-.hhr-warmup summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 12px; cursor: pointer; }
-.hhr-warmup summary::-webkit-details-marker { display: none; }
-.hhr-warmup-title { flex: 1 1 auto; display: grid; min-width: 0; }
-.hhr-warmup-title b { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
-.hhr-warmup-title small { color: var(--muted); font-size: 12.5px; }
-.hhr-warmup[open] .hhr-chev { transform: rotate(180deg); }
-.hhr-warmup ol { margin: 0; padding: 0 20px 16px 74px; display: grid; gap: 6px; color: var(--ink-2); font-size: 14px; }
-.hhr-chev { flex: 0 0 auto; color: var(--faint); transition: transform .2s ease; }
-
-/* Ejercicios */
-.hhr-list { display: grid; gap: 12px; }
-.hhr-ex { overflow: hidden; }
-.hhr-ex-head { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; }
-.hhr-ex-info { flex: 1 1 auto; min-width: 0; display: grid; gap: 6px; }
-.hhr-ex-name { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; overflow-wrap: anywhere; }
-.hhr-ex-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.hhr-ex-tags span { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--soft); border-radius: 8px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
-.hhr-progress { display: flex; align-items: center; gap: 8px; }
-.hhr-progress-track { flex: 1 1 auto; max-width: 200px; height: 6px; border-radius: 99px; background: var(--soft-2); overflow: hidden; }
-.hhr-progress-fill { display: block; height: 100%; border-radius: inherit; background: var(--ink); transition: width .4s cubic-bezier(.2,.8,.2,1); }
-.hhr-progress-label { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hhr-ex.is-done .hhr-progress-label { color: var(--ink); }
-.hhr-ex.is-open .hhr-ex-head .hhr-chev { transform: rotate(180deg); }
-.hhr-ex-panel { padding: 0 14px 14px; display: grid; gap: 12px; animation: hhr-in .2s ease; }
-.hhr-ex-extra { display: grid; gap: 10px; padding: 0 2px; }
-.hhr-chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-.hhr-chips li { border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--soft); font-variant-numeric: tabular-nums; }
-.hhr-notes { margin: 0; font-size: 14px; color: var(--ink-2); white-space: pre-line; }
-.hhr-video { justify-self: start; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px 0 14px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
-.hhr-video:hover { background: #26262B; }
-
-/* Series */
-.hhr-kg { display: grid; gap: 6px; border-radius: 20px; background: var(--soft); padding: 10px 8px 8px; }
-.hhr-sets-head { display: grid; grid-template-columns: 34px minmax(0, 1fr) 100px 30px; gap: 10px; padding: 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); }
-.hhr-sets-head span:nth-child(3) { grid-column: 3 / 5; }
-.hhr-sets { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.hhr-setrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 100px 30px; align-items: center; gap: 10px; padding: 6px; border-radius: 16px; transition: background .2s ease; }
-.hhr-setrow.is-logged { background: var(--card); }
-.hhr-setno { width: 34px; height: 34px; border-radius: 12px; background: var(--card); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
-.hhr-setrow.is-logged .hhr-setno { background: var(--soft); }
-.hhr-settarget { min-width: 0; font-size: 13.5px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-kgfield { position: relative; }
-.hhr-kgfield input { width: 100%; height: 46px; border: 1.5px solid transparent; background: var(--card); border-radius: 14px; padding: 0 32px 0 12px; font-size: 17px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.02em; transition: border-color .15s ease; }
-.hhr-setrow.is-logged .hhr-kgfield input { background: var(--soft); }
-.hhr-kgfield input::placeholder { color: var(--faint); font-weight: 600; }
-.hhr-kgfield input:focus { outline: none; border-color: var(--ink); background: var(--card); }
-.hhr-kgfield span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: var(--muted); pointer-events: none; }
-.hhr-setcheck { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #D9D9DD; display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease; }
-.hhr-setrow.is-logged .hhr-setcheck { background: var(--ink); border-color: var(--ink); animation: hhr-pop .3s ease; }
-.hhr-setrow.is-saving .hhr-setcheck { border-color: var(--accent); border-right-color: transparent; animation: hhr-spin .7s linear infinite; }
-.hhr-setrow.is-error .hhr-setcheck, .hhr-setrow.is-error .hhr-kgfield input { border-color: var(--err); }
-@keyframes hhr-pop { 50% { transform: scale(1.15); } }
-@keyframes hhr-spin { to { transform: rotate(360deg); } }
-.hhr-error { margin: 0; font-size: 13px; color: var(--err); }
-
-/* Circuito: una tarjeta con los ejercicios unidos por una línea */
-.hhr-circuit { padding: 6px 0 4px; }
-.hhr-circuit-label { margin: 10px 16px 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; font-weight: 700; color: var(--ink); }
-.hhr-circuit-label span { flex-basis: 100%; font-size: 12.5px; font-weight: 500; color: var(--muted); }
-.hhr-circuit-list { position: relative; display: grid; }
-.hhr-ex.is-flat { position: relative; background: transparent; }
-.hhr-ex.is-flat + .hhr-ex.is-flat::before { content: ''; position: absolute; left: 96px; right: 16px; top: 0; height: 1px; background: var(--line); }
-
-.hhr-foot { margin: 10px 4px 0; font-size: 12.5px; color: var(--muted); display: grid; gap: 6px; }
-.hhr-brand { font-weight: 700; color: var(--faint); letter-spacing: -0.01em; }
-
-/* Barra flotante del celu */
-.hhr-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; background: var(--ink); box-shadow: 0 18px 40px -14px rgba(17,17,20,.65); max-width: calc(100% - 28px); }
-.hhr-bar-btn { width: 52px; height: 52px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.72); display: grid; place-items: center; text-decoration: none; }
-.hhr-bar-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
-.hhr-bar-btn.is-static { color: var(--ring); }
-.hhr-bar-fb { position: relative; height: 52px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); display: inline-flex; align-items: center; gap: 10px; padding: 0 22px 0 20px; font-size: 14.5px; font-weight: 700; white-space: nowrap; }
-.hhr-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .hhr *, .hhr *::before { animation: none !important; transition: none !important; }
-}
-@media (max-width: 380px) {
-  .hhr-tile { width: 60px; height: 60px; border-radius: 18px; }
-  .hhr-ex.is-flat + .hhr-ex.is-flat::before { left: 84px; }
-  .hhr-ex-head { gap: 12px; }
-  .hhr-sets-head, .hhr-setrow { grid-template-columns: 30px minmax(0, 1fr) 88px 28px; gap: 8px; }
-}
-@media (min-width: 640px) {
-  .hhr-inner { padding-top: 28px; }
-  .hhr-weeks { margin-inline: 0; padding-inline: 0; }
-}
-@media (min-width: 1024px) {
-  .hhr-inner { padding: 40px 32px 56px; }
-  .hhr-app { grid-template-columns: 360px minmax(0, 1fr); column-gap: 40px; align-items: start; }
-  .hhr-app.has-bar { padding-bottom: 0; }
-  .hhr-side { position: sticky; top: 28px; }
-  .hhr-main { max-width: 760px; }
-  .hhr-main-head { margin-top: 2px; }
-  .hhr-main-head h2 { font-size: 30px; }
-  .hhr-bar { display: none; }
-}
-`

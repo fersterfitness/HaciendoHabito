@@ -104,7 +104,7 @@ export function DayCard({
 
   // Series en las que el alumno anotó kilos desde el link (para verlo sin abrir el día).
   const logs = useContext(ExerciseLogsContext)
-  const loggedSets = logs ? day.exercises.reduce((n, ex) => n + (logs.get(ex.id)?.filter((l) => l.weight_kg != null).length ?? 0), 0) : 0
+  const loggedSets = logs ? day.exercises.reduce((n, ex) => n + (logs.get(ex.id)?.filter((l) => l.completed ?? (l.weight_kg != null || l.reps != null)).length ?? 0), 0) : 0
   const totalSets = day.exercises.reduce((n, ex) => n + Math.min(Math.max(ex.sets ?? 1, 1), 10), 0)
 
   return (
@@ -117,7 +117,7 @@ export function DayCard({
             className="rounded-full bg-status-ok/15 px-2 py-0.5 text-2xs font-medium tabular-nums text-status-ok-ink"
             title="Series en las que el alumno anotó los kilos desde el link de la rutina"
           >
-            {loggedSets}/{totalSets} anotadas
+            {loggedSets}/{totalSets} completadas
           </span>
         ) : null}
         <span className="hh-day-count text-xs text-ink-muted">{day.exercises.length} ejerc.</span>

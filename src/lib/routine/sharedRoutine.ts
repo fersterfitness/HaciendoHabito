@@ -29,6 +29,26 @@ export interface SharedSetLog {
   set: number
   weight_kg: number | null
   reps: number | null
+  completed?: boolean
+}
+
+export function isSetComplete(log: { completed?: boolean; weight_kg: number | null; reps?: number | null } | undefined): boolean {
+  return !!log && (log.completed ?? (log.weight_kg != null || log.reps != null))
+}
+
+/** Explicit completion is independent of optional weight. */
+export async function saveSharedSet(token: string, exerciseId: string, setNumber: number, weightKg: number | null, completed: boolean): Promise<void> {
+  const { data, error } = await supabasePublic.rpc('save_shared_exercise_set', {
+    p_token: token, p_exercise_id: exerciseId, p_set_number: setNumber,
+    p_weight_kg: weightKg, p_completed: completed,
+  })
+  // Existing weight entry remains usable while the completion migration is being applied.
+  if (error?.code === 'PGRST202' && completed && weightKg != null) {
+    return logSharedSet(token, exerciseId, setNumber, weightKg)
+  }
+  if (error) throw new Error(/save_shared_exercise_set/.test(error.message)
+    ? 'Falta activar el registro sin kilos en la base de datos. Avisale a tu entrenador.' : 'No se pudo guardar. Intentá de nuevo.')
+  if (!(data as { ok?: boolean } | null)?.ok) throw new Error('No se pudo guardar. Intentá de nuevo.')
 }
 
 export interface SharedRoutineDay {
@@ -50,6 +70,7 @@ export interface SharedRoutineBlock {
 /** Lo que ve el alumno: su rutina vigente y el feedback de la semana. */
 export interface SharedRoutine {
   student_first_name: string
+  student_gender?: string | null
   professional_name: string | null
   professional_phone: string | null
   routine: {
@@ -115,8 +136,10 @@ export function formatKg(n: number | null | undefined): string {
   return fmtNum(n)
 }
 
-/** Token del link del alumno; lo crea la primera vez. */
-export async function ensureRoutineShareToken(ownerId: string, studentId: string): Promise<string> {
+export const ROUTINE_SHARE_CHANGED = 'hh:routine-share-changed'
+
+/** Read only: opening a student card does not publish a new link. */
+export async function findRoutineShareToken(ownerId: string, studentId: string): Promise<string | null> {
   const { data: found, error: readErr } = await supabase
     .from('routine_shares')
     .select('token')
@@ -124,9 +147,16 @@ export async function ensureRoutineShareToken(ownerId: string, studentId: string
     .eq('student_id', studentId)
     .maybeSingle()
   if (readErr) throw new Error(missingTableHint(readErr.message))
-  if (found?.token) return found.token as string
+  return (found?.token as string | undefined) ?? null
+}
+
+/** Token del link del alumno; lo crea la primera vez. */
+export async function ensureRoutineShareToken(ownerId: string, studentId: string): Promise<string> {
+  const found = await findRoutineShareToken(ownerId, studentId)
+  if (found) return found
   const { data, error } = await supabase.from('routine_shares').insert({ owner_id: ownerId, student_id: studentId }).select('token').single()
   if (error) throw new Error(missingTableHint(error.message))
+  window.dispatchEvent(new Event(ROUTINE_SHARE_CHANGED))
   return data.token as string
 }
 
@@ -139,6 +169,7 @@ export async function regenerateRoutineShareToken(ownerId: string, studentId: st
     .select('token')
     .single()
   if (error) throw new Error(missingTableHint(error.message))
+  window.dispatchEvent(new Event(ROUTINE_SHARE_CHANGED))
   return data.token as string
 }
 

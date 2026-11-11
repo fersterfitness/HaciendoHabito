@@ -453,17 +453,19 @@ function kg(n: number): string {
 }
 
 /** Lo que anotó el alumno desde el link, al lado de lo indicado. */
-function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; weight_kg: number | null; updated_at: string }[]; prescribedKg: number | null }) {
+function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; weight_kg: number | null; completed?: boolean; updated_at: string }[]; prescribedKg: number | null }) {
   const withKg = logs.filter((l) => l.weight_kg != null)
-  if (withKg.length === 0) return null
+  const completed = logs.filter((l) => l.completed ?? l.weight_kg != null)
+  if (withKg.length === 0 && completed.length === 0) return null
   const last = logs.reduce((a, l) => (l.updated_at > a ? l.updated_at : a), logs[0]!.updated_at)
-  const top = Math.max(...withKg.map((l) => l.weight_kg!))
-  const diff = prescribedKg != null && prescribedKg > 0 ? top - prescribedKg : null
+  const top = withKg.length ? Math.max(...withKg.map((l) => l.weight_kg!)) : null
+  const diff = top != null && prescribedKg != null && prescribedKg > 0 ? top - prescribedKg : null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-status-ok/10 px-2.5 py-1.5 text-2xs text-ink-secondary">
       <span className="font-semibold text-status-ok-ink">Anotó el alumno</span>
       <span className="tabular-nums text-ink-primary">
-        {withKg.map((l) => kg(l.weight_kg!)).join(' · ')} kg
+        {completed.length} {completed.length === 1 ? 'serie completada' : 'series completadas'}
+        {withKg.length ? ` · ${withKg.map((l) => kg(l.weight_kg!)).join(' · ')} kg` : ' · sin kilos registrados'}
       </span>
       {diff != null && diff !== 0 ? (
         <span className="tabular-nums text-ink-muted">

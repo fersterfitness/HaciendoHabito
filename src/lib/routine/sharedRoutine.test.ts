@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { currentBlockIndex, exerciseDetails, groupExercises, restText, setsRepsText, type SharedRoutineExercise } from './sharedRoutine'
+import { currentBlockIndex, exerciseDetails, groupExercises, isSetComplete, restText, setsRepsText, type SharedRoutineExercise } from './sharedRoutine'
 
 const ex = (over: Partial<SharedRoutineExercise> = {}): SharedRoutineExercise => ({
   id: 'e',
@@ -23,6 +23,14 @@ const ex = (over: Partial<SharedRoutineExercise> = {}): SharedRoutineExercise =>
 })
 
 describe('rutina compartida', () => {
+  it('counts completion independently of kg and preserves legacy weight logs', () => {
+    expect(isSetComplete({ weight_kg: null, completed: true })).toBe(true)
+    expect(isSetComplete({ weight_kg: 25, completed: false })).toBe(false)
+    expect(isSetComplete({ weight_kg: 25 })).toBe(true)
+    expect(isSetComplete({ weight_kg: null, reps: 10 })).toBe(true)
+    expect(isSetComplete({ weight_kg: null })).toBe(false)
+    expect(isSetComplete(undefined)).toBe(false)
+  })
   it('arma series × reps', () => {
     expect(setsRepsText(ex({ sets: 4, reps_min: 8, reps_max: 10 }))).toBe('4 × 8–10')
     expect(setsRepsText(ex({ sets: 3, reps_scheme: '8 / 6 / 5' }))).toBe('3 × 8 / 6 / 5')

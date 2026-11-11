@@ -28,6 +28,7 @@ import { loadBlockCountsByRoutine } from '@/lib/checkIn/routineWeekProgress'
 import { loadRmTestWeeksForStudent, markRmTestReminderRead } from '@/lib/checkIn/rmTestReminder'
 import { CicloTab } from './CicloTab'
 import { StudentRoutineNotesPanel } from '@/components/students/StudentRoutineNotesPanel'
+import { StudentRoutineLinkCard } from '@/components/students/StudentRoutineLinkCard'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { StudentNotesCard } from '@/components/students/StudentNotesCard'
 import { StudentPlanCard } from '@/components/students/StudentPlanCard'
@@ -855,6 +856,8 @@ export function StudentDetailView({
       >
         {v2Page ? profileSection : null}
         {v2StatusCards}
+
+        {showRoutineTab && id ? <StudentRoutineLinkCard key={id} studentId={id} /> : null}
 
         {/* Solapas principales — tabs “raised” (full width) + sticky en panel */}
         <div
