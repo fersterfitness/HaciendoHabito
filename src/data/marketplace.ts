@@ -6,6 +6,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { supabasePublic } from '@/lib/supabasePublic'
+import { compressImageFileForUpload } from '@/lib/compressImageForUpload'
 import {
   DIRECTORY_PAGE_SIZE,
   PRICE_RANGES,
@@ -147,43 +148,55 @@ export async function submitApplication(input: ApplicationInput): Promise<void> 
 
 // ───────────────────────── Panel del profesional ─────────────────────────
 
-const myKey = (userId: string | undefined) => ['marketplace', 'mine', userId] as const
+const managedKey = (userId: string | undefined) => ['marketplace', 'managed', userId] as const
 
-export type MyMarketplace = {
-  professional: MarketplaceProfessional | null
-  plans: MarketplacePlan[]
-  requests: MarketplaceRequest[]
+/** Un profesional que administra esta cuenta, con sus planes y las solicitudes que recibió. */
+export type ManagedProfessional = MarketplaceProfessional & { plans: MarketplacePlan[]; requests: MarketplaceRequest[] }
+
+export type ManagedMarketplace = {
+  professionals: ManagedProfessional[]
+  /** Falta correr 20261112120000_marketplace_managed_profiles.sql: solo se ve el perfil propio y no se pueden cargar otros. */
+  needsMigration: boolean
 }
 
-export function useMyMarketplace(userId: string | undefined) {
+/** Los perfiles que cargó esta cuenta (y el propio, si lo tiene). */
+export function useManagedProfessionals(userId: string | undefined) {
   return useQuery({
-    queryKey: myKey(userId),
+    queryKey: managedKey(userId),
     enabled: Boolean(userId),
     staleTime: 15_000,
-    queryFn: async (): Promise<MyMarketplace> => {
-      const { data: professional, error } = await supabase
+    // El formulario guarda su propio borrador: que volver a la pestaña no dispare recargas que lo pisen.
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<ManagedMarketplace> => {
+      let needsMigration = false
+      let res = await supabase
         .from('marketplace_professionals')
         .select('*')
-        .eq('user_id', userId!)
-        .maybeSingle()
-      if (error) throw error
-      if (!professional) return { professional: null, plans: [], requests: [] }
-      const id = (professional as MarketplaceProfessional).id
+        .or(`managed_by.eq.${userId},user_id.eq.${userId}`)
+        .order('created_at', { ascending: true })
+      if (res.error && (res.error.code === '42703' || res.error.code === 'PGRST204')) {
+        needsMigration = true
+        res = await supabase.from('marketplace_professionals').select('*').eq('user_id', userId!)
+      }
+      if (res.error) throw res.error
+      const rows = (res.data ?? []) as MarketplaceProfessional[]
+      if (!rows.length) return { professionals: [], needsMigration }
+      const ids = rows.map((r) => r.id)
       const [plans, requests] = await Promise.all([
-        supabase.from('marketplace_plans').select(PLAN_COLUMNS).eq('professional_id', id).order('orden').order('created_at'),
-        supabase
-          .from('marketplace_requests')
-          .select('*')
-          .eq('professional_id', id)
-          .order('created_at', { ascending: false })
-          .limit(200),
+        supabase.from('marketplace_plans').select(PLAN_COLUMNS).in('professional_id', ids).order('orden').order('created_at'),
+        supabase.from('marketplace_requests').select('*').in('professional_id', ids).order('created_at', { ascending: false }).limit(500),
       ])
       if (plans.error) throw plans.error
       if (requests.error) throw requests.error
+      const allPlans = (plans.data ?? []) as MarketplacePlan[]
+      const allRequests = (requests.data ?? []) as MarketplaceRequest[]
       return {
-        professional: professional as MarketplaceProfessional,
-        plans: (plans.data ?? []) as MarketplacePlan[],
-        requests: (requests.data ?? []) as MarketplaceRequest[],
+        needsMigration,
+        professionals: rows.map((r) => ({
+          ...r,
+          plans: allPlans.filter((p) => p.professional_id === r.id),
+          requests: allRequests.filter((q) => q.professional_id === r.id),
+        })),
       }
     },
   })
@@ -194,17 +207,47 @@ export type ProfessionalInput = Pick<
   'slug' | 'nombre' | 'rol' | 'deportes' | 'especialidades' | 'foto_url' | 'bio' | 'ubicacion' | 'modalidad' | 'whatsapp'
 > & { estado?: MarketplaceProfessionalStatus }
 
-export function useSaveMyProfessional(userId: string | undefined) {
+/** Crea o actualiza un perfil. Devuelve su id (al crear, el nuevo). */
+export function useSaveProfessional() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string | null; input: ProfessionalInput }) => {
-      const res = id
-        ? await supabase.from('marketplace_professionals').update(input).eq('id', id)
-        : await supabase.from('marketplace_professionals').insert({ ...input, user_id: userId! })
-      if (res.error) throw res.error
+    mutationFn: async ({ id, input }: { id: string | null; input: Partial<ProfessionalInput> }): Promise<string> => {
+      if (id) {
+        const { error } = await supabase.from('marketplace_professionals').update(input).eq('id', id)
+        if (error) throw error
+        return id
+      }
+      const { data, error } = await supabase.from('marketplace_professionals').insert(input).select('id').single()
+      if (error) throw error
+      return (data as { id: string }).id
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['marketplace'] }),
   })
+}
+
+export function useDeleteProfessional() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('marketplace_professionals').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['marketplace'] }),
+  })
+}
+
+export const MARKETPLACE_PHOTO_BUCKET = 'marketplace-photos'
+
+/** Sube la foto de un profesional (achicada) y devuelve la dirección pública para guardar en `foto_url`. */
+export async function uploadMarketplacePhoto(userId: string, file: File): Promise<string> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('Usá una imagen JPG, PNG o WebP.')
+  const small = await compressImageFileForUpload(file)
+  if (small.size > 5 * 1024 * 1024) throw new Error('La imagen pesa más de 5 MB.')
+  const ext = small.type === 'image/png' ? 'png' : small.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage.from(MARKETPLACE_PHOTO_BUCKET).upload(path, small, { contentType: small.type, cacheControl: '31536000' })
+  if (error) throw error
+  return supabase.storage.from(MARKETPLACE_PHOTO_BUCKET).getPublicUrl(path).data.publicUrl
 }
 
 export type PlanInput = Omit<MarketplacePlan, 'id' | 'professional_id'>

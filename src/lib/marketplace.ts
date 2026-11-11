@@ -11,7 +11,10 @@ export type MarketplaceRequestStatus = 'nueva' | 'contactada' | 'aceptada' | 'de
 
 export interface MarketplaceProfessional {
   id: string
-  user_id: string
+  /** Cuenta del propio profesional, si la tiene. */
+  user_id: string | null
+  /** Quién cargó el perfil y lo administra. */
+  managed_by?: string | null
   slug: string
   nombre: string
   rol: MarketplaceRole
