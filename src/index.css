@@ -699,10 +699,10 @@ html.ui-v2.dark {
   --status-expired: 236 128 108;
 }
 
-/* Barra de listados: botones grises en pastilla, chips de filtro grises. */
+/* Barra de listados: botones grises, chips de filtro grises. */
 html.ui-v2 .hh-dir-btn {
   height: 2.25rem;
-  border-radius: 9999px;
+  border-radius: 0.625rem;
   border-color: transparent;
   background-color: rgb(var(--surface-elevated));
   box-shadow: none;
@@ -866,9 +866,10 @@ html.ui-v2 .bg-orange-500 {
   background-color: rgb(var(--ink-primary));
 }
 
-/* Botones en pastilla; la secundaria es gris de relleno (como «Filtrar» / «Ordenar»). */
+/* Un solo radio para todos los botones (rectángulo de puntas redondeadas, sin pastillas);
+   la secundaria es gris de relleno (como «Filtrar» / «Ordenar»). */
 html.ui-v2 .hh-btn {
-  border-radius: 9999px;
+  border-radius: 0.625rem;
 }
 html.ui-v2 .hh-btn-secondary,
 html.ui-v2 .hh-btn-outline {

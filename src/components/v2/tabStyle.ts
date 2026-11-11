@@ -9,7 +9,7 @@ export const v2TabListClass = 'inline-flex max-w-full items-center gap-1.5'
 
 export function v2TabClass(active: boolean, size: 'sm' | 'md' = 'md') {
   return cn(
-    'inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium transition-colors',
+    'inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-[0.625rem] font-medium transition-colors',
     appFocusRingClassName,
     size === 'sm' ? 'h-7 px-3 text-[12.5px]' : 'h-8 px-3.5 text-[13px]',
     active ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated text-ink-secondary hover:text-ink-primary',

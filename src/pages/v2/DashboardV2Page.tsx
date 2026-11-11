@@ -207,7 +207,7 @@ export function DashboardV2Page() {
   const handlesMoney = role === 'admin' || role === 'trainer' || role === 'nutritionist'
   const [, setTick] = useState(0)
   const [filter, setFilter] = useState<Filter>('all')
-  const [doneOpen, setDoneOpen] = useState(false)
+  const [doneOpen, setDoneOpen] = useState(true)
 
   const today = useMemo(() => new Date(), [])
   const isNutri = role === 'nutritionist'
@@ -532,9 +532,32 @@ export function DashboardV2Page() {
   const defByKey = useMemo(() => new Map(missionDefs.map((d) => [d.key, d])), [missionDefs])
   /** ¿Se muestra la tarjeta? Con misiones, las ya tildadas pasan a «Hechas hoy». */
   const isOpen = (key: string) => !missionsOn || !missions.stateOf(key).done
+  /** Tilda y avisa con «Deshacer» a mano, por si fue sin querer. */
+  const completeWithUndo = (def: Parameters<typeof missions.complete>[0], title: string) => {
+    missions.complete(def)
+    toast(
+      (t) => (
+        <span className="flex items-center gap-3 text-[13px]">
+          <span className="min-w-0 max-w-[16rem] truncate">Hecha: {title}</span>
+          <Button
+            type="button"
+            variant="soft"
+            size="sm"
+            onClick={() => {
+              missions.undo(def)
+              toast.dismiss(t.id)
+            }}
+          >
+            Deshacer
+          </Button>
+        </span>
+      ),
+      { duration: 6000 },
+    )
+  }
   const complete = (key: string) => {
     const d = defByKey.get(key)
-    if (missionsOn && d) missions.complete(d)
+    if (missionsOn && d) completeWithUndo(d, d.title)
   }
   const missionCard = (key: string) => (missionsOn ? { onCheck: () => complete(key), late: missions.stateOf(key).overdue } : {})
   // Lo atrasado ya no lleva etiqueta: la lista lo agrupa bajo «Atrasado».
@@ -657,7 +680,8 @@ export function DashboardV2Page() {
         turnos: nutriCounts.turnos,
         seguimiento: nutriCounts.seguimiento,
       }
-  const doneToday = missionsOn ? missions.completedToday.filter((r) => filter === 'all' || CATEGORY_FILTER[r.category] === filter) : []
+  // La última tildada arriba: si fue sin querer, es la primera de la lista.
+  const doneToday = missionsOn ? missions.completedToday.filter((r) => filter === 'all' || CATEGORY_FILTER[r.category] === filter).reverse() : []
   const doneTotal = missionsOn ? missions.completedToday.length : 0
   const show = (f: Exclude<Filter, 'all'>) => filter === 'all' || filter === f
   const toggle = (f: Filter) => setFilter((cur) => (cur === f || f === 'all' ? 'all' : f))
@@ -902,7 +926,7 @@ export function DashboardV2Page() {
                       <TaskCardV2
                         icon={CATEGORY_ICON[row.category]}
                         late
-                        onCheck={() => missions.complete(row)}
+                        onCheck={() => completeWithUndo(row, row.title)}
                         title={row.title}
                         description={row.detail ?? undefined}
                         onOpen={row.href ? () => navigate(row.href!) : undefined}
@@ -1358,10 +1382,15 @@ export function DashboardV2Page() {
                           {row.title}
                         </span>
                         <span className="hidden shrink-0 text-[11.5px] text-ink-muted sm:inline">{CATEGORY_LABEL[row.category]}</span>
+                        {row.completed_at ? (
+                          <span className="shrink-0 text-2xs tabular-nums text-ink-muted" title="Hora en que la tildaste">
+                            {format(new Date(row.completed_at), 'HH:mm')}
+                          </span>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => void undoMission(row)}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[12px] text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] text-ink-muted transition-colors hover:bg-surface-elevated hover:text-ink-primary"
                           title="Volver a pendiente"
                         >
                           <RotateCcw className="h-3 w-3" /> Deshacer
