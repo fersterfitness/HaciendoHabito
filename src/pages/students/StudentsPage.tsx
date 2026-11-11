@@ -1343,12 +1343,12 @@ function StudentDirectoryTable({
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{entityLabelColumn}</th>
-              <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5">Nivel</th>
+              {IS_V2 ? null : <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5">Nivel</th>}
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">Estado</th>
               <th scope="col" className="w-[12rem] whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{IS_V2 ? 'Rutina' : 'Semana'}</th>
               {IS_V2 ? <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted md:table-cell sm:px-5">Plan y pago</th> : null}
               {IS_V2 ? null : <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5">Email</th>}
-              <th scope="col" className="w-[7rem]" aria-hidden />
+              <th scope="col" className={IS_V2 ? 'w-12' : 'w-[7rem]'} aria-hidden />
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border/70 bg-surface-card">
@@ -1375,12 +1375,12 @@ function StudentDirectoryTable({
                       isSelected ? 'border-l-[3px] border-l-brand-primary pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
                     )}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className={cn('flex items-center', IS_V2 ? 'gap-3' : 'gap-2')}>
                       <StudentAvatar
                         studentId={student.id}
                         fullName={student.full_name}
                         avatarPath={student.avatar_path ?? null}
-                        size="xs"
+                        size={IS_V2 ? 'sm' : 'xs'}
                         stopRowNavigation
                         onPathChange={() => onAvatarUpdated()}
                       />
@@ -1393,7 +1393,7 @@ function StudentDirectoryTable({
                           >
                             {student.full_name}
                           </Link>
-                          {age !== null && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{IS_V2 ? `${age} años` : `${age}a`}</span>}
+                          {age !== null && !IS_V2 && <span className="shrink-0 text-2xs text-ink-muted tabular-nums">{`${age}a`}</span>}
                           <div className="flex shrink-0 items-center gap-1">
                             {IS_V2 ? null : (
                               <Tooltip content={hasRoutine ? 'Con rutina' : 'Sin rutina'}>
@@ -1412,7 +1412,12 @@ function StudentDirectoryTable({
                           </div>
                         </div>
                         {student.email && !IS_V2 ? <span className="truncate text-2xs text-ink-muted lg:hidden">{student.email}</span> : null}
-                        <div className="flex flex-wrap items-center gap-1 empty:hidden">
+                        <div className={cn('flex flex-wrap items-center empty:hidden', IS_V2 ? 'gap-x-2 gap-y-1' : 'gap-1')}>
+                          {IS_V2 ? (
+                            <span className="text-2xs text-ink-muted tabular-nums">
+                              {[age !== null ? `${age} años` : null, LEVEL_LABELS[student.level] ?? student.level].filter(Boolean).join(' · ')}
+                            </span>
+                          ) : null}
                           {currentPlanByStudent[student.id] ? (() => {
                             const a = currentPlanByStudent[student.id]
                             const eff = effectivePaymentStatus(a)
@@ -1437,9 +1442,11 @@ function StudentDirectoryTable({
                       </div>
                     </div>
                   </td>
+                  {IS_V2 ? null : (
                   <td className="hh-row-drop-in hidden text-ink-secondary sm:table-cell sm:px-5 sm:py-2.5">
                     <span className="text-xs">{LEVEL_LABELS[student.level] ?? student.level}</span>
                   </td>
+                  )}
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
                     <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine} />
                   </td>
@@ -1487,6 +1494,16 @@ function StudentDirectoryTable({
                       <span className="text-xs">{student.email ?? '—'}</span>
                     </td>
                   )}
+                  {IS_V2 ? (
+                    <td className="px-2 sm:px-3" onClick={(e) => e.stopPropagation()}>
+                      <RowMenuV2
+                        name={student.full_name}
+                        onOpen={() => onRowClick(student.id)}
+                        onEdit={() => onEdit(student.id)}
+                        onDelete={() => onDelete(student)}
+                      />
+                    </td>
+                  ) : (
                   <td className="hh-row-drop-in px-2 sm:px-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
@@ -1505,6 +1522,7 @@ function StudentDirectoryTable({
                         title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </td>
+                  )}
                 </tr>
               )
             })}
@@ -1512,6 +1530,50 @@ function StudentDirectoryTable({
         </table>
       </div>
     </section>
+  )
+}
+
+/** v2 · acciones de la fila en un menú «…» siempre a la vista (antes aparecían solo al pasar el mouse). */
+function RowMenuV2({ name, onOpen, onEdit, onDelete }: { name: string; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false)
+  const run = (fn: () => void) => () => {
+    setOpen(false)
+    fn()
+  }
+  const item = 'w-full justify-start gap-2 px-2.5 text-xs'
+  return (
+    <div className="relative flex justify-end">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        className="w-40 p-1.5"
+        trigger={({ ref, onClick, ...a11y }) => (
+          <Button
+            ref={ref}
+            type="button"
+            variant="ghost"
+            size="iconSm"
+            onClick={onClick}
+            title="Acciones"
+            aria-label={`Acciones de ${name}`}
+            className="h-8 w-8 text-ink-muted"
+            {...a11y}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        )}
+      >
+        <Button type="button" variant="ghost" size="sm" className={item} onClick={run(onOpen)}>
+          <ChevronRight className="h-3.5 w-3.5" /> Abrir ficha
+        </Button>
+        <Button type="button" variant="ghost" size="sm" className={item} onClick={run(onEdit)}>
+          <Pencil className="h-3.5 w-3.5" /> Editar
+        </Button>
+        <Button type="button" variant="ghost" size="sm" className={cn(item, 'text-status-expired hover:bg-status-expired/10 hover:text-status-expired')} onClick={run(onDelete)}>
+          <Trash2 className="h-3.5 w-3.5" /> Eliminar
+        </Button>
+      </Popover>
+    </div>
   )
 }
 
