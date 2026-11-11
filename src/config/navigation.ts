@@ -19,6 +19,7 @@ import {
   CalendarPlus,
   Send,
   Receipt,
+  Globe,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -243,9 +244,12 @@ const V2_EXERCISES: NavItem = {
 }
 const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles, hint: 'Pregunta de los miércoles' }
 
+const V2_MARKETPLACE: NavItem = { label: 'Mi página web', shortLabel: 'Mi web', href: '/mi-pagina', icon: Globe, hint: 'Perfil público, planes y solicitudes' }
+
 export function getNavV2(role: AppRole | undefined): NavV2 {
   if (role === 'student' || canSeePsychologistWorkspace(role)) {
-    return { main: flattenSections(getNavSections(role)), more: [] }
+    // «Mi página web» (marketplace) solo en la v2: el menú de la v1 queda como estaba.
+    return { main: flattenSections(getNavSections(role)), more: role === 'student' ? [] : [V2_MARKETPLACE] }
   }
   const [finance] = NAV_FINANCE
   if (role === 'nutritionist') {
@@ -268,6 +272,7 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
       more: [
         { ...NAV_NUTRITION_PATIENT_ANTHRO[1]!, hint: 'Controles e informes PDF' },
         { ...NAV_NUTRITION_FOOD[1]!, label: 'Alimentos y menús', shortLabel: 'Alimentos', hint: 'Tu base de alimentos', alsoMatch: ['/nutrition/menus'] },
+        V2_MARKETPLACE,
       ],
     }
   }
@@ -281,6 +286,7 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
         NAV_MEAL_PLANS_TRAINER,
         V2_EXERCISES,
         V2_CONTEXT,
+        V2_MARKETPLACE,
       ],
     }
   }
@@ -293,7 +299,7 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
       V2_FEEDBACK,
       { ...finance!, hint: 'Cobros y gastos' },
     ],
-    more: [V2_EXERCISES, { ...NAV_MEAL_PLANS_TRAINER, hint: 'Planes para tus alumnos' }, V2_CONTEXT],
+    more: [V2_EXERCISES, { ...NAV_MEAL_PLANS_TRAINER, hint: 'Planes para tus alumnos' }, V2_CONTEXT, V2_MARKETPLACE],
   }
 }
 

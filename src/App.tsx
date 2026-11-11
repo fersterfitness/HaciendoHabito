@@ -84,6 +84,12 @@ const StudentMealPlanDetailPage = lazy(() =>
 )
 const PublicIntakeFormPage = lazy(() => import('@/pages/public/PublicIntakeFormPageV2').then((m) => ({ default: m.PublicIntakeFormPageV2 })))
 const PublicCheckInPage = lazy(() => import('@/pages/public/PublicCheckInPage').then((m) => ({ default: m.PublicCheckInPage })))
+const MarketplaceDirectoryPage = lazy(() => import('@/pages/marketplace/MarketplaceDirectoryPage').then((m) => ({ default: m.MarketplaceDirectoryPage })))
+const MarketplaceProfessionalPage = lazy(() => import('@/pages/marketplace/MarketplaceProfessionalPage').then((m) => ({ default: m.MarketplaceProfessionalPage })))
+const MarketplaceTeamPage = lazy(() => import('@/pages/marketplace/MarketplaceTeamPage').then((m) => ({ default: m.MarketplaceTeamPage })))
+const MarketplaceApplyPage = lazy(() => import('@/pages/marketplace/MarketplaceApplyPage').then((m) => ({ default: m.MarketplaceApplyPage })))
+const MyMarketplacePage = lazy(() => import('@/pages/marketplace/MyMarketplacePage').then((m) => ({ default: m.MyMarketplacePage })))
+const MarketplaceAdminPage = lazy(() => import('@/pages/marketplace/MarketplaceAdminPage').then((m) => ({ default: m.MarketplaceAdminPage })))
 const PublicMealPlanPage = lazy(() => import('@/pages/public/PublicMealPlanPage').then((m) => ({ default: m.PublicMealPlanPage })))
 const PublicRoutinePage = lazy(() => import('@/pages/public/PublicRoutinePage').then((m) => ({ default: m.PublicRoutinePage })))
 const TrainingSectionRedirect = lazy(() =>
@@ -273,6 +279,14 @@ function renderLoggedInRoutes({
           )
         }
       />
+      <Route
+        path="mi-pagina"
+        element={role && role !== 'student' ? withPageSuspense(<MyMarketplacePage />) : <Navigate to="/dashboard" replace />}
+      />
+      <Route
+        path="mi-pagina/profesionales"
+        element={role === 'admin' ? withPageSuspense(<MarketplaceAdminPage />) : <Navigate to="/dashboard" replace />}
+      />
       <Route path="profile" element={<Navigate to="/settings" replace />} />
 
       <Route path="*" element={withPageSuspense(<NotFoundPage />)} />
@@ -329,6 +343,11 @@ function AppRoutes() {
       <Route path="/form" element={withPageSuspense(<PublicIntakeFormPage />)} />
       <Route path="/plan/:token" element={withPageSuspense(<PublicMealPlanPage />)} />
       <Route path="/rutina/:token" element={withPageSuspense(<PublicRoutinePage />)} />
+      {/* Marketplace público: directorio, página de cada profesional y «Tu equipo». */}
+      <Route path="/profesionales" element={withPageSuspense(<MarketplaceDirectoryPage />)} />
+      <Route path="/p/:slug" element={withPageSuspense(<MarketplaceProfessionalPage />)} />
+      <Route path="/equipo" element={withPageSuspense(<MarketplaceTeamPage />)} />
+      <Route path="/sumate" element={withPageSuspense(<MarketplaceApplyPage />)} />
 
       <Route element={<AuthGuard />}>
         <Route element={IS_V2 ? <AppLayoutV2 /> : <AppLayout />}>

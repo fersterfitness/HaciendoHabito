@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LayoutTemplate, Share2, ClipboardCheck, Rows3 } from 'lucide-react'
+import { Globe, LayoutTemplate, Share2, ClipboardCheck, Rows3 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -249,6 +249,26 @@ export function SettingsPage() {
             </p>
           </FormSection>
         </Card>
+
+        {IS_V2 && profile && profile.role !== 'student' ? (
+          <Card>
+            <FormSection title="Mi página web">
+              <p className="text-sm text-ink-secondary">
+                Tu perfil público en el directorio de profesionales: datos, planes con precio y las solicitudes de los clientes.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="secondary" icon={<Globe className="h-4 w-4" />}>
+                  <Link to="/mi-pagina">Editar mi página</Link>
+                </Button>
+                {profile.role === 'admin' ? (
+                  <Button asChild variant="secondary">
+                    <Link to="/mi-pagina/profesionales">Aprobar profesionales</Link>
+                  </Button>
+                ) : null}
+              </div>
+            </FormSection>
+          </Card>
+        ) : null}
 
         {/* Perfil */}
         <Card>
