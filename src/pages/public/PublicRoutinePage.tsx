@@ -2,7 +2,7 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, Check, ChevronDown, ClipboardCheck, Dumbbell, Flame, MessageCircle, Play, Repeat } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, ClipboardCheck, Dumbbell, Flame, Link2, MessageCircle, Play } from 'lucide-react'
 import {
   currentBlockIndex,
   exerciseDetails,
@@ -39,6 +39,8 @@ import type { Json } from '@/types/database'
  * - El feedback de la semana: tarjeta propia que se responde acá mismo, pregunta por pregunta, y queda
  *   a la vista (y en la barra de abajo en el celu) hasta que se envía.
  * En el celu es una columna; en la compu, a la izquierda el resumen y el feedback, a la derecha el entrenamiento.
+ *
+ * Ilustraciones 3D opcionales en public/3d/<nombre>.png (ver ART). Si falta alguna, se ve el número o un ícono de línea.
  */
 
 function todayYmd(): string {
@@ -49,6 +51,29 @@ function dateLabel(ymd: string | null | undefined, pattern = "d 'de' MMMM"): str
   if (!ymd) return null
   const d = new Date(ymd.length === 10 ? ymd + 'T12:00:00' : ymd)
   return Number.isNaN(d.getTime()) ? null : format(d, pattern, { locale: es })
+}
+
+const KEEP_UPPER = new Set(['RM', 'TRX', 'RDL', 'KB', 'DB', 'BOSU', 'HIIT', 'EMOM', 'AMRAP', 'RIR', 'RPE', 'TRX', 'SL'])
+
+/**
+ * Mayúsculas prolijas: si el texto viene casi todo en mayúsculas («PLANCHA LATERAL (ACTV. GLÚTEO MEDIO)»)
+ * pasa a tipo oración («Plancha lateral (actv. glúteo medio)»). El resto queda como lo escribió el entrenador.
+ */
+function niceCase(raw: string | null | undefined): string {
+  const t = (raw ?? '').trim().replace(/\s+/g, ' ')
+  const letters = t.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, '')
+  if (letters.length < 4) return t
+  const upper = letters.replace(/[^A-ZÁÉÍÓÚÜÑ]/g, '').length
+  if (upper / letters.length < 0.7) return t
+  const lower = t
+    .toLocaleLowerCase('es')
+    .split(' ')
+    .map((w) => {
+      const bare = w.replace(/[^a-zñ]/gi, '').toUpperCase()
+      return KEEP_UPPER.has(bare) ? w.toUpperCase() : w
+    })
+    .join(' ')
+  return lower.charAt(0).toLocaleUpperCase('es') + lower.slice(1)
 }
 
 /** Series en las que se puede anotar (1 a 10). */
@@ -94,7 +119,7 @@ function dayChip(name: string | null | undefined, i: number): { label: string; b
   const t = name?.trim() ?? ''
   const m = /^d[ií]a\s+(\S{1,3})$/i.exec(t)
   if (m) return { label: 'Día', big: m[1]!.toUpperCase() }
-  return { label: t ? t.slice(0, 3) : 'Día', big: String(i + 1) }
+  return { label: t ? niceCase(t).slice(0, 3) : 'Día', big: String(i + 1) }
 }
 
 function initials(name: string): string {
@@ -102,7 +127,28 @@ function initials(name: string): string {
   return (parts[0]?.[0] ?? '').toUpperCase() + (parts[1]?.[0] ?? '').toUpperCase() || 'H'
 }
 
-const TILE_TONES = ['lav', 'peach', 'sky', 'mint', 'rose'] as const
+/** Ilustraciones 3D (public/3d). */
+type ArtName = 'piernas' | 'empuje' | 'traccion' | 'core' | 'cardio' | 'movilidad' | 'general' | 'calor' | 'feedback' | 'semana'
+
+/** Tipo de ejercicio por el nombre, para elegir la ilustración. El orden importa: «plancha … glúteo» es core. */
+function exerciseArt(name: string | null | undefined): ArtName {
+  const n = (name ?? '').toLocaleLowerCase('es')
+  if (/plancha|abdominal|crunch|\bcore\b|pallof|hollow|dead ?bug|rueda|oblicu|bird ?dog|antirrota|antirota/.test(n)) return 'core'
+  if (/salto|jump|sprint|bici|cinta|soga|burpee|carrera|trote|skipping|assault|el[ií]ptic|cardio/.test(n)) return 'cardio'
+  if (/movilidad|estiramiento|elongaci|foam|rodillo|respiraci|yoga/.test(n)) return 'movilidad'
+  if (/\bremo\b|dominada|jal[oó]n|pull|curl|b[ií]ceps|pullover|tracci/.test(n)) return 'traccion'
+  if (/press|flexi[oó]n|push|fondo|tr[ií]ceps|militar|vuelos|laterales|apertura|pecho/.test(n)) return 'empuje'
+  if (/sentadilla|squat|estocada|zancada|split|peso muerto|rdl|hip ?thrust|puente|gl[uú]te|prensa|camilla|cu[aá]dri|isquio|gemelo|pantorrilla|aductor|abductor|step/.test(n))
+    return 'piernas'
+  return 'general'
+}
+
+/** Imagen 3D con respaldo: si el archivo no está, muestra `fallback`. */
+function Art({ name, fallback, className }: { name: ArtName; fallback: ReactNode; className?: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <>{fallback}</>
+  return <img className={className ?? 'hhr-art'} src={`/3d/${name}.png`} alt="" loading="lazy" onError={() => setFailed(true)} />
+}
 
 export function PublicRoutinePage() {
   const { token = '' } = useParams()
@@ -147,7 +193,7 @@ export function PublicRoutinePage() {
 
   const data = state.status === 'ok' ? state.data : null
   const routine = data?.routine ?? null
-  const firstName = data?.student_first_name?.trim() ?? ''
+  const firstName = niceCase(data?.student_first_name)
   const feedbackPending = !!data?.feedback && !data.feedback.done && !feedbackSent
 
   useEffect(() => {
@@ -180,7 +226,7 @@ export function PublicRoutinePage() {
       <Shell>
         <div className="hhr-state">
           <span className="hhr-state-icon" aria-hidden>
-            <Dumbbell size={26} strokeWidth={1.8} />
+            <Art name="general" className="hhr-art-lg" fallback={<Dumbbell size={26} strokeWidth={1.8} />} />
           </span>
           <h1>Este link no funciona</h1>
           <p>Puede que tu entrenador haya generado uno nuevo. Pedile el link actualizado.</p>
@@ -198,7 +244,7 @@ export function PublicRoutinePage() {
   const di = Math.min(day, Math.max(0, days.length - 1))
   const selectedDay = days[di]
   const waDigits = normalizePhoneForWhatsApp(data.professional_phone)
-  const proFirst = data.professional_name && !data.professional_name.includes('@') ? data.professional_name.trim().split(/\s+/)[0] : ''
+  const proFirst = data.professional_name && !data.professional_name.includes('@') ? niceCase(data.professional_name.trim().split(/\s+/)[0]) : ''
   const proLabel = proFirst || 'tu entrenador'
   const until = dateLabel(routine?.end_date)
   const updated = dateLabel(routine?.updated_at)
@@ -228,13 +274,14 @@ export function PublicRoutinePage() {
     requestAnimationFrame(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
-  function card(ex: SharedRoutineExercise) {
+  function card(ex: SharedRoutineExercise, inCircuit = false) {
     const n = ++number
     return (
       <ExerciseCard
         key={ex.id}
         ex={ex}
         n={n}
+        flat={inCircuit}
         token={token}
         logged={logged[ex.id] ?? {}}
         open={isOpen(ex.id)}
@@ -245,6 +292,14 @@ export function PublicRoutinePage() {
   }
 
   const showBar = feedbackPending || !!waDigits
+  const heroLine =
+    weekProgress.total === 0
+      ? 'Todavía no hay series cargadas'
+      : pct === 100
+        ? 'Semana completa'
+        : weekProgress.done === 0
+          ? 'Anotá los kilos a medida que entrenás'
+          : `Te faltan ${weekProgress.total - weekProgress.done} series esta semana`
 
   return (
     <Shell>
@@ -267,35 +322,29 @@ export function PublicRoutinePage() {
                 aria-label={proFirst ? `Escribir a ${proFirst} por WhatsApp` : 'Escribir por WhatsApp'}
               >
                 <MessageCircle size={20} strokeWidth={1.8} aria-hidden />
-                <span className="hhr-round-btn-text">{proFirst ? `Escribir a ${proFirst}` : 'Escribir'}</span>
               </a>
             ) : null}
           </header>
 
           <div className="hhr-hero">
-            <div className="hhr-hero-text">
-              <span className="hhr-hero-kicker">
-                {blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Esta semana'}
-              </span>
-              <span className="hhr-hero-big">
-                {weekProgress.done}/{weekProgress.total || 0}
-                <small> series</small>
-              </span>
-              <span className="hhr-hero-sub">
-                {weekProgress.total === 0
-                  ? 'Todavía no hay series cargadas'
-                  : pct === 100
-                    ? 'Semana completa'
-                    : weekProgress.done === 0
-                      ? 'Anotá los kilos a medida que entrenás'
-                      : 'Vas bien, seguí anotando'}
-              </span>
+            <div className="hhr-hero-top">
+              <span className="hhr-hero-kicker">{blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Esta semana'}</span>
+              {until ? <span className="hhr-hero-until">Hasta el {until}</span> : null}
             </div>
-            <Ring pct={pct} />
+            <div className="hhr-hero-mid">
+              <div className="hhr-hero-text">
+                <span className="hhr-hero-big">
+                  {weekProgress.done}
+                  <span>/{weekProgress.total || 0}</span>
+                </span>
+                <span className="hhr-hero-unit">series anotadas</span>
+              </div>
+              <Ring pct={pct} />
+            </div>
+            <p className="hhr-hero-line">{heroLine}</p>
             <div className="hhr-hero-foot">
-              <span>{routine?.name || 'Tu rutina'}</span>
-              {until ? <span>Hasta el {until}</span> : null}
-              {routine?.objective ? <p className="hhr-hero-goal">{routine.objective}</p> : null}
+              <b>{niceCase(routine?.name) || 'Tu rutina'}</b>
+              {routine?.objective ? <span>{routine.objective.trim()}</span> : null}
             </div>
           </div>
 
@@ -313,12 +362,12 @@ export function PublicRoutinePage() {
                 />
               ) : (
                 <div className="hhr-fb hhr-fb-done" role="status">
-                  <span className="hhr-icon-tile hhr-tone-ok" aria-hidden>
-                    <Check size={22} strokeWidth={2.2} />
+                  <span className="hhr-fb-art is-done" aria-hidden>
+                    <Check size={22} strokeWidth={2.4} />
                   </span>
-                  <div className="hhr-fb-done-text">
+                  <div className="hhr-fb-text">
                     <b>Feedback enviado</b>
-                    <p>{proFirst ? `${proFirst} ya lo puede ver.` : 'Tu entrenador ya lo puede ver.'} El próximo se habilita la semana que viene.</p>
+                    <span>{proFirst ? `${proFirst} ya lo puede ver.` : 'Tu entrenador ya lo puede ver.'} El próximo se habilita la semana que viene.</span>
                   </div>
                 </div>
               )}
@@ -334,8 +383,8 @@ export function PublicRoutinePage() {
 
           {!routine || blocks.length === 0 ? (
             <div className="hhr-card hhr-empty-card">
-              <span className="hhr-icon-tile hhr-tone-lav" aria-hidden>
-                <Dumbbell size={22} strokeWidth={1.8} />
+              <span className="hhr-tile" aria-hidden>
+                <Art name="general" fallback={<Dumbbell size={24} strokeWidth={1.8} />} />
               </span>
               <b>Tu rutina todavía no está cargada</b>
               <p>Cuando {proLabel} la arme, la vas a ver en este mismo link.</p>
@@ -355,7 +404,7 @@ export function PublicRoutinePage() {
                         setDay(0)
                       }}
                     >
-                      {b.name || `Semana ${i + 1}`}
+                      {niceCase(b.name) || `Semana ${i + 1}`}
                       {i === currentWeek ? <span className="hhr-now" aria-label="(semana actual)" /> : null}
                     </button>
                   ))}
@@ -387,50 +436,50 @@ export function PublicRoutinePage() {
               ) : null}
 
               {selectedDay ? (
-                <section className="hhr-card hhr-daycard">
-                  <header className="hhr-daycard-head">
-                    <div>
-                      <h3>{selectedDay.day_name || 'Entrenamiento'}</h3>
-                      <span>
-                        {selectedDay.muscle_focus ? `${selectedDay.muscle_focus} · ` : ''}
-                        {selectedDay.exercises.length} {selectedDay.exercises.length === 1 ? 'ejercicio' : 'ejercicios'}
-                      </span>
-                    </div>
-                    {selectedProgress.total ? (
-                      <span className={selectedProgress.done >= selectedProgress.total ? 'hhr-pill is-ok' : 'hhr-pill'}>
-                        {selectedProgress.done >= selectedProgress.total ? (
-                          <>
-                            <Check size={14} strokeWidth={2.4} aria-hidden /> Hecho
-                          </>
-                        ) : (
-                          `${selectedProgress.done}/${selectedProgress.total} series`
-                        )}
-                      </span>
-                    ) : null}
-                  </header>
-
-                  {warmup.length ? (
-                    <details className="hhr-warmup">
-                      <summary>
-                        <span className="hhr-icon-tile hhr-tone-peach hhr-icon-sm" aria-hidden>
-                          <Flame size={18} strokeWidth={1.8} />
-                        </span>
-                        <span className="hhr-warmup-title">
-                          <b>Entrada en calor</b>
-                          <small>
-                            {warmup.length} {warmup.length === 1 ? 'paso' : 'pasos'} antes de empezar
-                          </small>
-                        </span>
-                        <ChevronDown className="hhr-chev" size={18} strokeWidth={1.8} aria-hidden />
-                      </summary>
-                      <ul>
-                        {warmup.map((l, i) => (
-                          <li key={i}>{l}</li>
-                        ))}
-                      </ul>
-                    </details>
+                <section className="hhr-dayhead">
+                  <div className="hhr-dayhead-text">
+                    <h3>{niceCase(selectedDay.day_name) || 'Entrenamiento'}</h3>
+                    <span>
+                      {selectedDay.muscle_focus ? `${niceCase(selectedDay.muscle_focus)} · ` : ''}
+                      {selectedDay.exercises.length} {selectedDay.exercises.length === 1 ? 'ejercicio' : 'ejercicios'}
+                    </span>
+                  </div>
+                  {selectedProgress.total ? (
+                    <span className={selectedProgress.done >= selectedProgress.total ? 'hhr-count is-done' : 'hhr-count'}>
+                      {selectedProgress.done >= selectedProgress.total ? (
+                        <>
+                          <Check size={14} strokeWidth={2.6} aria-hidden /> Día completo
+                        </>
+                      ) : (
+                        <>
+                          <b>{selectedProgress.done}</b>/{selectedProgress.total}
+                        </>
+                      )}
+                    </span>
                   ) : null}
                 </section>
+              ) : null}
+
+              {selectedDay && warmup.length ? (
+                <details className="hhr-card hhr-warmup">
+                  <summary>
+                    <span className="hhr-tile hhr-tile-sm" aria-hidden>
+                      <Art name="calor" fallback={<Flame size={18} strokeWidth={1.8} />} />
+                    </span>
+                    <span className="hhr-warmup-title">
+                      <b>Entrada en calor</b>
+                      <small>
+                        {warmup.length} {warmup.length === 1 ? 'paso' : 'pasos'} antes de empezar
+                      </small>
+                    </span>
+                    <ChevronDown className="hhr-chev" size={18} strokeWidth={1.8} aria-hidden />
+                  </summary>
+                  <ol>
+                    {warmup.map((l, i) => (
+                      <li key={i}>{l}</li>
+                    ))}
+                  </ol>
+                </details>
               ) : null}
 
               {selectedDay ? (
@@ -438,11 +487,15 @@ export function PublicRoutinePage() {
                   {selectedDay.exercises.length === 0 ? <p className="hhr-muted">No hay ejercicios cargados para este día.</p> : null}
                   {groupExercises(selectedDay.exercises).map((g) =>
                     g.circuit ? (
-                      <div key={g.items[0]!.id} className="hhr-circuit">
+                      <div key={g.items[0]!.id} className="hhr-card hhr-circuit">
                         <p className="hhr-circuit-label">
-                          <Repeat size={15} strokeWidth={2} aria-hidden /> Circuito · hacé estos ejercicios seguidos
+                          <Link2 size={15} strokeWidth={2} aria-hidden />
+                          Circuito
+                          <span>
+                            {g.items.length} ejercicios seguidos, sin pausa entre ellos
+                          </span>
                         </p>
-                        <div className="hhr-circuit-list">{g.items.map((ex) => card(ex))}</div>
+                        <div className="hhr-circuit-list">{g.items.map((ex) => card(ex, true))}</div>
                       </div>
                     ) : (
                       card(g.items[0]!)
@@ -470,7 +523,6 @@ export function PublicRoutinePage() {
           {feedbackPending ? (
             <button type="button" className="hhr-bar-fb" onClick={openFeedback}>
               <span className="hhr-dot" aria-hidden />
-              <ClipboardCheck size={18} strokeWidth={1.9} aria-hidden />
               Responder feedback
             </button>
           ) : data.feedback ? (
@@ -490,32 +542,35 @@ export function PublicRoutinePage() {
 }
 
 function Ring({ pct }: { pct: number }) {
-  const r = 34
+  const r = 38
   const c = 2 * Math.PI * r
   return (
     <span className="hhr-ring" role="img" aria-label={`${pct}% de la semana anotada`}>
-      <svg viewBox="0 0 84 84" width="84" height="84" aria-hidden>
-        <circle cx="42" cy="42" r={r} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="8" />
+      <svg viewBox="0 0 92 92" width="92" height="92" aria-hidden>
+        <circle cx="46" cy="46" r={r} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="9" />
         <circle
-          cx="42"
-          cy="42"
+          cx="46"
+          cy="46"
           r={r}
           fill="none"
           stroke="var(--ring)"
-          strokeWidth="8"
+          strokeWidth="9"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - pct / 100)}
-          transform="rotate(-90 42 42)"
+          transform="rotate(-90 46 46)"
           opacity={pct === 0 ? 0 : 1}
         />
       </svg>
-      <b>{pct}%</b>
+      <b>
+        {pct}
+        <small>%</small>
+      </b>
     </span>
   )
 }
 
-/** Arco chico debajo de cada día, como el calendario de la referencia. */
+/** Arco chico debajo de cada día, como un calendario de hábitos. */
 function MiniArc({ value }: { value: number }) {
   const r = 9
   const c = 2 * Math.PI * r
@@ -537,6 +592,7 @@ function MiniArc({ value }: { value: number }) {
           transform="rotate(-90 12 12)"
         />
       ) : null}
+      {done ? <path d="M8 12.2l2.6 2.6L16 9.4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /> : null}
     </svg>
   )
 }
@@ -544,6 +600,7 @@ function MiniArc({ value }: { value: number }) {
 function ExerciseCard({
   ex,
   n,
+  flat,
   token,
   logged,
   open,
@@ -552,6 +609,7 @@ function ExerciseCard({
 }: {
   ex: SharedRoutineExercise
   n: number
+  flat: boolean
   token: string
   logged: Record<number, number>
   open: boolean
@@ -563,34 +621,38 @@ function ExerciseCard({
   const sets = setCount(ex)
   const done = Array.from({ length: sets }, (_, i) => logged[i + 1] != null).filter(Boolean).length
   const complete = done >= sets
-  const tone = TILE_TONES[(n - 1) % TILE_TONES.length]
   const panelId = `hhr-ex-${ex.id}`
-  const sub = [main, chips[0]].filter(Boolean).join(' · ')
+  const name = niceCase(ex.name) || 'Ejercicio'
+  const tags = [main.replace(/''/g, '″'), chips[0]].filter(Boolean) as string[]
   return (
-    <article className={`hhr-card hhr-ex${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
+    <article className={`hhr-ex${flat ? ' is-flat' : ' hhr-card'}${complete ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
       <button type="button" className="hhr-ex-head" aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
-        {ex.image_url ? (
-          <span className="hhr-thumb has-img" aria-hidden>
-            <img src={ex.image_url} alt="" loading="lazy" />
-            {complete ? (
-              <span className="hhr-thumb-check">
-                <Check size={14} strokeWidth={2.6} />
-              </span>
-            ) : null}
-          </span>
-        ) : (
-          <span className={complete ? 'hhr-thumb hhr-tone-ok' : `hhr-thumb hhr-tone-${tone}`} aria-hidden>
-            {complete ? <Check size={24} strokeWidth={2.2} /> : n}
-          </span>
-        )}
+        <span className="hhr-tile" aria-hidden>
+          {ex.image_url ? (
+            <img className="hhr-photo" src={ex.image_url} alt="" loading="lazy" />
+          ) : (
+            <Art name={exerciseArt(ex.name)} fallback={<span className="hhr-tile-num">{String(n).padStart(2, '0')}</span>} />
+          )}
+          {complete ? (
+            <span className="hhr-tile-check">
+              <Check size={13} strokeWidth={3} />
+            </span>
+          ) : null}
+        </span>
         <span className="hhr-ex-info">
-          <span className="hhr-ex-name">{ex.name || 'Ejercicio'}</span>
-          {sub ? <span className="hhr-ex-sub">{sub}</span> : null}
-          <span className="hhr-bar-track" aria-hidden>
-            <span className="hhr-bar-fill" style={{ width: `${(done / sets) * 100}%` }} />
-          </span>
-          <span className="hhr-ex-count">
-            {complete ? 'Completo' : `${done} de ${sets} ${sets === 1 ? 'serie anotada' : 'series anotadas'}`}
+          <span className="hhr-ex-name">{name}</span>
+          {tags.length ? (
+            <span className="hhr-ex-tags">
+              {tags.map((t) => (
+                <span key={t}>{t}</span>
+              ))}
+            </span>
+          ) : null}
+          <span className="hhr-progress">
+            <span className="hhr-progress-track" aria-hidden>
+              <span className="hhr-progress-fill" style={{ width: `${(done / sets) * 100}%` }} />
+            </span>
+            <span className="hhr-progress-label">{complete ? 'Listo' : `${done}/${sets}`}</span>
           </span>
         </span>
         <ChevronDown className="hhr-chev" size={20} strokeWidth={1.8} aria-hidden />
@@ -610,7 +672,7 @@ function ExerciseCard({
               {notes ? <p className="hhr-notes">{notes}</p> : null}
               {ex.video_url ? (
                 <a className="hhr-video" href={ex.video_url} target="_blank" rel="noopener noreferrer">
-                  <Play size={14} strokeWidth={2.2} aria-hidden /> Ver video
+                  <Play size={13} strokeWidth={2.4} fill="currentColor" aria-hidden /> Ver video
                 </a>
               ) : null}
             </div>
@@ -624,6 +686,13 @@ function ExerciseCard({
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
+/** «10» o «8-10» llevan «reps»; «20''», «30 s» o «6+6» quedan como están. */
+function withReps(reps: string): string {
+  const t = reps.trim()
+  if (!t) return ''
+  return /^\d+(\s*[-–]\s*\d+)?$/.test(t) ? `${t} reps` : t.replace(/''/g, '″')
+}
+
 /** Lo indicado para la serie i: «10 reps · 60 kg». */
 function setTarget(ex: SharedRoutineExercise, plan: { kg?: string; reps?: string }[], i: number): string {
   const scheme = repsText(ex)
@@ -631,7 +700,7 @@ function setTarget(ex: SharedRoutineExercise, plan: { kg?: string; reps?: string
   const reps = plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
   const kgRaw = plan[i]?.kg?.trim()
   const kg = kgRaw ? kgRaw.replace('.', ',') : ex.weight_kg != null && ex.weight_kg > 0 ? formatKg(ex.weight_kg) : ''
-  return [reps ? `${reps} reps` : '', kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
+  return [withReps(reps), kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
 }
 
 /** Kilos por serie, una fila por serie. Se guarda solo (al dejar de escribir o al salir del campo). */
@@ -698,6 +767,11 @@ function KgInputs({
   const anyError = status.includes('error')
   return (
     <div className="hhr-kg">
+      <div className="hhr-sets-head" aria-hidden>
+        <span>Serie</span>
+        <span>Indicado</span>
+        <span>Tus kilos</span>
+      </div>
       <ol className="hhr-sets">
         {values.map((v, i) => {
           const isLogged = status[i] === 'saved' || (status[i] === 'idle' && v.trim() !== '' && logged[i + 1] != null)
@@ -707,10 +781,7 @@ function KgInputs({
               <span className="hhr-setno" aria-hidden>
                 {i + 1}
               </span>
-              <span className="hhr-settarget">
-                <b>{sets > 1 ? `Serie ${i + 1}` : 'Serie'}</b>
-                {target ? <small>{target}</small> : null}
-              </span>
+              <span className="hhr-settarget">{target || '—'}</span>
               <label className="hhr-kgfield">
                 <input
                   inputMode="decimal"
@@ -719,7 +790,7 @@ function KgInputs({
                   maxLength={6}
                   value={v}
                   placeholder={placeholder(i)}
-                  aria-label={`${ex.name || 'Ejercicio'}, kilos de la serie ${i + 1}`}
+                  aria-label={`${niceCase(ex.name) || 'Ejercicio'}, kilos de la serie ${i + 1}`}
                   onChange={(e) => onChange(i, e.target.value)}
                   onBlur={(e) => void save(i, e.target.value)}
                   onKeyDown={(e) => {
@@ -729,7 +800,7 @@ function KgInputs({
                 <span aria-hidden>kg</span>
               </label>
               <span className="hhr-setcheck" aria-hidden>
-                {isLogged ? <Check size={15} strokeWidth={2.8} /> : null}
+                {isLogged ? <Check size={14} strokeWidth={3} /> : null}
               </span>
             </li>
           )
@@ -790,7 +861,7 @@ function FeedbackCard({
   const q = questions[si]
   const last = si === total - 1
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responderEmail.trim())
-  const duration = total <= 4 ? 'un minuto' : `unos ${Math.round(total / 3)} minutos`
+  const duration = total <= 4 ? 'un minuto' : `unos ${Math.max(2, Math.round(total / 3))} minutos`
 
   function next() {
     if (!q) return
@@ -841,13 +912,17 @@ function FeedbackCard({
     )
   }
 
+  const art = (
+    <span className="hhr-fb-art" aria-hidden>
+      <Art name="feedback" fallback={<ClipboardCheck size={22} strokeWidth={1.8} />} />
+    </span>
+  )
+
   if (!open) {
     return (
       <div className="hhr-fb">
         <div className="hhr-fb-row">
-          <span className="hhr-icon-tile hhr-tone-violet" aria-hidden>
-            <ClipboardCheck size={22} strokeWidth={1.8} />
-          </span>
+          {art}
           <div className="hhr-fb-text">
             <span className="hhr-fb-badge">Pendiente</span>
             <b>Feedback de la semana</b>
@@ -861,12 +936,11 @@ function FeedbackCard({
     )
   }
 
+  const answeredBefore = questions.slice(0, si).length + (q && isAnswered(q, drafts[q.id]) ? 1 : 0)
   return (
     <div className="hhr-fb is-open">
       <div className="hhr-fb-row">
-        <span className="hhr-icon-tile hhr-tone-violet hhr-icon-sm" aria-hidden>
-          <ClipboardCheck size={18} strokeWidth={1.8} />
-        </span>
+        {art}
         <div className="hhr-fb-text">
           <b>¿Cómo te fue esta semana?</b>
           <span>Lo lee {proLabel} para ajustar tu rutina.</span>
@@ -879,14 +953,22 @@ function FeedbackCard({
         <p className="hhr-fb-note">El formulario no está disponible ahora. Avisale a {proLabel}.</p>
       ) : (
         <form className="hhr-fb-form" onSubmit={(e) => void submit(e)}>
-          <div className="hhr-steps" aria-hidden>
-            {questions.map((qq, i) => (
-              <span key={qq.id} className={i < si || (i === si && isAnswered(qq, drafts[qq.id])) ? 'is-on' : i === si ? 'is-cur' : ''} />
-            ))}
+          <div className="hhr-fb-progress">
+            <span className="hhr-fb-count" aria-live="polite">
+              Pregunta {si + 1} de {total}
+            </span>
+            {total <= 8 ? (
+              <span className="hhr-steps" aria-hidden>
+                {questions.map((qq, i) => (
+                  <span key={qq.id} className={i < si || (i === si && isAnswered(qq, drafts[qq.id])) ? 'is-on' : i === si ? 'is-cur' : ''} />
+                ))}
+              </span>
+            ) : (
+              <span className="hhr-fb-bar" aria-hidden>
+                <span style={{ width: `${(answeredBefore / total) * 100}%` }} />
+              </span>
+            )}
           </div>
-          <p className="hhr-fb-count" aria-live="polite">
-            Pregunta {si + 1} de {total}
-          </p>
           <div className="hhr-q" key={q.id}>
             <CheckInQuestionFields
               question={q}
@@ -939,12 +1021,20 @@ function FeedbackCard({
   )
 }
 
-/** La página del alumno siempre en claro, aunque el dispositivo tenga guardado el tema oscuro de la app. */
+const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'
+
+/** La página del alumno siempre en claro (aunque el dispositivo tenga guardado el tema oscuro) y con su tipografía. */
 function useLightPage() {
   useEffect(() => {
     const html = document.documentElement
     const hadDark = html.classList.contains('dark')
     html.classList.remove('dark')
+    if (!document.querySelector(`link[href="${FONT_HREF}"]`)) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = FONT_HREF
+      document.head.appendChild(link)
+    }
     return () => {
       if (hadDark) html.classList.add('dark')
     }
@@ -960,252 +1050,264 @@ function Shell({ children }: { children: ReactNode }) {
   )
 }
 
-/** Estilos propios (no dependen del tema ni de la versión que tenga guardada quien la abre). */
+/**
+ * Estilos propios (no dependen del tema ni de la versión que tenga guardada quien la abre).
+ * Paleta: neutros cálidos, negro para acciones y progreso, un solo acento violeta (anillo y detalles).
+ */
 const CSS = `
 .hhr {
-  --canvas: #F4F4F2; --card: #FFFFFF; --soft: #F5F4F2; --soft-2: #EEEDEA;
-  --ink: #17151C; --ink-2: #57535E; --muted: #8E8A95; --faint: #BEBAC2;
-  --violet: #7B61D9; --violet-ink: #4D3B94; --violet-wash: #F0ECFC; --hero: #221C31; --hero-2: #2E2545; --ring: #B8A7F2;
-  --accent: #F08A24; --ok: #2E8A55; --ok-wash: #E3F4EA; --err: #B4233A; --arc-track: #ECEBE8;
-  --lav: #ECE6FB; --peach: #FDEBDC; --sky: #E1EEFB; --mint: #E0F3E8; --rose: #FBE4EA;
-  --shadow: 0 1px 2px rgba(23,21,28,.04), 0 10px 28px -16px rgba(23,21,28,.16);
+  --canvas: #F2F2F0; --card: #FFFFFF; --soft: #F5F5F3; --soft-2: #ECECE9; --line: #EDEDEA;
+  --ink: #111114; --ink-2: #4B4B52; --muted: #8B8B92; --faint: #C2C2C7;
+  --accent: #6F5BD3; --accent-soft: #EEEBFB; --ring: #B4A6F6;
+  --hero: #16141D; --err: #C2253D; --arc-track: #E9E9E6;
+  --r-xl: 28px; --r-lg: 24px; --r-md: 18px;
+  --shadow: 0 1px 1px rgba(17,17,20,.03), 0 6px 24px -10px rgba(17,17,20,.10);
   min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: light;
-  font-family: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased;
 }
 .hhr * { box-sizing: border-box; }
 .hhr button, .hhr a, .hhr input { font: inherit; -webkit-tap-highlight-color: transparent; }
 .hhr button { cursor: pointer; }
-.hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
-.hhr-inner { max-width: 1200px; margin: 0 auto; padding: 18px max(18px, env(safe-area-inset-right)) 32px max(18px, env(safe-area-inset-left)); }
-.hhr-muted { margin: 4px 4px; color: var(--muted); }
+.hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hhr-inner { max-width: 1180px; margin: 0 auto; padding: 20px max(18px, env(safe-area-inset-right)) 32px max(18px, env(safe-area-inset-left)); }
+.hhr-muted { margin: 4px; color: var(--muted); }
 
 /* Estados */
 .hhr-state { padding: 20vh 0; text-align: center; color: var(--ink-2); display: grid; justify-items: center; gap: 6px; }
-.hhr-state-icon { width: 60px; height: 60px; border-radius: 20px; background: var(--lav); color: var(--violet-ink); display: grid; place-items: center; margin-bottom: 8px; }
+.hhr-state-icon { width: 72px; height: 72px; border-radius: 24px; background: var(--card); box-shadow: var(--shadow); color: var(--ink); display: grid; place-items: center; margin-bottom: 10px; }
 .hhr-state h1 { margin: 0; font-size: 22px; color: var(--ink); letter-spacing: -0.02em; }
 .hhr-state p { margin: 0; max-width: 36ch; }
 .hhr-skeleton { display: grid; gap: 16px; max-width: 520px; margin: 0 auto; padding-top: 12px; }
-.hhr-sk { display: block; border-radius: 24px; background: linear-gradient(90deg, #ECEBE8 0%, #F6F5F3 50%, #ECEBE8 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
-.hhr-sk-title { height: 44px; width: 60%; border-radius: 14px; }
-.hhr-sk-hero { height: 150px; }
-.hhr-sk-card { height: 92px; }
+.hhr-sk { display: block; border-radius: var(--r-lg); background: linear-gradient(90deg, #EAEAE7 0%, #F5F5F3 50%, #EAEAE7 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
+.hhr-sk-title { height: 48px; width: 62%; border-radius: 16px; }
+.hhr-sk-hero { height: 210px; border-radius: var(--r-xl); }
+.hhr-sk-card { height: 100px; }
 @keyframes hhr-sh { to { background-position: -200% 0; } }
 
 /* Composición */
-.hhr-app { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
-.hhr-app.has-bar { padding-bottom: 88px; }
+.hhr-app { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+.hhr-app.has-bar { padding-bottom: 92px; }
 .hhr-side, .hhr-main { display: grid; gap: 16px; align-content: start; min-width: 0; }
 
 /* Cabecera */
-.hhr-top { display: flex; align-items: center; gap: 12px; }
-.hhr-avatar { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; background: var(--lav); color: var(--violet-ink); display: grid; place-items: center; font-weight: 700; font-size: 16px; letter-spacing: .02em; }
-.hhr-hello { flex: 1 1 auto; min-width: 0; display: grid; }
-.hhr-today { color: var(--muted); font-size: 13px; }
+.hhr-top { display: flex; align-items: center; gap: 12px; padding: 0 2px; }
+.hhr-avatar { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 16px; }
+.hhr-hello { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; }
+.hhr-today { color: var(--muted); font-size: 13px; font-weight: 500; }
 .hhr-today::first-letter { text-transform: uppercase; }
-.hhr-hello h1 { margin: 0; font-size: 24px; line-height: 1.15; letter-spacing: -0.03em; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-round-btn { flex: 0 0 auto; height: 46px; min-width: 46px; border-radius: 999px; background: var(--card); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: var(--shadow); font-size: 14px; font-weight: 600; }
+.hhr-hello h1 { margin: 0; font-size: 25px; line-height: 1.12; letter-spacing: -0.02em; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-round-btn { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: var(--ink); display: grid; place-items: center; text-decoration: none; box-shadow: var(--shadow); }
 .hhr-round-btn:hover { background: var(--soft); }
-.hhr-round-btn-text { display: none; }
 
-/* Tarjeta oscura de la semana */
-.hhr-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 16px; padding: 22px 22px 18px; border-radius: 28px; color: #fff;
-  background: linear-gradient(140deg, var(--hero-2) 0%, var(--hero) 60%); box-shadow: 0 18px 40px -22px rgba(34,28,49,.7); }
-.hhr-hero::after { content: ''; position: absolute; right: -60px; top: -80px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(184,167,242,.22), transparent 70%); pointer-events: none; }
-.hhr-hero-text { display: grid; gap: 4px; min-width: 0; }
-.hhr-hero-kicker { font-size: 13px; color: rgba(255,255,255,.66); font-weight: 500; }
-.hhr-hero-big { font-size: 38px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
-.hhr-hero-big small { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: rgba(255,255,255,.7); }
-.hhr-hero-sub { font-size: 14px; color: rgba(255,255,255,.8); }
-.hhr-ring { position: relative; width: 84px; height: 84px; display: grid; place-items: center; }
+/* Tarjeta de la semana */
+.hhr-hero { position: relative; overflow: hidden; display: grid; gap: 14px; padding: 20px 22px 20px; border-radius: var(--r-xl); color: #fff; background: var(--hero); box-shadow: 0 22px 44px -26px rgba(22,20,29,.75); isolation: isolate; }
+.hhr-hero::before { content: ''; position: absolute; z-index: -1; right: -90px; top: -110px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(111,91,211,.55), rgba(111,91,211,0) 68%); }
+.hhr-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.hhr-hero-kicker { font-weight: 600; background: rgba(255,255,255,.1); border-radius: 999px; padding: 5px 11px; }
+.hhr-hero-until { color: rgba(255,255,255,.55); }
+.hhr-hero-mid { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.hhr-hero-text { display: grid; gap: 2px; min-width: 0; }
+.hhr-hero-big { font-size: 52px; font-weight: 800; letter-spacing: -0.02em; line-height: .95; font-variant-numeric: tabular-nums; }
+.hhr-hero-big span { color: rgba(255,255,255,.38); font-weight: 700; }
+.hhr-hero-unit { font-size: 14px; color: rgba(255,255,255,.7); font-weight: 500; }
+.hhr-ring { position: relative; flex: 0 0 auto; width: 92px; height: 92px; display: grid; place-items: center; }
 .hhr-ring svg { position: absolute; inset: 0; }
-.hhr-ring circle { transition: stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1); }
-.hhr-ring b { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.hhr-hero-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; color: rgba(255,255,255,.62); }
-.hhr-hero-foot span:first-child { color: rgba(255,255,255,.88); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.hhr-hero-goal { flex: 1 0 100%; margin: 4px 0 0; color: rgba(255,255,255,.62); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hhr-ring circle { transition: stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1); }
+.hhr-ring b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.hhr-ring small { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); margin-left: 1px; }
+.hhr-hero-line { margin: -4px 0 0; font-size: 14px; color: rgba(255,255,255,.82); }
+.hhr-hero-foot { display: grid; gap: 2px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.09); font-size: 13px; }
+.hhr-hero-foot b { font-weight: 600; color: rgba(255,255,255,.92); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-hero-foot span { color: rgba(255,255,255,.55); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Tarjetas y tiles */
-.hhr-card { background: var(--card); border-radius: 24px; box-shadow: var(--shadow); }
-.hhr-icon-tile { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; color: var(--ink); }
-.hhr-icon-sm { width: 40px; height: 40px; border-radius: 14px; }
-.hhr-tone-lav { background: var(--lav); } .hhr-tone-peach { background: var(--peach); } .hhr-tone-sky { background: var(--sky); }
-.hhr-tone-mint { background: var(--mint); } .hhr-tone-rose { background: var(--rose); }
-.hhr-tone-violet { background: var(--violet-wash); color: var(--violet-ink); }
-.hhr-tone-ok { background: var(--ok); color: #fff; }
+/* Tiles e ilustraciones */
+.hhr-card { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.hhr-tile { position: relative; flex: 0 0 auto; width: 72px; height: 72px; border-radius: 20px; background: var(--soft); display: grid; place-items: center; color: var(--ink); }
+.hhr-tile-sm { width: 44px; height: 44px; border-radius: 14px; }
+.hhr-tile-num { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hhr-art { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(17,17,20,.12)); }
+.hhr-art-lg { width: 52px; height: 52px; object-fit: contain; }
+.hhr-photo { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.hhr-tile-check { position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--card); }
 .hhr-empty-card { padding: 30px 22px; text-align: center; display: grid; justify-items: center; gap: 6px; }
-.hhr-empty-card b { margin-top: 6px; font-size: 16px; }
+.hhr-empty-card b { margin-top: 8px; font-size: 16px; }
 .hhr-empty-card p { margin: 0; color: var(--ink-2); max-width: 34ch; }
-.hhr-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--soft); color: var(--ink-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.hhr-pill.is-ok { background: var(--ok-wash); color: var(--ok); }
 
 /* Feedback de la semana */
 .hhr-fb-area { scroll-margin-top: 16px; }
-.hhr-fb { display: grid; gap: 16px; padding: 18px; border-radius: 26px; background: var(--card); box-shadow: var(--shadow); position: relative; }
-.hhr-fb::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, var(--violet-wash), rgba(240,236,252,0) 70%); pointer-events: none; }
-.hhr-fb > * { position: relative; }
+.hhr-fb { display: grid; gap: 16px; padding: 18px; border-radius: var(--r-lg); background: var(--card); box-shadow: var(--shadow); }
 .hhr-fb-row { display: flex; align-items: center; gap: 14px; }
+.hhr-fb-art { flex: 0 0 auto; width: 60px; height: 60px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.hhr-fb-art.is-done { background: var(--ink); color: #fff; }
 .hhr-fb-text { display: grid; gap: 2px; min-width: 0; }
-.hhr-fb-text b { font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
-.hhr-fb-text > span:last-child { color: var(--ink-2); font-size: 13.5px; }
-.hhr-fb-badge { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #93500F; background: #FDEEDC; border-radius: 999px; padding: 2px 10px 2px 8px; margin-bottom: 2px; }
-.hhr-fb-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
-@keyframes hhr-pulse { 50% { opacity: .3; } }
+.hhr-fb-text b { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+.hhr-fb-text > span:last-child { color: var(--muted); font-size: 13.5px; }
+.hhr-fb-badge { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--accent); margin-bottom: 1px; }
+.hhr-fb-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
+@keyframes hhr-pulse { 50% { opacity: .25; } }
 .hhr-fb-note { margin: 0; color: var(--ink-2); font-size: 14px; }
-.hhr-fb-form { display: grid; gap: 12px; }
+.hhr-fb-form { display: grid; gap: 14px; }
+.hhr-fb-progress { display: grid; gap: 8px; }
+.hhr-fb-count { font-size: 12.5px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .hhr-steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
-.hhr-steps span { height: 6px; border-radius: 99px; background: var(--soft-2); transition: background .25s ease; }
-.hhr-steps span.is-cur { background: #D9D0F7; }
-.hhr-steps span.is-on { background: var(--violet); }
-.hhr-fb-count { margin: -4px 0 0; font-size: 12.5px; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.hhr-steps span { height: 5px; border-radius: 99px; background: var(--soft-2); transition: background .25s ease; }
+.hhr-steps span.is-cur { background: #CFC8F3; }
+.hhr-steps span.is-on { background: var(--accent); }
+.hhr-fb-bar { display: block; height: 5px; border-radius: 99px; background: var(--soft-2); overflow: hidden; }
+.hhr-fb-bar span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .3s ease; }
 .hhr-q { animation: hhr-in .25s ease; }
 @keyframes hhr-in { from { opacity: 0; transform: translateY(6px); } }
 .hhr-q > section { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-.hhr-q > section > p:first-child { font-size: 17px; letter-spacing: -0.01em; }
+.hhr-q > section > p:first-child { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
+.hhr-q > section > p:first-child > span:first-child { display: none; }
 .hhr-q [role="group"] button { border: 0 !important; background: var(--soft) !important; color: var(--ink-2) !important; border-radius: 16px; }
 .hhr-q [role="group"] button[aria-pressed="true"] { background: var(--ink) !important; color: #fff !important; }
-.hhr-q [role="radio"] { border: 0 !important; background-color: var(--soft); box-shadow: none !important; border-radius: 16px; }
-.hhr-q textarea, .hhr-q input { border: 0 !important; background: var(--soft) !important; border-radius: 16px !important; box-shadow: none !important; }
+.hhr-q [role="radio"] { border: 0 !important; background-color: var(--soft); box-shadow: none !important; border-radius: 16px; color: var(--ink) !important; }
+.hhr-q [role="radio"][aria-checked="true"] { background-color: var(--ink) !important; color: #fff !important; }
+.hhr-q [role="radio"] > span:first-child { border-color: var(--faint) !important; background: transparent !important; }
+.hhr-q [role="radio"][aria-checked="true"] > span:first-child { border-color: #fff !important; background: #fff !important; color: var(--ink); }
+.hhr-q [role="radio"][aria-checked="true"] > span:first-child svg { color: var(--ink) !important; }
+.hhr-q textarea, .hhr-q input { border: 0 !important; background: var(--soft) !important; border-radius: 16px !important; box-shadow: none !important; font-size: 16px !important; }
 .hhr-fb-email { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
-.hhr-fb-email input { border: 0; border-radius: 16px; padding: 13px 16px; background: var(--soft); font-size: 16px; }
+.hhr-fb-email input { border: 0; border-radius: 16px; padding: 14px 16px; background: var(--soft); font-size: 16px; }
 .hhr-fb-actions { display: flex; gap: 10px; }
 .hhr-fb-actions .hhr-cta { flex: 1 1 auto; }
-.hhr-cta { border: 0; border-radius: 999px; background: var(--ink); color: #fff; height: 52px; padding: 0 22px; font-size: 15.5px; font-weight: 600; width: 100%; transition: transform .12s ease, background .15s ease, opacity .15s ease; }
-.hhr-cta:hover { background: #2C2833; }
+.hhr-cta { border: 0; border-radius: 999px; background: var(--ink); color: #fff; height: 54px; padding: 0 22px; font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; width: 100%; transition: transform .12s ease, background .15s ease, opacity .15s ease; }
+.hhr-cta:hover { background: #26262B; }
 .hhr-cta:active { transform: scale(.98); }
-.hhr-cta:disabled { opacity: .35; cursor: default; transform: none; background: var(--ink); }
-.hhr-ghost { flex: 0 0 auto; width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--soft); color: var(--ink); display: grid; place-items: center; }
+.hhr-cta:disabled { opacity: .28; cursor: default; transform: none; background: var(--ink); }
+.hhr-ghost { flex: 0 0 auto; width: 54px; height: 54px; border: 0; border-radius: 50%; background: var(--soft); color: var(--ink); display: grid; place-items: center; }
 .hhr-ghost:hover { background: var(--soft-2); }
-.hhr-fb-done { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; }
-.hhr-fb-done::before { background: linear-gradient(160deg, var(--ok-wash), rgba(227,244,234,0) 75%); }
-.hhr-fb-done-text b { font-size: 16px; }
-.hhr-fb-done-text p { margin: 2px 0 0; color: var(--ink-2); font-size: 13.5px; }
+.hhr-fb-done .hhr-fb-text > span:last-child { color: var(--ink-2); }
 
 /* Entrenamiento */
-.hhr-main-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin: 6px 2px 0; }
-.hhr-main-head h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
-.hhr-main-head span { color: var(--muted); font-size: 13px; }
+.hhr-main-head { display: grid; gap: 2px; margin: 8px 2px 0; }
+.hhr-main-head h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.hhr-main-head span { color: var(--muted); font-size: 13.5px; }
 
-.hhr-weeks { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 2px 18px 4px; }
+.hhr-weeks { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 2px 18px 6px; }
 .hhr-weeks::-webkit-scrollbar { display: none; }
-.hhr-week { position: relative; flex: 0 0 auto; border: 0; background: var(--card); color: var(--ink-2); border-radius: 999px; height: 44px; padding: 0 20px; font-size: 14px; font-weight: 500; box-shadow: var(--shadow); transition: background .15s ease, color .15s ease; }
+.hhr-week { position: relative; flex: 0 0 auto; border: 0; background: var(--card); color: var(--ink-2); border-radius: 999px; height: 46px; padding: 0 22px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); transition: background .15s ease, color .15s ease; }
 .hhr-week:hover { color: var(--ink); }
-.hhr-week[aria-pressed="true"] { background: var(--ink); color: #fff; }
-.hhr-now { position: absolute; top: 8px; right: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.hhr-week[aria-pressed="true"] { background: var(--ink); color: #fff; box-shadow: 0 10px 20px -12px rgba(17,17,20,.7); }
+.hhr-now { position: absolute; top: 9px; right: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.hhr-week[aria-pressed="true"] .hhr-now { background: var(--ring); }
 
 .hhr-days { display: flex; justify-content: space-around; gap: 4px; padding: 10px; }
-.hhr-day { flex: 0 1 84px; border: 0; background: transparent; border-radius: 18px; padding: 10px 2px 8px; display: grid; justify-items: center; gap: 2px; color: var(--violet); min-width: 0; transition: background .15s ease; }
+.hhr-day { flex: 0 1 84px; border: 0; background: transparent; border-radius: 20px; padding: 10px 2px 8px; display: grid; justify-items: center; gap: 1px; color: var(--accent); min-width: 0; transition: background .15s ease; }
 .hhr-day:hover { background: var(--soft); }
-.hhr-day[aria-pressed="true"] { background: var(--soft-2); }
-.hhr-day-label { font-size: 12.5px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-day-num { font-size: 21px; font-weight: 650; color: var(--ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.hhr-day[aria-pressed="true"] { background: var(--ink); color: var(--ring); }
+.hhr-day-label { font-size: 12px; font-weight: 500; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-day-num { font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.hhr-day[aria-pressed="true"] .hhr-day-label { color: rgba(255,255,255,.55); }
+.hhr-day[aria-pressed="true"] .hhr-day-num { color: #fff; }
+.hhr-day[aria-pressed="true"] { --arc-track: rgba(255,255,255,.14); }
 .hhr-arc { margin-top: 4px; }
-.hhr-arc.is-done { color: var(--ok); }
 
-.hhr-daycard { padding: 18px 18px; display: grid; gap: 14px; }
-.hhr-daycard-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.hhr-daycard-head h3 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
-.hhr-daycard-head div > span { color: var(--muted); font-size: 13.5px; }
-.hhr-warmup { border-radius: 18px; background: var(--soft); }
-.hhr-warmup summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; cursor: pointer; }
+.hhr-dayhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 2px 0; }
+.hhr-dayhead-text { display: grid; gap: 1px; min-width: 0; }
+.hhr-dayhead h3 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.hhr-dayhead-text span { color: var(--muted); font-size: 13.5px; }
+.hhr-count { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.hhr-count b { color: var(--ink); font-size: 17px; font-weight: 800; }
+.hhr-count.is-done { color: var(--ink); }
+
+.hhr-warmup summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 12px; cursor: pointer; }
 .hhr-warmup summary::-webkit-details-marker { display: none; }
 .hhr-warmup-title { flex: 1 1 auto; display: grid; min-width: 0; }
-.hhr-warmup-title b { font-size: 14.5px; font-weight: 600; }
+.hhr-warmup-title b { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .hhr-warmup-title small { color: var(--muted); font-size: 12.5px; }
 .hhr-warmup[open] .hhr-chev { transform: rotate(180deg); }
-.hhr-warmup ul { margin: 0; padding: 0 18px 14px 34px; display: grid; gap: 4px; color: var(--ink-2); font-size: 14px; }
-.hhr-chev { flex: 0 0 auto; color: var(--muted); transition: transform .2s ease; }
+.hhr-warmup ol { margin: 0; padding: 0 20px 16px 74px; display: grid; gap: 6px; color: var(--ink-2); font-size: 14px; }
+.hhr-chev { flex: 0 0 auto; color: var(--faint); transition: transform .2s ease; }
 
 /* Ejercicios */
-.hhr-list { display: grid; gap: 12px; align-items: start; }
+.hhr-list { display: grid; gap: 12px; }
 .hhr-ex { overflow: hidden; }
 .hhr-ex-head { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; }
-.hhr-thumb { position: relative; flex: 0 0 auto; width: 76px; height: 76px; border-radius: 20px; display: grid; place-items: center; font-size: 22px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; overflow: hidden; }
-.hhr-thumb.has-img { background: var(--soft); }
-.hhr-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.hhr-thumb-check { position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; }
-.hhr-ex-info { flex: 1 1 auto; min-width: 0; display: grid; gap: 3px; }
-.hhr-ex-name { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; overflow-wrap: anywhere; line-height: 1.25; }
-.hhr-ex-sub { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hhr-bar-track { display: block; height: 8px; border-radius: 99px; background: var(--soft-2); overflow: hidden; margin-top: 6px; max-width: 220px; }
-.hhr-bar-fill { display: block; height: 100%; border-radius: inherit; background: var(--ink); transition: width .35s cubic-bezier(.2,.8,.2,1); }
-.hhr-ex.is-done .hhr-bar-fill { background: var(--ok); }
-.hhr-ex-count { font-size: 12px; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
-.hhr-ex.is-done .hhr-ex-count { color: var(--ok); }
+.hhr-ex-info { flex: 1 1 auto; min-width: 0; display: grid; gap: 6px; }
+.hhr-ex-name { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; overflow-wrap: anywhere; }
+.hhr-ex-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.hhr-ex-tags span { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--soft); border-radius: 8px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
+.hhr-progress { display: flex; align-items: center; gap: 8px; }
+.hhr-progress-track { flex: 1 1 auto; max-width: 200px; height: 6px; border-radius: 99px; background: var(--soft-2); overflow: hidden; }
+.hhr-progress-fill { display: block; height: 100%; border-radius: inherit; background: var(--ink); transition: width .4s cubic-bezier(.2,.8,.2,1); }
+.hhr-progress-label { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hhr-ex.is-done .hhr-progress-label { color: var(--ink); }
 .hhr-ex.is-open .hhr-ex-head .hhr-chev { transform: rotate(180deg); }
 .hhr-ex-panel { padding: 0 14px 14px; display: grid; gap: 12px; animation: hhr-in .2s ease; }
-.hhr-ex-extra { display: grid; gap: 8px; padding: 0 4px; }
+.hhr-ex-extra { display: grid; gap: 10px; padding: 0 2px; }
 .hhr-chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-.hhr-chips li { background: var(--soft); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hhr-chips li { border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--soft); font-variant-numeric: tabular-nums; }
 .hhr-notes { margin: 0; font-size: 14px; color: var(--ink-2); white-space: pre-line; }
-.hhr-video { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; }
-.hhr-video:hover { background: #2C2833; }
+.hhr-video { justify-self: start; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px 0 14px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+.hhr-video:hover { background: #26262B; }
 
 /* Series */
-.hhr-kg { display: grid; gap: 8px; }
-.hhr-sets { margin: 0; padding: 6px; list-style: none; display: grid; gap: 4px; border-radius: 20px; background: var(--soft); }
-.hhr-setrow { display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 6px; border-radius: 16px; transition: background .2s ease; }
+.hhr-kg { display: grid; gap: 6px; border-radius: 20px; background: var(--soft); padding: 10px 8px 8px; }
+.hhr-sets-head { display: grid; grid-template-columns: 34px minmax(0, 1fr) 100px 30px; gap: 10px; padding: 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.hhr-sets-head span:nth-child(3) { grid-column: 3 / 5; }
+.hhr-sets { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.hhr-setrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 100px 30px; align-items: center; gap: 10px; padding: 6px; border-radius: 16px; transition: background .2s ease; }
 .hhr-setrow.is-logged { background: var(--card); }
-.hhr-setno { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 11px; background: var(--card); display: grid; place-items: center; font-size: 13px; font-weight: 650; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hhr-setno { width: 34px; height: 34px; border-radius: 12px; background: var(--card); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 .hhr-setrow.is-logged .hhr-setno { background: var(--soft); }
-.hhr-settarget { flex: 1 1 auto; min-width: 0; display: grid; }
-.hhr-settarget b { font-size: 14px; font-weight: 600; }
-.hhr-settarget small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hhr-kgfield { flex: 0 0 auto; position: relative; width: 96px; }
-.hhr-kgfield input { width: 100%; height: 44px; border: 1.5px solid transparent; background: var(--card); border-radius: 14px; padding: 0 30px 0 12px; font-size: 17px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; transition: border-color .15s ease; }
+.hhr-settarget { min-width: 0; font-size: 13.5px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hhr-kgfield { position: relative; }
+.hhr-kgfield input { width: 100%; height: 46px; border: 1.5px solid transparent; background: var(--card); border-radius: 14px; padding: 0 32px 0 12px; font-size: 17px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.02em; transition: border-color .15s ease; }
 .hhr-setrow.is-logged .hhr-kgfield input { background: var(--soft); }
-.hhr-kgfield input::placeholder { color: var(--faint); font-weight: 500; }
-.hhr-kgfield input:focus { outline: none; border-color: var(--violet); background: var(--card); }
-.hhr-kgfield span { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 12.5px; color: var(--muted); pointer-events: none; }
-.hhr-setcheck { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #DCDAD6; display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
-.hhr-setrow.is-logged .hhr-setcheck { background: var(--ok); border-color: var(--ok); animation: hhr-pop .3s ease; }
-.hhr-setrow.is-saving .hhr-setcheck { border-color: var(--violet); border-right-color: transparent; animation: hhr-spin .7s linear infinite; }
-.hhr-setrow.is-error .hhr-setcheck { border-color: var(--err); }
-.hhr-setrow.is-error .hhr-kgfield input { border-color: var(--err); }
+.hhr-kgfield input::placeholder { color: var(--faint); font-weight: 600; }
+.hhr-kgfield input:focus { outline: none; border-color: var(--ink); background: var(--card); }
+.hhr-kgfield span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: var(--muted); pointer-events: none; }
+.hhr-setcheck { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #D9D9DD; display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease; }
+.hhr-setrow.is-logged .hhr-setcheck { background: var(--ink); border-color: var(--ink); animation: hhr-pop .3s ease; }
+.hhr-setrow.is-saving .hhr-setcheck { border-color: var(--accent); border-right-color: transparent; animation: hhr-spin .7s linear infinite; }
+.hhr-setrow.is-error .hhr-setcheck, .hhr-setrow.is-error .hhr-kgfield input { border-color: var(--err); }
 @keyframes hhr-pop { 50% { transform: scale(1.15); } }
 @keyframes hhr-spin { to { transform: rotate(360deg); } }
 .hhr-error { margin: 0; font-size: 13px; color: var(--err); }
 
-.hhr-circuit { display: grid; gap: 8px; padding: 8px; border-radius: 30px; background: #E9E6F3; }
-.hhr-circuit-label { margin: 6px 10px 2px; font-size: 13px; font-weight: 600; color: var(--violet-ink); display: flex; align-items: center; gap: 6px; }
-.hhr-circuit-list { display: grid; gap: 8px; align-items: start; }
+/* Circuito: una tarjeta con los ejercicios unidos por una línea */
+.hhr-circuit { padding: 6px 0 4px; }
+.hhr-circuit-label { margin: 10px 16px 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.hhr-circuit-label span { flex-basis: 100%; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.hhr-circuit-list { position: relative; display: grid; }
+.hhr-ex.is-flat { position: relative; background: transparent; }
+.hhr-ex.is-flat + .hhr-ex.is-flat::before { content: ''; position: absolute; left: 96px; right: 16px; top: 0; height: 1px; background: var(--line); }
 
-.hhr-foot { margin: 8px 4px 0; font-size: 12.5px; color: var(--muted); display: grid; gap: 6px; }
-.hhr-brand { font-weight: 600; color: var(--faint); }
+.hhr-foot { margin: 10px 4px 0; font-size: 12.5px; color: var(--muted); display: grid; gap: 6px; }
+.hhr-brand { font-weight: 700; color: var(--faint); letter-spacing: -0.01em; }
 
 /* Barra flotante del celu */
-.hhr-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; background: var(--ink); box-shadow: 0 16px 36px -14px rgba(23,21,28,.6); max-width: calc(100% - 28px); }
-.hhr-bar-btn { width: 50px; height: 50px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.75); display: grid; place-items: center; text-decoration: none; }
+.hhr-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; background: var(--ink); box-shadow: 0 18px 40px -14px rgba(17,17,20,.65); max-width: calc(100% - 28px); }
+.hhr-bar-btn { width: 52px; height: 52px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.72); display: grid; place-items: center; text-decoration: none; }
 .hhr-bar-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
-.hhr-bar-btn.is-static { color: #7BD3A0; }
-.hhr-bar-fb { position: relative; height: 50px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; padding: 0 20px 0 18px; font-size: 14.5px; font-weight: 600; white-space: nowrap; }
-.hhr-dot { position: absolute; top: 9px; left: 30px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px #fff; animation: hhr-pulse 1.6s ease-in-out infinite; }
+.hhr-bar-btn.is-static { color: var(--ring); }
+.hhr-bar-fb { position: relative; height: 52px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); display: inline-flex; align-items: center; gap: 10px; padding: 0 22px 0 20px; font-size: 14.5px; font-weight: 700; white-space: nowrap; }
+.hhr-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: hhr-pulse 1.6s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .hhr *, .hhr *::before { animation: none !important; transition: none !important; }
 }
 @media (max-width: 380px) {
-  .hhr-thumb { width: 60px; height: 60px; border-radius: 17px; font-size: 19px; }
+  .hhr-tile { width: 60px; height: 60px; border-radius: 18px; }
+  .hhr-ex.is-flat + .hhr-ex.is-flat::before { left: 84px; }
   .hhr-ex-head { gap: 12px; }
-  .hhr-kgfield { width: 84px; }
-  .hhr-settarget small { display: none; }
+  .hhr-sets-head, .hhr-setrow { grid-template-columns: 30px minmax(0, 1fr) 88px 28px; gap: 8px; }
 }
 @media (min-width: 640px) {
   .hhr-inner { padding-top: 28px; }
   .hhr-weeks { margin-inline: 0; padding-inline: 0; }
-  .hhr-round-btn { padding: 0 18px 0 14px; }
-  .hhr-round-btn-text { display: inline; }
 }
 @media (min-width: 1024px) {
-  .hhr-inner { padding: 36px 32px 48px; }
-  .hhr-app { grid-template-columns: 360px minmax(0, 1fr); column-gap: 36px; align-items: start; }
+  .hhr-inner { padding: 40px 32px 56px; }
+  .hhr-app { grid-template-columns: 360px minmax(0, 1fr); column-gap: 40px; align-items: start; }
   .hhr-app.has-bar { padding-bottom: 0; }
-  .hhr-side { position: sticky; top: 24px; }
-  .hhr-round-btn { padding: 0; width: 46px; }
-  .hhr-round-btn-text { display: none; }
-  .hhr-main-head { margin-top: 0; }
-  .hhr-main-head h2 { font-size: 28px; }
+  .hhr-side { position: sticky; top: 28px; }
   .hhr-main { max-width: 760px; }
+  .hhr-main-head { margin-top: 2px; }
+  .hhr-main-head h2 { font-size: 30px; }
   .hhr-bar { display: none; }
 }
 `
