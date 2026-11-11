@@ -649,7 +649,7 @@ export function MyMarketplacePage() {
   const [tab, setTab] = useState<Tab>('perfil')
 
   useEffect(() => {
-    document.title = 'Mi página web · Haciéndolo Hábito'
+    document.title = 'Marketplace · Haciéndolo Hábito'
   }, [])
 
   const professional = data?.professional ?? null
@@ -660,7 +660,7 @@ export function MyMarketplacePage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-14 pt-6 lg:px-10 lg:pt-9">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight">Mi página web</h1>
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight">Marketplace</h1>
           <p className="mt-1 text-body-sm text-ink-muted">Tu perfil público, tus planes y los clientes que te eligen desde la web.</p>
         </div>
         <div className="flex flex-wrap gap-2">

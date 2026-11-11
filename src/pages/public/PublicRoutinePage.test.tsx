@@ -10,12 +10,12 @@ vi.mock('@/lib/routine/sharedRoutine', async (original) => ({
   fetchSharedRoutine: vi.fn(), saveSharedSet: vi.fn(),
 }))
 
-const routine = (logs: SharedSetLog[] = []): SharedRoutine => ({
+const routine = (logs: SharedSetLog[] = [], name = 'Plancha', reps_scheme = '20 s'): SharedRoutine => ({
   student_first_name: 'Alumno', student_gender: 'M', professional_name: null, professional_phone: null, feedback: null,
   routine: { name: 'Entrenamiento', objective: null, start_date: null, end_date: null, updated_at: null,
     blocks: [{ id: 'block', name: 'Semana 1', start_date: null, end_date: null,
       days: [{ id: 'day', day_name: 'Día A', muscle_focus: null, warmup_notes: null,
-        exercises: [{ id: 'ex', name: 'Plancha', sets: 2, reps_min: null, reps_max: null, reps_scheme: '20 s',
+        exercises: [{ id: 'ex', name, sets: 2, reps_min: null, reps_max: null, reps_scheme,
           weight_kg: null, rir: null, rpe: null, rest_seconds: null, tempo: null, percent_rm: null,
           technical_notes: null, is_superset: false, superset_group: null, video_url: null, image_url: null, logs }],
       }],
@@ -44,8 +44,8 @@ describe('public routine completion controls', () => {
     host.remove()
     fontStub.remove()
   })
-  async function open(logs: SharedSetLog[] = []) {
-    vi.mocked(fetchSharedRoutine).mockResolvedValue(routine(logs))
+  async function open(logs: SharedSetLog[] = [], name?: string, scheme?: string) {
+    vi.mocked(fetchSharedRoutine).mockResolvedValue(routine(logs, name, scheme))
     await act(async () => root.render(<MemoryRouter initialEntries={['/rutina/test-token']}><Routes><Route path="/rutina/:token" element={<PublicRoutinePage />} /></Routes></MemoryRouter>))
     await act(async () => (host.querySelector('.hhr-ex-head') as HTMLButtonElement).click())
   }
@@ -54,13 +54,33 @@ describe('public routine completion controls', () => {
   it('completes and reloads a bodyweight set without inventing kg', async () => {
     await open()
     await act(async () => check().click())
-    expect(saveSharedSet).toHaveBeenCalledWith('test-token', 'ex', 1, null, true)
+    expect(saveSharedSet).toHaveBeenCalledWith('test-token', 'ex', 1, null, true, null)
     expect(check().getAttribute('aria-pressed')).toBe('true')
     expect(host.querySelector('.hhr-ex .hhr-progress-label')?.textContent).toBe('1/2 series')
     expect((host.querySelector('.hhr-kgfield input') as HTMLInputElement).value).toBe('')
     await act(async () => (host.querySelector('.hhr-ex-head') as HTMLButtonElement).click())
     await act(async () => (host.querySelector('.hhr-ex-head') as HTMLButtonElement).click())
     expect(check().getAttribute('aria-pressed')).toBe('true')
+  })
+  it('does not ask for reps on a timed exercise', async () => {
+    await open()
+    expect(host.querySelector('.hhr-repsfield input')).toBeNull()
+  })
+  it('saves reps with the check and restores them from the server', async () => {
+    await open([], 'Sentadilla', '8-10')
+    const reps = host.querySelector('.hhr-repsfield input') as HTMLInputElement
+    expect(reps.placeholder).toBe('8')
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    await act(async () => {
+      setter.call(reps, '9')
+      reps.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => check().click())
+    expect(saveSharedSet).toHaveBeenLastCalledWith('test-token', 'ex', 1, null, true, 9)
+    await act(async () => root.unmount())
+    root = createRoot(host)
+    await open([{ set: 1, weight_kg: 60, reps: 8, completed: true }], 'Sentadilla', '8-10')
+    expect((host.querySelector('.hhr-repsfield input') as HTMLInputElement).value).toBe('8')
   })
   it('restores completion with no weight from the server', async () => {
     await open([{ set: 1, weight_kg: null, reps: null, completed: true }])
@@ -70,7 +90,7 @@ describe('public routine completion controls', () => {
   it('unchecks without deleting weight', async () => {
     await open([{ set: 1, weight_kg: 25, reps: null, completed: true }])
     await act(async () => check().click())
-    expect(saveSharedSet).toHaveBeenCalledWith('test-token', 'ex', 1, 25, false)
+    expect(saveSharedSet).toHaveBeenCalledWith('test-token', 'ex', 1, 25, false, null)
     expect(check().getAttribute('aria-pressed')).toBe('false')
     expect((host.querySelector('.hhr-kgfield input') as HTMLInputElement).value).toBe('25')
   })

@@ -190,10 +190,11 @@
 
 /* Series */
 .hhr-kg { border: 1px solid var(--line); display: grid; gap: 6px; border-radius: 20px; background: var(--soft); padding: 10px 8px 8px; }
-.hhr-sets-head { display: grid; grid-template-columns: 34px minmax(0, 1fr) 100px 30px; gap: 10px; padding: 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); }
-.hhr-sets-head span:nth-child(3) { grid-column: 3 / 5; }
+.hhr-sets-head { display: grid; grid-template-columns: 34px minmax(0, 1fr) 60px 92px 30px; gap: 8px; padding: 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.hhr-sets-head span:nth-child(3) { text-align: center; }
+.hhr-sets-head span:nth-child(4) { grid-column: 4 / 6; padding-left: 10px; }
 .hhr-sets { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.hhr-setrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 100px 30px; align-items: center; gap: 10px; padding: 6px; border-radius: 16px; transition: background .2s ease; }
+.hhr-setrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 60px 92px 30px; align-items: center; gap: 8px; padding: 6px; border-radius: 16px; transition: background .2s ease; }
 .hhr-setrow.is-logged { background: var(--card); }
 .hhr-setno { width: 34px; height: 34px; border-radius: 12px; background: var(--card); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 .hhr-setrow.is-logged .hhr-setno { background: var(--soft); }
@@ -203,6 +204,7 @@
 .hhr-setrow.is-logged .hhr-kgfield input { background: var(--soft); }
 .hhr-kgfield input::placeholder { color: var(--faint); font-weight: 600; }
 .hhr-kgfield input:focus { outline: none; border-color: var(--ink); background: var(--card); }
+.hhr-repsfield input { padding: 0 8px; text-align: center; }
 .hhr-kgfield span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: var(--muted); pointer-events: none; }
 .hhr-setcheck { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #D9D9DD; display: grid; place-items: center; color: #fff; transition: background .2s ease, border-color .2s ease; }
 .hhr-setrow.is-logged .hhr-setcheck { background: var(--ink); border-color: var(--ink); animation: hhr-pop .3s ease; }
@@ -358,7 +360,7 @@
   .hhr-movement { width: 78px; height: 78px; }
   .hhr-ex-name { font-size: 12px; }
   .hhr-ex-head { gap: 8px; }
-  .hhr-sets-head, .hhr-setrow { grid-template-columns: 26px minmax(0, 1fr) 76px 24px; gap: 6px; }
+  .hhr-sets-head, .hhr-setrow { grid-template-columns: 26px minmax(0, 1fr) 48px 72px 24px; gap: 5px; }
   .hhr-setno { width: 26px; height: 30px; }
   .hhr-setcheck { width: 24px; height: 24px; }
 }

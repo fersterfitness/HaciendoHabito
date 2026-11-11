@@ -12,6 +12,7 @@ import {
   saveSharedSet,
   isSetComplete,
   parseKg,
+  parseReps,
   repsText,
   setsRepsText,
   type SharedRoutine,
@@ -85,7 +86,7 @@ function setCount(ex: SharedRoutineExercise): number {
 }
 
 /** Kilos anotados: id de ejercicio → número de serie → kg. */
-type LoggedSet = { kg: number | null; completed: boolean }
+type LoggedSet = { kg: number | null; reps: number | null; completed: boolean }
 type LoggedMap = Record<string, Record<number, LoggedSet>>
 
 function loggedFrom(data: SharedRoutine | null): LoggedMap {
@@ -94,7 +95,7 @@ function loggedFrom(data: SharedRoutine | null): LoggedMap {
     for (const d of b.days)
       for (const ex of d.exercises) {
         const m: Record<number, LoggedSet> = {}
-        for (const l of ex.logs ?? []) m[l.set] = { kg: l.weight_kg == null ? null : Number(l.weight_kg), completed: isSetComplete(l) }
+        for (const l of ex.logs ?? []) m[l.set] = { kg: l.weight_kg == null ? null : Number(l.weight_kg), reps: l.reps == null ? null : Number(l.reps), completed: isSetComplete(l) }
         out[ex.id] = m
       }
   return out
@@ -720,7 +721,12 @@ function setTarget(ex: SharedRoutineExercise, plan: { kg?: string; reps?: string
   return [withReps(reps), kg ? `${kg} kg` : ''].filter(Boolean).join(' · ')
 }
 
-/** Peso opcional y check independiente. Solo se confirma el progreso al guardar en el servidor. */
+/** Indicado por tiempo («20 s», «30''», «1 min»): ahí no se piden repeticiones. */
+function isTimeBased(ex: SharedRoutineExercise): boolean {
+  return /″|''|"|\d\s*(s|seg|min)\b/i.test(repsText(ex))
+}
+
+/** Reps y peso opcionales y check independiente. Solo se confirma el progreso al guardar en el servidor. */
 function KgInputs({ ex, sets, token, logged, onSaved }: {
   ex: SharedRoutineExercise
   sets: number
@@ -730,11 +736,15 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
 }) {
   const plan = useMemo(() => parseExerciseMeta(ex.technical_notes).meta.seriesPlan ?? [], [ex.technical_notes])
   const [values, setValues] = useState<string[]>(() => Array.from({ length: sets }, (_, i) => formatKg(logged[i + 1]?.kg)))
+  const [repsValues, setRepsValues] = useState<string[]>(() =>
+    Array.from({ length: sets }, (_, i) => (logged[i + 1]?.reps != null ? String(logged[i + 1]!.reps) : '')),
+  )
+  const timeBased = isTimeBased(ex)
   const [status, setStatus] = useState<SaveState[]>(() => Array.from({ length: sets }, () => 'idle'))
   const [errors, setErrors] = useState<Record<number, string>>({})
   const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const inFlight = useRef(new Set<number>())
-  const attempts = useRef<Record<number, { raw: string; completed?: boolean }>>({})
+  const attempts = useRef<Record<number, { raw: string; rawReps: string; completed?: boolean }>>({})
   const lastSaved = useRef<Record<number, LoggedSet>>({ ...logged })
 
   useEffect(() => {
@@ -752,28 +762,34 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
     setStatus((prev) => prev.map((v, j) => (j === i ? s : v)))
   }
 
-  async function save(i: number, raw: string, explicitCompleted?: boolean) {
+  async function save(i: number, raw: string, rawReps: string, explicitCompleted?: boolean) {
     clearTimeout(timers.current[i])
     if (inFlight.current.has(i)) return
-    attempts.current[i] = { raw, completed: explicitCompleted }
+    attempts.current[i] = { raw, rawReps, completed: explicitCompleted }
     const kg = parseKg(raw)
     if (kg === undefined) {
       setErrors((prev) => ({ ...prev, [i]: 'Revisá los kilos: usá un número entre 0 y 1000, o dejalos vacíos.' }))
       setStatusAt(i, 'error')
       return
     }
-    const before = lastSaved.current[i + 1] ?? { kg: null, completed: false }
-    // Anotar kilos sigue completando la serie; borrarlos no desmarca una serie ya hecha.
-    const completed = explicitCompleted ?? (kg != null || before.completed)
-    if (kg === before.kg && completed === before.completed) {
+    const reps = parseReps(rawReps)
+    if (reps === undefined) {
+      setErrors((prev) => ({ ...prev, [i]: 'Revisá las repeticiones: un número entero de 0 a 500, o dejalas vacías.' }))
+      setStatusAt(i, 'error')
+      return
+    }
+    const before = lastSaved.current[i + 1] ?? { kg: null, reps: null, completed: false }
+    // Anotar kilos o reps sigue completando la serie; borrarlos no desmarca una serie ya hecha.
+    const completed = explicitCompleted ?? (kg != null || reps != null || before.completed)
+    if (kg === before.kg && reps === (before.reps ?? null) && completed === before.completed) {
       setStatusAt(i, 'idle')
       return
     }
     inFlight.current.add(i)
     setStatusAt(i, 'saving')
     try {
-      await saveSharedSet(token, ex.id, i + 1, kg, completed)
-      const next = { kg, completed }
+      await saveSharedSet(token, ex.id, i + 1, kg, completed, reps)
+      const next = { kg, reps, completed }
       lastSaved.current[i + 1] = next
       onSaved(ex.id, i + 1, next)
       setStatusAt(i, 'saved')
@@ -788,25 +804,56 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
   function onChange(i: number, raw: string) {
     setValues((prev) => prev.map((v, j) => (j === i ? raw : v)))
     clearTimeout(timers.current[i])
-    timers.current[i] = setTimeout(() => void save(i, raw), 900)
+    timers.current[i] = setTimeout(() => void save(i, raw, repsValues[i] ?? ''), 900)
+  }
+
+  function onRepsChange(i: number, raw: string) {
+    setRepsValues((prev) => prev.map((v, j) => (j === i ? raw : v)))
+    clearTimeout(timers.current[i])
+    timers.current[i] = setTimeout(() => void save(i, values[i] ?? '', raw), 900)
+  }
+
+  /** Lo indicado como sugerencia en el casillero: «8-10» → «8», «12» → «12». */
+  function repsPlaceholder(i: number): string {
+    const scheme = repsText(ex)
+    const parts = scheme.includes('/') ? scheme.split('/').map((s) => s.trim()) : []
+    const r = plan[i]?.reps?.trim() || parts[i] || (parts.length ? '' : scheme)
+    const m = /\d+/.exec(r)
+    return m ? m[0] : '—'
   }
 
   return (
     <div className="hhr-kg">
-      <p className="hhr-kg-hint">Tildá cada serie al terminar. Los kilos son opcionales.</p>
+      <p className="hhr-kg-hint">Tildá cada serie al terminar. {timeBased ? 'Los kilos son opcionales.' : 'Las reps y los kilos son opcionales.'}</p>
       <div className="hhr-sets-head" aria-hidden>
-        <span>Serie</span><span>Indicado</span><span>Kg opcionales</span>
+        <span>Serie</span><span>Indicado</span><span>{timeBased ? '' : 'Reps'}</span><span>Kg</span>
       </div>
       <ol className="hhr-sets">
         {values.map((v, i) => {
           const completed = logged[i + 1]?.completed ?? false
           const saving = status[i] === 'saving'
-          const target = setTarget(ex, plan, i)
+          // Con la columna «Reps» a la vista, lo indicado va sin la palabra: «8-10 · 60 kg».
+          const target = timeBased ? setTarget(ex, plan, i) : setTarget(ex, plan, i).replace(/ reps\b/, '')
           const errorId = `hhr-save-error-${ex.id}-${i}`
           return (
             <li key={i} className={`hhr-setrow is-${status[i]}${completed ? ' is-logged' : ''}`} aria-busy={saving}>
               <span className="hhr-setno" aria-hidden>{i + 1}</span>
               <span className="hhr-settarget">{target || '—'}</span>
+              {timeBased ? (
+                <span className="hhr-repsfield is-empty" aria-hidden />
+              ) : (
+                <label className="hhr-kgfield hhr-repsfield">
+                  <input
+                    inputMode="numeric" autoComplete="off" enterKeyHint="done" maxLength={3}
+                    value={repsValues[i] ?? ''} disabled={saving} placeholder={repsPlaceholder(i)}
+                    aria-label={`${niceCase(ex.name) || 'Ejercicio'}, repeticiones de la serie ${i + 1}`}
+                    aria-invalid={status[i] === 'error'} aria-describedby={status[i] === 'error' ? errorId : undefined}
+                    onChange={(e) => onRepsChange(i, e.target.value)}
+                    onBlur={(e) => void save(i, v, e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                  />
+                </label>
+              )}
               <label className="hhr-kgfield">
                 <input
                   inputMode="decimal" autoComplete="off" enterKeyHint="done" maxLength={6}
@@ -814,7 +861,7 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
                   aria-label={`${niceCase(ex.name) || 'Ejercicio'}, kilos opcionales de la serie ${i + 1}`}
                   aria-invalid={status[i] === 'error'} aria-describedby={status[i] === 'error' ? errorId : undefined}
                   onChange={(e) => onChange(i, e.target.value)}
-                  onBlur={(e) => void save(i, e.target.value)}
+                  onBlur={(e) => void save(i, e.target.value, repsValues[i] ?? '')}
                   onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                 />
                 <span aria-hidden>kg</span>
@@ -822,10 +869,10 @@ function KgInputs({ ex, sets, token, logged, onSaved }: {
               <button type="button" className="hhr-setcheck" aria-pressed={completed} disabled={saving}
                 aria-label={`${completed ? 'Desmarcar' : 'Completar'} serie ${i + 1} de ${niceCase(ex.name) || 'ejercicio'}`}
                 onPointerDown={(e) => e.preventDefault()}
-                onClick={() => void save(i, v, !completed)}>
+                onClick={() => void save(i, v, repsValues[i] ?? '', !completed)}>
                 {completed && !saving ? <Check size={18} strokeWidth={3} aria-hidden /> : null}
               </button>
-              {status[i] === 'error' ? <p className="hhr-error hhr-row-error" id={errorId} role="alert">{errors[i]} <button type="button" onClick={() => void save(i, attempts.current[i]?.raw ?? v, attempts.current[i]?.completed)}>Reintentar</button></p> : null}
+              {status[i] === 'error' ? <p className="hhr-error hhr-row-error" id={errorId} role="alert">{errors[i]} <button type="button" onClick={() => void save(i, attempts.current[i]?.raw ?? v, attempts.current[i]?.rawReps ?? repsValues[i] ?? '', attempts.current[i]?.completed)}>Reintentar</button></p> : null}
             </li>
           )
         })}

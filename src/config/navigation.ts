@@ -19,7 +19,7 @@ import {
   CalendarPlus,
   Send,
   Receipt,
-  Globe,
+  Store,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -244,11 +244,11 @@ const V2_EXERCISES: NavItem = {
 }
 const V2_CONTEXT: NavItem = { label: 'Saliendo de contexto', shortLabel: 'Contexto', href: '/contexto', icon: Sparkles, hint: 'Pregunta de los miércoles' }
 
-const V2_MARKETPLACE: NavItem = { label: 'Mi página web', shortLabel: 'Mi web', href: '/mi-pagina', icon: Globe, hint: 'Perfil público, planes y solicitudes' }
+const V2_MARKETPLACE: NavItem = { label: 'Marketplace', shortLabel: 'Marketplace', href: '/mi-pagina', icon: Store, hint: 'Tu página, planes y solicitudes' }
 
 export function getNavV2(role: AppRole | undefined): NavV2 {
   if (role === 'student' || canSeePsychologistWorkspace(role)) {
-    // «Mi página web» (marketplace) solo en la v2: el menú de la v1 queda como estaba.
+    // «Marketplace» solo en la v2: el menú de la v1 queda como estaba.
     return { main: flattenSections(getNavSections(role)), more: role === 'student' ? [] : [V2_MARKETPLACE] }
   }
   const [finance] = NAV_FINANCE

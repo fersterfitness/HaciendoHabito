@@ -453,9 +453,13 @@ function kg(n: number): string {
 }
 
 /** Lo que anotó el alumno desde el link, al lado de lo indicado. */
-function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; weight_kg: number | null; completed?: boolean; updated_at: string }[]; prescribedKg: number | null }) {
+function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; weight_kg: number | null; reps?: number | null; completed?: boolean; updated_at: string }[]; prescribedKg: number | null }) {
   const withKg = logs.filter((l) => l.weight_kg != null)
-  const completed = logs.filter((l) => l.completed ?? l.weight_kg != null)
+  const completed = logs.filter((l) => l.completed ?? (l.weight_kg != null || l.reps != null))
+  // Por serie: «60 kg × 8», «60 kg» o «× 8».
+  const perSet = logs
+    .filter((l) => l.weight_kg != null || l.reps != null)
+    .map((l) => [l.weight_kg != null ? `${kg(l.weight_kg)} kg` : '', l.reps != null ? `× ${l.reps}` : ''].filter(Boolean).join(' '))
   if (withKg.length === 0 && completed.length === 0) return null
   const last = logs.reduce((a, l) => (l.updated_at > a ? l.updated_at : a), logs[0]!.updated_at)
   const top = withKg.length ? Math.max(...withKg.map((l) => l.weight_kg!)) : null
@@ -465,7 +469,7 @@ function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; we
       <span className="font-semibold text-status-ok-ink">Anotó el alumno</span>
       <span className="tabular-nums text-ink-primary">
         {completed.length} {completed.length === 1 ? 'serie completada' : 'series completadas'}
-        {withKg.length ? ` · ${withKg.map((l) => kg(l.weight_kg!)).join(' · ')} kg` : ' · sin kilos registrados'}
+        {perSet.length ? ` · ${perSet.join(' · ')}` : ' · sin kilos ni reps registrados'}
       </span>
       {diff != null && diff !== 0 ? (
         <span className="tabular-nums text-ink-muted">

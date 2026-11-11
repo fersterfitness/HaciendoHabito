@@ -36,12 +36,20 @@ export function isSetComplete(log: { completed?: boolean; weight_kg: number | nu
   return !!log && (log.completed ?? (log.weight_kg != null || log.reps != null))
 }
 
-/** Explicit completion is independent of optional weight. */
-export async function saveSharedSet(token: string, exerciseId: string, setNumber: number, weightKg: number | null, completed: boolean): Promise<void> {
-  const { data, error } = await supabasePublic.rpc('save_shared_exercise_set', {
-    p_token: token, p_exercise_id: exerciseId, p_set_number: setNumber,
-    p_weight_kg: weightKg, p_completed: completed,
-  })
+/** Explicit completion is independent of optional weight and reps. */
+export async function saveSharedSet(
+  token: string,
+  exerciseId: string,
+  setNumber: number,
+  weightKg: number | null,
+  completed: boolean,
+  reps: number | null = null,
+): Promise<void> {
+  const args = { p_token: token, p_exercise_id: exerciseId, p_set_number: setNumber, p_weight_kg: weightKg, p_completed: completed }
+  let { data, error } = await supabasePublic.rpc('save_shared_exercise_set', { ...args, p_reps: reps })
+  // Sin la migración de repeticiones (20261111180000) se guarda igual, mientras no se hayan anotado reps.
+  if (error?.code === 'PGRST202' && reps == null) ({ data, error } = await supabasePublic.rpc('save_shared_exercise_set', args))
+  if (error?.code === 'PGRST202' && reps != null) throw new Error('Falta activar las repeticiones en la base de datos. Avisale a tu entrenador.')
   // Existing weight entry remains usable while the completion migration is being applied.
   if (error?.code === 'PGRST202' && completed && weightKg != null) {
     return logSharedSet(token, exerciseId, setNumber, weightKg)
@@ -129,6 +137,15 @@ export function parseKg(raw: string): number | null | undefined {
   if (!t) return null
   const n = Number(t)
   return Number.isFinite(n) && n >= 0 && n <= 1000 ? Math.round(n * 100) / 100 : undefined
+}
+
+/** Repeticiones: entero de 0 a 500. `null` si está vacío, `undefined` si no es válido. */
+export function parseReps(raw: string): number | null | undefined {
+  const t = raw.trim()
+  if (!t) return null
+  if (!/^\d{1,3}$/.test(t)) return undefined
+  const n = Number(t)
+  return n <= 500 ? n : undefined
 }
 
 export function formatKg(n: number | null | undefined): string {

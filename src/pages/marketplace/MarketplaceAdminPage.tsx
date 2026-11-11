@@ -205,7 +205,7 @@ export function MarketplaceAdminPage() {
             <>
               <p className="text-body-sm text-ink-muted">
                 Profesionales sin cuenta que pidieron sumarse. Creales el acceso como a cualquier profesional; después cargan su
-                página desde «Mi página web».
+                página desde «Marketplace».
               </p>
               {visibleApps.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-surface-inputBorder p-6 text-sm text-ink-muted">No hay postulaciones.</p>
