@@ -33,15 +33,15 @@ import type { Income } from '@/types/database'
 
 const STATE_META: Record<PaymentState, { label: string; chip: string; color: string }> = {
   pagado: { label: 'Abonó', chip: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300', color: 'rgb(var(--chart-ok))' },
-  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? '#F4AC6E' : '#3b82f6' },
-  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? '#F5C542' : '#f59e0b' },
+  parcial: { label: 'Parcial', chip: 'bg-sky-500/12 text-sky-700 dark:text-sky-300', color: IS_V2 ? 'rgb(var(--chart-1))' : '#3b82f6' },
+  pendiente: { label: 'Falta pagar', chip: 'bg-amber-500/12 text-amber-700 dark:text-amber-300', color: IS_V2 ? 'rgb(var(--tw-amber-300))' : '#f59e0b' },
   vencido: { label: 'Vencido', chip: 'bg-rose-500/12 text-rose-700 dark:text-rose-300', color: 'rgb(var(--chart-bad))' },
   sin_cargo: { label: 'Sin cargo', chip: 'bg-surface-elevated text-ink-muted', color: '#a1a1aa' },
 }
 
 /** Paleta categórica (v2: la paleta de la app en pastel; claro/oscuro legibles sobre la tarjeta). */
 const METHOD_COLORS = IS_V2
-  ? ['#F4AC6E', '#8082A6', '#F2C860', '#EC806C', '#A896B8', '#D9946A', '#5E607F', '#E4BC6A']
+  ? ['#8470BE', '#D6C400', '#C878C8', '#84CC16', '#8C8C88', '#C2253D', '#3C2E6E', '#B4B2A9']
   : ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#008300', '#e34948']
 const METHOD_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label])) as Record<string, string>
 

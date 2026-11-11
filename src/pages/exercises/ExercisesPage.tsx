@@ -48,7 +48,7 @@ const MUSCLE_PALETTE = [
 ]
 
 /** v2: un solo tono neutro para todos los grupos (el color por grupo no significaba nada). */
-const MUSCLE_NEUTRAL_V2 = { bg: 'bg-surface-elevated', border: 'border-surface-border', text: 'text-ink-secondary', dot: '#8082A6' }
+const MUSCLE_NEUTRAL_V2 = { bg: 'bg-surface-elevated', border: 'border-surface-border', text: 'text-ink-secondary', dot: 'rgb(var(--chart-2))' }
 
 function getMuscleColor(index: number) {
   if (IS_V2) return MUSCLE_NEUTRAL_V2

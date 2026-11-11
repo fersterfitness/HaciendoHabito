@@ -962,7 +962,7 @@ export function FinancesPage() {
               <defs>
                 <linearGradient id="annual-current" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={IS_V2 ? '#F2C860' : '#ff8a3d'} />
-                  <stop offset="100%" stopColor={IS_V2 ? '#F4AC6E' : '#ec3d12'} />
+                  <stop offset="100%" stopColor={IS_V2 ? 'rgb(var(--chart-1))' : '#ec3d12'} />
                 </linearGradient>
               </defs>
               <CartesianGrid {...chartGrid} />
