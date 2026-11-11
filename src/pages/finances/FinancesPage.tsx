@@ -25,7 +25,17 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { PaymentMethodBadge } from '@/components/ui/PaymentMethodIcon'
-import { deleteExpense, deleteIncome, useActiveStudents, useExpenses, useIncomes, type IncomeWithStudent } from '@/data/finance'
+import {
+  deleteExpense,
+  deleteIncome,
+  useActiveStudents,
+  useExpenses,
+  useFinanceProfessionals,
+  useFinanceStudentNames,
+  useFinanceView,
+  useIncomes,
+  type IncomeWithStudent,
+} from '@/data/finance'
 import { useAuthStore } from '@/stores/authStore'
 import { Header } from '@/components/layout/Header'
 import { Input } from '@/components/ui/Input'
@@ -200,10 +210,26 @@ export function FinancesPage() {
   const { user } = useAuthStore()
 
   const [tab, setTab] = useState<Tab>((searchParams.get('tab') as Tab) === 'expenses' ? 'expenses' : 'income')
+  // Superadmin de Finanzas (Tomi): puede mirar los números de otros profesionales, solo para leer.
+  const professionals = useFinanceProfessionals().data ?? []
+  const isFinanceSuperadmin = professionals.length > 0
+  const viewOwner = useFinanceView((s) => s.owner)
+  const setViewOwner = useFinanceView((s) => s.setOwner)
+  useEffect(() => () => setViewOwner(null), [setViewOwner])
+  const readOnly = viewOwner !== null && viewOwner !== user?.id
+  const studentNames = useFinanceStudentNames(isFinanceSuperadmin && readOnly).data
+  const proName = useMemo(() => new Map(professionals.map((p) => [p.id, p.full_name])), [professionals])
   const incomesQuery = useIncomes()
   const expensesQuery = useExpenses()
   const studentsQuery = useActiveStudents()
-  const incomes = useMemo(() => incomesQuery.data ?? [], [incomesQuery.data])
+  const incomes = useMemo(() => {
+    const list = incomesQuery.data ?? []
+    if (!studentNames) return list
+    // Cobros ajenos: el nombre del alumno no viene en la consulta (RLS); se completa aparte.
+    return list.map((i) =>
+      i.student?.full_name || !i.student_id ? i : ({ ...i, student: { full_name: studentNames.get(i.student_id) ?? '' } }) as IncomeWithStudent,
+    )
+  }, [incomesQuery.data, studentNames])
   const expenses = useMemo(() => expensesQuery.data ?? [], [expensesQuery.data])
   const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data])
   const loading = incomesQuery.isPending || expensesQuery.isPending
@@ -411,6 +437,32 @@ export function FinancesPage() {
       />
 
       <div className="max-w-[1600px] space-y-4 px-4 py-5 lg:px-6 lg:py-6">
+        {isFinanceSuperadmin ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <label htmlFor="finance-owner" className="text-xs font-medium text-ink-secondary">
+              Finanzas de
+            </label>
+            <select
+              id="finance-owner"
+              value={viewOwner ?? user?.id ?? ''}
+              onChange={(e) => setViewOwner(e.target.value === user?.id ? null : e.target.value)}
+              className="hh-focus h-9 min-w-[14rem] rounded-lg border border-surface-border bg-surface-card px-3 text-sm font-medium text-ink-primary outline-none"
+            >
+              <option value={user?.id ?? ''}>Mis finanzas</option>
+              <option value="all">Todos los profesionales</option>
+              {professionals
+                .filter((p) => p.id !== user?.id)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.full_name || 'Sin nombre'}
+                  </option>
+                ))}
+            </select>
+            {readOnly ? (
+              <span className="text-xs text-ink-muted">Solo lectura: los cobros y gastos los carga cada profesional.</span>
+            ) : null}
+          </div>
+        ) : null}
         {IS_V2 ? (
           <SegmentedV2
             value={scopeFilter}
@@ -485,8 +537,9 @@ export function FinancesPage() {
 
 
         {/* Cobros de alumnos por mes: quién pagó, cuánto, por qué medio; vencidos con WhatsApp */}
-        {scopeFilter !== 'personal' ? <PaymentsBoard /> : null}
-        {scopeFilter !== 'personal' ? <PriceIncreasePanel /> : null}
+        {/* Cuotas y aumento: acciones sobre los propios alumnos; no aplican al mirar finanzas ajenas. */}
+        {scopeFilter !== 'personal' && !readOnly ? <PaymentsBoard /> : null}
+        {scopeFilter !== 'personal' && !readOnly ? <PriceIncreasePanel /> : null}
 
         {/* Tabs (estilo rutinas / listados) */}
         {IS_V2 ? (
@@ -708,8 +761,9 @@ export function FinancesPage() {
                         <td className={cn('hh-row-drop-in whitespace-nowrap px-3 py-2 text-xs text-ink-muted sm:px-4', IS_V2 && 'max-sm:hidden')}>{formatDate(income.income_date)}</td>
                         <td className="hh-row-drop-in max-w-[12rem] px-3 py-2 sm:max-w-none sm:px-4">
                           <p className="truncate font-semibold text-ink-primary" title={income.student?.full_name ?? income.description}>
-                            {income.student?.full_name ?? income.description}
+                            {income.student?.full_name || income.description}
                           </p>
+                          {viewOwner === 'all' ? <p className="truncate text-2xs text-ink-muted">{proName.get(income.owner_id) ?? 'Otro profesional'}</p> : null}
                           <p className="truncate text-2xs text-ink-muted md:hidden">
                             {IS_V2 ? <span className="sm:hidden">{formatDate(income.income_date)} · </span> : null}
                             {income.income_type} · {income.category}
@@ -739,11 +793,11 @@ export function FinancesPage() {
                           </div>
                         </td>
                         <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
-                          <MovementRowActions
+                          {readOnly ? null : <MovementRowActions
                             name={income.student?.full_name ?? income.description ?? 'ingreso'}
                             onEdit={() => navigate(`/finances/income/${income.id}/edit`)}
                             onDelete={() => setDeleteIncomeTarget(income)}
-                          />
+                          />}
                         </td>
                       </tr>
                     ))}
@@ -790,6 +844,7 @@ export function FinancesPage() {
                         <p className="truncate font-semibold text-ink-primary" title={expense.description}>
                           {expense.description}
                         </p>
+                        {viewOwner === 'all' ? <p className="truncate text-2xs text-ink-muted">{proName.get(expense.owner_id) ?? 'Otro profesional'}</p> : null}
                         {IS_V2 ? (
                           <p className="truncate text-2xs text-ink-muted sm:hidden">
                             {formatDate(expense.expense_date)} · {expense.category}
@@ -822,11 +877,13 @@ export function FinancesPage() {
                         </div>
                       </td>
                       <td className="hh-row-drop-in px-3 py-1.5 sm:px-4">
-                        <MovementRowActions
-                          name={expense.description}
-                          onEdit={() => navigate(`/finances/expenses/${expense.id}/edit`)}
-                          onDelete={() => setDeleteExpenseTarget(expense)}
-                        />
+                        {readOnly ? null : (
+                          <MovementRowActions
+                            name={expense.description}
+                            onEdit={() => navigate(`/finances/expenses/${expense.id}/edit`)}
+                            onDelete={() => setDeleteExpenseTarget(expense)}
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}

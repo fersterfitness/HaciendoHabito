@@ -1,3 +1,4 @@
+import { normalizePersonName } from '@/lib/personName'
 import { useEffect, useState } from 'react'
 import { Save, UserRound } from 'lucide-react'
 import { differenceInYears } from 'date-fns'
@@ -119,7 +120,7 @@ export function NutritionPatientPersonalDataSection({ student, onUpdated, latest
     }
     setSaving(true)
     const payload = {
-      full_name: form.full_name.trim(),
+      full_name: normalizePersonName(form.full_name),
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       birth_date: form.birth_date || null,

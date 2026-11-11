@@ -1,3 +1,4 @@
+import { normalizePersonName } from '@/lib/personName'
 import { useEffect, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -212,7 +213,7 @@ export function StudentFormContent({
       : null
 
     const payload = {
-      full_name: values.full_name,
+      full_name: normalizePersonName(values.full_name),
       email: emptyToNull(values.email),
       phone: phoneCanon,
       birth_date: emptyToNull(values.birth_date),
