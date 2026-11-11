@@ -691,8 +691,6 @@ html.ui-v2 {
   --status-ok: 195 255 77;
   --status-ok-ink: 63 98 18;
   /* En gráficos sobre fondo claro la línea va un tono más oscura que el flúor, para que se vea. */
-  /* Tablero de turnos: día con algo por confirmar. */
-  --v2-board-pending: 220 211 242;
   --chart-ok: 132 204 22;
   --chart-ok-ink: 77 124 15;
   --chart-bad: 194 37 61;
@@ -740,26 +738,32 @@ html.ui-v2 {
   --tw-rose-800: 124 22 40;
   --tw-rose-900: 96 18 32;
   --tw-rose-950: 60 10 20;
-  --v2-canvas: 240 237 242;
+  /* Modo claro: grises neutros apenas cálidos y negro (sin el tinte violeta, que ensuciaba el lienzo). */
+  --v2-canvas: 241 241 237;
   --v2-sidebar-active: 255 255 255;
   /* Panel de navegación desplegado: entre el lienzo y el blanco del contenido. */
-  --v2-sidebar-panel: 248 246 249;
+  --v2-sidebar-panel: 248 248 245;
   --surface-base: 255 255 255;
   --surface-card: 255 255 255;
-  --surface-panel: 250 248 251;
-  --surface-elevated: 243 240 245;
+  --surface-panel: 249 249 247;
+  --surface-elevated: 241 241 237;
   --surface-input: 255 255 255;
-  --surface-border: 233 229 236;
-  --surface-input-border: 220 214 226;
-  --ink-primary: 46 33 54;
-  --ink-secondary: 86 72 96;
-  --ink-muted: 130 122 142;
-  /* La acción principal va en ciruela; el color lo ponen los tonos cálidos de la paleta. */
-  --brand-primary: 70 51 79;
-  --brand-hover: 96 74 108;
-  --brand-warm: 243 240 245;
-  --brand-secondary: 70 51 79;
-  --brand-tertiary: 70 51 79;
+  --surface-border: 230 230 225;
+  --surface-input-border: 214 214 208;
+  --ink-primary: 22 22 22;
+  --ink-secondary: 78 78 76;
+  --ink-muted: 126 126 122;
+  /* La acción principal va en negro; el color lo ponen los estados y el tablero de turnos. */
+  --brand-primary: 22 22 22;
+  --brand-hover: 54 54 52;
+  --brand-warm: 241 241 237;
+  --brand-secondary: 22 22 22;
+  --brand-tertiary: 22 22 22;
+  /* Tablero de turnos: los colores de la referencia (rosa, lila, amarillo, gris cálido). */
+  --v2-board-pink: 239 198 239;
+  --v2-board-lilac: 216 206 238;
+  --v2-board-yellow: 239 220 5;
+  --v2-board-gray: 229 228 222;
   --status-active: 64 66 110;
   --status-generated: 64 66 110;
   --status-expiring: 168 98 30;
@@ -776,7 +780,6 @@ html.ui-v2 {
 
 html.ui-v2.dark {
   --status-ok-ink: 195 255 77;
-  --v2-board-pending: 186 172 216;
   --chart-ok: 195 255 77;
   --chart-ok-ink: 195 255 77;
   --chart-bad: 226 84 108;

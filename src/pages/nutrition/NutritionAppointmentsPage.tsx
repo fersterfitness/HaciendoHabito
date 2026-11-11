@@ -146,6 +146,37 @@ function appointmentPhoneRaw(a: AppointmentRow, studentsById: Map<string, Studen
 }
 type ViewMode = 'week' | 'agenda' | 'month'
 
+/** Tablero de turnos (v2): relleno de cada tarjeta según el estado. El texto va siempre en negro. */
+const BOARD_INK = 'text-[rgb(22_22_22)] hover:brightness-95'
+const BOARD_TONE = {
+  inProgress: `bg-[rgb(var(--v2-board-pink))] ${BOARD_INK}`,
+  pending: `bg-[rgb(var(--v2-board-lilac))] ${BOARD_INK}`,
+  confirmed: `bg-[rgb(var(--v2-board-yellow))] ${BOARD_INK}`,
+  done: `bg-[rgb(var(--v2-board-gray))] ${BOARD_INK}`,
+  off: 'bg-surface-card text-ink-muted shadow-[0_0_0_1px_rgb(var(--surface-border))] hover:bg-surface-panel',
+} as const
+const BOARD_BAR = {
+  inProgress: 'border-t-[rgb(var(--v2-board-pink))]',
+  pending: 'border-t-[rgb(var(--v2-board-lilac))]',
+  confirmed: 'border-t-[rgb(var(--v2-board-yellow))]',
+  done: 'border-t-[rgb(var(--v2-board-gray))]',
+  off: 'border-t-surface-border',
+} as const
+
+function boardToneOf(a: Pick<Appointment, 'status' | 'starts_at' | 'ends_at'>, inProgress: boolean): keyof typeof BOARD_TONE {
+  if (inProgress) return 'inProgress'
+  if (a.status === 'confirmed') return 'confirmed'
+  if (a.status === 'scheduled') return 'pending'
+  if (a.status === 'completed') return 'done'
+  return 'off'
+}
+
+/** Color del día entero: manda lo más urgente (en curso, por confirmar, confirmado, cerrado). */
+function boardToneOfDay(tones: (keyof typeof BOARD_TONE)[]): keyof typeof BOARD_TONE {
+  for (const t of ['inProgress', 'pending', 'confirmed', 'done'] as const) if (tones.includes(t)) return t
+  return 'off'
+}
+
 const STATUS_LABEL_ES: Record<AppointmentStatus, string> = {
   scheduled: 'Programado',
   confirmed: 'Confirmado',
@@ -1435,18 +1466,13 @@ export function AppointmentsPage() {
                       calendarScope === 'students'
                         ? dayAppts.map((a) => ({ id: a.id, time: a.starts_at, name: a.student?.full_name ?? a.title, path: a.student?.avatar_path ?? null, person: true }))
                         : dayPersonal.map((it) => ({ id: it.id, time: it.starts_at, name: it.title, path: null, person: false }))
-                    const open = dayAppts.filter((a) => a.status === 'scheduled' || a.status === 'confirmed')
                     const tone = !isCurrentMonth
                       ? 'text-ink-muted'
                       : items.length === 0
-                        ? 'bg-surface-panel text-ink-secondary hover:bg-surface-elevated'
+                        ? 'bg-surface-card text-ink-secondary shadow-[0_0_0_1px_rgb(var(--surface-border))] hover:bg-surface-panel'
                         : calendarScope === 'personal'
-                          ? 'bg-surface-card text-ink-primary shadow-[0_0_0_1px_rgb(var(--surface-border))] hover:bg-surface-panel'
-                          : open.length === 0
-                            ? 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/70'
-                            : open.every((a) => a.status === 'confirmed')
-                              ? 'bg-status-ok hover:brightness-95'
-                              : 'bg-[rgb(var(--v2-board-pending))] text-[rgb(43_33_64)] hover:brightness-95'
+                          ? BOARD_TONE.pending
+                          : BOARD_TONE[boardToneOfDay(dayAppts.map((a) => boardToneOf(a, appointmentInProgress(a))))]
                     return (
                       <button
                         key={day.toISOString()}
@@ -1686,13 +1712,14 @@ export function AppointmentsPage() {
                   )
                 }
                 const dayAppointments = filteredWeekAppointments.filter((a) => isSameDay(parseISO(a.starts_at), day))
+                const dayTone = boardToneOfDay(dayAppointments.map((a) => boardToneOf(a, appointmentInProgress(a))))
                 return (
                   <div
                     key={day.toISOString()}
                     className={cn(
                       'rounded-xl border p-2 transition-shadow motion-safe:duration-300', IS_V2 ? 'md:min-h-44' : 'min-h-44',
                       IS_V2
-                        ? cn('rounded-none border-0 border-t-[3px] bg-transparent px-0 pb-1 pt-2.5', dayIsToday ? 'border-t-ink-primary' : 'border-t-surface-border')
+                        ? cn('rounded-none border-0 border-t-[3px] bg-transparent px-0 pb-1 pt-2.5', BOARD_BAR[dayTone])
                         : dayIsToday
                           ? 'border-brand-primary/40 bg-brand-primary/[0.06] shadow-card ring-1 ring-inset ring-brand-primary/20'
                           : 'border-surface-border bg-surface-elevated/50',
@@ -1743,17 +1770,10 @@ export function AppointmentsPage() {
                                   'w-full text-left transition-all motion-safe:duration-200',
                                   IS_V2 ? 'rounded-2xl p-2.5' : 'rounded-lg px-2 py-1',
                                   !IS_V2 && 'border border-l-[3px]',
-                                  appointmentInProgress(a) &&
-                                    (IS_V2 ? 'ring-2 ring-ink-primary ring-offset-2 ring-offset-surface-base' : 'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse'),
+                                  appointmentInProgress(a) && !IS_V2 && 'ring-2 ring-amber-400/55 shadow-md shadow-amber-500/10 motion-safe:animate-pulse',
                                   IS_V2
-                                    ? // Tablero: el color del relleno dice el estado (confirmado en flúor, a confirmar en blanco).
-                                      a.status === 'confirmed'
-                                      ? 'bg-status-ok hover:brightness-95'
-                                      : a.status === 'scheduled'
-                                        ? 'bg-surface-card text-ink-primary shadow-[0_0_0_1px_rgb(var(--surface-border))] hover:bg-surface-panel'
-                                        : a.status === 'completed'
-                                          ? 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/70'
-                                          : 'bg-status-expired/10 text-status-expired hover:bg-status-expired/15'
+                                    ? // Tablero: el color del relleno dice el estado.
+                                      BOARD_TONE[boardToneOf(a, appointmentInProgress(a))]
                                     : a.status === 'confirmed'
                                       ? 'border border-brand-primary/25 border-l-brand-primary bg-brand-primary/[0.08] hover:bg-brand-primary/[0.13]'
                                       : a.status === 'scheduled'
