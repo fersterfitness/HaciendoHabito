@@ -62,7 +62,53 @@
     --status-generated: 22 163 74;
     --status-sent: 37 99 235;
     --status-paused: 107 107 107;
-    /* Estados de «bien», «atención» y progreso (los usa la v2; mismos valores en ambas versiones). */
+    /* Verdes y rojos: valores originales de Tailwind. Las clases emerald/green/red/rose leen estas
+       variables, así la v2 cambia todos los verdes y rojos escritos a mano desde un solo lugar. */
+    --tw-emerald-50: 236 253 245;
+    --tw-emerald-100: 209 250 229;
+    --tw-emerald-200: 167 243 208;
+    --tw-emerald-300: 110 231 183;
+    --tw-emerald-400: 52 211 153;
+    --tw-emerald-500: 16 185 129;
+    --tw-emerald-600: 5 150 105;
+    --tw-emerald-700: 4 120 87;
+    --tw-emerald-800: 6 95 70;
+    --tw-emerald-900: 6 78 59;
+    --tw-emerald-950: 2 44 34;
+    --tw-green-50: 240 253 244;
+    --tw-green-100: 220 252 231;
+    --tw-green-200: 187 247 208;
+    --tw-green-300: 134 239 172;
+    --tw-green-400: 74 222 128;
+    --tw-green-500: 34 197 94;
+    --tw-green-600: 22 163 74;
+    --tw-green-700: 21 128 61;
+    --tw-green-800: 22 101 52;
+    --tw-green-900: 20 83 45;
+    --tw-green-950: 5 46 22;
+    --tw-red-50: 254 242 242;
+    --tw-red-100: 254 226 226;
+    --tw-red-200: 254 202 202;
+    --tw-red-300: 252 165 165;
+    --tw-red-400: 248 113 113;
+    --tw-red-500: 239 68 68;
+    --tw-red-600: 220 38 38;
+    --tw-red-700: 185 28 28;
+    --tw-red-800: 153 27 27;
+    --tw-red-900: 127 29 29;
+    --tw-red-950: 69 10 10;
+    --tw-rose-50: 255 241 242;
+    --tw-rose-100: 255 228 230;
+    --tw-rose-200: 254 205 211;
+    --tw-rose-300: 253 164 175;
+    --tw-rose-400: 251 113 133;
+    --tw-rose-500: 244 63 94;
+    --tw-rose-600: 225 29 72;
+    --tw-rose-700: 190 18 60;
+    --tw-rose-800: 159 18 57;
+    --tw-rose-900: 136 19 55;
+    --tw-rose-950: 76 5 25;
+    /* Estados de «bien», «atención» y progreso. */
     --status-ok: 34 165 90;
     --status-ok-ink: 22 121 63;
     --status-warn: 245 197 66;
@@ -585,13 +631,13 @@
   --pastel-sky: 241 235 245;
   --pastel-mint: 229 230 241;
   --pastel-butter: 253 243 214;
-  --pastel-rose-ink: 190 80 56;
+  --pastel-rose-ink: 158 27 50;
   --pastel-lavender-ink: 70 51 79;
   --pastel-peach-ink: 160 82 0;
   --pastel-sky-ink: 98 74 112;
   --pastel-mint-ink: 64 66 110;
   --pastel-butter-ink: 133 96 0;
-  --pastel-rose-accent: 236 128 108;
+  --pastel-rose-accent: 194 37 61;
   --pastel-lavender-accent: 70 51 79;
   --pastel-peach-accent: 244 172 110;
   --pastel-sky-accent: 168 150 184;
@@ -613,7 +659,7 @@
   --pastel-sky-ink: 30 20 36;
   --pastel-mint-ink: 30 20 36;
   --pastel-butter-ink: 30 20 36;
-  --pastel-rose-accent: 236 128 108;
+  --pastel-rose-accent: 226 84 108;
   --pastel-lavender-accent: 168 150 184;
   --pastel-peach-accent: 244 172 110;
   --pastel-sky-accent: 196 184 208;
@@ -637,6 +683,53 @@
 }
 
 html.ui-v2 {
+  /* Verdes y rojos de la v2: verde flúor claro y rojo frambuesa (los mismos de la página del alumno). */
+  --status-ok: 195 255 77;
+  --status-ok-ink: 63 98 18;
+  --tw-emerald-50: 247 255 230;
+  --tw-emerald-100: 238 255 204;
+  --tw-emerald-200: 224 255 163;
+  --tw-emerald-300: 210 255 122;
+  --tw-emerald-400: 195 255 77;
+  --tw-emerald-500: 195 255 77;
+  --tw-emerald-600: 77 124 15;
+  --tw-emerald-700: 63 98 18;
+  --tw-emerald-800: 47 74 14;
+  --tw-emerald-900: 36 53 11;
+  --tw-emerald-950: 20 31 6;
+  --tw-green-50: 247 255 230;
+  --tw-green-100: 238 255 204;
+  --tw-green-200: 224 255 163;
+  --tw-green-300: 210 255 122;
+  --tw-green-400: 195 255 77;
+  --tw-green-500: 195 255 77;
+  --tw-green-600: 77 124 15;
+  --tw-green-700: 63 98 18;
+  --tw-green-800: 47 74 14;
+  --tw-green-900: 36 53 11;
+  --tw-green-950: 20 31 6;
+  --tw-red-50: 253 240 243;
+  --tw-red-100: 251 225 230;
+  --tw-red-200: 246 196 205;
+  --tw-red-300: 240 140 158;
+  --tw-red-400: 226 84 108;
+  --tw-red-500: 194 37 61;
+  --tw-red-600: 194 37 61;
+  --tw-red-700: 158 27 50;
+  --tw-red-800: 124 22 40;
+  --tw-red-900: 96 18 32;
+  --tw-red-950: 60 10 20;
+  --tw-rose-50: 253 240 243;
+  --tw-rose-100: 251 225 230;
+  --tw-rose-200: 246 196 205;
+  --tw-rose-300: 240 140 158;
+  --tw-rose-400: 226 84 108;
+  --tw-rose-500: 194 37 61;
+  --tw-rose-600: 194 37 61;
+  --tw-rose-700: 158 27 50;
+  --tw-rose-800: 124 22 40;
+  --tw-rose-900: 96 18 32;
+  --tw-rose-950: 60 10 20;
   --v2-canvas: 240 237 242;
   --v2-sidebar-active: 255 255 255;
   /* Panel de navegación desplegado: entre el lienzo y el blanco del contenido. */
@@ -661,7 +754,7 @@ html.ui-v2 {
   --status-generated: 64 66 110;
   --status-expiring: 168 98 30;
   --status-pending: 140 104 20;
-  --status-expired: 190 80 56;
+  --status-expired: 194 37 61;
   --brand-gradient: linear-gradient(rgb(var(--brand-primary)), rgb(var(--brand-primary)));
   --brand-gradient-hover: linear-gradient(rgb(var(--brand-hover)), rgb(var(--brand-hover)));
   --r-lg: 0.5rem;
@@ -672,6 +765,19 @@ html.ui-v2 {
 }
 
 html.ui-v2.dark {
+  --status-ok-ink: 195 255 77;
+  --tw-emerald-500: 195 255 77;
+  --tw-emerald-600: 178 238 62;
+  --tw-emerald-700: 210 255 122;
+  --tw-green-500: 195 255 77;
+  --tw-green-600: 178 238 62;
+  --tw-green-700: 210 255 122;
+  --tw-red-500: 226 84 108;
+  --tw-red-600: 214 60 86;
+  --tw-red-700: 240 140 158;
+  --tw-rose-500: 226 84 108;
+  --tw-rose-600: 214 60 86;
+  --tw-rose-700: 240 140 158;
   --v2-canvas: 16 12 20;
   --v2-sidebar-active: 48 38 56;
   --v2-sidebar-panel: 22 17 27;
@@ -696,7 +802,7 @@ html.ui-v2.dark {
   /* Pasteles de la paleta: el naranja y el rojo anaranjado fuertes cansaban en las listas. */
   --status-expiring: 240 172 96;
   --status-pending: 242 200 96;
-  --status-expired: 236 128 108;
+  --status-expired: 226 84 108;
 }
 
 /* Barra de listados: botones grises, chips de filtro grises. */
@@ -773,28 +879,23 @@ html.ui-v2 .hh-alert-icon {
   background-color: rgb(var(--tone) / 0.12);
 }
 
-/* Verdes escritos a mano (activo, cobrado, abonó): en la v2 toman el cian del estado activo. */
-html.ui-v2 [class*='text-emerald-'] {
-  color: rgb(var(--status-active));
-}
-html.ui-v2 [class*='border-emerald-'] {
-  border-color: rgb(var(--status-active) / 0.4);
-}
-html.ui-v2 [class*='ring-emerald-'] {
-  --tw-ring-color: rgb(var(--status-active) / 0.35);
-}
-html.ui-v2 [class*='bg-emerald-500/'],
-html.ui-v2 [class*='bg-emerald-900/'] {
-  background-color: rgb(var(--status-active) / 0.12);
-}
+/* Verde flúor: sirve de relleno, no de letra. Sobre un relleno flúor el texto va oscuro, y un texto
+   «verde 400/500» en modo claro usa el verde oscuro para que se lea. */
 html.ui-v2 [class~='bg-emerald-500'],
-html.ui-v2 [class~='bg-emerald-600'],
-html.ui-v2 [class~='dark:bg-emerald-500'] {
-  background-color: rgb(var(--status-active));
+html.ui-v2 [class~='bg-emerald-400'],
+html.ui-v2 [class~='bg-green-500'],
+html.ui-v2 [class~='bg-green-400'],
+html.ui-v2 [class~='bg-status-ok'],
+html.ui-v2.dark [class~='bg-emerald-600'],
+html.ui-v2.dark [class~='bg-green-600'] {
+  color: rgb(36 53 11);
 }
-html.ui-v2.dark [class~='bg-emerald-500'],
-html.ui-v2.dark [class~='bg-emerald-600'] {
-  color: rgb(17 17 17);
+html.ui-v2:not(.dark) [class~='text-emerald-500'],
+html.ui-v2:not(.dark) [class~='text-emerald-400'],
+html.ui-v2:not(.dark) [class~='text-green-500'],
+html.ui-v2:not(.dark) [class~='text-green-400'],
+html.ui-v2:not(.dark) [class~='text-status-ok'] {
+  color: rgb(var(--status-ok-ink));
 }
 
 /* Etiquetas chicas en mayúsculas: en la v2 van en tipo oración, más calmas. */

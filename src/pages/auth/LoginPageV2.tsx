@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Navigate, Link } from 'react-router-dom'
-import { BrandLogo } from '@/components/branding/BrandLogo'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -41,6 +40,16 @@ const HERO_PHOTOS = [
  *
  * Sin Google login, sin forgot password, sin redes sociales.
  */
+/** Marca en un solo color: negra sobre claro, blanca sobre oscuro. */
+function BrandMarkMono({ className, title }: { className?: string; title?: string }) {
+  return (
+    <svg viewBox="113 188 374 380" className={cn('shrink-0', className)} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
+      <rect x="113" y="188" width="374" height="380" rx="84" className="fill-zinc-900 dark:fill-white" />
+      <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" className="fill-white dark:fill-zinc-900" />
+    </svg>
+  )
+}
+
 export function LoginPageV2() {
   const { user } = useAuth()
   const navigate = useAppNavigate()
@@ -204,8 +213,8 @@ export function LoginPageV2() {
 
       {/* ─────────────── Gradient mesh animado de fondo ─────────────── */}
       <div className="loginv2-mesh pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -top-32 -left-24 h-[34rem] w-[34rem] rounded-full bg-brand-primary/[0.18] blur-[140px] will-change-transform" />
-        <div className="absolute -bottom-32 -right-24 h-[34rem] w-[34rem] rounded-full bg-brand-primary/[0.14] blur-[140px] will-change-transform" />
+        <div className="absolute -top-32 -left-24 h-[34rem] w-[34rem] rounded-full bg-zinc-400/[0.16] blur-[140px] will-change-transform" />
+        <div className="absolute -bottom-32 -right-24 h-[34rem] w-[34rem] rounded-full bg-zinc-500/[0.12] blur-[140px] will-change-transform" />
         <div className="absolute top-1/3 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-zinc-400/[0.10] blur-[150px] will-change-transform dark:bg-zinc-300/[0.06]" />
       </div>
 
@@ -285,7 +294,7 @@ export function LoginPageV2() {
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/25 backdrop-blur-sm"
                       aria-hidden
                     >
-                      <BrandLogo size="sm" decorative className="h-6 w-6" />
+                      <BrandMarkMono className="h-6 w-6" />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-body-sm font-semibold text-white">
@@ -365,11 +374,7 @@ export function LoginPageV2() {
 
             {/* Logo centrado debajo del toggle — solo desktop (en mobile usa el del form) */}
             <div className="hidden justify-center pt-2 lg:flex">
-              <BrandLogo
-                size="md"
-                decorative
-                className="h-40 w-40 drop-shadow-[0_6px_24px_rgba(255,72,0,0.40)] sm:h-48 sm:w-48"
-              />
+              <BrandMarkMono className="h-24 w-24" />
             </div>
 
             {/* Center: form */}
@@ -377,10 +382,7 @@ export function LoginPageV2() {
               <div className="mx-auto w-full max-w-sm">
                 {/* Mobile logo (en lg desaparece porque el panel izquierdo lo cubre) */}
                 <div className="loginv2-fade-up loginv2-d2 mb-6 flex justify-center lg:hidden">
-                  <BrandLogo
-                    size="md"
-                    className="h-36 w-auto drop-shadow-[0_6px_18px_rgba(255,72,0,0.32)] sm:h-44"
-                  />
+                  <BrandMarkMono className="h-20 w-20" title="Haciéndolo Hábito" />
                 </div>
 
                 <h1 className="loginv2-fade-up loginv2-d3 text-4xl font-extrabold tracking-tight text-ink-primary dark:text-white sm:text-5xl">
@@ -428,8 +430,8 @@ export function LoginPageV2() {
                   <div className="loginv2-fade-up loginv2-d6" data-shine>
                     <Button
                       type="submit"
-                      variant="gradientPrimary"
-                      className="!mt-6 w-full !h-12"
+                      variant="soft"
+                      className="!mt-6 w-full !h-12 !bg-zinc-900 !font-semibold !text-white hover:!bg-zinc-800 dark:!bg-white dark:!text-zinc-900 dark:hover:!bg-zinc-200"
                       loading={isSubmitting}
                       icon={<ArrowRight className="h-4 w-4" />}
                       iconPosition="right"
@@ -443,7 +445,7 @@ export function LoginPageV2() {
                   ¿Querés ser parte del equipo?{' '}
                   <Link
                     to="/form"
-                    className="font-semibold text-[#c93a00] transition-colors hover:text-[#a02e00] dark:text-brand-primary dark:hover:text-brand-primary/80"
+                    className="font-semibold text-zinc-900 underline underline-offset-4 transition-colors hover:text-zinc-600 dark:text-white dark:hover:text-zinc-300"
                   >
                     Inscribite
                   </Link>
