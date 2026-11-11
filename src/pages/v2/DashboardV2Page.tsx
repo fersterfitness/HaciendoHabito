@@ -83,7 +83,6 @@ type Filter = 'all' | 'cobros' | 'feedback' | 'rutinas' | 'semana' | 'turnos' | 
 const DAY_MS = 86_400_000
 
 /** Misiones: el naranja del «Para hoy» del entrenador (pedido oct-7: naranja y negro). */
-const MISSION_ORANGE = 'rgb(var(--status-progress))'
 const CATEGORY_FILTER: Record<TaskCategory, Filter> = { feedback: 'feedback', rutinas: 'rutinas', avisos: 'semana', cobros: 'cobros' }
 const CATEGORY_LABEL: Record<TaskCategory, string> = { feedback: 'Feedback', rutinas: 'Rutina', avisos: 'Aviso', cobros: 'Cobro' }
 const CATEGORY_ICON: Record<TaskCategory, LucideIcon> = { feedback: MessageSquare, rutinas: Dumbbell, avisos: Megaphone, cobros: Wallet }
@@ -219,6 +218,9 @@ export function DashboardV2Page() {
   const incomesQ = useIncomes()
   const sentQ = useSentReminders(period)
   const students = useMemo(() => studentsQ.data ?? [], [studentsQ.data])
+  /** Foto del alumno por nombre (las tareas traen el nombre; los alumnos activos, la ruta de la foto). */
+  const photoByName = useMemo(() => new Map(students.filter((s) => s.avatar_path).map((s) => [s.full_name, s.avatar_path])), [students])
+  const photo = (name: string) => photoByName.get(name) ?? null
 
   const routinesQ = useQuery({
     queryKey: routineKeys.list(user?.id),
@@ -529,7 +531,7 @@ export function DashboardV2Page() {
     if (missionsOn && d) missions.complete(d)
   }
   const missionCard = (key: string) => (missionsOn ? { onCheck: () => complete(key) } : {})
-  const overdueTag = (key: string) => (missionsOn && missions.stateOf(key).overdue ? <TagV2 tone="rose">Atrasada</TagV2> : null)
+  const overdueTag = (key: string) => (missionsOn && missions.stateOf(key).overdue ? <TagV2 tone="neutral">Atrasada</TagV2> : null)
   async function undoMission(row: DailyTaskRow) {
     missions.undo(row)
     // Cobro: también vuelve a la lista de avisos de pago (si se había marcado como avisado).
@@ -811,29 +813,25 @@ export function DashboardV2Page() {
             <SectionTitleV2>Para hoy</SectionTitleV2>
 
             {missionsOn && !loading && doneTotal + pendingCount > 0 ? (
-              <div className="mb-4 rounded-2xl bg-surface-inverse px-4 py-3 text-white ring-1 ring-inset ring-white/10">
+              <div className="mb-4 rounded-2xl border border-surface-border bg-surface-card px-4 py-3.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-[14px] font-medium">
-                    Hoy completaste{' '}
-                    <span className="tabular-nums" style={{ color: MISSION_ORANGE }}>
-                      {doneTotal}/{doneTotal + pendingCount}
-                    </span>
+                  <p className="text-sm font-medium text-ink-primary">
+                    Hoy completaste <span className="tabular-nums">{doneTotal} de {doneTotal + pendingCount}</span>
                   </p>
-                  <p className="text-[12px] opacity-70">
+                  <p className="text-2xs text-ink-muted">
                     {pendingCount === 0 ? '¡Misiones cumplidas!' : `${pendingCount} ${pendingCount === 1 ? 'pendiente' : 'pendientes'}`}
                   </p>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-elevated">
                   <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: MISSION_ORANGE }}
+                    className="h-full rounded-full bg-brand-primary"
                     initial={false}
                     animate={{ width: `${(doneTotal / (doneTotal + pendingCount)) * 100}%` }}
                     transition={{ type: 'spring', stiffness: 160, damping: 24 }}
                   />
                 </div>
                 {!missions.persistent ? (
-                  <p className="mt-2 text-[11.5px] opacity-70">Falta correr el SQL 20261109120000_trainer_daily_tasks.sql: lo que tildes se pierde al recargar.</p>
+                  <p className="mt-2 text-2xs text-ink-muted">Falta correr el SQL 20261109120000_trainer_daily_tasks.sql: lo que tildes se pierde al recargar.</p>
                 ) : null}
               </div>
             ) : null}
@@ -925,7 +923,7 @@ export function DashboardV2Page() {
                         `turno-${a.id}`,
                         <TaskCardV2
                           title={a.full_name}
-                          mark={<AvatarV2 name={a.full_name} />}
+                          mark={<AvatarV2 name={a.full_name} path={photo(a.full_name)} />}
                           description={`Mañana a las ${fmtTime(a.starts_at)}. Mandale el recordatorio para que confirme.`}
                           onOpen={a.student_id ? () => navigate(`/nutrition/${a.student_id}`) : undefined}
                           tags={<TagV2 tone="neutral">Turno de mañana</TagV2>}
@@ -951,7 +949,7 @@ export function DashboardV2Page() {
                         `sintoma-${p.id}`,
                         <TaskCardV2
                           title={p.full_name}
-                          mark={<AvatarV2 name={p.full_name} />}
+                          mark={<AvatarV2 name={p.full_name} path={photo(p.full_name)} />}
                           description={`${p.detail} en su registro del ${fmtDay(p.loggedAt.slice(0, 10))}. Conviene escribirle antes de la próxima consulta.`}
                           onOpen={() => navigate(`/nutrition/${p.id}?tab=historia`)}
                           tags={
@@ -1059,7 +1057,7 @@ export function DashboardV2Page() {
                           {...missionCard(key)}
                           urgent={days <= 0}
                           title={`Plan de alimentación de ${who}`}
-                          mark={<AvatarV2 name={who} />}
+                          mark={<AvatarV2 name={who} path={photo(who)} />}
                           description={`«${m.title}». ${days < 0 ? `Venció hace ${-days} ${days === -1 ? 'día' : 'días'}` : days === 0 ? 'Vence hoy' : days === 1 ? 'Vence mañana' : `Vence en ${days} días`}: armá el que sigue.`}
                           onOpen={() => navigate(`/students/${m.student_id}`)}
                           tags={
@@ -1156,7 +1154,7 @@ export function DashboardV2Page() {
                               <span className="font-normal text-ink-secondary">{st.finished ? 'cerró su mes' : 'está en su última semana'} · armá la que sigue</span>
                             </>
                           }
-                          mark={<AvatarV2 name={student.full_name} />}
+                          mark={<AvatarV2 name={student.full_name} path={photo(student.full_name)} />}
                           description={`Lo contó en su feedback${st.submittedAt ? ` del ${fmtDay(st.submittedAt.slice(0, 10))}` : ''}.`}
                           onOpen={() => navigate(`/students/${student.id}`)}
                           tags={
@@ -1191,7 +1189,7 @@ export function DashboardV2Page() {
                         T(`rutina-${r.id}`, <TaskCardV2
                           {...missionCard(key)}
                           title={r.name}
-                          mark={<AvatarV2 name={who} />}
+                          mark={<AvatarV2 name={who} path={photo(who)} />}
                           description={`${who}. ${days === 0 ? 'Termina hoy' : days === 1 ? 'Termina mañana' : `Termina en ${days} días`}: armá la que sigue.`}
                           onOpen={() => navigate(`/routines/${r.id}`)}
                           tags={
@@ -1255,7 +1253,7 @@ export function DashboardV2Page() {
                         T(`cobro-${r.studentId}`, <TaskCardV2
                           {...missionCard(key)}
                           title={r.fullName}
-                          mark={<AvatarV2 name={r.fullName} />}
+                          mark={<AvatarV2 name={r.fullName} path={photo(r.fullName)} />}
                           onOpen={() => navigate(isNutri ? `/nutrition/${r.studentId}` : `/students/${r.studentId}`)}
                           description={
                             isToday
@@ -1324,9 +1322,9 @@ export function DashboardV2Page() {
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="flex items-center gap-3 rounded-xl bg-status-ok/[0.08] px-3 py-2"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2"
                       >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-status-ok text-white">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-ink-primary/80 text-surface-card">
                           <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                         </span>
                         <span className="min-w-0 flex-1 truncate text-[13px] text-ink-secondary line-through decoration-ink-muted/60">
@@ -1434,7 +1432,7 @@ export function DashboardV2Page() {
                 <ul className="px-2 pb-2 pt-1">
                   {birthdays.map(({ s, days }) => (
                     <li key={s.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5">
-                      <AvatarV2 name={s.full_name} />
+                      <AvatarV2 name={s.full_name} path={photo(s.full_name)} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium text-ink-primary">{s.full_name}</p>
                         <p className="text-[12px] text-ink-muted">

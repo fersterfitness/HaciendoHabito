@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import type { LucideIcon } from 'lucide-react'
 import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStudentStorageUrl } from '@/lib/studentAvatar'
 import { v2TabClass, v2TabCountClass } from './tabStyle'
 
 /**
@@ -317,7 +318,7 @@ export function TagV2({ tone, children }: { tone: Tone | 'neutral'; children: Re
   if (inline) {
     if (tone === 'neutral') return <span className="text-ink-muted">{children}</span>
     return (
-      <span className="inline-flex items-center gap-1.5 font-medium text-ink-primary">
+      <span className="hh-tag-dot inline-flex items-center gap-1.5 font-medium text-ink-secondary">
         <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full bg-current', TONE_ACCENT[tone])} aria-hidden />
         {children}
       </span>
@@ -359,7 +360,7 @@ export function TaskCardV2({
   mark,
   icon: LeadIcon,
   onCheck,
-  urgent,
+  urgent: _urgent,
 }: {
   title: ReactNode
   description?: ReactNode
@@ -381,9 +382,9 @@ export function TaskCardV2({
       className={cn(
         // En la compu cada fila usa las columnas de la lista (subgrid): casilla, avatar, texto y botones
         // quedan alineados entre filas aunque cada una traiga botones de distinto ancho.
-        'flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-card px-3 py-2.5 transition-colors sm:col-span-full sm:grid sm:grid-cols-subgrid sm:px-4',
-        onOpen && 'hover:bg-surface-panel',
-        urgent && 'shadow-[inset_3px_0_0_rgb(var(--status-expired))]',
+        'flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-2xl border border-surface-border bg-surface-card px-3.5 py-3 transition-colors sm:col-span-full sm:grid sm:grid-cols-subgrid sm:px-4',
+        onOpen && 'hover:border-ink-muted/35',
+
       )}
     >
       {onCheck ? (
@@ -406,11 +407,11 @@ export function TaskCardV2({
           <span className="h-2.5 w-2.5 rounded-full border-[1.5px] border-ink-muted/70" />
         </span>
       )}
-      <span className="hidden w-8 shrink-0 justify-center sm:flex" aria-hidden={!mark}>
+      <span className="hidden w-9 shrink-0 justify-center sm:flex [&>span]:h-9 [&>span]:w-9" aria-hidden={!mark}>
         {mark ??
           (LeadIcon ? (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-elevated text-ink-secondary">
-              <LeadIcon className="h-4 w-4" strokeWidth={1.75} />
+            <span className="flex items-center justify-center rounded-xl border border-surface-border bg-surface-panel text-ink-secondary">
+              <LeadIcon className="h-[18px] w-[18px]" strokeWidth={1.6} />
             </span>
           ) : null)}
       </span>
@@ -434,7 +435,7 @@ export function TaskCardV2({
         {tags || meta || description ? (
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs leading-snug text-ink-secondary">
             {tags ? (
-              <span className="flex shrink-0 items-center gap-x-2.5">
+              <span className="flex shrink-0 items-center gap-x-2 [&>*+*:not(.hh-tag-dot)]:before:pr-1.5 [&>*+*:not(.hh-tag-dot)]:before:text-ink-muted/70 [&>*+*:not(.hh-tag-dot)]:before:content-['·']">
                 <TagInlineContext.Provider value>{tags}</TagInlineContext.Provider>
               </span>
             ) : null}
@@ -457,11 +458,11 @@ export function TaskCardV2({
 }
 
 /**
- * Contenedor de las filas de tareas: una sola tarjeta con divisores. En la compu es una grilla de 4 columnas
+ * Contenedor de las filas de tareas: cada tarea es su propia tarjeta. En la compu es una grilla de 4 columnas
  * (casilla, avatar o ícono, texto, botones) que comparten todas las filas.
  */
 export const TASK_LIST_V2 =
-  'overflow-hidden rounded-2xl border border-surface-border bg-surface-card [&>*+*]:border-t [&>*+*]:border-surface-border sm:grid sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:[&>*]:col-span-full'
+  'flex flex-col gap-2 sm:grid sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:gap-y-2 sm:[&>*]:col-span-full'
 
 /** Botón de tarjeta: pastilla gris (o negra si es la acción del momento). */
 export function PillButtonV2({
@@ -492,7 +493,10 @@ export function PillButtonV2({
       aria-label={children ? undefined : title}
       className={cn(
         'rounded-full text-xs font-medium active:scale-100',
-        primary ? 'bg-ink-primary text-surface-base hover:bg-ink-primary/85' : 'hover:bg-surface-border',
+        // Una sola jerarquía tranquila: la principal en gris lleno, la secundaria solo con borde.
+        primary
+          ? 'bg-surface-elevated text-ink-primary hover:bg-surface-border'
+          : 'border border-surface-border bg-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary',
         !children && 'w-8 px-0',
       )}
     >
@@ -558,7 +562,10 @@ export function EmptyV2({ children }: { children: ReactNode }) {
 
 
 /** Iniciales sobre gris: el mismo tono para todos, como los avatares sin foto del resto de la v2. */
-export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+/** Iniciales, o la foto del alumno si tiene (`path` = ruta en el bucket de alumnos). */
+export function AvatarV2({ name, size = 'md', path }: { name: string; size?: 'sm' | 'md'; path?: string | null }) {
+  const url = useStudentStorageUrl(path)
+  const [broken, setBroken] = useState(false)
   const initials = name
     .trim()
     .split(/\s+/)
@@ -570,10 +577,15 @@ export function AvatarV2({ name, size = 'md' }: { name: string; size?: 'sm' | 'm
       className={cn(
         'flex shrink-0 items-center justify-center rounded-full bg-surface-elevated font-semibold text-ink-secondary ring-2 ring-surface-card dark:ring-0',
         size === 'sm' ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-[11px]',
+        url && !broken && 'overflow-hidden',
       )}
       aria-hidden
     >
-      {initials || '?'}
+      {url && !broken ? (
+        <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={() => setBroken(true)} />
+      ) : (
+        initials || '?'
+      )}
     </span>
   )
 }
