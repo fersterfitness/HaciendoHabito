@@ -866,6 +866,11 @@ html.ui-v2 .bg-orange-500 {
   background-color: rgb(var(--ink-primary));
 }
 
+/* Sin cascada de filas: tardaba varios segundos y volvía a correr cada vez que la lista se reordenaba. */
+html.ui-v2 .hh-row-drop-in {
+  animation: none;
+}
+
 /* Un solo radio para todos los botones (rectángulo de puntas redondeadas, sin pastillas);
    la secundaria es gris de relleno (como «Filtrar» / «Ordenar»). */
 html.ui-v2 .hh-btn {

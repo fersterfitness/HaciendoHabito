@@ -1230,7 +1230,8 @@ function StudentDirectoryTable({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-surface-border/80 bg-surface-card shadow-card">
-      {tableHeader}
+      {/* v2: la cantidad ya está en las pestañas y el orden en «Ordenar». */}
+      {IS_V2 ? null : tableHeader}
 
       {/* ── Mobile cards (< sm) ──────────────────────────────────── */}
       <div className="sm:hidden divide-y divide-surface-border/60">
@@ -1322,7 +1323,8 @@ function StudentDirectoryTable({
       </div>
 
       {/* ── Desktop table (≥ sm) ─────────────────────────────────── */}
-      <div className="hidden sm:block max-h-[min(68vh,36rem)] overflow-auto">
+      {/* v2: sin scroll interno; la lista entera baja con la página. */}
+      <div className={IS_V2 ? 'hidden sm:block' : 'hidden sm:block max-h-[min(68vh,36rem)] overflow-auto'}>
         <table className="w-full border-collapse text-body-sm leading-snug hh-table">
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
             <tr className="text-left">
@@ -1353,7 +1355,8 @@ function StudentDirectoryTable({
                 >
                   <td
                     className={cn(
-                      'hh-row-drop-in px-4 py-2.5 sm:px-5',
+                      'hh-row-drop-in px-4 sm:px-5',
+                      IS_V2 ? 'py-3' : 'py-2.5',
                       isSelected ? 'border-l-[3px] border-l-brand-primary pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
                     )}
                   >
