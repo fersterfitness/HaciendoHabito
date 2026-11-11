@@ -1460,7 +1460,7 @@ export function AppointmentsPage() {
                             : { backgroundImage: 'repeating-linear-gradient(135deg, rgb(var(--surface-border)) 0 1px, transparent 1px 9px)' }
                         }
                         className={cn(
-                          'flex min-h-[4.5rem] flex-col rounded-xl p-1.5 text-left transition-all motion-safe:duration-200 sm:min-h-[7rem] sm:rounded-2xl sm:p-2.5',
+                          'flex min-h-[4.5rem] flex-col rounded-xl p-1.5 text-left transition-colors motion-safe:duration-200 sm:min-h-[7rem] sm:rounded-2xl sm:p-2.5',
                           tone,
                           appFocusRingClassName,
                         )}
