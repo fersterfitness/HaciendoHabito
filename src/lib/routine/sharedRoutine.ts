@@ -55,13 +55,22 @@ export interface SharedRoutine {
   feedback: { public_token: string; email: string | null; period: string | null; done: boolean } | null
 }
 
+/**
+ * Dominio público de la app para los links que se mandan al alumno. Con `VITE_SITE_URL` el link sale
+ * siempre con el dominio real, aunque el entrenador esté usando la app desde otro lado (por ejemplo localhost).
+ */
+function publicOrigin(): string {
+  const fromEnv = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim()
+  return (fromEnv || window.location.origin).replace(/\/$/, '')
+}
+
 export function sharedRoutineUrl(token: string): string {
-  return `${window.location.origin}/rutina/${token}`
+  return `${publicOrigin()}/rutina/${token}`
 }
 
 /** Formulario de feedback de la semana, con el correo del alumno ya cargado. */
 export function sharedRoutineFeedbackUrl(fb: NonNullable<SharedRoutine['feedback']>): string {
-  const base = `${window.location.origin}/form/check-in/compartido/${fb.public_token}`
+  const base = `${publicOrigin()}/form/check-in/compartido/${fb.public_token}`
   return fb.email ? `${base}?email=${encodeURIComponent(fb.email)}` : base
 }
 

@@ -102,7 +102,7 @@ BEGIN
                                    'image_url', x.image_url
                                  ) ORDER BY e.sort_order), '[]'::jsonb)
                             FROM public.routine_exercises e
-                            LEFT JOIN public.exercises x ON x.id = e.exercise_id
+                            LEFT JOIN public.exercise_library x ON x.id = e.exercise_id
                            WHERE e.day_id = d.id)
                       ) ORDER BY d.sort_order), '[]'::jsonb)
                  FROM public.routine_days d
