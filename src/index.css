@@ -691,6 +691,8 @@ html.ui-v2 {
   --status-ok: 195 255 77;
   --status-ok-ink: 63 98 18;
   /* En gráficos sobre fondo claro la línea va un tono más oscura que el flúor, para que se vea. */
+  /* Tablero de turnos: día con algo por confirmar. */
+  --v2-board-pending: 220 211 242;
   --chart-ok: 132 204 22;
   --chart-ok-ink: 77 124 15;
   --chart-bad: 194 37 61;
@@ -774,6 +776,7 @@ html.ui-v2 {
 
 html.ui-v2.dark {
   --status-ok-ink: 195 255 77;
+  --v2-board-pending: 186 172 216;
   --chart-ok: 195 255 77;
   --chart-ok-ink: 195 255 77;
   --chart-bad: 226 84 108;

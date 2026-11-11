@@ -1406,7 +1406,7 @@ export function AppointmentsPage() {
                 ))}
               </div>
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-px bg-surface-border rounded-xl overflow-hidden">
+              <div className={IS_V2 ? 'grid grid-cols-7 gap-1.5 sm:gap-2' : 'grid grid-cols-7 gap-px bg-surface-border rounded-xl overflow-hidden'}>
                 {monthDays.map((day) => {
                   const dayAppts =
                     calendarScope === 'students'
@@ -1428,6 +1428,76 @@ export function AppointmentsPage() {
                       : []
                   const isCurrentMonth = getMonth(day) === getMonth(monthAnchor)
                   const today = isToday(day)
+                  if (IS_V2) {
+                    // Tablero: cada día es una tarjeta. El relleno dice cómo viene el día (todo confirmado en
+                    // flúor, algo por confirmar en lavanda, ya pasado en gris) y adentro va quién viene y a qué hora.
+                    const items =
+                      calendarScope === 'students'
+                        ? dayAppts.map((a) => ({ id: a.id, time: a.starts_at, name: a.student?.full_name ?? a.title, path: a.student?.avatar_path ?? null, person: true }))
+                        : dayPersonal.map((it) => ({ id: it.id, time: it.starts_at, name: it.title, path: null, person: false }))
+                    const open = dayAppts.filter((a) => a.status === 'scheduled' || a.status === 'confirmed')
+                    const tone = !isCurrentMonth
+                      ? 'text-ink-muted'
+                      : items.length === 0
+                        ? 'bg-surface-panel text-ink-secondary hover:bg-surface-elevated'
+                        : calendarScope === 'personal'
+                          ? 'bg-surface-card text-ink-primary shadow-[0_0_0_1px_rgb(var(--surface-border))] hover:bg-surface-panel'
+                          : open.length === 0
+                            ? 'bg-surface-elevated text-ink-secondary hover:bg-surface-border/70'
+                            : open.every((a) => a.status === 'confirmed')
+                              ? 'bg-status-ok hover:brightness-95'
+                              : 'bg-[rgb(var(--v2-board-pending))] text-[rgb(43_33_64)] hover:brightness-95'
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        type="button"
+                        onClick={() => goToWeekFromDay(day)}
+                        aria-label={`Abrir semana del ${format(day, "EEEE d 'de' MMMM", { locale: es })}${items.length ? `, ${items.length} ${items.length === 1 ? 'turno' : 'turnos'}` : ''}`}
+                        aria-current={today ? 'date' : undefined}
+                        style={
+                          isCurrentMonth
+                            ? undefined
+                            : { backgroundImage: 'repeating-linear-gradient(135deg, rgb(var(--surface-border)) 0 1px, transparent 1px 9px)' }
+                        }
+                        className={cn(
+                          'flex min-h-[4.5rem] flex-col rounded-xl p-1.5 text-left transition-all motion-safe:duration-200 sm:min-h-[7rem] sm:rounded-2xl sm:p-2.5',
+                          tone,
+                          appFocusRingClassName,
+                        )}
+                      >
+                        <span className="flex items-baseline justify-between gap-1">
+                          <span
+                            className={cn(
+                              'text-sm tabular-nums',
+                              isCurrentMonth ? 'font-semibold' : 'font-medium',
+                              // Hoy: el número va en una pastilla oscura (se ve igual sobre cualquier relleno).
+                              today && 'inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-ink-primary px-1.5 text-surface-base',
+                            )}
+                          >
+                            {format(day, 'd')}
+                          </span>
+                          {items.length ? <span className="text-3xs font-medium opacity-70 max-sm:hidden">{items.length === 1 ? '1 turno' : `${items.length} turnos`}</span> : null}
+                        </span>
+                        {items.length ? (
+                          <>
+                            <span className="mt-auto hidden flex-col gap-1.5 pt-2 sm:flex">
+                              {items.slice(0, 2).map((it) => (
+                                <span key={it.id} className="flex min-w-0 items-center gap-1.5">
+                                  {it.person ? <AvatarV2 size="sm" name={it.name} path={it.path} /> : null}
+                                  <span className="min-w-0">
+                                    <span className="block truncate text-xs font-medium leading-tight">{it.person ? it.name.split(' ')[0] : it.name}</span>
+                                    <span className="block text-3xs leading-tight opacity-70 tabular-nums">{format(parseISO(it.time), 'HH:mm')}</span>
+                                  </span>
+                                </span>
+                              ))}
+                              {items.length > 2 ? <span className="text-3xs font-medium opacity-70">+{items.length - 2} más</span> : null}
+                            </span>
+                            <span className="mt-auto text-3xs font-medium tabular-nums opacity-80 sm:hidden">{items.length}</span>
+                          </>
+                        ) : null}
+                      </button>
+                    )
+                  }
                   return (
                     <div
                       key={day.toISOString()}
