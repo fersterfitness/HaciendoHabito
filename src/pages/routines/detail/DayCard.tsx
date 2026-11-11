@@ -1,5 +1,5 @@
 import { controlSmClassName } from '@/lib/formControlClasses'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronRight, Copy, X, Link2, Unlink, ArrowUp, ArrowDown, Boxes, CopyPlus } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Button } from '@/components/ui/Button'
@@ -16,6 +16,7 @@ import { type DayWithEx, WARMUP_PRESETS, groupExercises } from './routineDetailS
 import { ExerciseRow } from './ExerciseRow'
 import { IS_V2 } from '@/lib/uiVersion'
 import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
+import { ExerciseLogsContext } from '@/lib/routine/exerciseLogs'
 
 export function DayCard({
   day,
@@ -101,11 +102,24 @@ export function DayCard({
       .forEach(e => onUpdateExercise(e.id, { is_superset: false, superset_group: null }))
   }
 
+  // Series en las que el alumno anotó kilos desde el link (para verlo sin abrir el día).
+  const logs = useContext(ExerciseLogsContext)
+  const loggedSets = logs ? day.exercises.reduce((n, ex) => n + (logs.get(ex.id)?.filter((l) => l.weight_kg != null).length ?? 0), 0) : 0
+  const totalSets = day.exercises.reduce((n, ex) => n + Math.min(Math.max(ex.sets ?? 1, 1), 10), 0)
+
   return (
     <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
       <div className="hh-day-row flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-surface-card transition-colors" onClick={onToggle}>
         <span className="hh-day-name flex-1 text-base font-bold text-ink-primary tracking-wide">{dayName}</span>
         {focus && <span className="text-xs text-ink-muted">{focus}</span>}
+        {loggedSets > 0 ? (
+          <span
+            className="rounded-full bg-status-ok/15 px-2 py-0.5 text-2xs font-medium tabular-nums text-status-ok-ink"
+            title="Series en las que el alumno anotó los kilos desde el link de la rutina"
+          >
+            {loggedSets}/{totalSets} anotadas
+          </span>
+        ) : null}
         <span className="hh-day-count text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-ink-muted" /> : <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />}
         {IS_V2 ? (

@@ -9,6 +9,8 @@ import { isMultiarticularExercise } from '@/lib/routine/copyDayPrescriptions'
 import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker'
 import type { RoutineExercise, TrainingMethod } from '@/types/database'
 import { type ExWithExercise, parseRestToSeconds, parseRpeToNumber } from './routineDetailShared'
+import { useExerciseLogs } from '@/lib/routine/exerciseLogs'
+import { formatDate } from '@/lib/utils'
 
 export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
   exercise: ExWithExercise
@@ -28,6 +30,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
   isSeparable?: boolean
   onSeparate?: () => void
 }) {
+  const studentLogs = useExerciseLogs(exercise.id)
   // Local state — updates UI instantly
   const [sets, setSets]           = useState<number | null>(exercise.sets ?? null)
   const [reps, setReps]           = useState(exercise.reps_scheme ?? '')
@@ -142,6 +145,8 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>
+
+      {studentLogs.length > 0 ? <StudentLogLine logs={studentLogs} prescribedKg={exercise.weight_kg} /> : null}
 
       <div className="grid grid-cols-2 gap-1.5">
         <div>
@@ -439,6 +444,33 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
           </a>
         ) : null}
       </div>
+    </div>
+  )
+}
+
+function kg(n: number): string {
+  return (Math.round(n * 10) / 10).toString().replace('.', ',')
+}
+
+/** Lo que anotó el alumno desde el link, al lado de lo indicado. */
+function StudentLogLine({ logs, prescribedKg }: { logs: { set_number: number; weight_kg: number | null; updated_at: string }[]; prescribedKg: number | null }) {
+  const withKg = logs.filter((l) => l.weight_kg != null)
+  if (withKg.length === 0) return null
+  const last = logs.reduce((a, l) => (l.updated_at > a ? l.updated_at : a), logs[0]!.updated_at)
+  const top = Math.max(...withKg.map((l) => l.weight_kg!))
+  const diff = prescribedKg != null && prescribedKg > 0 ? top - prescribedKg : null
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-status-ok/10 px-2.5 py-1.5 text-2xs text-ink-secondary">
+      <span className="font-semibold text-status-ok-ink">Anotó el alumno</span>
+      <span className="tabular-nums text-ink-primary">
+        {withKg.map((l) => kg(l.weight_kg!)).join(' · ')} kg
+      </span>
+      {diff != null && diff !== 0 ? (
+        <span className="tabular-nums text-ink-muted">
+          ({diff > 0 ? '+' : '−'}{kg(Math.abs(diff))} kg vs. lo indicado)
+        </span>
+      ) : null}
+      <span className="ml-auto text-ink-muted">{formatDate(last, "d MMM")}</span>
     </div>
   )
 }

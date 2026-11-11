@@ -31,6 +31,7 @@ import { downloadRoutineProgressLogPdf } from '@/lib/routine/downloadRoutineProg
 import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgressionGuidePanel'
 import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
+import { ExerciseLogsContext, fetchRoutineExerciseLogs, type ExerciseLogsByExercise } from '@/lib/routine/exerciseLogs'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
 import type { BlockTypeId } from '@/lib/macrocycle/macrocycle'
@@ -85,6 +86,17 @@ export function RoutineDetailPage() {
   // v2 · La ficha del alumno abre la rutina con ?volumen=1 para ir directo al panel.
   const [showVolume, setShowVolume] = useState(() => IS_V2 && new URLSearchParams(window.location.search).has('volumen'))
   const [showMacro, setShowMacro] = useState(false)
+  // Kilos que anota el alumno desde el link; se vuelven a pedir al volver a la pestaña.
+  const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogsByExercise | null>(null)
+  useEffect(() => {
+    if (!id) return
+    let alive = true
+    const load = () => void fetchRoutineExerciseLogs(id).then((m) => { if (alive) setExerciseLogs(m) })
+    load()
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVisible) }
+  }, [id])
   // v2 · Pantalla dividida con otra rutina del alumno; queda abierta para la próxima rutina que se arme.
   const [comparing, setComparing] = useState(() => {
     if (!IS_V2) return false
@@ -1376,6 +1388,7 @@ export function RoutineDetailPage() {
           />
         ) : null}
 
+        <ExerciseLogsContext.Provider value={exerciseLogs}>
         {blocks.map((block, blockStripeIndex) => (
           <BlockCard
             key={`${block.id}-${applyNonce}`}
@@ -1438,6 +1451,7 @@ export function RoutineDetailPage() {
             rmLookup={rmLookup}
           />
         ))}
+        </ExerciseLogsContext.Provider>
 
         <Button variant="secondary" className="w-full" icon={<Plus className="h-4 w-4" />} onClick={addBlock}>
           Agregar semana / bloque

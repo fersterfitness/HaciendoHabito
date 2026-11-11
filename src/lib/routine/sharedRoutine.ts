@@ -21,6 +21,14 @@ export interface SharedRoutineExercise {
   superset_group: number | null
   video_url: string | null
   image_url: string | null
+  /** Lo que anotó el alumno, por serie (20261111150000_routine_exercise_logs.sql). */
+  logs?: SharedSetLog[]
+}
+
+export interface SharedSetLog {
+  set: number
+  weight_kg: number | null
+  reps: number | null
 }
 
 export interface SharedRoutineDay {
@@ -52,7 +60,7 @@ export interface SharedRoutine {
     updated_at: string | null
     blocks: SharedRoutineBlock[]
   } | null
-  feedback: { public_token: string; email: string | null; period: string | null; done: boolean } | null
+  feedback: { public_token: string; email: string | null; gender?: string | null; period: string | null; done: boolean } | null
 }
 
 /**
@@ -79,6 +87,32 @@ export async function fetchSharedRoutine(token: string): Promise<SharedRoutine |
   const { data, error } = await supabasePublic.rpc('get_shared_routine', { p_token: token })
   if (error) throw new Error(error.message)
   return (data as SharedRoutine | null) ?? null
+}
+
+/** El alumno anota los kilos de una serie; `null` borra lo anotado. */
+export async function logSharedSet(token: string, exerciseId: string, setNumber: number, weightKg: number | null): Promise<void> {
+  const { data, error } = await supabasePublic.rpc('log_shared_exercise_set', {
+    p_token: token,
+    p_exercise_id: exerciseId,
+    p_set_number: setNumber,
+    p_weight_kg: weightKg,
+  })
+  if (error) throw new Error(/log_shared_exercise_set/.test(error.message) ? 'Falta correr la migración 20261111150000_routine_exercise_logs.sql' : error.message)
+  const res = data as { ok?: boolean; error?: string } | null
+  if (!res?.ok) throw new Error(res?.error ?? 'No se pudo guardar')
+}
+
+/** «62,5» o «62.5» → 62.5; vacío → null; texto que no es número → undefined. */
+export function parseKg(raw: string): number | null | undefined {
+  const t = raw.trim().replace(',', '.')
+  if (!t) return null
+  const n = Number(t)
+  return Number.isFinite(n) && n >= 0 && n <= 1000 ? Math.round(n * 100) / 100 : undefined
+}
+
+export function formatKg(n: number | null | undefined): string {
+  if (n == null) return ''
+  return fmtNum(n)
 }
 
 /** Token del link del alumno; lo crea la primera vez. */
