@@ -5,7 +5,8 @@ import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
 import { IS_V2 } from '@/lib/uiVersion'
 import { AiMarkdown } from '@/components/nutrition/AnthropometryAiMarkdown'
-import { SeasonalMenusV2 } from '@/components/nutrition/SeasonalMenusV2'
+import { MenuPatientPicker, SeasonalMenusV2 } from '@/components/nutrition/SeasonalMenusV2'
+import { useAppNavigate } from '@/hooks/useAppNavigate'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -42,6 +43,8 @@ export function NutritionSeasonalMenusPage() {
   const [tolerance, setTolerance] = useState<ToleranceFilter>('todas')
   const [search, setSearch] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [useMenu, setUseMenu] = useState<SeasonalMenuTemplate | null>(null)
+  const navigate = useAppNavigate()
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -99,6 +102,7 @@ export function NutritionSeasonalMenusPage() {
             onReset={resetFilters}
             onOpen={setOpenId}
             onCopy={copyToClipboard}
+            onUse={setUseMenu}
           />
         ) : (
           <>
@@ -257,7 +261,30 @@ export function NutritionSeasonalMenusPage() {
         )}
 
         {opened ? (
-          <MenuDetailModal template={opened} onClose={() => setOpenId(null)} onCopy={copyToClipboard} />
+          <MenuDetailModal
+            template={opened}
+            onClose={() => setOpenId(null)}
+            onCopy={copyToClipboard}
+            onUse={
+              IS_V2
+                ? (t) => {
+                    setOpenId(null)
+                    setUseMenu(t)
+                  }
+                : undefined
+            }
+          />
+        ) : null}
+        {IS_V2 ? (
+          <MenuPatientPicker
+            menu={useMenu}
+            onClose={() => setUseMenu(null)}
+            onPick={(studentId) => {
+              const id = useMenu?.id
+              setUseMenu(null)
+              if (id) navigate(`/nutrition/${studentId}?tab=plan&menu=${encodeURIComponent(id)}`)
+            }}
+          />
         ) : null}
       </DirectoryPageShell>
     </div>
@@ -335,10 +362,12 @@ function MenuDetailModal({
   template,
   onClose,
   onCopy,
+  onUse,
 }: {
   template: SeasonalMenuTemplate
   onClose: () => void
   onCopy: (m: SeasonalMenuTemplate) => void
+  onUse?: (m: SeasonalMenuTemplate) => void
 }) {
   return (
     <div
@@ -355,6 +384,11 @@ function MenuDetailModal({
             <h3 className="text-base font-semibold text-ink-primary truncate">{template.title}</h3>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {onUse ? (
+              <Button type="button" size="sm" onClick={() => onUse(template)}>
+                Usar con un paciente
+              </Button>
+            ) : null}
             <Button type="button" size="sm" variant="secondary" icon={<Copy className="h-3.5 w-3.5" />} onClick={() => onCopy(template)}>
               Copiar
             </Button>

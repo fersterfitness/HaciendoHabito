@@ -30,6 +30,9 @@ import { IS_V2 } from '@/lib/uiVersion'
 import { PlanPickerDialog, SaveAsTemplateDialog } from '@/components/nutrition/NutritionPlanReuseDialogs'
 import { gridHasContent, type ReusablePlan } from '@/lib/nutrition/planReuse'
 import toast from 'react-hot-toast'
+import { useSearchParams } from 'react-router-dom'
+import { SEASONAL_MENU_TEMPLATES } from '@/lib/nutrition/seasonalMenuLibrary'
+import { seasonalMenuToReusablePlan } from '@/lib/nutrition/seasonalMenuToPlan'
 
 interface Props {
   student: Student
@@ -69,6 +72,20 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
   const [pickerOpen, setPickerOpen] = useState(false)
   /** v2: con el plan vacío la grilla no se muestra hasta que elige escribirlo desde cero. */
   const [blankStarted, setBlankStarted] = useState(false)
+  // v2: llega desde «Menús» con `?menu=<id>`: se ofrece usarlo como base, nunca se aplica solo.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const menuParam = IS_V2 ? searchParams.get('menu') : null
+  const pendingMenu = menuParam ? SEASONAL_MENU_TEMPLATES.find((m) => m.id === menuParam) ?? null : null
+  function clearPendingMenu() {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('menu')
+        return next
+      },
+      { replace: true },
+    )
+  }
   const [pickBusy, setPickBusy] = useState(false)
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
   // v2: la próxima consulta del plan sale de la agenda (o de la fecha sugerida); no se carga a mano.
@@ -711,7 +728,35 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
         </div>
       )}
 
-      {IS_V2 && !gridHasContent(grid) ? (
+      {pendingMenu ? (
+        <div className="hh-pastel flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-pastel-mint px-4 py-3.5 text-pastel-mint-ink">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Usar «{pendingMenu.title}» como base del plan</p>
+            <p className="mt-0.5 text-xs opacity-80">
+              {gridHasContent(grid)
+                ? 'El plan actual queda guardado como versión anterior. Después lo adaptás día por día.'
+                : 'Se carga igual todos los días para que lo adaptes.'}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              size="sm"
+              loading={pickBusy}
+              onClick={() => {
+                void applyReusablePlan(seasonalMenuToReusablePlan(pendingMenu)).then(clearPendingMenu)
+              }}
+            >
+              Usar este menú
+            </Button>
+            <Button type="button" size="sm" variant="secondary" disabled={pickBusy} onClick={clearPendingMenu}>
+              No, dejarlo así
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {IS_V2 && !pendingMenu && !gridHasContent(grid) ? (
         // v2: plan vacío. Lo más rápido es partir de uno parecido y adaptarlo.
         blankStarted ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-elevated/60 px-4 py-3">

@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react'
-import { ChevronRight, Copy, LayoutGrid, List, Search, Wheat } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Copy, LayoutGrid, List, Search, UserPlus, Wheat } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/Input'
+import { Modal } from '@/components/ui/Modal'
+import { Spinner } from '@/components/ui/Spinner'
+import { fetchAccessibleStudents } from '@/lib/students/studentAccess'
+import type { Student } from '@/types/database'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { controlMdClassName } from '@/lib/formControlClasses'
 import { mealPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
@@ -16,22 +20,15 @@ import {
   type PathologyTag,
   type SeasonalMenuTemplate,
 } from '@/lib/nutrition/seasonalMenuLibrary'
+import { seasonalMenuMeals, type SeasonalMenuMeal } from '@/lib/nutrition/seasonalMenuToPlan'
 import { cn } from '@/lib/utils'
 
 type SeasonFilter = MenuSeason | 'todas'
 type PathologyFilter = PathologyTag | 'todas'
 type ToleranceFilter = DigestiveTolerance | 'todas'
 
-type Meal = { label: string; kcal: number; content: string }
-
-/** Comidas del menú con sus calorías: salen de los títulos «### Almuerzo (~550 kcal)» del texto. */
-function mealsOf(m: SeasonalMenuTemplate): Meal[] {
-  const out: Meal[] = []
-  const re = /^###\s+(.+?)\s+\(~?\s*(\d+)\s*kcal\)\s*\n([\s\S]*?)(?=\n###\s|$)/gm
-  let match: RegExpExecArray | null
-  while ((match = re.exec(m.bodyMd))) out.push({ label: match[1]!, kcal: Number(match[2]), content: match[3] ?? '' })
-  return out
-}
+type Meal = SeasonalMenuMeal
+const mealsOf = seasonalMenuMeals
 
 function photoOf(m: SeasonalMenuTemplate, meals: Meal[], w: number, h: number): string {
   const main = meals.find((x) => /almuerzo|cena/i.test(x.label)) ?? meals[0]
@@ -106,6 +103,7 @@ export function SeasonalMenusV2({
   onReset,
   onOpen,
   onCopy,
+  onUse,
 }: {
   filtered: SeasonalMenuTemplate[]
   season: SeasonFilter
@@ -120,6 +118,8 @@ export function SeasonalMenusV2({
   onReset: () => void
   onOpen: (id: string) => void
   onCopy: (m: SeasonalMenuTemplate) => void
+  /** Elegir un paciente y usar el menú como base de su plan. */
+  onUse: (m: SeasonalMenuTemplate) => void
 }) {
   const [view, setView] = useState<'list' | 'grid'>('list')
   const withMeals = useMemo(() => filtered.map((m) => ({ m, meals: mealsOf(m) })), [filtered])
@@ -206,11 +206,14 @@ export function SeasonalMenusV2({
                 </dl>
               ) : null}
               <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                <Button type="button" icon={<ChevronRight className="h-4 w-4" />} iconPosition="right" onClick={() => onOpen(featured.m.id)}>
+                <Button type="button" icon={<UserPlus className="h-4 w-4" />} onClick={() => onUse(featured.m)}>
+                  Usar con un paciente
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => onOpen(featured.m.id)}>
                   Ver el menú completo
                 </Button>
-                <Button type="button" variant="secondary" icon={<Copy className="h-4 w-4" />} onClick={() => onCopy(featured.m)}>
-                  Copiar
+                <Button type="button" variant="ghost" size="icon" aria-label="Copiar el texto del menú" title="Copiar el texto" onClick={() => onCopy(featured.m)}>
+                  <Copy className="h-4 w-4" />
                 </Button>
                 {featured.m.approximateKcal ? (
                   <span className="ml-auto text-sm tabular-nums text-ink-muted">≈ {featured.m.approximateKcal.toLocaleString('es-AR')} kcal por día</span>
@@ -264,11 +267,11 @@ export function SeasonalMenusV2({
                   <Tags m={m} />
                   <p className="text-sm text-ink-secondary">{m.summary}</p>
                   <div className="mt-auto flex items-center gap-2 pt-1">
-                    <Button type="button" size="sm" onClick={() => onOpen(m.id)}>
-                      Ver menú
+                    <Button type="button" size="sm" onClick={() => onUse(m)}>
+                      Usar
                     </Button>
-                    <Button type="button" size="sm" variant="secondary" icon={<Copy className="h-3.5 w-3.5" />} onClick={() => onCopy(m)}>
-                      Copiar
+                    <Button type="button" size="sm" variant="secondary" onClick={() => onOpen(m.id)}>
+                      Ver menú
                     </Button>
                     {m.approximateKcal ? <span className="ml-auto text-xs tabular-nums text-ink-muted">≈ {m.approximateKcal.toLocaleString('es-AR')} kcal</span> : null}
                   </div>
@@ -301,11 +304,11 @@ export function SeasonalMenusV2({
                   {m.approximateKcal ? (
                     <span className="mr-auto text-sm tabular-nums text-ink-muted sm:mr-0 sm:text-right">≈ {m.approximateKcal.toLocaleString('es-AR')} kcal</span>
                   ) : null}
-                  <Button type="button" size="sm" onClick={() => onOpen(m.id)}>
-                    Ver menú
+                  <Button type="button" size="sm" onClick={() => onUse(m)}>
+                    Usar con un paciente
                   </Button>
-                  <Button type="button" size="sm" variant="secondary" icon={<Copy className="h-3.5 w-3.5" />} onClick={() => onCopy(m)}>
-                    Copiar
+                  <Button type="button" size="sm" variant="secondary" onClick={() => onOpen(m.id)}>
+                    Ver menú
                   </Button>
                 </div>
               </li>
@@ -314,5 +317,71 @@ export function SeasonalMenusV2({
         )}
       </section>
     </div>
+  )
+}
+
+/** Elegir a qué paciente se le arma el plan a partir del menú. */
+export function MenuPatientPicker({
+  menu,
+  onClose,
+  onPick,
+}: {
+  menu: SeasonalMenuTemplate | null
+  onClose: () => void
+  onPick: (studentId: string) => void
+}) {
+  const [students, setStudents] = useState<Student[] | null>(null)
+  const [query, setQuery] = useState('')
+  const open = menu != null
+
+  useEffect(() => {
+    if (!open || students) return
+    let cancelled = false
+    void fetchAccessibleStudents().then(({ data }) => {
+      if (!cancelled) setStudents([...data].sort((a, b) => a.full_name.localeCompare(b.full_name, 'es')))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, students])
+
+  const q = query.trim().toLowerCase()
+  const shown = (students ?? []).filter((s) => !q || s.full_name.toLowerCase().includes(q))
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="¿Para qué paciente?"
+      description={menu ? `Se abre su plan con «${menu.title}» como base. Antes de reemplazar nada te pedimos confirmación.` : undefined}
+    >
+      <div className="flex flex-col gap-3">
+        <Input
+          autoFocus
+          placeholder="Buscar paciente"
+          aria-label="Buscar paciente"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          leftIcon={<Search className="h-4 w-4" />}
+        />
+        {students == null ? (
+          <div className="flex justify-center py-8">
+            <Spinner size="md" />
+          </div>
+        ) : shown.length === 0 ? (
+          <p className="py-6 text-center text-sm text-ink-muted">{students.length === 0 ? 'Todavía no tenés pacientes cargados.' : 'Ningún paciente con ese nombre.'}</p>
+        ) : (
+          <ul className="-mx-1 max-h-[46vh] overflow-y-auto">
+            {shown.map((s) => (
+              <li key={s.id}>
+                <Button type="button" variant="ghost" className="h-auto w-full justify-start px-3 py-2.5 text-left font-medium" onClick={() => onPick(s.id)}>
+                  {s.full_name}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Modal>
   )
 }
