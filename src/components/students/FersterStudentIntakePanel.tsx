@@ -29,6 +29,7 @@ import {
 import type { Student, FersterIntakeStored } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
+import { IS_V2 } from '@/lib/uiVersion'
 
 function uploadKeyLabel(key: string): string {
   if (key === 'medical') return 'Estudios médicos'
@@ -36,16 +37,36 @@ function uploadKeyLabel(key: string): string {
   return key
 }
 
+/** v2: mosaicos compactos en cuatro columnas en lugar de la lista larga con divisores. */
+const FIELD_GRID_V2 = 'grid grid-cols-2 gap-2 lg:grid-cols-4'
+
 function Field({
   label,
   value,
   className,
+  warn = false,
 }: {
   label: string
   value: React.ReactNode
   className?: string
+  /** Dato a tener presente al planificar (patología, ejercicios que no puede hacer). */
+  warn?: boolean
 }) {
   if (value == null || value === '') return null
+  if (IS_V2) {
+    return (
+      <div
+        className={cn(
+          'flex min-w-0 flex-col gap-0.5 rounded-xl px-3.5 py-2.5',
+          warn ? 'hh-pastel bg-pastel-butter text-pastel-butter-ink' : 'bg-surface-elevated/60',
+          className?.replace('sm:col-span-2', 'col-span-2'),
+        )}
+      >
+        <p className={cn('text-xs', warn ? 'opacity-80' : 'text-ink-muted')}>{label}</p>
+        <div className={cn('break-words text-sm font-medium', warn ? undefined : 'text-ink-primary')}>{value}</div>
+      </div>
+    )
+  }
   return (
     <div className={cn('border-b border-surface-border/45 py-3 last:border-b-0 ', className)}>
       <p className="text-3xs font-medium text-ink-muted ">{label}</p>
@@ -63,6 +84,19 @@ function Section({
   title: string
   children: React.ReactNode
 }) {
+  if (IS_V2) {
+    return (
+      <section className="flex flex-col gap-2.5">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-ink-secondary">
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+          </span>
+          <h4 className="text-sm font-semibold text-ink-primary">{title}</h4>
+        </div>
+        <div>{children}</div>
+      </section>
+    )
+  }
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2 pb-2">
@@ -153,10 +187,10 @@ export function FersterStudentIntakePanel({ student, onlyIntake = false }: { stu
         ) : null}
       </div>
 
-      <div className="space-y-8">
+      <div className={IS_V2 ? 'space-y-6' : 'space-y-8'}>
         {onlyIntake && !(i?.payment_preference || i?.payment_notes?.trim()) ? null : (
         <Section icon={User} title={onlyIntake ? 'Pago' : 'Datos personales'}>
-          <div className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
+          <div className={IS_V2 ? FIELD_GRID_V2 : 'grid gap-x-10 gap-y-0 sm:grid-cols-2'}>
             {onlyIntake ? null : (
             <>
             <Field label="Documento" value={student.document_id} />
@@ -230,7 +264,7 @@ export function FersterStudentIntakePanel({ student, onlyIntake = false }: { stu
               <Field label="Dato de pago (/form)" value={i.payment_notes.trim()} className="sm:col-span-2" />
             ) : null}
             {canUseFinances && (i?.payment_preference || i?.payment_notes?.trim()) ? (
-              <div className="sm:col-span-2 pt-1">
+              <div className={IS_V2 ? 'col-span-2 flex items-center px-1 lg:col-span-4' : 'sm:col-span-2 pt-1'}>
                 <Link
                   to={`/finances/income/new?scope=business&student_id=${encodeURIComponent(student.id)}&method=${
                     i?.payment_preference === 'mercadopago' ? 'mercadopago' : 'transferencia'
@@ -257,7 +291,7 @@ export function FersterStudentIntakePanel({ student, onlyIntake = false }: { stu
           i.equipment ||
           i.main_goal) ? (
           <Section icon={Dumbbell} title="Entrenamiento y objetivo">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={IS_V2 ? FIELD_GRID_V2 : 'grid gap-3 sm:grid-cols-2'}>
               <Field
                 label="Antigüedad entrenando"
                 value={i.training_since ? fersterTrainingSinceLabel(i.training_since) : null}
@@ -298,7 +332,7 @@ export function FersterStudentIntakePanel({ student, onlyIntake = false }: { stu
           i.sleep_hours ||
           i.supplements) ? (
           <Section icon={HeartPulse} title="Salud y hábitos">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={IS_V2 ? FIELD_GRID_V2 : 'grid gap-3 sm:grid-cols-2'}>
               <Field
                 label="Patología o medicación"
                 value={
@@ -309,11 +343,13 @@ export function FersterStudentIntakePanel({ student, onlyIntake = false }: { stu
                     : null
                 }
                 className="sm:col-span-2"
+                warn={i.pathology === 'yes'}
               />
               <Field
                 label="Ejercicios incómodos o que no puede realizar"
                 value={i.discomfort_exercises}
                 className="sm:col-span-2"
+                warn={Boolean(i.discomfort_exercises?.trim()) && !/^(no|ninguno|ninguna|-)\.?$/i.test(i.discomfort_exercises.trim())}
               />
               <Field
                 label="Cuatro comidas al día"

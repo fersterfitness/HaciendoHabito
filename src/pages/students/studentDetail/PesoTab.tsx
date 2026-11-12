@@ -21,8 +21,239 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import { updateStudentTrainerPrefs } from '@/lib/students/studentTrainerPrefs'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
+import { IS_V2 } from '@/lib/uiVersion'
+import { StatTile } from './StatTile'
 import type { StudentWeightLog } from '@/types/database'
+
+type WeightPoint = { date: string; weight: number; fat: number | undefined }
+
+/** En la v2 la grasa tiene su propio eje: en el mismo que el peso lo aplastaba contra el borde. */
+function WeightChart({ data, goal, hasFat }: { data: WeightPoint[]; goal: number | null; hasFat: boolean }) {
+  const split = IS_V2
+  return (
+                  <ResponsiveContainer width="100%" height={split ? 240 : 190}>
+                    <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                      <ChartAreaGradient id="peso-fill" color={CHART_ACCENT} opacity={0.3} />
+                      <CartesianGrid {...chartGrid} />
+                      <XAxis dataKey="date" {...chartAxis} interval="preserveStartEnd" />
+                      <YAxis
+                        yAxisId="kg"
+                        domain={
+                          split
+                            ? [
+                                (min: number) => Math.floor(Math.min(min, goal ?? min) - 1),
+                                (max: number) => Math.ceil(Math.max(max, goal ?? max) + 1),
+                              ]
+                            : ['auto', 'auto']
+                        }
+                        allowDecimals={!split}
+                        {...chartAxis}
+                        width={36}
+                      />
+                      {split && hasFat ? <YAxis yAxisId="fat" orientation="right" hide domain={['dataMin - 4', 'dataMax + 4']} /> : null}
+                      {goal ? (
+                        <ReferenceLine
+                          yAxisId="kg"
+                          y={goal}
+                          stroke="rgb(var(--chart-ok))"
+                          strokeDasharray="5 4"
+                          strokeOpacity={0.8}
+                          label={{ value: `Meta ${goal} kg`, position: 'insideTopRight', fontSize: 10, fill: 'rgb(var(--chart-ok-ink))' }}
+                        />
+                      ) : null}
+                      <Tooltip
+                        cursor={chartCursor}
+                        content={
+                          <ChartTooltip
+                            formatValue={(v, e) => (e.dataKey === 'fat' ? `${v}%` : `${v} kg`)}
+                          />
+                        }
+                      />
+                      <Area
+                        yAxisId="kg"
+                        type="monotone"
+                        dataKey="weight"
+                        name="Peso"
+                        stroke={CHART_ACCENT}
+                        strokeWidth={2.5}
+                        fill="url(#peso-fill)"
+                        dot={{ r: 3, fill: CHART_ACCENT, stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
+                        activeDot={chartActiveDot(CHART_ACCENT)}
+                      />
+                      {hasFat && (
+                        <Line
+                          yAxisId={split ? 'fat' : 'kg'}
+                          type="monotone"
+                          dataKey="fat"
+                          name="% grasa"
+                          stroke="rgb(var(--ink-muted))"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
+                          dot={false}
+                          activeDot={chartActiveDot('rgb(var(--ink-muted))')}
+                          connectNulls
+                        />
+                      )}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+  )
+}
+
+const fmtKg = (n: number) => Number(n.toFixed(2)).toLocaleString('es-AR')
+const fmtSigned = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmtKg(Math.abs(n))}`
+
+/** v2: cifras arriba, gráfico y registros con el cambio respecto del anterior. */
+function WeightBodyV2({
+  logs,
+  chartData,
+  goal,
+  editingGoal,
+  goalInput,
+  savingGoal,
+  onGoalInput,
+  onStartGoal,
+  onCancelGoal,
+  onSaveGoal,
+  onDelete,
+}: {
+  /** Del más nuevo al más viejo. */
+  logs: StudentWeightLog[]
+  /** Del más viejo al más nuevo. */
+  chartData: StudentWeightLog[]
+  goal: number | null
+  editingGoal: boolean
+  goalInput: string
+  savingGoal: boolean
+  onGoalInput: (v: string) => void
+  onStartGoal: () => void
+  onCancelGoal: () => void
+  onSaveGoal: () => void
+  onDelete: (id: string) => void
+}) {
+  const first = chartData[0]!
+  const last = chartData[chartData.length - 1]!
+  const delta = last.weight_kg - first.weight_kg
+  const lastFat = [...chartData].reverse().find((l) => l.body_fat_pct != null)
+  const toGoal = goal ? last.weight_kg - goal : null
+  const pct =
+    goal == null
+      ? null
+      : first.weight_kg === goal
+        ? 100
+        : Math.min(100, Math.max(0, Math.round((Math.abs(first.weight_kg - last.weight_kg) / Math.abs(first.weight_kg - goal)) * 100)))
+  const points: WeightPoint[] = chartData.map((l) => ({
+    date: `${l.logged_at.slice(8, 10)}/${l.logged_at.slice(5, 7)}`,
+    weight: l.weight_kg,
+    fat: l.body_fat_pct ?? undefined,
+  }))
+
+  return (
+    <div className="flex flex-col gap-5 pt-4">
+      <div className={cn('grid grid-cols-2 gap-2', lastFat ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+        <StatTile label="Peso actual" value={fmtKg(last.weight_kg)} unit="kg" hint={formatDate(last.logged_at)} />
+        <StatTile
+          label="Desde el inicio"
+          value={chartData.length > 1 ? fmtSigned(delta) : '—'}
+          unit={chartData.length > 1 ? 'kg' : undefined}
+          hint={chartData.length > 1 ? `Empezó en ${fmtKg(first.weight_kg)} kg` : 'Es el primer registro'}
+        />
+        {lastFat ? <StatTile label="Grasa corporal" value={fmtKg(lastFat.body_fat_pct!)} unit="%" hint={formatDate(lastFat.logged_at)} /> : null}
+        <StatTile
+          label="Objetivo"
+          className={lastFat ? undefined : 'col-span-2 lg:col-span-1'}
+          value={editingGoal ? undefined : goal ? fmtKg(goal) : '—'}
+          unit={!editingGoal && goal ? 'kg' : undefined}
+          hint={
+            editingGoal || toGoal == null
+              ? undefined
+              : Math.abs(toGoal) < 0.05
+                ? 'Alcanzado'
+                : `Faltan ${fmtKg(Math.abs(toGoal))} kg`
+          }
+          action={
+            editingGoal ? null : (
+              <Button type="button" variant="ghost" size="sm" className="-mr-2" onClick={onStartGoal}>
+                {goal ? 'Cambiar' : 'Definir'}
+              </Button>
+            )
+          }
+        >
+          {editingGoal ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <input
+                type="number"
+                min={30}
+                max={300}
+                step={0.5}
+                autoFocus
+                aria-label="Peso objetivo en kg"
+                placeholder="kg"
+                className={cn(controlInputClassName, 'w-20 text-center')}
+                value={goalInput}
+                onChange={(e) => onGoalInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onSaveGoal()}
+              />
+              <Button size="sm" loading={savingGoal} onClick={onSaveGoal}>
+                Guardar
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onCancelGoal}>
+                Cancelar
+              </Button>
+            </div>
+          ) : pct != null ? (
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-border" role="img" aria-label={`${pct}% del camino al objetivo`}>
+              <div className="h-full rounded-full bg-status-ok" style={{ width: `${pct}%` }} />
+            </div>
+          ) : null}
+        </StatTile>
+      </div>
+
+      {chartData.length >= 2 ? (
+        <WeightChart data={points} goal={goal} hasFat={Boolean(lastFat)} />
+      ) : (
+        <p className="rounded-xl border border-dashed border-surface-inputBorder px-4 py-6 text-center text-sm text-ink-muted">
+          Con dos registros o más aparece el gráfico de evolución.
+        </p>
+      )}
+
+      <div>
+        <h4 className="pb-1 text-sm font-semibold text-ink-primary">Registros</h4>
+        <ul className="divide-y divide-surface-border/60">
+          {logs.map((l, i) => {
+            const older = logs[i + 1]
+            const change = older ? l.weight_kg - older.weight_kg : null
+            return (
+              <li key={l.id} className="group flex items-center gap-3 py-2.5">
+                <span className="w-20 shrink-0 text-body-sm tabular-nums text-ink-muted">{formatDate(l.logged_at)}</span>
+                <span className="w-20 shrink-0 text-sm font-semibold tabular-nums text-ink-primary">{fmtKg(l.weight_kg)} kg</span>
+                <span className="w-14 shrink-0 text-xs tabular-nums text-ink-muted">
+                  {change != null && Math.abs(change) >= 0.05 ? fmtSigned(change) : ''}
+                </span>
+                {l.body_fat_pct != null ? (
+                  <span className="shrink-0 rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-medium text-ink-secondary">
+                    {fmtKg(l.body_fat_pct)}% grasa
+                  </span>
+                ) : null}
+                <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">{l.notes}</span>
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  type="button"
+                  aria-label="Borrar registro"
+                  onClick={() => onDelete(l.id)}
+                  className="-m-1.5 text-ink-muted opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </div>
+  )
+}
 
 export function PesoTab({
   studentId,
@@ -193,6 +424,23 @@ export function PesoTab({
             title="Sin registros de peso"
             description="Registrá el peso periódicamente para ver la evolución."
           />
+        ) : IS_V2 ? (
+          <WeightBodyV2
+            logs={logs}
+            chartData={chartData}
+            goal={goal}
+            editingGoal={editingGoal}
+            goalInput={goalInput}
+            savingGoal={savingGoal}
+            onGoalInput={setGoalInput}
+            onStartGoal={() => {
+              setGoalInput(String(goal ?? ''))
+              setEditingGoal(true)
+            }}
+            onCancelGoal={() => setEditingGoal(false)}
+            onSaveGoal={() => void saveGoal()}
+            onDelete={(logId) => void handleDelete(logId)}
+          />
         ) : (
           <>
             {/* Weight line chart */}
@@ -263,54 +511,7 @@ export function PesoTab({
                     )
                   })()}
 
-                  <ResponsiveContainer width="100%" height={190}>
-                    <ComposedChart data={rechartsData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                      <ChartAreaGradient id="peso-fill" color={CHART_ACCENT} opacity={0.3} />
-                      <CartesianGrid {...chartGrid} />
-                      <XAxis dataKey="date" {...chartAxis} interval="preserveStartEnd" />
-                      <YAxis domain={['auto', 'auto']} {...chartAxis} width={36} />
-                      {goal ? (
-                        <ReferenceLine
-                          y={goal}
-                          stroke="rgb(var(--chart-ok))"
-                          strokeDasharray="5 4"
-                          strokeOpacity={0.8}
-                          label={{ value: `Meta ${goal} kg`, position: 'insideTopRight', fontSize: 10, fill: 'rgb(var(--chart-ok-ink))' }}
-                        />
-                      ) : null}
-                      <Tooltip
-                        cursor={chartCursor}
-                        content={
-                          <ChartTooltip
-                            formatValue={(v, e) => (e.dataKey === 'fat' ? `${v}%` : `${v} kg`)}
-                          />
-                        }
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="weight"
-                        name="Peso"
-                        stroke={CHART_ACCENT}
-                        strokeWidth={2.5}
-                        fill="url(#peso-fill)"
-                        dot={{ r: 3, fill: CHART_ACCENT, stroke: 'rgb(var(--surface-card))', strokeWidth: 2 }}
-                        activeDot={chartActiveDot(CHART_ACCENT)}
-                      />
-                      {hasFat && (
-                        <Line
-                          type="monotone"
-                          dataKey="fat"
-                          name="% grasa"
-                          stroke="rgb(var(--ink-muted))"
-                          strokeWidth={1.5}
-                          strokeDasharray="4 3"
-                          dot={false}
-                          activeDot={chartActiveDot('rgb(var(--ink-muted))')}
-                          connectNulls
-                        />
-                      )}
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  <WeightChart data={rechartsData} goal={goal} hasFat={hasFat} />
                 </div>
               )
             })()}

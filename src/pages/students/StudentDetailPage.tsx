@@ -551,6 +551,55 @@ export function StudentDetailView({
       ? 'Plan Full'
       : null
 
+  const notesSection = (
+    <>
+            {editingNotes ? (
+              <div className="space-y-3 border-t border-surface-border/60 pt-4 ">
+                <div className="flex items-center gap-2">
+                  <StickyNote className="h-4 w-4 text-brand-secondary" aria-hidden />
+                  <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
+                </div>
+                <textarea
+                  ref={notesRef}
+                  value={notesValue}
+                  onChange={(e) => setNotesValue(e.target.value)}
+                  rows={5}
+                  className={cn(controlTextareaClassName, 'resize-none px-3 py-2')}
+                  placeholder="Observaciones, lesiones, objetivos..."
+                />
+                <div className="flex items-center gap-2 justify-end">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditingNotes(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="button" size="sm" variant="secondary" loading={savingNotes} icon={<Check className="h-3.5 w-3.5" />} onClick={saveNotes}>
+                    {savingNotes ? 'Guardando…' : 'Guardar'}
+                  </Button>
+                </div>
+              </div>
+            ) : student.notes ? (
+              <div className="relative group">
+                <StudentNotesCard notes={student.notes} variant="minimal" />
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  onClick={startEditNotes}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-ink-muted"
+                  title="Editar notas">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={startEditNotes}
+                className="flex w-full items-center gap-2 border-b border-dashed border-surface-inputBorder/80 py-4 text-sm text-ink-muted transition-colors hover:border-surface-inputBorder hover:text-ink-primary "
+              >
+                <StickyNote className="h-4 w-4 shrink-0 text-brand-secondary" aria-hidden />
+                Agregar observaciones...
+              </button>
+            )}
+    </>
+  )
+
   const profileSection = (
           <section className={v2Page ? 'rounded-2xl border border-surface-border bg-surface-card p-5 lg:p-6' : 'pb-2'}>
             <div className={cn('flex items-start justify-between gap-4 sm:gap-6', v2Page ? 'flex-row-reverse' : 'flex-row')}>
@@ -936,6 +985,7 @@ export function StudentDetailView({
         {sheetTab === 'ficha' && (
           <SheetWrapV2 on={v2Page} className="v2-cards space-y-4">
         {!v2Page ? profileSection : null}
+        {v2Page ? notesSection : null}
 
         <FersterStudentIntakePanel student={student} />
         <PsychologistStudentIntakePanel student={student} />
@@ -953,51 +1003,8 @@ export function StudentDetailView({
           }
         />
 
-            {/* Notas / observaciones */}
-            {editingNotes ? (
-              <div className="space-y-3 border-t border-surface-border/60 pt-4 ">
-                <div className="flex items-center gap-2">
-                  <StickyNote className="h-4 w-4 text-brand-secondary" aria-hidden />
-                  <span className="text-sm font-semibold text-ink-primary">Observaciones</span>
-                </div>
-                <textarea
-                  ref={notesRef}
-                  value={notesValue}
-                  onChange={(e) => setNotesValue(e.target.value)}
-                  rows={5}
-                  className={cn(controlTextareaClassName, 'resize-none px-3 py-2')}
-                  placeholder="Observaciones, lesiones, objetivos..."
-                />
-                <div className="flex items-center gap-2 justify-end">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditingNotes(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="button" size="sm" variant="secondary" loading={savingNotes} icon={<Check className="h-3.5 w-3.5" />} onClick={saveNotes}>
-                    {savingNotes ? 'Guardando…' : 'Guardar'}
-                  </Button>
-                </div>
-              </div>
-            ) : student.notes ? (
-              <div className="relative group">
-                <StudentNotesCard notes={student.notes} variant="minimal" />
-                <Button
-                  variant="ghost"
-                  size="iconSm"
-                  onClick={startEditNotes}
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-ink-muted"
-                  title="Editar notas">
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ) : (
-              <button
-                onClick={startEditNotes}
-                className="flex w-full items-center gap-2 border-b border-dashed border-surface-inputBorder/80 py-4 text-sm text-ink-muted transition-colors hover:border-surface-inputBorder hover:text-ink-primary "
-              >
-                <StickyNote className="h-4 w-4 shrink-0 text-brand-secondary" aria-hidden />
-                Agregar observaciones...
-              </button>
-            )}
+            {/* Notas / observaciones: en la v2 van arriba, es lo que más se consulta. */}
+            {v2Page ? null : notesSection}
           </SheetWrapV2>
         )}
 

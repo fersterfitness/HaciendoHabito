@@ -14,6 +14,8 @@ import type { Income } from '@/types/database'
 import { incomeLedgerStatusClass, incomeStatusPhrase } from '@/pages/students/studentDetail/incomeUi'
 import { saveStudentPaymentWindow } from '@/lib/finance/routineIncome'
 import { paymentWindowLabel } from '@/lib/finance/studentPayments'
+import { IS_V2 } from '@/lib/uiVersion'
+import { StatTile, StatusPill } from './StatTile'
 
 export function PagosTab({
   studentId,
@@ -109,6 +111,151 @@ export function PagosTab({
   const METHOD_LABEL: Record<string, string> = Object.fromEntries(
     PAYMENT_METHODS.map((m) => [m.value, m.label]),
   ) as Record<string, string>
+
+  if (IS_V2) {
+    const totalEsteMes = payments
+      .filter((p) => p.status === 'cobrado' && p.income_date.startsWith(thisMonthKey))
+      .reduce((sum, p) => sum + p.amount, 0)
+    const hasDay = dayFrom != null || dayTo != null
+    const smallAction = (label: string, onClick: () => void) => (
+      <Button type="button" variant="ghost" size="sm" className="-mr-2" onClick={onClick}>
+        {label}
+      </Button>
+    )
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <StatTile
+            label="Cuota mensual"
+            value={editingCuota ? undefined : cuota ? formatCurrency(cuota) : '—'}
+            hint={editingCuota ? undefined : cuota ? 'por mes' : 'Definila para seguir los cobros'}
+            action={
+              editingCuota
+                ? null
+                : smallAction(cuota ? 'Cambiar' : 'Definir', () => {
+                    setCuotaInput(String(cuota ?? ''))
+                    setEditingCuota(true)
+                  })
+            }
+          >
+            {editingCuota ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  autoFocus
+                  aria-label="Cuota mensual en pesos"
+                  value={cuotaInput}
+                  onChange={(e) => setCuotaInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void saveCuota()}
+                  placeholder="Ej: 60000"
+                  className={cn(controlSmClassName, 'w-28 px-3 text-sm tabular-nums')}
+                />
+                <Button size="sm" loading={savingCuota} onClick={() => void saveCuota()}>
+                  Guardar
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditingCuota(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : null}
+          </StatTile>
+
+          <StatTile label="Este mes">
+            <div className="py-1">
+              <StatusPill ok={pagadoEsteMes}>{pagadoEsteMes ? 'Al día' : 'Pendiente'}</StatusPill>
+            </div>
+            <p className="text-xs text-ink-muted">
+              {cuota && totalEsteMes > 0 && totalEsteMes < cuota
+                ? `Cobrado ${formatCurrency(totalEsteMes)} de ${formatCurrency(cuota)}`
+                : pagadoEsteMes
+                  ? `Cobrado ${formatCurrency(totalEsteMes)}`
+                  : 'Todavía sin cobros'}
+            </p>
+          </StatTile>
+
+          <StatTile
+            label="Día de pago"
+            value={editingWindow ? undefined : hasDay ? paymentWindowLabel(dayFrom, dayTo) : '—'}
+            hint={editingWindow ? undefined : hasDay ? 'de cada mes' : 'Cargalo y el Inicio te avisa'}
+            action={
+              editingWindow
+                ? null
+                : smallAction(hasDay ? 'Cambiar' : 'Definir', () => {
+                    setFromInput(dayTo != null ? String(dayTo) : dayFrom != null ? String(dayFrom) : '')
+                    setEditingWindow(true)
+                  })
+            }
+          >
+            {editingWindow ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  autoFocus
+                  aria-label="Día del mes"
+                  value={fromInput}
+                  onChange={(e) => setFromInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void saveWindow()}
+                  className={cn(controlSmClassName, 'w-16 px-2 text-sm tabular-nums')}
+                />
+                <Button size="sm" loading={savingWindow} onClick={() => void saveWindow()}>
+                  Guardar
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditingWindow(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : null}
+          </StatTile>
+
+          <StatTile
+            label="Total cobrado"
+            value={formatCurrency(totalCobrado)}
+            hint={ultimoPago ? `Último pago: ${formatDate(ultimoPago.income_date)}` : 'Sin pagos todavía'}
+          />
+        </div>
+
+        <section>
+          <div className="flex items-center justify-between gap-3 pb-2">
+            <h3 className="text-sm font-semibold text-ink-primary">Historial de pagos</h3>
+            <Button size="sm" icon={<DollarSign className="h-3.5 w-3.5" />} onClick={onRegisterPago}>
+              Registrar pago
+            </Button>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Spinner size="md" />
+            </div>
+          ) : payments.length === 0 ? (
+            <EmptyState
+              icon={<DollarSign className="h-6 w-6" />}
+              title="Sin pagos registrados"
+              description={`${studentName} todavía no tiene pagos cargados.`}
+            />
+          ) : (
+            <ul className="divide-y divide-surface-border/60">
+              {payments.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
+                  <span className="w-20 shrink-0 text-body-sm tabular-nums text-ink-muted">{formatDate(p.income_date)}</span>
+                  <span className="w-24 shrink-0 text-sm font-semibold tabular-nums text-ink-primary">{formatCurrency(p.amount)}</span>
+                  <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                    <span className="rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-medium capitalize text-ink-secondary">{p.income_type}</span>
+                    <span className="rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-medium capitalize text-ink-secondary">
+                      {METHOD_LABEL[p.payment_method] ?? p.payment_method}
+                    </span>
+                  </span>
+                  <StatusPill ok={p.status === 'cobrado'}>{incomeStatusPhrase(p.status)}</StatusPill>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
