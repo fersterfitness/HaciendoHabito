@@ -27,8 +27,11 @@ import {
   durationLabel,
   durationPer,
   formatPrice,
+  hasPhoto,
   marketplaceSlug,
   modalityLabel,
+  silhouetteOf,
+  silhouetteValue,
   sportLabel,
   whatsappLink,
   type MarketplaceAccessState,
@@ -39,6 +42,7 @@ import {
   type MarketplaceRequest,
   type MarketplaceRequestStatus,
   type MarketplaceRole,
+  type MarketplaceSilhouette,
 } from '@/lib/marketplace'
 import {
   ACCESS_LABEL,
@@ -58,6 +62,12 @@ import { AccessTab, ManagerChoice, grantBlocker, isEmail, type AccessContext } f
 type Tab = 'perfil' | 'planes' | 'acceso' | 'solicitudes'
 
 const MIGRATION = '20261112120000_marketplace_managed_profiles.sql'
+
+const SILHOUETTES: { value: MarketplaceSilhouette; label: string }[] = [
+  { value: 'neutra', label: 'Neutra' },
+  { value: 'mujer', label: 'Mujer' },
+  { value: 'hombre', label: 'Hombre' },
+]
 
 const errorMessage = (err: unknown) => {
   const e = err as { code?: string; message?: string } | null
@@ -271,15 +281,28 @@ function ProfileForm({
                 onChange={(e) => void onPickPhoto(e.target.files?.[0])}
               />
               <Button variant="secondary" size="sm" icon={<Camera className="h-3.5 w-3.5" />} loading={uploading} onClick={() => fileRef.current?.click()}>
-                {d.fotoUrl ? 'Cambiar foto' : 'Subir foto'}
+                {hasPhoto(d.fotoUrl) ? 'Cambiar foto' : 'Subir foto'}
               </Button>
-              {d.fotoUrl ? (
+              {hasPhoto(d.fotoUrl) ? (
                 <Button variant="ghost" size="sm" onClick={() => set({ fotoUrl: null })}>
                   Quitar
                 </Button>
               ) : null}
             </div>
             <p className="text-xs text-ink-muted">JPG, PNG o WebP. Mejor cuadrada y de frente.</p>
+            {hasPhoto(d.fotoUrl) ? null : (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Silueta sin foto">
+                <span className="text-xs text-ink-muted">Sin foto se ve una silueta:</span>
+                {SILHOUETTES.map((s) => {
+                  const on = silhouetteOf(d.fotoUrl) === s.value
+                  return (
+                    <Button key={s.value} variant={on ? 'primary' : 'secondary'} size="sm" aria-pressed={on} onClick={() => set({ fotoUrl: silhouetteValue(s.value) })}>
+                      {s.label}
+                    </Button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -765,7 +788,7 @@ type Step = { key: string; title: string; detail: string; status: 'done' | 'todo
 
 /** Los cuatro pasos para que un profesional quede andando, con lo que falta en cada uno. */
 function setupSteps(p: ManagedProfessional, myId: string | undefined): Step[] {
-  const missing = [!p.foto_url && 'foto', !p.bio.trim() && 'presentación', !p.whatsapp.trim() && 'WhatsApp'].filter(Boolean) as string[]
+  const missing = [!hasPhoto(p.foto_url) && 'foto', !p.bio.trim() && 'presentación', !p.whatsapp.trim() && 'WhatsApp'].filter(Boolean) as string[]
   const active = p.plans.filter((x) => x.activo).length
   const access = accessState(p, myId)
   return [

@@ -122,6 +122,32 @@ const ROLE_BY_VALUE = new Map(MARKETPLACE_ROLES.map((r) => [r.value, r]))
 export const roleLabel = (rol: MarketplaceRole) => ROLE_BY_VALUE.get(rol)?.label ?? rol
 export const roleArea = (rol: MarketplaceRole) => ROLE_BY_VALUE.get(rol)?.area ?? rol
 
+/**
+ * Sin foto se muestra una silueta. Cuál, se guarda en el mismo campo `foto_url` como `silueta:mujer`
+ * o `silueta:hombre` (vacío = neutra), así no hace falta otra columna ni tocar la vista del directorio.
+ */
+export type MarketplaceSilhouette = 'neutra' | 'mujer' | 'hombre'
+
+const SILHOUETTE_PREFIX = 'silueta:'
+
+export const hasPhoto = (fotoUrl: string | null | undefined): fotoUrl is string =>
+  Boolean(fotoUrl) && !fotoUrl!.startsWith(SILHOUETTE_PREFIX)
+
+export function silhouetteOf(fotoUrl: string | null | undefined): MarketplaceSilhouette {
+  const kind = fotoUrl?.startsWith(SILHOUETTE_PREFIX) ? fotoUrl.slice(SILHOUETTE_PREFIX.length) : ''
+  return kind === 'mujer' || kind === 'hombre' ? kind : 'neutra'
+}
+
+export const silhouetteValue = (kind: MarketplaceSilhouette): string | null => (kind === 'neutra' ? null : `${SILHOUETTE_PREFIX}${kind}`)
+
+/** Color plano de cada área en la web pública (fondo pastel + su tinta). */
+export const ROLE_TONE: Record<MarketplaceRole, string> = {
+  entrenador: 'bg-pastel-butter text-pastel-butter-ink',
+  nutricionista: 'bg-pastel-mint text-pastel-mint-ink',
+  psicologo: 'bg-pastel-lavender text-pastel-lavender-ink',
+  kinesiologo: 'bg-pastel-rose text-pastel-rose-ink',
+}
+
 /** Deportes que se pueden elegir (se guardan con este `value`). */
 export const MARKETPLACE_SPORTS: { value: string; label: string }[] = [
   { value: 'boxeo', label: 'Boxeo' },
