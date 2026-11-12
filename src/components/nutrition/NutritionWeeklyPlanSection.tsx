@@ -67,6 +67,8 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
   const [usingLegacyStore, setUsingLegacyStore] = useState(false)
   const persistTimer = useRef<number | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  /** v2: con el plan vacío la grilla no se muestra hasta que elige escribirlo desde cero. */
+  const [blankStarted, setBlankStarted] = useState(false)
   const [pickBusy, setPickBusy] = useState(false)
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
   // v2: la próxima consulta del plan sale de la agenda (o de la fecha sugerida); no se carga a mano.
@@ -711,17 +713,34 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
 
       {IS_V2 && !gridHasContent(grid) ? (
         // v2: plan vacío. Lo más rápido es partir de uno parecido y adaptarlo.
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-surface-border px-4 py-3.5">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink-primary">El plan está vacío</p>
-            <p className="mt-0.5 text-[12.5px] text-ink-muted">Partí de una plantilla o del plan de otro paciente y adaptalo, o escribilo abajo.</p>
+        blankStarted ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-elevated/60 px-4 py-3">
+            <p className="min-w-0 text-sm text-ink-secondary">Escribí el menú de cada comida. Se guarda solo.</p>
+            <Button type="button" size="sm" variant="secondary" icon={<CopyPlus className="h-4 w-4" />} onClick={() => setPickerOpen(true)}>
+              Mejor elegir un plan
+            </Button>
           </div>
-          <Button type="button" size="sm" icon={<CopyPlus className="h-4 w-4" />} onClick={() => setPickerOpen(true)}>
-            Elegir un plan
-          </Button>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-surface-inputBorder px-5 py-10 text-center">
+            <div>
+              <p className="text-base font-semibold text-ink-primary">Todavía no tiene plan</p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
+                Lo más rápido es partir de una plantilla o del plan de otro paciente y adaptarlo.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button type="button" size="sm" icon={<CopyPlus className="h-4 w-4" />} onClick={() => setPickerOpen(true)}>
+                Elegir un plan
+              </Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setBlankStarted(true)}>
+                Escribirlo desde cero
+              </Button>
+            </div>
+          </div>
+        )
       ) : null}
 
+      {IS_V2 && !blankStarted && !gridHasContent(grid) ? null : (
       <WeeklyPlanGridFields
         mergeWeekends={mergeWeekends}
         grid={grid}
@@ -731,6 +750,7 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
           schedulePersist({ grid: next })
         }}
       />
+      )}
 
       {/* v2: la grilla de arriba ya es el plan; cómo lo ve el paciente está en «Ver como paciente». */}
       {IS_V2 ? null : (
