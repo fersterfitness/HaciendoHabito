@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Search } from 'lucide-react'
+import { Search, UserPlus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -21,6 +22,7 @@ import {
   type MarketplaceProfessional,
   type MarketplaceProfessionalStatus,
 } from '@/lib/marketplace'
+import { seedDraftFromApplication } from '@/lib/marketplaceDraft'
 import { cn, formatDate } from '@/lib/utils'
 
 type Tab = MarketplaceProfessionalStatus | 'postulaciones'
@@ -103,6 +105,7 @@ function ProfessionalRow({ row }: { row: AdminProfessionalRow }) {
 
 function ApplicationRow({ app }: { app: MarketplaceApplication }) {
   const resolve = useResolveApplication()
+  const navigate = useNavigate()
   const wa = whatsappLink(app.whatsapp, `Hola ${app.nombre.split(' ')[0]}, recibimos tu postulación en Haciéndolo Hábito.`)
   return (
     <article className="flex flex-wrap items-center gap-3.5 rounded-xl border border-surface-border bg-surface-card p-4">
@@ -128,6 +131,19 @@ function ApplicationRow({ app }: { app: MarketplaceApplication }) {
         ) : null}
         {app.estado === 'nueva' ? (
           <Button
+            icon={<UserPlus className="h-4 w-4" />}
+            onClick={() => {
+              // Abre el alta con sus datos ya cargados y la opción de cuenta propia marcada.
+              seedDraftFromApplication(app)
+              navigate('/mi-pagina')
+            }}
+          >
+            Dar de alta
+          </Button>
+        ) : null}
+        {app.estado === 'nueva' ? (
+          <Button
+            variant="ghost"
             disabled={resolve.isPending}
             onClick={() => resolve.mutate(app.id, { onError: () => toast.error('No se pudo marcar como resuelta.') })}
           >
@@ -160,7 +176,7 @@ export function MarketplaceAdminPage() {
       <div>
         <h1 className="text-2xl font-semibold leading-tight tracking-tight">Profesionales de la web</h1>
         <p className="mt-1 text-body-sm text-ink-muted">
-          Quien arma su página queda pendiente hasta que lo apruebes. Recién ahí aparece en el directorio.
+          Todos los perfiles de la web, los cargue quien los cargue. Acá los verificás, los destacás o los ocultás.
         </p>
       </div>
 
@@ -204,8 +220,8 @@ export function MarketplaceAdminPage() {
           {tab === 'postulaciones' ? (
             <>
               <p className="text-body-sm text-ink-muted">
-                Profesionales sin cuenta que pidieron sumarse. Creales el acceso como a cualquier profesional; después cargan su
-                página desde «Marketplace».
+                Profesionales que pidieron sumarse desde la web. «Dar de alta» abre su perfil con los datos que dejaron y le
+                crea la cuenta con su correo; después marcá la postulación como resuelta.
               </p>
               {visibleApps.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-surface-inputBorder p-6 text-sm text-ink-muted">No hay postulaciones.</p>

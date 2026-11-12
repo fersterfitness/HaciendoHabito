@@ -88,6 +88,7 @@ const MarketplaceDirectoryPage = lazy(() => import('@/pages/marketplace/Marketpl
 const MarketplaceProfessionalPage = lazy(() => import('@/pages/marketplace/MarketplaceProfessionalPage').then((m) => ({ default: m.MarketplaceProfessionalPage })))
 const MarketplaceTeamPage = lazy(() => import('@/pages/marketplace/MarketplaceTeamPage').then((m) => ({ default: m.MarketplaceTeamPage })))
 const MarketplaceApplyPage = lazy(() => import('@/pages/marketplace/MarketplaceApplyPage').then((m) => ({ default: m.MarketplaceApplyPage })))
+const WelcomePage = lazy(() => import('@/pages/auth/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const MyMarketplacePage = lazy(() => import('@/pages/marketplace/MyMarketplacePage').then((m) => ({ default: m.MyMarketplacePage })))
 const MarketplaceAdminPage = lazy(() => import('@/pages/marketplace/MarketplaceAdminPage').then((m) => ({ default: m.MarketplaceAdminPage })))
 const PublicMealPlanPage = lazy(() => import('@/pages/public/PublicMealPlanPage').then((m) => ({ default: m.PublicMealPlanPage })))
@@ -337,6 +338,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      {/* Invitación de un profesional: crea su contraseña y entra. */}
+      <Route path="/bienvenida" element={withPageSuspense(<WelcomePage />)} />
 
       <Route path="/form/check-in/compartido/:token" element={withPageSuspense(<PublicCheckInPage shared />)} />
       <Route path="/form/check-in/:token" element={withPageSuspense(<PublicCheckInPage />)} />

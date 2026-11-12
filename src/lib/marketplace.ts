@@ -32,6 +32,23 @@ export interface MarketplaceProfessional {
   updated_at: string
 }
 
+/** Cuenta de la app que se le creó (o vinculó) a un perfil. Fila de `marketplace_access`. */
+export interface MarketplaceAccess {
+  professional_id: string
+  user_id: string
+  email: string
+  /** true: la cuenta nació con la invitación · false: ya existía y solo se vinculó. */
+  created_account: boolean
+  invited_at: string
+  activated_at: string | null
+}
+
+/** Quién maneja el perfil, para mostrarlo en una pastilla. */
+export type MarketplaceAccessState = 'sin-cuenta' | 'invitado' | 'activa' | 'propia'
+
+/** Roles del marketplace que tienen app (el resto solo puede tener perfil público). */
+export const MARKETPLACE_ROLES_WITH_APP: MarketplaceRole[] = ['entrenador', 'nutricionista', 'psicologo']
+
 export interface MarketplacePlan {
   id: string
   professional_id: string

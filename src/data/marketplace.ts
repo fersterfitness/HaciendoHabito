@@ -11,6 +11,7 @@ import {
   DIRECTORY_PAGE_SIZE,
   PRICE_RANGES,
   type DirectoryFilters,
+  type MarketplaceAccess,
   type MarketplaceApplication,
   type MarketplaceDirectoryRow,
   type MarketplacePlan,
@@ -151,12 +152,21 @@ export async function submitApplication(input: ApplicationInput): Promise<void> 
 const managedKey = (userId: string | undefined) => ['marketplace', 'managed', userId] as const
 
 /** Un profesional que administra esta cuenta, con sus planes y las solicitudes que recibió. */
-export type ManagedProfessional = MarketplaceProfessional & { plans: MarketplacePlan[]; requests: MarketplaceRequest[] }
+export type ManagedProfessional = MarketplaceProfessional & {
+  plans: MarketplacePlan[]
+  requests: MarketplaceRequest[]
+  /** La cuenta de la app que se le dio, si tiene. */
+  access: MarketplaceAccess | null
+}
 
 export type ManagedMarketplace = {
   professionals: ManagedProfessional[]
   /** Falta correr 20261112120000_marketplace_managed_profiles.sql: solo se ve el perfil propio y no se pueden cargar otros. */
   needsMigration: boolean
+  /** Falta correr 20261113120000_marketplace_access.sql: no se pueden crear cuentas para otros. */
+  needsAccessMigration: boolean
+  /** Esta cuenta puede crearle una cuenta a otro profesional (admin o superadmin). */
+  canGrantAccess: boolean
 }
 
 /** Los perfiles que cargó esta cuenta (y el propio, si lo tiene). */
@@ -180,20 +190,30 @@ export function useManagedProfessionals(userId: string | undefined) {
       }
       if (res.error) throw res.error
       const rows = (res.data ?? []) as MarketplaceProfessional[]
-      if (!rows.length) return { professionals: [], needsMigration }
+      const grant = await supabase.rpc('can_grant_marketplace_access')
+      const needsAccessMigration = Boolean(grant.error)
+      const canGrantAccess = grant.data === true
+      if (!rows.length) return { professionals: [], needsMigration, needsAccessMigration, canGrantAccess }
       const ids = rows.map((r) => r.id)
-      const [plans, requests] = await Promise.all([
+      const [plans, requests, access] = await Promise.all([
         supabase.from('marketplace_plans').select(PLAN_COLUMNS).in('professional_id', ids).order('orden').order('created_at'),
         supabase.from('marketplace_requests').select('*').in('professional_id', ids).order('created_at', { ascending: false }).limit(500),
+        needsAccessMigration
+          ? Promise.resolve({ data: [] as MarketplaceAccess[], error: null })
+          : supabase.from('marketplace_access').select('professional_id, user_id, email, created_account, invited_at, activated_at').in('professional_id', ids),
       ])
       if (plans.error) throw plans.error
       if (requests.error) throw requests.error
+      const allAccess = (access.error ? [] : (access.data ?? [])) as MarketplaceAccess[]
       const allPlans = (plans.data ?? []) as MarketplacePlan[]
       const allRequests = (requests.data ?? []) as MarketplaceRequest[]
       return {
         needsMigration,
+        needsAccessMigration,
+        canGrantAccess,
         professionals: rows.map((r) => ({
           ...r,
+          access: allAccess.find((a) => a.professional_id === r.id) ?? null,
           plans: allPlans.filter((p) => p.professional_id === r.id),
           requests: allRequests.filter((q) => q.professional_id === r.id),
         })),
@@ -233,6 +253,42 @@ export function useDeleteProfessional() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['marketplace'] }),
+  })
+}
+
+export type GrantAccessResult = {
+  /** invited: cuenta nueva con link para crear la clave · linked_existing: el correo ya tenía cuenta. */
+  status: 'invited' | 'linked_existing'
+  email: string
+  link: string | null
+}
+
+/** Le crea al profesional su cuenta de la app (o regenera la invitación si todavía no la usó). */
+export function useGrantAccess() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ professionalId, email }: { professionalId: string; email?: string }): Promise<GrantAccessResult> => {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (!token) throw new Error('Se cerró la sesión. Entrá de nuevo.')
+      let res: Response
+      try {
+        res = await fetch('/api/marketplace-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ professionalId, email }),
+        })
+      } catch {
+        throw new Error('No hay conexión. Probá de nuevo.')
+      }
+      const body = (await res.json().catch(() => null)) as (GrantAccessResult & { message?: string }) | null
+      if (!res.ok || !body?.status) {
+        // En desarrollo (vite) no existen las funciones de /api: solo andan en el sitio publicado.
+        throw new Error(body?.message ?? 'Crear cuentas solo funciona en el sitio publicado, no en la copia local.')
+      }
+      return body
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['marketplace'] }),
   })
 }
 

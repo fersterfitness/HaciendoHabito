@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Camera, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Camera, Check, ChevronDown, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -12,6 +12,7 @@ import {
   uploadMarketplacePhoto,
   useDeletePlan,
   useDeleteProfessional,
+  useGrantAccess,
   useManagedProfessionals,
   useSavePlan,
   useSaveProfessional,
@@ -27,6 +28,7 @@ import {
   formatPrice,
   marketplaceSlug,
   whatsappLink,
+  type MarketplaceAccessState,
   type MarketplaceDuration,
   type MarketplaceModality,
   type MarketplacePlan,
@@ -35,10 +37,22 @@ import {
   type MarketplaceRequestStatus,
   type MarketplaceRole,
 } from '@/lib/marketplace'
+import {
+  ACCESS_LABEL,
+  SELECTED_KEY,
+  accessState,
+  clearDraft,
+  initialDraft,
+  inviteMemo,
+  readDraft,
+  writeDraft,
+  type ProfileDraft,
+} from '@/lib/marketplaceDraft'
 import { cn, formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
+import { AccessTab, ManagerChoice, grantBlocker, isEmail, type AccessContext } from './panel/AccessTab'
 
-type Tab = 'perfil' | 'planes' | 'solicitudes'
+type Tab = 'perfil' | 'planes' | 'acceso' | 'solicitudes'
 
 const MIGRATION = '20261112120000_marketplace_managed_profiles.sql'
 
@@ -54,56 +68,6 @@ const errorMessage = (err: unknown) => {
 
 // ───────────────────────── Perfil ─────────────────────────
 
-type ProfileDraft = {
-  nombre: string
-  slug: string
-  slugTouched: boolean
-  rol: MarketplaceRole
-  deportes: string[]
-  especialidades: string
-  modalidad: MarketplaceModality[]
-  ubicacion: string
-  whatsapp: string
-  bio: string
-  fotoUrl: string | null
-}
-
-const draftKey = (id: string | null) => `hh-mkt-draft-${id ?? 'new'}`
-
-function initialDraft(p: MarketplaceProfessional | null): ProfileDraft {
-  return {
-    nombre: p?.nombre ?? '',
-    slug: p?.slug ?? '',
-    slugTouched: Boolean(p),
-    rol: p?.rol ?? 'entrenador',
-    deportes: p?.deportes ?? [],
-    especialidades: (p?.especialidades ?? []).join(', '),
-    modalidad: p?.modalidad ?? ['online'],
-    ubicacion: p?.ubicacion ?? '',
-    whatsapp: p?.whatsapp ?? '',
-    bio: p?.bio ?? '',
-    fotoUrl: p?.foto_url ?? null,
-  }
-}
-
-/** Lo que se venía escribiendo y no se guardó: sobrevive a cambiar de pestaña, de pantalla o recargar. */
-function readDraft(id: string | null): ProfileDraft | null {
-  try {
-    const raw = sessionStorage.getItem(draftKey(id))
-    return raw ? (JSON.parse(raw) as ProfileDraft) : null
-  } catch {
-    return null
-  }
-}
-
-function clearDraft(id: string | null) {
-  try {
-    sessionStorage.removeItem(draftKey(id))
-  } catch {
-    /* sin almacenamiento */
-  }
-}
-
 function FormSection({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section className="grid gap-4 border-t border-surface-border px-5 py-5 first:border-t-0 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
@@ -116,15 +80,26 @@ function FormSection({ title, hint, children }: { title: string; hint?: string; 
   )
 }
 
-function ProfileForm({ professional, onCreated }: { professional: MarketplaceProfessional | null; onCreated: (id: string) => void }) {
+function ProfileForm({
+  professional,
+  ctx,
+  onCreated,
+}: {
+  professional: MarketplaceProfessional | null
+  ctx: AccessContext
+  onCreated: (id: string, next: Tab) => void
+}) {
   const user = useAuthStore((s) => s.user)
   const save = useSaveProfessional()
+  const grant = useGrantAccess()
   const id = professional?.id ?? null
   const [restored] = useState(() => readDraft(id))
   const [d, setD] = useState<ProfileDraft>(() => restored ?? initialDraft(professional))
   const [dirty, setDirty] = useState(Boolean(restored))
-  const [errors, setErrors] = useState<Partial<Record<'nombre' | 'slug' | 'modalidad', string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<'nombre' | 'slug' | 'modalidad' | 'email', string>>>({})
   const [uploading, setUploading] = useState(false)
+  const blocker = grantBlocker(ctx, d.rol)
+  const wantsAccount = !professional && d.cuenta === 'propia' && !blocker
   const fileRef = useRef<HTMLInputElement>(null)
 
   const set = (patch: Partial<ProfileDraft>) => {
@@ -133,11 +108,7 @@ function ProfileForm({ professional, onCreated }: { professional: MarketplacePro
   }
   useEffect(() => {
     if (!dirty) return
-    try {
-      sessionStorage.setItem(draftKey(id), JSON.stringify(d))
-    } catch {
-      /* sin almacenamiento: queda en memoria */
-    }
+    writeDraft(id, d)
   }, [d, dirty, id])
 
   const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((x) => x !== value) : [...list, value])
@@ -168,8 +139,10 @@ function ProfileForm({ professional, onCreated }: { professional: MarketplacePro
     if (d.nombre.trim().length < 2) next.nombre = 'Escribí el nombre del profesional.'
     if (cleanSlug.length < 3) next.slug = 'La dirección necesita al menos 3 letras.'
     if (d.modalidad.length === 0) next.modalidad = 'Elegí al menos una modalidad.'
+    if (wantsAccount && !isEmail(d.email)) next.email = 'Escribí un correo válido: con ese correo va a entrar.'
     setErrors(next)
     if (Object.keys(next).length) return
+    const inviteEmail = wantsAccount ? d.email.trim() : null
 
     save.mutate(
       {
@@ -196,8 +169,27 @@ function ProfileForm({ professional, onCreated }: { professional: MarketplacePro
           clearDraft(id)
           setDirty(false)
           setD((cur) => ({ ...cur, slug: cleanSlug, slugTouched: true }))
-          toast.success(professional ? 'Perfil guardado' : 'Profesional creado. Ahora cargale los planes.')
-          if (!professional) onCreated(savedId)
+          if (professional) return void toast.success('Perfil guardado')
+          if (!inviteEmail) {
+            toast.success('Profesional creado. Ahora cargale los planes.')
+            return onCreated(savedId, 'planes')
+          }
+          // Con cuenta propia: se crea en el mismo paso y se muestra el link para mandarle.
+          grant.mutate(
+            { professionalId: savedId, email: inviteEmail },
+            {
+              onSuccess: (res) => {
+                inviteMemo.set(savedId, { link: res.link, email: res.email })
+                toast.success(res.status === 'invited' ? 'Perfil y cuenta creados. Mandale la invitación.' : 'Perfil creado. Ese correo ya tenía cuenta: quedó vinculada.')
+              },
+              onError: (err) => {
+                // El perfil quedó creado: en Acceso se reintenta con el correo ya escrito.
+                inviteMemo.set(savedId, { link: null, email: inviteEmail })
+                toast.error(err instanceof Error ? `El perfil se creó, pero la cuenta no. ${err.message}` : 'El perfil se creó, pero la cuenta no.')
+              },
+              onSettled: () => onCreated(savedId, 'acceso'),
+            },
+          )
         },
         onError: (err) => toast.error(errorMessage(err)),
       },
@@ -208,7 +200,9 @@ function ProfileForm({ professional, onCreated }: { professional: MarketplacePro
     <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card">
       {restored && dirty ? (
         <p className="flex flex-wrap items-center justify-between gap-2 bg-status-warn/15 px-5 py-2.5 text-xs text-status-warn-ink">
-          Recuperamos lo que venías escribiendo y no habías guardado.
+          {d.postulacion
+            ? `Cargamos lo que ${d.postulacion.split(' ')[0]} dejó en su postulación. Revisalo, completá lo que falta y creá el perfil.`
+            : 'Recuperamos lo que venías escribiendo y no habías guardado.'}
           <Button variant="ghost" size="sm" onClick={discard}>
             Descartar
           </Button>
@@ -324,9 +318,29 @@ function ProfileForm({ professional, onCreated }: { professional: MarketplacePro
         <Textarea label="Sobre el profesional" rows={5} value={d.bio} onChange={(e) => set({ bio: e.target.value })} maxLength={1200} />
       </FormSection>
 
+      {professional ? null : (
+        <FormSection title="Acceso a la app" hint="Aparecer en la web no necesita cuenta. Dásela si querés que use la app por su lado. Lo podés cambiar después.">
+          <ManagerChoice value={blocker ? 'yo' : d.cuenta} onChange={(cuenta) => set({ cuenta })} blocker={blocker} />
+          {wantsAccount ? (
+            <Input
+              label="Su correo"
+              type="email"
+              inputMode="email"
+              autoComplete="off"
+              placeholder="nombre@correo.com"
+              value={d.email}
+              onChange={(e) => set({ email: e.target.value })}
+              error={errors.email}
+              hint="Con este correo va a entrar. Al crear el perfil te damos un link para que elija su contraseña."
+              maxLength={160}
+            />
+          ) : null}
+        </FormSection>
+      )}
+
       <div className="flex flex-wrap items-center gap-3 border-t border-surface-border bg-surface-panel/60 px-5 py-3.5">
-        <Button onClick={onSave} loading={save.isPending} disabled={uploading}>
-          {professional ? 'Guardar perfil' : 'Crear profesional'}
+        <Button onClick={onSave} loading={save.isPending || grant.isPending} disabled={uploading}>
+          {professional ? 'Guardar perfil' : wantsAccount ? 'Crear perfil y cuenta' : 'Crear profesional'}
         </Button>
         {dirty ? <span className="text-xs text-ink-muted">Hay cambios sin guardar.</span> : professional ? <span className="text-xs text-ink-muted">Todo guardado.</span> : null}
       </div>
@@ -657,9 +671,7 @@ function RequestsTab({ requests }: { requests: MarketplaceRequest[] }) {
   )
 }
 
-// ───────────────────────── Página ─────────────────────────
-
-// ───────────────────────── Lista y editor ─────────────────────────
+// ───────────────────────── Estado y pasos ─────────────────────────
 
 const STATE_CHIP: Record<MarketplaceProfessional['estado'], { label: string; className: string }> = {
   aprobado: { label: 'Publicado', className: 'bg-status-ok text-[rgb(36_53_11)]' },
@@ -668,17 +680,170 @@ const STATE_CHIP: Record<MarketplaceProfessional['estado'], { label: string; cla
   oculto: { label: 'Oculto por el administrador', className: 'bg-status-expired/12 text-status-expired' },
 }
 
+const chipClass = 'inline-flex h-6 items-center rounded-md px-2 text-xs font-medium'
+
 function StateChip({ estado }: { estado: MarketplaceProfessional['estado'] }) {
   const s = STATE_CHIP[estado]
-  return <span className={cn('inline-flex h-6 items-center rounded-md px-2 text-xs font-medium', s.className)}>{s.label}</span>
+  return <span className={cn(chipClass, s.className)}>{s.label}</span>
+}
+
+const ACCESS_CHIP: Record<MarketplaceAccessState, string> = {
+  'sin-cuenta': 'bg-surface-elevated text-ink-secondary',
+  invitado: 'bg-status-warn/20 text-status-warn-ink',
+  activa: 'bg-surface-elevated text-ink-primary',
+  propia: 'bg-surface-elevated text-ink-primary',
+}
+
+function AccessChip({ state }: { state: MarketplaceAccessState }) {
+  return <span className={cn(chipClass, ACCESS_CHIP[state])}>{ACCESS_LABEL[state]}</span>
 }
 
 const roleLabel = (rol: MarketplaceRole) => MARKETPLACE_ROLES.find((r) => r.value === rol)?.label ?? rol
 
-function ProfessionalCard({ p, onOpen }: { p: ManagedProfessional; onOpen: () => void }) {
+type Step = { key: string; title: string; detail: string; status: 'done' | 'todo' | 'optional'; tab?: Tab }
+
+/** Los cuatro pasos para que un profesional quede andando, con lo que falta en cada uno. */
+function setupSteps(p: ManagedProfessional, myId: string | undefined): Step[] {
+  const missing = [!p.foto_url && 'foto', !p.bio.trim() && 'presentación', !p.whatsapp.trim() && 'WhatsApp'].filter(Boolean) as string[]
+  const active = p.plans.filter((x) => x.activo).length
+  const access = accessState(p, myId)
+  return [
+    {
+      key: 'perfil',
+      title: 'Perfil',
+      detail: missing.length ? `Falta ${missing.join(', ')}` : 'Completo',
+      status: missing.length ? 'todo' : 'done',
+      tab: 'perfil',
+    },
+    {
+      key: 'planes',
+      title: 'Planes',
+      detail: active ? `${active} ${active === 1 ? 'activo' : 'activos'}` : 'Cargá al menos uno',
+      status: active ? 'done' : 'todo',
+      tab: 'planes',
+    },
+    {
+      key: 'acceso',
+      title: 'Acceso a la app',
+      detail: ACCESS_LABEL[access],
+      status: access === 'invitado' ? 'todo' : access === 'sin-cuenta' ? 'optional' : 'done',
+      tab: 'acceso',
+    },
+    {
+      key: 'publicar',
+      title: 'En la web',
+      detail: p.estado === 'aprobado' ? 'Publicado' : p.estado === 'oculto' ? 'Oculto' : active ? 'Listo para publicar' : 'Sin publicar',
+      status: p.estado === 'aprobado' ? 'done' : 'todo',
+    },
+  ]
+}
+
+function StepDot({ status, n }: { status: Step['status']; n: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-2xs font-semibold',
+        status === 'done' ? 'bg-status-ok text-[rgb(36_53_11)]' : status === 'optional' ? 'bg-surface-elevated text-ink-muted' : 'border border-surface-inputBorder text-ink-secondary',
+      )}
+    >
+      {status === 'done' ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : n}
+    </span>
+  )
+}
+
+function SetupSteps({ steps, current, onGo }: { steps: Step[]; current: Tab; onGo: (tab: Tab) => void }) {
+  return (
+    <ol className="grid overflow-hidden rounded-2xl border border-surface-border bg-surface-card sm:grid-cols-4">
+      {steps.map((step, i) => {
+        const body = (
+          <>
+            <StepDot status={step.status} n={i + 1} />
+            <span className="min-w-0">
+              <span className="block truncate text-body-sm font-medium text-ink-primary">{step.title}</span>
+              <span className={cn('block truncate text-xs', step.status === 'todo' ? 'text-ink-secondary' : 'text-ink-muted')}>{step.detail}</span>
+            </span>
+          </>
+        )
+        const cell = 'flex w-full items-center gap-2.5 px-4 py-3 text-left'
+        return (
+          <li key={step.key} className="border-t border-surface-border first:border-t-0 sm:border-l sm:border-t-0 sm:first:border-l-0">
+            {step.tab ? (
+              <button
+                type="button"
+                onClick={() => onGo(step.tab!)}
+                aria-current={current === step.tab ? 'step' : undefined}
+                className={cn('hh-focus transition-colors hover:bg-surface-elevated/60', cell, current === step.tab && 'bg-surface-elevated/60')}
+              >
+                {body}
+              </button>
+            ) : (
+              <div className={cell}>{body}</div>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+const HOW_KEY = 'hh-mkt-howto'
+
+const HOW_STEPS = [
+  { title: 'Cargás el perfil', body: 'Foto, a qué se dedica y su WhatsApp. Es su página en la web.' },
+  { title: 'Le sumás los planes', body: 'Qué ofrece y a qué precio. Es lo que el cliente agrega a su equipo.' },
+  { title: 'Elegís quién lo maneja', body: 'Vos desde acá, o él con su propia cuenta de la app. Se la creás con su correo.' },
+  { title: 'Lo publicás', body: 'Aparece en el directorio y las solicitudes llegan a quien lo maneja.' },
+]
+
+/** Explica el circuito completo. Se puede cerrar y queda cerrado. */
+function HowItWorks() {
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(HOW_KEY) !== '0'
+    } catch {
+      return true
+    }
+  })
+  const toggle = () => {
+    const next = !open
+    setOpen(next)
+    try {
+      localStorage.setItem(HOW_KEY, next ? '1' : '0')
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
+  return (
+    <section className="rounded-2xl bg-surface-elevated/70">
+      <button type="button" onClick={toggle} aria-expanded={open} className="hh-focus flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left">
+        <span className="text-body-sm font-medium text-ink-primary">Cómo funciona</span>
+        <ChevronDown className={cn('h-4 w-4 text-ink-muted transition-transform', open && 'rotate-180')} aria-hidden="true" />
+      </button>
+      {open ? (
+        <ol className="grid gap-2 px-2 pb-2 sm:grid-cols-2 lg:grid-cols-4">
+          {HOW_STEPS.map((s, i) => (
+            <li key={s.title} className="flex flex-col gap-1.5 rounded-xl bg-surface-card p-3.5">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink-primary text-2xs font-semibold text-surface-card">{i + 1}</span>
+              <p className="text-sm font-medium text-ink-primary">{s.title}</p>
+              <p className="text-xs leading-relaxed text-ink-muted">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+    </section>
+  )
+}
+
+// ───────────────────────── Lista y editor ─────────────────────────
+
+function ProfessionalCard({ p, myId, onOpen }: { p: ManagedProfessional; myId: string | undefined; onOpen: () => void }) {
   const active = p.plans.filter((x) => x.activo)
   const from = active.length ? Math.min(...active.map((x) => x.precio)) : null
   const fresh = p.requests.filter((r) => r.estado === 'nueva').length
+  const steps = setupSteps(p, myId)
+  const next = steps.find((s) => s.status === 'todo')
+  const ready = steps.filter((s) => s.status !== 'todo').length
   return (
     <button
       type="button"
@@ -690,12 +855,25 @@ function ProfessionalCard({ p, onOpen }: { p: ManagedProfessional; onOpen: () =>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium tracking-[-0.01em] text-ink-primary">{p.nombre}</p>
           <p className="truncate text-xs text-ink-muted">{roleLabel(p.rol)}</p>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             <StateChip estado={p.estado} />
+            <AccessChip state={accessState(p, myId)} />
           </div>
         </div>
       </div>
-      <dl className="grid grid-cols-3 gap-2 border-t border-surface-border pt-3 text-xs">
+      {next ? (
+        <div className="flex items-center gap-2.5">
+          <div className="flex flex-1 gap-1" aria-hidden="true">
+            {steps.map((s, i) => (
+              <span key={s.key} className={cn('h-1 flex-1 rounded-full', i < ready ? 'bg-ink-primary' : 'bg-surface-elevated')} />
+            ))}
+          </div>
+          <span className="truncate text-xs text-ink-secondary">
+            Sigue: {next.title.toLowerCase()}
+          </span>
+        </div>
+      ) : null}
+      <dl className="mt-auto grid w-full grid-cols-3 gap-2 border-t border-surface-border pt-3 text-xs">
         <div>
           <dt className="text-ink-muted">Planes</dt>
           <dd className="mt-0.5 text-sm font-medium tabular-nums text-ink-primary">{active.length}</dd>
@@ -715,15 +893,29 @@ function ProfessionalCard({ p, onOpen }: { p: ManagedProfessional; onOpen: () =>
   )
 }
 
-function Editor({ professional, onBack, onCreated }: { professional: ManagedProfessional | null; onBack: () => void; onCreated: (id: string) => void }) {
+function Editor({
+  professional,
+  ctx,
+  initialTab,
+  onBack,
+  onCreated,
+}: {
+  professional: ManagedProfessional | null
+  ctx: AccessContext
+  initialTab: Tab
+  /** Sin lista a la que volver (el profesional que solo ve su propio perfil). */
+  onBack: (() => void) | null
+  onCreated: (id: string, next: Tab) => void
+}) {
   const save = useSaveProfessional()
   const del = useDeleteProfessional()
-  const [tab, setTab] = useState<Tab>('perfil')
+  const [tab, setTab] = useState<Tab>(professional ? initialTab : 'perfil')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const activePlans = professional?.plans.filter((p) => p.activo).length ?? 0
   const newRequests = professional?.requests.filter((r) => r.estado === 'nueva').length ?? 0
   const published = professional?.estado === 'aprobado'
   const url = professional ? `${window.location.origin}/p/${professional.slug}` : ''
+  const canDelete = Boolean(professional && (professional.managed_by === ctx.myId || onBack))
 
   function setPublished(next: boolean) {
     if (!professional) return
@@ -737,24 +929,29 @@ function Editor({ professional, onBack, onCreated }: { professional: ManagedProf
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-3.5 w-3.5" />} onClick={onBack} className="-ml-2">
-          Profesionales
-        </Button>
-      </div>
+    <div className="flex flex-col gap-4">
+      {onBack ? (
+        <div>
+          <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-3.5 w-3.5" />} onClick={onBack} className="-ml-2">
+            Profesionales
+          </Button>
+        </div>
+      ) : null}
 
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-surface-border bg-surface-card p-4">
-        <ProfessionalPhoto nombre={professional?.nombre ?? 'HH'} fotoUrl={professional?.foto_url ?? null} className="h-14 w-14 text-lg" />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-semibold tracking-tight text-ink-primary">{professional?.nombre ?? 'Nuevo profesional'}</h2>
+      <div className="flex flex-wrap items-center gap-4">
+        <ProfessionalPhoto nombre={professional?.nombre ?? 'HH'} fotoUrl={professional?.foto_url ?? null} className="h-16 w-16 text-xl" />
+        <div className="min-w-0 flex-1 basis-56">
+          <h1 className="truncate text-2xl font-semibold leading-tight tracking-tight text-ink-primary">{professional?.nombre ?? 'Nuevo profesional'}</h1>
           {professional ? (
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
               <StateChip estado={professional.estado} />
-              <span>{roleLabel(professional.rol)}</span>
+              <AccessChip state={accessState(professional, ctx.myId)} />
+              <span className="ml-1">{roleLabel(professional.rol)}</span>
             </div>
           ) : (
-            <p className="mt-0.5 text-xs text-ink-muted">Cargá sus datos y guardá. Después le sumás los planes y lo publicás.</p>
+            <p className="mt-1 max-w-lg text-body-sm text-ink-muted">
+              Cargá sus datos y elegí si lo manejás vos o si le das su propia cuenta. Después le sumás los planes y lo publicás.
+            </p>
           )}
         </div>
         {professional ? (
@@ -763,8 +960,7 @@ function Editor({ professional, onBack, onCreated }: { professional: ManagedProf
               <>
                 <Button
                   variant="secondary"
-                  size="sm"
-                  icon={<Copy className="h-3.5 w-3.5" />}
+                  icon={<Copy className="h-4 w-4" />}
                   onClick={() => {
                     void navigator.clipboard.writeText(url).then(
                       () => toast.success('Link copiado'),
@@ -774,53 +970,56 @@ function Editor({ professional, onBack, onCreated }: { professional: ManagedProf
                 >
                   Copiar link
                 </Button>
-                <Button asChild variant="secondary" size="sm" icon={<ExternalLink className="h-3.5 w-3.5" />}>
+                <Button asChild variant="secondary" icon={<ExternalLink className="h-4 w-4" />}>
                   <a href={`/p/${professional.slug}`} target="_blank" rel="noopener noreferrer">
                     Ver página
                   </a>
                 </Button>
-                <Button variant="ghost" size="sm" loading={save.isPending} onClick={() => setPublished(false)}>
+                <Button variant="ghost" loading={save.isPending} onClick={() => setPublished(false)}>
                   Dejar de publicar
                 </Button>
               </>
             ) : professional.estado !== 'oculto' ? (
-              <Button size="sm" loading={save.isPending} disabled={activePlans === 0} title={activePlans === 0 ? 'Cargale al menos un plan activo' : undefined} onClick={() => setPublished(true)}>
-                Publicar
+              <Button loading={save.isPending} disabled={activePlans === 0} title={activePlans === 0 ? 'Cargale al menos un plan activo' : undefined} onClick={() => setPublished(true)}>
+                Publicar en la web
               </Button>
             ) : null}
-            <Button variant="ghost" size="iconSm" aria-label="Eliminar profesional" title="Eliminar profesional" onClick={() => setConfirmDelete(true)}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            {canDelete ? (
+              <Button variant="ghost" size="icon" aria-label="Eliminar profesional" title="Eliminar profesional" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
 
-      {professional && !published && professional.estado !== 'oculto' && activePlans === 0 ? (
-        <p className="rounded-xl bg-surface-elevated px-4 py-3 text-sm text-ink-secondary">
-          Para publicarlo falta cargarle al menos un plan activo, en la pestaña Planes.
-        </p>
-      ) : null}
-
       {professional ? (
-        <SegmentedV2
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: 'perfil', label: 'Perfil' },
-            { value: 'planes', label: 'Planes', count: professional.plans.length },
-            { value: 'solicitudes', label: 'Solicitudes', count: newRequests },
-          ]}
-        />
+        <>
+          <SetupSteps steps={setupSteps(professional, ctx.myId)} current={tab} onGo={setTab} />
+          <SegmentedV2
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'perfil', label: 'Perfil' },
+              { value: 'planes', label: 'Planes', count: professional.plans.length },
+              { value: 'acceso', label: 'Acceso' },
+              { value: 'solicitudes', label: 'Solicitudes', count: newRequests },
+            ]}
+          />
+        </>
       ) : null}
 
-      {/* Las tres pestañas quedan montadas: cambiar de una a otra no borra lo que se estaba escribiendo. */}
+      {/* Perfil, planes y solicitudes quedan montados: cambiar de pestaña no borra lo que se estaba escribiendo. */}
       <div hidden={tab !== 'perfil'}>
-        <ProfileForm key={professional?.id ?? 'new'} professional={professional} onCreated={onCreated} />
+        <ProfileForm key={professional?.id ?? 'new'} professional={professional} ctx={ctx} onCreated={onCreated} />
       </div>
       {professional ? (
         <>
           <div hidden={tab !== 'planes'}>
             <PlansTab professional={professional} plans={professional.plans} />
+          </div>
+          <div hidden={tab !== 'acceso'}>
+            <AccessTab professional={professional} ctx={ctx} />
           </div>
           <div hidden={tab !== 'solicitudes'}>
             <RequestsTab requests={professional.requests} />
@@ -832,7 +1031,7 @@ function Editor({ professional, onBack, onCreated }: { professional: ManagedProf
         <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Eliminar profesional">
           <p className="text-sm text-ink-secondary">
             Se borran el perfil de <span className="font-medium text-ink-primary">{professional.nombre}</span>, sus planes y las solicitudes que recibió.
-            No se puede deshacer.
+            {professional.user_id && professional.user_id !== ctx.myId ? ' Su cuenta de la app no se borra: sigue entrando, sin página en la web.' : ''} No se puede deshacer.
           </p>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
@@ -845,8 +1044,9 @@ function Editor({ professional, onBack, onCreated }: { professional: ManagedProf
                 del.mutate(professional.id, {
                   onSuccess: () => {
                     clearDraft(professional.id)
+                    inviteMemo.delete(professional.id)
                     toast.success('Profesional eliminado')
-                    onBack()
+                    onBack?.()
                   },
                   onError: (err) => toast.error(errorMessage(err)),
                 })
@@ -861,7 +1061,7 @@ function Editor({ professional, onBack, onCreated }: { professional: ManagedProf
   )
 }
 
-const SELECTED_KEY = 'hh-mkt-selected'
+// ───────────────────────── Página ─────────────────────────
 
 export function MyMarketplacePage() {
   const user = useAuthStore((s) => s.user)
@@ -875,8 +1075,10 @@ export function MyMarketplacePage() {
       return null
     }
   })
-  const setSelected = (next: string | null) => {
+  const [openTab, setOpenTab] = useState<Tab>('perfil')
+  const setSelected = (next: string | null, tab: Tab = 'perfil') => {
     setSelectedState(next)
+    setOpenTab(tab)
     try {
       if (next) sessionStorage.setItem(SELECTED_KEY, next)
       else sessionStorage.removeItem(SELECTED_KEY)
@@ -885,14 +1087,22 @@ export function MyMarketplacePage() {
     }
   }
 
-  useEffect(() => {
-    document.title = 'Marketplace · Haciéndolo Hábito'
-  }, [])
-
   const professionals = data?.professionals ?? []
-  const current = selected && selected !== 'new' ? (professionals.find((p) => p.id === selected) ?? null) : null
-  const editing = selected === 'new' || Boolean(current)
+  const ctx: AccessContext = {
+    myId: user?.id,
+    canGrant: data?.canGrantAccess ?? false,
+    needsAccessMigration: data?.needsAccessMigration ?? false,
+  }
+  // El profesional invitado: su único perfil es el propio y lo cargó otra cuenta. Entra directo a su página.
+  const onlyMine = professionals.length === 1 && professionals[0].user_id === user?.id && professionals[0].managed_by !== user?.id ? professionals[0] : null
+  const current = onlyMine ?? (selected && selected !== 'new' ? (professionals.find((p) => p.id === selected) ?? null) : null)
+  const editing = Boolean(current) || (selected === 'new' && !onlyMine)
   const pendingRequests = professionals.reduce((a, p) => a + p.requests.filter((r) => r.estado === 'nueva').length, 0)
+  const pendingInvites = professionals.filter((p) => accessState(p, user?.id) === 'invitado').length
+
+  useEffect(() => {
+    document.title = `${onlyMine ? 'Mi página' : 'Marketplace'} · Haciéndolo Hábito`
+  }, [onlyMine])
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-14 pt-6 lg:px-10 lg:pt-9">
@@ -901,7 +1111,7 @@ export function MyMarketplacePage() {
           <div>
             <h1 className="text-2xl font-semibold leading-tight tracking-tight">Marketplace</h1>
             <p className="mt-1 max-w-xl text-body-sm text-ink-muted">
-              Los profesionales que ofrecés en la web. Cargá a cada uno con sus planes y publicalo; los clientes que lo elijan te aparecen acá.
+              Los profesionales que ofrecés en la web. Cada uno tiene su página y sus planes; vos decidís si lo manejás vos o si entra con su propia cuenta.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -942,31 +1152,44 @@ export function MyMarketplacePage() {
           </Button>
         </div>
       ) : editing ? (
-        <Editor key={current?.id ?? 'new'} professional={current} onBack={() => setSelected(null)} onCreated={(id) => setSelected(id)} />
-      ) : professionals.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-surface-inputBorder px-6 py-12 text-center">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-elevated text-ink-secondary">
-            <Users className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-ink-primary">Todavía no cargaste profesionales</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">Sumá al primero: sus datos, una foto y los planes que ofrece. Cuando lo publiques aparece en la web.</p>
-          </div>
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setSelected('new')} disabled={data.needsMigration}>
-            Nuevo profesional
-          </Button>
-        </div>
+        <Editor
+          key={current?.id ?? 'new'}
+          professional={current}
+          ctx={ctx}
+          initialTab={openTab}
+          onBack={onlyMine ? null : () => setSelected(null)}
+          onCreated={(id, next) => setSelected(id, next)}
+        />
       ) : (
         <>
-          <p className="text-xs text-ink-muted">
-            {professionals.length} {professionals.length === 1 ? 'profesional' : 'profesionales'} · {professionals.filter((p) => p.estado === 'aprobado').length} publicados
-            {pendingRequests ? ` · ${pendingRequests} ${pendingRequests === 1 ? 'solicitud nueva' : 'solicitudes nuevas'}` : ''}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {professionals.map((p) => (
-              <ProfessionalCard key={p.id} p={p} onOpen={() => setSelected(p.id)} />
-            ))}
-          </div>
+          <HowItWorks />
+          {professionals.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-surface-inputBorder px-6 py-12 text-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-elevated text-ink-secondary">
+                <Users className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-ink-primary">Todavía no cargaste profesionales</p>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">Sumá al primero: sus datos, una foto y los planes que ofrece. Si querés, le creás su cuenta en el mismo paso.</p>
+              </div>
+              <Button icon={<Plus className="h-4 w-4" />} onClick={() => setSelected('new')} disabled={data.needsMigration}>
+                Nuevo profesional
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-ink-muted">
+                {professionals.length} {professionals.length === 1 ? 'profesional' : 'profesionales'} · {professionals.filter((p) => p.estado === 'aprobado').length} publicados
+                {pendingInvites ? ` · ${pendingInvites} ${pendingInvites === 1 ? 'invitación sin usar' : 'invitaciones sin usar'}` : ''}
+                {pendingRequests ? ` · ${pendingRequests} ${pendingRequests === 1 ? 'solicitud nueva' : 'solicitudes nuevas'}` : ''}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {professionals.map((p) => (
+                  <ProfessionalCard key={p.id} p={p} myId={user?.id} onOpen={() => setSelected(p.id)} />
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
