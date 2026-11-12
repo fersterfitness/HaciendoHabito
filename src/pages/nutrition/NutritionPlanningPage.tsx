@@ -1,4 +1,5 @@
 import { IS_V2 } from '@/lib/uiVersion'
+import { StatTile } from '@/pages/students/studentDetail/StatTile'
 import { onTabListKeyDown } from '@/lib/tabKeyboard'
 import { v2TabClass } from '@/components/v2/tabStyle'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -108,10 +109,19 @@ const PLAN_FIELD_SELECT = cn('flex w-full', controlMdClassName)
 /** Áreas de texto del plan: mismo borde y foco que el resto de los campos. */
 const PLAN_FIELD_TEXTAREA_FOCUS = controlBaseClassName
 
-const PLAN_SECTION_CARD =
-  'rounded-md border border-surface-border/75 bg-surface-card'
+const PLAN_SECTION_CARD = IS_V2
+  ? 'rounded-2xl border border-surface-border/60 bg-surface-card'
+  : 'rounded-md border border-surface-border/75 bg-surface-card'
 
-const PLAN_STEP_KICKER = 'text-2xs font-semibold text-ink-secondary'
+const PLAN_STEP_KICKER = IS_V2 ? 'text-sm font-semibold text-ink-primary' : 'text-2xs font-semibold text-ink-secondary'
+
+/** Bloque plegable dentro de una tarjeta (objetivos, calculadora). */
+const PLAN_DETAILS_BOX = IS_V2
+  ? 'group overflow-hidden rounded-xl border border-surface-border/60'
+  : 'group overflow-hidden rounded-md border border-surface-border/70 bg-surface-elevated/30 '
+
+/** Recuadro de cifras: en la v2 es un mosaico plano, sin borde. */
+const PLAN_TILE_V2 = 'rounded-xl bg-surface-elevated/60'
 
 const PLAN_DOC_LINK_CLASS =
   'font-medium text-ink-secondary underline underline-offset-2 hover:text-ink-primary'
@@ -201,7 +211,12 @@ function LiveMacroCell({
   const barPct = hasGoal ? Math.min(100, Math.max(0, (100 * intakeG) / goalG)) : 0
 
   return (
-    <div className="min-w-0 rounded-md border border-surface-border/75 bg-white/95 px-2 py-2 text-center dark:bg-zinc-950/45 sm:px-2.5">
+    <div
+      className={cn(
+        'min-w-0 px-2 py-2 text-center sm:px-2.5',
+        IS_V2 ? 'rounded-xl bg-surface-card' : 'rounded-md border border-surface-border/75 bg-white/95 dark:bg-zinc-950/45',
+      )}
+    >
       <p className="text-3xs font-semibold text-ink-muted sm:text-3xs">{abbr}</p>
       <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-ink-primary sm:text-xl">
         {fmt1(intakeG)}
@@ -224,7 +239,7 @@ function LiveMacroCell({
       {hasGoal ? (
         <div className="mx-auto mt-1.5 h-1.5 max-w-[5.5rem] overflow-hidden rounded-full bg-surface-border ">
           <div
-            className="h-full rounded-full bg-zinc-600 transition-[width] duration-300 ease-out "
+            className={cn('h-full rounded-full transition-[width] duration-300 ease-out', IS_V2 ? (over ? 'bg-status-expired' : 'bg-status-ok') : 'bg-zinc-600')}
             style={{ width: `${barPct}%` }}
           />
         </div>
@@ -256,8 +271,8 @@ function TotalsBadge({
   return (
     <div
       className={cn(
-        'rounded-md border border-surface-border/70 bg-surface-elevated/50 text-sm ',
-        compact ? 'px-3 py-2' : 'px-4 py-3',
+        IS_V2 ? cn(PLAN_TILE_V2, 'text-sm') : 'rounded-md border border-surface-border/70 bg-surface-elevated/50 text-sm ',
+        compact ? (IS_V2 ? 'px-3.5 py-2.5' : 'px-3 py-2') : 'px-4 py-3',
       )}
     >
       <p className={cn(' text-ink-muted font-bold', compact ? 'text-3xs' : 'text-3xs')}>
@@ -1530,7 +1545,7 @@ export function NutritionPlanningPage() {
           className={cn('w-full overflow-hidden shadow-none', PLAN_SECTION_CARD)}
           aria-labelledby="principal-plan-heading"
         >
-          <div className="border-b border-surface-border/70 bg-surface-elevated/40 px-4 pb-3 pt-4 sm:px-5">
+          <div className={IS_V2 ? 'sr-only' : 'border-b border-surface-border/70 bg-surface-elevated/40 px-4 pb-3 pt-4 sm:px-5'}>
             <h2 id="principal-plan-heading" className="text-base font-semibold text-ink-primary">
               Datos del plan
             </h2>
@@ -1541,9 +1556,9 @@ export function NutritionPlanningPage() {
             </p>
           </div>
 
-          <div className="p-4 sm:p-5 space-y-4">
+          <div className={IS_V2 ? 'space-y-5 p-4 sm:p-6' : 'p-4 sm:p-5 space-y-4'}>
             {/* 1 · Seguimiento — siempre visible */}
-            <div className="space-y-4 rounded-md border border-surface-border/75 bg-surface-elevated/50 p-4 ">
+            <div className={IS_V2 ? 'space-y-3' : 'space-y-4 rounded-md border border-surface-border/75 bg-surface-elevated/50 p-4 '}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className={PLAN_STEP_KICKER}>1 · Seguimiento</p>
@@ -1575,6 +1590,40 @@ export function NutritionPlanningPage() {
                 </div>
               </div>
 
+              {IS_V2 ? (
+                (() => {
+                  const rest = remainderKcalTarget ? remainderKcalTarget.kcal : targetKcal > 0 ? targetKcal - intakeTotals.kcal : null
+                  const pct = targetKcal > 0 ? Math.round((100 * intakeTotals.kcal) / targetKcal) : null
+                  const over = rest != null && rest < 0
+                  return (
+                    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                      <StatTile
+                        label="Meta del día"
+                        value={targetKcal > 0 ? fmt1(targetKcal) : '—'}
+                        unit={targetKcal > 0 ? 'kcal' : undefined}
+                        hint={targetKcal > 0 ? undefined : 'Cargala en Objetivos'}
+                      />
+                      <StatTile label="Sumado en el plan" value={fmt1(intakeTotals.kcal)} unit="kcal" />
+                      <StatTile
+                        label={over ? 'Te pasaste' : 'Restante'}
+                        className={over ? 'bg-status-expired/10' : undefined}
+                        value={rest != null ? fmt1(Math.abs(rest)) : '—'}
+                        unit={rest != null ? 'kcal' : undefined}
+                      />
+                      <StatTile label="Del objetivo" value={pct != null ? pct : '—'} unit={pct != null ? '%' : undefined}>
+                        {pct != null ? (
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-border" aria-hidden>
+                            <div
+                              className={cn('h-full rounded-full', over ? 'bg-status-expired' : 'bg-status-ok')}
+                              style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+                            />
+                          </div>
+                        ) : null}
+                      </StatTile>
+                    </div>
+                  )
+                })()
+              ) : (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 <div className="rounded-lg bg-surface-card border border-surface-border px-3 py-2">
                   <p className="text-3xs uppercase font-semibold text-ink-muted">Meta kcal</p>
@@ -1616,12 +1665,13 @@ export function NutritionPlanningPage() {
                   </p>
                 </div>
               </div>
+              )}
 
               <TotalsBadge compact label="Ya sumaste (macros)" {...foodGrand} />
 
               {remainderVsGuide ? (
-                <div className="rounded-lg border border-surface-border bg-surface-card px-3 py-2 text-2xs">
-                  <p className="text-3xs uppercase font-semibold text-ink-muted mb-1">Gramos restantes vs objetivo (g/kg × peso)</p>
+                <div className={cn('text-2xs', IS_V2 ? cn(PLAN_TILE_V2, 'px-3.5 py-2.5') : 'rounded-lg border border-surface-border bg-surface-card px-3 py-2')}>
+                  <p className={cn('mb-1 text-3xs font-semibold text-ink-muted', !IS_V2 && 'uppercase')}>Gramos restantes vs objetivo (g/kg × peso)</p>
                   <p className="tabular-nums text-ink-secondary leading-relaxed">
                     Prot {fmt1(remainderVsGuide.proteinG)} g · HC {fmt1(remainderVsGuide.carbsG)} g · Grasas {fmt1(remainderVsGuide.fatG)} g · negativo =
                     fuiste pasado · orientativo
@@ -1633,13 +1683,13 @@ export function NutritionPlanningPage() {
             </div>
 
             {/* 2 · Objetivos — abierto por defecto */}
-            <details open className="group overflow-hidden rounded-md border border-surface-border/70 bg-surface-elevated/30 ">
+            <details open className={PLAN_DETAILS_BOX}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
                 <span className="text-sm font-medium text-ink-primary">2 · Objetivos, calorías y macros</span>
                 <ChevronDown className="h-4 w-4 text-ink-muted shrink-0 transition-transform [.group:not([open])_&]:-rotate-90" aria-hidden />
               </summary>
               <div className="p-4 space-y-4 border-t border-surface-border/40">
-                <p className="text-2xs text-ink-muted -mt-1">
+                <p className={cn('text-2xs text-ink-muted -mt-1', IS_V2 && 'hidden')}>
                   Como la segunda solapa del Excel HH: texto de objetivo, calorías del día target y targets en g/kg.
                 </p>
                 <label className="text-sm space-y-1 block max-w-[12rem]">
@@ -1727,7 +1777,7 @@ export function NutritionPlanningPage() {
                             : undefined
                     }
                   />
-                  <div className="rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5 text-sm space-y-1.5">
+                  <div className={cn('space-y-1.5 text-sm', IS_V2 ? cn(PLAN_TILE_V2, 'px-3.5 py-2.5') : 'rounded-xl border border-surface-border bg-surface-muted/30 px-3 py-2.5')}>
                     <p className="text-3xs text-ink-muted font-semibold">Meta calórica del día</p>
                     <p className="text-base font-semibold tabular-nums text-ink-primary">
                       {targetKcal > 0 ? `${targetKcal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} kcal` : '—'}
@@ -1754,7 +1804,7 @@ export function NutritionPlanningPage() {
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-surface-border overflow-hidden mt-4">
+              <div className={cn('rounded-xl border border-surface-border overflow-hidden mt-4', IS_V2 && 'hidden')}>
                 <p className="text-3xs font-semibold text-ink-muted px-3 py-2 bg-surface-muted/30 border-b border-surface-border">
                   Vista cuadro (Excel) · objetivo y datos
                 </p>
@@ -1803,7 +1853,7 @@ export function NutritionPlanningPage() {
             </details>
 
             {/* 3 · TDEE colapsado por defecto */}
-            <details className="group overflow-hidden rounded-md border border-surface-border/70 bg-surface-elevated/30 ">
+            <details className={PLAN_DETAILS_BOX}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-muted/35 [&::-webkit-details-marker]:hidden border-b border-surface-border/60">
                 <div className="min-w-0 text-left space-y-0.5">
                   <span className="text-sm font-medium text-ink-primary block">3 · Calculadora TMB / TDEE</span>
@@ -1888,8 +1938,8 @@ export function NutritionPlanningPage() {
                     ['TDEE · H', calcTdeeMale],
                     ['TDEE · M', calcTdeeFemale],
                   ].map(([label, val]) => (
-                    <div key={String(label)} className="rounded-lg border border-brand-primary/20 bg-brand-primary/[0.06] px-2.5 py-2">
-                      <p className="text-3xs uppercase text-ink-muted font-semibold">{label}</p>
+                    <div key={String(label)} className={IS_V2 ? cn(PLAN_TILE_V2, 'px-3.5 py-2.5') : 'rounded-lg border border-brand-primary/20 bg-brand-primary/[0.06] px-2.5 py-2'}>
+                      <p className={cn('text-3xs font-semibold text-ink-muted', !IS_V2 && 'uppercase')}>{label}</p>
                       <p className="text-base font-semibold tabular-nums text-ink-primary">
                         {Number.isFinite(val as number) ? `${fmt1(val as number)} kcal` : '—'}
                       </p>
@@ -2054,7 +2104,7 @@ export function NutritionPlanningPage() {
         <section className={cn('w-full space-y-4 p-5', PLAN_SECTION_CARD)} aria-labelledby="meal-dist-heading">
           <div>
             <div className="flex flex-wrap items-baseline gap-2 gap-y-1">
-              <span className={cn('tracking-wider', PLAN_STEP_KICKER)}>4 · Para el alumno</span>
+              <span className={cn('tracking-wider', PLAN_STEP_KICKER, IS_V2 && 'hidden')}>4 · Para el alumno</span>
               <h2 id="meal-dist-heading" className="text-lg font-semibold text-ink-primary">
                 Distribución del día
               </h2>
@@ -2084,7 +2134,13 @@ export function NutritionPlanningPage() {
 
           {/* Kcal + macros en vivo (sticky) */}
           <div className="sticky top-2 z-20">
-            <div className="space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:bg-surface-card/95">
+            <div
+              className={
+                IS_V2
+                  ? 'space-y-2.5 rounded-2xl bg-surface-elevated px-4 py-3.5'
+                  : 'space-y-2 rounded-xl border border-surface-border bg-surface-card/95 px-4 py-3 shadow-sm backdrop-blur-sm dark:bg-surface-card/95'
+              }
+            >
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="shrink-0 text-3xs font-semibold text-ink-muted">
@@ -2129,11 +2185,11 @@ export function NutritionPlanningPage() {
               </div>
 
               <div
-                className="rounded-lg border border-surface-border bg-surface-muted/50 px-2 py-2 sm:py-2.5"
+                className={IS_V2 ? '' : 'rounded-lg border border-surface-border bg-surface-muted/50 px-2 py-2 sm:py-2.5'}
                 aria-live="polite"
                 aria-label="Macros del plan en tiempo real"
               >
-                <p className="mb-1.5 px-0.5 text-center text-3xs font-semibold text-ink-muted sm:text-left">
+                <p className={cn('mb-1.5 px-0.5 text-center text-3xs font-semibold text-ink-muted sm:text-left', IS_V2 && 'sr-only')}>
                   Macros en vivo (g) · tablas, Mi lista y esta distribución
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -2144,9 +2200,16 @@ export function NutritionPlanningPage() {
               </div>
 
               {targetKcal > 0 ? (
-                <div className="h-2 overflow-hidden rounded-full border border-surface-border bg-surface-muted ">
+                <div className={IS_V2 ? 'h-1.5 overflow-hidden rounded-full bg-surface-border' : 'h-2 overflow-hidden rounded-full border border-surface-border bg-surface-muted '}>
                   <div
-                    className="h-full rounded-full bg-ink-primary/55 transition-[width] duration-300 ease-out dark:bg-ink-secondary/80"
+                    className={cn(
+                      'h-full rounded-full transition-[width] duration-300 ease-out',
+                      IS_V2
+                        ? intakeTotals.kcal > targetKcal
+                          ? 'bg-status-expired'
+                          : 'bg-status-ok'
+                        : 'bg-ink-primary/55 dark:bg-ink-secondary/80',
+                    )}
                     style={{
                       width: `${Math.min(100, Math.max(0, (100 * intakeTotals.kcal) / targetKcal))}%`,
                     }}
@@ -2180,7 +2243,12 @@ export function NutritionPlanningPage() {
               </p>
             </div>
           ) : null}
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between border border-surface-border/80 rounded-xl p-3 bg-surface-muted/15">
+          <div
+            className={cn(
+              'flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between',
+              !IS_V2 && 'border border-surface-border/80 rounded-xl p-3 bg-surface-muted/15',
+            )}
+          >
             <div className="flex flex-col gap-2 min-w-[200px] flex-1">
               <label htmlFor="apply-meal-template" className="text-3xs font-semibold text-ink-muted">
                 Plantillas (este navegador)
@@ -2318,13 +2386,22 @@ export function NutritionPlanningPage() {
                     key={key}
                     role="region"
                     aria-labelledby={`meal-slot-title-${key}`}
-                    className="overflow-hidden rounded-xl border border-surface-border bg-surface-card text-sm shadow-sm dark:bg-surface-card"
+                    className={
+                      IS_V2
+                        ? 'overflow-hidden rounded-2xl border border-surface-border/60 bg-surface-card text-sm'
+                        : 'overflow-hidden rounded-xl border border-surface-border bg-surface-card text-sm shadow-sm dark:bg-surface-card'
+                    }
                   >
                     {/* Cabecera de momento — alineada al PDF (franja + título) */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-muted/60 px-3 py-2.5 ">
+                    <div
+                      className={cn(
+                        'flex flex-wrap items-center justify-between gap-2 border-b py-2.5',
+                        IS_V2 ? 'border-surface-border/60 px-4' : 'border-surface-border bg-surface-muted/60 px-3',
+                      )}
+                    >
                       <span
                         id={`meal-slot-title-${key}`}
-                        className="text-3xs font-semibold text-ink-muted"
+                        className={IS_V2 ? 'text-sm font-semibold text-ink-primary' : 'text-3xs font-semibold text-ink-muted'}
                       >
                         {label}
                       </span>
