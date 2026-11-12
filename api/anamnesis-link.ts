@@ -38,11 +38,9 @@ function appOrigin(req: Request, fromBody?: string): string {
   return 'http://localhost:5173'
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 })
-  }
-
+// En el runtime de Node de Vercel el export por defecto recibe (req, res) de Node: devolver una
+// Response deja el pedido colgado. Los exports con nombre de método sí usan Request/Response.
+export async function POST(request: Request): Promise<Response> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY
   const linkSecret = (process.env.ANAMNESIS_LINK_SECRET ?? process.env.INTAKE_SECRET ?? '').trim()

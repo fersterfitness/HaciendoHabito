@@ -66,7 +66,9 @@ async function nutritionOwnerForStudent(
   return resolveNutritionOwnerId(admin, intakeNutritionOwnerId)
 }
 
-export default async function handler(request: Request): Promise<Response> {
+// En el runtime de Node de Vercel el export por defecto recibe (req, res) de Node: devolver una
+// Response deja el pedido colgado. Los exports con nombre de método sí usan Request/Response.
+export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url)
   const studentId = (url.searchParams.get('student') ?? '').trim()
   const token = (url.searchParams.get('token') ?? '').trim()
