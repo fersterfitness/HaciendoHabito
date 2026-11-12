@@ -371,9 +371,8 @@ export function DashboardV2Page() {
           full_name: a.student?.full_name ?? a.title ?? 'Turno',
           phone: a.student?.phone ?? null,
         })),
-        withFuture: new Set(
-          ((future.data ?? []) as { student_id: string | null }[]).map((r) => r.student_id).filter((x): x is string => !!x),
-        ),
+        // Lista y no Set: el resultado se guarda en el navegador y un Set vuelve como objeto vacío.
+        withFuture: ((future.data ?? []) as { student_id: string | null }[]).map((r) => r.student_id).filter((x): x is string => !!x),
         checkins: (checkins.data ?? []) as {
           student_id: string
           logged_at: string
@@ -390,7 +389,8 @@ export function DashboardV2Page() {
     () =>
       buildNutritionistToday({
         appointments: nutriQ.data?.appointments ?? [],
-        withFutureAppointment: nutriQ.data?.withFuture ?? new Set(),
+        // Array.isArray: en el navegador puede quedar guardado el formato viejo (un Set serializado como {}).
+        withFutureAppointment: new Set(Array.isArray(nutriQ.data?.withFuture) ? nutriQ.data.withFuture : []),
         checkins: nutriQ.data?.checkins ?? [],
         patients: students.map((s) => ({ id: s.id, full_name: s.full_name, phone: s.phone ?? null })),
         overdueControls: nutriQ.data?.ops.overdueControls ?? [],

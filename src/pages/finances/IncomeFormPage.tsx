@@ -56,7 +56,8 @@ export function IncomeFormPage() {
   const appliedQueryRef = useRef(false)
   const isEditing = !!id
   const navigate = useAppNavigate()
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
+  const person = profile?.role === 'nutritionist' ? 'paciente' : 'alumno'
   const [students, setStudents] = useState<Student[]>([])
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting, isDirty } } = useForm<FormValues>({
@@ -176,7 +177,7 @@ export function IncomeFormPage() {
   }
 
   const studentOptions = [
-    { value: '', label: 'Sin alumno (gasto general)' },
+    { value: '', label: `Sin ${person} (ingreso general)` },
     ...students.map((s) => ({ value: s.id, label: s.full_name })),
   ]
 
@@ -190,7 +191,7 @@ export function IncomeFormPage() {
           <SaveStatusBar isSubmitting={isSubmitting} isDirty={isDirty} />
           <FormErrorSummary errors={errors} />
 
-          <FormSection title="Fecha y alumno">
+          <FormSection title={`Fecha y ${person}`}>
             <Input
               label="Fecha"
               required
@@ -199,7 +200,7 @@ export function IncomeFormPage() {
               {...register('income_date')}
             />
             <Select
-              label="Alumno (opcional)"
+              label={`${person.charAt(0).toUpperCase()}${person.slice(1)} (opcional)`}
               options={studentOptions}
               {...register('student_id')}
             />

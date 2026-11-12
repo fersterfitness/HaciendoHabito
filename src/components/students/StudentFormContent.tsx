@@ -119,6 +119,8 @@ export function StudentFormContent({
   const isEditing = !!studentId
   const role = useAuthStore((state) => state.profile?.role)
   const entitySingular = role === 'nutritionist' ? 'paciente' : 'alumno'
+  /** El nutricionista no carga nivel ni datos de entrenamiento: quedan con su valor por defecto. */
+  const isNutritionist = role === 'nutritionist'
   const { createStudent, updateStudent } = useStudents()
 
   const {
@@ -341,6 +343,7 @@ export function StudentFormContent({
 
       <FormSection title="Estado y plan" className={secClass}>
         <div className={g2}>
+          {isNutritionist ? null : (
           <Select
             label="Nivel"
             required
@@ -348,6 +351,7 @@ export function StudentFormContent({
             error={errors.level?.message}
             {...register('level')}
           />
+          )}
           <Select
             label="Estado"
             required
@@ -364,6 +368,7 @@ export function StudentFormContent({
         />
       </FormSection>
 
+      {isNutritionist ? null : (
       <FormSection title="Entrenamiento y objetivo" className={secClass}>
         <div className={g2}>
           <Select
@@ -445,6 +450,7 @@ export function StudentFormContent({
           {...register('main_goal')}
         />
       </FormSection>
+      )}
 
       <FormSection title="Salud y hábitos" className={secClass}>
         <Select
@@ -608,6 +614,7 @@ export function StudentFormContent({
 
             <FormSection title="Estado y plan" className={secClass}>
               <div className={g2}>
+                {isNutritionist ? null : (
                 <Select
                   label="Nivel"
                   required
@@ -615,6 +622,7 @@ export function StudentFormContent({
                   error={errors.level?.message}
                   {...register('level')}
                 />
+                )}
                 <Select
                   label="Estado"
                   required
@@ -633,6 +641,7 @@ export function StudentFormContent({
           </div>
 
           <div className="flex min-w-0 flex-col gap-10">
+            {isNutritionist ? null : (
             <FormSection title="Entrenamiento y objetivo" className={secClass}>
               <div className={g2}>
                 <Select
@@ -714,6 +723,7 @@ export function StudentFormContent({
                 {...register('main_goal')}
               />
             </FormSection>
+            )}
 
             <FormSection title="Salud y hábitos" className={secClass}>
               <Select

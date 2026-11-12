@@ -4,6 +4,7 @@ import { Search, Snowflake, Sun, Calendar, Flame, Wheat, Copy, ChevronRight } fr
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
 import { IS_V2 } from '@/lib/uiVersion'
+import { AiMarkdown } from '@/components/nutrition/AnthropometryAiMarkdown'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -360,9 +361,9 @@ function MenuDetailModal({
             ) : null}
           </div>
 
-          <pre className="text-xs text-ink-secondary whitespace-pre-wrap font-sans leading-relaxed">
-            {template.bodyMd}
-          </pre>
+          <div className="space-y-2">
+            <AiMarkdown text={template.bodyMd} />
+          </div>
         </div>
       </div>
     </div>

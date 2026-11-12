@@ -475,7 +475,7 @@ export function GlobalSearch() {
           <span className="text-3xs text-ink-muted">↑↓ navegar</span>
           <span className="text-3xs text-ink-muted">↵ abrir</span>
           <span className="text-3xs text-ink-muted">esc cerrar</span>
-          {IS_V2 ? <span className="ml-auto hidden text-3xs text-ink-muted sm:inline">N nuevo alumno · G + letra para ir</span> : null}
+          {IS_V2 ? <span className="ml-auto hidden text-3xs text-ink-muted sm:inline">{trains(profile?.role) ? 'N nuevo alumno · ' : ''}G + letra para ir</span> : null}
         </div>
       </div>
     </div>
