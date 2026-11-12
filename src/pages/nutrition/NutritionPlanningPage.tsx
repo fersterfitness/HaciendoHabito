@@ -120,14 +120,28 @@ const PLAN_DETAILS_BOX = IS_V2
   ? 'group overflow-hidden rounded-xl border border-surface-border/60'
   : 'group overflow-hidden rounded-md border border-surface-border/70 bg-surface-elevated/30 '
 
+/** Ventanas emergentes de esta pantalla. */
+const PLAN_DIALOG_BACKDROP = IS_V2 ? 'absolute inset-0 bg-black/40' : 'absolute inset-0 bg-black/60 backdrop-blur-sm'
+const PLAN_DIALOG_BOX = IS_V2
+  ? 'rounded-2xl border border-surface-border/60 bg-surface-card shadow-xl'
+  : 'rounded-xl border border-surface-border/80 bg-surface-card shadow-md'
+
+/** Encabezado de tabla: en la v2 sin fondo gris, con el texto apagado. */
+const PLAN_TABLE_HEAD_ROW = IS_V2
+  ? 'border-b border-surface-border/60 text-left text-ink-muted'
+  : 'border-b border-surface-border text-left bg-surface-muted/30'
+const PLAN_TABLE_HEAD_STICKY = IS_V2 ? 'bg-surface-card' : 'bg-surface-muted/30'
+const PLAN_TABLE_ROW = IS_V2 ? 'border-b border-surface-border/50 last:border-b-0 hover:bg-surface-elevated/50' : 'border-b border-surface-border/80 hover:bg-surface-muted/20'
+
 /** Recuadro de cifras: en la v2 es un mosaico plano, sin borde. */
 const PLAN_TILE_V2 = 'rounded-xl bg-surface-elevated/60'
 
 const PLAN_DOC_LINK_CLASS =
   'font-medium text-ink-secondary underline underline-offset-2 hover:text-ink-primary'
 
-const PLAN_MODAL_TAB_ACTIVE =
-  'bg-zinc-800 text-white shadow-none dark:bg-zinc-100 dark:text-zinc-950 dark:shadow-none'
+const PLAN_MODAL_TAB_ACTIVE = IS_V2
+  ? 'bg-ink-primary text-surface-base'
+  : 'bg-zinc-800 text-white shadow-none dark:bg-zinc-100 dark:text-zinc-950 dark:shadow-none'
 
 const PLANNING_MAIN_TAB_DEFS = [
   {
@@ -2232,7 +2246,7 @@ export function NutritionPlanningPage() {
           {orphanLibDraftIds.length > 0 ? (
             <div
               role="status"
-              className="rounded-md border border-surface-inputBorder/75 bg-surface-elevated/60 px-3 py-2.5 text-sm text-ink-secondary "
+              className={cn('px-3 py-2.5 text-sm text-ink-secondary', IS_V2 ? 'rounded-xl bg-surface-elevated/60 px-4' : 'rounded-md border border-surface-inputBorder/75 bg-surface-elevated/60')}
             >
               <p className="font-medium text-ink-primary ">
                 Tenés gramos en «Alimentos personalizados» que todavía no agregaste a un momento del día.
@@ -2421,7 +2435,7 @@ export function NutritionPlanningPage() {
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[520px] border-collapse text-sm">
                             <thead>
-                              <tr className="border-b border-surface-border bg-surface-elevated/95 text-3xs font-semibold text-ink-muted ">
+                              <tr className={cn('border-b text-3xs font-semibold text-ink-muted', IS_V2 ? 'border-surface-border/60' : 'border-surface-border bg-surface-elevated/95')}>
                                 <th className="min-w-0 px-3 py-2 text-left">Alimento</th>
                                 <th className="hidden px-2 py-2 text-left md:table-cell" title="Macronutrientes orientativos de esta porción">
                                   Macros
@@ -2739,11 +2753,11 @@ export function NutritionPlanningPage() {
             aria-labelledby="planning-tab-tablas"
             className="space-y-5 pb-12"
           >
-        <p className="text-xs text-ink-muted leading-relaxed italic">
+        <p className={cn('text-xs text-ink-muted leading-relaxed italic', IS_V2 && 'hidden')}>
           El cuadro <strong className="not-italic">1 · Seguimiento</strong> está en la solapa <strong className="not-italic">Plan y metas</strong>; desde ahí ves consumido y restante antes del PDF y de estas tablas.
         </p>
 
-        <p className="text-sm text-ink-muted leading-relaxed">
+        <p className={cn('text-ink-muted leading-relaxed', IS_V2 ? 'max-w-3xl text-xs' : 'text-sm')}>
           Tablas por tipo de comida como en HH: la <strong>cantidad en gramos</strong> es la porción real (ej. 25 g de pan, 40 g de dulce de leche). Los macros se escalan desde la referencia de la Guía (habitualmente por 100 g o 100 ml; también podés editar HC / P / G / kcal de referencia si tu marca cambia).&nbsp;
           Tip: tocá «Mi lista» (<BookOpen className="mx-px inline-block h-3.5 w-3.5 align-text-bottom text-ink-muted " aria-hidden />) junto al alimento para traer algo que hayas guardado en{' '}
           <Link to="/nutrition/foods" className={PLAN_DOC_LINK_CLASS}>
@@ -2753,7 +2767,12 @@ export function NutritionPlanningPage() {
         </p>
 
         <section className={cn('w-full overflow-hidden', PLAN_SECTION_CARD)}>
-          <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/50 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+          <div
+            className={cn(
+              'flex flex-col gap-2 border-b sm:flex-row sm:items-start sm:justify-between',
+              IS_V2 ? 'border-surface-border/60 px-5 py-4' : 'border-surface-border/70 bg-surface-elevated/50 px-4 py-3',
+            )}
+          >
             <div className="min-w-0">
               <h2 className="flex items-center gap-2 text-sm font-bold text-ink-primary">
                 <Apple className="h-4 w-4 shrink-0 text-ink-muted " aria-hidden />
@@ -2797,8 +2816,8 @@ export function NutritionPlanningPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[960px]">
                 <thead>
-                  <tr className="border-b border-surface-border text-left bg-surface-muted/30">
-                    <th className="px-3 py-2 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[260px]">Alimento</th>
+                  <tr className={PLAN_TABLE_HEAD_ROW}>
+                    <th className={cn('px-3 py-2 font-semibold sticky left-0 z-[1] w-[260px]', PLAN_TABLE_HEAD_STICKY, IS_V2 && 'pl-5')}>Alimento</th>
                     <th
                       className="px-2 py-2 font-semibold w-[76px]"
                       title="Cantidad en la misma unidad que la referencia /100 de cada fila (g o ml según Guía)."
@@ -2858,9 +2877,9 @@ export function NutritionPlanningPage() {
                           ? `Gramos (ref. ${refSuffix}) · ${lib.display_name}`
                           : `Gramos · ${lib.display_name}`
                     return (
-                      <tr key={lib.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
-                        <td className="px-3 py-2 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[280px]">
-                          <div className="flex items-start gap-2 min-w-0">
+                      <tr key={lib.id} className={PLAN_TABLE_ROW}>
+                        <td className={cn('px-3 py-2 sticky left-0 bg-surface-card max-w-[280px]', IS_V2 ? 'pl-5 align-middle' : 'align-top border-r border-surface-border/50')}>
+                          <div className={cn('flex gap-2 min-w-0', IS_V2 ? 'items-center' : 'items-start')}>
                             <div className="min-w-0 flex-1">
                               <p className="text-ink-primary font-medium break-words">{lib.display_name}</p>
                             </div>
@@ -2869,9 +2888,10 @@ export function NutritionPlanningPage() {
                               title="Copiar a una fila del plan"
                               onClick={() => openTableTargetModal(lib)}
                               className={cn(
-                                'flex shrink-0 flex-col items-center gap-0.5 rounded-lg border border-surface-border bg-surface-muted/50 px-1.5 py-1 sm:flex-row sm:gap-1',
+                                'flex shrink-0 flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 sm:flex-row sm:gap-1',
+                                IS_V2 ? 'bg-surface-elevated sm:px-2' : 'border border-surface-border bg-surface-muted/50 hover:border-surface-inputBorder hover:bg-surface-elevated/60',
                                 'text-3xs font-semibold text-ink-muted hover:text-ink-primary ',
-                                'hover:border-surface-inputBorder hover:bg-surface-elevated/60 transition-colors',
+                                'transition-colors',
                               )}
                             >
                               <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
@@ -2915,7 +2935,7 @@ export function NutritionPlanningPage() {
           )}
         </section>
 
-        <div className="rounded-lg border border-dashed border-surface-border bg-surface-muted/15 px-3 py-2 text-xs text-ink-secondary">
+        <div className={cn('rounded-lg border border-dashed border-surface-border bg-surface-muted/15 px-3 py-2 text-xs text-ink-secondary', IS_V2 && 'hidden')}>
           <span className="font-semibold text-ink-primary">Fuentes tipo Excel HH</span> — valores por la referencia en gramos (o
           100 ml en bebidas) que definiste en Guía; el seguimiento contra objetivos está arriba.
         </div>
@@ -2939,15 +2959,22 @@ export function NutritionPlanningPage() {
               <section
                 key={sec.key}
                 className={cn(
-                  'rounded-xl border overflow-hidden w-full',
-                  secStripeIdx % 2 === 0
-                    ? 'border-slate-200/95 bg-slate-50/85 dark:border-slate-800 dark:bg-slate-950/40'
-                    : 'border-surface-border/70 bg-surface-elevated/60 ',
+                  'border overflow-hidden w-full',
+                  IS_V2
+                    ? 'rounded-2xl border-surface-border/60 bg-surface-card'
+                    : secStripeIdx % 2 === 0
+                      ? 'rounded-xl border-slate-200/95 bg-slate-50/85 dark:border-slate-800 dark:bg-slate-950/40'
+                      : 'rounded-xl border-surface-border/70 bg-surface-elevated/60 ',
                 )}
               >
-                <div className="border-b border-surface-border bg-surface-muted/40 px-3 py-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  className={cn(
+                    'border-b flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between',
+                    IS_V2 ? 'border-surface-border/60 px-4 py-3' : 'border-surface-border bg-surface-muted/40 px-3 py-2',
+                  )}
+                >
                   <div>
-                    <h3 className="text-xs font-semibold text-ink-primary ">{sec.title}</h3>
+                    <h3 className={cn('font-semibold text-ink-primary', IS_V2 ? 'text-sm' : 'text-xs')}>{sec.title}</h3>
                     <p className="text-3xs text-ink-muted mt-0.5 leading-snug">{sec.quantityColumnHint}</p>
                   </div>
                   <p className="text-3xs text-ink-secondary tabular-nums shrink-0">
@@ -2957,8 +2984,8 @@ export function NutritionPlanningPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-2xs min-w-[960px]">
                     <thead>
-                      <tr className="border-b border-surface-border text-left bg-surface-muted/30">
-                        <th className="px-2 py-1.5 font-semibold sticky left-0 bg-surface-muted/30 z-[1] w-[220px]">Alimento</th>
+                      <tr className={PLAN_TABLE_HEAD_ROW}>
+                        <th className={cn('px-2 py-1.5 font-semibold sticky left-0 z-[1] w-[220px]', PLAN_TABLE_HEAD_STICKY, IS_V2 && 'pl-4')}>Alimento</th>
                         <th className="px-1 py-1.5 font-semibold w-[52px]" title="Gramos para totales / unidades solo para cómo lo lee el alumno">
                           Modo
                         </th>
@@ -2986,8 +3013,8 @@ export function NutritionPlanningPage() {
                         const rowBasis = coerceMacroRefBasisG(parseLocaleNumberOrZero(r.refBasisG ?? ''))
                         const out = q > 0 ? scaledFromRefs(q, refVals, rowBasis) : ZERO_TOTALS
                         return (
-                          <tr key={r.id} className="border-b border-surface-border/80 hover:bg-surface-muted/20">
-                            <td className="px-2 py-1.5 sticky left-0 bg-surface-card align-top border-r border-surface-border/50 max-w-[240px]">
+                          <tr key={r.id} className={PLAN_TABLE_ROW}>
+                            <td className={cn('px-2 py-1.5 sticky left-0 bg-surface-card align-top max-w-[240px]', IS_V2 ? 'pl-4' : 'border-r border-surface-border/50')}>
                               <div className="flex items-start gap-1.5 min-w-0">
                                 <div className="min-w-0 flex-1">
                                   <p className="text-ink-primary font-medium break-words leading-snug text-2xs">{r.name}</p>
@@ -3108,13 +3135,13 @@ export function NutritionPlanningPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             role="presentation"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className={PLAN_DIALOG_BACKDROP}
             onClick={() => setMealPickSlot(null)}
           />
           <div
             role="dialog"
             aria-labelledby="meal-pick-title"
-            className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-xl border border-surface-border/80 bg-surface-card p-5 shadow-md "
+            className={cn('relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto', PLAN_DIALOG_BOX, 'p-5')}
           >
             <h3 id="meal-pick-title" className="text-base font-semibold text-ink-primary pr-8">
               Agregar a «{MEAL_SLOT_LABELS[mealPickSlot]}»
@@ -3270,10 +3297,10 @@ export function NutritionPlanningPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             role="presentation"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className={PLAN_DIALOG_BACKDROP}
             onClick={() => setTableTargetLib(null)}
           />
-          <div className="relative w-full max-w-md rounded-xl border border-surface-border/80 bg-surface-card p-5 shadow-md ">
+          <div className={cn('relative w-full max-w-md', PLAN_DIALOG_BOX, 'p-5')}>
             <h3 className="text-base font-semibold text-ink-primary pr-8">
               ¿En qué fila va «{tableTargetLib.display_name}»?
             </h3>
@@ -3321,7 +3348,7 @@ export function NutritionPlanningPage() {
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
           <div
             role="presentation"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className={PLAN_DIALOG_BACKDROP}
             onClick={() => {
               setLibraryPicker(null)
               setLibraryQuery('')
@@ -3330,7 +3357,12 @@ export function NutritionPlanningPage() {
           <div
             role="dialog"
             aria-labelledby="library-picker-title"
-            className="relative flex max-h-[min(85vh,640px)] w-full flex-col rounded-t-xl border border-surface-border/80 bg-surface-card shadow-md sm:max-w-lg sm:rounded-xl"
+            className={cn(
+              'relative flex max-h-[min(85vh,640px)] w-full flex-col border sm:max-w-lg',
+              IS_V2
+                ? 'rounded-t-2xl border-surface-border/60 bg-surface-card shadow-xl sm:rounded-2xl'
+                : 'rounded-t-xl border-surface-border/80 bg-surface-card shadow-md sm:rounded-xl',
+            )}
           >
             <div className="flex shrink-0 items-start justify-between gap-2 border-b border-surface-border p-4">
               <div>
@@ -3414,10 +3446,10 @@ export function NutritionPlanningPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             role="presentation"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className={PLAN_DIALOG_BACKDROP}
             onClick={() => !assignSaving && setAssignOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-xl border border-surface-border/80 bg-surface-card p-5 shadow-md ">
+          <div className={cn('relative w-full max-w-md', PLAN_DIALOG_BOX, 'p-5')}>
             <h3 className="text-base font-semibold text-ink-primary">Asignar plan a un {referenceEntityLabel}</h3>
             <p className="text-xs text-ink-muted mt-1 mb-4 leading-relaxed">
               Se guarda una copia del contenido actual del plan. El {referenceEntityLabel} la ve en su cuenta («Mi plan de alimentación») si su usuario está vinculado en la ficha.
@@ -3508,10 +3540,10 @@ export function NutritionPlanningPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             role="presentation"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className={PLAN_DIALOG_BACKDROP}
             onClick={() => !workbookTplSaving && setWorkbookTplSaveOpen(false)}
           />
-          <div className="relative w-full max-w-md space-y-3 rounded-xl border border-surface-border/80 bg-surface-card p-5 shadow-md ">
+          <div className={cn('relative w-full max-w-md space-y-3', PLAN_DIALOG_BOX, 'p-5')}>
             <h3 className="text-base font-semibold text-ink-primary">Guardar plantilla del libro (Excel)</h3>
             <p className="text-xs text-ink-muted leading-relaxed">
               Se guarda todo el plan actual (tablas, distribución, guías, TDEE, etc.) en tu cuenta para reutilizarlo después con «Cargar».
