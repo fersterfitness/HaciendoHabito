@@ -2302,10 +2302,12 @@ export function AppointmentsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.22, delay: Math.min(rowIndex, 14) * 0.04, ease: [0.16, 1, 0.3, 1] }}
                   className={cn(
-                    'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px] motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-sm',
-                    a.status === 'completed' && 'border-l-brand-primary/85',
-                    a.status === 'cancelled' && 'border-l-status-expired/70',
-                    a.status === 'no_show' && (IS_V2 ? 'border-l-status-expiring/80' : 'border-l-amber-500/80'),
+                    IS_V2
+                      ? 'rounded-xl bg-surface-elevated/60 px-3.5 py-2.5'
+                      : 'rounded-xl border border-surface-border bg-surface-elevated/45 px-3 py-2 border-l-[3px] motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-sm',
+                    !IS_V2 && a.status === 'completed' && 'border-l-brand-primary/85',
+                    !IS_V2 && a.status === 'cancelled' && 'border-l-status-expired/70',
+                    !IS_V2 && a.status === 'no_show' && 'border-l-amber-500/80',
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -2316,7 +2318,9 @@ export function AppointmentsPage() {
                   </div>
                   <p className="text-xs text-ink-secondary mt-0.5">
                     {a.student?.full_name ?? (profile?.role === 'nutritionist' ? 'Paciente' : 'Alumno')} ·{' '}
-                    {new Date(a.starts_at).toLocaleString('es-AR')}
+                    {IS_V2
+                      ? new Date(a.starts_at).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+                      : new Date(a.starts_at).toLocaleString('es-AR')}
                   </p>
                   <button
                     type="button"
@@ -2336,10 +2340,14 @@ export function AppointmentsPage() {
                       type="button"
                       onClick={() => openAppointmentFeedbackWa(a)}
                       title="Pedir feedback por WhatsApp (misma plantilla que al completar)."
-                      className="mt-2 text-2xs px-2.5 py-1.5 rounded-lg border border-brand-primary/40 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1.5"
+                      className={
+                        IS_V2
+                          ? 'ml-3 mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-surface-card px-2.5 py-1.5 text-2xs font-medium text-ink-primary hover:bg-surface-border/60'
+                          : 'mt-2 text-2xs px-2.5 py-1.5 rounded-lg border border-brand-primary/40 text-ink-primary dark:text-brand-primary/95 hover:bg-brand-primary/12 inline-flex items-center gap-1.5'
+                      }
                     >
                       <WhatsAppIcon className="h-3 w-3" v1={<MessageCircle className="h-3 w-3" />} />
-                      Feedback WA
+                      {IS_V2 ? 'Pedir opinión' : 'Feedback WA'}
                     </button>
                   )}
                 </motion.div>

@@ -201,7 +201,7 @@ export function NutritionSeasonalMenusPage() {
                   {m.pathologies.map((p) => (
                     <span
                       key={p}
-                      className="inline-flex items-center text-3xs px-1.5 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
+                      className={IS_V2 ? 'inline-flex items-center rounded-md bg-surface-elevated px-1.5 py-0.5 text-3xs text-ink-secondary' : 'inline-flex items-center text-3xs px-1.5 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15'}
                     >
                       {PATHOLOGY_LABELS[p]}
                     </span>
@@ -276,8 +276,9 @@ function SeasonBadge({ season }: { season: MenuSeason }) {
     season === 'verano' ? <Sun className="h-3 w-3" /> :
     <Calendar className="h-3 w-3" />
 
-  const color =
-    season === 'invierno'
+  const color = IS_V2
+    ? cn('hh-pastel border-transparent', season === 'invierno' ? 'bg-pastel-lavender text-pastel-lavender-ink' : season === 'verano' ? 'bg-pastel-butter text-pastel-butter-ink' : 'bg-pastel-mint text-pastel-mint-ink')
+    : season === 'invierno'
       ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/15'
       : season === 'verano'
         ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/15'
@@ -297,6 +298,10 @@ function ToleranceBadge({ tolerance }: { tolerance: DigestiveTolerance }) {
     alta: { label: 'Tol. ALTA', color: 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary border-brand-primary/15' },
   }
   const item = map[tolerance]
+  if (IS_V2) {
+    const tone = tolerance === 'baja' ? 'bg-pastel-rose text-pastel-rose-ink' : tolerance === 'media' ? 'bg-pastel-butter text-pastel-butter-ink' : 'bg-pastel-mint text-pastel-mint-ink'
+    return <span className={cn('hh-pastel rounded-md px-2 py-0.5 text-3xs', tone)}>Tolerancia {tolerance}</span>
+  }
   return (
     <span className={cn('text-3xs px-2 py-0.5 rounded-md border', item.color)}>
       {item.label}
@@ -343,7 +348,7 @@ function MenuDetailModal({
             {template.pathologies.map((p) => (
               <span
                 key={p}
-                className="inline-flex items-center text-3xs px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15"
+                className={IS_V2 ? 'inline-flex items-center rounded-md bg-surface-elevated px-2 py-0.5 text-3xs text-ink-secondary' : 'inline-flex items-center text-3xs px-2 py-0.5 rounded-md bg-brand-primary/10 text-brand-primary dark:text-brand-primary border border-brand-primary/15'}
               >
                 {PATHOLOGY_LABELS[p]}
               </span>

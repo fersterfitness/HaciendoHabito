@@ -162,10 +162,12 @@ export function NutritionMeasurementHistoryList({
                   <td className="px-3 py-2.5 sm:px-4">
                     <span
                       className={cn(
-                        'inline-flex rounded-md border px-2 py-0.5 text-3xs font-medium',
-                        program
-                          ? 'border-brand-secondary/30 bg-brand-secondary/10 text-brand-secondary'
-                          : 'border-surface-border text-ink-muted',
+                        'inline-flex rounded-md px-2 py-0.5 text-3xs font-medium',
+                        IS_V2
+                          ? 'bg-surface-elevated text-ink-secondary'
+                          : program
+                            ? 'border border-brand-secondary/30 bg-brand-secondary/10 text-brand-secondary'
+                            : 'border border-surface-border text-ink-muted',
                       )}
                     >
                       {program ? 'Programa Holway' : 'Express'}

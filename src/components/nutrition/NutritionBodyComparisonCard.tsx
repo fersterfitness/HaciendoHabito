@@ -163,11 +163,11 @@ export function NutritionBodyComparisonCard({
               </div>
             </div>
           )}
-          <div className={cn('pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap gap-x-3 gap-y-1 text-3xs text-ink-secondary dark:text-white/70', !sex && 'hidden')}>
+          <div className={cn('pointer-events-none absolute bottom-2 left-2 right-2 flex flex-wrap justify-center gap-x-3 gap-y-1 rounded-lg bg-surface-card/85 px-2.5 py-1.5 text-3xs text-ink-secondary backdrop-blur-sm dark:bg-black/50 dark:text-white/70', !sex && 'hidden')}>
             {(['good', 'bad', 'alert', 'same'] as const).map((s) => (
               <span key={s} className="inline-flex items-center gap-1">
                 <i className={cn('h-2 w-2 rounded-full', DOT[s])} />
-                {s === 'same' ? 'Sin cambio o sin criterio' : BODY_ZONE_STATUS_LABEL[s]}
+                {s === 'same' ? 'Sin cambio' : BODY_ZONE_STATUS_LABEL[s]}
               </span>
             ))}
           </div>

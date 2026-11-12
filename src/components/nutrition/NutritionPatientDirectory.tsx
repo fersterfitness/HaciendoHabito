@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { ArrowUpRight, ChevronRight } from 'lucide-react'
 import { IS_V2 } from '@/lib/uiVersion'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
@@ -230,7 +231,7 @@ export function formatNextConsult(value: string | null): {
   today.setHours(0, 0, 0, 0)
   const days = Math.round((date.getTime() - today.getTime()) / 86_400_000)
   const label = format(date, 'dd/MM/yyyy')
-  let sub = format(date, 'EEEE')
+  let sub = format(date, 'EEEE', { locale: es })
   sub = sub.charAt(0).toUpperCase() + sub.slice(1)
   if (days < 0) return { label, sub: `${Math.abs(days)} día${Math.abs(days) === 1 ? '' : 's'} atrás`, tone: 'past' }
   if (days === 0) return { label, sub: 'Hoy', tone: 'soon' }
