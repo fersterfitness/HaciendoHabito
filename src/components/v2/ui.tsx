@@ -105,9 +105,40 @@ export function ProgressRingV2({ done, total }: { done: number; total: number })
 /** Celu: los números del mes en una sola franja (tres columnas parejas, sin carrusel cortado). */
 export function StatStripV2({
   items,
+  filled = false,
 }: {
   items: { label: string; value: string; suffix?: string; tone: Tone; progress?: number; onClick: () => void }[]
+  /** Cada cifra en un casillero del color de su tono, en lugar de la franja blanca. */
+  filled?: boolean
 }) {
+  if (filled) {
+    return (
+      <div className="grid grid-cols-3 gap-2">
+        {items.map((it) => (
+          <Button
+            key={it.label}
+            type="button"
+            variant="ghost"
+            onClick={it.onClick}
+            className={cn('hh-pastel h-auto min-w-0 items-start justify-start rounded-2xl px-3.5 pb-3 pt-3 text-left font-normal hover:opacity-90', TONE_BG[it.tone], TONE_INK[it.tone])}
+          >
+            <span className="flex w-full min-w-0 flex-col items-start">
+              <span className="truncate text-xs opacity-80">{it.label}</span>
+              <span className="mt-1 truncate text-2xl font-semibold leading-tight tabular-nums tracking-tight">
+                {it.value}
+                {it.suffix ? <span className="ml-0.5 text-xs font-medium opacity-70">{it.suffix}</span> : null}
+              </span>
+              {it.progress !== undefined ? (
+                <span className="mt-2 block h-1 w-full overflow-hidden rounded-full bg-black/10">
+                  <span className="block h-full rounded-full bg-current transition-[width] duration-700" style={{ width: `${Math.max(0, Math.min(1, it.progress)) * 100}%` }} />
+                </span>
+              ) : null}
+            </span>
+          </Button>
+        ))}
+      </div>
+    )
+  }
   return (
     <div className="grid grid-cols-3 divide-x divide-surface-border overflow-hidden rounded-2xl border border-surface-border bg-surface-card">
       {items.map((it) => (

@@ -267,11 +267,12 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
           hint: 'Planes base para reusar',
           alsoMatch: ['/nutrition/planning'],
         },
+        { label: 'Menús', href: '/nutrition/menus', icon: Salad, hint: 'Ideas listas para usar con un paciente' },
         { ...finance!, hint: 'Cobros y gastos' },
       ],
       more: [
         { ...NAV_NUTRITION_PATIENT_ANTHRO[1]!, hint: 'Controles e informes PDF' },
-        { ...NAV_NUTRITION_FOOD[1]!, label: 'Alimentos y menús', shortLabel: 'Alimentos', hint: 'Tu base de alimentos', alsoMatch: ['/nutrition/menus'] },
+        { ...NAV_NUTRITION_FOOD[1]!, label: 'Alimentos', shortLabel: 'Alimentos', hint: 'Tu base de alimentos' },
         V2_MARKETPLACE,
       ],
     }

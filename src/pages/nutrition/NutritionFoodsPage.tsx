@@ -103,6 +103,7 @@ function macroQtyMiListaSuffix(row: NutritionFoodLibrary): string {
 
 export function NutritionFoodsPage() {
   const user = useAuthStore((s) => s.user)
+  const foodsRole = useAuthStore((s) => s.profile?.role)
   const [rows, setRows] = useState<NutritionFoodLibrary[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<NutritionFoodLibrary | null>(null)
@@ -453,7 +454,7 @@ export function NutritionFoodsPage() {
 
   return (
     <div className="min-h-0">
-      <Header title={IS_V2 ? 'Alimentos y menús' : 'Biblioteca'} />
+      <Header title={IS_V2 ? (foodsRole === 'nutritionist' ? 'Alimentos' : 'Alimentos y menús') : 'Biblioteca'} />
 
       <DirectoryPageShell className={cn('max-w-[1600px]', nutritionShellClass)}>
         <TrainerMealPlansSectionNav />

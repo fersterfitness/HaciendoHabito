@@ -58,7 +58,8 @@ export function NutritionSeasonalMenusPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [useMenu, setUseMenu] = useState<SeasonalMenuTemplate | null>(null)
   const navigate = useAppNavigate()
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
+  const isNutritionist = profile?.role === 'nutritionist'
   // v2: menús propios del profesional, además de los que trae la app.
   const [customMenus, setCustomMenus] = useState<SeasonalMenuTemplate[]>([])
   const [customAvailable, setCustomAvailable] = useState(true)
@@ -154,7 +155,7 @@ export function NutritionSeasonalMenusPage() {
 
   return (
     <div>
-      <Header title={IS_V2 ? 'Alimentos y menús' : 'Biblioteca'} />
+      <Header title={IS_V2 ? (isNutritionist ? 'Menús' : 'Alimentos y menús') : 'Biblioteca'} />
       <DirectoryPageShell className={nutritionShellClass}>
         <NutritionLibraryTabs />
         {IS_V2 ? (

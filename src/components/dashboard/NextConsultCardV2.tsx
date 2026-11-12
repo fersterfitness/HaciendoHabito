@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { FolderOpen, Stethoscope } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
+import { useStudentStorageUrl } from '@/lib/studentAvatar'
 import { cn, formatNumber } from '@/lib/utils'
 import { startsInText, type SymptomFlag, type TodayAppointment } from '@/lib/dashboard/nutritionistToday'
 
@@ -19,6 +20,7 @@ export function NextConsultCardV2({
   inProgress,
   later,
   symptom,
+  avatarPath = null,
   now,
   onStart,
   onOpen,
@@ -27,6 +29,7 @@ export function NextConsultCardV2({
   inProgress: boolean
   later: TodayAppointment[]
   symptom: SymptomFlag | null
+  avatarPath?: string | null
   now: Date
   onStart: () => void
   onOpen: () => void
@@ -40,24 +43,40 @@ export function NextConsultCardV2({
     queryFn: async () => {
       const { data } = await supabase
         .from('nutrition_measurements')
-        .select('measured_at, weight_kg')
+        .select('measured_at, weight_kg, body_fat_pct, muscle_mass_kg')
         .eq('student_id', sid!)
         .order('measured_at', { ascending: false })
         .limit(2)
-      return (data ?? []) as { measured_at: string; weight_kg: number | null }[]
+      return (data ?? []) as { measured_at: string; weight_kg: number | null; body_fat_pct: number | null; muscle_mass_kg: number | null }[]
     },
   })
   const [last, prev] = lastQ.data ?? []
   const delta = last?.weight_kg != null && prev?.weight_kg != null ? Math.round((last.weight_kg - prev.weight_kg) * 10) / 10 : null
-  const context = !sid
-    ? null
-    : lastQ.isPending
-      ? '…'
-      : last
-        ? `Último control ${format(parseISO(last.measured_at), 'dd/MM')}${last.weight_kg != null ? ` · ${nf(last.weight_kg)} kg` : ''}${
-            delta != null && delta !== 0 ? ` (${delta > 0 ? '+' : '−'}${nf(Math.abs(delta))} kg)` : ''
-          }`
-        : 'Primera consulta: todavía no tiene controles'
+  const diff = (cur: number | null | undefined, old: number | null | undefined) =>
+    cur != null && old != null && Math.abs(cur - old) >= 0.05 ? Math.round((cur - old) * 10) / 10 : null
+  const signed = (n: number | null, unit: string) => (n == null ? 'Igual que antes' : `${n > 0 ? '+' : '−'}${nf(Math.abs(n))} ${unit} vs. anterior`)
+  const daysSince = last ? Math.max(0, Math.round((now.getTime() - parseISO(last.measured_at).getTime()) / 86_400_000)) : null
+  const tiles: { label: string; value: string; unit?: string; hint: string; tone: string }[] = last
+    ? [
+        ...(last.weight_kg != null
+          ? [{ label: 'Peso', value: nf(last.weight_kg), unit: 'kg', hint: signed(delta, 'kg'), tone: 'bg-pastel-mint text-pastel-mint-ink' }]
+          : []),
+        ...(last.body_fat_pct != null
+          ? [{ label: 'Grasa', value: nf(last.body_fat_pct), unit: '%', hint: signed(diff(last.body_fat_pct, prev?.body_fat_pct), '%'), tone: 'bg-pastel-butter text-pastel-butter-ink' }]
+          : []),
+        ...(last.muscle_mass_kg != null
+          ? [{ label: 'Masa muscular', value: nf(last.muscle_mass_kg), unit: 'kg', hint: signed(diff(last.muscle_mass_kg, prev?.muscle_mass_kg), 'kg'), tone: 'bg-pastel-peach text-pastel-peach-ink' }]
+          : []),
+        {
+          label: 'Último control',
+          value: daysSince === 0 ? 'Hoy' : String(daysSince),
+          unit: daysSince === 0 ? undefined : daysSince === 1 ? 'día' : 'días',
+          hint: format(parseISO(last.measured_at), 'dd/MM/yyyy'),
+          tone: 'bg-pastel-lavender text-pastel-lavender-ink',
+        },
+      ]
+    : []
+  const context = !sid ? null : lastQ.isPending ? '…' : last ? null : 'Primera consulta: todavía no tiene controles'
 
   return (
     <motion.section
@@ -85,9 +104,11 @@ export function NextConsultCardV2({
           </span>
           {inProgress ? 'En curso' : 'Próxima consulta'} · {startsInText(a.starts_at, now)}
         </p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <AvatarPhoto name={a.full_name} path={avatarPath} />
           <div className="min-w-0">
-            <h2 className="truncate text-[20px] font-semibold tracking-[-0.02em] text-ink-primary">{a.full_name}</h2>
+            <h2 className="truncate text-2xl font-semibold tracking-tight text-ink-primary">{a.full_name}</h2>
             <p className="mt-0.5 text-[13px] tabular-nums text-ink-secondary">
               {hhmm(a.starts_at)}
               {a.ends_at ? ` – ${hhmm(a.ends_at)}` : ''}
@@ -100,6 +121,7 @@ export function NextConsultCardV2({
               </p>
             ) : null}
           </div>
+          </div>
           {sid ? (
             <div className="flex shrink-0 gap-2">
               <Button variant="secondary" size="sm" icon={<FolderOpen className="h-4 w-4" />} onClick={onOpen}>
@@ -111,6 +133,20 @@ export function NextConsultCardV2({
             </div>
           ) : null}
         </div>
+        {tiles.length ? (
+          <dl className={cn('mt-4 grid grid-cols-2 gap-2', tiles.length >= 4 ? 'sm:grid-cols-4' : tiles.length === 3 ? 'sm:grid-cols-3' : '')}>
+            {tiles.map((t) => (
+              <div key={t.label} className={cn('hh-pastel rounded-xl px-3.5 py-3', t.tone)}>
+                <dt className="truncate text-xs opacity-80">{t.label}</dt>
+                <dd className="mt-0.5 text-2xl font-semibold leading-tight tabular-nums tracking-tight">
+                  {t.value}
+                  {t.unit ? <span className="ml-1 text-sm font-normal opacity-80">{t.unit}</span> : null}
+                </dd>
+                <dd className="mt-0.5 truncate text-xs opacity-80">{t.hint}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
       {later.length ? (
         <p className="relative truncate border-t border-dashed border-surface-border px-5 py-2.5 text-[12.5px] text-ink-muted">
@@ -123,5 +159,21 @@ export function NextConsultCardV2({
         </p>
       ) : null}
     </motion.section>
+  )
+}
+
+/** Foto del paciente o sus iniciales, en grande. */
+function AvatarPhoto({ name, path }: { name: string; path: string | null }) {
+  const url = useStudentStorageUrl(path)
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('')
+  return (
+    <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-elevated text-xl font-semibold text-ink-secondary" aria-hidden>
+      {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials}
+    </span>
   )
 }

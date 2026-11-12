@@ -51,6 +51,9 @@ import { TopBarV2 } from '@/components/v2/TopBarV2'
 import { birthdayMessage } from '@/components/dashboard/BirthdayGreetings'
 import { PriceIncreaseNotice } from '@/components/dashboard/PriceIncreaseNotice'
 import { NextConsultCardV2 } from '@/components/dashboard/NextConsultCardV2'
+import { SuggestedMenuCardV2 } from '@/components/dashboard/SuggestedMenuCardV2'
+import { MenuPatientPicker } from '@/components/nutrition/SeasonalMenusV2'
+import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
@@ -212,6 +215,7 @@ export function DashboardV2Page() {
 
   const today = useMemo(() => new Date(), [])
   const isNutri = role === 'nutritionist'
+  const [menuToUse, setMenuToUse] = useState<SeasonalMenuTemplate | null>(null)
   // Reloj para la cuenta regresiva de la próxima consulta.
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -762,6 +766,7 @@ export function DashboardV2Page() {
   /** Los números del mes en una franja: abajo en el celu, en la columna derecha en la compu. */
   const monthStripV2 = (
     <StatStripV2
+      filled={isNutri}
       items={[
         trains
           ? {
@@ -806,6 +811,7 @@ export function DashboardV2Page() {
         inProgress={nutri.nextInProgress}
         later={nutri.laterToday}
         symptom={nutri.symptoms.find((x) => x.id === nutri.next!.student_id) ?? null}
+        avatarPath={students.find((st) => st.id === nutri.next!.student_id)?.avatar_path ?? null}
         now={now}
         onOpen={() => navigate(`/nutrition/${nutri.next!.student_id}`)}
         onStart={() => navigate(`/nutrition/${nutri.next!.student_id}?consulta=1`)}
@@ -817,6 +823,17 @@ export function DashboardV2Page() {
 
   return (
     <MotionConfig reducedMotion="user">
+      {isNutri ? (
+        <MenuPatientPicker
+          menu={menuToUse}
+          onClose={() => setMenuToUse(null)}
+          onPick={(studentId) => {
+            const id = menuToUse?.id
+            setMenuToUse(null)
+            if (id) navigate(`/nutrition/${studentId}?tab=plan&menu=${encodeURIComponent(id)}`)
+          }}
+        />
+      ) : null}
       <TopBarV2
         title="Inicio"
         actions={
@@ -1490,6 +1507,10 @@ export function DashboardV2Page() {
                 )}
               </div>
             </CardV2>
+
+            {isNutri ? (
+              <SuggestedMenuCardV2 onUse={setMenuToUse} onSeeAll={() => navigate('/nutrition/menus')} />
+            ) : null}
 
             {/* Compu: los números del mes debajo de los turnos. */}
             <div className="hidden lg:block">

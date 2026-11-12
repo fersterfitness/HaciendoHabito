@@ -30,7 +30,7 @@ type ToleranceFilter = DigestiveTolerance | 'todas'
 type Meal = SeasonalMenuMeal
 const mealsOf = seasonalMenuMeals
 
-function photoOf(m: SeasonalMenuTemplate, meals: Meal[], w: number, h: number): string {
+export function menuPhotoUrl(m: SeasonalMenuTemplate, meals: Meal[], w: number, h: number): string {
   const main = meals.find((x) => /almuerzo|cena/i.test(x.label)) ?? meals[0]
   return unsplashUrl(mealPhotoId(main?.label ?? 'Almuerzo', (main?.content ?? m.summary).replace(/\*\*/g, ''), m.id), w, h)
 }
@@ -85,7 +85,7 @@ function Photo({ src, className }: { src: string; className?: string }) {
 }
 
 /** Verano de octubre a marzo (hemisferio sur). */
-function currentSeason(): MenuSeason {
+export function currentMenuSeason(): MenuSeason {
   const month = new Date().getMonth()
   return month >= 9 || month <= 2 ? 'verano' : 'invierno'
 }
@@ -133,7 +133,7 @@ export function SeasonalMenusV2({
   // El destacado solo aparece sin filtros: con filtros, la lista ya es la respuesta.
   const featured = useMemo(() => {
     if (hasActiveFilters || withMeals.length === 0) return null
-    const now = currentSeason()
+    const now = currentMenuSeason()
     return withMeals.find((x) => x.m.season === now) ?? withMeals[0]!
   }, [hasActiveFilters, withMeals])
   const rest = featured ? withMeals.filter((x) => x.m.id !== featured.m.id) : withMeals
@@ -194,7 +194,7 @@ export function SeasonalMenusV2({
             Sugerido para esta época
           </h2>
           <div className="grid gap-5 rounded-2xl bg-surface-elevated/60 p-4 sm:p-5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-            <Photo src={photoOf(featured.m, featured.meals, 800, 600)} className="aspect-[4/3] rounded-xl md:aspect-auto md:min-h-[260px]" />
+            <Photo src={menuPhotoUrl(featured.m, featured.meals, 800, 600)} className="aspect-[4/3] rounded-xl md:aspect-auto md:min-h-[260px]" />
             <div className="flex min-w-0 flex-col gap-3">
               <div>
                 <h3 className="text-xl font-semibold leading-snug tracking-tight text-ink-primary sm:text-2xl">{featured.m.title}</h3>
@@ -270,7 +270,7 @@ export function SeasonalMenusV2({
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {rest.map(({ m, meals }) => (
               <li key={m.id} className="flex flex-col overflow-hidden rounded-2xl border border-surface-border/60 bg-surface-card">
-                <Photo src={photoOf(m, meals, 640, 360)} className="aspect-[16/9]" />
+                <Photo src={menuPhotoUrl(m, meals, 640, 360)} className="aspect-[16/9]" />
                 <div className="flex flex-1 flex-col gap-2.5 p-4">
                   <h3 className="text-base font-semibold leading-snug text-ink-primary">{m.title}</h3>
                   <Tags m={m} />
@@ -292,7 +292,7 @@ export function SeasonalMenusV2({
           <ul className="flex flex-col gap-3">
             {rest.map(({ m, meals }) => (
               <li key={m.id} className="flex flex-col gap-4 rounded-2xl bg-surface-elevated/60 p-3 sm:flex-row sm:items-center">
-                <Photo src={photoOf(m, meals, 480, 360)} className="aspect-[16/9] w-full shrink-0 rounded-xl sm:aspect-[4/3] sm:w-40" />
+                <Photo src={menuPhotoUrl(m, meals, 480, 360)} className="aspect-[16/9] w-full shrink-0 rounded-xl sm:aspect-[4/3] sm:w-40" />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <Tags m={m} />
                   <div>
