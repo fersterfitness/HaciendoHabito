@@ -105,8 +105,12 @@ export function NutritionMeasurementHistoryList({
     <div className="space-y-3">
       <p className="text-2xs text-ink-muted">
         {measurements.length === 1
-          ? '1 control guardado. Clic en la fila para el informe «Presentación».'
-          : `${measurements.length} controles. Clic en la fila para el informe; Editar o Clonar cargan el programa arriba.`}
+          ? IS_V2
+            ? '1 control guardado. Tocá la fila para ver el informe.'
+            : '1 control guardado. Clic en la fila para el informe «Presentación».'
+          : IS_V2
+            ? `${measurements.length} controles. Tocá una fila para ver el informe; Editar y Clonar abren el formulario arriba.`
+            : `${measurements.length} controles. Clic en la fila para el informe; Editar o Clonar cargan el programa arriba.`}
       </p>
 
       <div className="overflow-x-auto rounded-xl border border-surface-border/80">
@@ -170,7 +174,7 @@ export function NutritionMeasurementHistoryList({
                             : 'border border-surface-border text-ink-muted',
                       )}
                     >
-                      {program ? 'Programa Holway' : 'Express'}
+                      {IS_V2 ? (program ? 'Completo' : 'Rápido') : program ? 'Programa Holway' : 'Express'}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-sm tabular-nums text-ink-secondary sm:px-4">

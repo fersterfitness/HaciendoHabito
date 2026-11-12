@@ -291,7 +291,7 @@ export function NutritionMeasurementChartsV2({ measurements }: { measurements: N
     return (
       <p className="py-2 text-sm text-ink-muted">
         {controls.length === 1 ? 'Hay un control guardado' : `Hay ${controls.length} controles guardados`}, pero sin perímetros ni
-        pliegues. Se completan en el programa de antropometría o importando el informe PDF.
+        pliegues. Se completan al editar el control o importando el informe PDF.
       </p>
     )
   }

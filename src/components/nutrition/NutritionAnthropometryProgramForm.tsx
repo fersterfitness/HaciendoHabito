@@ -412,7 +412,9 @@ export function NutritionAnthropometryProgramForm({
         ? 'Control actualizado'
         : draft?.mode === 'clone'
           ? 'Control clonado y guardado'
-          : 'Medición del programa guardada',
+          : IS_V2
+            ? 'Control guardado'
+            : 'Medición del programa guardada',
     )
     onDraftClear?.()
     await onSaved()
@@ -470,9 +472,9 @@ export function NutritionAnthropometryProgramForm({
       ) : null}
 
       <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-3 space-y-3">
-        <SectionTitle>Datos generales (como en el Excel)</SectionTitle>
+        <SectionTitle>{IS_V2 ? 'Datos del control' : 'Datos generales (como en el Excel)'}</SectionTitle>
         <p className="text-3xs text-ink-muted leading-relaxed -mt-1">
-          Se completan desde la ficha del paciente, el registro web o la última medición. Podés editarlos si hace falta.
+          {IS_V2 ? 'Vienen de la ficha del paciente o del control anterior. Cambialos si hace falta.' : 'Se completan desde la ficha del paciente, el registro web o la última medición. Podés editarlos si hace falta.'}
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <label className="text-2xs text-ink-secondary">
@@ -485,7 +487,7 @@ export function NutritionAnthropometryProgramForm({
             />
           </label>
           <label className="text-2xs text-ink-secondary">
-            N° medición
+            {IS_V2 ? 'Número de control' : 'N° medición'}
             <input
               type="number"
               min={1}
@@ -501,7 +503,7 @@ export function NutritionAnthropometryProgramForm({
             />
           </label>
           <label className="text-2xs text-ink-secondary">
-            Sexo (programa: 1=m · 2=f)
+            {IS_V2 ? 'Sexo' : 'Sexo (programa: 1=m · 2=f)'}
             <select
               value={meta.sex == null ? '' : String(meta.sex)}
               onChange={(e) => {
@@ -511,8 +513,8 @@ export function NutritionAnthropometryProgramForm({
               className={cn(controlMdClassName, 'mt-1 w-full px-2 cursor-pointer')}
             >
               <option value="">—</option>
-              <option value="1">1 · Masculino</option>
-              <option value="2">2 · Femenino</option>
+              <option value="1">{IS_V2 ? 'Masculino' : '1 · Masculino'}</option>
+              <option value="2">{IS_V2 ? 'Femenino' : '2 · Femenino'}</option>
             </select>
           </label>
           <label className="text-2xs text-ink-secondary sm:col-span-2">
@@ -524,16 +526,18 @@ export function NutritionAnthropometryProgramForm({
             />
           </label>
           <label className="text-2xs text-ink-secondary">
-            Act. física
+            {IS_V2 ? 'Actividad física' : 'Act. física'}
             <input
+              placeholder={IS_V2 ? 'Ej. gimnasio 3 veces por semana' : undefined}
               value={meta.physical_activity ?? ''}
               onChange={(e) => setMeta((m) => ({ ...m, physical_activity: e.target.value }))}
               className={cn(controlMdClassName, 'mt-1 w-full px-2')}
             />
           </label>
           <label className="text-2xs text-ink-secondary">
-            Depo/Recrea (D/R)
+            {IS_V2 ? 'Deportivo o recreativo' : 'Depo/Recrea (D/R)'}
             <input
+              placeholder={IS_V2 ? 'Ej. recreativo' : undefined}
               value={meta.depo_recrea ?? ''}
               onChange={(e) => setMeta((m) => ({ ...m, depo_recrea: e.target.value }))}
               className={cn(controlMdClassName, 'mt-1 w-full px-2')}
@@ -542,7 +546,7 @@ export function NutritionAnthropometryProgramForm({
           {IS_V2 ? (
             <>
               <label className="text-2xs text-ink-secondary">
-                % grasa (masa adiposa)
+                Grasa corporal (%)
                 <input
                   type="text"
                   inputMode="decimal"
@@ -566,7 +570,7 @@ export function NutritionAnthropometryProgramForm({
             </>
           ) : null}
           <label className="text-2xs text-ink-secondary lg:col-span-2">
-            % error técnico TE (diámetros/pliegues)
+            {IS_V2 ? 'Margen de error de la medición' : '% error técnico TE (diámetros/pliegues)'}
             <div className="mt-1 flex items-center gap-2.5">
               <div className="relative w-[5.5rem] shrink-0">
                 <input
@@ -587,7 +591,7 @@ export function NutritionAnthropometryProgramForm({
                 </span>
               </div>
               <span className="text-3xs leading-snug text-ink-muted">
-                Por defecto 2% (como en el Excel). Usado en valor ajustado y PDF.
+                {IS_V2 ? 'Se aplica a diámetros y pliegues. Lo habitual es 2 %.' : 'Por defecto 2% (como en el Excel). Usado en valor ajustado y PDF.'}
               </span>
             </div>
           </label>
@@ -669,7 +673,9 @@ export function NutritionAnthropometryProgramForm({
             ? 'Guardar cambios'
             : draft?.mode === 'clone'
               ? 'Guardar clon'
-              : 'Guardar control del programa'}
+              : IS_V2
+                ? 'Guardar control'
+                : 'Guardar control del programa'}
         </Button>
         {draft ? (
           <Button type="button" size="sm" variant="outline" onClick={() => onDraftClear?.()} disabled={saving}>
