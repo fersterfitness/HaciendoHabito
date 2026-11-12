@@ -56,11 +56,27 @@ const fieldTextareaClassName = cn(
   'outline-none transition-colors focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20',
 )
 
-function deltaToneClass(delta: string): string {
-  const t = delta.trim()
-  if (t.startsWith('+')) return 'text-status-generated'
-  if (t.startsWith('-')) return 'text-status-expired'
-  return 'text-ink-muted'
+/**
+ * Si el cambio va en la dirección buscada. Mismo criterio que la comparación por zonas de la carpeta:
+ * grasa, pliegues y cintura mejoran al bajar; masa muscular y perímetros de brazo y pierna, al subir.
+ * Peso, IMC y el resto no se juzgan: dependen del objetivo del paciente.
+ */
+function deltaJudgement(label: string, delta: string): 'good' | 'bad' | 'neutral' {
+  const n = Number.parseFloat(delta.replace('−', '-').replace(',', '.'))
+  if (!Number.isFinite(n) || Math.abs(n) < 0.005) return 'neutral'
+  const l = label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const lowerIsBetter = l.startsWith('% grasa') || l.startsWith('pliegue') || /cintura|abdom/.test(l)
+  const higherIsBetter = l.startsWith('masa muscular') || (l.startsWith('perimetro') && /brazo|biceps|muslo|pantorrilla|pierna/.test(l))
+  if (lowerIsBetter) return n < 0 ? 'good' : 'bad'
+  if (higherIsBetter) return n > 0 ? 'good' : 'bad'
+  return 'neutral'
+}
+
+function deltaToneClass(label: string, delta: string): string {
+  const j = deltaJudgement(label, delta)
+  if (j === 'good') return IS_V2 ? 'text-status-ok-ink' : 'text-status-generated'
+  if (j === 'bad') return 'text-status-expired'
+  return delta.trim() === '—' ? 'text-ink-muted' : 'text-ink-primary'
 }
 
 export function NutritionComparativePage() {
@@ -670,6 +686,12 @@ export function NutritionComparativePage() {
                   </div>
                 )}
 
+                {step3Done ? (
+                  <p className="text-2xs leading-relaxed text-ink-muted">
+                    Verde: va en la dirección buscada. Rojo: en la contraria. Peso e IMC van sin color porque dependen del objetivo.
+                  </p>
+                ) : null}
+
                 {diffRows.length > 6 ? (
                   <details className={cn('rounded-xl px-3 py-2', IS_V2 ? 'bg-surface-elevated/60' : 'border border-surface-border/80 bg-surface-elevated/30')}>
                     <summary className="cursor-pointer text-xs font-semibold text-ink-secondary py-1">
@@ -679,7 +701,7 @@ export function NutritionComparativePage() {
                       {diffRows.slice(6).map((row) => (
                         <li key={row.label} className="text-2xs text-ink-secondary flex justify-between gap-2">
                           <span className="font-medium text-ink-primary truncate">{row.label}</span>
-                          <span className={cn('shrink-0 tabular-nums font-semibold', deltaToneClass(row.delta))}>
+                          <span className={cn('shrink-0 tabular-nums font-semibold', deltaToneClass(row.label, row.delta))}>
                             {row.delta}
                           </span>
                         </li>
@@ -915,7 +937,7 @@ function MetricDeltaCard({
       <p className="mt-1 text-2xs text-ink-secondary tabular-nums truncate">
         {from} → {to}
       </p>
-      <p className={cn('mt-0.5 text-sm font-bold tabular-nums', deltaToneClass(delta))}>{delta}</p>
+      <p className={cn('mt-0.5 text-sm font-bold tabular-nums', deltaToneClass(label, delta))}>{delta}</p>
     </div>
   )
 }
