@@ -1,12 +1,10 @@
-import { LineChart, Users } from 'lucide-react'
 import { NutritionAreaTabsStrip } from '@/components/nutrition/NutritionAreaTabsStrip'
-import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { nutritionSectionDescClass, nutritionSectionTitleClass } from '@/lib/nutrition/nutritionAreaUi'
 import { cn } from '@/lib/utils'
 
 /**
  * Misma altura visual que las pestañas de Planes/Biblioteca, sin forzar tabs falsos:
- * contexto del área + acceso rápido a evolución.
+ * contexto del área.
  */
 export function NutritionPatientAreaHeader({ className }: { className?: string }) {
   return (
@@ -18,15 +16,6 @@ export function NutritionPatientAreaHeader({ className }: { className?: string }
             Listado, turnos y carpeta nutricional de cada persona.
           </p>
         </div>
-        <SegmentedControl
-          size="sm"
-          ariaLabel="Pacientes"
-          className="shrink-0"
-          items={[
-            { id: 'list', to: '/nutrition', end: true, label: 'Listado', icon: Users },
-            { id: 'evolution', to: '/nutrition/evolution', label: 'Evolución', icon: LineChart },
-          ]}
-        />
       </div>
     </NutritionAreaTabsStrip>
   )

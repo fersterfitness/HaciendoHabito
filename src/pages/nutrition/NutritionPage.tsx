@@ -8,7 +8,6 @@ import {
   CalendarClock,
   CalendarX,
   FolderOpen,
-  LineChart,
   MoreHorizontal,
   Archive,
   Plus,
@@ -346,14 +345,6 @@ export function NutritionPage() {
                 Menús estacionales
               </button>
               )}
-              <button
-                type="button"
-                className={directoryToolbarBtnClassName}
-                onClick={() => navigate('/nutrition/evolution')}
-              >
-                <LineChart className="h-4 w-4 opacity-70" aria-hidden />
-                Evolución
-              </button>
               {IS_V2 ? (
                 <PatientsMoreMenu onMenus={() => navigate('/nutrition/menus')} showDeleted={showDeletedV2} onToggleDeleted={() => setShowDeletedV2((v) => !v)} />
               ) : (

@@ -25,6 +25,8 @@ import {
 } from '@/lib/nutrition/anthropometryParser'
 import toast from 'react-hot-toast'
 import { useSearchParams } from 'react-router-dom'
+import { IS_V2 } from '@/lib/uiVersion'
+import { v2TabClass } from '@/components/v2/tabStyle'
 
 function buildSafePdfName(fileName: string): string {
   const clean = fileName.replace(/\.pdf$/i, '')
@@ -35,8 +37,14 @@ function buildOriginalLabel(fileName: string): string {
   return fileName.replace(/\.pdf$/i, '').trim()
 }
 
-const panelClassName =
-  'rounded-2xl border border-surface-border/80 bg-surface-card shadow-card overflow-hidden'
+const panelClassName = IS_V2
+  ? 'rounded-2xl border border-surface-border/60 bg-surface-card overflow-hidden'
+  : 'rounded-2xl border border-surface-border/80 bg-surface-card shadow-card overflow-hidden'
+
+/** Encabezado de cada panel: en la v2 sin franja gris. */
+const panelHeadClassName = IS_V2
+  ? 'border-b border-surface-border/60 px-5 py-4'
+  : 'border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:px-5'
 
 const fieldSelectClassName = cn(
   'w-full h-10 rounded-xl border border-surface-border bg-surface-input px-3 text-sm text-ink-primary',
@@ -404,6 +412,23 @@ export function NutritionComparativePage() {
       <Header title="Diagnóstico comparativo" showBack />
 
       <DirectoryPageShell className="max-w-6xl space-y-6">
+        {IS_V2 ? (
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight text-ink-primary">Diagnóstico comparativo</h1>
+              <p className="mt-1 max-w-xl text-sm text-ink-muted">
+                Elegí el paciente y dos controles; armamos la comparación y la devolución para descargar en PDF.
+              </p>
+            </div>
+            <WorkflowProgress
+              steps={[
+                { label: 'Paciente', done: step1Done },
+                { label: 'Controles', done: step2Done },
+                { label: 'Análisis', done: step3Done },
+              ]}
+            />
+          </header>
+        ) : (
         <header
           className={cn(
             'relative overflow-hidden rounded-2xl border border-brand-secondary/25',
@@ -431,19 +456,22 @@ export function NutritionComparativePage() {
             </div>
           </div>
         </header>
+        )}
 
-        <WorkflowProgress
-          steps={[
-            { label: 'Paciente', done: step1Done },
-            { label: 'Controles', done: step2Done },
-            { label: 'Análisis', done: step3Done },
-          ]}
-        />
+        {IS_V2 ? null : (
+          <WorkflowProgress
+            steps={[
+              { label: 'Paciente', done: step1Done },
+              { label: 'Controles', done: step2Done },
+              { label: 'Análisis', done: step3Done },
+            ]}
+          />
+        )}
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start">
           <div className="space-y-4">
             <section className={panelClassName}>
-              <div className="border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:px-5">
+              <div className={panelHeadClassName}>
                 <h2 className="text-sm font-semibold text-ink-primary">Configuración</h2>
                 <p className="text-xs text-ink-muted mt-0.5">Paciente y tipo de comparación</p>
               </div>
@@ -475,7 +503,12 @@ export function NutritionComparativePage() {
                 </label>
 
                 {selectedStudent ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-brand-secondary/20 bg-brand-secondary/[0.05] px-3 py-2.5">
+                  <div
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl px-3 py-2.5',
+                      IS_V2 ? 'bg-surface-elevated/60' : 'border border-brand-secondary/20 bg-brand-secondary/[0.05]',
+                    )}
+                  >
                     <StudentAvatar
                       studentId={selectedStudent.id}
                       fullName={selectedStudent.full_name}
@@ -513,7 +546,7 @@ export function NutritionComparativePage() {
             </section>
 
             <section className={cn(panelClassName, !step1Done && 'opacity-60 pointer-events-none')}>
-              <div className="flex flex-col gap-2 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between', panelHeadClassName)}>
                 <div>
                   <h2 className="text-sm font-semibold text-ink-primary">Controles a comparar</h2>
                   <p className="text-xs text-ink-muted mt-0.5">Anterior → actual</p>
@@ -599,7 +632,7 @@ export function NutritionComparativePage() {
 
           <aside className="space-y-4 lg:sticky lg:top-[4.5rem]">
             <section className={panelClassName}>
-              <div className="border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-3 sm:px-5">
+              <div className={panelHeadClassName}>
                 <h2 className="text-sm font-semibold text-ink-primary">Resultado</h2>
                 <p className="text-xs text-ink-muted mt-0.5">Análisis y devolución clínica</p>
               </div>
@@ -607,7 +640,7 @@ export function NutritionComparativePage() {
               <div className="p-4 sm:p-5 space-y-4">
                 <Button
                   type="button"
-                  variant="gradientSecondary"
+                  variant={IS_V2 ? undefined : 'gradientSecondary'}
                   className="w-full"
                   icon={<Sparkles className="h-4 w-4" />}
                   loading={analyzing}
@@ -630,15 +663,15 @@ export function NutritionComparativePage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-surface-border/90 bg-surface-elevated/20 px-4 py-8 text-center">
-                    <Sparkles className="mx-auto h-8 w-8 text-brand-secondary/50 mb-2" aria-hidden />
+                  <div className={cn('rounded-xl px-4 py-8 text-center', IS_V2 ? 'bg-surface-elevated/60' : 'border border-dashed border-surface-border/90 bg-surface-elevated/20')}>
+                    <Sparkles className={cn('mx-auto mb-2', IS_V2 ? 'h-6 w-6 text-ink-muted' : 'h-8 w-8 text-brand-secondary/50')} aria-hidden />
                     <p className="text-sm font-medium text-ink-primary">Sin análisis aún</p>
                     <p className="mt-1 text-xs text-ink-muted">Los cambios aparecerán acá como tarjetas.</p>
                   </div>
                 )}
 
                 {diffRows.length > 6 ? (
-                  <details className="rounded-xl border border-surface-border/80 bg-surface-elevated/30 px-3 py-2">
+                  <details className={cn('rounded-xl px-3 py-2', IS_V2 ? 'bg-surface-elevated/60' : 'border border-surface-border/80 bg-surface-elevated/30')}>
                     <summary className="cursor-pointer text-xs font-semibold text-ink-secondary py-1">
                       Ver {diffRows.length - 6} métricas más
                     </summary>
@@ -674,7 +707,7 @@ export function NutritionComparativePage() {
 
             <Button
               className="w-full"
-              variant="gradientSecondary"
+              variant={IS_V2 ? 'secondary' : 'gradientSecondary'}
               icon={<Download className="h-4 w-4" />}
               loading={generating}
               disabled={!step3Done}
@@ -690,6 +723,26 @@ export function NutritionComparativePage() {
 }
 
 function WorkflowProgress({ steps }: { steps: { label: string; done: boolean }[] }) {
+  if (IS_V2) {
+    return (
+      <ol className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1" aria-label="Progreso del flujo">
+        {steps.map((step, index) => (
+          <li key={step.label} className={cn('flex items-center gap-1.5 text-xs font-medium', step.done ? 'text-ink-primary' : 'text-ink-muted')}>
+            <span
+              className={cn(
+                'flex h-5 w-5 items-center justify-center rounded-full text-3xs font-semibold',
+                step.done ? 'bg-status-ok text-status-ok-ink' : 'bg-surface-elevated text-ink-muted',
+              )}
+              aria-hidden
+            >
+              {step.done ? <Check className="h-3 w-3" strokeWidth={3} /> : index + 1}
+            </span>
+            {step.label}
+          </li>
+        ))}
+      </ol>
+    )
+  }
   return (
     <ol className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Progreso del flujo">
       {steps.map((step, index) => (
@@ -736,6 +789,20 @@ function SegmentedMode({
   onPdf: () => void
   onManual: () => void
 }) {
+  if (IS_V2) {
+    return (
+      <div className="inline-flex gap-1.5">
+        <button type="button" onClick={onPdf} aria-pressed={mode === 'pdf'} className={v2TabClass(mode === 'pdf')}>
+          <FileText className="h-3.5 w-3.5" aria-hidden />
+          Informes PDF
+        </button>
+        <button type="button" onClick={onManual} aria-pressed={mode === 'manual'} className={v2TabClass(mode === 'manual')}>
+          <Sparkles className="h-3.5 w-3.5" aria-hidden />
+          Controles cargados
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="grid grid-cols-2 gap-1 rounded-xl border border-surface-border/80 bg-surface-elevated/40 p-1">
       <button
@@ -784,8 +851,8 @@ function ControlPickerColumn({
   kind: 'pdf' | 'measurement'
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-surface-border/80 bg-surface-elevated/25 overflow-hidden flex flex-col">
-      <div className="px-3 py-2 border-b border-surface-border/60 bg-surface-card/50">
+    <div className={cn('min-w-0 overflow-hidden flex flex-col rounded-xl', IS_V2 ? 'bg-surface-elevated/60' : 'border border-surface-border/80 bg-surface-elevated/25')}>
+      <div className={IS_V2 ? 'px-3.5 pt-3 pb-1' : 'px-3 py-2 border-b border-surface-border/60 bg-surface-card/50'}>
         <p className="text-xs font-semibold text-ink-primary">{title}</p>
         <p className="text-3xs text-ink-muted">{subtitle}</p>
       </div>
@@ -810,16 +877,18 @@ function ControlPickerColumn({
                 type="button"
                 onClick={() => onSelect(active ? '' : id)}
                 className={cn(
-                  'w-full text-left rounded-lg border px-2.5 py-2 transition-colors',
-                  active
-                    ? 'border-brand-secondary/45 bg-brand-secondary/10 ring-1 ring-brand-secondary/20'
-                    : 'border-transparent hover:border-surface-border hover:bg-surface-card/80',
+                  'w-full text-left rounded-lg px-2.5 py-2 transition-colors',
+                  IS_V2
+                    ? active
+                      ? 'bg-ink-primary text-surface-base'
+                      : 'hover:bg-surface-card'
+                    : cn('border', active ? 'border-brand-secondary/45 bg-brand-secondary/10 ring-1 ring-brand-secondary/20' : 'border-transparent hover:border-surface-border hover:bg-surface-card/80'),
                 )}
               >
-                <p className={cn('text-xs font-medium truncate', active ? 'text-brand-secondary' : 'text-ink-primary')}>
+                <p className={cn('text-xs font-medium truncate', IS_V2 ? (active ? undefined : 'text-ink-primary') : active ? 'text-brand-secondary' : 'text-ink-primary')}>
                   {label}
                 </p>
-                <p className="text-3xs text-ink-muted truncate mt-0.5">{meta}</p>
+                <p className={cn('text-3xs truncate mt-0.5', IS_V2 && active ? 'opacity-70' : 'text-ink-muted')}>{meta}</p>
               </button>
             </li>
           )
@@ -841,7 +910,7 @@ function MetricDeltaCard({
   delta: string
 }) {
   return (
-    <div className="rounded-xl border border-surface-border/80 bg-surface-elevated/30 p-2.5">
+    <div className={cn('rounded-xl', IS_V2 ? 'bg-surface-elevated/60 p-3' : 'border border-surface-border/80 bg-surface-elevated/30 p-2.5')}>
       <p className="text-3xs font-semibold text-ink-muted truncate">{label}</p>
       <p className="mt-1 text-2xs text-ink-secondary tabular-nums truncate">
         {from} → {to}
@@ -858,12 +927,13 @@ function UploadEmptyState({ onUpload, uploading }: { onUpload: () => void; uploa
       onClick={onUpload}
       disabled={uploading}
       className={cn(
-        'w-full rounded-xl border-2 border-dashed border-brand-secondary/30 bg-brand-secondary/[0.04]',
-        'px-4 py-10 text-center transition-colors hover:border-brand-secondary/50 hover:bg-brand-secondary/[0.08]',
-        'disabled:opacity-50',
+        'w-full rounded-xl border border-dashed px-4 py-10 text-center transition-colors disabled:opacity-50',
+        IS_V2
+          ? 'border-surface-inputBorder hover:bg-surface-elevated/60'
+          : 'border-2 border-brand-secondary/30 bg-brand-secondary/[0.04] hover:border-brand-secondary/50 hover:bg-brand-secondary/[0.08]',
       )}
     >
-      <Upload className="mx-auto h-8 w-8 text-brand-secondary/70 mb-2" aria-hidden />
+      <Upload className={cn('mx-auto mb-2', IS_V2 ? 'h-6 w-6 text-ink-muted' : 'h-8 w-8 text-brand-secondary/70')} aria-hidden />
       <p className="text-sm font-semibold text-ink-primary">{uploading ? 'Subiendo…' : 'Subir PDF de antropometría'}</p>
       <p className="mt-1 text-xs text-ink-muted">Arrastrá o tocá para cargar el primer control</p>
     </button>

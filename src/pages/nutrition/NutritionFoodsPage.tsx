@@ -467,8 +467,8 @@ export function NutritionFoodsPage() {
 
         <div className="grid gap-4 xl:grid-cols-12 xl:items-start xl:gap-5">
           <div className="space-y-4 xl:col-span-8 2xl:col-span-9">
-        <section className={cn('p-3.5 sm:p-4', nutritionPanelClass)}>
-          <div className="mb-2 flex items-center justify-between gap-2">
+        <section className={cn(IS_V2 ? 'p-5' : 'p-3.5 sm:p-4', nutritionPanelClass)}>
+          <div className={cn('flex items-center justify-between gap-2', IS_V2 ? 'mb-3' : 'mb-2')}>
             <h2 className={cn('inline-flex items-center gap-2', nutritionSectionTitleClass)}>
               <Wheat className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
               Mi lista
@@ -476,11 +476,11 @@ export function NutritionFoodsPage() {
             {!loading && rows.length > 0 ? (
               <span
                 className={cn(
-                  'rounded-md border border-surface-border/80 bg-surface-elevated/40 px-2 py-0.5 font-medium tabular-nums text-ink-muted',
+                  IS_V2 ? 'rounded-md bg-surface-elevated px-2 py-0.5 font-medium tabular-nums text-ink-secondary' : 'rounded-md border border-surface-border/80 bg-surface-elevated/40 px-2 py-0.5 font-medium tabular-nums text-ink-muted',
                   nutritionMetaClass,
                 )}
               >
-                <span className={foodsDetailTertiary}>{rows.length}</span>
+                <span className={IS_V2 ? undefined : foodsDetailTertiary}>{rows.length}{IS_V2 ? (rows.length === 1 ? ' alimento' : ' alimentos') : ''}</span>
               </span>
             ) : null}
           </div>
@@ -498,12 +498,43 @@ export function NutritionFoodsPage() {
             <div className="space-y-4">
               {groupedSavedFoods.map(([catLabel, items]) => (
                 <div key={catLabel}>
-                  <p className={cn('mb-1.5', nutritionSectionTitleClass)}>
+                  <p className={cn(IS_V2 ? 'flex items-baseline gap-2' : 'mb-1.5', nutritionSectionTitleClass)}>
                     {catLabel}
+                    {IS_V2 ? <span className="text-xs font-normal tabular-nums text-ink-muted">{items.length}</span> : null}
                   </p>
-                  <ul className="space-y-1.5">
+                  <ul className={IS_V2 ? 'divide-y divide-surface-border/50' : 'space-y-1.5'}>
                     {items.map((r) => (
-                      <li key={r.id} className={foodsListItemClass}>
+                      <li key={r.id} className={IS_V2 ? 'group flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2.5' : foodsListItemClass}>
+                        {IS_V2 ? (
+                          <>
+                            <div className="min-w-0 flex-1 basis-40">
+                              <p className="truncate text-sm font-medium text-ink-primary">{r.display_name}</p>
+                              <p className="mt-0.5 truncate text-xs text-ink-muted">
+                                {macroQtyMiListaSuffix(r).replace(/^[\s(]+|[\s)]+$/g, '')}
+                                {r.portion_basis === 'cocido' ? ' · cocido' : r.portion_basis === 'crudo' ? ' · crudo' : ''}
+                                {' · '}
+                                {sourceBadge(r)}
+                              </p>
+                            </div>
+                            <dl className="grid shrink-0 grid-cols-4 gap-1.5 text-center">
+                              {(
+                                [
+                                  ['kcal', r.energy_kcal_per_100g],
+                                  ['Prot.', r.protein_g_per_100g],
+                                  ['Carb.', r.carbs_g_per_100g],
+                                  ['Grasas', r.fat_g_per_100g],
+                                ] as const
+                              ).map(([label, value]) => (
+                                <div key={label} className="w-14 rounded-lg bg-surface-elevated/60 px-1 py-1">
+                                  <dt className="text-3xs text-ink-muted">{label}</dt>
+                                  <dd className="text-xs font-semibold tabular-nums text-ink-primary">
+                                    {value == null ? '—' : Number(value).toLocaleString('es-AR', { maximumFractionDigits: 1 })}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </>
+                        ) : (
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-ink-primary">{r.display_name}</p>
                           <p className={cn('mt-0.5 tabular-nums', nutritionMetaClass)}>
@@ -521,6 +552,7 @@ export function NutritionFoodsPage() {
                             {sourceBadge(r)}
                           </p>
                         </div>
+                        )}
                         <div className="flex shrink-0 items-center gap-0.5">
                           <Button
                             type="button"
@@ -655,7 +687,7 @@ export function NutritionFoodsPage() {
 
           <div className="xl:sticky xl:top-16 xl:col-span-4 2xl:col-span-3 xl:self-start">
         <section className={cn('overflow-hidden', nutritionPanelClass)}>
-          <div className="border-b border-surface-border/80 bg-surface-elevated/25 px-3.5 py-2.5 sm:px-4">
+          <div className={IS_V2 ? 'border-b border-surface-border/60 px-5 py-3.5' : 'border-b border-surface-border/80 bg-surface-elevated/25 px-3.5 py-2.5 sm:px-4'}>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h2 className={cn('inline-flex items-center gap-2', nutritionSectionTitleClass)}>
                 <Plus className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
@@ -747,7 +779,7 @@ export function NutritionFoodsPage() {
                   )}
                 />
               </div>
-              <div className="sm:col-span-2 flex flex-col gap-2 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2.5">
+              <div className={cn('sm:col-span-2 flex flex-col gap-2 rounded-xl', IS_V2 ? 'bg-surface-elevated/60 p-3' : 'border border-surface-border/80 bg-surface-elevated/15 p-2.5')}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
                   <p className={cn('min-w-0 flex-1', nutritionHintClass)}>
                     {macroQtyPresentation === 'volume' ? (
@@ -828,7 +860,7 @@ export function NutritionFoodsPage() {
             </div>
 
             {isUsda && (
-              <div className="space-y-2 rounded-xl border border-surface-border/80 bg-surface-elevated/15 p-2.5 text-sm">
+              <div className={cn('space-y-2 rounded-xl text-sm', IS_V2 ? 'bg-surface-elevated/60 p-3' : 'border border-surface-border/80 bg-surface-elevated/15 p-2.5')}>
                 <p className={cn(nutritionKickerClass, foodsDetailTertiary)}>
                   Importación internacional
                 </p>
@@ -851,9 +883,9 @@ export function NutritionFoodsPage() {
               </p>
             )}
 
-            <details className="rounded-xl border border-dashed border-surface-border/80 bg-surface-elevated/10">
+            <details className={IS_V2 ? 'rounded-xl bg-surface-elevated/60' : 'rounded-xl border border-dashed border-surface-border/80 bg-surface-elevated/10'}>
               <summary className="cursor-pointer select-none list-none px-3 py-2 text-xs font-medium text-ink-secondary [&::-webkit-details-marker]:hidden">
-                USDA FDC (inglés) — opcional
+                {IS_V2 ? 'Buscar en la base internacional (en inglés)' : 'USDA FDC (inglés) — opcional'}
               </summary>
               <div className="space-y-2 border-t border-surface-border/70 px-3 pb-3 pt-0">
                 <p className={cn('pt-2', nutritionHintClass)}>Resultados en inglés; traducí el nombre antes de guardar.</p>

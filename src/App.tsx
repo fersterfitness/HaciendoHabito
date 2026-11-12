@@ -65,7 +65,6 @@ const NutritionAnthropometryReportPage = lazy(() =>
 const NutritionComparativePage = lazy(() =>
   import('@/pages/nutrition/NutritionComparativePage').then((m) => ({ default: m.NutritionComparativePage })),
 )
-const NutritionEvolutionPage = lazy(() => import('@/pages/nutrition/NutritionEvolutionPage').then((m) => ({ default: m.NutritionEvolutionPage })))
 const NutritionAnthropometryHubPage = lazy(() =>
   import('@/pages/nutrition/NutritionAnthropometryHubPage').then((m) => ({ default: m.NutritionAnthropometryHubPage })),
 )
@@ -234,7 +233,7 @@ function renderLoggedInRoutes({
       <Route path="exercises/:id/edit" element={canSeeTraining ? withPageSuspense(<ExerciseFormPage />) : <Navigate to="/dashboard" replace />} />
 
       <Route path="nutrition" element={canSeeNutrition ? withPageSuspense(<NutritionPage />) : <Navigate to="/dashboard" replace />} />
-      <Route path="nutrition/evolution" element={canSeeNutrition ? withPageSuspense(<NutritionEvolutionPage />) : <Navigate to="/dashboard" replace />} />
+      <Route path="nutrition/evolution" element={<Navigate to="/nutrition" replace />} />
       <Route path="nutrition/anthropometry" element={canSeeNutrition ? withPageSuspense(<NutritionAnthropometryHubPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="nutrition/appointments" element={<Navigate to="/appointments" replace />} />
       <Route path="nutrition/plans" element={canSeeNutrition ? withPageSuspense(<NutritionTemplatesPage />) : <Navigate to="/dashboard" replace />} />

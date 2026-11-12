@@ -54,10 +54,6 @@ export function prefetchRouteChunkByHref(href: string): void {
     runOnce('nutrition-templates', () => void import('@/pages/nutrition/NutritionTemplatesPage'))
     return
   }
-  if (path === '/nutrition/evolution') {
-    runOnce('nutrition-evolution', () => void import('@/pages/nutrition/NutritionEvolutionPage'))
-    return
-  }
   if (path === '/nutrition/menus') {
     runOnce('nutrition-menus', () => void import('@/pages/nutrition/NutritionSeasonalMenusPage'))
     return
