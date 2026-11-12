@@ -1453,3 +1453,56 @@ html.ui-v2 .hh-day-name {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/*
+ * ── /form · inscripción pública ──
+ * Los cuatro formularios de datos comparten estas reglas: así los radios, las casillas y los
+ * desplegables nativos quedan parejos sin tocar cada formulario.
+ */
+.hh-intake input[type='radio']:not(.sr-only),
+.hh-intake input[type='checkbox']:not(.sr-only) {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  accent-color: rgb(var(--ink-primary));
+}
+/* Cada opción es una fila que se puede tocar entera; la elegida queda con borde negro. */
+.hh-intake label:has(> input[type='radio']:not(.sr-only)) {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid rgb(var(--surface-input-border));
+  border-radius: 0.75rem;
+  background-color: rgb(var(--surface-input));
+  color: rgb(var(--ink-primary));
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.hh-intake label:has(> input[type='radio']:not(.sr-only)):hover {
+  border-color: rgb(var(--ink-muted) / 0.6);
+}
+.hh-intake label:has(> input[type='radio']:not(.sr-only):checked) {
+  border-color: rgb(var(--ink-primary));
+  box-shadow: 0 0 0 1px rgb(var(--ink-primary));
+}
+.hh-intake label:has(> input[type='radio']:focus-visible) {
+  outline: 2px solid rgb(var(--ink-primary) / 0.5);
+  outline-offset: 2px;
+}
+.hh-intake select {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237e7e7a' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Al cambiar de sección, los campos entran uno tras otro. */
+  .hh-intake form > *:not(.hh-intake-actions) {
+    animation: v2-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  .hh-intake form > *:nth-child(2) { animation-delay: 40ms; }
+  .hh-intake form > *:nth-child(3) { animation-delay: 80ms; }
+  .hh-intake form > *:nth-child(4) { animation-delay: 120ms; }
+  .hh-intake form > *:nth-child(5) { animation-delay: 160ms; }
+  .hh-intake form > *:nth-child(n + 6) { animation-delay: 200ms; }
+}

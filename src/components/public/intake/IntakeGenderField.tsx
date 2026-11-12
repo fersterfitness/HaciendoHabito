@@ -32,10 +32,11 @@ export function IntakeGenderField({
           <label
             key={opt.value}
             className={cn(
-              'inline-flex min-h-[2.75rem] cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-xs font-semibold transition-all sm:text-sm',
+              'inline-flex min-h-[2.75rem] cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-body-sm font-medium transition-[border-color,box-shadow,color] sm:text-sm',
+              'has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink-primary/50',
               gender === opt.value
-                ? 'border-zinc-500/35 bg-zinc-500/[0.1] text-ink-primary ring-1 ring-zinc-500/18'
-                : 'border-surface-inputBorder bg-surface-input text-ink-secondary hover:border-zinc-500/28 hover:text-ink-primary',
+                ? 'border-ink-primary bg-surface-input text-ink-primary shadow-[0_0_0_1px_rgb(var(--ink-primary))]'
+                : 'border-surface-inputBorder bg-surface-input text-ink-secondary hover:border-ink-muted/60 hover:text-ink-primary',
             )}
           >
             <input type="radio" value={opt.value} className="sr-only" {...register('gender')} />

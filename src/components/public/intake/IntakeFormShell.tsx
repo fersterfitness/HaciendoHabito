@@ -9,11 +9,8 @@ type IntakeFormShellProps = {
 export function IntakeFormShell({ children, className }: IntakeFormShellProps) {
   return (
     <div
-      className={cn(
-        'rounded-xl border border-surface-border/80 bg-surface-card',
-        'p-4 sm:p-5 lg:p-6',
-        className,
-      )}
+      // La tarjeta la pone la página de /form: acá no va un segundo recuadro.
+      className={cn('hh-intake-shell', className)}
     >
       {children}
     </div>

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { MessageCircle, ShieldCheck } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { ArrowRight, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -19,6 +21,8 @@ import {
   resumeWebIntakeAccessByEmail,
 } from '@/lib/intake/webIntakeAccess'
 import { cn } from '@/lib/utils'
+
+const EASE = [0.16, 1, 0.3, 1] as const
 
 type Props = {
   planSlug: string
@@ -116,117 +120,142 @@ export function IntakePermissionsStep({ planSlug, planName, onApproved, onBack }
   }
 
   return (
-    <div className="v2f-slide space-y-6">
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-100 pb-5 dark:border-zinc-800">
-        <div className="min-w-0">
-          <p className="text-3xs font-semibold text-brand-primary">Paso 2 de 4</p>
-          <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">
-            Permisos
-          </h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Plan elegido: <strong className="text-zinc-900 dark:text-white">{planName}</strong>
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="shrink-0 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
-        >
-          Cambiar plan
-        </button>
-      </header>
-
-      <div className="rounded-2xl border border-brand-primary/25 bg-brand-primary/[0.06] p-5 text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-        <p className="text-base font-semibold text-zinc-900 dark:text-white">
-          ¿Te interesó este plan?
-        </p>
-        <p className="mt-2">
-          Hablá con <strong>Tomás Ferster</strong> por WhatsApp para que pueda darte los permisos y seguir con el
-          próximo paso (completar tus datos). Sin ese permiso no vas a poder rellenar el formulario.
-        </p>
-      </div>
-
-      <a
-        href={waUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn(
-          'flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-emerald-600/40 bg-emerald-500/[0.1] px-4 py-8 text-center transition-colors hover:bg-emerald-500/20',
-        )}
-      >
-        <WhatsAppIcon className="h-10 w-10" />
-        <span className="text-base font-bold text-emerald-900 dark:text-emerald-100">
-          Hablar con Tomás Ferster por WhatsApp
-        </span>
-        <span className="text-sm text-emerald-800/90 dark:text-emerald-200/90">{TRAINER_CONTACT_WHATSAPP_DISPLAY}</span>
-        <span className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-          El mensaje ya incluye el plan que elegiste
-        </span>
-      </a>
-
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="h-5 w-5 shrink-0 text-brand-primary" aria-hidden />
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Después de coordinar el pago por WhatsApp, tocá <strong className="text-zinc-800 dark:text-zinc-200">Pedir permiso</strong> para
-            que Tomás reciba el aviso en la app. El permiso queda guardado: podés salir y volver cuando quieras.
-            Cuando te habilite, usá <strong className="text-zinc-800 dark:text-zinc-200">Ya tengo permiso</strong> para
-            pasar al paso Datos.
-          </p>
-        </div>
-        <Input
-          type="email"
-          label="Tu mail"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="para retomar si salís de la página"
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full"
-          loading={requesting}
-          onClick={() => void handleRequestAccess()}
-        >
-          <MessageCircle className="h-4 w-4" />
-          Pedir permiso
-        </Button>
-        {hasToken ? (
-          <p className="text-center text-2xs text-zinc-500">Solicitud registrada para este plan.</p>
-        ) : null}
-        <Button type="button" className="w-full" loading={checking} onClick={() => void handleCheckAccess()}>
-          Ya tengo permiso — continuar a Datos
-        </Button>
-        {isDevIntakeAccessBypass() ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-dashed"
-            loading={skipping}
-            onClick={() => {
-              void (async () => {
-                setSkipping(true)
-                const result = await issueDevApprovedIntakeAccess({
-                  planSlug,
-                  planTitle: planName,
-                })
-                setSkipping(false)
-                if (!result.ok) {
-                  toast.error(result.error, { duration: 9000 })
-                  return
-                }
-                refreshTokenState()
-                toast.success('Permiso de desarrollo listo. Ya podés completar y enviar.')
-                onApproved()
-              })()
-            }}
+    <div>
+      <ol>
+        <PermissionStep index={0} done={hasToken} title="Escribile por WhatsApp" text="El mensaje ya incluye el plan que elegiste. Ahí coordinan el pago.">
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hh-focus inline-flex h-11 items-center gap-2.5 rounded-xl bg-status-ok px-4 text-sm font-semibold text-black transition-transform active:scale-[0.98]"
           >
-            Saltar permiso (solo desarrollo)
-          </Button>
-        ) : null}
+            <WhatsAppIcon className="h-5 w-5" />
+            Hablar con Tomás
+            <span className="hidden font-normal tabular-nums opacity-70 sm:inline">{TRAINER_CONTACT_WHATSAPP_DISPLAY}</span>
+          </a>
+        </PermissionStep>
+
+        <PermissionStep
+          index={1}
+          done={hasToken}
+          title="Pedí el permiso"
+          text="Tomás recibe el aviso en la app. Dejá tu mail para poder retomar si cerrás la página."
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <Input
+                type="email"
+                label="Tu mail"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nombre@mail.com"
+              />
+            </div>
+            <Button type="button" variant="soft" size="lg" loading={requesting} onClick={() => void handleRequestAccess()}>
+              {hasToken ? 'Volver a pedir' : 'Pedir permiso'}
+            </Button>
+          </div>
+          {hasToken ? (
+            <motion.p
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: EASE }}
+              className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-status-ok/15 px-2 py-1 text-2xs font-semibold text-status-ok-ink"
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden />
+              Solicitud enviada para este plan
+            </motion.p>
+          ) : null}
+        </PermissionStep>
+
+        <PermissionStep index={2} last title="Entrá a completar tus datos" text="Cuando Tomás te avise que ya te habilitó, seguí desde acá.">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button type="button" size="lg" loading={checking} onClick={() => void handleCheckAccess()}>
+              Ya tengo permiso
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Button>
+            {isDevIntakeAccessBypass() ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="border-dashed"
+                loading={skipping}
+                onClick={() => {
+                  void (async () => {
+                    setSkipping(true)
+                    const result = await issueDevApprovedIntakeAccess({
+                      planSlug,
+                      planTitle: planName,
+                    })
+                    setSkipping(false)
+                    if (!result.ok) {
+                      toast.error(result.error, { duration: 9000 })
+                      return
+                    }
+                    refreshTokenState()
+                    toast.success('Permiso de desarrollo listo. Ya podés completar y enviar.')
+                    onApproved()
+                  })()
+                }}
+              >
+                Saltar permiso (solo desarrollo)
+              </Button>
+            ) : null}
+          </div>
+        </PermissionStep>
+      </ol>
+
+      <div className="mt-2 border-t border-surface-border pt-4">
+        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+          Elegir otro plan
+        </Button>
       </div>
     </div>
+  )
+}
+
+/** Un paso de la lista: número (o tilde si ya está hecho), la línea que lo une al siguiente y su acción. */
+function PermissionStep({
+  index,
+  title,
+  text,
+  done = false,
+  last = false,
+  children,
+}: {
+  index: number
+  title: string
+  text: string
+  done?: boolean
+  last?: boolean
+  children: ReactNode
+}) {
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42, ease: EASE, delay: 0.06 + index * 0.07 }}
+      className="flex gap-3.5"
+    >
+      <div className="flex flex-col items-center">
+        <span
+          className={cn(
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums transition-colors duration-300',
+            done ? 'bg-status-ok text-black' : 'bg-ink-primary text-surface-base',
+          )}
+        >
+          {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : index + 1}
+        </span>
+        {!last ? <span className="mt-1.5 w-px flex-1 bg-surface-border" aria-hidden /> : null}
+      </div>
+      <div className={cn('min-w-0 flex-1', last ? 'pb-4' : 'pb-7')}>
+        <h2 className="pt-0.5 text-base font-semibold leading-tight tracking-tight text-ink-primary">{title}</h2>
+        <p className="mt-1 text-body-sm leading-snug text-ink-muted">{text}</p>
+        <div className="mt-3">{children}</div>
+      </div>
+    </motion.li>
   )
 }

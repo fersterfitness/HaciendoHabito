@@ -1,3 +1,5 @@
+import { motion } from 'motion/react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type IntakeFormStepNavProps = {
@@ -7,61 +9,65 @@ type IntakeFormStepNavProps = {
   onGoToStep?: (index: number) => void
 }
 
+/**
+ * Secciones del formulario de datos: un tramo por sección que se va llenando y, debajo, el nombre de
+ * cada una. Se puede volver a una anterior; avanzar valida lo que falta.
+ */
 export function IntakeFormStepNav({ step, stepTitles, stepNavHint, onGoToStep }: IntakeFormStepNavProps) {
   const total = stepTitles.length
   const current = stepTitles[step] ?? ''
-  const progress = Math.round(((step + 1) / total) * 100)
 
   return (
-    <div className="mb-5">
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <p className="text-sm text-ink-muted">
-          Paso {step + 1} de {total}
-          <span className="text-ink-muted/50"> · </span>
-          <span className="font-medium text-ink-primary">{current}</span>
+    <div className="mb-6">
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+        <p className="text-sm font-semibold tracking-tight text-ink-primary">{current}</p>
+        <p className="shrink-0 text-2xs tabular-nums text-ink-muted">
+          {step + 1} de {total}
         </p>
-        <span className="shrink-0 text-xs tabular-nums text-ink-muted">{progress}%</span>
       </div>
 
       <div
-        className="h-1 overflow-hidden rounded-full bg-surface-border/60 dark:bg-zinc-800/80"
+        className="flex gap-1.5"
         role="progressbar"
-        aria-valuenow={progress}
-        aria-valuemin={0}
-        aria-valuemax={100}
+        aria-valuenow={step + 1}
+        aria-valuemin={1}
+        aria-valuemax={total}
         aria-label="Progreso del formulario"
       >
-        <div
-          className="h-full rounded-full bg-brand-primary transition-[width] duration-400 ease-out"
-          style={{ width: `${progress}%` }}
-        />
+        {stepTitles.map((title, i) => (
+          <span key={title} className="relative h-1 flex-1 overflow-hidden rounded-full bg-surface-elevated">
+            <motion.span
+              className="absolute inset-0 origin-left rounded-full bg-ink-primary"
+              initial={false}
+              animate={{ scaleX: i <= step ? 1 : 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </span>
+        ))}
       </div>
 
       {onGoToStep && total <= 6 ? (
-        <div className="mt-3 flex flex-wrap gap-1">
+        <div className="mt-2 hidden gap-1.5 sm:flex">
           {stepTitles.map((title, i) => (
             <button
               key={title}
               type="button"
               onClick={() => onGoToStep(i)}
-              disabled={i > step}
+              aria-current={i === step ? 'step' : undefined}
               className={cn(
-                'rounded-md px-2 py-1 text-xs font-medium transition-colors',
-                i === step
-                  ? 'bg-surface-elevated text-ink-primary'
-                  : i < step
-                    ? 'text-ink-secondary hover:text-ink-primary hover:underline'
-                    : 'cursor-not-allowed text-ink-muted/45',
+                'hh-focus flex min-w-0 flex-1 items-center gap-1 rounded-md py-1 text-left text-2xs font-medium transition-colors',
+                i === step ? 'text-ink-primary' : i < step ? 'text-ink-secondary hover:text-ink-primary' : 'text-ink-muted hover:text-ink-secondary',
               )}
             >
-              {title}
+              {i < step ? <Check className="h-3 w-3 shrink-0 text-status-ok-ink" strokeWidth={3} aria-hidden /> : null}
+              <span className="truncate">{title}</span>
             </button>
           ))}
         </div>
       ) : null}
 
       {stepNavHint ? (
-        <p className="mt-2.5 text-xs leading-snug text-ink-muted" role="status" aria-live="polite">
+        <p className="mt-2.5 rounded-lg bg-surface-elevated px-3 py-2 text-2xs leading-snug text-ink-secondary" role="status" aria-live="polite">
           {stepNavHint}
         </p>
       ) : null}

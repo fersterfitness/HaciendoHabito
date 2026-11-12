@@ -1,38 +1,34 @@
 /**
- * /form — V2 modernizado en estilo dashboard claro.
+ * /form — inscripción pública en cuatro pasos (plan → permiso → datos → confirmación).
  *
- * Inspirado en interfaces tipo Hotelio / app de cashier: fondo cream neutro,
- * cards blancas con sombras suaves, stepper horizontal arriba, sidebar de
- * resumen del plan a la derecha, CTAs naranjas brand-primary.
+ * Usa siempre el tema de la v2 (el visitante no eligió versión): lienzo gris, tarjetas blancas,
+ * acción principal en negro y flúor para lo confirmado. El plan elegido viaja en una barra flotante
+ * y cada paso entra deslizándose en el sentido del avance.
  *
- * Reutiliza componentes del form original sin tocarlos (IntakeFersterForm,
- * IntakeNutritionForm, IntakeFullForm, IntakeChangeablePlansSection).
+ * Los formularios de cada modalidad (IntakeFersterForm, IntakeNutritionForm, IntakeFullForm,
+ * IntakePsychologistForm) no cambian su lógica: acá solo se decide qué se muestra y cuándo.
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  ArrowRight, ArrowLeft, Check, CheckCircle2, Sparkles,
-  Moon, Sun, BadgeCheck,
-} from 'lucide-react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Lock, Moon, ShieldCheck, Sparkles, Sun, Ticket, type LucideIcon } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/contexts/ThemeContext'
-import { BrandLogo } from '@/components/branding/BrandLogo'
+import { IS_V2 } from '@/lib/uiVersion'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { IntakeFersterForm } from '@/pages/public/IntakeFersterForm'
 import { IntakeNutritionForm } from '@/pages/public/IntakeNutritionForm'
 import { IntakeFullForm } from '@/pages/public/IntakeFullForm'
 import { IntakePsychologistForm } from '@/pages/public/IntakePsychologistForm'
-import { IntakeChangeablePlansSection } from '@/components/public/IntakeChangeablePlansSection'
 import { IntakePermissionsStep } from '@/components/public/IntakePermissionsStep'
-import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
-import {
-  buildTrainerContactWhatsAppUrl,
-  TRAINER_CONTACT_WHATSAPP_DISPLAY,
-} from '@/lib/trainerContact'
-import {
-  checkWebIntakeAccessStatus,
-  readIntakeAccessSession,
-} from '@/lib/intake/webIntakeAccess'
+import { IntakeBillingSwitch, IntakePlanIncludes, IntakePlanList } from '@/components/public/intake/IntakePlanPicker'
+import { IntakeProAvatar, intakeProAvatarFocusForRole } from '@/components/public/intake/IntakeProAvatar'
+import { buildTrainerContactWhatsAppUrl, TRAINER_CONTACT_WHATSAPP_DISPLAY } from '@/lib/trainerContact'
+import { checkWebIntakeAccessStatus, readIntakeAccessSession } from '@/lib/intake/webIntakeAccess'
+import { intakeBillingCaption, intakePlanTitle } from '@/lib/intake/intakePlanBilling'
 import {
   type PlanBilling,
   bundlePrice3Months,
@@ -44,16 +40,15 @@ import {
   inferWebPlanBundleCommitment,
   planVisibleForIntakeBilling,
 } from '@/lib/publicIntakePlanPricing'
+import { mergePublicIntakePlansFromDb, type PublicIntakePlanDetail } from '@/lib/publicIntakeCatalogOffers'
 import {
-  mergePublicIntakePlansFromDb,
-  type PublicIntakePlanDetail,
-} from '@/lib/publicIntakeCatalogOffers'
-import { normalizeIncludeSections } from '@/lib/webPlanIncludeSections'
+  attachAvatarsToIncludeSectionViews,
+  normalizeIncludeSections,
+  type IntakeIncludeSectionAvatarMap,
+} from '@/lib/webPlanIncludeSections'
 import type { WebPlan, WebPlanCatalogSegment } from '@/types/database'
-import toast from 'react-hot-toast'
 import { normalizeWebPlanCatalogSegment } from '@/lib/webPlansCatalogSegment'
 import { compareBySegmentSortOrder } from '@/lib/webPlansSortOrder'
-import { IntakeModalityProfessionIcons } from '@/components/public/intake/IntakeModalityProfessionIcons'
 import {
   isCanonicalEntrenoNutricionPlan,
   isEntrenoPsicologoPlanTitle,
@@ -63,24 +58,66 @@ import {
 type ModalityId = WebPlanCatalogSegment | 'psychologist'
 
 /** Orden fijo en pantalla: integral → dual → individuales. */
-const MODALITY_OPTIONS: { id: ModalityId; short: string; label: string; desc: string }[] = [
-  { id: 'full_trio',         short: 'SERVICIO INTEGRAL', label: 'TODO en un plan',     desc: 'Los tres profesionales en un solo plan' },
-  { id: 'full',              short: 'PAR PROFESIONAL',   label: 'Servicio Dual',       desc: 'Dos profesionales en un mismo plan' },
-  { id: 'solo',              short: 'ENTRENAMIENTO',     label: 'Entrenamiento',       desc: 'Planes individuales de entrenamiento' },
-  { id: 'with_nutritionist', short: 'NUTRICIÓN',         label: 'Nutrición',           desc: 'Planes individuales de nutrición' },
-  { id: 'psychologist',      short: 'PSICOLOGÍA',        label: 'Psicólogo Deportivo', desc: 'Planes individuales Psicología deportiva' },
+const MODALITY_OPTIONS: { id: ModalityId; label: string; desc: string }[] = [
+  { id: 'full_trio', label: 'Todo en un plan', desc: 'Los tres profesionales trabajando juntos' },
+  { id: 'full', label: 'Servicio dual', desc: 'Dos profesionales en un mismo plan' },
+  { id: 'solo', label: 'Entrenamiento', desc: 'Planes individuales de entrenamiento' },
+  { id: 'with_nutritionist', label: 'Nutrición', desc: 'Planes individuales de nutrición' },
+  { id: 'psychologist', label: 'Psicología deportiva', desc: 'Planes individuales con el psicólogo' },
 ]
 
 const STEPS = [
-  { id: 'plan',         label: 'Plan',         icon3d: '/icons/3dicons/kpi/routines.png' },
-  { id: 'permissions',  label: 'Permisos',     icon3d: '/icons/3dicons/kpi/shield.png' },
-  { id: 'form',         label: 'Datos',        icon3d: '/icons/3dicons/kpi/anthropometry-pdf.png' },
-  { id: 'confirmation', label: 'Confirmación', icon3d: '/icons/3dicons/kpi/patients.png' },
+  { id: 'plan', label: 'Plan' },
+  { id: 'permissions', label: 'Permiso' },
+  { id: 'form', label: 'Datos' },
+  { id: 'confirmation', label: 'Listo' },
 ] as const
 
-type StepId = typeof STEPS[number]['id']
+type StepId = (typeof STEPS)[number]['id']
 
-/* ─────────────────────── Helpers de pricing ─────────────────────── */
+type ProfKey = 'trainer' | 'nutritionist' | 'psychologist'
+type TeamImages = Record<ProfKey, string | null>
+
+const TEAM: { key: ProfKey; name: string; role: string; credential: string; tone: string }[] = [
+  {
+    key: 'trainer',
+    name: 'Tomás Ferster',
+    role: 'Entrenador',
+    credential: 'Lic. en alto rendimiento · Prof. de educación física',
+    tone: 'bg-pastel-butter',
+  },
+  {
+    key: 'nutritionist',
+    name: 'Cristian Crossetto',
+    role: 'Nutricionista',
+    credential: 'Lic. en nutrición · Especialización deportiva',
+    tone: 'bg-pastel-lavender',
+  },
+  {
+    key: 'psychologist',
+    name: 'Santiago Rodríguez',
+    role: 'Psicólogo',
+    credential: 'Lic. en psicología (UBA) · Especialización deportiva',
+    tone: 'bg-pastel-peach',
+  },
+]
+
+const EASE = [0.16, 1, 0.3, 1] as const
+
+const HOW_IT_WORKS = [
+  { title: 'Elegís el plan', text: 'Modalidad y plazo de pago.' },
+  { title: 'Coordinás con Tomás', text: 'Por WhatsApp, y te habilita.' },
+  { title: 'Completás tus datos', text: 'Para armar tu plan a medida.' },
+]
+
+/** Cada paso entra desde el lado hacia el que se avanza y sale por el opuesto. */
+const STEP_VARIANTS = {
+  enter: (dir: number) => ({ opacity: 0, x: dir * 28 }),
+  center: { opacity: 1, x: 0, transition: { duration: 0.36, ease: EASE } },
+  exit: (dir: number) => ({ opacity: 0, x: dir * -20, transition: { duration: 0.16, ease: 'easeIn' as const } }),
+}
+
+/* ─────────────────────── Precio según el plazo elegido ─────────────────────── */
 function displayPriceForPlan(plan: PublicIntakePlanDetail, billing: PlanBilling): string {
   const commit = inferWebPlanBundleCommitment(plan.id, plan.name)
   const totalN = numericFromPriceLabel(plan.price)
@@ -110,20 +147,10 @@ function displayPriceForPlan(plan: PublicIntakePlanDetail, billing: PlanBilling)
   }
 }
 
-function planBillingCaption(billing: PlanBilling): string {
-  switch (billing) {
-    case 'monthly': return 'Por mes'
-    case 'months3': return 'Total · 3 meses'
-    case 'months6': return 'Total · 6 meses'
-    case 'annual':  return 'Por año · pago único'
-  }
-}
-
 /* ═════════════════════════════════════════════════════════════════════════
- * Componente principal
+ * Página
  * ═════════════════════════════════════════════════════════════════════════ */
 export function PublicIntakeFormPageV2() {
-  // Respeta dark/light mode del global — no fuerza ningún tema
   const { theme, toggleTheme } = useTheme()
 
   const [plans, setPlans] = useState<PublicIntakePlanDetail[]>(() => mergePublicIntakePlansFromDb([]))
@@ -131,16 +158,26 @@ export function PublicIntakeFormPageV2() {
   const [planBilling, setPlanBilling] = useState<PlanBilling>('monthly')
   const [catalogSegment, setCatalogSegment] = useState<ModalityId>('full_trio')
   const [step, setStep] = useState<StepId>('plan')
-  const [catalogImages, setCatalogImages] = useState<{
-    trainer: string | null
-    nutritionist: string | null
-    psychologist: string | null
-  }>({ trainer: null, nutritionist: null, psychologist: null })
+  /** 1 = se avanza, -1 = se vuelve: decide de qué lado entra el paso. */
+  const [direction, setDirection] = useState(1)
+  const [catalogImages, setCatalogImages] = useState<TeamImages>({ trainer: null, nutritionist: null, psychologist: null })
   const [imagesLoaded, setImagesLoaded] = useState(false)
   const [plansLoaded, setPlansLoaded] = useState(false)
   const isReady = imagesLoaded && plansLoaded
 
-  /* ─────────────── Fetch de imágenes del equipo ─────────────── */
+  // El visitante no eligió versión de interfaz: acá siempre va el tema nuevo.
+  useLayoutEffect(() => {
+    if (IS_V2) return
+    const root = document.documentElement
+    root.classList.add('ui-v2')
+    return () => root.classList.remove('ui-v2')
+  }, [])
+
+  useEffect(() => {
+    document.title = 'Inscripción · Haciéndolo Hábito'
+  }, [])
+
+  /* ─────────────── Fotos del equipo ─────────────── */
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -164,7 +201,7 @@ export function PublicIntakeFormPageV2() {
     return () => { mounted = false }
   }, [])
 
-  /* ─────────────── Fetch de planes ─────────────── */
+  /* ─────────────── Planes ─────────────── */
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -176,7 +213,12 @@ export function PublicIntakeFormPageV2() {
         .eq('is_active', true)
         .eq('show_in_public_intake', true)
         .order('sort_order')
-      if (!mounted || error) return
+      if (!mounted) return
+      // Si la consulta falla quedan los planes del catálogo base: la página igual se muestra.
+      if (error) {
+        setPlansLoaded(true)
+        return
+      }
       type Row = Pick<WebPlan, 'slug' | 'title' | 'price_label' | 'price_yearly_label' | 'price_3m_label' | 'price_6m_label' | 'short_description' | 'intro_text' | 'includes_items' | 'includes_sections' | 'gifts_items' | 'sort_order' | 'is_active' | 'catalog_segment' | 'display_badge' | 'credential_line_override'>
       const mapped: PublicIntakePlanDetail[] = ((data as Row[]) ?? []).map((row) => {
         const segment = normalizeWebPlanCatalogSegment(String(row.catalog_segment ?? 'solo'))
@@ -204,10 +246,8 @@ export function PublicIntakeFormPageV2() {
           sortOrder: row.sort_order ?? 9999,
         }
       })
-      if (mounted) {
-        setPlans(mergePublicIntakePlansFromDb(mapped))
-        setPlansLoaded(true)
-      }
+      setPlans(mergePublicIntakePlansFromDb(mapped))
+      setPlansLoaded(true)
     })()
     return () => { mounted = false }
   }, [])
@@ -216,9 +256,7 @@ export function PublicIntakeFormPageV2() {
   const plansVisible = useMemo(() => {
     return plans
       .filter((p) => {
-        if (catalogSegment === 'psychologist') {
-          if (p.catalogSegment !== 'psychologist') return false
-        } else if (p.catalogSegment !== catalogSegment) return false
+        if (p.catalogSegment !== catalogSegment) return false
         const bundle = inferWebPlanBundleCommitment(p.id, p.name)
         return planVisibleForIntakeBilling(bundle, planBilling)
       })
@@ -235,6 +273,30 @@ export function PublicIntakeFormPageV2() {
     () => (selectedPlanId ? plans.find((p) => p.id === selectedPlanId) ?? null : null),
     [plans, selectedPlanId],
   )
+  /** El plan elegido solo cuenta si está entre los que se ven con la modalidad y el plazo actuales. */
+  const selectedVisible = Boolean(selectedPlan && plansVisible.some((p) => p.id === selectedPlan.id))
+
+  const avatars = useMemo<IntakeIncludeSectionAvatarMap>(
+    () => ({
+      trainer: { avatarUrl: catalogImages.trainer, subtitle: 'Tomás Ferster' },
+      nutritionist: { avatarUrl: catalogImages.nutritionist, subtitle: 'Cristian Crossetto' },
+      psychologist: { avatarUrl: catalogImages.psychologist, subtitle: 'Santiago Rodríguez' },
+    }),
+    [catalogImages],
+  )
+
+  /** En «Servicio dual» los planes se agrupan por la pareja de profesionales. */
+  const planGroups = useMemo(() => {
+    if (catalogSegment !== 'full') return [{ key: 'all', label: null as string | null, plans: plansVisible }]
+    return WEB_PLAN_FULL_SUBCATEGORIES.map((sub) => ({
+      key: sub.key as string,
+      label: sub.label as string | null,
+      plans: plansVisible.filter((p) =>
+        sub.key === 'entreno_nutricion' ? isCanonicalEntrenoNutricionPlan(p.id, p.name) : isEntrenoPsicologoPlanTitle(p.name),
+      ),
+    })).filter((g) => g.plans.length > 0)
+  }, [catalogSegment, plansVisible])
+
   const intakeKind =
     catalogSegment === 'psychologist'
       ? 'psychologist'
@@ -244,36 +306,26 @@ export function PublicIntakeFormPageV2() {
           ? 'full'
           : 'entrenamiento'
   const stepIndex = STEPS.findIndex((s) => s.id === step)
+  const selectedPrice = selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null
 
-  function scrollFormTop() {
+  function go(next: StepId) {
+    setDirection(STEPS.findIndex((s) => s.id === next) >= stepIndex ? 1 : -1)
+    setStep(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function goToPlanes() {
-    setStep('plan')
-    scrollFormTop()
-  }
-
   function goToPermisos() {
-    if (!selectedPlanId) {
-      setStep('plan')
-      scrollFormTop()
-      return
-    }
-    setStep('permissions')
-    scrollFormTop()
+    go(selectedPlanId ? 'permissions' : 'plan')
   }
 
   async function goToDatos() {
     if (!selectedPlanId) {
-      setStep('plan')
-      scrollFormTop()
+      go('plan')
       return
     }
     const session = readIntakeAccessSession()
     if (!session?.token || session.planSlug !== selectedPlanId) {
-      setStep('permissions')
-      scrollFormTop()
+      go('permissions')
       return
     }
     const check = await checkWebIntakeAccessStatus(session.token)
@@ -285,12 +337,17 @@ export function PublicIntakeFormPageV2() {
             ? 'El acceso no fue aprobado.'
             : check.error,
       )
-      setStep('permissions')
-      scrollFormTop()
+      go('permissions')
       return
     }
-    setStep('form')
-    scrollFormTop()
+    go('form')
+  }
+
+  function jumpTo(id: StepId) {
+    if (id === step || step === 'confirmation' || id === 'confirmation') return
+    if (id === 'plan') go('plan')
+    else if (id === 'permissions') goToPermisos()
+    else void goToDatos()
   }
 
   const intakeAccessToken = readIntakeAccessSession()?.token ?? null
@@ -315,944 +372,682 @@ export function PublicIntakeFormPageV2() {
     }
   }, [step, selectedPlanId])
 
-  if (!isReady) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-stone-100 dark:bg-zinc-950">
-        <img
-          src="/logo_mark_original_white_transparent.png"
-          alt="Haciéndolo Hábito"
-          className="v2f-splash-logo h-24 w-24 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:drop-shadow-[0_8px_32px_rgba(0,0,0,0.6)] sm:h-32 sm:w-32"
-          draggable={false}
-        />
-        <div className="flex gap-1.5">
-          <span className="v2f-dot h-2 w-2 rounded-full bg-brand-primary/60" style={{ animationDelay: '0ms' }} />
-          <span className="v2f-dot h-2 w-2 rounded-full bg-brand-primary/60" style={{ animationDelay: '160ms' }} />
-          <span className="v2f-dot h-2 w-2 rounded-full bg-brand-primary/60" style={{ animationDelay: '320ms' }} />
-        </div>
-        <style>{`
-          @keyframes v2f-logo-pulse { 0%,100% { opacity:1; transform: scale(1) } 50% { opacity:0.7; transform: scale(0.94) } }
-          @keyframes v2f-dot-bounce { 0%,80%,100% { transform: translateY(0); opacity:0.4 } 40% { transform: translateY(-6px); opacity:1 } }
-          .v2f-splash-logo { animation: v2f-logo-pulse 2s ease-in-out infinite }
-          .v2f-dot { animation: v2f-dot-bounce 1.2s ease-in-out infinite }
-        `}</style>
-      </div>
-    )
+  const formProps = {
+    selectedPlanSlug: selectedPlanId,
+    selectedPlanLabel: selectedPlan?.name ?? null,
+    selectedPlanPrice: selectedPrice,
+    selectedPlanBilling: planBilling,
+    intakeAccessToken,
+    onSuccess: () => go('confirmation'),
+    compact: true,
   }
 
+  const showPlanBar = isReady && step === 'plan' && selectedVisible
+  const selectedPricing = useMemo(
+    () => (selectedPlan && selectedVisible ? intakePlansToPricingPlans([selectedPlan])[0] ?? null : null),
+    [selectedPlan, selectedVisible],
+  )
+  const activeModality = MODALITY_OPTIONS.find((m) => m.id === catalogSegment)
+  const summary = (
+    <PlanSummary plan={selectedPlan} price={selectedPrice} billing={planBilling} avatars={avatars} theme={theme} onChangePlan={() => go('plan')} />
+  )
+
   return (
-    <div className="v2form-root relative min-h-screen bg-stone-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      {/* Fondo radial sutil solo en dark */}
-      <div className="pointer-events-none fixed inset-0 hidden dark:block" aria-hidden>
-        <div className="absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-brand-primary/[0.04] blur-[120px]" />
-      </div>
-      {/* Estilos locales scoped */}
-      <style>{`
-        @keyframes v2f-fade-up { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
-        @keyframes v2f-slide-in { from { opacity: 0; transform: translateX(20px) } to { opacity: 1; transform: translateX(0) } }
-        @keyframes v2f-drop-in { from { opacity: 0; transform: translateY(-28px) } to { opacity: 1; transform: translateY(0) } }
-        .v2f-fade-up { opacity: 0; animation: v2f-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards }
-        .v2f-slide { opacity: 0; animation: v2f-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards }
-        .v2f-drop { opacity: 0; animation: v2f-drop-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards }
-        .v2f-d1 { animation-delay: 60ms }
-        .v2f-d2 { animation-delay: 140ms }
-        .v2f-d3 { animation-delay: 220ms }
-        .v2f-d4 { animation-delay: 300ms }
-        .v2f-d5 { animation-delay: 380ms }
-
-        /* Card moderna con hover lift sutil */
-        .v2f-card {
-          transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-        }
-        .v2f-card-hover:hover {
-          transform: translateY(-2px);
-        }
-
-        /* Animaciones team cards */
-        @keyframes v2f-pulse-ring {
-          0% { box-shadow: 0 0 0 0 rgb(var(--brand-primary) / 0.45) }
-          70% { box-shadow: 0 0 0 12px rgb(var(--brand-primary) / 0) }
-          100% { box-shadow: 0 0 0 0 rgb(var(--brand-primary) / 0) }
-        }
-        @keyframes v2f-team-in {
-          from { opacity: 0; transform: translateY(20px) scale(0.96) }
-          to { opacity: 1; transform: translateY(0) scale(1) }
-        }
-        .v2f-team-card {
-          opacity: 0;
-          animation: v2f-team-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.25s ease;
-        }
-        .v2f-team-card:nth-child(1) { animation-delay: 100ms }
-        .v2f-team-card:nth-child(2) { animation-delay: 220ms }
-        .v2f-team-card:nth-child(3) { animation-delay: 340ms }
-        .v2f-team-card:hover { transform: translateY(-4px) }
-        .v2f-team-card:hover .v2f-team-avatar { transform: scale(1.06) }
-        .v2f-team-avatar {
-          transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .v2f-team-avatar-pulse {
-          animation: v2f-pulse-ring 2.4s ease-out infinite;
-        }
-
-        /* Glow naranja en focus de inputs */
-        .v2f-shell input:focus,
-        .v2f-shell input:focus-visible,
-        .v2f-shell select:focus,
-        .v2f-shell textarea:focus {
-          box-shadow: 0 0 0 3px rgb(var(--brand-primary) / 0.18) !important;
-          outline: none;
-          border-color: rgb(var(--brand-primary) / 0.5) !important;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .v2f-fade-up, .v2f-slide { animation: none !important; opacity: 1 !important }
-          .v2f-card-hover:hover { transform: none }
-        }
-      `}</style>
-
-      {/* ═══════════ Top bar ═══════════ */}
-      <header className="v2f-fade-up sticky top-0 z-30 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-2.5">
-          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
-            <BrandLogo size="lg" decorative className="h-14 w-14 shrink-0 sm:h-16 sm:w-16" />
-            <span className="hidden whitespace-nowrap text-sm font-bold tracking-tight text-zinc-900 lg:inline dark:text-white">
-              Haciéndolo <span className="text-brand-primary">Hábito</span>
-            </span>
-          </div>
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex" aria-label="Secciones del formulario">
-            <button
-              type="button"
-              onClick={goToPlanes}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                step === 'plan'
-                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white'
-                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
-              )}
-            >
-              Planes
-            </button>
-            <button
-              type="button"
-              onClick={goToPermisos}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                step === 'permissions'
-                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white'
-                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
-              )}
-            >
-              Permisos
-            </button>
-            <button
-              type="button"
-              onClick={() => void goToDatos()}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                step === 'form'
-                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white'
-                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
-              )}
-            >
-              Datos
-            </button>
-            <a
-              href={trainerWaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-2xs font-medium text-zinc-800 hover:bg-zinc-100 sm:inline-flex dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800 [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400"
-              title={TRAINER_CONTACT_WHATSAPP_DISPLAY}
-            >
-              <WhatsAppIcon className="h-3.5 w-3.5" />
-              WhatsApp
-            </a>
-          </nav>
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <Link
-              to="/login"
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-2xs font-medium whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 sm:gap-1.5 sm:px-3 sm:text-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-white"
-            >
-              Ya tengo cuenta
-              <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+    <MotionConfig reducedMotion="user">
+      <div className="hh-intake flex min-h-screen flex-col bg-[rgb(var(--v2-canvas))] text-ink-primary">
+        {/* ═══════════ Encabezado: marca, pasos y accesos ═══════════ */}
+        <header className="sticky top-0 z-30 border-b border-surface-border bg-surface-base/85 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 py-2 lg:px-6">
+            <Link to="/form" className="hh-focus flex min-h-11 items-center gap-2.5 rounded-lg" onClick={() => go('plan')}>
+              <img src="/app-icon.svg" alt="" className="h-8 w-8 rounded-lg" />
+              <span className="hidden text-base font-semibold tracking-tight lg:inline">Haciéndolo Hábito</span>
             </Link>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-white"
-              title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-              aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-            >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <main className="v2f-shell mx-auto w-full max-w-6xl px-3 py-6 sm:px-6 sm:py-10">
-        {/* ═══════════ Hero compacto ═══════════ */}
-        <div className="v2f-drop v2f-d1 mb-6 text-center sm:mb-7">
-          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl md:text-[34px]">
-            Empezá tu <span className="text-brand-primary">transformación</span>
-          </h1>
-        </div>
-
-        {/* ═══════════ Stepper horizontal — clickable en steps completados ═══════════ */}
-        <div className="v2f-drop v2f-d2 mb-6 sm:mb-8">
-          <Stepper
-            steps={STEPS}
-            currentIndex={stepIndex}
-            onJump={(targetIdx) => {
-              // Solo dejar volver hacia atrás (no saltarse pasos hacia adelante)
-              if (targetIdx < stepIndex) {
-                setStep(STEPS[targetIdx]!.id)
-              }
-            }}
-          />
-        </div>
-
-        {/* ═══════════ Grid principal: sidebar solo en step "form" para no comer ancho en "plan" ═══════════ */}
-        <div className={cn(
-          'grid gap-5 lg:gap-6',
-          step === 'form' ? 'lg:grid-cols-[1fr_320px]' : 'grid-cols-1',
-        )}>
-
-          {/* ─────────── Paso "plan": cards independientes (sin contenedor monolítico) ─────────── */}
-          {step === 'plan' && (
-            <div key="step-plan" className="v2f-drop v2f-d3 v2f-slide space-y-5 sm:space-y-8">
-              <header className="text-center">
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
-                  Elegí tu plan
-                </h2>
-              </header>
-
-              {/* Conocé al equipo — cards independientes */}
-              <MeetTheTeam
-                trainerImage={catalogImages.trainer}
-                nutritionistImage={catalogImages.nutritionist}
-                psychologistImage={catalogImages.psychologist}
-              />
-
-              {/* Modalidad — card independiente */}
-              <div
-                className={cn(
-                  'rounded-2xl p-4 sm:rounded-3xl sm:p-6',
-                  'bg-white ring-1 ring-black/[0.04] shadow-[0_18px_50px_-18px_rgba(15,23,42,0.12)]',
-                  'dark:bg-zinc-900 dark:ring-white/[0.06] dark:shadow-[0_18px_50px_-14px_rgba(0,0,0,0.6)]',
-                )}
-              >
-                <div className="mb-3 text-center sm:mb-4">
-                  <p className="text-3xs font-semibold text-orange-500">Paso 1 de 4</p>
-                  <h3 className="mt-1 text-base font-extrabold tracking-tight text-zinc-900 sm:text-xl dark:text-white">
-                    Seleccioná una modalidad y elegí tu plan
-                  </h3>
-                </div>
-
-                <ModalityPicker value={catalogSegment} onChange={setCatalogSegment} />
-
-                <div className="mt-5 border-t border-zinc-200/80 pt-4 dark:border-zinc-800/80 sm:mt-6 sm:pt-5">
-                  <p className="mb-3 px-1 text-2xs font-semibold text-zinc-400 dark:text-zinc-500">Ofertas disponibles</p>
-
-                  {catalogSegment === 'full_trio' && plansVisible.length > 0 ? (
-                    <div className="-mx-1">
-                      <IntakeChangeablePlansSection
-                        title=""
-                        footerText=""
-                        buttonText={selectedPlanId ? 'Continuar' : 'Elegí un plan'}
-                        plans={intakePlansToPricingPlans(plansVisible)}
-                        selectedPlanId={selectedPlanId}
-                        onSelectPlan={(id) => setSelectedPlanId(id)}
-                        onContinue={() => {
-                          if (selectedPlanId) goToPermisos()
-                        }}
-                        billing={planBilling}
-                        onBillingChange={setPlanBilling}
-                        showBillingToggle
-                        badgeVariant="amber"
-                        tone="card"
-                        embedded
-                        flush
-                        cardLayout
-                        showFooter={false}
-                        uiTheme={theme}
-                        includeSectionAvatars={{
-                          trainer: { avatarUrl: catalogImages.trainer, subtitle: 'Tomás Ferster' },
-                          nutritionist: { avatarUrl: catalogImages.nutritionist, subtitle: 'Cristian Crossetto' },
-                          psychologist: { avatarUrl: catalogImages.psychologist, subtitle: 'Santiago Rodríguez' },
-                        }}
-                      />
-                    </div>
-                  ) : catalogSegment === 'full' && plansVisible.length > 0 ? (
-                    /* ── Subcategorías para Servicio Dual (segmento full) ── */
-                    <div className="space-y-6">
-                      {WEB_PLAN_FULL_SUBCATEGORIES.map((sub) => ({
-                        sub,
-                        subPlans: plansVisible.filter((p) =>
-                          sub.key === 'entreno_nutricion'
-                            ? isCanonicalEntrenoNutricionPlan(p.id, p.name)
-                            : isEntrenoPsicologoPlanTitle(p.name),
-                        ),
-                      }))
-                        .filter(({ subPlans }) => subPlans.length > 0)
-                        .map(({ sub, subPlans }, idx) => (
-                          <div key={sub.key}>
-                            <div className="mb-4 flex items-center gap-3">
-                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
-                              <span className="shrink-0 rounded-lg border border-orange-500/40 bg-orange-500/[0.06] px-3 py-0.5 text-3xs font-semibold text-orange-500 dark:border-orange-400/30 dark:bg-orange-400/[0.07] dark:text-orange-400">
-                                {sub.label}
-                              </span>
-                              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700/50" aria-hidden />
-                            </div>
-                            <div className="-mx-1">
-                              <IntakeChangeablePlansSection
-                                title=""
-                                footerText=""
-                                buttonText={selectedPlanId && subPlans.some(p => p.id === selectedPlanId) ? 'Continuar' : 'Elegí un plan'}
-                                plans={intakePlansToPricingPlans(subPlans)}
-                                selectedPlanId={selectedPlanId}
-                                onSelectPlan={(id) => setSelectedPlanId(id)}
-                                onContinue={() => { if (selectedPlanId) goToPermisos() }}
-                                billing={planBilling}
-                                onBillingChange={setPlanBilling}
-                                showBillingToggle={idx === 0}
-                                badgeVariant="amber"
-                                tone="card"
-                                embedded
-                                flush
-                                cardLayout
-                                showFooter={false}
-                                uiTheme={theme}
-                                includeSectionAvatars={{
-                                  trainer:      { avatarUrl: catalogImages.trainer,      subtitle: 'Tomás Ferster' },
-                                  nutritionist: { avatarUrl: catalogImages.nutritionist, subtitle: 'Cristian Crossetto' },
-                                  psychologist: { avatarUrl: catalogImages.psychologist, subtitle: 'Santiago Rodríguez' },
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      {/* CTA vive dentro de cada card (cardLayout); aquí solo la nota */}
-                      <p className="border-t border-zinc-200 pt-4 text-center text-3xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
-                        Cancelás cuando quieras.
-                      </p>
-                    </div>
-                  ) : plansVisible.length > 0 ? (
-                    <div className="-mx-1">
-                      <IntakeChangeablePlansSection
-                        title="Ofertas"
-                        footerText="Cancelás cuando quieras."
-                        buttonText={selectedPlanId ? 'Continuar' : 'Elegí un plan'}
-                        plans={intakePlansToPricingPlans(plansVisible)}
-                        selectedPlanId={selectedPlanId}
-                        onSelectPlan={(id) => setSelectedPlanId(id)}
-                        onContinue={() => { if (selectedPlanId) goToPermisos() }}
-                        billing={planBilling}
-                        onBillingChange={setPlanBilling}
-                        badgeVariant="amber"
-                        tone="card"
-                        embedded
-                        flush
-                        cardLayout
-                        uiTheme={theme}
-                        includeSectionAvatars={{
-                          trainer:      { avatarUrl: catalogImages.trainer,      subtitle: 'Tomás Ferster' },
-                          nutritionist: { avatarUrl: catalogImages.nutritionist, subtitle: 'Cristian Crossetto' },
-                          psychologist: { avatarUrl: catalogImages.psychologist, subtitle: 'Santiago Rodríguez' },
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
-                      <Sparkles className="mx-auto mb-2 h-5 w-5 text-zinc-400" aria-hidden />
-                      Próximamente sumaremos opciones en esta modalidad.
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="order-last w-full pb-1 md:order-none md:w-auto md:flex-1 md:pb-0">
+              <StepRail currentIndex={stepIndex} locked={step === 'confirmation'} onJump={jumpTo} />
             </div>
-          )}
 
-          {/* ─────────── Paso Permisos ─────────── */}
-          {step === 'permissions' && selectedPlan && (
-            <section
-              className={cn(
-                'v2f-drop v2f-d3 v2f-card rounded-3xl border bg-white p-5 sm:p-7',
-                'border-zinc-200/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.10)]',
-                'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_18px_50px_-16px_rgba(0,0,0,0.55)]',
-              )}
-            >
-              <IntakePermissionsStep
-                planSlug={selectedPlanId!}
-                planName={selectedPlan.name}
-                onBack={() => setStep('plan')}
-                onApproved={() => {
-                  setStep('form')
-                  scrollFormTop()
-                }}
-              />
-            </section>
-          )}
+            <div className="ml-auto flex items-center gap-1.5">
+              <a
+                href={trainerWaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`WhatsApp · ${TRAINER_CONTACT_WHATSAPP_DISPLAY}`}
+                aria-label="Escribir por WhatsApp"
+                className="hh-focus flex h-9 w-9 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+              >
+                <WhatsAppIcon className="h-[18px] w-[18px]" />
+              </a>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+                aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+                className="hh-focus flex h-9 w-9 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <Link
+                to="/login"
+                className="hh-focus ml-1 inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-surface-elevated px-3 text-body-sm font-medium text-ink-primary transition-colors hover:bg-surface-border"
+              >
+                Ya tengo cuenta
+              </Link>
+            </div>
+          </div>
+        </header>
 
-          {/* ─────────── Pasos "form" / "confirmation": card contenedora ─────────── */}
-          {(step === 'form' || step === 'confirmation') && (
-            <section
-              className={cn(
-                'v2f-drop v2f-d3 v2f-card rounded-3xl border bg-white p-5 sm:p-7',
-                'border-zinc-200/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.10)]',
-                'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_18px_50px_-16px_rgba(0,0,0,0.55)]',
-              )}
-            >
-            {step === 'form' && (
-              <div key="step-form" className="v2f-slide space-y-6">
-                <header className="flex items-center justify-between gap-3 border-b border-zinc-100 pb-5 dark:border-zinc-800">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Back button siempre visible */}
-                    <button
-                      type="button"
-                      onClick={() => setStep('plan')}
-                      aria-label="Volver al paso anterior"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.05] hover:text-brand-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-brand-primary/40 dark:hover:text-brand-primary"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <div className="min-w-0">
-                      <p className="text-3xs font-semibold text-brand-primary">Paso 3 de 4</p>
-                      <h2 className="mt-0.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">Contanos un poco de vos</h2>
-                      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">100% confidencial — solo lo ve el profesional asignado.</p>
+        <main className={cn('mx-auto w-full max-w-6xl flex-1 px-4 py-6 lg:px-6 lg:py-10', showPlanBar && 'pb-28 lg:pb-10')}>
+          {!isReady ? (
+            <LoadingSkeleton />
+          ) : (
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <motion.div key={step} custom={direction} variants={STEP_VARIANTS} initial="enter" animate="center" exit="exit">
+                {/* ─────────── Paso 1: plan ─────────── */}
+                {step === 'plan' && (
+                  <Panel>
+                    <PanelHeader
+                      icon={Ticket}
+                      title="Elegí tu plan"
+                      text="Elegí con quién querés trabajar y cómo pagarlo. Después coordinás con Tomás y completás tus datos."
+                      aside={<TeamStack images={catalogImages} theme={theme} />}
+                    />
+
+                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:gap-10">
+                      {/* Izquierda: modalidad, plazo y lista de planes */}
+                      <div className="min-w-0">
+                        <ModalityTabs value={catalogSegment} onChange={setCatalogSegment} />
+                        <div className="mb-3 mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <h2 className="text-lg font-medium leading-tight tracking-[-0.01em]">Planes</h2>
+                            {activeModality ? <p className="hidden text-body-sm text-ink-muted xl:block">{activeModality.desc}</p> : null}
+                          </div>
+                          <div className="shrink-0">
+                            <IntakeBillingSwitch value={planBilling} onChange={setPlanBilling} />
+                          </div>
+                        </div>
+
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.div
+                            key={catalogSegment}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.12 }}
+                            className="space-y-5"
+                          >
+                            {plansVisible.length === 0 ? (
+                              <div className="rounded-2xl border border-dashed border-surface-inputBorder px-5 py-10 text-center">
+                                <Sparkles className="mx-auto mb-2 h-5 w-5 text-ink-muted" aria-hidden />
+                                <p className="text-sm text-ink-secondary">No hay planes con este plazo en esta modalidad.</p>
+                                <p className="mt-1 text-body-sm text-ink-muted">Probá con otro plazo de pago o con otra modalidad.</p>
+                              </div>
+                            ) : (
+                              planGroups.map((group) => (
+                                <div key={group.key}>
+                                  {group.label ? <p className="mb-2 text-body-sm text-ink-muted">{group.label}</p> : null}
+                                  <IntakePlanList
+                                    plans={intakePlansToPricingPlans(group.plans)}
+                                    selectedPlanId={selectedPlanId}
+                                    onSelect={setSelectedPlanId}
+                                    billing={planBilling}
+                                    renderMobileDetails={(plan) => <IntakePlanIncludes plan={plan} avatars={avatars} theme={theme} />}
+                                  />
+                                </div>
+                              ))
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+
+                        <ol className="mt-6 grid gap-3 border-t border-surface-border pt-5 sm:grid-cols-3">
+                          {HOW_IT_WORKS.map((h, i) => (
+                            <li key={h.title} className="flex gap-2.5">
+                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-3xs font-medium tabular-nums text-ink-secondary">
+                                {i + 1}
+                              </span>
+                              <span className="min-w-0 text-body-sm leading-snug">
+                                <span className="block font-medium text-ink-primary">{h.title}</span>
+                                <span className="text-ink-muted">{h.text}</span>
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+
+                      {/* Derecha: el plan elegido en detalle y el botón para seguir */}
+                      <aside className="hidden lg:block">
+                        <div className="sticky top-20 rounded-2xl border border-surface-border bg-surface-panel p-6">
+                          {selectedPricing ? (
+                            <AnimatePresence mode="wait" initial={false}>
+                              <motion.div
+                                key={selectedPricing.id}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{ duration: 0.2, ease: EASE }}
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h2 className="text-xl font-medium tracking-[-0.02em]">{intakePlanTitle(selectedPricing.name)}</h2>
+                                  {selectedPricing.badge?.trim() ? (
+                                    <span className="hh-pastel rounded-md bg-pastel-butter px-2 py-0.5 text-2xs font-medium text-pastel-butter-ink">
+                                      {intakePlanTitle(selectedPricing.badge)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {selectedPricing.description?.trim() ? (
+                                  <p className="mt-1 text-body-sm leading-snug text-ink-muted">{selectedPricing.description.trim()}</p>
+                                ) : null}
+                                <p className="mt-4 flex items-baseline gap-2">
+                                  <span className="text-4xl font-semibold tabular-nums tracking-[-0.03em]">{selectedPrice}</span>
+                                  <span className="text-body-sm text-ink-muted">{intakeBillingCaption(planBilling)}</span>
+                                </p>
+
+                                <Button type="button" size="lg" className="mt-5 w-full" onClick={goToPermisos}>
+                                  Continuar con este plan
+                                  <ArrowRight className="h-4 w-4" aria-hidden />
+                                </Button>
+                                <p className="mt-2 text-center text-2xs text-ink-muted">Cancelás cuando quieras.</p>
+
+                                <div className="mt-5 border-t border-surface-border pt-5">
+                                  <p className="mb-4 text-2xs font-medium text-ink-muted">Qué incluye</p>
+                                  <IntakePlanIncludes plan={selectedPricing} avatars={avatars} theme={theme} />
+                                </div>
+                              </motion.div>
+                            </AnimatePresence>
+                          ) : (
+                            <p className="py-10 text-center text-body-sm text-ink-muted">Elegí un plan de la lista para ver el detalle.</p>
+                          )}
+                        </div>
+                      </aside>
                     </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setStep('permissions')}
-                    className="hidden items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-white sm:inline-flex"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    Volver a permisos
-                  </button>
-                </header>
+                  </Panel>
+                )}
 
-                {/* Form (reutiliza componentes existentes) */}
-                <div className="-mx-1">
-                  {intakeKind === 'nutricion' ? (
-                    <IntakeNutritionForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      selectedPlanBilling={planBilling}
-                      intakeAccessToken={intakeAccessToken}
-                      onSuccess={() => setStep('confirmation')}
-                      compact
+                {/* ─────────── Paso 2: permiso ─────────── */}
+                {step === 'permissions' && selectedPlan && (
+                  <Panel>
+                    <PanelHeader
+                      icon={ShieldCheck}
+                      title="Coordiná con Tomás"
+                      text="Tomás confirma tu pago y te habilita el formulario. Podés salir y volver cuando quieras: el permiso queda guardado."
                     />
-                  ) : intakeKind === 'full' ? (
-                    <IntakeFullForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      selectedPlanBilling={planBilling}
-                      intakeAccessToken={intakeAccessToken}
-                      onSuccess={() => setStep('confirmation')}
-                      compact
+                    <StepColumns aside={summary}>
+                      <IntakePermissionsStep
+                        planSlug={selectedPlanId!}
+                        planName={selectedPlan.name}
+                        onBack={() => go('plan')}
+                        onApproved={() => go('form')}
+                      />
+                    </StepColumns>
+                  </Panel>
+                )}
+
+                {/* ─────────── Paso 3: datos ─────────── */}
+                {step === 'form' && (
+                  <Panel>
+                    <PanelHeader
+                      icon={ClipboardList}
+                      back={() => go('permissions')}
+                      title="Contanos de vos"
+                      text={
+                        <span className="inline-flex items-center gap-1.5">
+                          <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          Confidencial: solo lo ve el profesional que te acompaña.
+                        </span>
+                      }
                     />
-                  ) : intakeKind === 'psychologist' ? (
-                    <IntakePsychologistForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      selectedPlanBilling={planBilling}
-                      intakeAccessToken={intakeAccessToken}
-                      onSuccess={() => setStep('confirmation')}
-                      compact
-                    />
-                  ) : (
-                    <IntakeFersterForm
-                      selectedPlanSlug={selectedPlanId}
-                      selectedPlanLabel={selectedPlan?.name ?? null}
-                      selectedPlanPrice={selectedPlan ? displayPriceForPlan(selectedPlan, planBilling) : null}
-                      selectedPlanBilling={planBilling}
-                      intakeAccessToken={intakeAccessToken}
-                      onSuccess={() => setStep('confirmation')}
-                      compact
-                    />
-                  )}
+                    <StepColumns aside={summary}>
+                      {intakeKind === 'nutricion' ? (
+                        <IntakeNutritionForm {...formProps} />
+                      ) : intakeKind === 'full' ? (
+                        <IntakeFullForm {...formProps} />
+                      ) : intakeKind === 'psychologist' ? (
+                        <IntakePsychologistForm {...formProps} />
+                      ) : (
+                        <IntakeFersterForm {...formProps} />
+                      )}
+                    </StepColumns>
+                  </Panel>
+                )}
+
+                {/* ─────────── Paso 4: confirmación ─────────── */}
+                {step === 'confirmation' && <ConfirmationView planName={selectedPlan?.name ?? null} onAgain={() => go('plan')} />}
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </main>
+
+        <footer className="border-t border-surface-border">
+          <p className="mx-auto w-full max-w-6xl px-4 py-5 text-2xs text-ink-muted lg:px-6">
+            © {new Date().getFullYear()} Ferster Fitness · Haciéndolo Hábito
+          </p>
+        </footer>
+
+        {/* ═══════════ Barra flotante: el plan elegido y el botón para seguir ═══════════ */}
+        <AnimatePresence>
+          {showPlanBar && selectedPlan ? (
+            <motion.div
+              key="plan-bar"
+              initial={{ y: 96, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 96, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+              className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-3 lg:hidden"
+            >
+              <div className="pointer-events-auto mx-auto flex w-full max-w-2xl items-center gap-3 rounded-2xl bg-ink-primary py-2.5 pl-4 pr-2.5 text-surface-base shadow-[0_18px_40px_-16px_rgb(0_0_0/0.55)]">
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="text-2xs opacity-65">Tu plan</p>
+                  <p className="truncate text-sm font-medium">{intakePlanTitle(selectedPlan.name)}</p>
                 </div>
+                <div className="shrink-0 text-right leading-tight">
+                  <p className="text-base font-semibold tabular-nums">{selectedPrice}</p>
+                  <p className="hidden text-2xs opacity-65 sm:block">{intakeBillingCaption(planBilling)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={goToPermisos}
+                  className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-status-ok px-4 text-sm font-semibold text-black transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-ok"
+                >
+                  Continuar
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
               </div>
-            )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
+  )
+}
 
-            {step === 'confirmation' && (
-              <ConfirmationView
-                onAgain={() => { setStep('plan') }}
-                planName={selectedPlan?.name ?? null}
-              />
-            )}
-            </section>
-          )}
+/* ─────────────────────── Piezas de la página ─────────────────────── */
 
-          {/* ─────────── Sidebar: resumen del plan (solo durante form) ─────────── */}
-          {step === 'form' && (
-            <aside className="v2f-drop v2f-d4 lg:sticky lg:top-[5.5rem] lg:self-start">
-              <PlanSummary
-                plan={selectedPlan}
-                billing={planBilling}
-                step={step}
-                onChangePlan={() => setStep('plan')}
-              />
-            </aside>
-          )}
-        </div>
+/** La hoja blanca donde vive cada paso. */
+function Panel({ children }: { children: ReactNode }) {
+  return <section className="rounded-3xl border border-surface-border bg-surface-card p-5 sm:p-8">{children}</section>
+}
 
-        <p className="mt-10 text-center text-3xs text-zinc-400 dark:text-zinc-600">
-          © {new Date().getFullYear()} Ferster Fitness · Haciéndolo Hábito
-        </p>
-      </main>
+/** Cabecera de un paso: ícono en un círculo pastel (o el botón de volver), título y una línea de contexto. */
+function PanelHeader({
+  icon: Icon,
+  title,
+  text,
+  aside,
+  back,
+}: {
+  icon: LucideIcon
+  title: string
+  text: ReactNode
+  aside?: ReactNode
+  back?: () => void
+}) {
+  return (
+    <header className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-4 border-b border-surface-border pb-6 sm:mb-8">
+      {back ? (
+        <button
+          type="button"
+          onClick={back}
+          aria-label="Volver al paso anterior"
+          className="hh-focus flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-ink-secondary transition-colors hover:bg-surface-border hover:text-ink-primary"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+      ) : (
+        <span className="hh-pastel flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pastel-mint text-pastel-mint-ink" aria-hidden>
+          <Icon className="h-5 w-5" strokeWidth={2} />
+        </span>
+      )}
+      <div className="min-w-0 flex-1 basis-64">
+        <h1 className="text-2xl font-medium leading-tight tracking-[-0.02em]">{title}</h1>
+        <p className="mt-1 text-sm text-ink-secondary">{text}</p>
+      </div>
+      {aside}
+    </header>
+  )
+}
+
+/** Contenido a la izquierda y el resumen del plan a la derecha (arriba en el celu). */
+function StepColumns({ children, aside }: { children: ReactNode; aside: ReactNode }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:gap-10">
+      <aside className="lg:order-last">
+        <div className="lg:sticky lg:top-20">{aside}</div>
+      </aside>
+      <div className="min-w-0">{children}</div>
     </div>
   )
 }
 
-/* ─────────────────────── Stepper horizontal — soporta jump back ─────────────────────── */
-function Stepper({
-  steps,
+/** Los cuatro pasos en el encabezado. Se puede volver a uno anterior; avanzar pasa por las validaciones. */
+function StepRail({
   currentIndex,
+  locked,
   onJump,
 }: {
-  steps: ReadonlyArray<{ id: string; label: string; icon3d: string }>
   currentIndex: number
-  onJump?: (targetIdx: number) => void
+  locked: boolean
+  onJump: (id: StepId) => void
 }) {
   return (
-    <div className={cn(
-      'rounded-2xl border bg-white px-4 py-3',
-      'border-zinc-200/80 shadow-[0_2px_16px_-10px_rgba(15,23,42,0.08)]',
-      'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_2px_24px_-8px_rgba(0,0,0,0.5)]',
-    )}>
-      <ol className="flex items-center justify-between">
-        {steps.map((s, i) => {
-          const completed = i < currentIndex
+    <nav aria-label="Pasos de la inscripción">
+      <ol className="flex items-center md:justify-center">
+        {STEPS.map((s, i) => {
+          const done = i < currentIndex || locked
           const active = i === currentIndex
-          const clickable = completed && onJump
-          const NodeTag = clickable ? 'button' : 'div'
+          const last = i === STEPS.length - 1
           return (
-            <li key={s.id} className={cn('flex flex-1 items-center', i === steps.length - 1 && 'flex-none')}>
-              {/* Node + label */}
-              <NodeTag
-                {...(clickable ? { type: 'button' as const, onClick: () => onJump?.(i), 'aria-label': `Volver al paso ${i + 1}: ${s.label}` } : {})}
+            <li key={s.id} className={cn('flex items-center', !last && 'flex-1 md:flex-none')}>
+              <button
+                type="button"
+                onClick={() => onJump(s.id)}
+                disabled={locked || last}
+                aria-current={active ? 'step' : undefined}
                 className={cn(
-                  'flex flex-col items-center gap-1.5 transition-opacity',
-                  clickable && 'cursor-pointer',
-                  !active && !completed && 'opacity-50',
+                  'hh-focus relative flex h-9 items-center gap-2 rounded-lg px-2 text-body-sm font-medium transition-colors',
+                  active ? 'text-ink-primary' : done ? 'text-ink-secondary' : 'text-ink-muted',
+                  !locked && !last && !active && 'hover:text-ink-primary',
                 )}
               >
-                {/* Círculo con número o check */}
-                <span className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all sm:h-9 sm:w-9 sm:text-sm',
-                  completed && 'border-green-500 bg-green-500 text-white',
-                  active && 'border-brand-primary bg-white text-brand-primary shadow-[0_0_0_4px_rgba(255,72,0,0.12)] dark:bg-zinc-900',
-                  !completed && !active && 'border-zinc-300 bg-white text-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-500',
-                )}>
-                  {completed
-                    ? <Check className="h-4 w-4" aria-hidden />
-                    : <span>{i + 1}</span>
-                  }
+                {active ? (
+                  <motion.span
+                    layoutId="hh-intake-step"
+                    className="absolute inset-0 rounded-lg bg-surface-elevated"
+                    transition={{ type: 'spring', stiffness: 480, damping: 38 }}
+                    aria-hidden
+                  />
+                ) : null}
+                <span
+                  className={cn(
+                    'relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-3xs font-semibold tabular-nums transition-colors duration-300',
+                    done
+                      ? 'bg-status-ok text-black'
+                      : active
+                        ? 'bg-ink-primary text-surface-base'
+                        : 'bg-surface-elevated text-ink-muted',
+                  )}
+                >
+                  {done ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden /> : i + 1}
                 </span>
-                {/* Label debajo */}
-                <span className={cn(
-                  'max-w-[4.5rem] text-center text-3xs font-medium leading-tight sm:max-w-none sm:text-xs',
-                  active ? 'text-zinc-900 dark:text-white' : completed ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-500',
-                )}>{s.label}</span>
-              </NodeTag>
-
-              {/* Línea conectora */}
-              {i < steps.length - 1 && (
-                <span className={cn(
-                  'mx-1 h-0.5 flex-1 rounded-full transition-colors sm:mx-3',
-                  i < currentIndex ? 'bg-green-500' : 'bg-zinc-200 dark:bg-zinc-700',
-                )} aria-hidden />
-              )}
+                <span className={cn('relative', !active && 'hidden sm:inline')}>{s.label}</span>
+              </button>
+              {!last ? (
+                <span className="relative mx-1 h-px flex-1 overflow-hidden bg-surface-border md:w-8 md:flex-none" aria-hidden>
+                  <motion.span
+                    className="absolute inset-0 origin-left bg-ink-primary"
+                    initial={false}
+                    animate={{ scaleX: i < currentIndex || locked ? 1 : 0 }}
+                    transition={{ duration: 0.4, ease: EASE }}
+                  />
+                </span>
+              ) : null}
             </li>
           )
         })}
       </ol>
+    </nav>
+  )
+}
+
+/** El equipo, discreto: tres fotos chicas encimadas y los nombres al lado. */
+function TeamStack({ images, theme }: { images: TeamImages; theme: 'light' | 'dark' }) {
+  return (
+    <div className="flex items-center gap-3" aria-label="El equipo">
+      <span className="flex -space-x-2">
+        {TEAM.map((p, i) => (
+          <motion.span
+            key={p.key}
+            title={`${p.name} · ${p.role}`}
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, ease: EASE, delay: 0.1 + i * 0.06 }}
+            className="rounded-full ring-2 ring-surface-card"
+          >
+            <IntakeProAvatar
+              label={p.name}
+              url={images[p.key]}
+              sizeClass="h-9 w-9"
+              theme={theme}
+              shape="circle"
+              focus={intakeProAvatarFocusForRole(p.key)}
+              priority
+              expandable
+              noRing
+            />
+          </motion.span>
+        ))}
+      </span>
+      <p className="text-body-sm leading-tight">
+        <span className="block font-medium text-ink-primary">Tomás, Cristian y Santiago</span>
+        <span className="text-ink-muted">Entrenador, nutricionista y psicólogo</span>
+      </p>
     </div>
   )
 }
 
-/* ─────────────────────── Tu equipo — info plena de los 3 profesionales ─────────────────────── */
-type ProfKey = 'trainer' | 'nutritionist' | 'psychologist'
-type ProfessionalDef = {
-  name: string
-  role: string
-  credential: string
-  tagline: string
-  key: ProfKey
-  /** Ring de acento al hacer hover sobre la card. */
-  hoverRingClass: string
-  /** Degradé de fondo detrás del recorte PNG (foto sin fondo). */
-  photoGradientClass: string
-}
-
-const TEAM: ProfessionalDef[] = [
-  {
-    name: 'Tomás Ferster',
-    role: 'Entrenador',
-    credential: 'Lic. alto rendimiento · Prof. Educación física',
-    tagline: 'Diseña y supervisa tu plan de entrenamiento.',
-    key: 'trainer',
-    hoverRingClass: 'group-hover:ring-blue-300/70 dark:group-hover:ring-blue-500/30',
-    photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
-  },
-  {
-    name: 'Cristian Crossetto',
-    role: 'Nutricionista',
-    credential: 'Lic. en Nutrición · Especialización deportiva',
-    tagline: 'Tu alimentación, planificada e individualizada.',
-    key: 'nutritionist',
-    hoverRingClass: 'group-hover:ring-emerald-300/70 dark:group-hover:ring-emerald-500/30',
-    photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
-  },
-  {
-    name: 'Santiago Rodríguez',
-    role: 'Psicólogo',
-    credential: 'LIC.EN Psicología UBA- Especialización deportiva',
-    tagline: 'Acompañamiento en salud mental y entrenamiento psicológico',
-    key: 'psychologist',
-    hoverRingClass: 'group-hover:ring-violet-300/70 dark:group-hover:ring-violet-500/30',
-    photoGradientClass: 'bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-950 dark:from-zinc-600 dark:via-zinc-800 dark:to-zinc-950',
-  },
-]
-
-function ModalityPicker({
-  value,
-  onChange,
-}: {
-  value: ModalityId
-  onChange: (id: ModalityId) => void
-}) {
-  const rowShell = cn(
-    'flex w-full flex-col gap-2 rounded-2xl p-3 text-left transition-colors',
-    'ring-1 ring-black/[0.05] dark:ring-white/[0.07]',
-  )
-
+/** Modalidades como pestañas: la línea de abajo se desliza a la elegida. */
+function ModalityTabs({ value, onChange }: { value: ModalityId; onChange: (id: ModalityId) => void }) {
   return (
-    <>
-      <ul className="flex flex-col gap-2 sm:hidden" role="list">
-        {MODALITY_OPTIONS.map((m) => {
-          const active = value === m.id
-          return (
-            <li key={m.id}>
-              <button
-                type="button"
-                onClick={() => onChange(m.id)}
-                className={cn(
-                  rowShell,
-                  active
-                    ? 'bg-zinc-50 ring-2 ring-zinc-400/80 dark:bg-zinc-800/70 dark:ring-zinc-500'
-                    : 'bg-white hover:bg-zinc-50 dark:bg-zinc-900/90 dark:hover:bg-zinc-800/50',
-                )}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch] scrollbar-hide">
-                    <IntakeModalityProfessionIcons modalityId={m.id} />
-                  </div>
-                  {active ? (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" strokeWidth={2.25} aria-hidden />
-                  ) : null}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-3xs font-semibold text-orange-500">{m.short}</p>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</p>
-                  <p className="text-2xs leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</p>
-                </div>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-
-      <div className="hidden gap-2.5 sm:grid sm:grid-cols-3 lg:grid-cols-5 lg:gap-3">
-        {MODALITY_OPTIONS.map((m) => {
-          const active = value === m.id
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onChange(m.id)}
-              className={cn(
-                'group v2f-card v2f-card-hover relative flex flex-col gap-1 overflow-hidden rounded-2xl border p-3.5 text-left',
-                active
-                  ? 'border-zinc-900 bg-white ring-1 ring-zinc-900 dark:border-white dark:bg-white/[0.06] dark:ring-white'
-                  : 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white hover:shadow-sm dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800',
-              )}
-            >
-              <IntakeModalityProfessionIcons modalityId={m.id} className="relative mb-2 min-h-6 pr-6" />
-              <span className={cn(
-                'relative text-3xs font-semibold ',
-                active ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-500 dark:text-zinc-400',
-              )}>{m.short}</span>
-              <span className="relative text-sm font-semibold text-zinc-900 dark:text-white">{m.label}</span>
-              <span className="relative text-2xs leading-snug text-zinc-500 dark:text-zinc-400">{m.desc}</span>
-              {active ? (
-                <span className="absolute right-3 top-3 inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white shadow-sm">
-                  <Check className="h-3 w-3" aria-hidden />
-                </span>
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
-    </>
+    <div
+      role="tablist"
+      aria-label="Modalidad"
+      className="-mx-5 flex gap-1 overflow-x-auto border-b border-surface-border px-5 scrollbar-hide sm:mx-0 sm:px-0"
+    >
+      {MODALITY_OPTIONS.map((m) => {
+        const active = value === m.id
+        return (
+          <button
+            key={m.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(m.id)}
+            className={cn(
+              'hh-focus relative flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-t-lg px-3 text-sm transition-colors',
+              active ? 'font-medium text-ink-primary' : 'text-ink-muted hover:text-ink-primary',
+            )}
+          >
+            {m.label}
+            {active ? (
+              <motion.span
+                layoutId="hh-intake-modality-line"
+                className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-ink-primary"
+                transition={{ type: 'spring', stiffness: 480, damping: 38 }}
+                aria-hidden
+              />
+            ) : null}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
-function teamMemberImage(
-  p: ProfessionalDef,
-  images: { trainer: string | null; nutritionist: string | null; psychologist: string | null },
-): string | null {
-  if (p.key === 'trainer') return images.trainer
-  if (p.key === 'nutritionist') return images.nutritionist
-  return images.psychologist
-}
-
-function MeetTheTeam({
-  trainerImage,
-  nutritionistImage,
-  psychologistImage,
-}: {
-  trainerImage: string | null
-  nutritionistImage: string | null
-  psychologistImage: string | null
-}) {
-  const images = { trainer: trainerImage, nutritionist: nutritionistImage, psychologist: psychologistImage }
-
-  return (
-    <section>
-      <div className="mb-3 text-center sm:mb-5">
-        <p className="text-3xs font-semibold text-orange-500">
-          Conocé a
-        </p>
-        <h2 className="mt-1 text-xl font-extrabold tracking-tight text-zinc-900 sm:text-3xl dark:text-white">
-          Nuestro equipo
-        </h2>
-        <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
-          Profesionales especializados en rendimiento deportivo
-        </p>
-      </div>
-
-      {/* Móvil: filas compactas (sin retratos a pantalla completa) */}
-      <ul className="flex flex-col gap-2 sm:hidden" role="list">
-        {TEAM.map((p) => {
-          const img = teamMemberImage(p, images)
-          const initials = p.name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
-          return (
-            <li key={p.key}>
-              <article
-                className={cn(
-                  'flex items-center gap-3 rounded-2xl p-3',
-                  'bg-white ring-1 ring-black/[0.05] shadow-sm',
-                  'dark:bg-zinc-900/90 dark:ring-white/[0.07]',
-                )}
-              >
-                <div
-                  className={cn(
-                    'relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-black/[0.06] dark:ring-white/[0.08]',
-                    p.photoGradientClass,
-                  )}
-                >
-                  {img ? (
-                    <img
-                      src={img}
-                      alt=""
-                      className="h-full w-full object-cover object-top"
-                      loading="lazy"
-                      draggable={false}
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-sm font-bold text-white/85">
-                      {initials}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-3xs font-semibold text-orange-500">{p.role}</p>
-                  <div className="mt-0.5 flex items-center gap-1">
-                    <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{p.name}</p>
-                    <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-hidden />
-                  </div>
-                  <p className="truncate text-2xs text-zinc-500 dark:text-zinc-400">{p.tagline}</p>
-                </div>
-              </article>
-            </li>
-          )
-        })}
-      </ul>
-
-      {/* Tablet+: cards portrait */}
-      <div className="mx-auto hidden w-full max-w-5xl grid-cols-3 gap-3 sm:grid sm:gap-4">
-        {TEAM.map((p) => {
-          const img = teamMemberImage(p, images)
-          const initials = p.name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
-          return (
-            <article
-              key={p.key}
-              className={cn(
-                'v2f-team-card group relative flex flex-col justify-end overflow-hidden rounded-3xl',
-                'aspect-[4/5] ring-1 ring-black/[0.06] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.30)]',
-                'hover:-translate-y-1 hover:shadow-[0_30px_70px_-14px_rgba(0,0,0,0.45)]',
-                'dark:ring-white/[0.08] dark:shadow-[0_18px_50px_-8px_rgba(0,0,0,0.8)]',
-                'transition-all duration-300 ease-out will-change-transform',
-                p.photoGradientClass,
-                p.hoverRingClass,
-              )}
-            >
-              <div className="pointer-events-none absolute left-1/2 top-6 h-32 w-32 -translate-x-1/2 rounded-full bg-white/30 blur-3xl dark:bg-white/10" aria-hidden />
-
-              {img ? (
-                <img
-                  src={img}
-                  alt={p.name}
-                  className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
-                  loading="lazy"
-                  draggable={false}
-                />
-              ) : (
-                <span className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-white/80">
-                  {initials}
-                </span>
-              )}
-
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" aria-hidden />
-
-              <div className="relative p-3 sm:p-4">
-                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-3xs font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm">
-                  {p.role}
-                </span>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <p className="text-base font-semibold leading-tight text-white drop-shadow-sm sm:text-lg">{p.name}</p>
-                  <BadgeCheck className="h-[18px] w-[18px] shrink-0 text-emerald-400" aria-hidden />
-                </div>
-                <p className="mt-1 text-body-sm leading-snug text-white/75">{p.tagline}</p>
-                <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-out group-hover:grid-rows-[1fr]">
-                  <div className="overflow-hidden">
-                    <p className="pt-1.5 text-2xs leading-snug text-white/55">{p.credential}</p>
-                  </div>
-                </div>
-              </div>
-            </article>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-/* ─────────────────────── Plan summary sidebar ─────────────────────── */
+/** Resumen del plan elegido: acompaña los pasos de permiso y datos. */
 function PlanSummary({
   plan,
+  price,
   billing,
-  step,
+  avatars,
+  theme,
   onChangePlan,
 }: {
   plan: PublicIntakePlanDetail | null
+  price: string | null
   billing: PlanBilling
-  step: StepId
+  avatars: IntakeIncludeSectionAvatarMap
+  theme: 'light' | 'dark'
   onChangePlan: () => void
 }) {
-  if (!plan) {
-    return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-6 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
-        <Sparkles className="mx-auto mb-2 h-6 w-6 text-zinc-400" aria-hidden />
-        <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Resumen del plan</p>
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Cuando elijas un plan vas a verlo acá con el detalle de precio.</p>
-      </div>
-    )
-  }
-  const price = displayPriceForPlan(plan, billing)
-  const features = plan.info.slice(0, 5)
+  const pricing = useMemo(() => (plan ? intakePlansToPricingPlans([plan])[0] ?? null : null), [plan])
+  if (!plan || !pricing) return null
+  const sections = attachAvatarsToIncludeSectionViews(pricing.featureSections ?? [], avatars)
+  const features = pricing.features.slice(0, 5)
   return (
-    <div className={cn(
-      'v2f-card rounded-2xl border bg-white p-5',
-      'border-zinc-200/80 shadow-[0_2px_24px_-12px_rgba(15,23,42,0.08)]',
-      'dark:border-zinc-800/70 dark:bg-zinc-900 dark:shadow-[0_2px_24px_-8px_rgba(0,0,0,0.5)]',
-    )}>
-      <header className="mb-4 flex items-start justify-between gap-3">
+    <div className="rounded-2xl border border-surface-border bg-surface-panel p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-3xs font-semibold text-zinc-500 dark:text-zinc-400">Tu plan</p>
-          <h3 className="mt-0.5 text-base font-bold text-zinc-900 dark:text-white">{plan.name}</h3>
+          <p className="text-2xs font-medium text-ink-muted">Tu plan</p>
+          <p className="mt-0.5 text-lg font-medium leading-tight tracking-[-0.01em]">{intakePlanTitle(plan.name)}</p>
         </div>
-        {step !== 'plan' && step !== 'confirmation' && (
-          <button
-            type="button"
-            onClick={onChangePlan}
-            className="shrink-0 text-2xs font-semibold text-brand-primary underline-offset-2 hover:underline"
-          >
-            Cambiar
-          </button>
-        )}
-      </header>
-
-      <div className="rounded-xl border border-zinc-100 bg-orange-50/50 p-4 dark:border-zinc-800 dark:bg-orange-500/[0.06]">
-        <p className="text-3xs font-semibold text-zinc-500 dark:text-zinc-400">Precio</p>
-        <p className="mt-1 text-2xl font-extrabold tabular-nums text-zinc-900 dark:text-white">{price}</p>
-        <p className="mt-0.5 text-3xs font-semibold text-zinc-500 dark:text-zinc-400">{planBillingCaption(billing)}</p>
+        <Button type="button" variant="soft" size="sm" onClick={onChangePlan}>
+          Cambiar
+        </Button>
       </div>
 
-      {features.length > 0 && (
-        <div className="mt-5">
-          <p className="mb-2 text-2xs font-semibold text-zinc-500 dark:text-zinc-400">Incluye</p>
-          <ul className="space-y-1.5">
-            {features.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-xs leading-snug text-zinc-700 dark:text-zinc-300">
-                <span className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
-                  <Check className="h-2.5 w-2.5" aria-hidden />
-                </span>
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mt-3 flex items-baseline gap-2">
+        <p className="text-2xl font-semibold tabular-nums tracking-[-0.03em]">{price}</p>
+        <p className="text-2xs text-ink-muted">{intakeBillingCaption(billing)}</p>
+      </div>
 
-      <p className="mt-5 border-t border-zinc-100 pt-3 text-center text-3xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
-        Cancelás cuando quieras
-      </p>
+      {sections.length > 0 ? (
+        <ul className="mt-4 hidden space-y-2.5 border-t border-surface-border pt-4 lg:block">
+          {sections.map((s) => (
+            <li key={s.professional} className="flex items-center gap-2.5">
+              <IntakeProAvatar
+                label={s.title}
+                url={s.avatarUrl ?? null}
+                sizeClass="h-8 w-8"
+                theme={theme}
+                focus={intakeProAvatarFocusForRole(s.professional)}
+              />
+              <div className="min-w-0">
+                <p className="truncate text-body-sm font-medium leading-tight">{s.subtitle?.trim() || s.title}</p>
+                <p className="text-2xs text-ink-muted">
+                  {s.title} · {s.items.length} {s.items.length === 1 ? 'servicio' : 'servicios'}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : features.length > 0 ? (
+        <ul className="mt-4 hidden space-y-1.5 border-t border-surface-border pt-4 lg:block">
+          {features.map((f) => (
+            <li key={f.text} className="flex items-start gap-2 text-body-sm leading-snug text-ink-secondary">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" strokeWidth={2.5} aria-hidden />
+              {f.text}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
 
-/* ─────────────────────── Confirmation view ─────────────────────── */
-function ConfirmationView({ planName, onAgain }: { planName: string | null; onAgain: () => void }) {
-  return (
-    <div className="v2f-slide flex flex-col items-center py-6 text-center sm:py-10">
-      <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-green-50 ring-1 ring-green-200 dark:bg-green-500/10 dark:ring-green-500/30">
-        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" aria-hidden />
-      </div>
-      <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-2xs font-semibold text-green-700 ring-1 ring-green-200 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30">
-        <Check className="h-3 w-3" aria-hidden />
-        Inscripción confirmada
-      </span>
-      <p className="text-3xs font-semibold text-brand-primary">Paso 4 de 4</p>
-      <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
-        ¡Recibimos tus datos!
-      </h2>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        {planName ? <>Tu inscripción al plan <span className="font-semibold text-zinc-800 dark:text-zinc-200">«{planName}»</span> fue recibida. </> : 'Tu inscripción fue recibida. '}
-        El equipo de Haciéndolo Hábito se va a comunicar con vos a la brevedad.
-      </p>
+const NEXT_STEPS = [
+  { title: 'Recibimos tu inscripción', text: 'Tus datos ya le llegaron al equipo.', done: true },
+  { title: 'El equipo revisa tus datos', text: 'Con eso arman tu plan a medida.', done: false },
+  { title: 'Te escriben para arrancar', text: 'Por WhatsApp o por mail, a la brevedad.', done: false },
+]
 
-      <div className="mt-7 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          onClick={onAgain}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Hacer otra inscripción
-        </button>
-        <Link
-          to="/login"
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-hover"
-        >
-          Ir al login
-          <ArrowRight className="h-4 w-4" aria-hidden />
-        </Link>
+function ConfirmationView({ planName, onAgain }: { planName: string | null; onAgain: () => void }) {
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') navigator.vibrate([45, 35, 45])
+  }, [])
+
+  return (
+    <div className="mx-auto w-full max-w-xl py-4 sm:py-10" role="status" aria-live="polite">
+      <div className="rounded-2xl border border-surface-border bg-surface-card p-6 sm:p-8">
+        <div className="relative mb-5 h-14 w-14">
+          <motion.span
+            className="absolute inset-0 rounded-full bg-status-ok"
+            initial={{ scale: 0.9, opacity: 0.55 }}
+            animate={{ scale: 1.9, opacity: 0 }}
+            transition={{ duration: 0.9, ease: 'easeOut', delay: 0.15 }}
+            aria-hidden
+          />
+          <motion.span
+            className="relative flex h-full w-full items-center justify-center rounded-full bg-status-ok text-black"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+          >
+            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <motion.path
+                d="M5 12.5l4.5 4.5L19 7.5"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.38, ease: 'easeOut', delay: 0.22 }}
+              />
+            </svg>
+          </motion.span>
+        </div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE, delay: 0.18 }}>
+          <h1 className="text-3xl font-semibold leading-tight tracking-[-0.03em]">¡Listo, recibimos tus datos!</h1>
+          <p className="mt-2 text-base leading-relaxed text-ink-secondary">
+            {planName ? (
+              <>
+                Tu inscripción a <span className="font-semibold text-ink-primary">{planName}</span> quedó registrada.
+              </>
+            ) : (
+              'Tu inscripción quedó registrada.'
+            )}{' '}
+            El equipo de Haciéndolo Hábito se va a comunicar con vos a la brevedad.
+          </p>
+        </motion.div>
+
+        <ol className="mt-6 border-t border-surface-border pt-2">
+          {NEXT_STEPS.map((s, i) => (
+            <motion.li
+              key={s.title}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.36, ease: EASE, delay: 0.32 + i * 0.09 }}
+              className="flex items-start gap-3 py-3"
+            >
+              <span
+                className={cn(
+                  'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums',
+                  s.done ? 'bg-status-ok text-black' : 'bg-surface-elevated text-ink-secondary',
+                )}
+              >
+                {s.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : i + 1}
+              </span>
+              <div>
+                <p className="text-sm font-medium leading-tight">{s.title}</p>
+                <p className="mt-0.5 text-body-sm text-ink-muted">{s.text}</p>
+              </div>
+            </motion.li>
+          ))}
+        </ol>
+
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <Button asChild size="lg">
+            <Link to="/login">
+              Ir al login
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </Button>
+          <Button type="button" variant="soft" size="lg" onClick={onAgain}>
+            Hacer otra inscripción
+          </Button>
+        </div>
       </div>
     </div>
+  )
+}
+
+/** Mientras cargan planes y fotos: la silueta del panel, no un logo latiendo. */
+function LoadingSkeleton() {
+  const block = 'animate-pulse rounded-xl bg-surface-elevated'
+  return (
+    <Panel>
+      <div role="status" aria-label="Cargando planes">
+        <div className="mb-8 flex items-center gap-4 border-b border-surface-border pb-6">
+          <div className={cn(block, 'h-12 w-12 rounded-full')} />
+          <div className="flex-1 space-y-2">
+            <div className={cn(block, 'h-6 w-48')} />
+            <div className={cn(block, 'h-4 w-full max-w-md')} />
+          </div>
+        </div>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:gap-10">
+          <div className="space-y-4">
+            <div className={cn(block, 'h-10')} />
+            <div className={cn(block, 'h-56 rounded-2xl')} />
+          </div>
+          <div className={cn(block, 'hidden h-80 rounded-2xl lg:block')} />
+        </div>
+      </div>
+    </Panel>
   )
 }

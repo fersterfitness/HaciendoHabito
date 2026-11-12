@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { intakeFormBackButtonClass, intakeFormCtaPrimaryClass } from '@/lib/intake/intakeFormUi'
 
@@ -23,9 +24,10 @@ export function IntakeFormStepActions({
   const isLast = step >= stepCount - 1
 
   return (
-    <div className="flex flex-col gap-2.5 border-t border-surface-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="hh-intake-actions flex flex-col-reverse gap-2.5 border-t border-surface-border pt-5 sm:flex-row sm:items-center sm:justify-between">
       {step > 0 ? (
         <button type="button" onClick={onBack} className={intakeFormBackButtonClass}>
+          <ArrowLeft className="h-4 w-4" aria-hidden />
           Atrás
         </button>
       ) : (
@@ -33,6 +35,7 @@ export function IntakeFormStepActions({
       )}
       {isLast ? (
         <button type="submit" disabled={isSubmitting} className={cn(intakeFormCtaPrimaryClass, 'w-full sm:w-auto sm:min-w-[10rem]')}>
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
           {isSubmitting ? 'Enviando…' : submitLabel}
         </button>
       ) : (
@@ -42,7 +45,7 @@ export function IntakeFormStepActions({
           className={cn(intakeFormCtaPrimaryClass, 'w-full sm:w-auto sm:min-w-[9rem]')}
         >
           {nextLabel}
-          <span aria-hidden> →</span>
+          <ArrowRight className="h-4 w-4" aria-hidden />
         </button>
       )}
     </div>
