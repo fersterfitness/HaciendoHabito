@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Camera, Check, ChevronDown, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Camera, Check, ChevronDown, Copy, ExternalLink, Plus, Trash2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -25,8 +25,11 @@ import {
   MARKETPLACE_ROLES,
   MARKETPLACE_SPORTS,
   durationLabel,
+  durationPer,
   formatPrice,
   marketplaceSlug,
+  modalityLabel,
+  sportLabel,
   whatsappLink,
   type MarketplaceAccessState,
   type MarketplaceDuration,
@@ -70,13 +73,55 @@ const errorMessage = (err: unknown) => {
 
 function FormSection({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 border-t border-surface-border px-5 py-5 first:border-t-0 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+    <section className="flex flex-col gap-4 border-t border-surface-border px-5 py-6 first:border-t-0 sm:px-6">
       <div>
-        <h3 className="text-sm font-medium text-ink-primary">{title}</h3>
-        {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-muted">{hint}</p> : null}
+        <h3 className="text-base font-semibold tracking-tight text-ink-primary">{title}</h3>
+        {hint ? <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">{hint}</p> : null}
       </div>
-      <div className="flex min-w-0 flex-col gap-4">{children}</div>
+      {children}
     </section>
+  )
+}
+
+/** La tarjeta del directorio armada con lo que se está escribiendo, antes de guardar. */
+function ProfilePreview({ d, from }: { d: ProfileDraft; from: number | null }) {
+  const badge = d.especialidades.split(',').map((x) => x.trim()).find(Boolean) ?? (d.deportes[0] ? sportLabel(d.deportes[0]) : null)
+  const mode = modalityLabel(d.modalidad)
+  return (
+    <aside className="hidden flex-col gap-2.5 lg:sticky lg:top-6 lg:flex" aria-label="Vista previa">
+      <p className="text-xs font-medium text-ink-muted">Así se ve en la web</p>
+      <div className="rounded-2xl bg-surface-elevated/70 p-3">
+        <div className="flex flex-col gap-3.5 rounded-xl bg-surface-card p-4">
+          <div className="flex items-center gap-3">
+            <ProfessionalPhoto nombre={d.nombre || 'HH'} fotoUrl={d.fotoUrl} className="h-14 w-14 text-lg" />
+            <div className="min-w-0">
+              <p className={cn('truncate text-base font-semibold', !d.nombre && 'text-ink-muted')}>{d.nombre || 'Nombre y apellido'}</p>
+              <p className="text-sm text-ink-secondary">{roleLabel(d.rol)}</p>
+            </div>
+          </div>
+          {badge || mode ? (
+            <div className="flex flex-wrap gap-1.5">
+              {badge ? <span className="hh-pastel rounded-md bg-pastel-peach px-2 py-1 text-xs font-semibold text-pastel-peach-ink">{badge}</span> : null}
+              {mode ? <span className="rounded-md bg-surface-elevated px-2 py-1 text-xs font-medium text-ink-secondary">{mode}</span> : null}
+            </div>
+          ) : null}
+          {d.deportes.length ? <p className="line-clamp-1 text-xs text-ink-muted">{d.deportes.map(sportLabel).join(' · ')}</p> : null}
+          <div className="flex items-end justify-between gap-3 border-t border-surface-border pt-3">
+            <div className="flex flex-col">
+              <span className="text-xs text-ink-muted">Desde</span>
+              <span className={cn('text-lg font-bold tabular-nums', from == null && 'text-ink-muted')}>{from != null ? formatPrice(from) : '$ —'}</span>
+            </div>
+            <span className="rounded-lg bg-surface-elevated px-3 py-1.5 text-xs font-medium text-ink-primary">Ver planes</span>
+          </div>
+        </div>
+        <p className={cn('mt-3 line-clamp-6 whitespace-pre-line px-1 pb-1 text-xs leading-relaxed', d.bio.trim() ? 'text-ink-secondary' : 'text-ink-muted')}>
+          {d.bio.trim() || 'Acá va su presentación: quién es, con quién trabaja y cómo es su método.'}
+        </p>
+      </div>
+      <p className="truncate px-1 text-xs text-ink-muted">
+        {window.location.host}/p/{marketplaceSlug(d.slug) || 'nombre-apellido'}
+      </p>
+    </aside>
   )
 }
 
@@ -85,11 +130,13 @@ function ProfileForm({
   ctx,
   onCreated,
 }: {
-  professional: MarketplaceProfessional | null
+  professional: ManagedProfessional | null
   ctx: AccessContext
   onCreated: (id: string, next: Tab) => void
 }) {
   const user = useAuthStore((s) => s.user)
+  const activePrices = (professional?.plans ?? []).filter((x) => x.activo).map((x) => x.precio)
+  const from = activePrices.length ? Math.min(...activePrices) : null
   const save = useSaveProfessional()
   const grant = useGrantAccess()
   const id = professional?.id ?? null
@@ -197,6 +244,7 @@ function ProfileForm({
   }
 
   return (
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
     <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card">
       {restored && dirty ? (
         <p className="flex flex-wrap items-center justify-between gap-2 bg-status-warn/15 px-5 py-2.5 text-xs text-status-warn-ink">
@@ -344,6 +392,8 @@ function ProfileForm({
         </Button>
         {dirty ? <span className="text-xs text-ink-muted">Hay cambios sin guardar.</span> : professional ? <span className="text-xs text-ink-muted">Todo guardado.</span> : null}
       </div>
+    </div>
+    <ProfilePreview d={d} from={from} />
     </div>
   )
 }
@@ -505,55 +555,56 @@ function PlansTab({ professional, plans }: { professional: MarketplaceProfession
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-ink-secondary">Lo que cargues acá es lo que ven los clientes. Los cambios de precio se publican al guardar.</p>
-        <Button icon={<Plus className="h-4 w-4" />} onClick={() => setEditing('new')}>
-          Nuevo plan
-        </Button>
-      </div>
-      {plans.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-surface-inputBorder p-6 text-sm text-ink-muted">
-          Todavía no cargaste planes. Con uno activo ya podés pedir que publiquen tu página.
-        </p>
-      ) : (
-        plans.map((plan) => (
-          <article key={plan.id} className="flex flex-wrap items-center gap-3.5 rounded-xl border border-surface-border bg-surface-card p-4">
-            <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-semibold">{plan.titulo}</h3>
-                <span
-                  className={cn(
-                    'rounded-md px-2 py-0.5 text-xs font-semibold',
-                    plan.activo ? 'bg-status-ok/15 text-status-ok-ink' : 'bg-surface-elevated text-ink-secondary',
-                  )}
-                >
-                  {plan.activo ? 'Activo' : 'Pausado'}
-                </span>
+      <p className="text-sm text-ink-secondary">Lo que cargues acá es lo que ven los clientes. Los cambios de precio se publican al guardar.</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {plans.map((plan) => (
+          <article key={plan.id} className="flex flex-col gap-3.5 rounded-2xl border border-surface-border bg-surface-card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-semibold tracking-tight">{plan.titulo}</h3>
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  {[
+                    durationLabel(plan.duracion),
+                    plan.modalidad === 'online' ? 'Online' : plan.modalidad === 'presencial' ? 'Presencial' : null,
+                    plan.cupos == null ? 'sin límite de cupos' : `${plan.cupos} cupos`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
               </div>
-              <p className="text-body-sm text-ink-muted">
-                {[
-                  durationLabel(plan.duracion),
-                  plan.modalidad === 'online' ? 'Online' : plan.modalidad === 'presencial' ? 'Presencial' : null,
-                  plan.cupos == null ? 'sin límite de cupos' : `${plan.cupos} cupos`,
-                  plan.activo ? null : 'no se muestra en la web',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
+              <span className={cn('inline-flex h-6 shrink-0 items-center rounded-md px-2 text-xs font-medium', plan.activo ? 'bg-status-ok/15 text-status-ok-ink' : 'bg-surface-elevated text-ink-secondary')}>
+                {plan.activo ? 'Activo' : 'Pausado'}
+              </span>
             </div>
-            <span className="text-lg font-bold tabular-nums">{formatPrice(plan.precio)}</span>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setEditing(plan)}>
+            <p className={cn('text-2xl font-semibold tabular-nums tracking-tight', !plan.activo && 'text-ink-muted')}>
+              {formatPrice(plan.precio)} <span className="text-xs font-normal tracking-normal text-ink-muted">{durationPer(plan.duracion)}</span>
+            </p>
+            {plan.incluye.length ? (
+              <ul className="flex flex-col gap-1.5">
+                {plan.incluye.slice(0, 4).map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-xs leading-relaxed text-ink-secondary">
+                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-ink-muted" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+                {plan.incluye.length > 4 ? <li className="pl-5 text-xs text-ink-muted">y {plan.incluye.length - 4} más</li> : null}
+              </ul>
+            ) : plan.descripcion ? (
+              <p className="line-clamp-2 text-xs leading-relaxed text-ink-secondary">{plan.descripcion}</p>
+            ) : null}
+            <div className="mt-auto flex gap-2 pt-1">
+              <Button variant="secondary" size="sm" onClick={() => setEditing(plan)}>
                 Editar
               </Button>
               <Button
-                variant="secondary"
+                variant="ghost"
+                size="sm"
                 disabled={save.isPending}
                 onClick={() =>
                   save.mutate(
                     { id: plan.id, professionalId: professional.id, input: { activo: !plan.activo } },
                     {
-                      onSuccess: () => toast.success(plan.activo ? 'Plan pausado' : 'Plan activado'),
+                      onSuccess: () => toast.success(plan.activo ? 'Plan pausado: ya no se muestra en la web' : 'Plan activado'),
                       onError: (err) => toast.error(errorMessage(err)),
                     },
                   )
@@ -563,8 +614,18 @@ function PlansTab({ professional, plans }: { professional: MarketplaceProfession
               </Button>
             </div>
           </article>
-        ))
-      )}
+        ))}
+        <button
+          type="button"
+          onClick={() => setEditing('new')}
+          className="hh-focus flex min-h-36 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-surface-inputBorder p-5 text-sm font-medium text-ink-secondary transition-colors hover:bg-surface-elevated/60 hover:text-ink-primary"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-elevated">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+          </span>
+          {plans.length ? 'Sumar otro plan' : 'Cargar el primer plan'}
+        </button>
+      </div>
       {editing ? (
         <PlanEditor
           plan={editing === 'new' ? null : editing}
@@ -754,32 +815,36 @@ function StepDot({ status, n }: { status: Step['status']; n: number }) {
 
 function SetupSteps({ steps, current, onGo }: { steps: Step[]; current: Tab; onGo: (tab: Tab) => void }) {
   return (
-    <ol className="grid overflow-hidden rounded-2xl border border-surface-border bg-surface-card sm:grid-cols-4">
+    <ol className="grid grid-cols-2 gap-1 sm:flex sm:items-center sm:gap-0">
       {steps.map((step, i) => {
+        const on = Boolean(step.tab) && current === step.tab
         const body = (
           <>
             <StepDot status={step.status} n={i + 1} />
-            <span className="min-w-0">
+            <span className="min-w-0 text-left">
               <span className="block truncate text-body-sm font-medium text-ink-primary">{step.title}</span>
               <span className={cn('block truncate text-xs', step.status === 'todo' ? 'text-ink-secondary' : 'text-ink-muted')}>{step.detail}</span>
             </span>
           </>
         )
-        const cell = 'flex w-full items-center gap-2.5 px-4 py-3 text-left'
+        const cell = 'flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2'
         return (
-          <li key={step.key} className="border-t border-surface-border first:border-t-0 sm:border-l sm:border-t-0 sm:first:border-l-0">
+          <li key={step.key} className="flex min-w-0 items-center sm:flex-1 sm:last:flex-none">
             {step.tab ? (
               <button
                 type="button"
                 onClick={() => onGo(step.tab!)}
-                aria-current={current === step.tab ? 'step' : undefined}
-                className={cn('hh-focus transition-colors hover:bg-surface-elevated/60', cell, current === step.tab && 'bg-surface-elevated/60')}
+                aria-current={on ? 'step' : undefined}
+                className={cn('hh-focus transition-colors hover:bg-surface-elevated', cell, on && 'bg-surface-elevated')}
               >
                 {body}
               </button>
             ) : (
               <div className={cell}>{body}</div>
             )}
+            {i < steps.length - 1 ? (
+              <span aria-hidden="true" className={cn('mx-1 hidden h-px min-w-3 flex-1 sm:block', step.status === 'todo' ? 'bg-surface-border' : 'bg-ink-primary/40')} />
+            ) : null}
           </li>
         )
       })}
@@ -797,12 +862,13 @@ const HOW_STEPS = [
 ]
 
 /** Explica el circuito completo. Se puede cerrar y queda cerrado. */
-function HowItWorks() {
+function HowItWorks({ defaultOpen }: { defaultOpen: boolean }) {
   const [open, setOpen] = useState(() => {
     try {
-      return localStorage.getItem(HOW_KEY) !== '0'
+      const saved = localStorage.getItem(HOW_KEY)
+      return saved ? saved === '1' : defaultOpen
     } catch {
-      return true
+      return defaultOpen
     }
   })
   const toggle = () => {
@@ -848,21 +914,22 @@ function ProfessionalCard({ p, myId, onOpen }: { p: ManagedProfessional; myId: s
     <button
       type="button"
       onClick={onOpen}
-      className="hh-focus group flex flex-col gap-4 rounded-2xl border border-surface-border bg-surface-card p-4 text-left transition-colors hover:border-ink-muted/40"
+      className="hh-focus group flex flex-col gap-4 rounded-2xl border border-surface-border bg-surface-card p-5 text-left transition-colors hover:bg-surface-elevated/40"
     >
-      <div className="flex items-start gap-3">
-        <ProfessionalPhoto nombre={p.nombre} fotoUrl={p.foto_url} className="h-14 w-14 text-lg" />
+      <div className="flex w-full items-center gap-3.5">
+        <ProfessionalPhoto nombre={p.nombre} fotoUrl={p.foto_url} className="h-16 w-16 rounded-2xl text-xl" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium tracking-[-0.01em] text-ink-primary">{p.nombre}</p>
+          <p className="truncate text-base font-semibold tracking-tight text-ink-primary">{p.nombre}</p>
           <p className="truncate text-xs text-ink-muted">{roleLabel(p.rol)}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <StateChip estado={p.estado} />
-            <AccessChip state={accessState(p, myId)} />
-          </div>
         </div>
+        <ArrowUpRight className="h-4 w-4 shrink-0 self-start text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <StateChip estado={p.estado} />
+        <AccessChip state={accessState(p, myId)} />
       </div>
       {next ? (
-        <div className="flex items-center gap-2.5">
+        <div className="flex w-full items-center gap-2.5">
           <div className="flex flex-1 gap-1" aria-hidden="true">
             {steps.map((s, i) => (
               <span key={s.key} className={cn('h-1 flex-1 rounded-full', i < ready ? 'bg-ink-primary' : 'bg-surface-elevated')} />
@@ -938,8 +1005,8 @@ function Editor({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-4">
-        <ProfessionalPhoto nombre={professional?.nombre ?? 'HH'} fotoUrl={professional?.foto_url ?? null} className="h-16 w-16 text-xl" />
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-4 rounded-2xl bg-surface-elevated/70 p-5">
+        <ProfessionalPhoto nombre={professional?.nombre ?? 'HH'} fotoUrl={professional?.foto_url ?? null} className="h-20 w-20 rounded-2xl bg-surface-card text-2xl" />
         <div className="min-w-0 flex-1 basis-56">
           <h1 className="truncate text-2xl font-semibold leading-tight tracking-tight text-ink-primary">{professional?.nombre ?? 'Nuevo profesional'}</h1>
           {professional ? (
@@ -1105,7 +1172,7 @@ export function MyMarketplacePage() {
   }, [onlyMine])
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-14 pt-6 lg:px-10 lg:pt-9">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-14 pt-6 lg:px-10 lg:pt-9">
       {editing ? null : (
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -1162,7 +1229,7 @@ export function MyMarketplacePage() {
         />
       ) : (
         <>
-          <HowItWorks />
+          <HowItWorks defaultOpen={professionals.length < 2} />
           {professionals.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-surface-inputBorder px-6 py-12 text-center">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-elevated text-ink-secondary">
@@ -1178,15 +1245,34 @@ export function MyMarketplacePage() {
             </div>
           ) : (
             <>
-              <p className="text-xs text-ink-muted">
-                {professionals.length} {professionals.length === 1 ? 'profesional' : 'profesionales'} · {professionals.filter((p) => p.estado === 'aprobado').length} publicados
-                {pendingInvites ? ` · ${pendingInvites} ${pendingInvites === 1 ? 'invitación sin usar' : 'invitaciones sin usar'}` : ''}
-                {pendingRequests ? ` · ${pendingRequests} ${pendingRequests === 1 ? 'solicitud nueva' : 'solicitudes nuevas'}` : ''}
-              </p>
+              <dl className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+                {[
+                  { label: 'Profesionales', value: professionals.length, tone: '' },
+                  { label: 'Publicados en la web', value: professionals.filter((p) => p.estado === 'aprobado').length, tone: '' },
+                  { label: 'Solicitudes nuevas', value: pendingRequests, tone: pendingRequests ? 'hh-pastel bg-pastel-peach text-pastel-peach-ink' : '' },
+                  { label: 'Invitaciones sin usar', value: pendingInvites, tone: pendingInvites ? 'bg-status-warn/20 text-status-warn-ink' : '' },
+                ].map((t) => (
+                  <div key={t.label} className={cn('rounded-2xl px-4 py-3.5', t.tone || 'bg-surface-elevated/70 text-ink-primary')}>
+                    <dt className={cn('text-xs', t.tone ? 'opacity-80' : 'text-ink-muted')}>{t.label}</dt>
+                    <dd className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{t.value}</dd>
+                  </div>
+                ))}
+              </dl>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {professionals.map((p) => (
                   <ProfessionalCard key={p.id} p={p} myId={user?.id} onOpen={() => setSelected(p.id)} />
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setSelected('new')}
+                  disabled={data.needsMigration}
+                  className="hh-focus flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-surface-inputBorder p-5 text-sm font-medium text-ink-secondary transition-colors hover:bg-surface-elevated/60 hover:text-ink-primary disabled:opacity-50"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-elevated">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  Sumar un profesional
+                </button>
               </div>
             </>
           )}
