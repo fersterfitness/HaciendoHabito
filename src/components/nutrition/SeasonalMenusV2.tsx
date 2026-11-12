@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Copy, LayoutGrid, List, Search, UserPlus, Wheat } from 'lucide-react'
+import { Copy, LayoutGrid, List, Plus, Search, UserPlus, Wheat } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/Input'
@@ -12,7 +12,6 @@ import { controlMdClassName } from '@/lib/formControlClasses'
 import { mealPhotoId, unsplashUrl } from '@/lib/nutrition/foodPhotos'
 import {
   PATHOLOGY_LABELS,
-  SEASONAL_MENU_TEMPLATES,
   SEASON_LABELS,
   TOLERANCE_LABELS,
   type DigestiveTolerance,
@@ -20,6 +19,7 @@ import {
   type PathologyTag,
   type SeasonalMenuTemplate,
 } from '@/lib/nutrition/seasonalMenuLibrary'
+import { isCustomMenuId } from '@/lib/nutrition/customMenus'
 import { seasonalMenuMeals, type SeasonalMenuMeal } from '@/lib/nutrition/seasonalMenuToPlan'
 import { cn } from '@/lib/utils'
 
@@ -56,6 +56,7 @@ const MEAL_TONES = [
 function Tags({ m }: { m: SeasonalMenuTemplate }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
+      {isCustomMenuId(m.id) ? <span className="rounded-md bg-ink-primary px-2 py-0.5 text-xs font-medium text-surface-base">Tuyo</span> : null}
       <span className={cn('hh-pastel rounded-md px-2 py-0.5 text-xs font-medium', SEASON_TONE[m.season])}>{SEASON_LABELS[m.season]}</span>
       <span className={cn('hh-pastel rounded-md px-2 py-0.5 text-xs font-medium', TOLERANCE_TONE[m.tolerance])}>Tolerancia {m.tolerance}</span>
       {m.pathologies.map((p) => (
@@ -90,6 +91,7 @@ function currentSeason(): MenuSeason {
 }
 
 export function SeasonalMenusV2({
+  all,
   filtered,
   season,
   onSeason,
@@ -104,7 +106,10 @@ export function SeasonalMenusV2({
   onOpen,
   onCopy,
   onUse,
+  onNew,
 }: {
+  /** Todos los menús (propios y de la app), sin filtrar: para los contadores. */
+  all: SeasonalMenuTemplate[]
   filtered: SeasonalMenuTemplate[]
   season: SeasonFilter
   onSeason: (s: SeasonFilter) => void
@@ -120,6 +125,7 @@ export function SeasonalMenusV2({
   onCopy: (m: SeasonalMenuTemplate) => void
   /** Elegir un paciente y usar el menú como base de su plan. */
   onUse: (m: SeasonalMenuTemplate) => void
+  onNew: () => void
 }) {
   const [view, setView] = useState<'list' | 'grid'>('list')
   const withMeals = useMemo(() => filtered.map((m) => ({ m, meals: mealsOf(m) })), [filtered])
@@ -132,7 +138,7 @@ export function SeasonalMenusV2({
   }, [hasActiveFilters, withMeals])
   const rest = featured ? withMeals.filter((x) => x.m.id !== featured.m.id) : withMeals
 
-  const seasonCount = (s: SeasonFilter) => (s === 'todas' ? SEASONAL_MENU_TEMPLATES.length : SEASONAL_MENU_TEMPLATES.filter((m) => m.season === s).length)
+  const seasonCount = (s: SeasonFilter) => (s === 'todas' ? all.length : all.filter((m) => m.season === s).length)
 
   return (
     <div className="flex flex-col gap-6">
@@ -177,6 +183,9 @@ export function SeasonalMenusV2({
             Limpiar
           </Button>
         ) : null}
+        <Button type="button" icon={<Plus className="h-4 w-4" />} onClick={onNew}>
+          Nuevo menú
+        </Button>
       </div>
 
       {featured ? (
@@ -227,7 +236,7 @@ export function SeasonalMenusV2({
       <section aria-labelledby="menu-todos">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pb-3">
           <h2 id="menu-todos" className="text-sm font-semibold text-ink-primary">
-            {hasActiveFilters ? `${filtered.length} de ${SEASONAL_MENU_TEMPLATES.length} menús` : 'Todos los menús'}
+            {hasActiveFilters ? `${filtered.length} de ${all.length} menús` : 'Todos los menús'}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl

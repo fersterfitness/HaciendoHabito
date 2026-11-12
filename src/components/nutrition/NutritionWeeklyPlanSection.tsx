@@ -33,6 +33,8 @@ import toast from 'react-hot-toast'
 import { useSearchParams } from 'react-router-dom'
 import { SEASONAL_MENU_TEMPLATES } from '@/lib/nutrition/seasonalMenuLibrary'
 import { seasonalMenuToReusablePlan } from '@/lib/nutrition/seasonalMenuToPlan'
+import { getCustomMenu, isCustomMenuId } from '@/lib/nutrition/customMenus'
+import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 
 interface Props {
   student: Student
@@ -75,7 +77,21 @@ export function NutritionWeeklyPlanSection({ student, measurements, suggestedNex
   // v2: llega desde «Menús» con `?menu=<id>`: se ofrece usarlo como base, nunca se aplica solo.
   const [searchParams, setSearchParams] = useSearchParams()
   const menuParam = IS_V2 ? searchParams.get('menu') : null
-  const pendingMenu = menuParam ? SEASONAL_MENU_TEMPLATES.find((m) => m.id === menuParam) ?? null : null
+  const [customPending, setCustomPending] = useState<SeasonalMenuTemplate | null>(null)
+  useEffect(() => {
+    if (!menuParam || !isCustomMenuId(menuParam) || !user) {
+      setCustomPending(null)
+      return
+    }
+    let cancelled = false
+    void getCustomMenu(user.id, menuParam).then((m) => {
+      if (!cancelled) setCustomPending(m)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [menuParam, user])
+  const pendingMenu = !menuParam ? null : isCustomMenuId(menuParam) ? customPending : (SEASONAL_MENU_TEMPLATES.find((m) => m.id === menuParam) ?? null)
   function clearPendingMenu() {
     setSearchParams(
       (prev) => {

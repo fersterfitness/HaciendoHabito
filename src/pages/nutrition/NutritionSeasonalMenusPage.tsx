@@ -1,5 +1,5 @@
 import { controlMdClassName } from '@/lib/formControlClasses'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search, Snowflake, Sun, Calendar, Flame, Wheat, Copy, ChevronRight } from 'lucide-react'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
@@ -7,6 +7,19 @@ import { IS_V2 } from '@/lib/uiVersion'
 import { AiMarkdown } from '@/components/nutrition/AnthropometryAiMarkdown'
 import { MenuPatientPicker, SeasonalMenusV2 } from '@/components/nutrition/SeasonalMenusV2'
 import { useAppNavigate } from '@/hooks/useAppNavigate'
+import { CustomMenuEditor } from '@/components/nutrition/CustomMenuEditor'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import {
+  CUSTOM_MENUS_SQL_HINT,
+  deleteCustomMenu,
+  draftFromMenu,
+  emptyMenuDraft,
+  isCustomMenuId,
+  listCustomMenus,
+  saveCustomMenu,
+  type MenuDraft,
+} from '@/lib/nutrition/customMenus'
+import { useAuthStore } from '@/stores/authStore'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -45,10 +58,67 @@ export function NutritionSeasonalMenusPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [useMenu, setUseMenu] = useState<SeasonalMenuTemplate | null>(null)
   const navigate = useAppNavigate()
+  const { user } = useAuthStore()
+  // v2: menús propios del profesional, además de los que trae la app.
+  const [customMenus, setCustomMenus] = useState<SeasonalMenuTemplate[]>([])
+  const [customAvailable, setCustomAvailable] = useState(true)
+  const [editing, setEditing] = useState<MenuDraft | null>(null)
+  const [savingMenu, setSavingMenu] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<SeasonalMenuTemplate | null>(null)
+
+  useEffect(() => {
+    if (!IS_V2 || !user) return
+    let cancelled = false
+    void listCustomMenus(user.id).then(({ menus, available }) => {
+      if (cancelled) return
+      setCustomMenus(menus)
+      setCustomAvailable(available)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const allMenus = useMemo(() => [...customMenus, ...SEASONAL_MENU_TEMPLATES], [customMenus])
+
+  function startEditing(draft: MenuDraft) {
+    if (!customAvailable) {
+      toast.error(CUSTOM_MENUS_SQL_HINT)
+      return
+    }
+    setOpenId(null)
+    setEditing(draft)
+  }
+
+  async function saveMenu(menu: Omit<SeasonalMenuTemplate, 'id'> & { id?: string }) {
+    if (!user) return
+    setSavingMenu(true)
+    const { menu: saved, error } = await saveCustomMenu(user.id, menu)
+    setSavingMenu(false)
+    if (!saved) {
+      toast.error(error ?? 'No se pudo guardar el menú')
+      return
+    }
+    setCustomMenus((prev) => [saved, ...prev.filter((m) => m.id !== saved.id)])
+    setEditing(null)
+    toast.success(menu.id ? 'Menú actualizado' : 'Menú guardado en tu biblioteca')
+  }
+
+  async function removeMenu(menu: SeasonalMenuTemplate) {
+    if (!user) return
+    const error = await deleteCustomMenu(user.id, menu.id)
+    if (error) {
+      toast.error(error)
+      return
+    }
+    setCustomMenus((prev) => prev.filter((m) => m.id !== menu.id))
+    setOpenId(null)
+    toast.success('Menú borrado')
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return SEASONAL_MENU_TEMPLATES.filter((m) => {
+    return allMenus.filter((m) => {
       if (season !== 'todas' && m.season !== season) return false
       if (pathology !== 'todas' && !m.pathologies.includes(pathology)) return false
       if (tolerance !== 'todas' && m.tolerance !== tolerance) return false
@@ -61,7 +131,7 @@ export function NutritionSeasonalMenusPage() {
       }
       return true
     })
-  }, [season, pathology, tolerance, search])
+  }, [allMenus, season, pathology, tolerance, search])
 
   const opened = useMemo(() => filtered.find((m) => m.id === openId) ?? null, [filtered, openId])
 
@@ -89,6 +159,7 @@ export function NutritionSeasonalMenusPage() {
         <NutritionLibraryTabs />
         {IS_V2 ? (
           <SeasonalMenusV2
+            all={allMenus}
             filtered={filtered}
             season={season}
             onSeason={setSeason}
@@ -103,6 +174,7 @@ export function NutritionSeasonalMenusPage() {
             onOpen={setOpenId}
             onCopy={copyToClipboard}
             onUse={setUseMenu}
+            onNew={() => startEditing(emptyMenuDraft())}
           />
         ) : (
           <>
@@ -273,8 +345,24 @@ export function NutritionSeasonalMenusPage() {
                   }
                 : undefined
             }
+            onEdit={IS_V2 ? (t) => startEditing(draftFromMenu(t, !isCustomMenuId(t.id))) : undefined}
+            onDelete={IS_V2 && isCustomMenuId(opened.id) ? setDeleteTarget : undefined}
           />
         ) : null}
+        <ConfirmDialog
+          open={deleteTarget != null}
+          requireConfirm
+          title="Borrar menú"
+          description={deleteTarget ? `«${deleteTarget.title}» se borra de tu biblioteca. Los planes que ya armaste con él no cambian.` : undefined}
+          confirmLabel="Borrar"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            const target = deleteTarget
+            setDeleteTarget(null)
+            if (target) void removeMenu(target)
+          }}
+        />
+        {IS_V2 ? <CustomMenuEditor initial={editing} saving={savingMenu} onClose={() => setEditing(null)} onSave={(m) => void saveMenu(m)} /> : null}
         {IS_V2 ? (
           <MenuPatientPicker
             menu={useMenu}
@@ -363,11 +451,16 @@ function MenuDetailModal({
   onClose,
   onCopy,
   onUse,
+  onEdit,
+  onDelete,
 }: {
   template: SeasonalMenuTemplate
   onClose: () => void
   onCopy: (m: SeasonalMenuTemplate) => void
   onUse?: (m: SeasonalMenuTemplate) => void
+  /** Editar un menú propio, o duplicar uno de la app para adaptarlo. */
+  onEdit?: (m: SeasonalMenuTemplate) => void
+  onDelete?: (m: SeasonalMenuTemplate) => void
 }) {
   return (
     <div
@@ -378,15 +471,25 @@ function MenuDetailModal({
         className="bg-surface-card w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-surface-border shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-surface-card/95 backdrop-blur-md border-b border-surface-border px-5 py-3.5 flex items-center justify-between gap-3">
+        <div className="sticky top-0 bg-surface-card/95 backdrop-blur-md border-b border-surface-border px-5 py-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="min-w-0">
             <p className="text-xs text-ink-muted">{SEASON_LABELS[template.season]}</p>
-            <h3 className="text-base font-semibold text-ink-primary truncate">{template.title}</h3>
+            <h3 className="text-base font-semibold text-ink-primary">{template.title}</h3>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             {onUse ? (
               <Button type="button" size="sm" onClick={() => onUse(template)}>
                 Usar con un paciente
+              </Button>
+            ) : null}
+            {onEdit ? (
+              <Button type="button" size="sm" variant="secondary" onClick={() => onEdit(template)}>
+                {isCustomMenuId(template.id) ? 'Editar' : 'Duplicar y editar'}
+              </Button>
+            ) : null}
+            {onDelete ? (
+              <Button type="button" size="sm" variant="ghost" onClick={() => onDelete(template)}>
+                Borrar
               </Button>
             ) : null}
             <Button type="button" size="sm" variant="secondary" icon={<Copy className="h-3.5 w-3.5" />} onClick={() => onCopy(template)}>
