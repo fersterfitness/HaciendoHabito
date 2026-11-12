@@ -15,6 +15,8 @@ import { formatDate, cn } from '@/lib/utils'
 import type { MenstrualCycle } from '@/types/database'
 import toast from 'react-hot-toast'
 import { Modal } from '@/components/ui/Modal'
+import { IS_V2 } from '@/lib/uiVersion'
+import { StatTile } from './studentDetail/StatTile'
 
 // ─── Hormone control points [day, 0-1 value] ─────────────────────────────────
 
@@ -224,7 +226,60 @@ export function CicloTab({ studentId }: { studentId: string }) {
     <div className="space-y-4">
 
       {/* Estado actual */}
-      {cycleInfo ? (
+      {cycleInfo && IS_V2 ? (
+        <>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <StatTile
+              label="Fase actual"
+              value={
+                <span className="flex items-center gap-2 text-xl">
+                  {cycleInfo.phase !== 'nuevo_ciclo' ? (
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLORS[cycleInfo.phase] }} aria-hidden />
+                  ) : null}
+                  {PHASE_META[cycleInfo.phase].label}
+                </span>
+              }
+            />
+            <StatTile
+              label="Día del ciclo"
+              value={Math.max(cycleInfo.dayInCycle, 1)}
+              unit={`de ${cycleInfo.cycleLen}`}
+              hint={cycleInfo.dayInCycle > cycleInfo.cycleLen ? 'Pasó el largo estimado' : `Largo promedio: ${avgCycleLen} días`}
+            />
+            <StatTile
+              label="Próxima ovulación"
+              value={cycleInfo.daysToOv > 0 ? `en ${cycleInfo.daysToOv}` : cycleInfo.daysToOv === 0 ? 'Hoy' : 'Pasó'}
+              unit={cycleInfo.daysToOv > 0 ? (cycleInfo.daysToOv === 1 ? 'día' : 'días') : undefined}
+              hint="Estimada al día 14"
+            />
+            <StatTile
+              label="Próximo período"
+              value={cycleInfo.daysToNext > 0 ? `en ${cycleInfo.daysToNext}` : 'Hoy o pasó'}
+              unit={cycleInfo.daysToNext > 0 ? (cycleInfo.daysToNext === 1 ? 'día' : 'días') : undefined}
+              hint={formatDate(cycleInfo.nextPeriod)}
+            />
+          </div>
+
+          <div className="rounded-xl bg-surface-elevated/60 px-4 py-3">
+            <p className="text-sm text-ink-primary">{PHASE_META[cycleInfo.phase].desc}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+              {activeRoutine
+                ? (() => {
+                    const w = approxRoutineWeekHint(activeRoutine)
+                    return w
+                      ? formatRoutineCycleCoachLine(cycleInfo.phase, activeRoutine.name, w)
+                      : `Hay una rutina activa («${activeRoutine.name}»), pero hoy queda fuera de sus fechas y no se puede estimar la semana.`
+                  })()
+                : 'Sin rutina activa: para cruzar el ciclo con la semana de trabajo, activá una rutina con fechas.'}
+            </p>
+          </div>
+
+          <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
+            <CycleGraph dayInCycle={cycleInfo.dayInCycle} cycleLen={cycleInfo.cycleLen} isDark={theme === 'dark'} />
+            <CycleWheel dayInCycle={cycleInfo.dayInCycle} cycleLen={cycleInfo.cycleLen} isDark={theme === 'dark'} />
+          </div>
+        </>
+      ) : cycleInfo ? (
         <>
           {/* Fase actual */}
           <div className="border-b border-surface-border/60 pb-5 ">
@@ -291,11 +346,11 @@ export function CicloTab({ studentId }: { studentId: string }) {
 
       {/* Registrar nuevo ciclo */}
       <section>
-        <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 pb-3 ">
+        <div className={cn('flex items-center justify-between gap-3', IS_V2 ? 'pb-1' : 'border-b border-surface-border/50 pb-3')}>
           <h3 className="text-sm font-semibold text-ink-primary ">Historial de ciclos</h3>
           <Button
             size="sm"
-            variant="gradientSecondary"
+            variant={IS_V2 ? undefined : 'gradientSecondary'}
             icon={<Plus className="h-3.5 w-3.5" />}
             onClick={() => setShowForm(true)}
           >
@@ -311,6 +366,29 @@ export function CicloTab({ studentId }: { studentId: string }) {
               const end = new Date(c.cycle_start_date + 'T00:00:00')
               end.setDate(end.getDate() + c.cycle_length - 1)
               return (
+                IS_V2 ? (
+                <li key={c.id} className="group flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
+                  <span className="w-20 shrink-0 text-sm font-semibold tabular-nums text-ink-primary">{formatDate(c.cycle_start_date)}</span>
+                  <span className="shrink-0 rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-medium text-ink-secondary">
+                    {c.cycle_length} días
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">
+                    hasta {formatDate(end)}
+                    {c.notes ? ` · ${c.notes}` : ''}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
+                    type="button"
+                    aria-label="Borrar registro"
+                    onClick={() => deleteCycle(c.id)}
+                    disabled={deleting === c.id}
+                    className="-m-1.5 text-ink-muted"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+                ) : (
                 <li key={c.id} className="flex items-center gap-3 py-2.5">
                   <span className="h-2 w-2 shrink-0 bg-zinc-400 dark:bg-zinc-500" aria-hidden />
                   <div className="min-w-0 flex-1">
@@ -330,6 +408,7 @@ export function CicloTab({ studentId }: { studentId: string }) {
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </li>
+                )
               )
             })}
           </ul>
@@ -390,11 +469,13 @@ function CycleGraph({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
   const zLut = isDark ? 'rgba(14,165,233,0.09)' : 'rgba(56,189,248,0.16)' // celeste/azul
 
   return (
-    <div className="border-b border-surface-border/55 pb-4 ">
-      <p className="mb-4 text-3xs font-semibold text-ink-muted">Gráfico hormonal del ciclo</p>
+    <div className={IS_V2 ? 'min-w-0' : 'border-b border-surface-border/55 pb-4'}>
+      <p className={IS_V2 ? 'mb-3 text-sm font-semibold text-ink-primary' : 'mb-4 text-3xs font-semibold text-ink-muted'}>
+        {IS_V2 ? 'Hormonas a lo largo del ciclo' : 'Gráfico hormonal del ciclo'}
+      </p>
 
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -28 }}>
+      <ResponsiveContainer width="100%" height={IS_V2 ? 260 : 200}>
+        <LineChart data={data} margin={{ top: IS_V2 ? 20 : 8, right: 8, bottom: 0, left: -28 }}>
 
           {/* Phase background zones */}
           <ReferenceArea x1={1} x2={menEnd} fill={zMen} label={{ value: 'Menstr.', position: 'insideTop', fontSize: 9, fill: zoneLabelColor, fontWeight: 600 }} />
@@ -475,9 +556,9 @@ function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
   const arrowAngle = (today - 0.5) * seg
 
   return (
-    <div className="border-b border-surface-border/55 pb-4 ">
-      <p className="mb-3 text-3xs font-semibold text-ink-muted">
-        Rueda del ciclo · seguimiento por día
+    <div className={IS_V2 ? 'min-w-0' : 'border-b border-surface-border/55 pb-4'}>
+      <p className={IS_V2 ? 'mb-3 text-sm font-semibold text-ink-primary' : 'mb-3 text-3xs font-semibold text-ink-muted'}>
+        {IS_V2 ? 'Día por día' : 'Rueda del ciclo · seguimiento por día'}
       </p>
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
@@ -528,7 +609,7 @@ function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
           </text>
         </svg>
 
-        <ul className="grid w-full max-w-[220px] grid-cols-2 gap-x-4 gap-y-2 sm:w-auto sm:grid-cols-1">
+        <ul className={cn('grid w-full grid-cols-2 gap-x-4 gap-y-2 sm:w-auto sm:grid-cols-1', IS_V2 ? 'max-w-xs' : 'max-w-[220px]')}>
           {(
             [
               ['menstruacion', 'Menstruación · 1–5'],
@@ -537,7 +618,7 @@ function CycleWheel({ dayInCycle, cycleLen, isDark }: { dayInCycle: number; cycl
               ['lutea', 'Lútea · 20+'],
             ] as const
           ).map(([k, label]) => (
-            <li key={k} className="flex items-center gap-2 text-2xs text-ink-secondary">
+            <li key={k} className="flex items-center gap-2 whitespace-nowrap text-2xs text-ink-secondary">
               <span className="h-2.5 w-2.5 rounded-sm" style={{ background: PHASE_COLORS[k] }} />
               {label}
             </li>

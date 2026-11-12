@@ -11,6 +11,8 @@ import toast from 'react-hot-toast'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { RM_PERCENTS } from './studentDetailShared'
 import { AddRmModal } from './AddRmModal'
+import { IS_V2 } from '@/lib/uiVersion'
+import { StatTile, StatusPill } from './StatTile'
 
 // ─── FuerzaTab ────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,8 @@ const RM_SERIES_COLORS = {
   dark: ['#3987e5', '#d95926', '#199e70', '#c98500'],
 }
 const RM_MAX_COMPARE = RM_SERIES_COLORS.light.length
+
+const fmtKg = (n: number) => Number(n.toFixed(2)).toLocaleString('es-AR')
 
 /** Mismo ejercicio aunque esté cargado dos veces en la biblioteca («Sentadilla con barra»). */
 function rmExerciseKey(r: StudentRmRecord): string {
@@ -113,17 +117,86 @@ export function FuerzaTab({
     return [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)))
   }, [compareSel, groups])
 
-  const calcGroup = groups.find((g) => g.key === calcKey)
+  // v2: la tabla de porcentajes arranca con el primer ejercicio, sin tener que elegir.
+  const calcGroup = groups.find((g) => g.key === calcKey) ?? (IS_V2 ? groups[0] : undefined)
   const calcRm = calcGroup?.history[0]?.rm_kg ?? null
   const calcWeight = calcRm != null ? Math.round(calcRm * (calcPercent / 100) * 10) / 10 : null
 
   const rmDue = rmTestWeeks != null && rmTestWeeks >= RM_TEST_EVERY_WEEKS
 
+  const v2Tiles = IS_V2 && groups.length > 0
+  const lastTest = v2Tiles
+    ? groups.map((g) => g.history[0]!).sort((a, b) => b.tested_at.localeCompare(a.tested_at))[0]!
+    : null
+  /** Ejercicio que más subió entre su primer test y el último. */
+  const bestGain = v2Tiles
+    ? groups
+        .filter((g) => g.history.length > 1)
+        .map((g) => ({ name: g.name, gain: g.history[0]!.rm_kg - g.history[g.history.length - 1]!.rm_kg }))
+        .sort((a, b) => b.gain - a.gain)[0]
+    : undefined
+  const markRead = async () => {
+    setMarkingRead(true)
+    await onRmTestRead()
+    setMarkingRead(false)
+  }
+
   return (
     <div className="space-y-5">
 
+      {v2Tiles && lastTest ? (
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <StatTile
+            label="Ejercicios testeados"
+            value={groups.length}
+            hint={`${records.length} ${records.length === 1 ? 'test cargado' : 'tests cargados'}`}
+          />
+          <StatTile
+            label="Último test"
+            value={formatDate(lastTest.tested_at, 'd MMM')}
+            hint={`${lastTest.exercise?.name ?? '—'} · ${fmtKg(lastTest.rm_kg)} kg`}
+          />
+          <StatTile
+            label="Mayor mejora"
+            value={bestGain && bestGain.gain > 0 ? `+${fmtKg(bestGain.gain)}` : '—'}
+            unit={bestGain && bestGain.gain > 0 ? 'kg' : undefined}
+            hint={bestGain && bestGain.gain > 0 ? `${bestGain.name}, desde su primer test` : 'Hace falta repetir un test'}
+          />
+          <StatTile
+            label="Próximo test"
+            value={rmTestWeeks == null ? '—' : rmDue ? undefined : rmTestWeeks}
+            unit={rmTestWeeks == null || rmDue ? undefined : `de ${RM_TEST_EVERY_WEEKS} semanas`}
+            hint={rmDue ? `${rmTestWeeks} semanas de rutina desde el último` : undefined}
+            action={
+              rmDue ? (
+                <Button type="button" variant="ghost" size="sm" className="-mr-2" loading={markingRead} onClick={() => void markRead()}>
+                  Leído
+                </Button>
+              ) : null
+            }
+          >
+            {rmDue ? (
+              <div className="order-none py-1">
+                <StatusPill ok={false}>Toca testear</StatusPill>
+              </div>
+            ) : rmTestWeeks != null ? (
+              <div
+                className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-border"
+                role="img"
+                aria-label={`${rmTestWeeks} de ${RM_TEST_EVERY_WEEKS} semanas para el próximo test`}
+              >
+                <div
+                  className="h-full rounded-full bg-status-ok"
+                  style={{ width: `${Math.min(100, Math.round((rmTestWeeks / RM_TEST_EVERY_WEEKS) * 100))}%` }}
+                />
+              </div>
+            ) : null}
+          </StatTile>
+        </div>
+      ) : null}
+
       {/* ── Aviso TESTEAR RM ── */}
-      {rmTestWeeks != null ? (
+      {v2Tiles ? null : rmTestWeeks != null ? (
         rmDue ? (
           <div className="flex flex-wrap items-center gap-3 rounded-xl hh-alert hh-alert-warning px-4 py-3">
             <Dumbbell className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
@@ -154,11 +227,12 @@ export function FuerzaTab({
         )
       ) : null}
 
+      <div className={v2Tiles ? 'grid gap-6 lg:grid-cols-2 lg:gap-8' : 'space-y-5'}>
       {/* ── Registros por ejercicio ── */}
-      <section>
-        <div className="flex items-center justify-between gap-3 border-b border-surface-border/50 pb-3 ">
+      <section className="min-w-0">
+        <div className={cn('flex items-center justify-between gap-3', IS_V2 ? 'pb-1' : 'border-b border-surface-border/50 pb-3')}>
           <h3 className="text-sm font-semibold text-ink-primary ">RM por ejercicio</h3>
-          <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
+          <Button variant={IS_V2 ? undefined : 'secondary'} size="sm" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowAddForm(true)}>
             Cargar RM
           </Button>
         </div>
@@ -201,11 +275,11 @@ export function FuerzaTab({
                       <span
                         className={cn(
                           'shrink-0 text-2xs font-semibold tabular-nums',
-                          delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : delta < 0 ? 'text-status-expired' : 'text-ink-muted',
+                          delta > 0 ? (IS_V2 ? 'text-status-ok-ink' : 'text-emerald-600 dark:text-emerald-400') : delta < 0 ? 'text-status-expired' : 'text-ink-muted',
                         )}
                         title={`Antes: ${prev.rm_kg} kg (${formatDate(prev.tested_at)})`}
                       >
-                        {delta > 0 ? `▲ +${delta} kg` : delta < 0 ? `▼ ${delta} kg` : '='}
+                        {delta > 0 ? `▲ +${IS_V2 ? fmtKg(delta) : delta} kg` : delta < 0 ? `▼ ${IS_V2 ? `−${fmtKg(-delta)}` : delta} kg` : '='}
                       </span>
                     ) : null}
                     <span className="shrink-0 text-base font-bold tabular-nums text-ink-primary ">{latest.rm_kg} kg</span>
@@ -220,7 +294,12 @@ export function FuerzaTab({
                   </div>
 
                   {isOpen ? (
-                    <ul className="mb-2 divide-y divide-surface-border/40 rounded-lg border border-surface-border bg-surface-elevated/30">
+                    <ul
+                      className={cn(
+                        'mb-2 divide-y divide-surface-border/40',
+                        IS_V2 ? 'rounded-xl bg-surface-elevated/60' : 'rounded-lg border border-surface-border bg-surface-elevated/30',
+                      )}
+                    >
                       {g.history.map((h, i) => {
                         const older = g.history[i + 1]
                         const d = older ? Math.round((h.rm_kg - older.rm_kg) * 10) / 10 : null
@@ -233,7 +312,7 @@ export function FuerzaTab({
                               {h.notes ? <p className="truncate text-3xs text-ink-muted">{h.notes}</p> : null}
                             </div>
                             {d != null && d !== 0 ? (
-                              <span className={cn('text-3xs tabular-nums', d > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-status-expired')}>
+                              <span className={cn('text-3xs tabular-nums', d > 0 ? (IS_V2 ? 'text-status-ok-ink' : 'text-emerald-600 dark:text-emerald-400') : 'text-status-expired')}>
                                 {d > 0 ? `+${d}` : d}
                               </span>
                             ) : null}
@@ -261,7 +340,7 @@ export function FuerzaTab({
 
       {/* ── Progreso comparado ── */}
       {groups.length > 0 ? (
-        <section className="border-t border-surface-border/55 pt-4 ">
+        <section className={cn('min-w-0', !IS_V2 && 'border-t border-surface-border/55 pt-4')}>
           <div className="mb-1 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-ink-muted" aria-hidden />
             <h3 className="text-sm font-semibold text-ink-primary ">Progreso de RM</h3>
@@ -281,7 +360,7 @@ export function FuerzaTab({
                   </span>
                 ))}
               </div>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={IS_V2 ? 240 : 200}>
                 <LineChart data={compareData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                   <CartesianGrid vertical={false} stroke="rgb(var(--surface-border))" strokeOpacity={0.6} />
                   <XAxis
@@ -338,9 +417,49 @@ export function FuerzaTab({
           )}
         </section>
       ) : null}
+      </div>
 
       {/* ── Calculadora de % ── */}
-      {groups.length > 0 ? (
+      {groups.length > 0 && IS_V2 ? (
+        <section>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pb-2.5">
+            <div>
+              <h3 className="text-sm font-semibold text-ink-primary">Cargas por porcentaje</h3>
+              <p className="text-xs text-ink-muted">Cuánto es cada porcentaje del último RM.</p>
+            </div>
+            <select
+              aria-label="Ejercicio"
+              className={cn(controlSelectClassName, 'w-full sm:w-64')}
+              value={calcGroup?.key ?? ''}
+              onChange={(e) => setCalcKey(e.target.value)}
+            >
+              {groups.map((g) => (
+                <option key={g.key} value={g.key}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {calcRm != null ? (
+            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+              {RM_PERCENTS.map((pct) => (
+                <li
+                  key={pct}
+                  className={cn(
+                    'flex flex-col rounded-xl px-3 py-2',
+                    pct === 100 ? 'bg-ink-primary text-surface-base' : 'bg-surface-elevated/60',
+                  )}
+                >
+                  <span className={cn('text-xs', pct === 100 ? 'opacity-70' : 'text-ink-muted')}>{pct === 100 ? '1RM' : `${pct}%`}</span>
+                  <span className={cn('text-sm font-semibold tabular-nums', pct === 100 ? undefined : 'text-ink-primary')}>
+                    {fmtKg(Math.round(calcRm * (pct / 100) * 10) / 10)} kg
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : groups.length > 0 ? (
         <section className="border-t border-surface-border/55 pt-4 ">
           <div className="mb-3 flex items-center gap-2">
             <Zap className="h-4 w-4 text-ink-muted" aria-hidden />
