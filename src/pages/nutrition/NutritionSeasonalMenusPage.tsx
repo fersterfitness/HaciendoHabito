@@ -5,6 +5,7 @@ import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { Header } from '@/components/layout/Header'
 import { IS_V2 } from '@/lib/uiVersion'
 import { AiMarkdown } from '@/components/nutrition/AnthropometryAiMarkdown'
+import { SeasonalMenusV2 } from '@/components/nutrition/SeasonalMenusV2'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -83,6 +84,24 @@ export function NutritionSeasonalMenusPage() {
       <Header title={IS_V2 ? 'Alimentos y menús' : 'Biblioteca'} />
       <DirectoryPageShell className={nutritionShellClass}>
         <NutritionLibraryTabs />
+        {IS_V2 ? (
+          <SeasonalMenusV2
+            filtered={filtered}
+            season={season}
+            onSeason={setSeason}
+            pathology={pathology}
+            onPathology={setPathology}
+            tolerance={tolerance}
+            onTolerance={setTolerance}
+            search={search}
+            onSearch={setSearch}
+            hasActiveFilters={hasActiveFilters}
+            onReset={resetFilters}
+            onOpen={setOpenId}
+            onCopy={copyToClipboard}
+          />
+        ) : (
+          <>
         <Card>
           <CardTitle className="mb-2">Biblioteca de menús</CardTitle>
           <p className="text-sm text-ink-secondary leading-relaxed">
@@ -233,6 +252,8 @@ export function NutritionSeasonalMenusPage() {
               </Card>
             ))}
           </div>
+        )}
+          </>
         )}
 
         {opened ? (
