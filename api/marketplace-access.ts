@@ -40,9 +40,9 @@ async function inviteLink(admin: SupabaseClient, email: string, origin: string) 
   return { link: `${origin}/bienvenida#token=${encodeURIComponent(token)}`, userId: data.user?.id ?? null }
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') return fail(405, 'metodo', 'Método no permitido.')
-
+// En el runtime de Node de Vercel, el export por defecto recibe (req, res) de Node y devolver una
+// Response deja el pedido colgado. Los exports con nombre de método sí usan Request/Response.
+export async function POST(request: Request): Promise<Response> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
