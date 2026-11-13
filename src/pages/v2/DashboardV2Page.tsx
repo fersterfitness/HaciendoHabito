@@ -56,6 +56,7 @@ import { MenuPatientPicker } from '@/components/nutrition/SeasonalMenusV2'
 import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
+import { UpcomingConsultCardV2 } from '@/components/dashboard/UpcomingConsultCardV2'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
@@ -818,7 +819,11 @@ export function DashboardV2Page() {
       />
     ) : isNutri && user && !nutriQ.isPending ? (
       // Sin más consultas hoy: cómo cerró el día (si hubo agenda).
-      <DaySummaryCardV2 ownerId={user.id} tomorrowToRemind={nutri.tomorrow.length} onGo={(href) => navigate(href)} />
+      // Y el próximo turno de la agenda, para que el Inicio no quede vacío.
+      <div className="space-y-4">
+        <DaySummaryCardV2 ownerId={user.id} tomorrowToRemind={nutri.tomorrow.length} onGo={(href) => navigate(href)} />
+        <UpcomingConsultCardV2 ownerId={user.id} onGo={(href) => navigate(href)} />
+      </div>
     ) : null
 
   return (
@@ -1432,6 +1437,14 @@ export function DashboardV2Page() {
                 ) : null}
               </div>
             ) : null}
+
+            {/* Compu, nutricionista: los números del mes a la vista, debajo de lo de hoy. */}
+            {isNutri ? (
+              <div className="mt-8 hidden lg:block">
+                <SectionTitleV2>Este mes</SectionTitleV2>
+                {monthStripV2}
+              </div>
+            ) : null}
           </section>
 
           <aside className="space-y-4 max-lg:contents">
@@ -1512,11 +1525,13 @@ export function DashboardV2Page() {
               <SuggestedMenuCardV2 onUse={setMenuToUse} onSeeAll={() => navigate('/nutrition/menus')} />
             ) : null}
 
-            {/* Compu: los números del mes debajo de los turnos. */}
-            <div className="hidden lg:block">
-              <SectionTitleV2>Este mes</SectionTitleV2>
-              {monthStripV2}
-            </div>
+            {/* Compu: los números del mes debajo de los turnos (la nutricionista los tiene a la izquierda). */}
+            {isNutri ? null : (
+              <div className="hidden lg:block">
+                <SectionTitleV2>Este mes</SectionTitleV2>
+                {monthStripV2}
+              </div>
+            )}
             {birthdays.length ? (
             <CardV2 title="Cumpleaños" className="max-lg:order-last">
               {(
