@@ -7,6 +7,7 @@ import { SegmentedV2 } from '@/components/v2/ui'
 import { ROUTINE_STATUSES } from '@/lib/constants'
 import { cn, formatDate } from '@/lib/utils'
 import { exerciseDetails, groupExercises, setsRepsText, type SharedRoutineExercise } from '@/lib/routine/sharedRoutine'
+import { fetchRoutineExerciseLogs, type ExerciseLogsByExercise, type ExerciseSetLog } from '@/lib/routine/exerciseLogs'
 
 type RoutineOption = { id: string; name: string; status: string; start_date: string | null }
 
@@ -57,6 +58,8 @@ export function RoutineComparePane({
   const [blocks, setBlocks] = useState<CompareBlock[] | null>(null)
   const [week, setWeek] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  // Lo que el alumno anotó en esa rutina (kilos y repeticiones por serie), para ver de dónde viene.
+  const [logs, setLogs] = useState<ExerciseLogsByExercise>(new Map())
 
   useEffect(() => {
     let alive = true
@@ -86,6 +89,10 @@ export function RoutineComparePane({
     if (!selected) return
     let alive = true
     setBlocks(null)
+    setLogs(new Map())
+    void fetchRoutineExerciseLogs(selected).then((m) => {
+      if (alive) setLogs(m)
+    })
     void (async () => {
       const { data, error: err } = await supabase
         .from('routine_blocks')
@@ -189,7 +196,7 @@ export function RoutineComparePane({
                       <li key={gi} className={cn(g.circuit && 'border-l-2 border-ink-muted/40')}>
                         {g.circuit ? <p className="px-3 pt-2 text-3xs font-medium text-ink-muted">Circuito</p> : null}
                         {g.items.map((ex) => (
-                          <CompareExercise key={ex.id} ex={ex} />
+                          <CompareExercise key={ex.id} ex={ex} logs={logs.get(ex.id) ?? []} />
                         ))}
                       </li>
                     ))}
@@ -204,9 +211,22 @@ export function RoutineComparePane({
   )
 }
 
-function CompareExercise({ ex }: { ex: SharedRoutineExercise }) {
+const fmtKg = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',')
+
+/** «80 kg × 10 · 90 kg × 10», o cuántas series marcó si no anotó kilos ni repeticiones. */
+function studentLogText(logs: ExerciseSetLog[]): string | null {
+  const perSet = logs
+    .filter((l) => l.weight_kg != null || l.reps != null)
+    .map((l) => [l.weight_kg != null ? `${fmtKg(l.weight_kg)} kg` : '', l.reps != null ? `× ${l.reps}` : ''].filter(Boolean).join(' '))
+  if (perSet.length) return perSet.join(' · ')
+  const done = logs.filter((l) => l.completed).length
+  return done ? `${done} ${done === 1 ? 'serie hecha' : 'series hechas'}, sin kilos anotados` : null
+}
+
+function CompareExercise({ ex, logs }: { ex: SharedRoutineExercise; logs: ExerciseSetLog[] }) {
   const main = setsRepsText(ex)
   const { chips, seriesPlan, notes } = exerciseDetails(ex)
+  const logged = studentLogText(logs)
   return (
     <div className="px-3 py-2">
       <div className="flex items-baseline justify-between gap-3">
@@ -216,6 +236,11 @@ function CompareExercise({ ex }: { ex: SharedRoutineExercise }) {
       {chips.length > 0 ? <p className="mt-0.5 text-2xs text-ink-muted">{chips.join(' · ')}</p> : null}
       {seriesPlan ? <p className="mt-0.5 text-2xs text-ink-muted">{seriesPlan}</p> : null}
       {notes ? <p className="mt-0.5 line-clamp-2 text-2xs text-ink-muted">{notes}</p> : null}
+      {logged ? (
+        <p className="mt-1.5 rounded-lg bg-status-ok/10 px-2 py-1 text-2xs text-ink-secondary">
+          <span className="font-semibold text-status-ok-ink">Anotó el alumno</span> <span className="tabular-nums text-ink-primary">{logged}</span>
+        </p>
+      ) : null}
     </div>
   )
 }

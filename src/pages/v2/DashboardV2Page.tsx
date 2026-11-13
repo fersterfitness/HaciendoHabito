@@ -58,7 +58,6 @@ import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { UpcomingConsultCardV2 } from '@/components/dashboard/UpcomingConsultCardV2'
 import { recordMenuUse } from '@/lib/nutrition/menuSuggestions'
-import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
 import { useNavCounts } from '@/stores/navCounts'
@@ -1638,7 +1637,6 @@ export function DashboardV2Page() {
         {/* Lo que el Inicio anterior también mostraba y se resuelve desde acá. */}
         <div className="mt-10 space-y-4">
           {handlesMoney ? <PriceIncreaseNotice /> : null}
-          {handlesMoney ? <RoutinePaymentsPanel compact /> : null}
           {role === 'admin' || role === 'trainer' ? <WebIntakeAccessRequestsPanel variant="dashboard" /> : null}
           <button
             type="button"

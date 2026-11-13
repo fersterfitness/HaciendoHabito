@@ -1039,6 +1039,8 @@ export function RoutineDetailPage() {
             const tgtEx = targetSorted[tp + k]
             const patch = prescriptionPatchFrom(srcEx, tgtEx, {
               copyRepsScheme: isMultiarticularExercise(srcEx.exercise),
+              // Los kilos por porcentaje se recalculan con el 1RM del ejercicio de destino.
+              targetRmKg: resolveRmKgForExercise(rmLookup, tgtEx.exercise_id, tgtEx.exercise?.name) ?? null,
             })
             if (seg.kind === 'circuit' && newGroupId != null) {
               patch.is_superset = true

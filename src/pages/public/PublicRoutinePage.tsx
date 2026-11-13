@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -503,13 +503,27 @@ export function PublicRoutinePage() {
                     g.circuit ? (
                       <div key={g.items[0]!.id} className="hhr-card hhr-circuit">
                         <p className="hhr-circuit-label">
-                          <Link2 size={15} strokeWidth={2} aria-hidden />
-                          Circuito
+                          <b className="hhr-circuit-tag">
+                            <Link2 size={14} strokeWidth={2.2} aria-hidden />
+                            Circuito
+                          </b>
                           <span>
                             {g.items.length} ejercicios seguidos, sin pausa entre ellos
                           </span>
                         </p>
-                        <div className="hhr-circuit-list">{g.items.map((ex) => card(ex, true))}</div>
+                        <div className="hhr-circuit-list">
+                          {g.items.map((ex, i) => (
+                            <Fragment key={ex.id}>
+                              {i > 0 ? (
+                                <span className="hhr-circuit-plus" aria-hidden>
+                                  +
+                                </span>
+                              ) : null}
+                              {card(ex, true)}
+                            </Fragment>
+                          ))}
+                        </div>
+                        <p className="hhr-circuit-foot">Descansá recién cuando termines los {g.items.length}.</p>
                       </div>
                     ) : (
                       card(g.items[0]!)

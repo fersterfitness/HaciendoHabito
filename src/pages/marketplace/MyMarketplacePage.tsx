@@ -74,6 +74,18 @@ const errorMessage = (err: unknown) => {
   if (e?.code === '23505') return 'Esa dirección ya la usa otro profesional. Probá con otra.'
   if (e?.code === '42P01' || e?.code === 'PGRST205') return 'Falta correr la migración del marketplace en Supabase.'
   if (e?.code === '23502' || e?.code === '42501' || e?.code === '42703') return `Falta correr ${MIGRATION} en Supabase.`
+  if (e?.code === '23514') {
+    const m = e.message ?? ''
+    if (/especialidades_len/.test(m)) return 'Cada especialidad puede tener hasta 40 letras. Acortá la más larga o separalas con comas.'
+    if (/especialidades_count/.test(m)) return 'Se pueden cargar hasta 8 especialidades.'
+    if (/deportes_len/.test(m)) return 'Cada deporte puede tener hasta 40 letras.'
+    if (/deportes_count/.test(m)) return 'Se pueden elegir hasta 12 deportes.'
+    if (/bio_len/.test(m)) return 'La presentación puede tener hasta 1.200 letras.'
+    if (/ubicacion_len/.test(m)) return 'La ubicación puede tener hasta 80 letras.'
+    if (/whatsapp_len/.test(m)) return 'El WhatsApp es demasiado largo: dejá solo el número.'
+    if (/nombre_len/.test(m)) return 'El nombre tiene que tener entre 2 y 80 letras.'
+    if (/slug_format/.test(m)) return 'La dirección solo puede tener letras, números y guiones (3 a 60).'
+  }
   if (e?.message && /imagen|JPG|MB/.test(e.message)) return e.message
   if (e?.message && /bucket/i.test(e.message)) return `Falta correr ${MIGRATION} en Supabase (crea el lugar para las fotos).`
   return 'No se pudo guardar. Revisá los datos y probá de nuevo.'
@@ -153,7 +165,20 @@ function ProfileForm({
   const [restored] = useState(() => readDraft(id))
   const [d, setD] = useState<ProfileDraft>(() => restored ?? initialDraft(professional))
   const [dirty, setDirty] = useState(Boolean(restored))
-  const [errors, setErrors] = useState<Partial<Record<'nombre' | 'slug' | 'modalidad' | 'email', string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<'nombre' | 'slug' | 'modalidad' | 'email' | 'especialidades' | 'bio' | 'ubicacion' | 'whatsapp', string>>>({})
+  const [newSport, setNewSport] = useState('')
+  // Deportes que no están en la lista: los agrega el profesional y se guardan tal cual.
+  const customSports = d.deportes.filter((v) => !MARKETPLACE_SPORTS.some((s) => s.value === v))
+  function addSport() {
+    const label = newSport.trim().replace(/\s+/g, ' ').slice(0, 40)
+    if (!label) return
+    const known = MARKETPLACE_SPORTS.find((s) => s.label.toLowerCase() === label.toLowerCase())
+    const value = known?.value ?? label
+    setNewSport('')
+    if (d.deportes.some((v) => v.toLowerCase() === value.toLowerCase())) return
+    if (d.deportes.length >= 12) return void toast.error('Se pueden elegir hasta 12 deportes.')
+    set({ deportes: [...d.deportes, value] })
+  }
   const [uploading, setUploading] = useState(false)
   const blocker = grantBlocker(ctx, d.rol)
   const wantsAccount = !professional && d.cuenta === 'propia' && !blocker
@@ -197,7 +222,16 @@ function ProfileForm({
     if (cleanSlug.length < 3) next.slug = 'La dirección necesita al menos 3 letras.'
     if (d.modalidad.length === 0) next.modalidad = 'Elegí al menos una modalidad.'
     if (wantsAccount && !isEmail(d.email)) next.email = 'Escribí un correo válido: con ese correo va a entrar.'
+    // Los mismos límites que tiene la base: se avisan acá, en el campo, en vez de fallar al guardar.
+    const specialties = d.especialidades.split(',').map((x) => x.trim()).filter(Boolean)
+    const tooLong = specialties.find((x) => x.length > 40)
+    if (tooLong) next.especialidades = `«${tooLong.slice(0, 30)}…» tiene ${tooLong.length} letras y el máximo es 40. Acortala o separala con comas.`
+    else if (specialties.length > 8) next.especialidades = `Cargaste ${specialties.length} especialidades y el máximo es 8.`
+    if (d.bio.trim().length > 1200) next.bio = 'La presentación puede tener hasta 1.200 letras.'
+    if (d.ubicacion.trim().length > 80) next.ubicacion = 'La ubicación puede tener hasta 80 letras.'
+    if (d.whatsapp.trim().length > 30) next.whatsapp = 'Dejá solo el número, con código de país.'
     setErrors(next)
+    if (Object.keys(next).length) toast.error('Hay datos para corregir: están marcados en el formulario.')
     if (Object.keys(next).length) return
     const inviteEmail = wantsAccount ? d.email.trim() : null
 
@@ -375,13 +409,39 @@ function ProfileForm({
                 </Button>
               )
             })}
+            {customSports.map((v) => (
+              <Button key={v} variant="primary" size="sm" aria-pressed title="Quitar" onClick={() => set({ deportes: d.deportes.filter((x) => x !== v) })}>
+                {v} ×
+              </Button>
+            ))}
+          </div>
+          <div className="mt-3 flex max-w-sm items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                label="¿No está en la lista?"
+                placeholder="Por ejemplo: Handball"
+                value={newSport}
+                maxLength={40}
+                onChange={(e) => setNewSport(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addSport()
+                  }
+                }}
+              />
+            </div>
+            <Button variant="secondary" disabled={!newSport.trim()} onClick={addSport}>
+              Agregar
+            </Button>
           </div>
         </fieldset>
         <Input
           label="Especialidades"
           value={d.especialidades}
           onChange={(e) => set({ especialidades: e.target.value })}
-          hint="Separadas por coma. La primera se muestra en su tarjeta."
+          error={errors.especialidades}
+          hint="Separadas por coma, hasta 8 y de hasta 40 letras cada una. La primera se muestra en su tarjeta."
         />
       </FormSection>
 

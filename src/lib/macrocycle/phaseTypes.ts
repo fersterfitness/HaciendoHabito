@@ -13,13 +13,13 @@ export const DEFAULT_PHASE_TYPES: PhaseType[] = [
   { id: 'acumulacion', label: 'Acumulación', color: '#a78bfa' },
   { id: 'intensificacion', label: 'Intensificación', color: '#fb923c' },
   { id: 'peak', label: 'Peak', color: '#f43f5e' },
+  { id: 'descarga', label: 'Descarga', color: '#34d399' },
 ]
 
 /** Fases de la lista anterior: los bloques que ya las tienen siguen mostrando nombre y color. */
 const LEGACY_PHASE_TYPES: PhaseType[] = [
   { id: 'desarrollo', label: 'Desarrollo', color: '#a78bfa' },
   { id: 'realizacion', label: 'Realización', color: '#f43f5e' },
-  { id: 'descarga', label: 'Descarga', color: '#34d399' },
   { id: 'transicion', label: 'Transición', color: '#94a3b8' },
 ]
 
