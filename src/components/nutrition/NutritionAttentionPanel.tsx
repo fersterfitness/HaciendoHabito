@@ -9,11 +9,12 @@ import { ATTENTION_GROUPS, buildAttention, type AttentionKind } from '@/lib/nutr
 import type { Income } from '@/types/database'
 import type { NutritionFollowupRow } from './NutritionPatientDirectory'
 
-const DOT: Record<AttentionKind, string> = {
-  hoy: 'bg-ink-primary',
-  sintomas: 'bg-status-expired',
-  pago: 'bg-status-pending',
-  control: 'bg-ink-muted/60',
+/** Color del casillero de cada motivo. */
+const TILE: Record<AttentionKind, string> = {
+  hoy: 'bg-pastel-mint text-pastel-mint-ink',
+  sintomas: 'bg-pastel-rose text-pastel-rose-ink',
+  pago: 'bg-pastel-butter text-pastel-butter-ink',
+  control: 'bg-pastel-lavender text-pastel-lavender-ink',
 }
 
 const COLLAPSE_KEY = 'hh-attention-collapsed'
@@ -126,16 +127,15 @@ export function NutritionAttentionPanel({
         <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-ink-muted transition-transform', !collapsed && 'rotate-180')} aria-hidden />
       </button>
       {collapsed ? null : (
-        <div className="grid gap-x-6 gap-y-5 border-t border-surface-border/70 px-4 pb-4 pt-4 sm:grid-cols-2 sm:px-5 xl:grid-cols-4">
+        <div className="grid gap-x-4 gap-y-5 border-t border-surface-border/70 px-4 pb-4 pt-4 sm:grid-cols-2 sm:px-5 xl:grid-cols-4">
           {groups.map((g) => {
             const open = expanded[g.kind]
             const shown = open ? g.items : g.items.slice(0, PER_GROUP)
             return (
               <div key={g.kind} className="min-w-0">
-                <p className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-ink-secondary">
-                  <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT[g.kind])} aria-hidden />
-                  {g.title}
-                  <span className="font-normal tabular-nums text-ink-muted">{g.items.length}</span>
+                <p className={cn('hh-pastel mb-2 flex items-baseline gap-2 rounded-xl px-3.5 py-2.5', TILE[g.kind])}>
+                  <span className="text-2xl font-semibold leading-none tabular-nums tracking-tight">{g.items.length}</span>
+                  <span className="min-w-0 text-xs font-medium leading-tight">{g.title}</span>
                 </p>
                 <ul>
                   {shown.map((i) => (
@@ -143,7 +143,7 @@ export function NutritionAttentionPanel({
                       <button
                         type="button"
                         onClick={() => onOpen(i.id)}
-                        className="-mx-2 flex w-[calc(100%+1rem)] min-w-0 flex-col rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-surface-elevated"
+                        className="flex w-full min-w-0 flex-col rounded-lg px-3.5 py-1.5 text-left transition-colors hover:bg-surface-elevated"
                       >
                         <span className="truncate text-[13.5px] font-medium text-ink-primary">{i.full_name}</span>
                         <span className="truncate text-[12px] text-ink-muted">{[i.detail, ...i.extra].join(' · ')}</span>

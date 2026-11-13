@@ -15,6 +15,8 @@ import {
   Users,
   X,
   type LucideIcon,
+  LayoutGrid,
+  List,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { labelForSelectedWebPlanSlug } from '@/lib/selectedWebPlanLabel'
@@ -31,6 +33,7 @@ import { NewStudentModal } from '@/components/students/NewStudentModal'
 import { StudentDeletionHistoryPanel } from '@/components/students/StudentDeletionHistoryPanel'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { NutritionPatientAreaHeader } from '@/components/nutrition/NutritionPatientAreaHeader'
+import { NutritionPatientGridV2 } from '@/components/nutrition/NutritionPatientGridV2'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import {
   formatNextConsult,
@@ -125,6 +128,22 @@ function PatientsMoreMenu({ onMenus, showDeleted, onToggleDeleted }: { onMenus: 
 
 export function NutritionPage() {
   const [showDeletedV2, setShowDeletedV2] = useState(false)
+  // v2: tarjetas o tabla; se recuerda en este navegador.
+  const [patientsView, setPatientsView] = useState<'cards' | 'table'>(() => {
+    try {
+      return localStorage.getItem('hh-patients-view') === 'table' ? 'table' : 'cards'
+    } catch {
+      return 'cards'
+    }
+  })
+  function changePatientsView(next: 'cards' | 'table') {
+    setPatientsView(next)
+    try {
+      localStorage.setItem('hh-patients-view', next)
+    } catch {
+      /* sin almacenamiento: vale solo para esta visita */
+    }
+  }
   const navigate = useAppNavigate()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
@@ -364,7 +383,8 @@ export function NutritionPage() {
 
         {IS_V2 && user && !loading ? <NutritionAttentionPanel ownerId={user.id} rows={rows} onOpen={setSelectedPatientId} /> : null}
 
-        <div className={IS_V2 ? '-mx-4 flex gap-1.5 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:flex-wrap sm:px-0' : 'flex flex-wrap gap-1.5'}>
+        <div className={IS_V2 ? 'flex items-center justify-between gap-3' : undefined}>
+        <div className={IS_V2 ? '-mx-4 flex min-w-0 gap-1.5 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:flex-wrap sm:px-0' : 'flex flex-wrap gap-1.5'}>
           {PATIENT_FILTERS.map((f) => (
             <FilterChip
               key={f.id}
@@ -375,6 +395,17 @@ export function NutritionPage() {
               onClick={() => setActiveFilter(f.id)}
             />
           ))}
+        </div>
+        {IS_V2 ? (
+          <div className="hidden shrink-0 gap-1 sm:inline-flex" role="group" aria-label="Vista">
+            <Button type="button" size="iconSm" variant={patientsView === 'cards' ? 'secondary' : 'ghost'} aria-label="Ver en tarjetas" aria-pressed={patientsView === 'cards'} onClick={() => changePatientsView('cards')}>
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button type="button" size="iconSm" variant={patientsView === 'table' ? 'secondary' : 'ghost'} aria-label="Ver en tabla" aria-pressed={patientsView === 'table'} onClick={() => changePatientsView('table')}>
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : null}
         </div>
 
         <StudentDeletionHistoryPanel
@@ -420,7 +451,11 @@ export function NutritionPage() {
                 Pacientes <span className="font-normal text-ink-muted">· {filteredRows.length}</span>
               </h2>
             </div>
-            {IS_V2 ? (
+            {IS_V2 && patientsView === 'cards' ? (
+              <div className="max-sm:hidden">
+                <NutritionPatientGridV2 rows={filteredRows} selectedPatientId={selectedPatientId} onOpen={setSelectedPatientId} onAvatarChange={handleAvatarChange} />
+              </div>
+            ) : IS_V2 ? (
               <NutritionPatientTable
                 className="max-sm:hidden"
                 rows={filteredRows}
