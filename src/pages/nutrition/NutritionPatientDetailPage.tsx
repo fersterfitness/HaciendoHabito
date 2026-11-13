@@ -851,7 +851,11 @@ export function NutritionPatientDetailView({
         <div
           className={cn(
             variant === 'page'
-              ? 'sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm'
+              ? IS_V2
+                ? // Pegada justo debajo de la barra de arriba (56 px en el celu, 52 en la compu) y opaca:
+                  // si queda un hueco o se transparenta, el contenido se ve pasar por detrás.
+                  'sticky top-14 z-20 bg-surface-base pt-3 lg:top-[52px]'
+                : 'sticky top-14 sm:top-16 z-20 pt-3 bg-surface-base/92 backdrop-blur-sm'
               : IS_V2
                 ? 'sticky top-0 z-20 bg-surface-base/90 px-4 pt-1 backdrop-blur-md sm:px-6 lg:px-8'
                 : 'sticky top-0 z-20 -mx-4 border-b border-surface-border/60 bg-surface-base/90 px-4 pb-0 pt-2 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8',
