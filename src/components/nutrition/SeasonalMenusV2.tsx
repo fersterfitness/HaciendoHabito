@@ -18,6 +18,7 @@ import {
   SEASON_LABELS,
   TOLERANCE_LABELS,
   type DigestiveTolerance,
+  type MenuMacroSplit,
   type MenuSeason,
   type PathologyTag,
   type SeasonalMenuTemplate,
@@ -79,6 +80,64 @@ function Tags({ m }: { m: SeasonalMenuTemplate }) {
         </span>
       ))}
     </div>
+  )
+}
+
+/** Calorías del día y cómo se reparten: cuatro casilleros de color. */
+function MacroTiles({ m }: { m: SeasonalMenuTemplate }) {
+  const split = m.macroSplit!
+  const tiles = [
+    ...(m.approximateKcal ? [{ label: 'Calorías', value: m.approximateKcal.toLocaleString('es-AR'), unit: 'kcal', tone: 'bg-pastel-mint text-pastel-mint-ink' }] : []),
+    { label: 'Hidratos', value: String(split.carbsPct), unit: '%', tone: 'bg-pastel-butter text-pastel-butter-ink' },
+    { label: 'Proteínas', value: String(split.proteinPct), unit: '%', tone: 'bg-pastel-peach text-pastel-peach-ink' },
+    { label: 'Grasas', value: String(split.fatPct), unit: '%', tone: 'bg-pastel-lavender text-pastel-lavender-ink' },
+  ]
+  return (
+    <div>
+      <dl className={cn('grid grid-cols-2 gap-2', tiles.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-3')}>
+        {tiles.map((t) => (
+          <div key={t.label} className={cn('hh-pastel rounded-xl px-3 py-2.5', t.tone)}>
+            <dt className="truncate text-xs opacity-80">{t.label}</dt>
+            <dd className="text-lg font-semibold tabular-nums">
+              {t.value}
+              <span className="ml-1 text-xs font-normal opacity-80">{t.unit}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="pt-1.5 text-xs text-ink-muted">Calorías por día y qué parte aporta cada macronutriente (estimado según los alimentos del menú).</p>
+    </div>
+  )
+}
+
+/** El reparto de macros en una línea, para las filas y tarjetas de la lista. */
+function MacroLine({ split }: { split: MenuMacroSplit }) {
+  const parts: [string, number][] = [
+    ['Hidratos', split.carbsPct],
+    ['Proteínas', split.proteinPct],
+    ['Grasas', split.fatPct],
+  ]
+  return (
+    <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-muted" title="Parte de las calorías del día que aporta cada macronutriente (estimado)">
+      {parts.map(([label, pct]) => (
+        <span key={label}>
+          {label} <span className="font-semibold tabular-nums text-ink-secondary">{pct} %</span>
+        </span>
+      ))}
+    </p>
+  )
+}
+
+/** Las comidas del menú con sus calorías, en pastillas chicas. */
+function MealChips({ meals }: { meals: Meal[] }) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {meals.slice(0, 5).map((meal) => (
+        <li key={meal.label} className="rounded-md bg-surface-card px-2 py-1 text-xs text-ink-secondary">
+          {meal.label} <span className="font-semibold tabular-nums text-ink-primary">{meal.kcal}</span> kcal
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -251,7 +310,9 @@ export function SeasonalMenusV2({
                 <p className="mt-1 text-sm text-ink-secondary">{featured.m.summary}</p>
               </div>
               <Tags m={featured.m} />
-              {featured.meals.length > 0 ? (
+              {featured.m.macroSplit ? (
+                <MacroTiles m={featured.m} />
+              ) : featured.meals.length > 0 ? (
                 <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {featured.meals.slice(0, 4).map((meal, i) => (
                     <div key={meal.label} className={cn('hh-pastel rounded-xl px-3 py-2.5', MEAL_TONES[i % MEAL_TONES.length])}>
@@ -264,6 +325,7 @@ export function SeasonalMenusV2({
                   ))}
                 </dl>
               ) : null}
+              {featured.m.macroSplit && featured.meals.length > 0 ? <MealChips meals={featured.meals} /> : null}
               <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
                 <Button type="button" icon={<UserPlus className="h-4 w-4" />} onClick={() => onUse(featured.m)}>
                   Usar con un paciente
@@ -274,7 +336,7 @@ export function SeasonalMenusV2({
                 <Button type="button" variant="ghost" size="icon" aria-label="Copiar el texto del menú" title="Copiar el texto" onClick={() => onCopy(featured.m)}>
                   <Copy className="h-4 w-4" />
                 </Button>
-                {featured.m.approximateKcal ? (
+                {featured.m.approximateKcal && !featured.m.macroSplit ? (
                   <span className="ml-auto text-sm tabular-nums text-ink-muted">≈ {featured.m.approximateKcal.toLocaleString('es-AR')} kcal por día</span>
                 ) : null}
               </div>
@@ -339,6 +401,7 @@ export function SeasonalMenusV2({
                   <h3 className="text-base font-semibold leading-snug text-ink-primary">{m.title}</h3>
                   <Tags m={m} />
                   <p className="text-sm text-ink-secondary">{m.summary}</p>
+                  {m.macroSplit ? <MacroLine split={m.macroSplit} /> : null}
                   <div className="mt-auto flex items-center gap-2 pt-1">
                     <Button type="button" size="sm" onClick={() => onUse(m)}>
                       Usar
@@ -363,15 +426,8 @@ export function SeasonalMenusV2({
                     <h3 className="text-base font-semibold leading-snug text-ink-primary">{m.title}</h3>
                     <p className="mt-0.5 text-sm text-ink-secondary">{m.summary}</p>
                   </div>
-                  {meals.length > 0 ? (
-                    <ul className="flex flex-wrap gap-1.5">
-                      {meals.slice(0, 5).map((meal) => (
-                        <li key={meal.label} className="rounded-md bg-surface-card px-2 py-1 text-xs text-ink-secondary">
-                          {meal.label} <span className="font-semibold tabular-nums text-ink-primary">{meal.kcal}</span> kcal
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
+                  {meals.length > 0 ? <MealChips meals={meals} /> : null}
+                  {m.macroSplit ? <MacroLine split={m.macroSplit} /> : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-stretch sm:pr-1">
                   {m.approximateKcal ? (

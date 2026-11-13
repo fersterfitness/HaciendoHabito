@@ -42,6 +42,8 @@ export const SEASON_LABELS: Record<MenuSeason, string> = {
   'todo-el-anio': 'Todo el año',
 }
 
+export type MenuMacroSplit = { proteinPct: number; carbsPct: number; fatPct: number }
+
 export type SeasonalMenuTemplate = {
   id: string
   season: MenuSeason
@@ -52,6 +54,11 @@ export type SeasonalMenuTemplate = {
   tolerance: DigestiveTolerance
   /** Calorías objetivo aproximadas. */
   approximateKcal?: number
+  /**
+   * Cómo se reparten las calorías del día entre proteínas, hidratos y grasas (en %, suman 100).
+   * Estimado a partir de los alimentos y porciones del menú: orientativo, no un cálculo por gramo.
+   */
+  macroSplit?: MenuMacroSplit
   /** Resumen breve para mostrar en lista. */
   summary: string
   /** Contenido completo en Markdown. */
@@ -67,6 +74,7 @@ export const SEASONAL_MENU_TEMPLATES: SeasonalMenuTemplate[] = [
     pathologies: ['gastritis', 'colon-irritable', 'general'],
     tolerance: 'media',
     approximateKcal: 1620,
+    macroSplit: { proteinPct: 32, carbsPct: 42, fatPct: 26 },
     summary: 'Platos calientes, pocas frituras, fibra progresiva. Base equilibrada.',
     bodyMd: `### Objetivo
 Base equilibrada con platos calientes, pocas frituras y fibra progresiva. **Ajustar por paciente.**
@@ -103,6 +111,7 @@ Base equilibrada con platos calientes, pocas frituras y fibra progresiva. **Ajus
     pathologies: ['hashimoto', 'general'],
     tolerance: 'media',
     approximateKcal: 1700,
+    macroSplit: { proteinPct: 28, carbsPct: 25, fatPct: 47 },
     summary: 'Selenio + zinc + omega 3. Sin gluten preventivo, lácteos modulados.',
     bodyMd: `### Objetivo
 Apoyar función tiroidea: nutrientes clave (selenio, zinc, omega 3, hierro), evitar exceso de yodo procesado y reducir disparadores inflamatorios.
@@ -140,6 +149,7 @@ Apoyar función tiroidea: nutrientes clave (selenio, zinc, omega 3, hierro), evi
     pathologies: ['sibo', 'colon-irritable'],
     tolerance: 'baja',
     approximateKcal: 1500,
+    macroSplit: { proteinPct: 31, carbsPct: 42, fatPct: 27 },
     summary: 'Bajo en FODMAP: sin cebolla/ajo, sin trigo, sin lactosa, sin manzana/pera.',
     bodyMd: `### Objetivo
 Reducir distensión y carga fermentable durante fase activa de SIBO. **Duración orientativa: 2–6 semanas**, luego reintroducción.
@@ -176,6 +186,7 @@ Reducir distensión y carga fermentable durante fase activa de SIBO. **Duración
     pathologies: ['celiaquia'],
     tolerance: 'media',
     approximateKcal: 1750,
+    macroSplit: { proteinPct: 19, carbsPct: 42, fatPct: 39 },
     summary: 'Cereales sin TACC certificados, lectura de etiquetas obligatoria.',
     bodyMd: `### Objetivo
 Eliminar trigo/avena/cebada/centeno y prevenir contaminación cruzada.
@@ -210,6 +221,7 @@ Eliminar trigo/avena/cebada/centeno y prevenir contaminación cruzada.
     pathologies: ['general'],
     tolerance: 'alta',
     approximateKcal: 1650,
+    macroSplit: { proteinPct: 24, carbsPct: 41, fatPct: 35 },
     summary: 'Platos frescos, hidratación, proteína repartida.',
     bodyMd: `### Objetivo
 Platos frescos, hidratación y proteína repartida. **Ajustar por paciente y patología.**
@@ -241,6 +253,7 @@ Platos frescos, hidratación y proteína repartida. **Ajustar por paciente y pat
     pathologies: ['sibo', 'colon-irritable'],
     tolerance: 'baja',
     approximateKcal: 1550,
+    macroSplit: { proteinPct: 35, carbsPct: 34, fatPct: 31 },
     summary: 'Ensaladas seguras (lechuga, pepino, zanahoria), sin cebolla/ajo, sin frutas altas en fructanos.',
     bodyMd: `### Objetivo
 Adaptar el bajo-FODMAP a verano sin cocción excesiva.
@@ -272,6 +285,7 @@ Adaptar el bajo-FODMAP a verano sin cocción excesiva.
     pathologies: ['hashimoto'],
     tolerance: 'media',
     approximateKcal: 1700,
+    macroSplit: { proteinPct: 21, carbsPct: 29, fatPct: 50 },
     summary: 'Ensaladas con pescado azul, frutos rojos y semillas. Bajo en azúcares simples.',
     bodyMd: `### Objetivo
 Sostener nutrientes tiroideos en versión fresca.
@@ -304,6 +318,7 @@ Sostener nutrientes tiroideos en versión fresca.
     pathologies: ['gastritis', 'reflujo'],
     tolerance: 'media',
     approximateKcal: 1600,
+    macroSplit: { proteinPct: 28, carbsPct: 54, fatPct: 18 },
     summary: 'Sin frituras, sin café fuerte, sin cítricos en exceso, comidas frecuentes y pequeñas.',
     bodyMd: `### Objetivo
 Bajar irritación gástrica con porciones moderadas y cocciones suaves.
@@ -341,6 +356,7 @@ Bajar irritación gástrica con porciones moderadas y cocciones suaves.
     pathologies: ['diabetes'],
     tolerance: 'alta',
     approximateKcal: 1650,
+    macroSplit: { proteinPct: 35, carbsPct: 34, fatPct: 31 },
     summary: 'IG bajo, fibra alta, proteína repartida, sin azúcares simples.',
     bodyMd: `### Objetivo
 Estabilizar glucemia con hidratos de bajo índice glucémico, fibra y proteína en cada comida.
@@ -375,6 +391,7 @@ Estabilizar glucemia con hidratos de bajo índice glucémico, fibra y proteína 
     pathologies: ['hipertension'],
     tolerance: 'alta',
     approximateKcal: 1700,
+    macroSplit: { proteinPct: 24, carbsPct: 42, fatPct: 34 },
     summary: 'Bajo sodio, alto potasio (frutas/verduras), lácteos descremados, granos integrales.',
     bodyMd: `### Objetivo
 Bajar consumo de sodio (<2300 mg/día), aumentar potasio, magnesio y calcio.

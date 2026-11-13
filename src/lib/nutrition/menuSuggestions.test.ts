@@ -4,7 +4,7 @@ vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/lib/students/studentAccess', () => ({ fetchAccessibleStudents: vi.fn() }))
 
 import { bestMenuFor, mostUsedMenus, pathologyTagsFromText } from '@/lib/nutrition/menuSuggestions'
-import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
+import { SEASONAL_MENU_TEMPLATES, type SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 
 const menu = (id: string, over: Partial<SeasonalMenuTemplate>): SeasonalMenuTemplate => ({
   id,
@@ -63,5 +63,14 @@ describe('mostUsedMenus', () => {
     const menus = [menu('a', {}), menu('b', {}), menu('c', {})]
     const top = mostUsedMenus(menus, { a: { n: 1, last: 1 }, c: { n: 4, last: 2 } })
     expect(top.map((x) => x.menu.id)).toEqual(['c', 'a'])
+  })
+})
+
+describe('macros de los menús de la app', () => {
+  it('todos tienen el reparto cargado y suma 100', () => {
+    for (const m of SEASONAL_MENU_TEMPLATES) {
+      expect(m.macroSplit, m.id).toBeDefined()
+      expect(m.macroSplit!.proteinPct + m.macroSplit!.carbsPct + m.macroSplit!.fatPct, m.id).toBe(100)
+    }
   })
 })
