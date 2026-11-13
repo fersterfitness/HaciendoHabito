@@ -57,6 +57,7 @@ import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { UrgentMessagesPanelV2 } from '@/components/dashboard/UrgentMessagesPanelV2'
 import { TrainingAlertsPanelV2 } from '@/components/dashboard/TrainingAlertsPanelV2'
+import { MonthReviewsPanelV2 } from '@/components/dashboard/MonthReviewsPanelV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { UpcomingConsultCardV2 } from '@/components/dashboard/UpcomingConsultCardV2'
 import { recordMenuUse } from '@/lib/nutrition/menuSuggestions'
@@ -892,6 +893,11 @@ export function DashboardV2Page() {
         {user && trains ? (
           <div className="mb-8 empty:hidden">
             <TrainingAlertsPanelV2 ownerId={user.id} onOpenRoutine={(rid) => navigate(`/routines/${rid}`)} />
+          </div>
+        ) : null}
+        {user && trains ? (
+          <div className="mb-8 empty:hidden">
+            <MonthReviewsPanelV2 ownerId={user.id} />
           </div>
         ) : null}
         {(isNutri || role === 'trainer') && user && !studentsQ.isPending ? (

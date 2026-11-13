@@ -459,3 +459,46 @@
 .hhr-weekdone { display: grid; gap: 4px; padding: 16px 18px; border-radius: 22px; background: var(--complete); color: var(--complete-ink); }
 .hhr-weekdone b { font-size: 16px; letter-spacing: -0.01em; }
 .hhr-weekdone span { font-size: 13px; line-height: 1.5; }
+
+/* Tanda 4: progreso, ciclo, devolución de fin de mes y recordatorio de pago. */
+.hhr-progress-card { order: 5; }
+.hhr-progress-card summary { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.hhr-progress-card summary::-webkit-details-marker { display: none; }
+.hhr-progress-card[open] .hhr-chev { transform: rotate(180deg); }
+.hhr-progress-head { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.hhr-progress-head b { font-size: 14px; }
+.hhr-progress-head small { font-size: 11.5px; color: var(--muted); }
+.hhr-progress-body { display: grid; gap: 14px; padding: 2px 16px 16px; }
+.hhr-weekrows { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.hhr-weekrows li { display: grid; gap: 5px; }
+.hhr-weekrow-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.hhr-weekrow-top span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hhr-weekbar { display: flex; gap: 4px; }
+.hhr-weekbar i { flex: 1 1 0; height: 7px; border-radius: 99px; background: var(--soft-2); }
+.hhr-weekbar i.is-done { background: var(--complete); }
+.hhr-weekbar i.is-missed { background: #E9B9C0; }
+.hhr-weekavg { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hhr-lifts { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.hhr-lifts ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.hhr-lifts li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.hhr-lifts li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.hhr-lifts li b { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.hhr-lifts em { font-style: normal; font-weight: 600; color: var(--muted); }
+.hhr-lifts em.is-up { color: #3F6212; }
+.hhr-check { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.hhr-check input { width: 20px; height: 20px; margin: 0; flex: 0 0 auto; accent-color: var(--ink); }
+.hhr-inline { display: flex; gap: 8px; }
+.hhr-inline input { flex: 1 1 auto; min-width: 0; height: 44px; border: 0; border-radius: 14px; padding: 0 12px; background: var(--soft); color: var(--ink); font-size: 16px; }
+.hhr-inline .hhr-cta { width: auto; flex: 0 0 auto; }
+.hhr-pay { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+.hhr-pay div { display: grid; gap: 2px; min-width: 0; }
+.hhr-pay b { font-size: 14px; }
+.hhr-pay span { font-size: 12.5px; color: var(--ink-2); }
+.hhr-pay.is-late { background: #FFF1E6; box-shadow: inset 0 0 0 1.5px #F5B27A; }
+.hhr-pay.is-late .hhr-log-icon { background: #FF7A1A; color: #fff; }
+.hhr-review { display: grid; gap: 12px; padding: 18px; }
+.hhr-review > b { font-size: 16px; letter-spacing: -0.01em; }
+.hhr-review-sub { font-size: 12.5px; color: var(--muted); margin-top: -6px; }
+.hhr-stars { display: flex; gap: 4px; }
+.hhr-stars button { border: 0; background: transparent; padding: 4px; color: #C9C9C9; }
+.hhr-stars button[aria-pressed="true"] { color: #F5A524; }

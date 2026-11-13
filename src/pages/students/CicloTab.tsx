@@ -17,6 +17,7 @@ import toast from 'react-hot-toast'
 import { Modal } from '@/components/ui/Modal'
 import { IS_V2 } from '@/lib/uiVersion'
 import { StatTile } from './studentDetail/StatTile'
+import { fetchCycleOnPill } from '@/lib/routine/studentAppExtras'
 
 // ─── Hormone control points [day, 0-1 value] ─────────────────────────────────
 
@@ -131,6 +132,17 @@ export function CicloTab({ studentId }: { studentId: string }) {
   const [deleting, setDeleting] = useState<string | null>(null)
   type ActiveRoutineRow = { name: string; start_date: string; end_date: string }
   const [activeRoutine, setActiveRoutine] = useState<ActiveRoutineRow | null>(null)
+  // Lo que la alumna indicó desde su app (link de la rutina).
+  const [onPill, setOnPill] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    void fetchCycleOnPill(studentId).then((v) => {
+      if (!cancelled) setOnPill(v)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [studentId])
 
   useEffect(() => {
     let cancelled = false
@@ -224,6 +236,11 @@ export function CicloTab({ studentId }: { studentId: string }) {
 
   return (
     <div className="space-y-4">
+      {onPill ? (
+        <p className="hh-pastel rounded-xl bg-pastel-lavender px-3.5 py-2.5 text-sm text-pastel-lavender-ink">
+          <span className="font-semibold">Toma pastillas anticonceptivas.</span> Lo indicó desde su app: las fases del ciclo pueden no aplicar.
+        </p>
+      ) : null}
 
       {/* Estado actual */}
       {cycleInfo && IS_V2 ? (

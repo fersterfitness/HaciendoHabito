@@ -38,6 +38,8 @@ import './public-routine.css'
 import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, UrgentCard } from './PublicRoutineLog'
 import { feedbackWindowOpen, weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
+import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
+import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
 
 /**
@@ -178,12 +180,19 @@ export function PublicRoutinePage() {
   /** Días en los que eligió «Responder después» el chequeo. */
   const [skippedCheckin, setSkippedCheckin] = useState<Record<string, boolean>>({})
 
+  // Ciclo, devolución de fin de mes y recordatorio de pago. `null`: todavía no está activado.
+  const [studentExtras, setStudentExtras] = useState<StudentExtras | null>(null)
+  const [reviewSent, setReviewSent] = useState(false)
+
   useLightPage()
 
   useEffect(() => {
     let alive = true
     void fetchSharedExtras(token).then((x) => {
       if (alive) setExtras(x)
+    })
+    void fetchSharedStudentExtras(token).then((x) => {
+      if (alive) setStudentExtras(x)
     })
     return () => {
       alive = false
@@ -230,6 +239,14 @@ export function PublicRoutinePage() {
   useEffect(() => {
     document.title = firstName ? `Rutina de ${firstName}` : 'Tu rutina'
   }, [firstName])
+
+  const kgOf = useCallback(
+    (exId: string) =>
+      Object.values(logged[exId] ?? {})
+        .map((l) => l.kg)
+        .filter((k): k is number => k != null),
+    [logged],
+  )
 
   const onSaved = useCallback((exId: string, set: number, value: LoggedSet) => {
     setLogged((prev) => {
@@ -302,6 +319,11 @@ export function PublicRoutinePage() {
     : null
   // Para dar por terminado un día de esta semana con el formulario ya habilitado, primero hay que responderlo.
   const mustAnswerFirst = feedbackPending && fbWindowOpen && wi === currentWeek
+  // Mes terminado: última semana con todos los días cerrados. Ahí se pide la devolución.
+  const monthDone = !!weekState && weekState.total > 0 && weekState.open === 0 && currentWeek === blocks.length - 1
+  const reviewDayId = blocks[0]?.days[0]?.id ?? null
+  const reviewDone = reviewSent || (!!reviewDayId && !!studentExtras?.reviewed_days.includes(reviewDayId))
+  const isWoman = /^(f|mujer|femenin)/i.test((data.student_gender ?? data.feedback?.gender ?? '').trim())
   const askCheckin =
     !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0 && !skippedCheckin[selectedDay.id]
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
@@ -434,6 +456,10 @@ export function PublicRoutinePage() {
               )}
             </section>
           ) : null}
+          {extras ? <ProgressCard blocks={blocks} extras={extras} kgOf={kgOf} /> : null}
+          {studentExtras && isWoman ? (
+            <CycleCard token={token} extras={studentExtras} onChange={(patch) => setStudentExtras((prev) => (prev ? { ...prev, ...patch } : prev))} />
+          ) : null}
           {extras ? <UrgentCard token={token} proLabel={proLabel} /> : null}
         </aside>
 
@@ -442,11 +468,15 @@ export function PublicRoutinePage() {
             <h2>Tu entrenamiento</h2>
             <span>Elegí tu día. Encontrá tu ritmo.</span>
           </div>
+          {studentExtras ? <PaymentBanner extras={studentExtras} /> : null}
           {closeMessage ? (
             <section className="hhr-weekdone" role="status">
               <b>{closeMessage.title}</b>
               <span>{closeMessage.body}</span>
             </section>
+          ) : null}
+          {studentExtras && monthDone && reviewDayId ? (
+            <MonthReviewCard token={token} dayId={reviewDayId} proLabel={proLabel} done={reviewDone} onDone={() => setReviewSent(true)} />
           ) : null}
 
           {!routine || blocks.length === 0 ? (
