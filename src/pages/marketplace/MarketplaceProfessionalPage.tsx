@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { PublicShell, ProfessionalPhoto, RoleIcon, RoleTile, TeamBar, VerifiedMark } from '@/components/marketplace/PublicShell'
 import { usePublicProfessional } from '@/data/marketplace'
+import { usePublicCases } from '@/data/marketplaceCases'
+import { PublicCases } from '@/components/marketplace/PublicCases'
 import {
   MARKETPLACE_ROLES,
   ROLE_TONE,
@@ -164,6 +166,7 @@ export function MarketplaceProfessionalPage() {
   const { slug } = useParams()
   const { data, isPending, isError, refetch } = usePublicProfessional(slug)
   const professional = data?.professional
+  const cases = usePublicCases(professional?.id).data ?? []
   const plans = data?.plans ?? []
 
   useEffect(() => {
@@ -286,6 +289,7 @@ export function MarketplaceProfessionalPage() {
               </section>
               <TeamAside />
             </div>
+            <PublicCases cases={cases} firstName={firstName} />
           </>
         )}
       </main>

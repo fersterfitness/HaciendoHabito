@@ -58,8 +58,9 @@ import {
 import { cn, formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { AccessTab, ManagerChoice, grantBlocker, isEmail, type AccessContext } from './panel/AccessTab'
+import { CasesTab } from './panel/CasesTab'
 
-type Tab = 'perfil' | 'planes' | 'acceso' | 'solicitudes'
+type Tab = 'perfil' | 'planes' | 'acceso' | 'solicitudes' | 'casos'
 
 const MIGRATION = '20261112120000_marketplace_managed_profiles.sql'
 
@@ -1154,6 +1155,7 @@ function Editor({
               { value: 'planes', label: 'Planes', count: professional.plans.length },
               { value: 'acceso', label: 'Acceso' },
               { value: 'solicitudes', label: 'Solicitudes', count: newRequests },
+              { value: 'casos', label: 'Casos de éxito' },
             ]}
           />
         </>
@@ -1174,6 +1176,7 @@ function Editor({
           <div hidden={tab !== 'solicitudes'}>
             <RequestsTab requests={professional.requests} />
           </div>
+          {tab === 'casos' ? <CasesTab professionalId={professional.id} published={professional.estado === 'aprobado'} /> : null}
         </>
       ) : null}
 
