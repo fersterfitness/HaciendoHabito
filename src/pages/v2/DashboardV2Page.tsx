@@ -57,6 +57,7 @@ import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
 import { UpcomingConsultCardV2 } from '@/components/dashboard/UpcomingConsultCardV2'
+import { recordMenuUse } from '@/lib/nutrition/menuSuggestions'
 import { RoutinePaymentsPanel } from '@/components/finances/RoutinePaymentsPanel'
 import { WebIntakeAccessRequestsPanel } from '@/components/settings/WebIntakeAccessRequestsPanel'
 import { canSeeTraining } from '@/config/navigation'
@@ -835,6 +836,7 @@ export function DashboardV2Page() {
           onPick={(studentId) => {
             const id = menuToUse?.id
             setMenuToUse(null)
+            if (id) recordMenuUse(id)
             if (id) navigate(`/nutrition/${studentId}?tab=plan&menu=${encodeURIComponent(id)}`)
           }}
         />

@@ -20,6 +20,7 @@ import {
   type MenuDraft,
 } from '@/lib/nutrition/customMenus'
 import { useAuthStore } from '@/stores/authStore'
+import { recordMenuUse } from '@/lib/nutrition/menuSuggestions'
 import { nutritionShellClass } from '@/lib/nutrition/nutritionAreaUi'
 import { NutritionLibraryTabs } from '@/components/nutrition/NutritionLibraryTabs'
 import { Card, CardTitle } from '@/components/ui/Card'
@@ -176,6 +177,10 @@ export function NutritionSeasonalMenusPage() {
             onCopy={copyToClipboard}
             onUse={setUseMenu}
             onNew={() => startEditing(emptyMenuDraft())}
+            onUseFor={(m, studentId) => {
+              recordMenuUse(m.id)
+              navigate(`/nutrition/${studentId}?tab=plan&menu=${encodeURIComponent(m.id)}`)
+            }}
           />
         ) : (
           <>
@@ -371,6 +376,7 @@ export function NutritionSeasonalMenusPage() {
             onPick={(studentId) => {
               const id = useMenu?.id
               setUseMenu(null)
+              if (id) recordMenuUse(id)
               if (id) navigate(`/nutrition/${studentId}?tab=plan&menu=${encodeURIComponent(id)}`)
             }}
           />
