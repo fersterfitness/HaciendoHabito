@@ -215,6 +215,8 @@ export function DayCloseCard({
   today,
   allSetsDone,
   onSaved,
+  proLabel,
+  onAnswerFeedback,
 }: {
   token: string
   dayId: string
@@ -223,6 +225,9 @@ export function DayCloseCard({
   today: string
   allSetsDone: boolean
   onSaved: (dayId: string, patch: Partial<DayLog>) => void
+  proLabel: string
+  /** Si viene, el formulario de la semana está habilitado y sin responder: va antes de terminar el día. */
+  onAnswerFeedback: (() => void) | null
 }) {
   const [mode, setMode] = useState<'idle' | 'done' | 'missed'>('idle')
   const [effort, setEffort] = useState<number | null>(log.effort)
@@ -272,6 +277,32 @@ export function DayCloseCard({
         <button type="button" className="hhr-link" disabled={busy} onClick={() => void save(null)}>
           Deshacer
         </button>
+      </section>
+    )
+  }
+
+  if (mode === 'done' && onAnswerFeedback) {
+    return (
+      <section className="hhr-card hhr-close-form" aria-label="Primero el feedback de la semana">
+        <b>Antes de terminar, completá el feedback de la semana</b>
+        <p className="hhr-close-why">
+          Tus pesos ya quedaron guardados. Para dar el día por terminado falta el feedback: son los datos que {proLabel} usa para ajustar tu rutina.
+        </p>
+        <div className="hhr-log-actions">
+          <button
+            type="button"
+            className="hhr-cta"
+            onClick={() => {
+              setMode('idle')
+              onAnswerFeedback()
+            }}
+          >
+            Completar el feedback
+          </button>
+          <button type="button" className="hhr-link" onClick={() => setMode('idle')}>
+            Ahora no
+          </button>
+        </div>
       </section>
     )
   }

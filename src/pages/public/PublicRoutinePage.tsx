@@ -37,6 +37,7 @@ import type { Json } from '@/types/database'
 import './public-routine.css'
 import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, UrgentCard } from './PublicRoutineLog'
+import { feedbackWindowOpen, weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
 
 /**
@@ -292,6 +293,15 @@ export function PublicRoutinePage() {
   const selectedProgress = selectedDay ? dayProgress(selectedDay, logged) : { done: 0, total: 0 }
   const dayLog = selectedDay && extras ? (extras.days[selectedDay.id] ?? EMPTY_DAY_LOG) : null
   // Antes de empezar un día se pide el chequeo (se puede dejar para después).
+  // Semana en curso: cuántos días cerró. De eso depende cuándo se habilita el formulario semanal
+  // (viernes a domingo, o en su último día de entrenamiento) y el mensaje de cierre de semana.
+  const weekState = extras ? weekClose((weekBlock?.days ?? []).map((d) => d.id), (id) => extras.days[id]?.status) : null
+  const fbWindowOpen = !weekState || feedbackWindowOpen(new Date(), weekState)
+  const closeMessage = weekState
+    ? weekCloseMessage(weekState, { feedbackDone: !data.feedback || !feedbackPending, isLastWeek: blocks.length > 1 && currentWeek === blocks.length - 1 })
+    : null
+  // Para dar por terminado un día de esta semana con el formulario ya habilitado, primero hay que responderlo.
+  const mustAnswerFirst = feedbackPending && fbWindowOpen && wi === currentWeek
   const askCheckin =
     !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0 && !skippedCheckin[selectedDay.id]
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
@@ -338,7 +348,7 @@ export function PublicRoutinePage() {
   return (
     <Shell>
       <div className="hhr-masthead">
-        <span className="hhr-wordmark"><span className="hhr-brand-mark"><Dumbbell size={19} aria-hidden /></span> haciéndolo<span>hábito</span><span className="hhr-brand-period">.</span></span>
+        <span className="hhr-wordmark"><BrandMark /> haciéndolo<span>hábito</span><span className="hhr-brand-period">.</span></span>
         <span className="hhr-space-label">TU ESPACIO DE ENTRENAMIENTO</span>
       </div>
       <div className={showBar ? 'hhr-app has-bar' : 'hhr-app'}>
@@ -394,7 +404,14 @@ export function PublicRoutinePage() {
 
           {data.feedback ? (
             <section className="hhr-fb-area" ref={feedbackRef} aria-label="Feedback de la semana">
-              {feedbackPending ? (
+              {feedbackPending && !fbWindowOpen ? (
+                <div className="hhr-fb hhr-fb-locked" role="status">
+                  <div className="hhr-fb-text">
+                    <b>Feedback de la semana</b>
+                    <span>Se habilita el viernes, o antes si llegás a tu último día de entrenamiento de la semana.</span>
+                  </div>
+                </div>
+              ) : feedbackPending ? (
                 <FeedbackCard
                   publicToken={data.feedback.public_token}
                   email={data.feedback.email}
@@ -425,6 +442,12 @@ export function PublicRoutinePage() {
             <h2>Tu entrenamiento</h2>
             <span>Elegí tu día. Encontrá tu ritmo.</span>
           </div>
+          {closeMessage ? (
+            <section className="hhr-weekdone" role="status">
+              <b>{closeMessage.title}</b>
+              <span>{closeMessage.body}</span>
+            </section>
+          ) : null}
 
           {!routine || blocks.length === 0 ? (
             <div className="hhr-card hhr-empty-card">
@@ -583,6 +606,8 @@ export function PublicRoutinePage() {
                       today={today}
                       allSetsDone={selectedProgress.total > 0 && selectedProgress.done >= selectedProgress.total}
                       onSaved={onDayLog}
+                      proLabel={proLabel}
+                      onAnswerFeedback={mustAnswerFirst ? openFeedback : null}
                     />
                   ) : null}
                 </div>
@@ -604,12 +629,12 @@ export function PublicRoutinePage() {
           <button type="button" className="hhr-bar-btn" aria-label="Ir al entrenamiento" onClick={() => trainRef.current?.scrollIntoView({ behavior: 'smooth' })}>
             <Dumbbell size={21} strokeWidth={1.8} aria-hidden />
           </button>
-          {feedbackPending ? (
+          {feedbackPending && fbWindowOpen ? (
             <button type="button" className="hhr-bar-fb" onClick={openFeedback}>
               <span className="hhr-dot" aria-hidden />
               Mi feedback
             </button>
-          ) : data.feedback ? (
+          ) : data.feedback && !feedbackPending ? (
             <span className="hhr-bar-btn is-static" aria-label="Feedback enviado">
               <ClipboardCheck size={21} strokeWidth={1.8} aria-hidden />
             </span>
@@ -622,6 +647,22 @@ export function PublicRoutinePage() {
         </nav>
       ) : null}
     </Shell>
+  )
+}
+
+/** Ícono de la app (el del proyecto: naranja con la marca en negro), igual al de `public/logo-brand.png`. */
+function BrandMark() {
+  return (
+    <svg className="hhr-brand-mark" viewBox="113 188 374 380" aria-hidden>
+      <defs>
+        <linearGradient id="hhr-brand-orange" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FF7A1A" />
+          <stop offset="1" stopColor="#FF4D00" />
+        </linearGradient>
+      </defs>
+      <rect x="113" y="188" width="374" height="380" rx="84" fill="url(#hhr-brand-orange)" />
+      <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" fill="#111111" />
+    </svg>
   )
 }
 
