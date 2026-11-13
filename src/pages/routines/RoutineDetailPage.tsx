@@ -32,6 +32,7 @@ import { RoutineProgressionGuidePanel } from '@/components/routines/RoutineProgr
 import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
 import { ExerciseLogsContext, fetchRoutineExerciseLogs, type ExerciseLogsByExercise } from '@/lib/routine/exerciseLogs'
+import { TrainingExtrasContext, fetchRoutineTrainingExtras, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
 import type { BlockTypeId } from '@/lib/macrocycle/macrocycle'
@@ -88,10 +89,15 @@ export function RoutineDetailPage() {
   const [showMacro, setShowMacro] = useState(false)
   // Kilos que anota el alumno desde el link; se vuelven a pedir al volver a la pestaña.
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogsByExercise | null>(null)
+  // Notas, esfuerzo y cierre de cada día que deja el alumno (misma recarga que los kilos).
+  const [trainingExtras, setTrainingExtras] = useState<TrainingExtras | null>(null)
   useEffect(() => {
     if (!id) return
     let alive = true
-    const load = () => void fetchRoutineExerciseLogs(id).then((m) => { if (alive) setExerciseLogs(m) })
+    const load = () => {
+      void fetchRoutineExerciseLogs(id).then((m) => { if (alive) setExerciseLogs(m) })
+      void fetchRoutineTrainingExtras(id).then((m) => { if (alive) setTrainingExtras(m) })
+    }
     load()
     const onVisible = () => { if (document.visibilityState === 'visible') load() }
     document.addEventListener('visibilitychange', onVisible)
@@ -1391,6 +1397,7 @@ export function RoutineDetailPage() {
         ) : null}
 
         <ExerciseLogsContext.Provider value={exerciseLogs}>
+        <TrainingExtrasContext.Provider value={trainingExtras}>
         {blocks.map((block, blockStripeIndex) => (
           <BlockCard
             key={`${block.id}-${applyNonce}`}
@@ -1453,6 +1460,7 @@ export function RoutineDetailPage() {
             rmLookup={rmLookup}
           />
         ))}
+        </TrainingExtrasContext.Provider>
         </ExerciseLogsContext.Provider>
 
         <Button variant="secondary" className="w-full" icon={<Plus className="h-4 w-4" />} onClick={addBlock}>

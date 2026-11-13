@@ -8,6 +8,7 @@ import { ROUTINE_STATUSES } from '@/lib/constants'
 import { cn, formatDate } from '@/lib/utils'
 import { exerciseDetails, groupExercises, setsRepsText, type SharedRoutineExercise } from '@/lib/routine/sharedRoutine'
 import { fetchRoutineExerciseLogs, type ExerciseLogsByExercise, type ExerciseSetLog } from '@/lib/routine/exerciseLogs'
+import { fetchRoutineTrainingExtras, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
 
 type RoutineOption = { id: string; name: string; status: string; start_date: string | null }
 
@@ -60,6 +61,7 @@ export function RoutineComparePane({
   const [error, setError] = useState<string | null>(null)
   // Lo que el alumno anotó en esa rutina (kilos y repeticiones por serie), para ver de dónde viene.
   const [logs, setLogs] = useState<ExerciseLogsByExercise>(new Map())
+  const [extras, setExtras] = useState<TrainingExtras | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -92,6 +94,10 @@ export function RoutineComparePane({
     setLogs(new Map())
     void fetchRoutineExerciseLogs(selected).then((m) => {
       if (alive) setLogs(m)
+    })
+    setExtras(null)
+    void fetchRoutineTrainingExtras(selected).then((m) => {
+      if (alive) setExtras(m)
     })
     void (async () => {
       const { data, error: err } = await supabase
@@ -187,6 +193,15 @@ export function RoutineComparePane({
                 <header className="flex items-baseline gap-2 border-b border-surface-border px-3 py-2">
                   <h3 className="text-body-sm font-semibold text-ink-primary">{day.day_name}</h3>
                   {day.muscle_focus ? <span className="truncate text-2xs text-ink-muted">{day.muscle_focus}</span> : null}
+                  {extras?.days[day.id]?.status === 'done' ? (
+                    <span className="ml-auto shrink-0 rounded-full bg-status-ok/15 px-2 py-0.5 text-3xs font-medium text-status-ok-ink">
+                      Terminado{extras.days[day.id]!.effort != null ? ` · ${extras.days[day.id]!.effort}/10` : ''}
+                    </span>
+                  ) : extras?.days[day.id]?.status === 'missed' ? (
+                    <span className="ml-auto shrink-0 rounded-full bg-status-expired/15 px-2 py-0.5 text-3xs font-medium text-status-expired" title={extras.days[day.id]!.missed_reason || undefined}>
+                      No entrenó
+                    </span>
+                  ) : null}
                 </header>
                 {day.exercises.length === 0 ? (
                   <p className="px-3 py-2 text-2xs text-ink-muted">Sin ejercicios.</p>
@@ -196,7 +211,7 @@ export function RoutineComparePane({
                       <li key={gi} className={cn(g.circuit && 'border-l-2 border-ink-muted/40')}>
                         {g.circuit ? <p className="px-3 pt-2 text-3xs font-medium text-ink-muted">Circuito</p> : null}
                         {g.items.map((ex) => (
-                          <CompareExercise key={ex.id} ex={ex} logs={logs.get(ex.id) ?? []} />
+                          <CompareExercise key={ex.id} ex={ex} logs={logs.get(ex.id) ?? []} feedback={extras?.exercises[ex.id] ?? null} />
                         ))}
                       </li>
                     ))}
@@ -223,7 +238,7 @@ function studentLogText(logs: ExerciseSetLog[]): string | null {
   return done ? `${done} ${done === 1 ? 'serie hecha' : 'series hechas'}, sin kilos anotados` : null
 }
 
-function CompareExercise({ ex, logs }: { ex: SharedRoutineExercise; logs: ExerciseSetLog[] }) {
+function CompareExercise({ ex, logs, feedback }: { ex: SharedRoutineExercise; logs: ExerciseSetLog[]; feedback: ExerciseFeedback | null }) {
   const main = setsRepsText(ex)
   const { chips, seriesPlan, notes } = exerciseDetails(ex)
   const logged = studentLogText(logs)
@@ -239,6 +254,13 @@ function CompareExercise({ ex, logs }: { ex: SharedRoutineExercise; logs: Exerci
       {logged ? (
         <p className="mt-1.5 rounded-lg bg-status-ok/10 px-2 py-1 text-2xs text-ink-secondary">
           <span className="font-semibold text-status-ok-ink">Anotó el alumno</span> <span className="tabular-nums text-ink-primary">{logged}</span>
+        </p>
+      ) : null}
+      {feedback && (feedback.note || feedback.effort != null) ? (
+        <p className="hh-pastel mt-1 rounded-lg bg-pastel-butter px-2 py-1 text-2xs text-pastel-butter-ink">
+          <span className="font-semibold">Dijo el alumno</span>
+          {feedback.effort != null ? ` · esfuerzo ${feedback.effort}/10` : ''}
+          {feedback.note ? ` · «${feedback.note}»` : ''}
         </p>
       ) : null}
     </div>

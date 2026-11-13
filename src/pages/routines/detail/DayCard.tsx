@@ -17,6 +17,7 @@ import { ExerciseRow } from './ExerciseRow'
 import { IS_V2 } from '@/lib/uiVersion'
 import { ActionMenuV2 } from '@/components/v2/ActionMenuV2'
 import { ExerciseLogsContext } from '@/lib/routine/exerciseLogs'
+import { BORG_LABELS, checkinSummary, hasCheckin, useDayLog } from '@/lib/routine/studentTrainingLog'
 
 export function DayCard({
   day,
@@ -106,6 +107,9 @@ export function DayCard({
   const logs = useContext(ExerciseLogsContext)
   const loggedSets = logs ? day.exercises.reduce((n, ex) => n + (logs.get(ex.id)?.filter((l) => l.completed ?? (l.weight_kg != null || l.reps != null)).length ?? 0), 0) : 0
   const totalSets = day.exercises.reduce((n, ex) => n + Math.min(Math.max(ex.sets ?? 1, 1), 10), 0)
+  // Cómo cerró el día el alumno (terminado / no entrenado) y el chequeo de antes de entrenar.
+  const dayLog = useDayLog(day.id)
+  const closedOn = dayLog?.status_date ? dayLog.status_date.slice(8, 10) + '/' + dayLog.status_date.slice(5, 7) : ''
 
   return (
     <div className="bg-surface-elevated border border-surface-border rounded-xl overflow-hidden">
@@ -118,6 +122,16 @@ export function DayCard({
             title="Series en las que el alumno anotó los kilos desde el link de la rutina"
           >
             {loggedSets}/{totalSets} completadas
+          </span>
+        ) : null}
+        {dayLog?.status === 'done' ? (
+          <span className="rounded-full bg-status-ok/15 px-2 py-0.5 text-2xs font-medium tabular-nums text-status-ok-ink" title="El alumno marcó el día como terminado">
+            Terminado{closedOn ? ` ${closedOn}` : ''}
+            {dayLog.effort != null ? ` · ${dayLog.effort}/10` : ''}
+          </span>
+        ) : dayLog?.status === 'missed' ? (
+          <span className="rounded-full bg-status-expired/15 px-2 py-0.5 text-2xs font-medium tabular-nums text-status-expired" title={dayLog.missed_reason || 'El alumno marcó que no entrenó este día'}>
+            No entrenó{closedOn ? ` ${closedOn}` : ''}
           </span>
         ) : null}
         <span className="hh-day-count text-xs text-ink-muted">{day.exercises.length} ejerc.</span>
@@ -190,6 +204,29 @@ export function DayCard({
 
       {expanded && (
         <div className="px-3 pb-3 space-y-2 border-t border-surface-border pt-2">
+          {dayLog && (dayLog.status || hasCheckin(dayLog)) ? (
+            <div className="space-y-1 rounded-lg bg-surface-card px-2.5 py-2 text-2xs text-ink-secondary">
+              {dayLog.status === 'done' ? (
+                <p>
+                  <span className="font-semibold text-ink-primary">Terminó el entrenamiento</span>
+                  {closedOn ? ` el ${closedOn}` : ''}
+                  {dayLog.effort != null ? ` · esfuerzo ${dayLog.effort}/10 (${BORG_LABELS[dayLog.effort]})` : ''}
+                </p>
+              ) : dayLog.status === 'missed' ? (
+                <p>
+                  <span className="font-semibold text-status-expired">No entrenó este día</span>
+                  {closedOn ? ` (lo marcó el ${closedOn})` : ''}
+                  {dayLog.missed_reason ? `: «${dayLog.missed_reason}»` : ' · sin motivo'}
+                </p>
+              ) : null}
+              {hasCheckin(dayLog) ? (
+                <p>
+                  <span className="font-semibold text-ink-primary">Cómo llegó</span> {checkinSummary(dayLog)}
+                  {dayLog.checkin_note ? ` · «${dayLog.checkin_note}»` : ''}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-2">
             <Input placeholder="Nombre del día" value={dayName} onChange={(e) => { setDayName(e.target.value); saveDay({ day_name: e.target.value }) }} className="text-xs h-8" />
             <Input placeholder="Foco muscular" value={focus} onChange={(e) => { setFocus(e.target.value); saveDay({ muscle_focus: e.target.value || null }) }} className="text-xs h-8" />

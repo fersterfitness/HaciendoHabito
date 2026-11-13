@@ -10,6 +10,7 @@ import { TrainingMethodPicker } from '@/components/routines/TrainingMethodPicker
 import type { RoutineExercise, TrainingMethod } from '@/types/database'
 import { type ExWithExercise, parseRestToSeconds, parseRpeToNumber } from './routineDetailShared'
 import { useExerciseLogs } from '@/lib/routine/exerciseLogs'
+import { BORG_LABELS, useExerciseFeedback } from '@/lib/routine/studentTrainingLog'
 import { formatDate } from '@/lib/utils'
 
 export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApplyMethodWeekPlanAllDays, onDelete, onMoveUp, onMoveDown, onReplace, rmKg, canCombine, onCombineWithNext, isSeparable, onSeparate }: {
@@ -31,6 +32,7 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
   onSeparate?: () => void
 }) {
   const studentLogs = useExerciseLogs(exercise.id)
+  const studentFeedback = useExerciseFeedback(exercise.id)
   // Local state — updates UI instantly
   const [sets, setSets]           = useState<number | null>(exercise.sets ?? null)
   const [reps, setReps]           = useState(exercise.reps_scheme ?? '')
@@ -147,6 +149,17 @@ export function ExerciseRow({ exercise, onUpdate, onApplyMethodWeekPlan, onApply
       </div>
 
       {studentLogs.length > 0 ? <StudentLogLine logs={studentLogs} prescribedKg={exercise.weight_kg} /> : null}
+      {studentFeedback && (studentFeedback.note || studentFeedback.effort != null) ? (
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-pastel-butter px-2.5 py-1.5 text-2xs text-pastel-butter-ink hh-pastel">
+          <span className="font-semibold">Dijo el alumno</span>
+          {studentFeedback.effort != null ? (
+            <span className="tabular-nums" title={`Escala de Borg: ${BORG_LABELS[studentFeedback.effort]}`}>
+              Esfuerzo {studentFeedback.effort}/10
+            </span>
+          ) : null}
+          {studentFeedback.note ? <span className="whitespace-pre-line">«{studentFeedback.note}»</span> : null}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-1.5">
         <div>

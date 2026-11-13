@@ -35,6 +35,8 @@ import {
 } from '@/lib/checkIn/questions'
 import type { Json } from '@/types/database'
 import './public-routine.css'
+import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, type DayLog, type ExerciseFeedback, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, UrgentCard } from './PublicRoutineLog'
 import { movementArtwork, routineAthlete, type Athlete } from '@/lib/routine/exerciseArtwork'
 
 /**
@@ -170,8 +172,29 @@ export function PublicRoutinePage() {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const feedbackRef = useRef<HTMLElement | null>(null)
   const trainRef = useRef<HTMLElement | null>(null)
+  // Notas, esfuerzo, chequeo y cierre de cada día. `null`: todavía no está activado en la base.
+  const [extras, setExtras] = useState<TrainingExtras | null>(null)
+  /** Días en los que eligió «Responder después» el chequeo. */
+  const [skippedCheckin, setSkippedCheckin] = useState<Record<string, boolean>>({})
 
   useLightPage()
+
+  useEffect(() => {
+    let alive = true
+    void fetchSharedExtras(token).then((x) => {
+      if (alive) setExtras(x)
+    })
+    return () => {
+      alive = false
+    }
+  }, [token])
+
+  const onExerciseFeedback = useCallback((exId: string, fb: ExerciseFeedback) => {
+    setExtras((prev) => (prev ? { ...prev, exercises: { ...prev.exercises, [exId]: fb } } : prev))
+  }, [])
+  const onDayLog = useCallback((dayId: string, patch: Partial<DayLog>) => {
+    setExtras((prev) => (prev ? { ...prev, days: { ...prev.days, [dayId]: { ...(prev.days[dayId] ?? EMPTY_DAY_LOG), ...patch } } } : prev))
+  }, [])
 
   const load = useCallback(
     (quiet: boolean) => {
@@ -267,6 +290,10 @@ export function PublicRoutinePage() {
   const pct = weekProgress.total ? Math.round((weekProgress.done / weekProgress.total) * 100) : 0
   const todayLabel = format(new Date(), "EEEE d 'de' MMMM", { locale: es })
   const selectedProgress = selectedDay ? dayProgress(selectedDay, logged) : { done: 0, total: 0 }
+  const dayLog = selectedDay && extras ? (extras.days[selectedDay.id] ?? EMPTY_DAY_LOG) : null
+  // Antes de empezar un día se pide el chequeo (se puede dejar para después).
+  const askCheckin =
+    !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0 && !skippedCheckin[selectedDay.id]
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
   const isOpen = (id: string) => !!openMap[id]
   const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
@@ -291,6 +318,9 @@ export function PublicRoutinePage() {
         open={isOpen(ex.id)}
         onToggle={() => toggle(ex.id)}
         onSaved={onSaved}
+        proLabel={proLabel}
+        feedback={extras ? (extras.exercises[ex.id] ?? { note: '', effort: null }) : null}
+        onFeedbackSaved={onExerciseFeedback}
       />
     )
   }
@@ -387,6 +417,7 @@ export function PublicRoutinePage() {
               )}
             </section>
           ) : null}
+          {extras ? <UrgentCard token={token} proLabel={proLabel} /> : null}
         </aside>
 
         <main className="hhr-main" ref={trainRef} aria-label="Tu entrenamiento">
@@ -431,18 +462,19 @@ export function PublicRoutinePage() {
                     const p = dayProgress(d, logged)
                     const dpct = p.total ? p.done / p.total : 0
                     const chip = dayChip(d.day_name, i)
+                    const st = extras?.days[d.id]?.status ?? null
                     return (
                       <button
                         key={d.id}
                         type="button"
-                        className="hhr-day"
+                        className={st === 'missed' ? 'hhr-day is-missed' : 'hhr-day'}
                         aria-pressed={i === di}
-                        aria-label={`${d.day_name || `Día ${i + 1}`}: ${p.done} de ${p.total} series`}
+                        aria-label={`${d.day_name || `Día ${i + 1}`}: ${st === 'missed' ? 'no entrenado' : st === 'done' ? 'terminado' : `${p.done} de ${p.total} series`}`}
                         onClick={() => setDay(i)}
                       >
                         <span className="hhr-day-label">{chip.label}</span>
                         <span className="hhr-day-num">{chip.big}</span>
-                        <MiniArc value={dpct} />
+                        <MiniArc value={st === 'done' ? 1 : dpct} />
                       </button>
                     )
                   })}
@@ -474,7 +506,20 @@ export function PublicRoutinePage() {
                 </section>
               ) : null}
 
-              {selectedDay && warmup.length ? (
+              {selectedDay && dayLog && askCheckin ? (
+                <DayCheckinCard
+                  key={selectedDay.id}
+                  token={token}
+                  dayId={selectedDay.id}
+                  log={dayLog}
+                  proLabel={proLabel}
+                  onSaved={onDayLog}
+                  onSkip={() => setSkippedCheckin((prev) => ({ ...prev, [selectedDay.id]: true }))}
+                />
+              ) : null}
+              {selectedDay && dayLog && !askCheckin ? <DayCheckinSummary log={dayLog} /> : null}
+
+              {selectedDay && warmup.length && !askCheckin ? (
                 <details className="hhr-card hhr-warmup">
                   <summary>
                     <span className="hhr-tile hhr-tile-sm" aria-hidden>
@@ -496,7 +541,7 @@ export function PublicRoutinePage() {
                 </details>
               ) : null}
 
-              {selectedDay ? (
+              {askCheckin ? null : selectedDay ? (
                 <div className="hhr-list">
                   {selectedDay.exercises.length === 0 ? <p className="hhr-muted">No hay ejercicios cargados para este día.</p> : null}
                   {groupExercises(selectedDay.exercises).map((g) =>
@@ -529,6 +574,17 @@ export function PublicRoutinePage() {
                       card(g.items[0]!)
                     ),
                   )}
+                  {dayLog && selectedDay.exercises.length > 0 ? (
+                    <DayCloseCard
+                      key={`close-${selectedDay.id}`}
+                      token={token}
+                      dayId={selectedDay.id}
+                      log={dayLog}
+                      today={today}
+                      allSetsDone={selectedProgress.total > 0 && selectedProgress.done >= selectedProgress.total}
+                      onSaved={onDayLog}
+                    />
+                  ) : null}
                 </div>
               ) : (
                 <p className="hhr-muted">Esta semana no tiene días cargados.</p>
@@ -635,7 +691,14 @@ function ExerciseCard({
   open,
   onToggle,
   onSaved,
+  proLabel,
+  feedback,
+  onFeedbackSaved,
 }: {
+  /** `null`: las notas todavía no están activadas en la base. */
+  feedback: ExerciseFeedback | null
+  onFeedbackSaved: (exId: string, fb: ExerciseFeedback) => void
+  proLabel: string
   ex: SharedRoutineExercise
   athlete: Athlete | null
   n: number
@@ -710,6 +773,7 @@ function ExerciseCard({
             </div>
           ) : null}
           <KgInputs ex={ex} sets={sets} token={token} logged={logged} onSaved={onSaved} />
+          {feedback ? <ExerciseFeedbackBox token={token} exerciseId={ex.id} value={feedback} proLabel={proLabel} onSaved={onFeedbackSaved} /> : null}
         </div>
       ) : null}
     </article>
