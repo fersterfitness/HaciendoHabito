@@ -775,7 +775,8 @@ export function DashboardV2Page() {
       items={[
         trains
           ? {
-              label: 'Feedback',
+              // «Respondieron» y no «Feedback»: con ese nombre se confundía con la pestaña de pendientes de «Para hoy».
+              label: 'Respondieron',
               value: missingQ.isPending || loading ? '—' : String(answered),
               suffix: `/${students.length}`,
               tone: 'lavender' as const,
