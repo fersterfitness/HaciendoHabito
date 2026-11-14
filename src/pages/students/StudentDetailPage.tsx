@@ -814,6 +814,7 @@ export function StudentDetailView({
     <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 [&>*]:w-[82%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-auto">
       {showRoutineTab ? (
         <MetricCardV2
+          filled
           icon={Dumbbell}
           tone="butter"
           title="Rutina"
@@ -832,6 +833,7 @@ export function StudentDetailView({
         />
       ) : null}
       <MetricCardV2
+        filled
         icon={Ruler}
         tone="sky"
         title="Medidas"
@@ -841,8 +843,9 @@ export function StudentDetailView({
       />
       {showRoutineTab && activeRoutine ? (
         <MetricCardV2
+          filled
           icon={CreditCard}
-          tone="lavender"
+          tone={activeRoutine.is_paid ? 'lavender' : 'butter'}
           title="Pago"
           link={{ label: 'Registrar pago', onClick: () => setShowPayModal(true) }}
           label={activeRoutine.price ? `Rutina actual · ${formatCurrency(activeRoutine.price)}` : 'Rutina actual'}
@@ -850,6 +853,7 @@ export function StudentDetailView({
         />
       ) : (
         <MetricCardV2
+          filled
           icon={CreditCard}
           tone="lavender"
           title="Plan"

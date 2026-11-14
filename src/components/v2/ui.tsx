@@ -206,6 +206,7 @@ export function MetricCardV2({
   label,
   value,
   progress,
+  filled = false,
 }: {
   icon: LucideIcon
   tone: Tone
@@ -214,7 +215,32 @@ export function MetricCardV2({
   label: ReactNode
   value: ReactNode
   progress?: number
+  /** Toda la tarjeta en el color de su tono, con el valor en grande (como los casilleros del nutricionista). */
+  filled?: boolean
 }) {
+  if (filled) {
+    const Icon = icon
+    return (
+      <div className={cn('hh-pastel flex min-w-0 flex-col rounded-2xl p-4', TONE_BG[tone], TONE_INK[tone])}>
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+          <p className="text-xs font-medium opacity-80">{title}</p>
+          {link ? (
+            <Button type="button" variant="ghost" onClick={link.onClick} className="ml-auto h-auto p-0 text-xs font-medium underline decoration-current/40 underline-offset-2 hover:bg-transparent hover:opacity-80">
+              {link.label}
+            </Button>
+          ) : null}
+        </div>
+        <p className="mt-3 truncate text-2xl font-semibold leading-tight tabular-nums tracking-tight">{value}</p>
+        <p className="mt-0.5 truncate text-xs opacity-80">{label}</p>
+        {progress !== undefined ? (
+          <span className="mt-3 block h-1 w-full overflow-hidden rounded-full bg-black/10" aria-hidden>
+            <span className="block h-full rounded-full bg-current transition-[width] duration-700" style={{ width: `${Math.max(0, Math.min(1, progress)) * 100}%` }} />
+          </span>
+        ) : null}
+      </div>
+    )
+  }
   return (
     <div className="flex flex-col rounded-2xl border border-surface-border bg-surface-card p-4">
       <div className="mb-5 flex items-center gap-2.5">

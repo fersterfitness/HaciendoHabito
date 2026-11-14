@@ -21,6 +21,8 @@ import {
   ChevronRight,
   MoreHorizontal,
   Archive,
+  LayoutGrid,
+  List,
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { fetchCurrentAssignmentsForStudents, PAYMENT_STATUS_LABELS, effectivePaymentStatus } from '@/lib/studentPlanAssignments'
@@ -50,6 +52,7 @@ import {
 import { Input } from '@/components/ui/Input'
 import { DirectoryPageShell } from '@/components/directory/DirectoryPageShell'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
+import { StudentCardsV2 } from './StudentCardsV2'
 import { RoutineWeekSquares } from '@/components/checkIn/RoutineWeekSquares'
 import { loadBlockCountsByRoutine, loadWeekStatusByOwner, weekStatusOrEmpty } from '@/lib/checkIn/routineWeekProgress'
 import { loadRmTestWeeksByOwner, RM_TEST_EVERY_WEEKS } from '@/lib/checkIn/rmTestReminder'
@@ -637,6 +640,22 @@ export function StudentsPage() {
   const [deleting, setDeleting] = useState(false)
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
   const [weekByStudent, setWeekByStudent] = useState<Map<string, LatestWeekStatus>>(() => new Map())
+  // v2: la lista se ve en tarjetas (con color) o en tabla; se recuerda en este navegador.
+  const [listView, setListView] = useState<'cards' | 'table'>(() => {
+    try {
+      return localStorage.getItem('hh-students-view') === 'table' ? 'table' : 'cards'
+    } catch {
+      return 'cards'
+    }
+  })
+  const chooseListView = (v: 'cards' | 'table') => {
+    setListView(v)
+    try {
+      localStorage.setItem('hh-students-view', v)
+    } catch {
+      /* sin storage: dura hasta recargar */
+    }
+  }
   const [weeksByStudent, setWeeksByStudent] = useState<Map<string, number>>(() => new Map())
   const [rmTestDueIds, setRmTestDueIds] = useState<Set<string>>(() => new Set())
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
@@ -923,6 +942,14 @@ export function StudentsPage() {
                   filterGender={filterGender}
                   setFilterGender={setFilterGender}
                 />
+                <div className="hidden gap-1 sm:inline-flex" role="group" aria-label="Vista">
+                  <Button type="button" size="iconSm" variant={listView === 'cards' ? 'secondary' : 'ghost'} aria-label="Ver en tarjetas" aria-pressed={listView === 'cards'} onClick={() => chooseListView('cards')}>
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" size="iconSm" variant={listView === 'table' ? 'secondary' : 'ghost'} aria-label="Ver en tabla" aria-pressed={listView === 'table'} onClick={() => chooseListView('table')}>
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
                 <SortDropdown value={tableSort} onChange={setTableSort} />
                 <MoreActionsMenu
                   onExport={() => exportStudentsCSV(filtered)}
@@ -1087,6 +1114,19 @@ export function StudentsPage() {
           />
         ) : (
           <>
+            {IS_V2 && listView === 'cards' ? (
+              <StudentCardsV2
+                students={visibleForTable}
+                selectedStudentId={selectedStudentId}
+                onOpen={(studentId) => setSelectedStudentId(studentId)}
+                onAvatarUpdated={() => { void fetchStudents(search) }}
+                activeRoutineStudentIds={activeRoutineStudentIds}
+                weekByStudent={weekByStudent}
+                weeksByStudent={weeksByStudent}
+                rmTestDueIds={rmTestDueIds}
+                currentPlanByStudent={currentPlanByStudent}
+              />
+            ) : (
             <StudentDirectoryTable
               entityLabel={entityLabel}
               entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
@@ -1106,6 +1146,7 @@ export function StudentsPage() {
               onStatusChanged={handleStatusChanged}
               onFilterTag={setFilterTag}
             />
+            )}
             {sortedForTable.length > tableVisibleCount ? (
               <div className="flex justify-center border-t border-surface-border/80 py-4">
                 <Button

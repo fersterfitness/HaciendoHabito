@@ -230,16 +230,22 @@ export function PaymentsBoard() {
 
       {/* Resumen del mes (v2: una sola tarjeta) */}
       {IS_V2 ? (
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-surface-border bg-surface-card px-5 py-4">
-          <div>
-            <p className="text-[12px] text-ink-muted">Cobrado</p>
-            <p className="text-[20px] font-semibold tabular-nums tracking-[-0.02em] text-ink-primary">{formatCurrency(totals.cobrado)}</p>
+        <div className="flex flex-wrap items-stretch gap-2.5 rounded-2xl border border-surface-border bg-surface-card p-3">
+          <div className="hh-pastel min-w-[8.5rem] flex-1 rounded-xl bg-pastel-mint px-3.5 py-3 text-pastel-mint-ink sm:flex-none">
+            <p className="text-xs opacity-80">Cobrado</p>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight">{formatCurrency(totals.cobrado)}</p>
           </div>
-          <div>
-            <p className="text-[12px] text-ink-muted">Por cobrar</p>
-            <p className="text-[20px] font-semibold tabular-nums tracking-[-0.02em] text-ink-primary">{formatCurrency(totals.pendiente)}</p>
+          <div className={cn('min-w-[8.5rem] flex-1 rounded-xl px-3.5 py-3 sm:flex-none', totals.pendiente > 0 ? 'hh-pastel bg-pastel-butter text-pastel-butter-ink' : 'bg-surface-elevated/60')}>
+            <p className={cn('text-xs', totals.pendiente > 0 ? 'opacity-80' : 'text-ink-muted')}>Por cobrar</p>
+            <p className={cn('text-2xl font-semibold tabular-nums tracking-tight', totals.pendiente > 0 ? '' : 'text-ink-primary')}>{formatCurrency(totals.pendiente)}</p>
           </div>
-          <div className="min-w-[12rem] flex-1">
+          {totals.vencidos > 0 ? (
+            <div className="hh-pastel min-w-[6.5rem] flex-1 rounded-xl bg-pastel-rose px-3.5 py-3 text-pastel-rose-ink sm:flex-none">
+              <p className="text-xs opacity-80">Vencidos</p>
+              <p className="text-2xl font-semibold tabular-nums tracking-tight">{totals.vencidos}</p>
+            </div>
+          ) : null}
+          <div className="flex min-w-[12rem] flex-1 flex-col justify-center px-2">
             <div className="flex items-baseline justify-between text-[12px] text-ink-muted">
               <span>{totals.pagados} de {rows.length} abonaron</span>
               {totals.vencidos > 0 ? <span className="font-medium text-status-expired">{totals.vencidos} vencido{totals.vencidos === 1 ? '' : 's'}</span> : null}
