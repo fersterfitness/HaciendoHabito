@@ -101,7 +101,7 @@ function CountBadge({ count }: { count: NavCount }) {
       className={cn(
         'ml-auto shrink-0 rounded-md px-1.5 text-2xs font-medium leading-[18px] tabular-nums',
         count.tone === 'accent'
-          ? 'bg-status-ok text-[rgb(36_53_11)]'
+          ? 'bg-ink-primary text-surface-base dark:bg-status-ok dark:text-[rgb(36_53_11)]'
           : count.tone === 'alert'
             ? 'bg-status-expired/12 text-status-expired'
             : 'bg-black/[0.06] text-ink-secondary dark:bg-white/[0.08]',
@@ -264,7 +264,7 @@ export function SidebarV2() {
               {active ? <ActivePill id="v2-rail-pill" rounded="rounded-xl" /> : null}
               <Icon className="h-[17px] w-[17px]" strokeWidth={1.6} />
               {count ? (
-                <span className={cn('absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full', count.tone === 'alert' ? 'bg-status-expired' : count.tone === 'accent' ? 'bg-status-ok ring-1 ring-black/15' : 'bg-ink-muted')} aria-hidden />
+                <span className={cn('absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full', count.tone === 'alert' ? 'bg-status-expired' : count.tone === 'accent' ? 'bg-ink-primary dark:bg-status-ok' : 'bg-ink-muted')} aria-hidden />
               ) : null}
             </NavLink>
           )

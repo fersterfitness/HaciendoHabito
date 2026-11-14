@@ -80,6 +80,8 @@ export interface WeekAlert {
   studentId: string
   studentName: string
   studentPhone: string | null
+  /** Foto del alumno (ruta en el almacenamiento), si tiene. */
+  studentAvatar: string | null
   title: string
   detail: string
   /** Mensaje sugerido para mandarle por WhatsApp. */
@@ -91,6 +93,7 @@ export interface AlertRoutine {
   studentId: string
   studentName: string
   studentPhone: string | null
+  studentAvatar?: string | null
   blocks: { id: string; name: string | null; start_date: string | null; end_date: string | null; dayIds: string[]; loggedSets: number }[]
 }
 
@@ -119,7 +122,7 @@ export function buildWeekAlerts(input: {
     if (block.dayIds.length === 0) continue
     const week = weekClose(block.dayIds, input.statusOf)
     const formDone = !input.missingForm.has(r.studentId)
-    const base = { routineId: r.id, studentId: r.studentId, studentName: r.studentName, studentPhone: r.studentPhone }
+    const base = { routineId: r.id, studentId: r.studentId, studentName: r.studentName, studentPhone: r.studentPhone, studentAvatar: r.studentAvatar ?? null }
     const hi = firstName(r.studentName) ? `Hola ${firstName(r.studentName)}!` : 'Hola!'
     const weekLabel = block.name?.trim() || `semana ${i + 1}`
     const missedText = week.missed ? ` ${week.missed === 1 ? 'Faltó 1 día' : `Faltó ${week.missed} días`}.` : ''
@@ -163,10 +166,11 @@ export function buildWeekAlerts(input: {
   return out.sort((a, b) => order[a.kind] - order[b.kind] || a.studentName.localeCompare(b.studentName, 'es'))
 }
 
+type RawStudent = { full_name?: string | null; phone?: string | null; avatar_path?: string | null }
 type RawRoutine = {
   id: string
   student_id: string
-  student: { full_name?: string | null; phone?: string | null } | { full_name?: string | null; phone?: string | null }[] | null
+  student: RawStudent | RawStudent[] | null
   blocks: { id: string; name: string | null; sort_order: number; start_date: string | null; end_date: string | null; days: { id: string; exercises: { id: string }[] | null }[] | null }[] | null
 }
 
@@ -178,7 +182,7 @@ export async function loadWeekAlertData(ownerId: string): Promise<{ routines: Al
   const { data, error } = await supabase
     .from('routines')
     .select(
-      'id, student_id, student:students(full_name, phone), blocks:routine_blocks(id, name, sort_order, start_date, end_date, days:routine_days(id, exercises:routine_exercises(id)))',
+      'id, student_id, student:students(full_name, phone, avatar_path), blocks:routine_blocks(id, name, sort_order, start_date, end_date, days:routine_days(id, exercises:routine_exercises(id)))',
     )
     .eq('owner_id', ownerId)
     .in('status', ['activa', 'por_vencer'])
@@ -206,6 +210,7 @@ export async function loadWeekAlertData(ownerId: string): Promise<{ routines: Al
       studentId: r.student_id,
       studentName: s?.full_name ?? 'Alumno',
       studentPhone: s?.phone ?? null,
+      studentAvatar: s?.avatar_path ?? null,
       blocks: [...(r.blocks ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((b) => ({

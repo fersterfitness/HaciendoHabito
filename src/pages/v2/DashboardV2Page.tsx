@@ -771,7 +771,7 @@ export function DashboardV2Page() {
   /** Los números del mes en una franja: abajo en el celu, en la columna derecha en la compu. */
   const monthStripV2 = (
     <StatStripV2
-      filled={isNutri}
+      filled
       items={[
         trains
           ? {
