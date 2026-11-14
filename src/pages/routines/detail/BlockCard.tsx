@@ -16,6 +16,7 @@ import type { CyclePhaseInfo } from '@/lib/routine/menstrualCyclePlanning'
 import type { RoutineBlock, RoutineDay, RoutineExercise, TrainingMethod } from '@/types/database'
 import { type BlockWithDays, CYCLE_PHASE_CLASSES } from './routineDetailShared'
 import { DayCard } from './DayCard'
+import { CheckinAverages } from '@/components/routines/CheckinAverages'
 
 export function BlockCard({
   block, allBlocks, expanded, expandedDays, showCopyMenu, stripeIndex = 0, cyclePhases = [],
@@ -359,6 +360,8 @@ export function BlockCard({
             />
           </div>
           ) : null}
+
+          <CheckinAverages dayIds={block.days.map((d) => d.id)} label="Promedio de la semana" />
 
           {block.days.map((day) => (
             <DayCard

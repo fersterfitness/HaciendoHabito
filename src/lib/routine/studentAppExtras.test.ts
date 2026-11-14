@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/lib/supabasePublic', () => ({ supabasePublic: {} }))
 
-import { businessDaysBetween, cycleDay, cyclePhase, liftProgress, paymentNotice, weeklyProgress } from '@/lib/routine/studentAppExtras'
+import { businessDaysBetween, checkinAverages, cycleDay, cyclePhase, liftProgress, paymentNotice, weeklyProgress } from '@/lib/routine/studentAppExtras'
 import { EMPTY_DAY_LOG } from '@/lib/routine/studentTrainingLog'
 import type { SharedRoutineBlock, SharedRoutineExercise } from '@/lib/routine/sharedRoutine'
 
@@ -79,5 +79,25 @@ describe('progreso', () => {
     const kg: Record<string, number[]> = { a1: [80, 85], a2: [90], p1: [60] }
     const lifts = liftProgress(blocks, (id) => kg[id] ?? [])
     expect(lifts).toEqual([{ name: 'Sentadilla', firstKg: 85, lastKg: 90, firstLabel: 'Semana 1', lastLabel: 'Semana 2' }])
+  })
+})
+
+describe('checkinAverages (lo que ve el entrenador por semana y por rutina)', () => {
+  const extras = {
+    exercises: {},
+    days: {
+      a: { ...EMPTY_DAY_LOG, status: 'done' as const, sleep: 4, stress: 2, effort: 6 },
+      b: { ...EMPTY_DAY_LOG, status: 'done' as const, sleep: 2, stress: 4, effort: 8 },
+      c: { ...EMPTY_DAY_LOG, status: 'missed' as const },
+    },
+  }
+  it('promedia solo los días con respuesta y cuenta los cerrados', () => {
+    const a = checkinAverages(['a', 'b', 'c', 'd'], extras)
+    expect(a).toMatchObject({ total: 4, done: 2, missed: 1, checkins: 2, effort: 7, withData: true })
+    expect(a.averages.sleep).toBe(3)
+    expect(a.averages.energy).toBeNull()
+  })
+  it('sin registros no hay nada para mostrar', () => {
+    expect(checkinAverages(['x', 'y'], extras).withData).toBe(false)
   })
 })

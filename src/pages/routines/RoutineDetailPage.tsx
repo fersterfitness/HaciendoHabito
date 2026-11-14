@@ -33,6 +33,7 @@ import { RoutineVolumePanel } from '@/components/routines/RoutineVolumePanel'
 import { RoutineComparePane } from '@/components/routines/RoutineComparePane'
 import { ExerciseLogsContext, fetchRoutineExerciseLogs, type ExerciseLogsByExercise } from '@/lib/routine/exerciseLogs'
 import { TrainingExtrasContext, fetchRoutineTrainingExtras, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { CheckinAverages } from '@/components/routines/CheckinAverages'
 import { MacrocycleCalendarPanel } from '@/components/routines/MacrocycleCalendarPanel'
 import { setWeekPhase } from '@/lib/macrocycle/macrocycleData'
 import type { BlockTypeId } from '@/lib/macrocycle/macrocycle'
@@ -1398,6 +1399,11 @@ export function RoutineDetailPage() {
 
         <ExerciseLogsContext.Provider value={exerciseLogs}>
         <TrainingExtrasContext.Provider value={trainingExtras}>
+        <CheckinAverages
+          dayIds={blocks.flatMap((b) => b.days.map((d) => d.id))}
+          label="Promedio de toda la rutina"
+          className="border border-surface-border px-3.5 py-3 text-xs"
+        />
         {blocks.map((block, blockStripeIndex) => (
           <BlockCard
             key={`${block.id}-${applyNonce}`}

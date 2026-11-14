@@ -143,21 +143,38 @@ export interface LiftProgress {
 const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null)
 const norm = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
 
+export interface CheckinAverages extends Omit<WeekProgress, 'label'> {
+  /** Días en los que respondió el chequeo previo. */
+  checkins: number
+  /** Hay algo para mostrar (algún día cerrado o algún chequeo). */
+  withData: boolean
+}
+
+/** Promedios del chequeo previo y del esfuerzo para un grupo de días (una semana o toda la rutina). */
+export function checkinAverages(dayIds: string[], extras: TrainingExtras): CheckinAverages {
+  const logs = dayIds.map((id) => extras.days[id]).filter((l): l is NonNullable<typeof l> => !!l)
+  const averages = Object.fromEntries(
+    CHECKIN_SCALES.map((s) => [s.key, avg(logs.map((l) => l[s.key]).filter((v): v is number => v != null))]),
+  ) as WeekProgress['averages']
+  const done = logs.filter((l) => l.status === 'done').length
+  const missed = logs.filter((l) => l.status === 'missed').length
+  const checkins = logs.filter((l) => CHECKIN_SCALES.some((s) => l[s.key] != null)).length
+  return {
+    total: dayIds.length,
+    done,
+    missed,
+    averages,
+    effort: avg(logs.map((l) => l.effort).filter((v): v is number => v != null)),
+    checkins,
+    withData: done + missed > 0 || checkins > 0,
+  }
+}
+
 /** Resumen por semana de la rutina: días cerrados y cómo llegó el alumno a entrenar. */
 export function weeklyProgress(blocks: SharedRoutineBlock[], extras: TrainingExtras): WeekProgress[] {
   return blocks.map((b, i) => {
-    const logs = b.days.map((d) => extras.days[d.id]).filter((l): l is NonNullable<typeof l> => !!l)
-    const averages = Object.fromEntries(
-      CHECKIN_SCALES.map((s) => [s.key, avg(logs.map((l) => l[s.key]).filter((v): v is number => v != null))]),
-    ) as WeekProgress['averages']
-    return {
-      label: b.name?.trim() || `Semana ${i + 1}`,
-      total: b.days.length,
-      done: logs.filter((l) => l.status === 'done').length,
-      missed: logs.filter((l) => l.status === 'missed').length,
-      averages,
-      effort: avg(logs.map((l) => l.effort).filter((v): v is number => v != null)),
-    }
+    const { total, done, missed, averages, effort } = checkinAverages(b.days.map((d) => d.id), extras)
+    return { label: b.name?.trim() || `Semana ${i + 1}`, total, done, missed, averages, effort }
   })
 }
 
