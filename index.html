@@ -14,14 +14,27 @@
     <style>
       html { background: #fff; }
       html.dark { background: #191919; }
-      .hh-boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
-      .hh-boot img { width: 40px; height: 40px; }
-      .hh-boot span { position: relative; overflow: hidden; width: 112px; height: 3px; border-radius: 999px; background: rgba(40, 38, 34, 0.08); }
-      html.dark .hh-boot span { background: rgba(236, 236, 234, 0.08); }
-      .hh-boot span::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 999px; background: #171719; animation: hh-boot 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
-      html.dark .hh-boot span::after { background: #ededeb; }
-      @keyframes hh-boot { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-      @media (prefers-reduced-motion: reduce) { .hh-boot span::after { width: 100%; animation: none; opacity: 0.5; } }
+      .hh-boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; font-family: Geist, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; opacity: 0; animation: hh-boot-in 0.35s ease-out 0.12s forwards; }
+      /* El logo «respira» y detrás late un halo del mismo naranja. */
+      .hh-boot-mark { position: relative; width: 72px; height: 72px; }
+      .hh-boot-mark::before, .hh-boot-mark::after { content: ''; position: absolute; inset: 0; border-radius: 22%; background: #f76a16; opacity: 0; animation: hh-boot-halo 2.2s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
+      .hh-boot-mark::after { animation-delay: 1.1s; }
+      .hh-boot-mark svg { position: relative; display: block; width: 100%; height: 100%; filter: drop-shadow(0 10px 18px rgba(240, 78, 0, 0.28)); animation: hh-boot-breathe 2.2s ease-in-out infinite; }
+      .hh-boot-name { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: #171719; }
+      html.dark .hh-boot-name { color: #ededeb; }
+      .hh-boot-bar { position: relative; overflow: hidden; width: 132px; height: 3px; border-radius: 999px; background: rgba(40, 38, 34, 0.08); }
+      html.dark .hh-boot-bar { background: rgba(236, 236, 234, 0.1); }
+      .hh-boot-bar::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 38%; border-radius: 999px; background: #171719; animation: hh-boot 1.25s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+      html.dark .hh-boot-bar::after { background: #ededeb; }
+      @keyframes hh-boot-in { to { opacity: 1; } }
+      @keyframes hh-boot { from { transform: translateX(-110%); } to { transform: translateX(275%); } }
+      @keyframes hh-boot-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+      @keyframes hh-boot-halo { 0% { transform: scale(1); opacity: 0.22; } 100% { transform: scale(1.7); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        .hh-boot { opacity: 1; animation: none; }
+        .hh-boot-mark::before, .hh-boot-mark::after, .hh-boot-mark svg { animation: none; }
+        .hh-boot-bar::after { width: 100%; animation: none; opacity: 0.45; }
+      }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -32,9 +45,21 @@
   </head>
   <body class="bg-surface-base text-ink-primary antialiased">
     <div id="root">
-      <div class="hh-boot" role="status" aria-label="Cargando">
-        <img src="/app-icon.svg" alt="" />
-        <span></span>
+      <div class="hh-boot" role="status" aria-label="Cargando Haciéndolo Hábito">
+        <div class="hh-boot-mark">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="113 188 374 380" aria-hidden="true">
+            <defs>
+              <linearGradient id="hh-boot-g" x1="0" y1="0" x2="0.35" y2="1">
+                <stop offset="0" stop-color="#FF7A2A" />
+                <stop offset="1" stop-color="#F04E00" />
+              </linearGradient>
+            </defs>
+            <rect x="113" y="188" width="374" height="380" rx="84" fill="url(#hh-boot-g)" />
+            <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" fill="#141414" />
+          </svg>
+        </div>
+        <p class="hh-boot-name">Haciéndolo Hábito</p>
+        <span class="hh-boot-bar"></span>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
