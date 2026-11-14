@@ -89,14 +89,9 @@ function ActivePill({ id, rounded = 'rounded-lg' }: { id: string; rounded?: stri
   )
 }
 
-/** Marca de la v2: el mismo dibujo del logo, en negro liso. */
+/** Marca de la v2: el logo del proyecto (naranja con la marca en negro), el mismo archivo que el ícono de la app. */
 function BrandMarkV2({ className = 'h-7 w-7' }: { className?: string }) {
-  return (
-    <svg viewBox="113 188 374 380" className={cn('shrink-0', className)} aria-hidden>
-      <rect x="113" y="188" width="374" height="380" rx="84" className="fill-ink-primary" />
-      <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" className="fill-surface-base" />
-    </svg>
-  )
+  return <img src="/app-icon.svg" alt="" aria-hidden className={cn('shrink-0', className)} />
 }
 
 /** Contador del día al lado de un ítem. */

@@ -40,14 +40,9 @@ const HERO_PHOTOS = [
  *
  * Sin Google login, sin forgot password, sin redes sociales.
  */
-/** Marca en un solo color: negra sobre claro, blanca sobre oscuro. */
+/** Logo del proyecto (naranja con la marca en negro): el mismo archivo que el ícono de la app. */
 function BrandMarkMono({ className, title }: { className?: string; title?: string }) {
-  return (
-    <svg viewBox="113 188 374 380" className={cn('shrink-0', className)} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
-      <rect x="113" y="188" width="374" height="380" rx="84" className="fill-zinc-900 dark:fill-white" />
-      <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" className="fill-white dark:fill-zinc-900" />
-    </svg>
-  )
+  return <img src="/app-icon.svg" alt={title ?? ''} aria-hidden={title ? undefined : true} className={cn('shrink-0', className)} />
 }
 
 export function LoginPageV2() {
