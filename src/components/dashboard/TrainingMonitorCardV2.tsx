@@ -15,6 +15,7 @@ const LABEL: Record<MonitorState, string> = {
   deviated: 'Con desvíos',
   missed: 'No entrenó',
   done: 'Entrenó',
+  due: 'Le toca hoy',
   idle: 'Sin registro hoy',
 }
 const CHIP: Record<MonitorState, string> = {
@@ -22,6 +23,7 @@ const CHIP: Record<MonitorState, string> = {
   deviated: TONE_TINT.butter,
   missed: TONE_TINT.rose,
   done: 'bg-surface-elevated text-ink-secondary',
+  due: 'bg-surface-elevated text-ink-primary',
   idle: 'text-ink-muted',
 }
 

@@ -86,6 +86,34 @@ describe('buildTrainingMonitor', () => {
     expect(row).toMatchObject({ state: 'idle', detail: '1 de 2 días esta semana · sigue Día 2 · Pierna' })
   })
 
+  it('con día de la semana asignado: avisa qué le toca hoy y qué dejó sin hacer', () => {
+    // NOW es lunes: Día 1 los lunes, Día 2 los jueves.
+    const r = routine('a', 'Ana')
+    for (const b of r.blocks) {
+      b.days[0]!.day_of_week = 1
+      b.days[1]!.day_of_week = 4
+    }
+    expect(run([r])[0]).toMatchObject({ state: 'due', dayLabel: 'Día 1 · Torso', detail: 'Todavía no registró nada' })
+
+    // El jueves, sin haber hecho el del lunes: le toca el Día 2 y debe el Día 1.
+    const thursday = new Date(2026, 10, 19, 18, 0, 0)
+    const [row] = buildTrainingMonitor({ routines: [r], setLogs: [], dayLogs: [], now: thursday })
+    expect(row).toMatchObject({ state: 'due', dayLabel: 'Día 2 · Pierna', detail: 'No hizo Día 1 · Torso (lunes)' })
+
+    // El viernes no le toca nada: queda sin registro, con lo que debe.
+    const friday = new Date(2026, 10, 20, 18, 0, 0)
+    const [idle] = buildTrainingMonitor({ routines: [r], setLogs: [], dayLogs: [], now: friday })
+    expect(idle!.state).toBe('idle')
+    expect(idle!.detail).toBe('No hizo Día 1 · Torso (lunes), Día 2 · Pierna (jueves) · 0 de 2 días esta semana')
+  })
+
+  it('si ya cerró el día que le tocaba, no figura como pendiente', () => {
+    const r = routine('a', 'Ana')
+    for (const b of r.blocks) b.days[0]!.day_of_week = 1
+    const [row] = run([r], [], [{ routine_day_id: 'a-w1-d0', status: 'done', status_date: '2026-11-15', missed_reason: '' }])
+    expect(row!.state).toBe('idle')
+  })
+
   it('ordena: entrenando ahora, con desvíos, no entrenó, entrenó, sin registro', () => {
     const rows = run(
       [routine('idle', 'Ana'), routine('done', 'Sofía'), routine('miss', 'Lucía'), routine('dev', 'Martín'), routine('live', 'Juan')],

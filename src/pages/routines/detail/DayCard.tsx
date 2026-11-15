@@ -7,6 +7,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { trainerCtaFormAccentClassName } from '@/lib/primaryGradientCtaClasses'
 import { cn } from '@/lib/utils'
+import { WEEKDAY_LABELS } from '@/lib/routine/trainingMonitor'
 import { appFocusRingClassName } from '@/lib/appFocusRingClasses'
 import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
 import { resolveRmKgForExercise, type StudentRmLookup } from '@/lib/routine/studentRmLookup'
@@ -231,6 +232,22 @@ export function DayCard({
             <Input placeholder="Nombre del día" value={dayName} onChange={(e) => { setDayName(e.target.value); saveDay({ day_name: e.target.value }) }} className="text-xs h-8" />
             <Input placeholder="Foco muscular" value={focus} onChange={(e) => { setFocus(e.target.value); saveDay({ muscle_focus: e.target.value || null }) }} className="text-xs h-8" />
           </div>
+          <label className="flex items-center gap-2 text-xs text-ink-muted">
+            Día de la semana
+            <select
+              value={day.day_of_week ?? ''}
+              onChange={(e) => onUpdateDay({ day_of_week: e.target.value === '' ? null : Number(e.target.value) })}
+              className={cn(controlSmClassName, 'h-8 cursor-pointer px-2 text-xs text-ink-primary')}
+              title="Vale para todas las semanas de la rutina. Con esto el Inicio te avisa qué le toca hoy y qué dejó sin hacer."
+            >
+              <option value="">Sin día fijo</option>
+              {[1, 2, 3, 4, 5, 6, 0].map((dow) => (
+                <option key={dow} value={dow}>
+                  {WEEKDAY_LABELS[dow]!.charAt(0).toUpperCase() + WEEKDAY_LABELS[dow]!.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="space-y-1.5">
             <div className="flex flex-wrap gap-1.5">
               {WARMUP_PRESETS.map((preset) => (

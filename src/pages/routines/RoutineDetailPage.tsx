@@ -662,6 +662,18 @@ export function RoutineDetailPage() {
   }
 
   async function updateDay(blockId: string, dayId: string, patch: Partial<RoutineDay>) {
+    // El día de la semana vale para toda la rutina: se copia al mismo día (por posición) de las otras semanas.
+    if ('day_of_week' in patch) {
+      const position = (blocks.find((b) => b.id === blockId)?.days ?? []).findIndex((d) => d.id === dayId)
+      const ids = position < 0 ? [dayId] : blocks.flatMap((b) => (b.days[position] ? [b.days[position]!.id] : []))
+      const { error } = await supabase.from('routine_days').update({ day_of_week: patch.day_of_week ?? null }).in('id', ids)
+      if (error) {
+        toast.error(`No se pudo guardar el día de la semana: ${error.message}`)
+        return
+      }
+      setBlocks((prev) => prev.map((b) => ({ ...b, days: b.days.map((d) => (ids.includes(d.id) ? { ...d, day_of_week: patch.day_of_week ?? null } : d)) })))
+      return
+    }
     await supabase.from('routine_days').update(patch).eq('id', dayId)
     setBlocks((prev) => prev.map((b) =>
       b.id === blockId ? { ...b, days: b.days.map((d) => d.id === dayId ? { ...d, ...patch } : d) } : b

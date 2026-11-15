@@ -5,8 +5,9 @@ import { currentBlockIndex } from '@/lib/routine/sharedRoutine'
  * Monitor de entrenamiento del entrenador: cómo viene HOY cada alumno con rutina activa, según lo
  * que va anotando desde su link (series en `routine_exercise_logs`, cierre del día en `routine_day_logs`).
  *
- * No hay «hoy le tocaba tal día»: la rutina no guarda qué día de la semana corresponde a cada
- * entrenamiento. «No entrenó» sale solo cuando el alumno lo marca; el resto queda como «sin registro hoy».
+ * Si el entrenador le puso día de la semana a cada entrenamiento (`routine_days.day_of_week`), el monitor
+ * sabe qué le toca hoy y qué dejó sin hacer en la semana. Sin eso, «no entrenó» sale solo cuando el alumno
+ * lo marca y el resto queda como «sin registro hoy».
  */
 
 /** Minutos sin anotar nada tras los cuales ya no se lo considera entrenando. */
@@ -14,7 +15,10 @@ export const LIVE_WINDOW_MINUTES = 15
 /** Por debajo de este porcentaje de series hechas, el día cuenta como «con desvíos». */
 export const DEVIATION_MIN_PCT = 80
 
-export type MonitorState = 'live' | 'deviated' | 'missed' | 'done' | 'idle'
+export type MonitorState = 'live' | 'deviated' | 'missed' | 'done' | 'due' | 'idle'
+
+/** Días de la semana como los da `Date.getDay()`: 0 domingo … 6 sábado. */
+export const WEEKDAY_LABELS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'] as const
 
 export interface MonitorExercise {
   id: string
@@ -28,6 +32,8 @@ export interface MonitorDay {
   day_name: string
   muscle_focus: string | null
   sort_order: number
+  /** Día de la semana asignado (0 domingo … 6 sábado), o null si no tiene día fijo. */
+  day_of_week?: number | null
   exercises: MonitorExercise[]
 }
 export interface MonitorBlock {
@@ -83,9 +89,12 @@ function labelOf(day: MonitorDay): string {
   return focus && !name.toLowerCase().includes(focus.toLowerCase()) ? `${name} · ${focus}` : name
 }
 
-const STATE_ORDER: Record<MonitorState, number> = { live: 0, deviated: 1, missed: 2, done: 3, idle: 4 }
+const STATE_ORDER: Record<MonitorState, number> = { live: 0, deviated: 1, missed: 2, done: 3, due: 4, idle: 5 }
 
-/** Una fila por rutina activa, ordenadas: entrenando ahora, con desvíos, no entrenó, entrenó, sin registro. */
+/** Posición en la semana empezando por el lunes (lunes 0 … domingo 6). */
+const mondayIndex = (dow: number) => (dow + 6) % 7
+
+/** Una fila por rutina activa, ordenadas: entrenando ahora, con desvíos, no entrenó, entrenó, le toca hoy, sin registro. */
 export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; now: Date }): MonitorRow[] {
   const today = ymdLocal(opts.now)
   const logsByExercise = new Map<string, MonitorSetLog[]>()
@@ -124,10 +133,18 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
 
     if (!active) {
       const closed = days.filter((d) => dayLogById.get(d.id)?.status).length
+      const untouched = (d: MonitorDay) => !dayLogById.get(d.id)?.status && d.exercises.every((ex) => (logsByExercise.get(ex.id) ?? []).length === 0)
+      const todayDow = opts.now.getDay()
+      // Con día de la semana asignado: lo que le toca hoy y lo que dejó sin hacer en los días anteriores.
+      const dueToday = days.find((d) => d.day_of_week === todayDow && untouched(d))
+      const owed = days.filter((d) => d.day_of_week != null && mondayIndex(d.day_of_week) < mondayIndex(todayDow) && untouched(d))
+      const owedText = owed.length ? `No hizo ${owed.map((d) => `${labelOf(d)} (${WEEKDAY_LABELS[d.day_of_week!]})`).join(', ')}` : ''
+      if (dueToday) {
+        return { ...base, state: 'due', dayLabel: labelOf(dueToday), detail: owedText || 'Todavía no registró nada', pct: null, lastAt: null }
+      }
       const next = days.find((d) => !dayLogById.get(d.id)?.status)
-      const detail = days.length
-        ? `${closed} de ${plural(days.length, 'día', 'días')} esta semana${next ? ` · sigue ${labelOf(next)}` : ''}`
-        : 'La rutina no tiene días cargados'
+      const week = days.length ? `${closed} de ${plural(days.length, 'día', 'días')} esta semana` : 'La rutina no tiene días cargados'
+      const detail = owedText ? `${owedText} · ${week}` : days.length && next ? `${week} · sigue ${labelOf(next)}` : week
       return { ...base, state: 'idle', dayLabel: '', detail, pct: null, lastAt: null }
     }
 
@@ -191,7 +208,7 @@ export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRouti
   const { data, error } = await supabase
     .from('routines')
     .select(
-      'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, exercises:routine_exercises(id, exercise_id, sets, weight_kg)))',
+      'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, day_of_week, exercises:routine_exercises(id, exercise_id, sets, weight_kg)))',
     )
     .eq('owner_id', ownerId)
     .in('status', ['activa', 'por_vencer'])
