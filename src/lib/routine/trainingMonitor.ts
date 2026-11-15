@@ -26,6 +26,8 @@ export interface MonitorExercise {
   exercise_id: string
   sets: number | null
   weight_kg: number | null
+  /** Nombre del ejercicio en la biblioteca, para la actividad en vivo. */
+  name?: string | null
 }
 export interface MonitorDay {
   id: string
@@ -63,6 +65,8 @@ export interface MonitorDayLog {
   status: 'done' | 'missed' | null
   status_date: string | null
   missed_reason: string | null
+  /** Cuándo se guardó el cierre (ISO), para ubicarlo en la actividad en vivo. */
+  updated_at?: string | null
 }
 
 export interface MonitorRow {
@@ -305,6 +309,152 @@ export function weekActivity(opts: { routines: MonitorRoutine[]; setLogs: Monito
   })
 }
 
+// ───────────── Actividad en vivo ─────────────
+
+export interface MonitorEvent {
+  id: string
+  /** Momento del evento (ISO). */
+  at: string
+  routineId: string
+  studentName: string
+  avatarPath: string | null
+  kind: 'sets' | 'done' | 'missed'
+  /** «Press de banca» o «Día 1 · Torso A». */
+  title: string
+  /** «3 series · 40 kg × 10», «Cerró el día», el motivo… */
+  detail: string
+}
+
+/** Minutos entre dos series del mismo ejercicio para contarlas como un solo evento. */
+const FEED_MERGE_MINUTES = 12
+
+/**
+ * Lo que fue pasando hoy, de lo más nuevo a lo más viejo: series anotadas (agrupadas por ejercicio),
+ * días cerrados y avisos de «no entreno».
+ */
+export function monitorFeed(opts: { routines: MonitorRoutine[]; setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; now: Date; limit?: number }): MonitorEvent[] {
+  const today = ymdLocal(opts.now)
+  type Owner = { routineId: string; studentName: string; avatarPath: string | null; dayLabel: string; name: string }
+  const byExercise = new Map<string, Owner>()
+  const byDay = new Map<string, Owner>()
+  for (const r of opts.routines)
+    for (const b of r.blocks)
+      for (const d of b.days) {
+        const base = { routineId: r.id, studentName: r.student_name, avatarPath: r.avatar_path, dayLabel: labelOf(d) }
+        byDay.set(d.id, { ...base, name: labelOf(d) })
+        for (const ex of d.exercises) byExercise.set(ex.id, { ...base, name: ex.name?.trim() || 'Ejercicio' })
+      }
+
+  const events: MonitorEvent[] = []
+  const todays = opts.setLogs
+    .filter((l) => l.completed !== false && ymdLocal(new Date(l.updated_at)) === today && byExercise.has(l.routine_exercise_id))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+  // Series seguidas del mismo ejercicio → un evento («3 series · 40 kg × 10»).
+  const open = new Map<string, { event: MonitorEvent; count: number; oldest: string; last: MonitorSetLog }>()
+  for (const l of todays) {
+    const owner = byExercise.get(l.routine_exercise_id)!
+    const group = open.get(l.routine_exercise_id)
+    if (group && (new Date(group.oldest).getTime() - new Date(l.updated_at).getTime()) / 60_000 <= FEED_MERGE_MINUTES) {
+      group.count += 1
+      group.oldest = l.updated_at
+      group.event.detail = setsDetail(group.count, group.last)
+      continue
+    }
+    const event: MonitorEvent = {
+      id: `s:${l.routine_exercise_id}:${l.updated_at}`,
+      at: l.updated_at,
+      routineId: owner.routineId,
+      studentName: owner.studentName,
+      avatarPath: owner.avatarPath,
+      kind: 'sets',
+      title: owner.name,
+      detail: setsDetail(1, l),
+    }
+    events.push(event)
+    open.set(l.routine_exercise_id, { event, count: 1, oldest: l.updated_at, last: l })
+  }
+
+  for (const d of opts.dayLogs) {
+    const owner = byDay.get(d.routine_day_id)
+    if (!owner || !d.status || d.status_date !== today) continue
+    events.push({
+      id: `d:${d.routine_day_id}:${d.status}`,
+      // Sin hora guardada, el cierre va al final del día de hoy conocido: justo ahora.
+      at: d.updated_at && ymdLocal(new Date(d.updated_at)) === today ? d.updated_at : opts.now.toISOString(),
+      routineId: owner.routineId,
+      studentName: owner.studentName,
+      avatarPath: owner.avatarPath,
+      kind: d.status,
+      title: owner.dayLabel,
+      detail: d.status === 'done' ? 'Cerró el día' : d.missed_reason?.trim() || 'Avisó que no entrena',
+    })
+  }
+  return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, opts.limit ?? 40)
+}
+
+function setsDetail(count: number, last: MonitorSetLog): string {
+  const load = last.weight_kg != null ? `${fmtKg(last.weight_kg)} kg${last.reps != null ? ` × ${last.reps}` : ''}` : last.reps != null ? `${last.reps} repeticiones` : ''
+  return [plural(count, 'serie', 'series'), load].filter(Boolean).join(' · ')
+}
+const fmtKg = (n: number) => Number(n.toFixed(2)).toLocaleString('es-AR')
+
+// ───────────── Asistencia de la semana, alumno por alumno ─────────────
+
+export type WeekCell = 'trained' | 'missed' | 'due' | 'owed' | 'none' | 'future'
+
+export interface WeekMatrixRow {
+  routineId: string
+  studentId: string
+  studentName: string
+  avatarPath: string | null
+  /** De lunes a domingo. */
+  cells: WeekCell[]
+  trainedDays: number
+}
+
+/**
+ * Una fila por alumno y una celda por día de la semana en curso: entrenó, avisó que no, le toca hoy,
+ * lo debe (tenía ese día asignado y no lo registró) o nada.
+ */
+export function weekMatrix(opts: { routines: MonitorRoutine[]; setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; now: Date }): WeekMatrixRow[] {
+  const today = ymdLocal(opts.now)
+  const monday = new Date(opts.now.getFullYear(), opts.now.getMonth(), opts.now.getDate() - mondayIndex(opts.now.getDay()))
+  const week = Array.from({ length: 7 }, (_, i) => ymdLocal(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)))
+  const dayLogById = new Map(opts.dayLogs.map((d) => [d.routine_day_id, d]))
+  const logDatesByExercise = new Map<string, Set<string>>()
+  for (const l of opts.setLogs) {
+    if (l.completed === false) continue
+    const ymd = ymdLocal(new Date(l.updated_at))
+    const set = logDatesByExercise.get(l.routine_exercise_id)
+    if (set) set.add(ymd)
+    else logDatesByExercise.set(l.routine_exercise_id, new Set([ymd]))
+  }
+
+  return opts.routines
+    .map((r): WeekMatrixRow => {
+      const trained = new Set<string>()
+      const missed = new Set<string>()
+      for (const b of r.blocks)
+        for (const d of b.days) {
+          for (const ex of d.exercises) for (const ymd of logDatesByExercise.get(ex.id) ?? []) trained.add(ymd)
+          const log = dayLogById.get(d.id)
+          if (log?.status && log.status_date) (log.status === 'done' ? trained : missed).add(log.status_date)
+        }
+      // Días asignados de la semana en curso (según el día de la semana que cargó el entrenador).
+      const blocks = [...r.blocks].sort((a, b) => a.sort_order - b.sort_order)
+      const assigned = new Set((blocks[currentBlockIndex(blocks, today)]?.days ?? []).filter((d) => d.day_of_week != null).map((d) => mondayIndex(d.day_of_week!)))
+      const cells = week.map((ymd, i): WeekCell => {
+        if (trained.has(ymd)) return 'trained'
+        if (missed.has(ymd)) return 'missed'
+        if (ymd > today) return 'future'
+        if (assigned.has(i)) return ymd === today ? 'due' : 'owed'
+        return 'none'
+      })
+      return { routineId: r.id, studentId: r.student_id, studentName: r.student_name, avatarPath: r.avatar_path, cells, trainedDays: cells.filter((x) => x === 'trained').length }
+    })
+    .sort((a, b) => b.trainedDays - a.trainedDays || a.studentName.localeCompare(b.studentName, 'es'))
+}
+
 // ───────────── Datos ─────────────
 
 type RoutineRow = {
@@ -319,7 +469,7 @@ export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRouti
   const { data, error } = await supabase
     .from('routines')
     .select(
-      'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, day_of_week, exercises:routine_exercises(id, exercise_id, sets, weight_kg)))',
+      'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, day_of_week, exercises:routine_exercises(id, exercise_id, sets, weight_kg, exercise:exercise_library(name))))',
     )
     .eq('owner_id', ownerId)
     .in('status', ['activa', 'por_vencer'])
@@ -327,7 +477,22 @@ export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRouti
   if (error || !data) return []
   return (data as unknown as RoutineRow[])
     .filter((r) => r.student_id && r.student)
-    .map((r) => ({ id: r.id, student_id: r.student_id!, student_name: r.student!.full_name, avatar_path: r.student!.avatar_path, blocks: r.blocks ?? [] }))
+    .map((r) => ({
+      id: r.id,
+      student_id: r.student_id!,
+      student_name: r.student!.full_name,
+      avatar_path: r.student!.avatar_path,
+      blocks: (r.blocks ?? []).map((b) => ({
+        ...b,
+        days: (b.days ?? []).map((d) => ({
+          ...d,
+          exercises: (d.exercises ?? []).map((ex) => {
+            const { exercise, ...rest } = ex as MonitorExercise & { exercise?: { name: string | null } | null }
+            return { ...rest, name: exercise?.name ?? rest.name ?? null }
+          }),
+        })),
+      })),
+    }))
 }
 
 /** Lo anotado por los alumnos en esas rutinas. Sin las tablas (faltan las migraciones) devuelve vacío. */
@@ -345,7 +510,7 @@ export async function loadMonitorLogs(routineIds: string[]): Promise<{ setLogs: 
         .range(from, to),
     ),
     fetchAllPages<MonitorDayLog>((from, to) =>
-      supabase.from('routine_day_logs').select('routine_day_id, status, status_date, missed_reason').in('routine_id', routineIds).order('routine_day_id').range(from, to),
+      supabase.from('routine_day_logs').select('routine_day_id, status, status_date, missed_reason, updated_at').in('routine_id', routineIds).order('routine_day_id').range(from, to),
     ),
   ])
   return { setLogs, dayLogs }

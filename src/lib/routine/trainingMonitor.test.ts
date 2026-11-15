@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-import { buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
+import { monitorFeed, weekMatrix, buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
 
 const NOW = new Date(2026, 10, 16, 18, 0, 0) // lunes 16/11/2026, 18:00 hora local
 const TODAY = '2026-11-16'
@@ -181,5 +181,67 @@ describe('fetchAllPages', () => {
     })
     expect(rows).toHaveLength(2300)
     expect(calls).toEqual([[0, 999], [1000, 1999], [2000, 2999]])
+  })
+})
+
+describe('monitorFeed', () => {
+  it('agrupa las series seguidas de un ejercicio y ordena de lo más nuevo a lo más viejo', () => {
+    const r = routine('a', 'Juan')
+    r.blocks[1]!.days[0]!.exercises[0]!.name = 'Press de banca'
+    const events = monitorFeed({
+      routines: [r],
+      setLogs: [
+        { routine_exercise_id: 'a-w1-d0-press', set_number: 1, weight_kg: 40, reps: 10, completed: true, updated_at: minsAgo(20) },
+        { routine_exercise_id: 'a-w1-d0-press', set_number: 2, weight_kg: 40, reps: 10, completed: true, updated_at: minsAgo(16) },
+        { routine_exercise_id: 'a-w1-d0-press', set_number: 3, weight_kg: 42.5, reps: 8, completed: true, updated_at: minsAgo(12) },
+        { routine_exercise_id: 'a-w1-d0-remo', set_number: 1, weight_kg: null, reps: 12, completed: true, updated_at: minsAgo(3) },
+        { routine_exercise_id: 'a-w1-d0-remo', set_number: 2, weight_kg: 30, reps: 12, completed: false, updated_at: minsAgo(1) },
+      ] as never,
+      dayLogs: [],
+      now: NOW,
+    })
+    expect(events.map((e) => [e.title, e.detail])).toEqual([
+      ['Ejercicio', '1 serie · 12 repeticiones'],
+      ['Press de banca', '3 series · 42,5 kg × 8'],
+    ])
+  })
+
+  it('suma los cierres del día y los avisos de «no entreno» de hoy', () => {
+    const events = monitorFeed({
+      routines: [routine('a', 'Sofía'), routine('b', 'Lucía')],
+      setLogs: [],
+      dayLogs: [
+        { ...closed('a-w1-d0', 'done'), updated_at: minsAgo(30) },
+        { ...closed('b-w1-d1', 'missed', 'Me quedé sin tiempo'), updated_at: minsAgo(5) },
+        { routine_day_id: 'a-w1-d1', status: 'done', status_date: '2026-11-15', missed_reason: '', updated_at: '2026-11-15T20:00:00.000Z' },
+      ],
+      now: NOW,
+    })
+    expect(events.map((e) => [e.studentName, e.kind, e.title, e.detail])).toEqual([
+      ['Lucía', 'missed', 'Día 2 · Pierna', 'Me quedé sin tiempo'],
+      ['Sofía', 'done', 'Día 1 · Torso', 'Cerró el día'],
+    ])
+  })
+})
+
+describe('weekMatrix', () => {
+  it('marca por día: entrenó, avisó que no, le toca hoy, lo debe y lo que falta', () => {
+    // NOW es lunes 16; se mira el jueves 19 de esa semana.
+    const thursday = new Date(2026, 10, 19, 18, 0, 0)
+    const r = routine('a', 'Ana')
+    for (const b of r.blocks) {
+      b.days[0]!.day_of_week = 2 // martes
+      b.days[1]!.day_of_week = 4 // jueves
+    }
+    const other = routine('b', 'Bruno')
+    const rows = weekMatrix({
+      routines: [r, other],
+      setLogs: sets('b-w1-d0-press', 3, 40, new Date(2026, 10, 16, 19, 0, 0).toISOString()),
+      dayLogs: [{ routine_day_id: 'b-w1-d1', status: 'missed', status_date: '2026-11-18', missed_reason: '' }],
+      now: thursday,
+    })
+    expect(rows.map((x) => x.studentName)).toEqual(['Bruno', 'Ana'])
+    expect(rows[0]!.cells).toEqual(['trained', 'none', 'missed', 'none', 'future', 'future', 'future'])
+    expect(rows[1]!.cells).toEqual(['none', 'owed', 'none', 'due', 'future', 'future', 'future'])
   })
 })
