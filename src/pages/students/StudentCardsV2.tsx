@@ -4,20 +4,22 @@ import { Button } from '@/components/ui/Button'
 import { weekStatusOrEmpty } from '@/lib/checkIn/routineWeekProgress'
 import type { LatestWeekStatus } from '@/lib/checkIn/latestWeekStatus'
 import { effectivePaymentStatus } from '@/lib/studentPlanAssignments'
+import { TONE_TINT, type Tone } from '@/components/v2/ui'
 import { cn } from '@/lib/utils'
 import type { Student, StudentPlanAssignment } from '@/types/database'
 
-type Tile = { tone: string | null; value: string; hint: string }
+/** `tone` solo cuando hay algo para resolver; lo normal va sin color para que lo urgente se vea. */
+type Tile = { tone: Tone | null; value: string; hint: string }
 
 const NEUTRAL = 'bg-surface-elevated/60'
 
 /** Cómo viene la rutina: en qué semana está (según su último feedback) o si no tiene. */
 function routineTile(hasRoutine: boolean, totalWeeks: number, w: LatestWeekStatus): Tile {
   if (!hasRoutine) return { tone: null, value: '—', hint: 'Sin rutina activa' }
-  if (w.finished) return { tone: 'bg-pastel-rose text-pastel-rose-ink', value: 'Mes cerrado', hint: 'Armale la que sigue' }
-  if (w.lastWeek) return { tone: 'bg-pastel-butter text-pastel-butter-ink', value: 'Última semana', hint: totalWeeks ? `de ${totalWeeks}` : 'de su rutina' }
-  if (w.weekNumber && totalWeeks) return { tone: 'bg-pastel-mint text-pastel-mint-ink', value: `Semana ${w.weekNumber}`, hint: `de ${totalWeeks}` }
-  return { tone: 'bg-pastel-lavender text-pastel-lavender-ink', value: totalWeeks ? `${totalWeeks} semanas` : 'Con rutina', hint: 'Todavía sin feedback' }
+  if (w.finished) return { tone: 'rose', value: 'Mes cerrado', hint: 'Armale la que sigue' }
+  if (w.lastWeek) return { tone: 'butter', value: 'Última semana', hint: totalWeeks ? `de ${totalWeeks}` : 'de su rutina' }
+  if (w.weekNumber && totalWeeks) return { tone: null, value: `Semana ${w.weekNumber}`, hint: `de ${totalWeeks}` }
+  return { tone: null, value: totalWeeks ? `${totalWeeks} semanas` : 'Con rutina', hint: 'Todavía sin feedback' }
 }
 
 /** Plan contratado y cómo viene el pago. */
@@ -25,10 +27,10 @@ function planTile(plan: StudentPlanAssignment | undefined): Tile {
   if (!plan) return { tone: null, value: '—', hint: 'Sin plan' }
   const status = effectivePaymentStatus(plan)
   const name = plan.plan_name_snapshot
-  if (status === 'overdue') return { tone: 'bg-pastel-rose text-pastel-rose-ink', value: 'Pago vencido', hint: name }
-  if (status === 'pending') return { tone: 'bg-pastel-butter text-pastel-butter-ink', value: 'Pago pendiente', hint: name }
+  if (status === 'overdue') return { tone: 'rose', value: 'Pago vencido', hint: name }
+  if (status === 'pending') return { tone: 'butter', value: 'Pago pendiente', hint: name }
   if (status === 'cancelled') return { tone: null, value: 'Cancelado', hint: name }
-  return { tone: 'bg-pastel-mint text-pastel-mint-ink', value: 'Al día', hint: name }
+  return { tone: null, value: 'Al día', hint: name }
 }
 
 const STATUS_LABEL: Record<string, string> = { activo: 'Activo', inactivo: 'Inactivo', pausado: 'En pausa', suspendido: 'Suspendido' }
@@ -75,9 +77,12 @@ export function StudentCardsV2({
                 <p className="truncate text-base font-semibold leading-snug text-ink-primary">{s.full_name}</p>
                 <p className="truncate text-xs text-ink-muted">{s.email || s.phone || 'Sin contacto cargado'}</p>
               </div>
-              <span className={cn('shrink-0 rounded-md px-2 py-0.5 text-xs font-medium', active ? 'bg-status-ok/15 text-status-ok-ink' : 'bg-surface-elevated text-ink-muted')}>
-                {STATUS_LABEL[s.status ?? ''] ?? s.status ?? '—'}
-              </span>
+              {/* «Activo» es lo normal: la etiqueta aparece solo cuando no lo está. */}
+              {active ? null : (
+                <span className="shrink-0 rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-medium text-ink-secondary">
+                  {STATUS_LABEL[s.status ?? ''] ?? s.status ?? '—'}
+                </span>
+              )}
             </div>
 
             <dl className="grid grid-cols-2 gap-2">
@@ -87,7 +92,7 @@ export function StudentCardsV2({
                   ['Plan y pago', plan],
                 ] as const
               ).map(([label, t]) => (
-                <div key={label} className={cn('min-w-0 rounded-xl px-3 py-2.5', t.tone ? cn('hh-pastel', t.tone) : NEUTRAL)}>
+                <div key={label} className={cn('min-w-0 rounded-xl px-3 py-2.5', t.tone ? TONE_TINT[t.tone] : NEUTRAL)}>
                   <dt className={cn('text-xs', t.tone ? 'opacity-80' : 'text-ink-muted')}>{label}</dt>
                   <dd className={cn('truncate text-lg font-semibold leading-tight tabular-nums', !t.tone && 'text-ink-primary')}>{t.value}</dd>
                   <dd className={cn('truncate text-xs', t.tone ? 'opacity-80' : 'text-ink-muted')} title={t.hint}>
@@ -98,7 +103,7 @@ export function StudentCardsV2({
             </dl>
 
             {rmTestDueIds.has(s.id) ? (
-              <p className="hh-pastel -mt-1 rounded-lg bg-pastel-butter px-2.5 py-1.5 text-xs font-medium text-pastel-butter-ink" title="12 semanas de rutina desde el último test de RM">
+              <p className={cn('-mt-1 rounded-lg px-2.5 py-1.5 text-xs font-medium', TONE_TINT.butter)} title="12 semanas de rutina desde el último test de RM">
                 Toca testear RM
               </p>
             ) : null}

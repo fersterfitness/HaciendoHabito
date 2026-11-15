@@ -33,6 +33,20 @@ const TONE_INK: Record<Tone, string> = {
   rose: 'text-pastel-rose-ink',
 }
 
+/**
+ * Casillero que avisa algo: relleno pastel en modo claro y, en oscuro, un tinte del color con la letra
+ * en ese color. No lleva `hh-pastel`: en oscuro el relleno pleno encandila cuando hay muchos en pantalla.
+ * Usarlo solo donde hay algo para resolver; lo normal va en gris.
+ */
+export const TONE_TINT: Record<Tone, string> = {
+  lavender: 'bg-pastel-lavender text-pastel-lavender-ink dark:bg-pastel-lavender/15 dark:text-pastel-lavender',
+  peach: 'bg-pastel-peach text-pastel-peach-ink dark:bg-pastel-peach/15 dark:text-pastel-peach',
+  butter: 'bg-pastel-butter text-pastel-butter-ink dark:bg-pastel-butter/15 dark:text-pastel-butter',
+  mint: 'bg-pastel-mint text-pastel-mint-ink dark:bg-pastel-mint/15 dark:text-pastel-mint',
+  sky: 'bg-pastel-sky text-pastel-sky-ink dark:bg-pastel-sky/15 dark:text-pastel-sky',
+  rose: 'bg-pastel-rose text-pastel-rose-ink dark:bg-pastel-rose/15 dark:text-pastel-rose',
+}
+
 const TONE_ACCENT: Record<Tone, string> = {
   lavender: 'text-pastel-lavender-accent',
   peach: 'text-pastel-peach-accent',

@@ -3,17 +3,10 @@ import { es } from 'date-fns/locale'
 import { FolderOpen } from 'lucide-react'
 import { StudentAvatar } from '@/components/students/StudentAvatar'
 import { Button } from '@/components/ui/Button'
+import { TONE_TINT } from '@/components/v2/ui'
+import { NUTRITION_CONTROL_OVERDUE_DAYS } from '@/lib/dashboard/nutritionistOps'
 import { cn, formatNumber } from '@/lib/utils'
 import { formatNextConsult, type NutritionFollowupRow } from './NutritionPatientDirectory'
-
-const TONE = {
-  past: 'bg-pastel-rose text-pastel-rose-ink',
-  soon: 'bg-pastel-mint text-pastel-mint-ink',
-  far: 'bg-pastel-sky text-pastel-sky-ink',
-  none: '',
-} as const
-
-const STATUS: Record<keyof typeof TONE, string> = { past: 'Atrasado', soon: 'Esta semana', far: 'Con turno', none: 'Sin turno' }
 
 const shortDay = (iso: string) => format(parseISO(iso), 'd MMM', { locale: es })
 
@@ -36,6 +29,9 @@ export function NutritionPatientGridV2({
         const next = formatNextConsult(nextDate)
         const c = row.lastControl
         const controlDays = c ? differenceInCalendarDays(new Date(), parseISO(c.date)) : null
+        // Color solo cuando hay algo para resolver: turno atrasado o control vencido.
+        const late = next.tone === 'past'
+        const controlOverdue = controlDays != null && controlDays > NUTRITION_CONTROL_OVERDUE_DAYS
         const delta = c?.weightDelta != null && Math.abs(c.weightDelta) >= 0.05 ? c.weightDelta : null
         return (
           <li
@@ -60,27 +56,18 @@ export function NutritionPatientGridV2({
                   {row.followup?.last_consultation_date ? `Última consulta: ${shortDay(row.followup.last_consultation_date)}` : 'Todavía sin consultas'}
                 </p>
               </div>
-              <span
-                className={cn(
-                  'shrink-0 rounded-md px-2 py-0.5 text-xs font-medium',
-                  next.tone === 'none' ? 'bg-surface-elevated text-ink-muted' : cn('hh-pastel', TONE[next.tone]),
-                )}
-              >
-                {STATUS[next.tone]}
-              </span>
+              {late ? <span className={cn('shrink-0 rounded-md px-2 py-0.5 text-xs font-medium', TONE_TINT.rose)}>Atrasado</span> : null}
             </div>
 
             <dl className="grid grid-cols-2 gap-2">
-              <div className={cn('rounded-xl px-3 py-2.5', next.tone === 'none' ? 'bg-surface-elevated/60' : cn('hh-pastel', TONE[next.tone]))}>
-                <dt className={cn('text-xs', next.tone === 'none' ? 'text-ink-muted' : 'opacity-80')}>Próximo turno</dt>
-                <dd className={cn('text-lg font-semibold leading-tight tabular-nums', next.tone === 'none' && 'text-ink-primary')}>
-                  {nextDate ? shortDay(nextDate) : '—'}
-                </dd>
-                <dd className={cn('truncate text-xs', next.tone === 'none' ? 'text-ink-muted' : 'opacity-80')}>{nextDate ? next.sub : 'Sin agendar'}</dd>
+              <div className={cn('rounded-xl px-3 py-2.5', late ? TONE_TINT.rose : 'bg-surface-elevated/60')}>
+                <dt className={cn('text-xs', late ? 'opacity-80' : 'text-ink-muted')}>Próximo turno</dt>
+                <dd className={cn('text-lg font-semibold leading-tight tabular-nums', !late && 'text-ink-primary')}>{nextDate ? shortDay(nextDate) : '—'}</dd>
+                <dd className={cn('truncate text-xs', late ? 'opacity-80' : 'text-ink-muted')}>{nextDate ? next.sub : 'Sin agendar'}</dd>
               </div>
-              <div className={cn('rounded-xl px-3 py-2.5', c ? 'hh-pastel bg-pastel-lavender text-pastel-lavender-ink' : 'bg-surface-elevated/60')}>
-                <dt className={cn('text-xs', c ? 'opacity-80' : 'text-ink-muted')}>Último control</dt>
-                <dd className={cn('text-lg font-semibold leading-tight tabular-nums', !c && 'text-ink-primary')}>
+              <div className={cn('rounded-xl px-3 py-2.5', controlOverdue ? TONE_TINT.butter : 'bg-surface-elevated/60')}>
+                <dt className={cn('text-xs', controlOverdue ? 'opacity-80' : 'text-ink-muted')}>Último control</dt>
+                <dd className={cn('text-lg font-semibold leading-tight tabular-nums', !controlOverdue && 'text-ink-primary')}>
                   {c?.weight != null ? (
                     <>
                       {formatNumber(c.weight)}
@@ -92,7 +79,7 @@ export function NutritionPatientGridV2({
                     '—'
                   )}
                 </dd>
-                <dd className={cn('truncate text-xs', c ? 'opacity-80' : 'text-ink-muted')}>
+                <dd className={cn('truncate text-xs', controlOverdue ? 'opacity-80' : 'text-ink-muted')}>
                   {!c
                     ? 'Sin controles'
                     : `${delta != null ? `${delta > 0 ? '+' : '−'}${formatNumber(Math.abs(delta))} kg · ` : ''}${

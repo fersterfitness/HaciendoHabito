@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { TONE_TINT } from '@/components/v2/ui'
 import { useActiveStudents, useIncomes } from '@/data/finance'
 import { buildPaymentBoard } from '@/lib/finance/studentPayments'
 import { NUTRITION_CONTROL_OVERDUE_DAYS } from '@/lib/dashboard/nutritionistOps'
@@ -9,12 +10,12 @@ import { ATTENTION_GROUPS, buildAttention, type AttentionKind } from '@/lib/nutr
 import type { Income } from '@/types/database'
 import type { NutritionFollowupRow } from './NutritionPatientDirectory'
 
-/** Color del casillero de cada motivo. */
+/** Color del casillero de cada motivo (relleno pastel en claro, tinte en oscuro). */
 const TILE: Record<AttentionKind, string> = {
-  hoy: 'bg-pastel-mint text-pastel-mint-ink',
-  sintomas: 'bg-pastel-rose text-pastel-rose-ink',
-  pago: 'bg-pastel-butter text-pastel-butter-ink',
-  control: 'bg-pastel-lavender text-pastel-lavender-ink',
+  hoy: TONE_TINT.mint,
+  sintomas: TONE_TINT.rose,
+  pago: TONE_TINT.butter,
+  control: TONE_TINT.lavender,
 }
 
 const COLLAPSE_KEY = 'hh-attention-collapsed'
@@ -133,7 +134,7 @@ export function NutritionAttentionPanel({
             const shown = open ? g.items : g.items.slice(0, PER_GROUP)
             return (
               <div key={g.kind} className="min-w-0">
-                <p className={cn('hh-pastel mb-2 flex items-baseline gap-2 rounded-xl px-3.5 py-2.5', TILE[g.kind])}>
+                <p className={cn('mb-2 flex items-baseline gap-2 rounded-xl px-3.5 py-2.5', TILE[g.kind])}>
                   <span className="text-2xl font-semibold leading-none tabular-nums tracking-tight">{g.items.length}</span>
                   <span className="min-w-0 text-xs font-medium leading-tight">{g.title}</span>
                 </p>
