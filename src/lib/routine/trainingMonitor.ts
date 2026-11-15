@@ -194,6 +194,64 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
   )
 }
 
+// ───────────── Actividad de la semana ─────────────
+
+export interface WeekActivityDay {
+  /** yyyy-MM-dd */
+  ymd: string
+  /** «L», «M», «X»… */
+  short: string
+  /** «lunes» */
+  name: string
+  /** Alumnos que anotaron al menos una serie o cerraron un día como terminado. */
+  trained: number
+  /** Alumnos que avisaron que no entrenaban. */
+  missed: number
+  isToday: boolean
+  isFuture: boolean
+}
+
+const WEEK_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+/** De lunes a domingo de la semana en curso: cuántos alumnos entrenaron cada día. */
+export function weekActivity(opts: { routines: MonitorRoutine[]; setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; now: Date }): WeekActivityDay[] {
+  const studentByExercise = new Map<string, string>()
+  const studentByDay = new Map<string, string>()
+  for (const r of opts.routines)
+    for (const b of r.blocks)
+      for (const d of b.days) {
+        studentByDay.set(d.id, r.student_id)
+        for (const ex of d.exercises) studentByExercise.set(ex.id, r.student_id)
+      }
+  const trained = new Map<string, Set<string>>()
+  const missed = new Map<string, Set<string>>()
+  const add = (m: Map<string, Set<string>>, ymd: string, student: string) => {
+    const set = m.get(ymd)
+    if (set) set.add(student)
+    else m.set(ymd, new Set([student]))
+  }
+  for (const l of opts.setLogs) {
+    const student = studentByExercise.get(l.routine_exercise_id)
+    if (student && l.completed !== false) add(trained, ymdLocal(new Date(l.updated_at)), student)
+  }
+  for (const l of opts.dayLogs) {
+    const student = studentByDay.get(l.routine_day_id)
+    if (!student || !l.status || !l.status_date) continue
+    add(l.status === 'done' ? trained : missed, l.status_date, student)
+  }
+
+  const today = ymdLocal(opts.now)
+  const monday = new Date(opts.now.getFullYear(), opts.now.getMonth(), opts.now.getDate() - mondayIndex(opts.now.getDay()))
+  return WEEK_SHORT.map((short, i) => {
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)
+    const ymd = ymdLocal(d)
+    const t = trained.get(ymd) ?? new Set<string>()
+    // Quien entrenó ese día no cuenta además como «no entrenó».
+    const m = [...(missed.get(ymd) ?? [])].filter((st) => !t.has(st)).length
+    return { ymd, short, name: WEEKDAY_LABELS[d.getDay()], trained: t.size, missed: m, isToday: ymd === today, isFuture: ymd > today }
+  })
+}
+
 // ───────────── Datos ─────────────
 
 type RoutineRow = {

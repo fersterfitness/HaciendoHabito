@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-import { buildTrainingMonitor, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
+import { buildTrainingMonitor, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
 
 const NOW = new Date(2026, 10, 16, 18, 0, 0) // lunes 16/11/2026, 18:00 hora local
 const TODAY = '2026-11-16'
@@ -126,5 +126,32 @@ describe('buildTrainingMonitor', () => {
       [closed('dev-w1-d0', 'done'), closed('done-w1-d0', 'done'), closed('miss-w1-d0', 'missed')],
     )
     expect(rows.map((r) => r.state)).toEqual(['live', 'deviated', 'missed', 'done', 'idle'])
+  })
+})
+
+describe('weekActivity', () => {
+  it('cuenta alumnos distintos por día, de lunes a domingo', () => {
+    const a = routine('a', 'Ana')
+    const b = routine('b', 'Bruno')
+    const week = weekActivity({
+      routines: [a, b],
+      setLogs: [...sets('a-w1-d0-press', 3, 40, minsAgo(60)), ...sets('b-w1-d0-press', 2, 40, minsAgo(30)), ...sets('b-w1-d0-remo', 1, null, minsAgo(20))],
+      dayLogs: [{ routine_day_id: 'a-w1-d1', status: 'missed', status_date: '2026-11-17', missed_reason: '' }],
+      now: NOW,
+    })
+    expect(week.map((d) => d.short).join('')).toBe('LMXJVSD')
+    expect(week[0]).toMatchObject({ ymd: TODAY, trained: 2, missed: 0, isToday: true, isFuture: false })
+    expect(week[1]).toMatchObject({ ymd: '2026-11-17', trained: 0, missed: 1, isFuture: true })
+  })
+
+  it('quien entrenó y además marcó «no entrené» ese día cuenta una sola vez, como entrenado', () => {
+    const a = routine('a', 'Ana')
+    const week = weekActivity({
+      routines: [a],
+      setLogs: sets('a-w1-d0-press', 1, 40, minsAgo(10)),
+      dayLogs: [{ routine_day_id: 'a-w1-d1', status: 'missed', status_date: TODAY, missed_reason: '' }],
+      now: NOW,
+    })
+    expect(week[0]).toMatchObject({ trained: 1, missed: 0 })
   })
 })
