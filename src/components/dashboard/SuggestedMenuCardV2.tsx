@@ -28,7 +28,7 @@ export function SuggestedMenuCardV2({ onUse, onSeeAll }: { onUse: (menu: Seasona
             e.currentTarget.style.visibility = 'hidden'
           }}
         />
-        <span className="hh-pastel absolute left-3 top-3 rounded-md bg-pastel-butter px-2 py-0.5 text-xs font-medium text-pastel-butter-ink">Menú de la época</span>
+        <span className="hh-pastel hh-pastel-solid absolute left-3 top-3 rounded-md bg-pastel-butter px-2 py-0.5 text-xs font-medium text-pastel-butter-ink">Menú de la época</span>
       </div>
       <div className="flex flex-col gap-3 p-4">
         <div>

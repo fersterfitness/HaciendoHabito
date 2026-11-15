@@ -756,7 +756,8 @@
  * Texto sobre un fondo de color: siempre oscuro (sobre el tinte en claro y sobre el color pleno en oscuro).
  * `.hh-pastel` lo marca cada pieza que pinta ese fondo.
  */
-.dark .hh-pastel {
+html:not(.ui-v2).dark .hh-pastel,
+html.ui-v2.dark .hh-pastel-solid {
   --ink-primary: 30 20 36;
   --ink-secondary: 44 32 52;
   --ink-muted: 60 46 68;
@@ -1117,13 +1118,44 @@ html.ui-v2 .hh-alert-icon {
   background-color: rgb(var(--tone) / 0.12);
 }
 
-html.ui-v2.dark .hh-pastel {
+/* Relleno pleno (letra oscura encima): solo donde el color va sobre una foto. */
+html.ui-v2.dark .hh-pastel-solid {
   --ink-primary: 22 22 22;
   --ink-secondary: 44 44 43;
   --ink-muted: 70 70 68;
   --surface-base: 22 22 22;
   --surface-card: 22 22 22;
   --surface-border: 22 22 22;
+}
+
+/*
+ * v2 en oscuro: los casilleros y etiquetas de color van como tinte (fondo oscuro con un toque del color
+ * y la letra en ese color), no como bloque pleno: con muchos en pantalla, el relleno encandila.
+ * La tinta del tono pasa a ser el color mismo, así `text-pastel-x-ink` se sigue leyendo adentro.
+ */
+html.ui-v2.dark .hh-pastel.bg-pastel-rose:not(.hh-pastel-solid) {
+  background-color: rgb(var(--pastel-rose) / 0.15);
+  --pastel-rose-ink: var(--pastel-rose);
+}
+html.ui-v2.dark .hh-pastel.bg-pastel-lavender:not(.hh-pastel-solid) {
+  background-color: rgb(var(--pastel-lavender) / 0.15);
+  --pastel-lavender-ink: var(--pastel-lavender);
+}
+html.ui-v2.dark .hh-pastel.bg-pastel-peach:not(.hh-pastel-solid) {
+  background-color: rgb(var(--pastel-peach) / 0.15);
+  --pastel-peach-ink: var(--pastel-peach);
+}
+html.ui-v2.dark .hh-pastel.bg-pastel-sky:not(.hh-pastel-solid) {
+  background-color: rgb(var(--pastel-sky) / 0.15);
+  --pastel-sky-ink: var(--pastel-sky);
+}
+html.ui-v2.dark .hh-pastel.bg-pastel-mint:not(.hh-pastel-solid) {
+  background-color: rgb(var(--pastel-mint) / 0.15);
+  --pastel-mint-ink: var(--pastel-mint);
+}
+html.ui-v2.dark .hh-pastel.bg-pastel-butter:not(.hh-pastel-solid) {
+  background-color: rgb(var(--pastel-butter) / 0.15);
+  --pastel-butter-ink: var(--pastel-butter);
 }
 
 /* Amarillo: igual que el flúor, es relleno y no letra. */
