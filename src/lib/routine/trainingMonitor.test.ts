@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-import { buildTrainingMonitor, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
+import { buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
 
 const NOW = new Date(2026, 10, 16, 18, 0, 0) // lunes 16/11/2026, 18:00 hora local
 const TODAY = '2026-11-16'
@@ -153,5 +153,33 @@ describe('weekActivity', () => {
       now: NOW,
     })
     expect(week[0]).toMatchObject({ trained: 1, missed: 0 })
+  })
+})
+
+describe('monitorSummary', () => {
+  it('suma series, kilos movidos y avance promedio de hoy', () => {
+    const a = routine('a', 'Ana')
+    const setLogs: MonitorSetLog[] = [
+      ...sets('a-w1-d0-press', 3, 40, minsAgo(5)).map((l) => ({ ...l, reps: 10 })),
+      ...sets('a-w1-d0-remo', 1, null, minsAgo(4)),
+      // De ayer: no cuenta.
+      ...sets('a-w1-d1-sent', 2, 80, new Date(NOW.getTime() - 26 * 3_600_000).toISOString()).map((l) => ({ ...l, reps: 5 })),
+    ]
+    const rows = buildTrainingMonitor({ routines: [a], setLogs, dayLogs: [], now: NOW })
+    const sum = monitorSummary({ rows, setLogs, now: NOW })
+    expect(sum).toMatchObject({ setsToday: 4, volumeKg: 1200, doneToday: 4, plannedToday: 6, avgPct: 67, peakHour: 17 })
+    expect(rows[0]).toMatchObject({ state: 'live', doneSets: 4, plannedSets: 6, volumeKg: 1200 })
+  })
+})
+
+describe('fetchAllPages', () => {
+  it('sigue pidiendo páginas hasta que una viene incompleta', async () => {
+    const calls: [number, number][] = []
+    const rows = await fetchAllPages<number>(async (from, to) => {
+      calls.push([from, to])
+      return { data: Array.from({ length: from === 2000 ? 300 : 1000 }, (_, i) => from + i), error: null }
+    })
+    expect(rows).toHaveLength(2300)
+    expect(calls).toEqual([[0, 999], [1000, 1999], [2000, 2999]])
   })
 })

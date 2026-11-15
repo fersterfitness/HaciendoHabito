@@ -20,6 +20,7 @@ import { brandHex } from '@/theme/brandColors'
 /** Inicio y Alumnos también a demanda: traen gráficos y PDF, que no hacen falta para el login. */
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const DashboardV2Page = lazy(() => import('@/pages/v2/DashboardV2Page').then((m) => ({ default: m.DashboardV2Page })))
+const TrainingMonitorPage = lazy(() => import('@/pages/v2/TrainingMonitorPage').then((m) => ({ default: m.TrainingMonitorPage })))
 const StudentsPage = lazy(() => import('@/pages/students/StudentsPage').then((m) => ({ default: m.StudentsPage })))
 const StudentFormPage = lazy(() => import('@/pages/students/StudentFormPage').then((m) => ({ default: m.StudentFormPage })))
 const StudentDetailPage = lazy(() => import('@/pages/students/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })))
@@ -208,6 +209,7 @@ function renderLoggedInRoutes({
 
       <Route path="habits" element={canSeeTraining ? withPageSuspense(<HabitsPage />) : <Navigate to="/dashboard" replace />} />
 
+      <Route path="monitor" element={canSeeTraining ? withPageSuspense(<TrainingMonitorPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="feedback" element={canSeeTraining ? withPageSuspense(<FeedbackPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="feedback/new" element={canSeeTraining ? withPageSuspense(<FeedbackFormPage />) : <Navigate to="/dashboard" replace />} />
       <Route path="feedback/:id" element={canSeeTraining ? withPageSuspense(<FeedbackDetailPage />) : <Navigate to="/dashboard" replace />} />

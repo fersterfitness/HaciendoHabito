@@ -54,6 +54,7 @@ export interface MonitorSetLog {
   routine_exercise_id: string
   set_number: number
   weight_kg: number | null
+  reps?: number | null
   completed: boolean | null
   updated_at: string
 }
@@ -78,6 +79,11 @@ export interface MonitorRow {
   pct: number | null
   /** Cuándo anotó por última vez hoy (ISO), para ordenar. */
   lastAt: string | null
+  /** Series hechas y planificadas del día que está entrenando (cuando registró algo hoy). */
+  doneSets?: number
+  plannedSets?: number
+  /** Kilos movidos en ese día: suma de kilos × repeticiones de las series que tienen los dos datos. */
+  volumeKg?: number
 }
 
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -158,10 +164,14 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
     const planned = active.exercises.reduce((sum, ex) => sum + (ex.sets ?? 0), 0)
     const done = active.exercises.reduce((sum, ex) => sum + Math.min(doneSets(ex).length, ex.sets ?? doneSets(ex).length), 0)
     const pct = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : null
+    const volumeKg = Math.round(
+      active.exercises.reduce((sum, ex) => sum + doneSets(ex).reduce((v, l) => v + (l.weight_kg != null && l.reps != null ? l.weight_kg * l.reps : 0), 0), 0),
+    )
+    const extra = { doneSets: done, plannedSets: planned, volumeKg }
 
     const minutesAgo = lastAt ? (opts.now.getTime() - new Date(lastAt).getTime()) / 60_000 : Infinity
     if (status !== 'done' && minutesAgo <= LIVE_WINDOW_MINUTES) {
-      return { ...base, state: 'live', dayLabel, detail: planned > 0 ? `Serie ${done} de ${planned}` : plural(done, 'serie anotada', 'series anotadas'), pct, lastAt }
+      return { ...base, ...extra, state: 'live', dayLabel, detail: planned > 0 ? `Serie ${done} de ${planned}` : plural(done, 'serie anotada', 'series anotadas'), pct, lastAt }
     }
 
     // Desvíos: ejercicios sin ninguna serie (solo si cerró el día) y cargas por debajo de lo planificado
@@ -183,15 +193,58 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
     const lowPct = status === 'done' && pct != null && pct < DEVIATION_MIN_PCT
     if (notes.length || lowPct) {
       if (pct != null) notes.push(`${notes.length ? 'hizo' : 'Hizo'} el ${pct} %`)
-      return { ...base, state: 'deviated', dayLabel, detail: notes.join(' · '), pct, lastAt }
+      return { ...base, ...extra, state: 'deviated', dayLabel, detail: notes.join(' · '), pct, lastAt }
     }
     const detail = status === 'done' ? (pct != null ? `Cumplió el ${pct} % del día` : 'Día terminado') : pct != null ? `Lleva el ${pct} % · todavía no cerró el día` : 'Todavía no cerró el día'
-    return { ...base, state: 'done', dayLabel, detail, pct, lastAt }
+    return { ...base, ...extra, state: 'done', dayLabel, detail, pct, lastAt }
   })
 
   return rows.sort(
     (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || (b.lastAt ?? '').localeCompare(a.lastAt ?? '') || a.studentName.localeCompare(b.studentName, 'es'),
   )
+}
+
+// ───────────── El día en números ─────────────
+
+export interface MonitorSummary {
+  /** Series anotadas hoy por todos los alumnos. */
+  setsToday: number
+  /** Kilos movidos hoy (kilos × repeticiones). */
+  volumeKg: number
+  /** Promedio del avance de quienes entrenaron hoy (0–100), o `null` si nadie tiene series planificadas. */
+  avgPct: number | null
+  doneToday: number
+  plannedToday: number
+  /** Series por hora del día (0–23), para ver a qué hora entrenan. */
+  hourly: number[]
+  /** Hora con más series, o `null` si no hubo. */
+  peakHour: number | null
+}
+
+export function monitorSummary(opts: { rows: MonitorRow[]; setLogs: MonitorSetLog[]; now: Date }): MonitorSummary {
+  const today = ymdLocal(opts.now)
+  const hourly = Array<number>(24).fill(0)
+  let setsToday = 0
+  let volumeKg = 0
+  for (const l of opts.setLogs) {
+    if (l.completed === false) continue
+    const at = new Date(l.updated_at)
+    if (ymdLocal(at) !== today) continue
+    setsToday += 1
+    hourly[at.getHours()] += 1
+    if (l.weight_kg != null && l.reps != null) volumeKg += l.weight_kg * l.reps
+  }
+  const trained = opts.rows.filter((r) => (r.state === 'live' || r.state === 'done' || r.state === 'deviated') && r.pct != null)
+  const max = Math.max(...hourly)
+  return {
+    setsToday,
+    volumeKg: Math.round(volumeKg),
+    avgPct: trained.length ? Math.round(trained.reduce((n, r) => n + r.pct!, 0) / trained.length) : null,
+    doneToday: trained.reduce((n, r) => n + (r.doneSets ?? 0), 0),
+    plannedToday: trained.reduce((n, r) => n + (r.plannedSets ?? 0), 0),
+    hourly,
+    peakHour: max > 0 ? hourly.indexOf(max) : null,
+  }
 }
 
 // ───────────── Actividad de la semana ─────────────
@@ -280,9 +333,39 @@ export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRouti
 /** Lo anotado por los alumnos en esas rutinas. Sin las tablas (faltan las migraciones) devuelve vacío. */
 export async function loadMonitorLogs(routineIds: string[]): Promise<{ setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[] }> {
   if (routineIds.length === 0) return { setLogs: [], dayLogs: [] }
-  const [sets, days] = await Promise.all([
-    supabase.from('routine_exercise_logs').select('routine_exercise_id, set_number, weight_kg, completed, updated_at').in('routine_id', routineIds).limit(20000),
-    supabase.from('routine_day_logs').select('routine_day_id, status, status_date, missed_reason').in('routine_id', routineIds).limit(5000),
+  const since = new Date(Date.now() - MONITOR_LOOKBACK_DAYS * 86_400_000).toISOString()
+  const [setLogs, dayLogs] = await Promise.all([
+    fetchAllPages<MonitorSetLog>((from, to) =>
+      supabase
+        .from('routine_exercise_logs')
+        .select('routine_exercise_id, set_number, weight_kg, reps, completed, updated_at')
+        .in('routine_id', routineIds)
+        .gte('updated_at', since)
+        .order('updated_at', { ascending: false })
+        .range(from, to),
+    ),
+    fetchAllPages<MonitorDayLog>((from, to) =>
+      supabase.from('routine_day_logs').select('routine_day_id, status, status_date, missed_reason').in('routine_id', routineIds).order('routine_day_id').range(from, to),
+    ),
   ])
-  return { setLogs: (sets.data ?? []) as MonitorSetLog[], dayLogs: (days.data ?? []) as MonitorDayLog[] }
+  return { setLogs, dayLogs }
+}
+
+/** Días hacia atrás que mira el monitor: hoy, la semana en curso y la anterior (para comparar cargas). */
+export const MONITOR_LOOKBACK_DAYS = 21
+const PAGE = 1000
+
+/**
+ * Trae todas las filas de una consulta, de a páginas. La API corta cada respuesta en 1000 filas aunque
+ * se pida más: sin esto, pasado ese tope los datos más nuevos quedan afuera sin avisar.
+ */
+export async function fetchAllPages<T>(page: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>, maxPages = 20): Promise<T[]> {
+  const out: T[] = []
+  for (let i = 0; i < maxPages; i++) {
+    const { data, error } = await page(i * PAGE, i * PAGE + PAGE - 1)
+    const rows = (error ? [] : ((data as T[] | null) ?? []))
+    out.push(...rows)
+    if (rows.length < PAGE) break
+  }
+  return out
 }

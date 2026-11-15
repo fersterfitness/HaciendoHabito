@@ -57,7 +57,7 @@ import type { SeasonalMenuTemplate } from '@/lib/nutrition/seasonalMenuLibrary'
 import { GettingStartedV2 } from '@/components/dashboard/GettingStartedV2'
 import { UrgentMessagesPanelV2 } from '@/components/dashboard/UrgentMessagesPanelV2'
 import { TrainingAlertsPanelV2 } from '@/components/dashboard/TrainingAlertsPanelV2'
-import { TrainingMonitorCardV2 } from '@/components/dashboard/TrainingMonitorCardV2'
+import { TrainingLiveTileV2 } from '@/components/dashboard/TrainingMonitorCardV2'
 import { MonthReviewsPanelV2 } from '@/components/dashboard/MonthReviewsPanelV2'
 import { AdminNewStudentsPanelV2 } from '@/components/dashboard/AdminNewStudentsPanelV2'
 import { DaySummaryCardV2 } from '@/components/dashboard/DaySummaryCardV2'
@@ -811,6 +811,9 @@ export function DashboardV2Page() {
     />
   )
 
+  // Entrenador: tarjetita con los entrenamientos en progreso; el detalle está en su propia pantalla.
+  const liveTile = user && trains ? <TrainingLiveTileV2 ownerId={user.id} onOpen={() => navigate('/monitor')} /> : null
+
   const nextConsult =
     isNutri && nutri.next ? (
       <NextConsultCardV2
@@ -891,11 +894,6 @@ export function DashboardV2Page() {
         {user ? (
           <div className="mb-8 empty:hidden">
             <UrgentMessagesPanelV2 ownerId={user.id} onOpenStudent={(sid) => navigate(`/students/${sid}`)} />
-          </div>
-        ) : null}
-        {user && trains ? (
-          <div className="mb-8 empty:hidden">
-            <TrainingMonitorCardV2 ownerId={user.id} onOpenRoutine={(rid) => navigate(`/routines/${rid}`)} />
           </div>
         ) : null}
         {user && trains ? (
@@ -1560,6 +1558,7 @@ export function DashboardV2Page() {
             {/* Compu: los números del mes debajo de los turnos (la nutricionista los tiene a la izquierda). */}
             {isNutri ? null : (
               <div className="hidden lg:block">
+                {liveTile ? <div className="mb-4 empty:hidden">{liveTile}</div> : null}
                 <SectionTitleV2>Este mes</SectionTitleV2>
                 {monthStripV2}
               </div>
@@ -1606,6 +1605,7 @@ export function DashboardV2Page() {
 
         {/* Los números del mes: después de lo de hoy. */}
         <section className="mt-10 lg:hidden">
+          {liveTile ? <div className="mb-6 empty:hidden">{liveTile}</div> : null}
           <SectionTitleV2>Este mes</SectionTitleV2>
         {/* Celu: los tres números en una franja. */}
         <div className="md:hidden">

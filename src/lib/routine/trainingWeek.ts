@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { currentBlockIndex } from '@/lib/routine/sharedRoutine'
+import { fetchAllPages } from '@/lib/routine/trainingMonitor'
 import type { DayStatus } from '@/lib/routine/studentTrainingLog'
 
 /**
@@ -192,11 +193,15 @@ export async function loadWeekAlertData(ownerId: string): Promise<{ routines: Al
   const ids = raw.map((r) => r.id)
   if (ids.length === 0) return { routines: [], status: new Map() }
 
-  const [dayLogs, setLogs] = await Promise.all([
-    supabase.from('routine_day_logs').select('routine_day_id, status').in('routine_id', ids),
-    supabase.from('routine_exercise_logs').select('routine_exercise_id').in('routine_id', ids),
+  // De a páginas: la API corta cada respuesta en 1000 filas, y con varias rutinas se pasa de ese tope.
+  const [dayLogs, setRows] = await Promise.all([
+    supabase.from('routine_day_logs').select('routine_day_id, status').in('routine_id', ids).range(0, 4999),
+    fetchAllPages<{ routine_exercise_id: string }>((from, to) =>
+      supabase.from('routine_exercise_logs').select('routine_exercise_id').in('routine_id', ids).order('routine_exercise_id').range(from, to),
+    ),
   ])
   if (dayLogs.error) return null
+  const setLogs = { data: setRows }
 
   const status = new Map<string, DayStatus | null>()
   for (const l of (dayLogs.data ?? []) as { routine_day_id: string; status: DayStatus | null }[]) status.set(l.routine_day_id, l.status)

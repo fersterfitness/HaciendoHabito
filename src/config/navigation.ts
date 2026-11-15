@@ -20,6 +20,7 @@ import {
   Send,
   Receipt,
   Store,
+  Activity,
 } from 'lucide-react'
 import type { AppRole } from '@/types/database'
 
@@ -235,6 +236,7 @@ const V2_FEEDBACK: NavItem = {
   icon: MessageSquare,
   hint: 'Lo que te cuentan tus alumnos',
 }
+const V2_MONITOR: NavItem = { label: 'Monitor de entrenamiento', shortLabel: 'Monitor', href: '/monitor', icon: Activity, hint: 'Quién entrena ahora y cómo va el día' }
 const V2_EXERCISES: NavItem = {
   label: 'Ejercicios y circuitos',
   shortLabel: 'Ejercicios',
@@ -279,7 +281,7 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
   }
   if (role === 'admin') {
     return {
-      main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_FEEDBACK, finance!],
+      main: [NAV_HOME, NAV_APPOINTMENTS, V2_STUDENTS, V2_MONITOR, V2_FEEDBACK, finance!],
       more: [
         { label: 'Nutrición', href: '/nutrition', icon: Salad, exactMatch: true },
         NAV_NUTRITION_PATIENT_ANTHRO[1]!,
@@ -297,6 +299,7 @@ export function getNavV2(role: AppRole | undefined): NavV2 {
       { ...NAV_HOME, hint: 'Lo que tenés para hoy' },
       { ...NAV_APPOINTMENTS, hint: 'Agenda y recordatorios' },
       V2_STUDENTS,
+      V2_MONITOR,
       V2_FEEDBACK,
       { ...finance!, hint: 'Cobros y gastos' },
     ],
