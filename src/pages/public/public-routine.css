@@ -4,6 +4,7 @@
   --ink: #242424; --ink-2: #575757; --muted: #777777; --faint: #B5B5B5;
   --accent: #292929; --accent-soft: #ECECEC; --ring: #888888;
   --hero: #161616; --err: #C2253D; --arc-track: #E4E4E4;
+  --brand: #FF5A0A; --brand-ink: #C24100; --brand-soft: #FFEDE2; --ok: #1F9D55;
   --r-xl: 28px; --r-lg: 24px; --r-md: 18px;
   --shadow: 0 8px 26px -18px rgba(0,0,0,.12);
   min-height: 100vh; background: var(--canvas); color: var(--ink); color-scheme: light;
@@ -505,3 +506,35 @@
 .hhr-stars { display: flex; gap: 4px; }
 .hhr-stars button { border: 0; background: transparent; padding: 4px; color: #C9C9C9; }
 .hhr-stars button[aria-pressed="true"] { color: #F5A524; }
+
+/* nov3 · marca del entrenador: naranja del logo en acentos, verde = terminé, rojo = no pude. */
+.hhr-space-label b { color: var(--brand); font-weight: 800; }
+.hhr .hhr-hero-brand { background: radial-gradient(120% 90% at 100% 0%, rgba(255, 90, 10, .38), rgba(255, 90, 10, 0) 60%), #111; }
+.hhr-hero-logo { display: block; width: 46px; height: 46px; }
+.hhr-hero-logo .hhr-brand-mark { width: 46px; height: 46px; margin: 0; }
+.hhr-hero-brand .hhr-hero-heading { max-width: 100%; }
+.hhr-hero-heading span { display: block; color: var(--brand); text-transform: uppercase; letter-spacing: -.4px; }
+.hhr-hero-brand .hhr-hero-kicker { color: #fff; }
+.hhr-close-actions { gap: 8px; width: 100%; }
+.hhr .hhr-cta-ok { background: var(--ok); }
+.hhr .hhr-cta-ok:hover { background: #1A8A4A; }
+.hhr .hhr-cta-miss { background: #FBF1F2; color: var(--err); border: 1px solid #E3C9CD; }
+.hhr .hhr-cta-miss:hover { background: #F7E4E7; }
+.hhr-urgent-hint { margin: 0; text-align: center; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+.hhr button:focus-visible, .hhr a:focus-visible, .hhr summary:focus-visible, .hhr input:focus-visible { outline-color: var(--brand); }
+.hhr .hhr-progress-fill, .hhr .hhr-fb-bar span, .hhr .hhr-steps span.is-on { background: var(--brand); }
+.hhr .hhr-now, .hhr .hhr-dot, .hhr .hhr-fb-badge::before { background: var(--brand); }
+.hhr .hhr-fb-badge { color: var(--brand-ink); }
+.hhr .hhr-avatar { background: var(--brand-soft); color: var(--brand-ink); }
+.hhr .hhr-week[aria-pressed="true"] { box-shadow: inset 0 -3px 0 var(--brand); }
+.hhr-circuit-note { margin: 0 0 10px; display: grid; gap: 2px; padding: 10px 12px; border-radius: 14px; background: var(--brand-soft); color: var(--ink); font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.hhr-circuit-note b { font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--brand-ink); }
+.hhr-circuit-note.is-default { background: none; padding: 0 2px; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+/* Escalas del chequeo con color: q1 = peor, q5 = mejor. */
+.hhr-scale.is-toned button.q1 { --q: #E5484D; --q-soft: #FDECEC; }
+.hhr-scale.is-toned button.q2 { --q: #F0782D; --q-soft: #FEF0E6; }
+.hhr-scale.is-toned button.q3 { --q: #D99A00; --q-soft: #FDF5DD; }
+.hhr-scale.is-toned button.q4 { --q: #5BAF3E; --q-soft: #EDF7E8; }
+.hhr-scale.is-toned button.q5 { --q: #1F9D55; --q-soft: #E5F5EC; }
+.hhr-scale.is-toned button { background: var(--q-soft); color: var(--q); }
+.hhr-scale.is-toned button[aria-pressed="true"] { background: var(--q); color: #fff; }

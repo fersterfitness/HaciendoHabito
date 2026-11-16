@@ -1,4 +1,4 @@
-import { Fragment, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, type FormEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -169,6 +169,15 @@ function Mascot({ athlete, mood, className }: { athlete: Athlete; mood: 'pause' 
   return <img className={className ?? 'hhr-mascot'} src={`/routine/mascots/${athlete}-${mood}.webp`} alt="" onError={() => setFailed(true)} />
 }
 
+/** Aclaración del circuito que escribe el entrenador (vueltas, pausas, macropausa): está en el primer ejercicio que la tenga. */
+function circuitNoteOf(items: SharedRoutineExercise[]): string {
+  for (const ex of items) {
+    const note = parseExerciseMeta(ex.technical_notes).meta.circuitNote?.trim()
+    if (note) return note
+  }
+  return ''
+}
+
 export function PublicRoutinePage() {
   const { token = '' } = useParams()
   const [state, setState] = useState<{ status: 'loading' } | { status: 'error' } | { status: 'ok'; data: SharedRoutine | null }>({
@@ -184,8 +193,6 @@ export function PublicRoutinePage() {
   const trainRef = useRef<HTMLElement | null>(null)
   // Notas, esfuerzo, chequeo y cierre de cada día. `null`: todavía no está activado en la base.
   const [extras, setExtras] = useState<TrainingExtras | null>(null)
-  /** Días en los que eligió «Responder después» el chequeo. */
-  const [skippedCheckin, setSkippedCheckin] = useState<Record<string, boolean>>({})
 
   // Ciclo, devolución de fin de mes y recordatorio de pago. `null`: todavía no está activado.
   const [studentExtras, setStudentExtras] = useState<StudentExtras | null>(null)
@@ -386,7 +393,7 @@ export function PublicRoutinePage() {
   const reviewDone = reviewSent || (!!reviewDayId && !!studentExtras?.reviewed_days.includes(reviewDayId))
   const isWoman = /^(f|mujer|femenin)/i.test((data.student_gender ?? data.feedback?.gender ?? '').trim())
   const askCheckin =
-    !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0 && !skippedCheckin[selectedDay.id]
+    !!selectedDay && !!dayLog && selectedDay.exercises.length > 0 && !hasCheckin(dayLog) && !dayLog.status && selectedProgress.done === 0
   // La lista prioriza explorar la rutina; cada alumno abre el ejercicio que va a realizar.
   const isOpen = (id: string) => !!openMap[id]
   const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !isOpen(id) }))
@@ -432,7 +439,7 @@ export function PublicRoutinePage() {
     <Shell>
       <div className="hhr-masthead">
         <span className="hhr-wordmark"><BrandMark /> haciéndolo<span>hábito</span><span className="hhr-brand-period">.</span></span>
-        <span className="hhr-space-label">TU ESPACIO DE ENTRENAMIENTO</span>
+        <span className="hhr-space-label">TODO EMPIEZA CUANDO ESTÁS <b>HACIÉNDOLO HÁBITO</b></span>
       </div>
       <div className={showBar ? 'hhr-app has-bar' : 'hhr-app'}>
         <aside className="hhr-side">
@@ -457,12 +464,13 @@ export function PublicRoutinePage() {
             ) : null}
           </header>
 
-          <div className={`hhr-hero hhr-hero-${athlete ?? 'neutral'}`}>
+          <div className="hhr-hero hhr-hero-brand">
             <div className="hhr-hero-top">
               <span className="hhr-hero-kicker">{blocks.length > 1 ? `Semana ${currentWeek + 1} de ${blocks.length}` : 'Esta semana'}</span>
               {until ? <span className="hhr-hero-until">Hasta el {until}</span> : null}
             </div>
-            <h2 className="hhr-hero-heading">Un poco más fuerte.<br />Un día a la vez.</h2>
+            <span className="hhr-hero-logo" aria-hidden><BrandMark /></span>
+            <h2 className="hhr-hero-heading">Todo empieza cuando estás <span>haciéndolo hábito</span></h2>
             <button type="button" className="hhr-start" onClick={() => trainRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
               <Play size={13} fill="currentColor" aria-hidden /> A entrenar
             </button>
@@ -632,7 +640,6 @@ export function PublicRoutinePage() {
                   log={dayLog}
                   proLabel={proLabel}
                   onSaved={onDayLog}
-                  onSkip={() => setSkippedCheckin((prev) => ({ ...prev, [selectedDay.id]: true }))}
                 />
               ) : null}
               {selectedDay && dayLog && !askCheckin ? <DayCheckinSummary log={dayLog} /> : null}
@@ -671,9 +678,17 @@ export function PublicRoutinePage() {
                             Circuito
                           </b>
                           <span>
-                            {g.items.length} ejercicios seguidos, sin pausa entre ellos
+                            {g.items.length} ejercicios seguidos
                           </span>
                         </p>
+                        {circuitNoteOf(g.items) ? (
+                          <p className="hhr-circuit-note">
+                            <b>Cómo se hace</b>
+                            {circuitNoteOf(g.items)}
+                          </p>
+                        ) : (
+                          <p className="hhr-circuit-note is-default">Sin pausa entre ellos.</p>
+                        )}
                         <div className="hhr-circuit-list">
                           {g.items.map((ex, i) => (
                             <Fragment key={ex.id}>
@@ -686,7 +701,7 @@ export function PublicRoutinePage() {
                             </Fragment>
                           ))}
                         </div>
-                        <p className="hhr-circuit-foot">Descansá recién cuando termines los {g.items.length}.</p>
+                        {circuitNoteOf(g.items) ? null : <p className="hhr-circuit-foot">Descansá recién cuando termines los {g.items.length}.</p>}
                       </div>
                     ) : (
                       card(g.items[0]!)
@@ -747,15 +762,17 @@ export function PublicRoutinePage() {
 
 /** Ícono de la app (el del proyecto: naranja con la marca en negro), igual al de `public/logo-brand.png`. */
 function BrandMark() {
+  // Id propio por instancia: si el primero queda oculto (cabecera en el celu), el degradé de los demás no se pierde.
+  const gid = `hhr-brand-orange-${useId().replace(/:/g, '')}`
   return (
     <svg className="hhr-brand-mark" viewBox="113 188 374 380" aria-hidden>
       <defs>
-        <linearGradient id="hhr-brand-orange" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#FF7A1A" />
           <stop offset="1" stopColor="#FF4D00" />
         </linearGradient>
       </defs>
-      <rect x="113" y="188" width="374" height="380" rx="84" fill="url(#hhr-brand-orange)" />
+      <rect x="113" y="188" width="374" height="380" rx="84" fill={`url(#${gid})`} />
       <path d="M188 325 262 248V368H300L188 498Z M412 248V425L340 498V368H300Z" fill="#111111" />
     </svg>
   )

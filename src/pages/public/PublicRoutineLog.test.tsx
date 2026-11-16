@@ -130,11 +130,11 @@ describe('registro del alumno en la rutina por link', () => {
     expect(host.querySelector('.hhr-checkin-line')?.textContent).toContain('Sueño 4/5')
   })
 
-  it('«Responder después» deja entrenar sin el chequeo', async () => {
+  it('el chequeo es obligatorio: no se puede dejar para después', async () => {
     await open({ exercises: {}, days: {} })
-    await click(button('Responder después'))
-    expect(host.querySelector('.hhr-ex-head')).not.toBeNull()
-    expect(saveSharedDayCheckin).not.toHaveBeenCalled()
+    expect(button('Responder después')).toBeUndefined()
+    expect(host.querySelector('.hhr-ex-head')).toBeNull()
+    expect(button('Comenzar entreno')!.disabled).toBe(true)
   })
 
   it('cierra el día como terminado con el esfuerzo de la sesión', async () => {

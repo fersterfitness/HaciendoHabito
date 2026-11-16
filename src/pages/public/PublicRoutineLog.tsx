@@ -29,11 +29,15 @@ function ymdLabel(ymd: string | null): string {
 }
 
 /** Botones 1…max, uno elegido. Tocar el elegido lo saca. */
-function Scale({ max, value, onChange, label }: { max: number; value: number | null; onChange: (v: number | null) => void; label: string }) {
+/**
+ * Botones del 1 al `max`. Con `good` (de 1 a 5) cada número lleva su color, de rojo (mal) a verde (bien):
+ * «high» si 5 es lo mejor (sueño, energía) y «low» si 1 es lo mejor (estrés, molestias).
+ */
+function Scale({ max, value, onChange, label, good }: { max: number; value: number | null; onChange: (v: number | null) => void; label: string; good?: 'high' | 'low' }) {
   return (
-    <div className={max > 5 ? 'hhr-scale is-wide' : 'hhr-scale'} role="group" aria-label={label}>
+    <div className={max > 5 ? 'hhr-scale is-wide' : good ? 'hhr-scale is-toned' : 'hhr-scale'} role="group" aria-label={label}>
       {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
-        <button key={n} type="button" aria-pressed={value === n} onClick={() => onChange(value === n ? null : n)}>
+        <button key={n} type="button" className={good ? `q${good === 'high' ? n : max + 1 - n}` : undefined} aria-pressed={value === n} onClick={() => onChange(value === n ? null : n)}>
           {n}
         </button>
       ))}
@@ -129,14 +133,12 @@ export function DayCheckinCard({
   log,
   proLabel,
   onSaved,
-  onSkip,
 }: {
   token: string
   dayId: string
   log: DayLog
   proLabel: string
   onSaved: (dayId: string, patch: Partial<DayLog>) => void
-  onSkip: () => void
 }) {
   const [v, setV] = useState({ sleep: log.sleep, energy: log.energy, stress: log.stress, soreness: log.soreness })
   const [note, setNote] = useState(log.checkin_note)
@@ -172,7 +174,7 @@ export function DayCheckinCard({
       {CHECKIN_SCALES.map((s) => (
         <div key={s.key} className="hhr-field">
           <span>{s.label}</span>
-          <Scale max={5} value={v[s.key]} label={s.label} onChange={(n) => setV((cur) => ({ ...cur, [s.key]: n }))} />
+          <Scale max={5} value={v[s.key]} label={s.label} good={s.key === 'stress' || s.key === 'soreness' ? 'low' : 'high'} onChange={(n) => setV((cur) => ({ ...cur, [s.key]: n }))} />
           <span className="hhr-scale-ends">
             <i>1 · {s.low}</i>
             <i>5 · {s.high}</i>
@@ -187,9 +189,6 @@ export function DayCheckinCard({
       <div className="hhr-log-actions">
         <button type="button" className="hhr-cta" disabled={!answered || busy} onClick={() => void submit()}>
           {busy ? 'Guardando…' : 'Comenzar entreno'}
-        </button>
-        <button type="button" className="hhr-link" onClick={onSkip}>
-          Responder después
         </button>
       </div>
       {!answered ? <p className="hhr-save">Elegí un número en cada pregunta para empezar.</p> : null}
@@ -348,11 +347,11 @@ export function DayCloseCard({
 
   return (
     <section className="hhr-close-actions" aria-label="Cerrar el día">
-      <button type="button" className="hhr-cta" onClick={() => setMode('done')}>
+      <button type="button" className="hhr-cta hhr-cta-ok" onClick={() => setMode('done')}>
         <Check size={16} strokeWidth={2.6} aria-hidden /> Terminé este entrenamiento
       </button>
-      <button type="button" className="hhr-link" onClick={() => setMode('missed')}>
-        No pude entrenar este día
+      <button type="button" className="hhr-cta hhr-cta-miss" onClick={() => setMode('missed')}>
+        <X size={16} strokeWidth={2.6} aria-hidden /> No pude entrenar este día
       </button>
     </section>
   )
@@ -409,6 +408,9 @@ export function UrgentCard({ token, proLabel }: { token: string; proLabel: strin
         <button type="button" className="hhr-urgent-btn" onClick={() => setOpen(true)}>
           <AlertTriangle size={15} strokeWidth={2} aria-hidden /> Consulta urgente
         </button>
+      )}
+      {open || sent ? null : (
+        <p className="hhr-urgent-hint">Usalo si hay algo muy urgente o importante: {proLabel} recibe una notificación para leerlo lo antes posible.</p>
       )}
     </section>
   )
