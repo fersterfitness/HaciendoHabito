@@ -21,15 +21,7 @@ import {
   ChevronRight,
   MoreHorizontal,
   Archive,
-  LayoutGrid,
-  List,
-  ArrowUp,
-  ArrowDown,
-  ChevronsUpDown,
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { fetchAllPages } from '@/lib/routine/trainingMonitor'
 import { useStudents } from '@/hooks/useStudents'
 import { fetchCurrentAssignmentsForStudents, PAYMENT_STATUS_LABELS, effectivePaymentStatus } from '@/lib/studentPlanAssignments'
 import type { PlanAssignmentPaymentStatus } from '@/types/database'
@@ -37,7 +29,7 @@ import type { StudentPlanAssignment } from '@/types/database'
 import { StudentTagChips } from '@/components/students/StudentTagChips'
 import { studentTrainerTags } from '@/lib/students/studentTrainerPrefs'
 import { Header } from '@/components/layout/Header'
-import { SegmentedV2, TONE_TINT } from '@/components/v2/ui'
+import { SegmentedV2 } from '@/components/v2/ui'
 import { IS_V2 } from '@/lib/uiVersion'
 import { AdvisoriesSectionNav } from '@/components/layout/AdvisoriesSectionNav'
 import { WomenCycleOverview } from '@/components/students/WomenCycleOverview'
@@ -295,52 +287,6 @@ function sortStudentsClone(
       break
   }
   return copy
-}
-
-/** v2 · orden por columna de la tabla (clic en el encabezado). Pisa al «Ordenar» mientras está puesto. */
-type ColKey = 'name' | 'status' | 'routine' | 'last' | 'pay' | 'expiry'
-type ColSort = { key: ColKey; dir: 'asc' | 'desc' }
-const STATUS_RANK: Record<string, number> = { activo: 0, pausado: 1, inactivo: 2, baja: 3 }
-const PAY_RANK: Record<string, number> = { overdue: 0, pending: 1, paid: 2, cancelled: 3 }
-
-function sortStudentsByColumn(
-  list: Student[],
-  sort: ColSort,
-  ctx: { remainingWeeks: (id: string) => number; lastTrained: Map<string, string>; payStatus: (id: string) => string | null },
-): Student[] {
-  const nameCmp = (a: Student, b: Student) => a.full_name.localeCompare(b.full_name, 'es')
-  const primary = (a: Student, b: Student): number => {
-    switch (sort.key) {
-      case 'name':
-        return nameCmp(a, b)
-      case 'status':
-        return (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9)
-      case 'routine':
-        return ctx.remainingWeeks(a.id) - ctx.remainingWeeks(b.id)
-      case 'last':
-        // Ascendente: los que hace más que no entrenan (o nunca) primero.
-        return (ctx.lastTrained.get(a.id) ?? '').localeCompare(ctx.lastTrained.get(b.id) ?? '')
-      case 'pay':
-        return (PAY_RANK[ctx.payStatus(a.id) ?? ''] ?? 9) - (PAY_RANK[ctx.payStatus(b.id) ?? ''] ?? 9)
-      case 'expiry':
-        return comparePlanEnd(a.plan_end_date, b.plan_end_date)
-    }
-  }
-  const sign = sort.dir === 'asc' ? 1 : -1
-  return [...list].sort((a, b) => sign * primary(a, b) || nameCmp(a, b))
-}
-
-/** «Hoy», «Ayer», «Hace 5 días»… desde la última serie anotada. */
-function lastTrainedLabel(iso: string | undefined): { text: string; tone: 'ok' | 'warn' | 'bad' | 'none' } {
-  if (!iso) return { text: 'Sin registros', tone: 'none' }
-  const d = new Date(iso)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const day = new Date(d)
-  day.setHours(0, 0, 0, 0)
-  const days = Math.round((today.getTime() - day.getTime()) / 86_400_000)
-  const text = days <= 0 ? 'Hoy' : days === 1 ? 'Ayer' : `Hace ${days} días`
-  return { text, tone: days <= 4 ? 'ok' : days <= 10 ? 'warn' : 'bad' }
 }
 
 function exportStudentsCSV(students: Student[]) {
@@ -692,32 +638,8 @@ export function StudentsPage() {
   const [deleting, setDeleting] = useState(false)
   const [activeRoutineStudentIds, setActiveRoutineStudentIds] = useState<Set<string>>(new Set())
   const [weekByStudent, setWeekByStudent] = useState<Map<string, LatestWeekStatus>>(() => new Map())
-  // v2: la lista se ve en tarjetas (con color) o en tabla; se recuerda en este navegador.
-  // Sin preferencia guardada: tabla en la compu, tarjetas en el celu.
-  const [listView, setListView] = useState<'cards' | 'table'>(() => {
-    let saved: string | null = null
-    try {
-      saved = localStorage.getItem('hh-students-view')
-    } catch {
-      /* sin storage */
-    }
-    if (saved === 'table' || saved === 'cards') return saved
-    return typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches ? 'table' : 'cards'
-  })
-  const [colSort, setColSort] = useState<ColSort | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
-  const [bulkBusy, setBulkBusy] = useState(false)
-  // Última serie anotada por alumno (últimos 45 días), para la columna «Último entreno».
-  const [lastTrainedByStudent, setLastTrainedByStudent] = useState<Map<string, string>>(() => new Map())
-  const [filterExtra, setFilterExtra] = useState<'' | 'sin_rutina' | 'debe'>('')
-  const chooseListView = (v: 'cards' | 'table') => {
-    setListView(v)
-    try {
-      localStorage.setItem('hh-students-view', v)
-    } catch {
-      /* sin storage: dura hasta recargar */
-    }
-  }
+  // v2: la lista va siempre en tarjetas (se probó la tabla y se prefirieron las tarjetas).
+  const listView: 'cards' | 'table' = 'cards'
   const [weeksByStudent, setWeeksByStudent] = useState<Map<string, number>>(() => new Map())
   const [rmTestDueIds, setRmTestDueIds] = useState<Set<string>>(() => new Set())
   const [hasMealPlanStudentIds, setHasMealPlanStudentIds] = useState<Set<string>>(new Set())
@@ -757,21 +679,6 @@ export function StudentsPage() {
         for (const [sid, rid] of routineOfStudent) weeks.set(sid, blockCounts.get(rid) ?? 0)
         setWeeksByStudent(weeks)
       })
-    if (IS_V2) {
-      const since = new Date(Date.now() - 45 * 86_400_000).toISOString()
-      void fetchAllPages<{ student_id: string; updated_at: string }>((from, to) =>
-        supabase
-          .from('routine_exercise_logs')
-          .select('student_id, updated_at')
-          .gte('updated_at', since)
-          .order('updated_at', { ascending: false })
-          .range(from, to),
-      ).then((rows) => {
-        const m = new Map<string, string>()
-        for (const r of rows) if (!m.has(r.student_id) || r.updated_at > m.get(r.student_id)!) m.set(r.student_id, r.updated_at)
-        setLastTrainedByStudent(m)
-      })
-    }
   }, [fetchStudents, user])
 
   useEffect(() => {
@@ -900,10 +807,8 @@ export function StudentsPage() {
     if (filterTag && !studentTrainerTags(s).includes(filterTag)) return false
     if (filterGender === 'F' && s.gender !== 'F') return false
     if (filterGender === 'M' && s.gender !== 'M') return false
-    if (filterExtra === 'sin_rutina' && (s.status !== 'activo' || activeRoutineStudentIds.has(s.id))) return false
-    if (filterExtra === 'debe' && !(currentPlanByStudent[s.id] && effectivePaymentStatus(currentPlanByStudent[s.id]) === 'overdue')) return false
     return true
-  }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag, filterGender, filterExtra, activeRoutineStudentIds, currentPlanByStudent])
+  }), [localStudents, filterLevel, filterStatus, filterExpiry, filterTag, filterGender])
 
   const v2Summary = useMemo(() => {
     let activos = 0
@@ -919,25 +824,17 @@ export function StudentsPage() {
         else if (d < 0) vencido++
       }
     }
-    let sinRutina = 0
-    let debe = 0
-    for (const s of localStudents) {
-      if (s.status === 'activo' && !activeRoutineStudentIds.has(s.id)) sinRutina++
-      const a = currentPlanByStudent[s.id]
-      if (a && effectivePaymentStatus(a) === 'overdue') debe++
-    }
-    return { total: localStudents.length, activos, pausados, pronto, vencido, sinRutina, debe }
-  }, [localStudents, activeRoutineStudentIds, currentPlanByStudent])
+    return { total: localStudents.length, activos, pausados, pronto, vencido }
+  }, [localStudents])
   const [showDeleted, setShowDeleted] = useState(false)
 
   /** v2: un solo selector rápido para estado y vencimiento del plan. */
-  type Quick = 'all' | 'activo' | 'pausado' | 'pronto' | 'vencido' | 'sin_rutina' | 'debe'
-  const quick: Quick = filterExtra || filterExpiry || (filterStatus === 'activo' || filterStatus === 'pausado' ? filterStatus : 'all')
+  type Quick = 'all' | 'activo' | 'pausado' | 'pronto' | 'vencido'
+  const quick: Quick = filterExpiry || (filterStatus === 'activo' || filterStatus === 'pausado' ? filterStatus : 'all')
   const setQuick = (q: Quick) => {
     const next: Quick = q === quick ? 'all' : q
     setFilterStatus(next === 'activo' || next === 'pausado' ? next : '')
     setFilterExpiry(next === 'pronto' || next === 'vencido' ? next : '')
-    setFilterExtra(next === 'sin_rutina' || next === 'debe' ? next : '')
   }
   const quickOptions = (
     [
@@ -946,8 +843,6 @@ export function StudentsPage() {
       { value: 'pausado' as Quick, label: 'Pausados', count: v2Summary.pausados },
       { value: 'pronto' as Quick, label: 'Por vencer', count: v2Summary.pronto },
       { value: 'vencido' as Quick, label: 'Vencidos', count: v2Summary.vencido },
-      { value: 'sin_rutina' as Quick, label: 'Sin rutina', count: v2Summary.sinRutina },
-      { value: 'debe' as Quick, label: 'Deben', count: v2Summary.debe },
     ]
   ).filter((o) => o.value === 'all' || o.count > 0 || o.value === quick)
 
@@ -975,41 +870,9 @@ export function StudentsPage() {
   }, [weekByStudent, weeksByStudent])
 
   const sortedForTable = useMemo(
-    () =>
-      colSort
-        ? sortStudentsByColumn(filtered, colSort, {
-            remainingWeeks: remainingWeeksOf,
-            lastTrained: lastTrainedByStudent,
-            payStatus: (id) => (currentPlanByStudent[id] ? effectivePaymentStatus(currentPlanByStudent[id]) : null),
-          })
-        : sortStudentsClone(filtered, tableSort, remainingWeeksOf),
-    [filtered, tableSort, remainingWeeksOf, colSort, lastTrainedByStudent, currentPlanByStudent],
+    () => sortStudentsClone(filtered, tableSort, remainingWeeksOf),
+    [filtered, tableSort, remainingWeeksOf],
   )
-
-  /** Clic en un encabezado: ascendente → descendente → vuelve al orden de «Ordenar». */
-  const sortColumn = (key: ColKey) =>
-    setColSort((cur) => (cur?.key !== key ? { key, dir: 'asc' } : cur.dir === 'asc' ? { key, dir: 'desc' } : null))
-
-  // La selección se limpia si cambian los filtros (para no actuar sobre alumnos que ya no se ven).
-  useEffect(() => {
-    setSelectedIds(new Set())
-  }, [filtered])
-
-  async function bulkSetStatus(status: StudentStatus) {
-    const ids = [...selectedIds]
-    if (!ids.length) return
-    setBulkBusy(true)
-    const { error } = await supabase.from('students').update({ status }).in('id', ids)
-    setBulkBusy(false)
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-    const set = new Set(ids)
-    setLocalStudents((prev) => prev.map((s) => (set.has(s.id) ? { ...s, status } : s)))
-    toast.success(ids.length === 1 ? 'Estado actualizado' : `${ids.length} ${entityLabel.toLowerCase()} actualizados`)
-    setSelectedIds(new Set())
-  }
 
   const visibleForTable = useMemo(
     () => sortedForTable.slice(0, tableVisibleCount),
@@ -1063,15 +926,7 @@ export function StudentsPage() {
                   filterGender={filterGender}
                   setFilterGender={setFilterGender}
                 />
-                <div className="hidden gap-1 sm:inline-flex" role="group" aria-label="Vista">
-                  <Button type="button" size="iconSm" variant={listView === 'cards' ? 'secondary' : 'ghost'} aria-label="Ver en tarjetas" aria-pressed={listView === 'cards'} onClick={() => chooseListView('cards')}>
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" size="iconSm" variant={listView === 'table' ? 'secondary' : 'ghost'} aria-label="Ver en tabla" aria-pressed={listView === 'table'} onClick={() => chooseListView('table')}>
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-                <SortDropdown value={tableSort} onChange={(v) => { setColSort(null); setTableSort(v) }} />
+                <SortDropdown value={tableSort} onChange={setTableSort} />
                 <MoreActionsMenu
                   onExport={() => exportStudentsCSV(filtered)}
                   showDeleted={showDeleted}
@@ -1161,7 +1016,7 @@ export function StudentsPage() {
               allTags={allTags}
             />
 
-            <SortDropdown value={tableSort} onChange={(v) => { setColSort(null); setTableSort(v) }} />
+            <SortDropdown value={tableSort} onChange={setTableSort} />
 
             {filterLevel && (
               <span className={directoryFilterChipClassName}>
@@ -1248,44 +1103,7 @@ export function StudentsPage() {
                 currentPlanByStudent={currentPlanByStudent}
               />
             ) : (
-            <>
-            {IS_V2 && selectedIds.size > 0 ? (
-              <div
-                role="toolbar"
-                aria-label="Acciones sobre la selección"
-                className="sticky top-2 z-[2] mb-3 hidden flex-wrap items-center gap-2 rounded-2xl border border-surface-border bg-surface-card px-3 py-2 shadow-card sm:flex"
-              >
-                <span className="pr-1 text-xs font-semibold tabular-nums text-ink-primary">
-                  {selectedIds.size} {selectedIds.size === 1 ? 'seleccionado' : 'seleccionados'}
-                </span>
-                <span className="h-4 w-px bg-surface-border" aria-hidden />
-                <span className="text-2xs text-ink-muted">Pasar a</span>
-                {STATUS_OPTIONS.map((o) => (
-                  <Button key={o.value} type="button" size="sm" variant="secondary" disabled={bulkBusy} onClick={() => void bulkSetStatus(o.value)}>
-                    {o.label}
-                  </Button>
-                ))}
-                <span className="h-4 w-px bg-surface-border" aria-hidden />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  icon={<Download className="h-3.5 w-3.5" aria-hidden />}
-                  onClick={() => exportStudentsCSV(localStudents.filter((s) => selectedIds.has(s.id)))}
-                >
-                  Exportar
-                </Button>
-                <Button type="button" size="sm" variant="ghost" className="ml-auto" onClick={() => setSelectedIds(new Set())}>
-                  Quitar selección
-                </Button>
-              </div>
-            ) : null}
             <StudentDirectoryTable
-              colSort={colSort}
-              onSortColumn={sortColumn}
-              lastTrainedByStudent={lastTrainedByStudent}
-              selectedIds={selectedIds}
-              onSelectedIdsChange={setSelectedIds}
               entityLabel={entityLabel}
               entityLabelColumn={role === 'nutritionist' ? 'Paciente' : 'Alumno'}
               sortSubtitle={SORT_SUBTITLE[tableSort]}
@@ -1304,7 +1122,6 @@ export function StudentsPage() {
               onStatusChanged={handleStatusChanged}
               onFilterTag={setFilterTag}
             />
-            </>
             )}
             {sortedForTable.length > tableVisibleCount ? (
               <div className="flex justify-center border-t border-surface-border/80 py-4">
@@ -1380,79 +1197,7 @@ export function StudentsPage() {
   )
 }
 
-/** v2 · encabezado que ordena al hacer clic (con `aria-sort`). */
-function SortTh({ label, col, sort, onSort, className }: { label: string; col: ColKey; sort: ColSort | null; onSort: (k: ColKey) => void; className?: string }) {
-  const active = sort?.key === col
-  const Icon = !active ? ChevronsUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown
-  return (
-    <th scope="col" aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('whitespace-nowrap px-4 py-2 sm:px-5', className)}>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onSort(col)}
-        className={cn('-mx-1.5 h-7 gap-1 px-1.5 text-3xs font-semibold', active ? 'text-ink-primary' : 'text-ink-muted')}
-      >
-        {label}
-        <Icon className={cn('h-3 w-3', active ? 'opacity-100' : 'opacity-40')} aria-hidden />
-      </Button>
-    </th>
-  )
-}
-
-/** v2 · columna «Último entreno». */
-function LastTrainedCell({ iso, expectTraining }: { iso: string | undefined; expectTraining: boolean }) {
-  const { text, tone } = lastTrainedLabel(iso)
-  const title = iso ? new Date(iso).toLocaleString('es-AR') : 'Sin series anotadas en los últimos 45 días'
-  // Pastel suave solo cuando hace rato que no entrena alguien que debería (activo y con rutina); lo demás, en gris.
-  if (expectTraining && iso && tone !== 'ok') {
-    return <SoftPill tone={tone === 'warn' ? 'butter' : 'peach'} title={title}>{text}</SoftPill>
-  }
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 text-xs tabular-nums', expectTraining && iso ? 'text-ink-primary' : 'text-ink-muted')} title={title}>
-      {expectTraining && tone === 'ok' ? <span className="h-1.5 w-1.5 rounded-full bg-pastel-mint-accent" aria-hidden /> : null}
-      {text}
-    </span>
-  )
-}
-
-/** v2 · columna «Vence»: fecha del plan y cuánto falta. */
-function ExpiryCell({ date }: { date: string | null }) {
-  if (!date) return <span className="text-xs text-ink-muted">—</span>
-  const days = daysUntil(date)
-  const when = format(new Date(date + 'T00:00:00'), "d MMM", { locale: es })
-  const sub = days < 0 ? `Venció hace ${-days} ${days === -1 ? 'día' : 'días'}` : days === 0 ? 'Vence hoy' : `En ${days} ${days === 1 ? 'día' : 'días'}`
-  return (
-    <div className="flex flex-col gap-0.5 whitespace-nowrap">
-      <span className="text-xs tabular-nums text-ink-primary">{when}</span>
-      {days < 0 ? <SoftPill tone="rose">{sub}</SoftPill> : days <= 7 ? <SoftPill tone="butter">{sub}</SoftPill> : <span className="text-2xs text-ink-muted">{sub}</span>}
-    </div>
-  )
-}
-
-/** v2 · vencimiento en una línea, para debajo del plan. */
-function ExpiryInline({ date }: { date: string }) {
-  const days = daysUntil(date)
-  if (days < 0) return <SoftPill tone="rose">Venció hace {-days} {days === -1 ? 'día' : 'días'}</SoftPill>
-  if (days <= 7) return <SoftPill tone="butter">{days === 0 ? 'Vence hoy' : `Vence en ${days} ${days === 1 ? 'día' : 'días'}`}</SoftPill>
-  return <span className="text-2xs text-ink-muted">Vence {format(new Date(date + 'T00:00:00'), 'd MMM', { locale: es })}</span>
-}
-
-/** v2 · etiqueta pastel chiquita (los tonos de la app, sin rojo/amarillo saturado). */
-function SoftPill({ tone, title, children }: { tone: 'rose' | 'butter' | 'peach' | 'mint'; title?: string; children: React.ReactNode }) {
-  return (
-    <span title={title} className={cn('inline-flex w-fit items-center whitespace-nowrap rounded-full px-2 py-0.5 text-2xs font-medium tabular-nums', TONE_TINT[tone])}>
-      {children}
-    </span>
-  )
-}
-
 function StudentDirectoryTable({
-  colSort = null,
-  onSortColumn,
-  lastTrainedByStudent,
-  selectedIds,
-  onSelectedIdsChange,
   entityLabel,
   entityLabelColumn,
   sortSubtitle,
@@ -1471,11 +1216,6 @@ function StudentDirectoryTable({
   hasMealPlanStudentIds,
   currentPlanByStudent,
 }: {
-  colSort?: ColSort | null
-  onSortColumn?: (k: ColKey) => void
-  lastTrainedByStudent?: Map<string, string>
-  selectedIds?: Set<string>
-  onSelectedIdsChange?: (ids: Set<string>) => void
   entityLabel: string
   entityLabelColumn: string
   sortSubtitle: string
@@ -1506,16 +1246,6 @@ function StudentDirectoryTable({
           : 'bg-brand-tertiary/12 text-brand-tertiary ring-1 ring-inset ring-brand-tertiary/20'
         : 'text-ink-muted/35',
     )
-  // v2 con orden por columna y selección (la página se los pasa).
-  const rich = IS_V2 && !!onSortColumn && !!selectedIds && !!onSelectedIdsChange
-  const allChecked = rich && students.length > 0 && students.every((s) => selectedIds!.has(s.id))
-  const someChecked = rich && students.some((s) => selectedIds!.has(s.id))
-  const toggleOne = (id: string) => {
-    const next = new Set(selectedIds)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    onSelectedIdsChange?.(next)
-  }
   const tableHeader = (
     <div className="flex items-center justify-between gap-3 border-b border-surface-border/70 bg-surface-elevated/30 px-4 py-2.5 sm:py-3">
       <div className="min-w-0 flex items-baseline gap-2">
@@ -1626,31 +1356,8 @@ function StudentDirectoryTable({
       {/* ── Desktop table (≥ sm) ─────────────────────────────────── */}
       {/* v2: sin scroll interno; la lista entera baja con la página. */}
       <div className={IS_V2 ? 'hidden sm:block' : 'hidden sm:block max-h-[min(68vh,36rem)] overflow-auto'}>
-        <table className={cn('w-full border-collapse text-body-sm leading-snug hh-table', rich && '[&_td]:px-3 [&_th]:px-3')}>
+        <table className="w-full border-collapse text-body-sm leading-snug hh-table">
           <thead className="sticky top-0 z-[1] border-b border-surface-border/70 bg-surface-card/92 backdrop-blur-md">
-            {rich ? (
-              <tr className="text-left">
-                <th scope="col" className="w-10 py-2 pl-4 pr-0 sm:pl-5">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 cursor-pointer rounded border-surface-border accent-brand-primary align-middle"
-                    aria-label="Seleccionar todos los de la lista"
-                    checked={allChecked}
-                    ref={(el) => {
-                      if (el) el.indeterminate = someChecked && !allChecked
-                    }}
-                    onChange={() => onSelectedIdsChange!(allChecked ? new Set() : new Set(students.map((s) => s.id)))}
-                  />
-                </th>
-                <SortTh label={entityLabelColumn} col="name" sort={colSort} onSort={onSortColumn!} className="pl-2 sm:pl-2" />
-                <SortTh label="Estado" col="status" sort={colSort} onSort={onSortColumn!} />
-                <SortTh label="Rutina" col="routine" sort={colSort} onSort={onSortColumn!} className="w-[12rem]" />
-                <SortTh label="Último entreno" col="last" sort={colSort} onSort={onSortColumn!} className="hidden lg:table-cell" />
-                <SortTh label="Plan y pago" col="pay" sort={colSort} onSort={onSortColumn!} className="hidden md:table-cell" />
-                <SortTh label="Vence" col="expiry" sort={colSort} onSort={onSortColumn!} className="hidden 2xl:table-cell" />
-                <th scope="col" className="w-12" aria-hidden />
-              </tr>
-            ) : (
             <tr className="text-left">
               <th scope="col" className="whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:px-5">{entityLabelColumn}</th>
               {IS_V2 ? null : <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted sm:table-cell sm:px-5">Nivel</th>}
@@ -1660,7 +1367,6 @@ function StudentDirectoryTable({
               {IS_V2 ? null : <th scope="col" className="hidden whitespace-nowrap px-4 py-2.5 text-3xs font-semibold text-ink-muted lg:table-cell lg:px-5">Email</th>}
               <th scope="col" className={IS_V2 ? 'w-12' : 'w-[7rem]'} aria-hidden />
             </tr>
-            )}
           </thead>
           <tbody className="divide-y divide-surface-border/70 bg-surface-card">
             {students.map((student, rowIndex) => {
@@ -1676,27 +1382,14 @@ function StudentDirectoryTable({
                   className={cn(
                     'group cursor-pointer align-middle transition-colors outline-none',
                     'hover:bg-surface-elevated/50 focus-within:bg-surface-elevated/50',
-                    (isSelected || (rich && selectedIds!.has(student.id))) && 'bg-brand-primary/[0.05]',
+                    isSelected && 'bg-brand-primary/[0.05]',
                   )}
                 >
-                  {rich ? (
-                    <td className="w-10 py-3 pl-4 pr-0 sm:pl-5" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 cursor-pointer rounded border-surface-border accent-brand-primary align-middle"
-                        aria-label={`Seleccionar a ${student.full_name}`}
-                        checked={selectedIds!.has(student.id)}
-                        onChange={() => toggleOne(student.id)}
-                      />
-                    </td>
-                  ) : null}
                   <td
                     className={cn(
-                      'hh-row-drop-in',
+                      'hh-row-drop-in px-4 sm:px-5',
                       IS_V2 ? 'py-3' : 'py-2.5',
-                      rich
-                        ? 'pl-2 pr-4 sm:pr-5'
-                        : cn('px-4 sm:px-5', isSelected ? 'border-l-[3px] border-l-brand-primary pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]'),
+                      isSelected ? 'border-l-[3px] border-l-brand-primary pl-[calc(1rem-3px)]' : 'border-l-[3px] border-l-transparent pl-[calc(1rem-3px)]',
                     )}
                   >
                     <div className={cn('flex items-center', IS_V2 ? 'gap-3' : 'gap-2')}>
@@ -1772,7 +1465,7 @@ function StudentDirectoryTable({
                   </td>
                   )}
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5">
-                    <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine || rich} />
+                    <StatusToggle student={student} onChanged={onStatusChanged} hidePlanDays={hasRoutine} />
                   </td>
                   <td className="hh-row-drop-in px-4 py-2.5 sm:px-5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col items-start gap-1 whitespace-nowrap">
@@ -1804,11 +1497,6 @@ function StudentDirectoryTable({
 
                     </div>
                   </td>
-                  {rich ? (
-                    <td className="hidden px-4 py-2.5 sm:px-5 lg:table-cell">
-                      <LastTrainedCell iso={lastTrainedByStudent?.get(student.id)} expectTraining={hasRoutine && student.status === 'activo'} />
-                    </td>
-                  ) : null}
                   {IS_V2 ? (
                     <td className="hidden px-4 py-2.5 md:table-cell sm:px-5">
                       {currentPlanByStudent[student.id] ? (
@@ -1816,17 +1504,6 @@ function StudentDirectoryTable({
                       ) : (
                         <span className="text-xs text-ink-muted">Sin plan</span>
                       )}
-                      {/* Sin la columna «Vence» (pantallas no tan anchas), el vencimiento va acá abajo. */}
-                      {rich && student.plan_end_date ? (
-                        <span className="mt-0.5 block 2xl:hidden">
-                          <ExpiryInline date={student.plan_end_date} />
-                        </span>
-                      ) : null}
-                    </td>
-                  ) : null}
-                  {rich ? (
-                    <td className="hidden px-4 py-2.5 sm:px-5 2xl:table-cell">
-                      <ExpiryCell date={student.plan_end_date} />
                     </td>
                   ) : null}
                   {IS_V2 ? null : (
@@ -1934,10 +1611,10 @@ function WeekProgressV2({
   const label = finished ? 'Mes cerrado' : lastWeek ? 'Última semana' : week ? `Semana ${week} de ${totalWeeks}` : `${totalWeeks} semanas · sin feedback`
   return (
     <div className="flex w-36 flex-col gap-1" title={label}>
-      <span className={cn('text-xs tabular-nums', lastWeek && !finished ? 'font-medium text-pastel-peach-accent' : week ? 'text-ink-primary' : 'text-ink-muted')}>{label}</span>
+      <span className={cn('text-xs tabular-nums', lastWeek && !finished ? 'font-medium text-status-expired' : week ? 'text-ink-primary' : 'text-ink-muted')}>{label}</span>
       <span className="h-1.5 overflow-hidden rounded-full bg-surface-elevated" aria-hidden>
         <span
-          className={cn('block h-full rounded-full', lastWeek && !finished ? 'bg-pastel-peach-accent' : finished ? 'bg-pastel-mint-accent' : 'bg-pastel-lavender-accent')}
+          className={cn('block h-full rounded-full', lastWeek && !finished ? 'bg-status-expired' : finished ? 'bg-status-ok' : 'bg-brand-primary')}
           style={{ width: `${Math.min(100, (week / totalWeeks) * 100)}%` }}
         />
       </span>
@@ -1947,16 +1624,18 @@ function WeekProgressV2({
 
 /** v2 · columna «Plan y pago»: nombre del plan y, debajo, cómo viene el pago. */
 function PlanCellV2({ name, status }: { name: string; status: PlanAssignmentPaymentStatus }) {
+  const pay =
+    status === 'overdue'
+      ? { text: 'Pago vencido', cls: 'font-medium text-status-expired' }
+      : status === 'pending'
+        ? { text: 'Pago pendiente', cls: 'font-medium text-status-pending' }
+        : status === 'cancelled'
+          ? { text: 'Cancelado', cls: 'text-ink-muted' }
+          : { text: 'Al día', cls: 'text-ink-muted' }
   return (
     <div className="flex max-w-[13rem] flex-col gap-0.5">
       <span className="truncate text-xs text-ink-primary" title={name}>{name}</span>
-      {status === 'overdue' ? (
-        <SoftPill tone="rose">Pago vencido</SoftPill>
-      ) : status === 'pending' ? (
-        <SoftPill tone="butter">Pago pendiente</SoftPill>
-      ) : (
-        <span className="text-2xs text-ink-muted">{status === 'cancelled' ? 'Cancelado' : 'Al día'}</span>
-      )}
+      <span className={cn('text-2xs', pay.cls)}>{pay.text}</span>
     </div>
   )
 }
