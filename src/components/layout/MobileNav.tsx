@@ -229,7 +229,8 @@ export function MobileNav() {
 
   async function handleLogout() {
     setDrawerOpen(false)
-    await supabase.auth.signOut()
+    // Solo este dispositivo: sin «local», Supabase cierra la cuenta en todas las PCs y celulares.
+    await supabase.auth.signOut({ scope: 'local' })
     reset()
     navigate('/login')
     // Abajo para no tapar el acceso superior (p. ej. «Panel» / inscripción) en /login o /form.

@@ -186,7 +186,8 @@ export function SidebarV2() {
 
   async function logout() {
     setMenuOpen(false)
-    await supabase.auth.signOut()
+    // Solo este dispositivo: sin «local», Supabase cierra la cuenta en todas las PCs y celulares.
+    await supabase.auth.signOut({ scope: 'local' })
     reset()
     navigate('/login')
     toast.success('Sesión cerrada', { position: 'bottom-center' })
