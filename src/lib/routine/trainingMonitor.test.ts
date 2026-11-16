@@ -169,6 +169,33 @@ describe('monitorSummary', () => {
     const sum = monitorSummary({ rows, setLogs, now: NOW })
     expect(sum).toMatchObject({ setsToday: 4, volumeKg: 1200, doneToday: 4, plannedToday: 6, avgPct: 67, peakHour: 17 })
     expect(rows[0]).toMatchObject({ state: 'live', doneSets: 4, plannedSets: 6, volumeKg: 1200 })
+    expect(sum.volumePrevKg).toBeNull()
+  })
+
+  it('compara los kilos con el mismo día de la semana pasada hasta esta misma hora', () => {
+    const a = routine('a', 'Ana')
+    const weekAgo = (h: number) => new Date(NOW.getTime() - 7 * 86_400_000 - h * 3_600_000).toISOString()
+    const setLogs: MonitorSetLog[] = [
+      ...sets('a-w1-d0-press', 2, 50, minsAgo(10)).map((l) => ({ ...l, reps: 10 })),
+      ...sets('a-w0-d0-press', 2, 40, weekAgo(1)).map((l) => ({ ...l, reps: 10 })),
+      // Más tarde que la hora actual, la semana pasada: no entra en la comparación.
+      ...sets('a-w0-d0-remo', 3, 30, weekAgo(-2)).map((l) => ({ ...l, reps: 10 })),
+    ]
+    const rows = buildTrainingMonitor({ routines: [a], setLogs, dayLogs: [], now: NOW })
+    expect(monitorSummary({ rows, setLogs, now: NOW })).toMatchObject({ volumeKg: 1000, volumePrevKg: 800, setsToday: 2 })
+  })
+})
+
+describe('ejercicio en curso', () => {
+  it('trae el último ejercicio anotado con su carga y la planificada', () => {
+    const setLogs = [
+      ...sets('a-w1-d0-press', 3, 40, minsAgo(20)),
+      ...sets('a-w1-d0-remo', 2, 30, minsAgo(3)).map((l, i) => ({ ...l, reps: 8, updated_at: minsAgo(3 - i) })),
+    ]
+    const [row] = run([routine('a', 'Juan')], setLogs)
+    expect(row!.current).toEqual({ name: 'Ejercicio', setsDone: 2, setsPlanned: 3, weightKg: 30, reps: 8, plannedKg: null })
+    const [press] = run([routine('a', 'Juan')], sets('a-w1-d0-press', 1, 35, minsAgo(2)))
+    expect(press!.current).toMatchObject({ setsDone: 1, setsPlanned: 3, weightKg: 35, plannedKg: 40 })
   })
 })
 

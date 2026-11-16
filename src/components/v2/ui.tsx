@@ -683,7 +683,7 @@ export function EmptyV2({ children }: { children: ReactNode }) {
 
 /** Iniciales sobre gris: el mismo tono para todos, como los avatares sin foto del resto de la v2. */
 /** Iniciales, o la foto del alumno si tiene (`path` = ruta en el bucket de alumnos). */
-export function AvatarV2({ name, size = 'md', path }: { name: string; size?: 'sm' | 'md'; path?: string | null }) {
+export function AvatarV2({ name, size = 'md', path }: { name: string; size?: 'sm' | 'md' | 'lg'; path?: string | null }) {
   const url = useStudentStorageUrl(path)
   const [broken, setBroken] = useState(false)
   const initials = name
@@ -696,7 +696,7 @@ export function AvatarV2({ name, size = 'md', path }: { name: string; size?: 'sm
     <span
       className={cn(
         'flex shrink-0 items-center justify-center rounded-full bg-surface-elevated font-semibold text-ink-secondary ring-2 ring-surface-card dark:ring-0',
-        size === 'sm' ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-[11px]',
+        size === 'sm' ? 'h-6 w-6 text-[10px]' : size === 'lg' ? 'h-10 w-10 text-xs' : 'h-8 w-8 text-[11px]',
         url && !broken && 'overflow-hidden',
       )}
       aria-hidden

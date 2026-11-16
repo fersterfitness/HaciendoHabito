@@ -88,6 +88,20 @@ export interface MonitorRow {
   plannedSets?: number
   /** Kilos movidos en ese día: suma de kilos × repeticiones de las series que tienen los dos datos. */
   volumeKg?: number
+  /** El ejercicio de la última serie anotada hoy, con lo que levantó y lo planificado. */
+  current?: MonitorCurrent
+}
+
+export interface MonitorCurrent {
+  name: string
+  /** Series hechas de ese ejercicio y las planificadas (null si no tiene número de series). */
+  setsDone: number
+  setsPlanned: number | null
+  /** Kilos y repeticiones de la última serie anotada. */
+  weightKg: number | null
+  reps: number | null
+  /** Kilos planificados para ese ejercicio, si los hay. */
+  plannedKg: number | null
 }
 
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -127,6 +141,8 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
     // El día de hoy: el que tiene la serie anotada más reciente de hoy; si no, el que cerró hoy.
     let active: MonitorDay | null = null
     let lastAt: string | null = null
+    let lastEx: MonitorExercise | null = null
+    let lastLog: MonitorSetLog | null = null
     for (const d of days) {
       for (const ex of d.exercises) {
         for (const l of logsByExercise.get(ex.id) ?? []) {
@@ -134,6 +150,8 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
           if (!lastAt || l.updated_at > lastAt) {
             lastAt = l.updated_at
             active = d
+            lastEx = ex
+            lastLog = l
           }
         }
       }
@@ -171,7 +189,18 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
     const volumeKg = Math.round(
       active.exercises.reduce((sum, ex) => sum + doneSets(ex).reduce((v, l) => v + (l.weight_kg != null && l.reps != null ? l.weight_kg * l.reps : 0), 0), 0),
     )
-    const extra = { doneSets: done, plannedSets: planned, volumeKg }
+    const current: MonitorCurrent | undefined =
+      lastEx && lastLog
+        ? {
+            name: lastEx.name?.trim() || 'Ejercicio',
+            setsDone: doneSets(lastEx).length,
+            setsPlanned: lastEx.sets ?? null,
+            weightKg: lastLog.weight_kg,
+            reps: lastLog.reps ?? null,
+            plannedKg: lastEx.weight_kg != null && lastEx.weight_kg > 0 ? lastEx.weight_kg : null,
+          }
+        : undefined
+    const extra = { doneSets: done, plannedSets: planned, volumeKg, current }
 
     const minutesAgo = lastAt ? (opts.now.getTime() - new Date(lastAt).getTime()) / 60_000 : Infinity
     if (status !== 'done' && minutesAgo <= LIVE_WINDOW_MINUTES) {
@@ -223,6 +252,11 @@ export interface MonitorSummary {
   hourly: number[]
   /** Hora con más series, o `null` si no hubo. */
   peakHour: number | null
+  /**
+   * Kilos movidos el mismo día de la semana pasada hasta esta misma hora (comparación pareja a mitad
+   * del día), o `null` si ese día no se anotó nada.
+   */
+  volumePrevKg: number | null
 }
 
 export function monitorSummary(opts: { rows: MonitorRow[]; setLogs: MonitorSetLog[]; now: Date }): MonitorSummary {
@@ -230,9 +264,18 @@ export function monitorSummary(opts: { rows: MonitorRow[]; setLogs: MonitorSetLo
   const hourly = Array<number>(24).fill(0)
   let setsToday = 0
   let volumeKg = 0
+  const weekAgo = new Date(opts.now.getTime() - 7 * 86_400_000)
+  const weekAgoYmd = ymdLocal(weekAgo)
+  let prevSets = 0
+  let volumePrev = 0
   for (const l of opts.setLogs) {
     if (l.completed === false) continue
     const at = new Date(l.updated_at)
+    if (ymdLocal(at) === weekAgoYmd && at.getTime() <= weekAgo.getTime()) {
+      prevSets += 1
+      if (l.weight_kg != null && l.reps != null) volumePrev += l.weight_kg * l.reps
+      continue
+    }
     if (ymdLocal(at) !== today) continue
     setsToday += 1
     hourly[at.getHours()] += 1
@@ -248,6 +291,7 @@ export function monitorSummary(opts: { rows: MonitorRow[]; setLogs: MonitorSetLo
     plannedToday: trained.reduce((n, r) => n + (r.plannedSets ?? 0), 0),
     hourly,
     peakHour: max > 0 ? hourly.indexOf(max) : null,
+    volumePrevKg: prevSets > 0 ? Math.round(volumePrev) : null,
   }
 }
 
