@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { AlertTriangle, Check, MessageSquareText, Moon, X } from 'lucide-react'
+import { AlertTriangle, Check, MessageSquareText, Moon, Pencil, Pin, X } from 'lucide-react'
 import type { BodySex } from '@/components/nutrition/body2d/zones'
 import {
   CYCLE_ANSWERS,
@@ -28,6 +28,7 @@ import {
   sendSharedRoutineNotice,
   type RoutineNoticeKind,
   saveSharedExerciseFeedback,
+  saveSharedExerciseSelfNote,
   sendSharedUrgentMessage,
   type DayLog,
   type ExerciseFeedback,
@@ -624,5 +625,94 @@ export function RoutineNoticeCard({
       </button>
       <span className="hhr-scale-hint">Es obligatorio para seguir con tu día.</span>
     </section>
+  )
+}
+
+/**
+ * Nota del alumno para sí mismo en el ejercicio (feedback nov3, punto 4): «Tomi me dijo que saque pecho».
+ * La ve arriba de las series cada vez que abre el ejercicio; no le llega al entrenador como aviso.
+ */
+export function SelfNoteBox({
+  token,
+  noteKey,
+  value,
+  onSaved,
+}: {
+  token: string
+  noteKey: string
+  value: string
+  onSaved: (key: string, note: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save() {
+    const note = draft.trim()
+    if (note === value) {
+      setEditing(false)
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      await saveSharedExerciseSelfNote(token, noteKey, note)
+      onSaved(noteKey, note)
+      setEditing(false)
+    } catch (e) {
+      setError(errText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className={value ? 'hhr-mynote' : 'hhr-mynote is-empty'}>
+        {value ? (
+          <>
+            <span className="hhr-mynote-title">
+              <Pin size={13} strokeWidth={2.2} aria-hidden /> Mi nota
+            </span>
+            <p>{value}</p>
+          </>
+        ) : null}
+        <button
+          type="button"
+          className={value ? 'hhr-mynote-edit' : 'hhr-mynote-add'}
+          onClick={() => {
+            setDraft(value)
+            setEditing(true)
+          }}
+        >
+          {value ? <Pencil size={12} strokeWidth={2.2} aria-hidden /> : <Pin size={13} strokeWidth={2.2} aria-hidden />}
+          {value ? 'Editar' : 'Agregar una nota para mí'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="hhr-mynote is-editing">
+      <label className="hhr-field">
+        <span>Mi nota (solo para vos, la ves cada vez que entrás)</span>
+        <textarea
+          rows={2}
+          maxLength={400}
+          value={draft}
+          autoFocus
+          placeholder="Por ejemplo: sacar pecho y bajar lento"
+          onChange={(e) => setDraft(e.target.value)}
+        />
+      </label>
+      {error ? <p className="hhr-save is-error">{error}</p> : null}
+      <div className="hhr-mynote-actions">
+        {/* Sin cambios, el mismo botón cierra (save() no guarda si no cambió nada). */}
+        <button type="button" className="hhr-mynote-save" disabled={busy} onClick={() => void save()}>
+          {busy ? 'Guardando…' : draft.trim() === value ? 'Cerrar' : !draft.trim() ? 'Borrar nota' : 'Guardar nota'}
+        </button>
+      </div>
+    </div>
   )
 }

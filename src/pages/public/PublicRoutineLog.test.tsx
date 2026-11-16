@@ -9,6 +9,7 @@ import {
   fetchSharedExtras,
   saveSharedDayStatus,
   saveSharedExerciseFeedback,
+  saveSharedExerciseSelfNote,
   sendSharedRoutineNotice,
   type TrainingExtras,
 } from '@/lib/routine/studentTrainingLog'
@@ -24,6 +25,7 @@ vi.mock('@/lib/routine/studentTrainingLog', async (original) => ({
   fetchSharedExtras: vi.fn(),
   saveSharedDayStatus: vi.fn(),
   saveSharedExerciseFeedback: vi.fn(),
+  saveSharedExerciseSelfNote: vi.fn(),
   sendSharedUrgentMessage: vi.fn(),
   sendSharedRoutineNotice: vi.fn(),
 }))
@@ -109,6 +111,13 @@ describe('registro del alumno en la rutina por link', () => {
   }
   const button = (text: string) => [...host.querySelectorAll('button')].find((b) => b.textContent?.includes(text)) as HTMLButtonElement | undefined
   const click = (el: Element | undefined | null) => act(async () => (el as HTMLElement).click())
+  const type = (el: Element | null, text: string) =>
+    act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!
+      setter.call(el, text)
+      el!.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  const checkedDay = { day: { ...EMPTY_DAY_LOG, sleep: 4, checkin_at: '2026-11-13T10:00:00Z' } }
 
   it('sin la migración la página queda como antes: sin chequeo, cierre ni consulta urgente', async () => {
     await open(null)
@@ -194,5 +203,31 @@ describe('registro del alumno en la rutina por link', () => {
     expect((host.querySelector('.hhr-exfb textarea') as HTMLTextAreaElement).value).toBe('Me molestó la rodilla')
     await click(host.querySelectorAll('.hhr-exfb .hhr-scale button')[7])
     expect(saveSharedExerciseFeedback).toHaveBeenCalledWith('test-token', 'ex', { note: 'Me molestó la rodilla', effort: 8 })
+  })
+
+  it('muestra la nota propia del ejercicio en la tarjeta y adentro', async () => {
+    await open({ exercises: {}, days: checkedDay, selfNotes: { sentadilla: 'Sacar pecho' } })
+    expect(host.querySelector('.hhr-ex-mynote')?.textContent).toContain('Sacar pecho')
+    await click(host.querySelector('.hhr-ex-head'))
+    expect(host.querySelector('.hhr-mynote p')?.textContent).toBe('Sacar pecho')
+  })
+
+  it('guarda una nota propia nueva con el nombre del ejercicio como clave', async () => {
+    vi.mocked(saveSharedExerciseSelfNote).mockResolvedValue(undefined)
+    await open({ exercises: {}, days: checkedDay, selfNotes: {} })
+    expect(host.querySelector('.hhr-ex-mynote')).toBeNull()
+    await click(host.querySelector('.hhr-ex-head'))
+    await click(button('Agregar una nota para mí'))
+    await type(host.querySelector('.hhr-mynote textarea'), '  Bajar lento ')
+    await click(button('Guardar nota'))
+    expect(saveSharedExerciseSelfNote).toHaveBeenCalledWith('test-token', 'sentadilla', 'Bajar lento')
+    expect(host.querySelector('.hhr-ex-mynote')?.textContent).toContain('Bajar lento')
+    expect(host.querySelector('.hhr-mynote textarea')).toBeNull()
+  })
+
+  it('sin la migración de notas propias no ofrece agregarlas', async () => {
+    await open({ exercises: {}, days: checkedDay })
+    await click(host.querySelector('.hhr-ex-head'))
+    expect(button('Agregar una nota para mí')).toBeUndefined()
   })
 })

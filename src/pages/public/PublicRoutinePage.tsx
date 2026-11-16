@@ -2,7 +2,7 @@ import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useRe
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Check, ChevronDown, Dumbbell, Flame, Link2, MessageCircle, Play } from 'lucide-react'
+import { Check, ChevronDown, Dumbbell, Flame, Link2, MessageCircle, Pin, Play } from 'lucide-react'
 import {
   currentBlockIndex,
   exerciseDetails,
@@ -25,8 +25,8 @@ import { parseExerciseMeta } from '@/lib/routine/exerciseMeta'
 import { formatWarmupDisplayLines } from '@/lib/routine/warmupNotesFormat'
 import { normalizePhoneForWhatsApp } from '@/lib/whatsapp'
 import './public-routine.css'
-import { EMPTY_DAY_LOG, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
-import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, RoutineNoticeCard, UrgentCard } from './PublicRoutineLog'
+import { EMPTY_DAY_LOG, exerciseNoteKey, fetchSharedExtras, hasCheckin, saveSharedDayStatus, type DayLog, type ExerciseFeedback, type RoutineNoticeKind, type TrainingExtras } from '@/lib/routine/studentTrainingLog'
+import { DayCheckinCard, DayCheckinSummary, DayCloseCard, ExerciseFeedbackBox, RoutineNoticeCard, SelfNoteBox, UrgentCard } from './PublicRoutineLog'
 import { weekClose, weekCloseMessage } from '@/lib/routine/trainingWeek'
 import { fetchSharedStudentExtras, type StudentExtras } from '@/lib/routine/studentAppExtras'
 import { CycleCard, MonthReviewCard, PaymentBanner, ProgressCard } from './PublicRoutineExtras'
@@ -202,6 +202,15 @@ export function PublicRoutinePage() {
 
   const onExerciseFeedback = useCallback((exId: string, fb: ExerciseFeedback) => {
     setExtras((prev) => (prev ? { ...prev, exercises: { ...prev.exercises, [exId]: fb } } : prev))
+  }, [])
+  const onSelfNote = useCallback((key: string, note: string) => {
+    setExtras((prev) => {
+      if (!prev) return prev
+      const next = { ...(prev.selfNotes ?? {}) }
+      if (note) next[key] = note
+      else delete next[key]
+      return { ...prev, selfNotes: next }
+    })
   }, [])
   const onDayLog = useCallback((dayId: string, patch: Partial<DayLog>) => {
     setExtras((prev) => (prev ? { ...prev, days: { ...prev.days, [dayId]: { ...(prev.days[dayId] ?? EMPTY_DAY_LOG), ...patch } } } : prev))
@@ -418,6 +427,8 @@ export function PublicRoutinePage() {
         proLabel={proLabel}
         feedback={extras ? (extras.exercises[ex.id] ?? { note: '', effort: null }) : null}
         onFeedbackSaved={onExerciseFeedback}
+        selfNote={extras?.selfNotes && exerciseNoteKey(ex.name) ? (extras.selfNotes[exerciseNoteKey(ex.name)] ?? '') : null}
+        onSelfNoteSaved={onSelfNote}
       />
     )
   }
@@ -820,7 +831,12 @@ function ExerciseCard({
   proLabel,
   feedback,
   onFeedbackSaved,
+  selfNote,
+  onSelfNoteSaved,
 }: {
+  /** Nota propia del alumno; `null` sin la migración de notas propias. */
+  selfNote: string | null
+  onSelfNoteSaved: (key: string, note: string) => void
   /** `null`: las notas todavía no están activadas en la base. */
   feedback: ExerciseFeedback | null
   onFeedbackSaved: (exId: string, fb: ExerciseFeedback) => void
@@ -868,6 +884,11 @@ function ExerciseCard({
               ))}
             </span>
           ) : null}
+          {selfNote ? (
+            <span className="hhr-ex-mynote">
+              <Pin size={11} strokeWidth={2.4} aria-hidden /> {selfNote}
+            </span>
+          ) : null}
           <span className="hhr-progress">
             <span className="hhr-progress-track" aria-hidden>
               <span className="hhr-progress-fill" style={{ width: `${(done / sets) * 100}%` }} />
@@ -898,6 +919,7 @@ function ExerciseCard({
               ) : null}
             </div>
           ) : null}
+          {selfNote != null ? <SelfNoteBox token={token} noteKey={exerciseNoteKey(ex.name)} value={selfNote} onSaved={onSelfNoteSaved} /> : null}
           <KgInputs ex={ex} sets={sets} token={token} logged={logged} onSaved={onSaved} />
           {feedback ? <ExerciseFeedbackBox token={token} exerciseId={ex.id} value={feedback} proLabel={proLabel} onSaved={onFeedbackSaved} /> : null}
         </div>

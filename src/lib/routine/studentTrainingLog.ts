@@ -70,6 +70,11 @@ export interface TrainingExtras {
   days: Record<string, DayLog>
   /** Solo en el link del alumno. Sin la migración, vacío. */
   notices?: RoutineNoticeSent[]
+  /**
+   * Notas que el alumno se deja a sí mismo, por ejercicio (clave: `exerciseNoteKey(nombre)`).
+   * Indefinido sin la migración 20261122120000_student_exercise_self_notes.sql.
+   */
+  selfNotes?: Record<string, string>
 }
 
 /** Escala de Borg modificada (1 a 10), en palabras para el alumno. */
@@ -109,10 +114,11 @@ type RawExtras = {
   exercises?: { exercise_id: string; note: string | null; effort: number | null }[]
   days?: ({ day_id: string } & Partial<DayLog>)[]
   notices?: RoutineNoticeSent[]
+  self_notes?: Record<string, string>
 }
 
 function toExtras(raw: RawExtras | null): TrainingExtras {
-  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices }
+  const out: TrainingExtras = { exercises: {}, days: {}, notices: raw?.notices, selfNotes: raw?.self_notes }
   for (const e of raw?.exercises ?? []) out.exercises[e.exercise_id] = { note: e.note ?? '', effort: e.effort ?? null }
   for (const d of raw?.days ?? []) {
     const { day_id, ...rest } = d
@@ -144,6 +150,18 @@ export async function call(fn: string, args: Record<string, unknown>): Promise<R
   const res = (data ?? {}) as { ok?: boolean; error?: string }
   if (!res.ok) throw new Error(res.error === 'too_many' ? 'Ya mandaste varias consultas hoy. Escribile por WhatsApp.' : 'No se pudo guardar. Intentá de nuevo.')
   return res
+}
+
+/**
+ * Clave de la nota propia: el nombre del ejercicio en minúsculas y con espacios simples, así la nota
+ * sigue apareciendo en las otras semanas y rutinas que repiten el ejercicio.
+ */
+export function exerciseNoteKey(name: string | null | undefined): string {
+  return (name ?? '').trim().replace(/\s+/g, ' ').toLowerCase().slice(0, 160)
+}
+
+export async function saveSharedExerciseSelfNote(token: string, key: string, note: string): Promise<void> {
+  await call('save_shared_exercise_self_note', { p_token: token, p_exercise_key: key, p_note: note })
 }
 
 export async function sendSharedRoutineNotice(token: string, blockId: string, kind: RoutineNoticeKind): Promise<void> {

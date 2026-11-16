@@ -571,3 +571,17 @@
 .hhr-notice.is-routine_done { border-color: var(--ok); background: #E9F7EF; }
 .hhr-notice.is-routine_done .hhr-notice-title { color: var(--ok); }
 .hhr .hhr-notice.is-routine_done .hhr-cta-notice { background: var(--ok); }
+
+/* ── Nota propia del alumno en cada ejercicio (feedback nov3, punto 4) ── */
+.hhr-ex-mynote { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; font-weight: 600; color: var(--brand-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hhr-ex-mynote svg { flex: none; color: var(--brand); }
+.hhr-mynote { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--brand); border-left-width: 4px; border-radius: 12px; background: var(--brand-soft); }
+.hhr-mynote p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--ink); white-space: pre-wrap; }
+.hhr-mynote-title { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--brand-ink); }
+.hhr .hhr-mynote-edit, .hhr .hhr-mynote-add, .hhr .hhr-mynote-save { display: inline-flex; align-items: center; gap: 5px; font: inherit; cursor: pointer; }
+.hhr .hhr-mynote-edit { justify-self: start; padding: 0; border: 0; background: none; font-size: 12px; font-weight: 700; color: var(--brand-ink); }
+.hhr .hhr-mynote-add { justify-self: start; padding: 8px 12px; border: 1px dashed var(--brand); border-radius: 10px; background: transparent; font-size: 13px; font-weight: 700; color: var(--brand-ink); }
+.hhr-mynote-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.hhr .hhr-mynote-save { padding: 8px 14px; border: 0; border-radius: 10px; background: var(--brand); font-size: 13px; font-weight: 700; color: #fff; }
+.hhr .hhr-mynote-save:disabled { opacity: .6; cursor: default; }
+.hhr-mynote.is-empty { padding: 0; border: 0; background: none; }

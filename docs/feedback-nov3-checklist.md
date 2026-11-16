@@ -60,7 +60,7 @@ Fuente: `CORRECIONES EN APP-nov3.docx`. Cada punto dice de dónde sale (número 
 
 ## Tanda 5 — notas propias del alumno (necesita SQL)
 
-- [ ] (4) En cada ejercicio, una nota personal que el alumno se deja a sí mismo («Tomi me dijo que saque pecho») y ve cada vez que entra. Distinta de la nota «para tu entrenador».
+- [x] (4) En cada ejercicio, una nota personal que el alumno se deja a sí mismo («Tomi me dijo que saque pecho») y ve cada vez que entra. Distinta de la nota «para tu entrenador».
 
 ## Tanda 6 — progreso del alumno y del entrenador
 
