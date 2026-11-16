@@ -90,9 +90,13 @@ export interface MonitorRow {
   volumeKg?: number
   /** El ejercicio de la última serie anotada hoy, con lo que levantó y lo planificado. */
   current?: MonitorCurrent
+  /** Todos los ejercicios del día que está entrenando, en orden, con lo hecho hoy. */
+  exercises?: MonitorCurrent[]
 }
 
 export interface MonitorCurrent {
+  /** id de `routine_exercises`. */
+  exerciseId: string
   name: string
   /** Series hechas de ese ejercicio y las planificadas (null si no tiene número de series). */
   setsDone: number
@@ -129,7 +133,11 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
   }
   const dayLogById = new Map(opts.dayLogs.map((d) => [d.routine_day_id, d]))
   const doneSets = (ex: MonitorExercise) => (logsByExercise.get(ex.id) ?? []).filter((l) => l.completed !== false)
-  const maxWeight = (ex: MonitorExercise) => doneSets(ex).reduce<number | null>((m, l) => (l.weight_kg != null && (m == null || l.weight_kg > m) ? l.weight_kg : m), null)
+  const maxOf = (logs: MonitorSetLog[]) => logs.reduce<number | null>((m, l) => (l.weight_kg != null && (m == null || l.weight_kg > m) ? l.weight_kg : m), null)
+  const maxWeight = (ex: MonitorExercise) => maxOf(doneSets(ex))
+  // Hay una fila por número de serie y se pisa en cada sesión: lo de hoy es lo que se guardó hoy. Las series
+  // que quedaron de otra sesión (el mismo día de la rutina, otra semana) no cuentan para el avance de hoy.
+  const todaySets = (ex: MonitorExercise) => doneSets(ex).filter((l) => ymdLocal(new Date(l.updated_at)) === today)
 
   const rows = opts.routines.map((r): MonitorRow => {
     const base = { routineId: r.id, studentId: r.student_id, studentName: r.student_name, avatarPath: r.avatar_path }
@@ -184,23 +192,26 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
     }
 
     const planned = active.exercises.reduce((sum, ex) => sum + (ex.sets ?? 0), 0)
-    const done = active.exercises.reduce((sum, ex) => sum + Math.min(doneSets(ex).length, ex.sets ?? doneSets(ex).length), 0)
+    const done = active.exercises.reduce((sum, ex) => sum + Math.min(todaySets(ex).length, ex.sets ?? todaySets(ex).length), 0)
     const pct = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : null
     const volumeKg = Math.round(
-      active.exercises.reduce((sum, ex) => sum + doneSets(ex).reduce((v, l) => v + (l.weight_kg != null && l.reps != null ? l.weight_kg * l.reps : 0), 0), 0),
+      active.exercises.reduce((sum, ex) => sum + todaySets(ex).reduce((v, l) => v + (l.weight_kg != null && l.reps != null ? l.weight_kg * l.reps : 0), 0), 0),
     )
-    const current: MonitorCurrent | undefined =
-      lastEx && lastLog
-        ? {
-            name: lastEx.name?.trim() || 'Ejercicio',
-            setsDone: doneSets(lastEx).length,
-            setsPlanned: lastEx.sets ?? null,
-            weightKg: lastLog.weight_kg,
-            reps: lastLog.reps ?? null,
-            plannedKg: lastEx.weight_kg != null && lastEx.weight_kg > 0 ? lastEx.weight_kg : null,
-          }
-        : undefined
-    const extra = { doneSets: done, plannedSets: planned, volumeKg, current }
+    const exerciseOf = (ex: MonitorExercise): MonitorCurrent => {
+      const logs = todaySets(ex).sort((a, b) => a.updated_at.localeCompare(b.updated_at))
+      const last = logs[logs.length - 1]
+      return {
+        exerciseId: ex.id,
+        name: ex.name?.trim() || 'Ejercicio',
+        setsDone: logs.length,
+        setsPlanned: ex.sets ?? null,
+        weightKg: last?.weight_kg ?? null,
+        reps: last?.reps ?? null,
+        plannedKg: ex.weight_kg != null && ex.weight_kg > 0 ? ex.weight_kg : null,
+      }
+    }
+    const current = lastEx && lastLog ? exerciseOf(lastEx) : undefined
+    const extra = { doneSets: done, plannedSets: planned, volumeKg, current, exercises: active.exercises.map(exerciseOf) }
 
     const minutesAgo = lastAt ? (opts.now.getTime() - new Date(lastAt).getTime()) / 60_000 : Infinity
     if (status !== 'done' && minutesAgo <= LIVE_WINDOW_MINUTES) {
@@ -209,10 +220,10 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
 
     // Desvíos: ejercicios sin ninguna serie (solo si cerró el día) y cargas por debajo de lo planificado
     // o, si no hay kilos planificados, de lo que levantó en ese ejercicio la semana anterior.
-    const skipped = status === 'done' ? active.exercises.filter((ex) => (ex.sets ?? 0) > 0 && doneSets(ex).length === 0).length : 0
+    const skipped = status === 'done' ? active.exercises.filter((ex) => (ex.sets ?? 0) > 0 && todaySets(ex).length === 0).length : 0
     const prevDay = blockIndex > 0 ? [...(blocks[blockIndex - 1]?.days ?? [])].sort((a, b) => a.sort_order - b.sort_order)[days.indexOf(active)] : undefined
     const lower = active.exercises.filter((ex) => {
-      const lifted = maxWeight(ex)
+      const lifted = maxOf(todaySets(ex))
       if (lifted == null) return false
       if (ex.weight_kg != null && ex.weight_kg > 0) return lifted < ex.weight_kg
       const before = prevDay?.exercises.find((p) => p.exercise_id === ex.exercise_id)

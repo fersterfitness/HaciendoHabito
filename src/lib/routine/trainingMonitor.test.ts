@@ -193,9 +193,22 @@ describe('ejercicio en curso', () => {
       ...sets('a-w1-d0-remo', 2, 30, minsAgo(3)).map((l, i) => ({ ...l, reps: 8, updated_at: minsAgo(3 - i) })),
     ]
     const [row] = run([routine('a', 'Juan')], setLogs)
-    expect(row!.current).toEqual({ name: 'Ejercicio', setsDone: 2, setsPlanned: 3, weightKg: 30, reps: 8, plannedKg: null })
+    expect(row!.current).toEqual({ exerciseId: 'a-w1-d0-remo', name: 'Ejercicio', setsDone: 2, setsPlanned: 3, weightKg: 30, reps: 8, plannedKg: null })
+    expect(row!.exercises?.map((e) => [e.exerciseId, e.setsDone])).toEqual([
+      ['a-w1-d0-press', 3],
+      ['a-w1-d0-remo', 2],
+    ])
     const [press] = run([routine('a', 'Juan')], sets('a-w1-d0-press', 1, 35, minsAgo(2)))
     expect(press!.current).toMatchObject({ setsDone: 1, setsPlanned: 3, weightKg: 35, plannedKg: 40 })
+  })
+
+  it('las series que quedaron de otra sesión no cuentan para el avance de hoy', () => {
+    // Una fila por número de serie: la 1 y la 2 son de hace 3 días, hoy solo pisó la 3.
+    const old = new Date(NOW.getTime() - 3 * 86_400_000).toISOString()
+    const setLogs = [...sets('a-w1-d0-press', 3, 40, old).slice(0, 2), { ...sets('a-w1-d0-press', 3, 40, minsAgo(5))[2]! }]
+    const [row] = run([routine('a', 'Juan')], setLogs)
+    expect(row).toMatchObject({ state: 'live', doneSets: 1, plannedSets: 6, pct: 17, detail: 'Serie 1 de 6' })
+    expect(row!.current).toMatchObject({ setsDone: 1, setsPlanned: 3 })
   })
 })
 

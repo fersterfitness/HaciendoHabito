@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { AvatarV2, TONE_TINT } from '@/components/v2/ui'
 import { LiveDot, MONITOR_FAST_REFRESH_MS, firstName, useTrainingMonitor } from '@/components/dashboard/TrainingMonitorCardV2'
-import { WEEKDAY_LABELS, type MonitorEvent, type MonitorRow, type MonitorState, type MonitorSummary, type WeekCell, type WeekMatrixRow } from '@/lib/routine/trainingMonitor'
+import { WEEKDAY_LABELS, type MonitorCurrent, type MonitorEvent, type MonitorRow, type MonitorState, type MonitorSummary, type WeekCell, type WeekMatrixRow } from '@/lib/routine/trainingMonitor'
 import { cn, formatNumber } from '@/lib/utils'
 
 /** Color de cada estado (anillo del avatar y punto). Siempre va con su nombre al lado, nunca solo. */
@@ -27,6 +27,20 @@ function agoText(iso: string | null, now: Date): string {
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return m ? `hace ${h} h ${m}` : `hace ${h} h`
+}
+
+/**
+ * Nombre corto de cada alumno (por rutina): el nombre de pila, y si dos comparten nombre, con la inicial
+ * del apellido («Federico V.»); si aun así se repite, el nombre completo.
+ */
+function shortNames(rows: { routineId: string; studentName: string }[]): Map<string, string> {
+  const count = (list: string[], v: string) => list.filter((x) => x === v).length
+  const firsts = rows.map((r) => firstName(r.studentName))
+  const withInitial = rows.map((r, i) => {
+    const words = r.studentName.trim().split(/\s+/)
+    return count(firsts, firsts[i]!) > 1 && words[1] ? `${firsts[i]} ${words[1][0]!.toUpperCase()}.` : firsts[i]!
+  })
+  return new Map(rows.map((r, i) => [r.routineId, count(withInitial, withInitial[i]!) > 1 ? r.studentName.trim() : withInitial[i]!]))
 }
 
 const kg = (n: number) => `${formatNumber(Number(n.toFixed(1)))} kg`
@@ -176,65 +190,101 @@ function KpiStrip({ rows, summary, nowHour, weekday }: { rows: MonitorRow[]; sum
   )
 }
 
-/** Tarjeta grande de quien está entrenando: avance del día y el ejercicio en el que va. */
-function LiveCard({ row, now, onOpen }: { row: MonitorRow; now: Date; onOpen: () => void }) {
-  const cur = row.current
-  const planned = Math.min(cur?.setsPlanned ?? 0, 12)
-  const below = cur?.plannedKg != null && cur.weightKg != null && cur.weightKg < cur.plannedKg
+/** «60 kg × 8», «12 repeticiones» o vacío. */
+function loadText(e: MonitorCurrent): string {
+  if (e.weightKg != null) return `${kg(e.weightKg)}${e.reps != null ? ` × ${e.reps}` : ''}`
+  return e.reps != null ? `${e.reps} rep.` : ''
+}
+
+/** Un ejercicio del día dentro de la tarjeta en vivo: hecho, en curso o pendiente, con sus series. */
+function ExerciseLine({ e, isCurrent }: { e: MonitorCurrent; isCurrent: boolean }) {
+  const planned = Math.min(e.setsPlanned ?? 0, 10)
+  const complete = e.setsPlanned != null && e.setsDone >= e.setsPlanned
+  const below = e.plannedKg != null && e.weightKg != null && e.weightKg < e.plannedKg
   return (
-    <motion.li layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
+    <li className={cn('grid grid-cols-[0.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-lg px-2 py-1.5', isCurrent && 'bg-status-ok/10')}>
+      <span
+        className={cn(
+          'h-2 w-2 justify-self-center rounded-full',
+          isCurrent ? 'bg-status-ok motion-safe:animate-pulse' : complete ? 'bg-ink-primary' : e.setsDone > 0 ? 'bg-ink-muted' : 'border border-surface-inputBorder',
+        )}
+        aria-hidden
+      />
+      <span className="min-w-0">
+        <span className={cn('block truncate text-sm', isCurrent ? 'font-semibold text-ink-primary' : e.setsDone > 0 ? 'text-ink-primary' : 'text-ink-muted')}>{e.name}</span>
+        {planned > 0 ? (
+          <span className="mt-1 flex h-1 max-w-[9rem] gap-0.5" aria-hidden>
+            {Array.from({ length: planned }, (_, i) => (
+              <span key={i} className={cn('min-w-0 flex-1 rounded-full', i < e.setsDone ? (isCurrent ? 'bg-status-ok' : 'bg-ink-secondary') : 'bg-surface-elevated')} />
+            ))}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-right text-xs tabular-nums">
+        <span className="block text-ink-secondary">{e.setsPlanned ? `${Math.min(e.setsDone, e.setsPlanned)}/${e.setsPlanned}` : e.setsDone || '—'}</span>
+        {e.setsDone > 0 && loadText(e) ? (
+          <span className={cn('block', below ? 'font-medium text-pastel-butter-accent' : 'text-ink-muted')} title={e.plannedKg != null ? `Planificado ${kg(e.plannedKg)}` : undefined}>
+            {loadText(e)}
+          </span>
+        ) : null}
+      </span>
+    </li>
+  )
+}
+
+/**
+ * Tarjeta de quien está entrenando: avance del día y la lista de ejercicios del día con el que está
+ * haciendo resaltado. Cuando entrena una sola persona, la tarjeta ocupa todo el ancho en dos columnas.
+ */
+function LiveCard({ row, name, now, wide, onOpen }: { row: MonitorRow; name: string; now: Date; wide: boolean; onOpen: () => void }) {
+  const cur = row.current
+  const exercises = row.exercises ?? []
+  return (
+    <motion.li layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }} className={cn(wide && 'sm:col-span-2 xl:col-span-3')}>
       <Button
         type="button"
         variant="ghost"
         onClick={onOpen}
         className="h-auto w-full flex-col items-stretch whitespace-normal rounded-2xl border border-status-ok/50 bg-surface-card p-0 text-left font-normal hover:bg-surface-panel [&>span]:w-full [&>span]:min-w-0"
       >
-        <span className="block w-full">
-          <span className="flex items-center gap-3 px-4 pb-3 pt-4">
-            <RingAvatar row={row} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-ink-primary">{row.studentName}</span>
-              <span className="block truncate text-xs text-ink-secondary">{row.dayLabel}</span>
-              <span className="block truncate text-xs text-ink-muted">Última serie {agoText(row.lastAt, now)}</span>
+        <span className={cn('flex w-full flex-col', wide && 'lg:flex-row')}>
+          <span className={cn('flex flex-col gap-4 px-4 pb-4 pt-4', wide && 'lg:w-[22rem] lg:shrink-0 lg:border-r lg:border-surface-border lg:px-5')}>
+            <span className="flex items-center gap-3">
+              <RingAvatar row={row} size={wide ? 64 : 52} />
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 text-sm font-semibold leading-snug text-ink-primary" title={row.studentName}>
+                  {name}
+                </span>
+                <span className="block truncate text-xs text-ink-secondary">{row.dayLabel}</span>
+              </span>
             </span>
-            {row.pct != null ? (
-              <span className="shrink-0 text-right">
-                <span className="block text-2xl font-semibold leading-none tabular-nums tracking-tight text-ink-primary">
-                  {row.pct}
-                  <span className="ml-0.5 text-xs font-normal text-ink-muted">%</span>
+            <span className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ['Del día', row.pct != null ? `${row.pct} %` : '—'],
+                  ['Series', row.plannedSets ? `${row.doneSets ?? 0}/${row.plannedSets}` : String(row.doneSets ?? 0)],
+                  ['Kilos', row.volumeKg ? formatNumber(row.volumeKg) : '—'],
+                ] as const
+              ).map(([l, v]) => (
+                <span key={l} className="min-w-0 rounded-xl bg-surface-elevated/60 px-2.5 py-2">
+                  <span className="block truncate text-3xs text-ink-muted">{l}</span>
+                  <span className="mt-0.5 block truncate text-base font-semibold leading-tight tabular-nums text-ink-primary">{v}</span>
                 </span>
-                <span className="mt-1 block text-xs text-ink-muted">del día</span>
-              </span>
-            ) : null}
+              ))}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+              <LiveDot />
+              Última serie {agoText(row.lastAt, now)}
+              {cur ? <span className="truncate"> · {cur.name}</span> : null}
+            </span>
           </span>
-          {cur ? (
-            <span className="block border-t border-surface-border px-4 pb-4 pt-3">
-              <span className="flex items-baseline justify-between gap-3">
-                <span className="truncate text-sm font-medium text-ink-primary">{cur.name}</span>
-                <span className="shrink-0 text-xs tabular-nums text-ink-secondary">
-                  {cur.setsPlanned ? `Serie ${Math.min(cur.setsDone, cur.setsPlanned)} de ${cur.setsPlanned}` : `${cur.setsDone} ${cur.setsDone === 1 ? 'serie' : 'series'}`}
-                </span>
-              </span>
-              {planned > 0 ? (
-                <span className="mt-2 flex h-1.5 gap-1" aria-hidden>
-                  {Array.from({ length: planned }, (_, i) => (
-                    <span
-                      key={i}
-                      className={cn('min-w-0 flex-1 rounded-full', i < cur.setsDone ? 'bg-status-ok' : 'bg-surface-elevated', i === cur.setsDone - 1 && 'motion-safe:animate-pulse')}
-                    />
-                  ))}
-                </span>
-              ) : null}
-              {cur.weightKg != null || cur.reps != null ? (
-                <span className="mt-2 block truncate text-xs tabular-nums text-ink-muted">
-                  <span className={cn(below && 'font-medium text-pastel-butter-accent')}>
-                    {cur.weightKg != null ? kg(cur.weightKg) : ''}
-                    {cur.weightKg != null && cur.reps != null ? ' × ' : ''}
-                    {cur.reps != null ? `${cur.reps}${cur.weightKg == null ? ' repeticiones' : ''}` : ''}
-                  </span>
-                  {cur.plannedKg != null ? ` · planificado ${kg(cur.plannedKg)}` : ''}
-                </span>
-              ) : null}
+          {exercises.length > 0 ? (
+            <span className={cn('block border-t border-surface-border px-2 py-2', wide && 'lg:flex-1 lg:border-t-0 lg:px-3 lg:py-3')}>
+              <ol className={cn('grid gap-0.5', wide && exercises.length > 4 && 'lg:grid-cols-2 lg:gap-x-3')}>
+                {exercises.map((e) => (
+                  <ExerciseLine key={e.exerciseId} e={e} isCurrent={e.exerciseId === cur?.exerciseId} />
+                ))}
+              </ol>
             </span>
           ) : null}
         </span>
@@ -244,7 +294,7 @@ function LiveCard({ row, now, onOpen }: { row: MonitorRow; now: Date; onOpen: ()
 }
 
 /** Persona de una fila de «El resto del día»: avatar con anillo, nombre y, si hay, el motivo. */
-function Person({ row, onOpen, note }: { row: MonitorRow; onOpen: () => void; note?: { text: string; tone: 'butter' | 'rose' | null } }) {
+function Person({ row, name, onOpen, note }: { row: MonitorRow; name: string; onOpen: () => void; note?: { text: string; tone: 'butter' | 'rose' | null } }) {
   return (
     <li>
       <Button type="button" variant="ghost" onClick={onOpen} className="h-auto gap-2.5 whitespace-normal rounded-xl px-2 py-1.5 text-left font-normal [&>span]:min-w-0" title={`${row.studentName} · ${row.detail}`}>
@@ -252,7 +302,7 @@ function Person({ row, onOpen, note }: { row: MonitorRow; onOpen: () => void; no
           <RingAvatar row={row} size={40} />
           <span className="min-w-0">
             <span className="block truncate text-sm text-ink-primary">
-              {firstName(row.studentName)}
+              {name}
               {row.pct != null && (row.state === 'done' || row.state === 'deviated') ? <span className="ml-1.5 text-xs tabular-nums text-ink-muted">{row.pct} %</span> : null}
             </span>
             {note ? (
@@ -273,7 +323,7 @@ const GROUPS: { state: Exclude<MonitorState, 'live'>; label: string }[] = [
   { state: 'idle', label: 'Sin registro' },
 ]
 
-function RestOfDay({ rows, onOpen }: { rows: MonitorRow[]; onOpen: (routineId: string) => void }) {
+function RestOfDay({ rows, names, onOpen }: { rows: MonitorRow[]; names: Map<string, string>; onOpen: (routineId: string) => void }) {
   const [showIdle, setShowIdle] = useState(false)
   const groups = GROUPS.map((g) => ({ ...g, rows: rows.filter((r) => r.state === g.state) })).filter((g) => g.rows.length > 0)
   if (groups.length === 0) return null
@@ -309,6 +359,7 @@ function RestOfDay({ rows, onOpen }: { rows: MonitorRow[]; onOpen: (routineId: s
                     <Person
                       key={r.routineId}
                       row={r}
+                      name={names.get(r.routineId) ?? firstName(r.studentName)}
                       onOpen={() => onOpen(r.routineId)}
                       note={
                         g.state === 'deviated'
@@ -371,7 +422,7 @@ function HourStrip({ hourly, nowHour }: { hourly: number[]; nowHour: number }) {
 
 const EVENT_DOT: Record<MonitorEvent['kind'], string> = { sets: 'bg-status-ok', done: 'bg-ink-primary', missed: 'bg-status-expired' }
 
-function Feed({ events, onOpen }: { events: MonitorEvent[]; onOpen: (routineId: string) => void }) {
+function Feed({ events, names, onOpen }: { events: MonitorEvent[]; names: Map<string, string>; onOpen: (routineId: string) => void }) {
   if (events.length === 0) return <p className="py-4 text-sm text-ink-muted">Todavía no pasó nada hoy. Cada serie que anoten aparece acá.</p>
   return (
     <ol className="-mx-2 max-h-[20rem] overflow-y-auto">
@@ -383,7 +434,7 @@ function Feed({ events, onOpen }: { events: MonitorEvent[]; onOpen: (routineId: 
                 <span className="w-10 shrink-0 text-xs tabular-nums text-ink-muted">{format(new Date(e.at), 'HH:mm')}</span>
                 <span className={cn('h-1.5 w-1.5 shrink-0 translate-y-[-2px] rounded-full', EVENT_DOT[e.kind])} aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-sm text-ink-primary">
-                  <span className="font-semibold">{firstName(e.studentName)}</span> · {e.title}
+                  <span className="font-semibold">{names.get(e.routineId) ?? firstName(e.studentName)}</span> · {e.title}
                   <span className="text-ink-muted"> · {e.detail}</span>
                 </span>
               </span>
@@ -407,8 +458,13 @@ const CELL_TEXT: Record<WeekCell, string> = { trained: 'entrenó', missed: 'avis
 const WEEK_HEAD = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const WEEK_NAMES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 
-function WeekMatrix({ rows, todayIndex, onOpen }: { rows: WeekMatrixRow[]; todayIndex: number; onOpen: (routineId: string) => void }) {
+function WeekMatrix({ rows, names, todayIndex, onOpen }: { rows: WeekMatrixRow[]; names: Map<string, string>; todayIndex: number; onOpen: (routineId: string) => void }) {
+  const [showQuiet, setShowQuiet] = useState(false)
   const avg = rows.length ? rows.reduce((n, r) => n + r.trainedDays, 0) / rows.length : 0
+  // Los que no tienen nada esta semana (ni entrenó, ni avisó, ni le toca) van plegados al final.
+  const isQuiet = (r: WeekMatrixRow) => r.cells.every((c) => c === 'none' || c === 'future')
+  const quiet = rows.filter(isQuiet)
+  const shown = showQuiet ? rows : rows.filter((r) => !isQuiet(r))
   return (
     <div>
       <table className="w-full table-fixed border-separate border-spacing-y-1 text-left">
@@ -428,13 +484,13 @@ function WeekMatrix({ rows, todayIndex, onOpen }: { rows: WeekMatrixRow[]; today
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {shown.map((r) => (
             <tr key={r.routineId}>
               <th scope="row" className="pr-2 font-normal">
-                <Button type="button" variant="ghost" onClick={() => onOpen(r.routineId)} className="h-auto w-full justify-start px-1 py-0.5 text-left font-normal [&>span]:min-w-0">
+                <Button type="button" variant="ghost" onClick={() => onOpen(r.routineId)} className="h-7 w-full justify-start px-1 py-0 text-left font-normal [&>span]:min-w-0">
                   <span className="flex min-w-0 items-center gap-2">
                     <AvatarV2 name={r.studentName} path={r.avatarPath} size="sm" />
-                    <span className="truncate text-sm text-ink-primary">{firstName(r.studentName)}</span>
+                    <span className="truncate text-sm text-ink-primary">{names.get(r.routineId) ?? firstName(r.studentName)}</span>
                   </span>
                 </Button>
               </th>
@@ -450,6 +506,12 @@ function WeekMatrix({ rows, todayIndex, onOpen }: { rows: WeekMatrixRow[]; today
           ))}
         </tbody>
       </table>
+      {quiet.length > 0 ? (
+        <Button type="button" size="sm" variant="ghost" aria-expanded={showQuiet} onClick={() => setShowQuiet((v) => !v)} className="mt-1 gap-1 px-1 text-xs font-medium text-ink-muted">
+          {showQuiet ? 'Ocultar los que no tienen actividad' : `${quiet.length} sin actividad esta semana`}
+          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showQuiet && 'rotate-180')} aria-hidden />
+        </Button>
+      ) : null}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-ink-muted">
         <ul className="flex flex-wrap gap-x-3 gap-y-1">
           {(['trained', 'missed', 'due', 'owed'] as const).map((k) => (
@@ -508,6 +570,7 @@ export function TrainingMonitorBoardV2({ ownerId, onOpenRoutine }: { ownerId: st
   const live = rows.filter((r) => r.state === 'live')
   const lastTrained = rows.filter((r) => r.lastAt && r.state !== 'live').sort((a, b) => (b.lastAt ?? '').localeCompare(a.lastAt ?? ''))[0]
   const todayIndex = (now.getDay() + 6) % 7
+  const names = shortNames(rows)
 
   return (
     <div className="flex flex-col gap-5">
@@ -538,24 +601,24 @@ export function TrainingMonitorBoardV2({ ownerId, onOpenRoutine }: { ownerId: st
           <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence initial={false}>
               {live.map((r) => (
-                <LiveCard key={r.routineId} row={r} now={now} onOpen={() => onOpenRoutine(r.routineId)} />
+                <LiveCard key={r.routineId} row={r} name={r.studentName} now={now} wide={live.length === 1} onOpen={() => onOpenRoutine(r.routineId)} />
               ))}
             </AnimatePresence>
           </ul>
         )}
       </section>
 
-      <RestOfDay rows={rows} onOpen={onOpenRoutine} />
+      <RestOfDay rows={rows} names={names} onOpen={onOpenRoutine} />
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Panel title="Actividad" aside={<span className="text-xs text-ink-muted">{summary.peakHour != null ? `Pico a las ${String(summary.peakHour).padStart(2, '0')} h` : 'Lo último, arriba'}</span>}>
           <HourStrip hourly={summary.hourly} nowHour={now.getHours()} />
           <div className="mt-3 border-t border-surface-border pt-2">
-            <Feed events={feed} onOpen={onOpenRoutine} />
+            <Feed events={feed} names={names} onOpen={onOpenRoutine} />
           </div>
         </Panel>
         <Panel title="Semana" aside={<span className="text-xs text-ink-muted">{WEEK_NAMES[todayIndex]!.charAt(0).toUpperCase() + WEEK_NAMES[todayIndex]!.slice(1)}</span>}>
-          <WeekMatrix rows={matrix} todayIndex={todayIndex} onOpen={onOpenRoutine} />
+          <WeekMatrix rows={matrix} names={names} todayIndex={todayIndex} onOpen={onOpenRoutine} />
         </Panel>
       </div>
     </div>
