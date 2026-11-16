@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { AvatarV2, TONE_TINT } from '@/components/v2/ui'
 import { LiveDot, MONITOR_FAST_REFRESH_MS, firstName, useTrainingMonitor } from '@/components/dashboard/TrainingMonitorCardV2'
-import { WEEKDAY_LABELS, type MonitorCurrent, type MonitorEvent, type MonitorRow, type MonitorState, type MonitorSummary, type WeekCell, type WeekMatrixRow } from '@/lib/routine/trainingMonitor'
+import { HIGH_EFFORT, WEEKDAY_LABELS, checkinFlags, type MonitorCheckin, type MonitorCurrent, type MonitorEvent, type MonitorRow, type MonitorState, type MonitorSummary, type WeekCell, type WeekMatrixRow } from '@/lib/routine/trainingMonitor'
+import { BORG_LABELS, CHECKIN_SCALES } from '@/lib/routine/studentTrainingLog'
 import { cn, formatNumber } from '@/lib/utils'
 
 /** Color de cada estado (anillo del avatar y punto). Siempre va con su nombre al lado, nunca solo. */
@@ -211,12 +212,28 @@ function ExerciseLine({ e, isCurrent }: { e: MonitorCurrent; isCurrent: boolean 
         aria-hidden
       />
       <span className="min-w-0">
-        <span className={cn('block truncate text-sm', isCurrent ? 'font-semibold text-ink-primary' : e.setsDone > 0 ? 'text-ink-primary' : 'text-ink-muted')}>{e.name}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className={cn('truncate text-sm', isCurrent ? 'font-semibold text-ink-primary' : e.setsDone > 0 ? 'text-ink-primary' : 'text-ink-muted')}>{e.name}</span>
+          {e.effort != null ? (
+            <span
+              className={cn('shrink-0 rounded px-1 text-3xs font-semibold tabular-nums', e.effort >= HIGH_EFFORT ? TONE_TINT.rose : 'bg-surface-elevated text-ink-secondary')}
+              title={`Esfuerzo que marcó: ${e.effort} de 10${BORG_LABELS[e.effort] ? ` (${BORG_LABELS[e.effort]})` : ''}`}
+            >
+              Borg {e.effort}
+            </span>
+          ) : null}
+        </span>
         {planned > 0 ? (
           <span className="mt-1 flex h-1 max-w-[9rem] gap-0.5" aria-hidden>
             {Array.from({ length: planned }, (_, i) => (
               <span key={i} className={cn('min-w-0 flex-1 rounded-full', i < e.setsDone ? (isCurrent ? 'bg-status-ok' : 'bg-ink-secondary') : 'bg-surface-elevated')} />
             ))}
+          </span>
+        ) : null}
+        {e.note ? (
+          <span className="mt-1 flex min-w-0 items-start gap-1 text-xs text-ink-secondary" title={e.note}>
+            <MessageSquareText className="mt-0.5 h-3 w-3 shrink-0 text-ink-muted" aria-hidden />
+            <span className="line-clamp-2 italic">«{e.note}»</span>
           </span>
         ) : null}
       </span>
@@ -229,6 +246,80 @@ function ExerciseLine({ e, isCurrent }: { e: MonitorCurrent; isCurrent: boolean 
         ) : null}
       </span>
     </li>
+  )
+}
+
+/** Reloj que avanza cada segundo, solo donde hace falta (los contadores de descanso). */
+function useSecondTick(): Date {
+  const [t, setT] = useState(() => new Date())
+  useEffect(() => {
+    const id = window.setInterval(() => setT(new Date()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+  return t
+}
+
+const mmss = (sec: number) => {
+  const s = Math.max(0, Math.floor(sec))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/**
+ * Descanso desde la última serie (contra el descanso planificado del ejercicio en curso) y cuánto lleva
+ * la sesión. El descanso se pone en ámbar cuando se pasa de lo planificado.
+ */
+function SessionTimers({ row }: { row: MonitorRow }) {
+  const t = useSecondTick()
+  if (!row.lastAt) return null
+  const rest = (t.getTime() - new Date(row.lastAt).getTime()) / 1000
+  const planned = row.current?.restSeconds ?? null
+  const over = planned != null && rest > planned
+  const sessionMin = row.startedAt ? Math.max(0, Math.round((t.getTime() - new Date(row.startedAt).getTime()) / 60_000)) : null
+  return (
+    <span className="grid grid-cols-2 gap-2">
+      <span className={cn('min-w-0 rounded-xl px-2.5 py-2', over ? TONE_TINT.butter : 'bg-surface-elevated/60')}>
+        <span className={cn('block truncate text-3xs', over ? 'opacity-80' : 'text-ink-muted')}>{over ? 'Descanso largo' : 'Descansando'}</span>
+        <span className={cn('mt-0.5 block truncate text-base font-semibold leading-tight tabular-nums', !over && 'text-ink-primary')}>
+          {mmss(rest)}
+          {planned != null ? <span className={cn('ml-1 text-xs font-normal', over ? 'opacity-80' : 'text-ink-muted')}>de {mmss(planned)}</span> : null}
+        </span>
+        {planned != null ? (
+          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-surface-elevated">
+            <span className={cn('block h-full rounded-full', over ? 'bg-pastel-butter-accent' : 'bg-status-ok')} style={{ width: `${Math.min(100, (rest / planned) * 100)}%` }} />
+          </span>
+        ) : null}
+      </span>
+      <span className="min-w-0 rounded-xl bg-surface-elevated/60 px-2.5 py-2">
+        <span className="block truncate text-3xs text-ink-muted">Sesión</span>
+        <span className="mt-0.5 block truncate text-base font-semibold leading-tight tabular-nums text-ink-primary">
+          {sessionMin == null ? '—' : sessionMin >= 60 ? `${Math.floor(sessionMin / 60)} h ${sessionMin % 60}` : `${sessionMin} min`}
+        </span>
+        {row.startedAt ? <span className="mt-0.5 block truncate text-3xs text-ink-muted">desde las {format(new Date(row.startedAt), 'HH:mm')}</span> : null}
+      </span>
+    </span>
+  )
+}
+
+/** Cómo llegó hoy (chequeo previo): lo que merece atención va en rosa, lo normal en gris. */
+function CheckinChips({ checkin }: { checkin: MonitorCheckin }) {
+  const flags = checkinFlags(checkin)
+  const scales = CHECKIN_SCALES.filter((s) => checkin[s.key] != null)
+  return (
+    <span className="block">
+      <span className="block text-3xs text-ink-muted">Cómo llegó hoy</span>
+      <span className="mt-1 flex flex-wrap gap-1">
+        {scales.map((s) => (
+          <span
+            key={s.key}
+            className={cn('inline-flex h-6 items-center rounded-md px-1.5 text-xs tabular-nums', flags.includes(s.key) ? cn(TONE_TINT.rose, 'font-medium') : 'bg-surface-elevated text-ink-secondary')}
+            title={`${s.label} ${checkin[s.key]} de 5 (1 = ${s.low.toLowerCase()}, 5 = ${s.high.toLowerCase()})`}
+          >
+            {s.short} {checkin[s.key]}/5
+          </span>
+        ))}
+      </span>
+      {checkin.note ? <span className="mt-1.5 line-clamp-2 block text-xs italic text-ink-secondary">«{checkin.note}»</span> : null}
+    </span>
   )
 }
 
@@ -272,7 +363,9 @@ function LiveCard({ row, name, now, wide, onOpen }: { row: MonitorRow; name: str
                 </span>
               ))}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+            <SessionTimers row={row} />
+            {row.checkin ? <CheckinChips checkin={row.checkin} /> : null}
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-ink-muted">
               <LiveDot />
               Última serie {agoText(row.lastAt, now)}
               {cur ? <span className="truncate"> · {cur.name}</span> : null}
@@ -368,7 +461,9 @@ function RestOfDay({ rows, names, onOpen }: { rows: MonitorRow[]; names: Map<str
                             ? { text: r.detail, tone: 'rose' }
                             : g.state === 'due' || g.state === 'idle'
                               ? { text: r.dayLabel || r.detail, tone: null }
-                              : undefined
+                              : r.dayEffort != null
+                                ? { text: `Esfuerzo ${r.dayEffort}/10`, tone: r.dayEffort >= HIGH_EFFORT ? 'rose' : null }
+                                : undefined
                       }
                     />
                   ))}

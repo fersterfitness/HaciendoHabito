@@ -28,6 +28,10 @@ export interface MonitorExercise {
   weight_kg: number | null
   /** Nombre del ejercicio en la biblioteca, para la actividad en vivo. */
   name?: string | null
+  /** Descanso planificado entre series, en segundos. */
+  rest_seconds?: number | null
+  /** Orden dentro del día. */
+  sort_order?: number | null
 }
 export interface MonitorDay {
   id: string
@@ -67,6 +71,45 @@ export interface MonitorDayLog {
   missed_reason: string | null
   /** Cuándo se guardó el cierre (ISO), para ubicarlo en la actividad en vivo. */
   updated_at?: string | null
+  /** Chequeo previo (1 a 5): sueño y energía, mejor cuanto más alto; estrés y molestias, peor cuanto más alto. */
+  sleep?: number | null
+  energy?: number | null
+  stress?: number | null
+  soreness?: number | null
+  checkin_note?: string | null
+  checkin_at?: string | null
+  /** Esfuerzo de la sesión al cerrar el día (Borg 1 a 10). */
+  effort?: number | null
+}
+
+/** Lo que anotó el alumno sobre un ejercicio (una fila por ejercicio, se pisa en cada sesión). */
+export interface MonitorFeedback {
+  routine_exercise_id: string
+  note: string | null
+  effort: number | null
+  updated_at: string
+}
+
+/** Cómo llegó hoy, del chequeo previo. */
+export interface MonitorCheckin {
+  sleep: number | null
+  energy: number | null
+  stress: number | null
+  soreness: number | null
+  note: string
+}
+
+/** Borg desde el que el esfuerzo de un ejercicio se marca como alto. */
+export const HIGH_EFFORT = 9
+
+/** true si alguna respuesta del chequeo merece atención: dormir o energía en 1–2, estrés o molestias en 4–5. */
+export function checkinFlags(c: MonitorCheckin): ('sleep' | 'energy' | 'stress' | 'soreness')[] {
+  const out: ('sleep' | 'energy' | 'stress' | 'soreness')[] = []
+  if (c.sleep != null && c.sleep <= 2) out.push('sleep')
+  if (c.energy != null && c.energy <= 2) out.push('energy')
+  if (c.stress != null && c.stress >= 4) out.push('stress')
+  if (c.soreness != null && c.soreness >= 4) out.push('soreness')
+  return out
 }
 
 export interface MonitorRow {
@@ -92,6 +135,12 @@ export interface MonitorRow {
   current?: MonitorCurrent
   /** Todos los ejercicios del día que está entrenando, en orden, con lo hecho hoy. */
   exercises?: MonitorCurrent[]
+  /** Primera serie anotada hoy en ese día (ISO): cuándo empezó a entrenar. */
+  startedAt?: string | null
+  /** Chequeo previo, si lo respondió hoy. */
+  checkin?: MonitorCheckin
+  /** Esfuerzo de la sesión que marcó al cerrar el día hoy (Borg 1 a 10). */
+  dayEffort?: number | null
 }
 
 export interface MonitorCurrent {
@@ -106,6 +155,11 @@ export interface MonitorCurrent {
   reps: number | null
   /** Kilos planificados para ese ejercicio, si los hay. */
   plannedKg: number | null
+  /** Descanso planificado entre series (segundos). */
+  restSeconds: number | null
+  /** Esfuerzo (Borg) y nota que dejó hoy sobre este ejercicio. */
+  effort: number | null
+  note: string
 }
 
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -123,8 +177,11 @@ const STATE_ORDER: Record<MonitorState, number> = { live: 0, deviated: 1, missed
 const mondayIndex = (dow: number) => (dow + 6) % 7
 
 /** Una fila por rutina activa, ordenadas: entrenando ahora, con desvíos, no entrenó, entrenó, le toca hoy, sin registro. */
-export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; now: Date }): MonitorRow[] {
+export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; feedback?: MonitorFeedback[]; now: Date }): MonitorRow[] {
   const today = ymdLocal(opts.now)
+  const isToday = (iso: string | null | undefined) => !!iso && ymdLocal(new Date(iso)) === today
+  // Solo lo que anotó hoy: la fila de cada ejercicio se pisa en cada sesión.
+  const feedbackByExercise = new Map((opts.feedback ?? []).filter((f) => isToday(f.updated_at)).map((f) => [f.routine_exercise_id, f]))
   const logsByExercise = new Map<string, MonitorSetLog[]>()
   for (const l of opts.setLogs) {
     const list = logsByExercise.get(l.routine_exercise_id)
@@ -208,10 +265,27 @@ export function buildTrainingMonitor(opts: { routines: MonitorRoutine[]; setLogs
         weightKg: last?.weight_kg ?? null,
         reps: last?.reps ?? null,
         plannedKg: ex.weight_kg != null && ex.weight_kg > 0 ? ex.weight_kg : null,
+        restSeconds: ex.rest_seconds != null && ex.rest_seconds > 0 ? ex.rest_seconds : null,
+        effort: feedbackByExercise.get(ex.id)?.effort ?? null,
+        note: feedbackByExercise.get(ex.id)?.note?.trim() ?? '',
       }
     }
     const current = lastEx && lastLog ? exerciseOf(lastEx) : undefined
-    const extra = { doneSets: done, plannedSets: planned, volumeKg, current, exercises: active.exercises.map(exerciseOf) }
+    const startedAt = active.exercises.flatMap(todaySets).reduce<string | null>((m, l) => (!m || l.updated_at < m ? l.updated_at : m), null)
+    const checkin: MonitorCheckin | undefined =
+      log && isToday(log.checkin_at) && [log.sleep, log.energy, log.stress, log.soreness].some((v) => v != null)
+        ? { sleep: log.sleep ?? null, energy: log.energy ?? null, stress: log.stress ?? null, soreness: log.soreness ?? null, note: log.checkin_note?.trim() ?? '' }
+        : undefined
+    const extra = {
+      doneSets: done,
+      plannedSets: planned,
+      volumeKg,
+      current,
+      exercises: active.exercises.map(exerciseOf),
+      startedAt,
+      checkin,
+      dayEffort: status === 'done' ? (log?.effort ?? null) : null,
+    }
 
     const minutesAgo = lastAt ? (opts.now.getTime() - new Date(lastAt).getTime()) / 60_000 : Infinity
     if (status !== 'done' && minutesAgo <= LIVE_WINDOW_MINUTES) {
@@ -524,7 +598,7 @@ export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRouti
   const { data, error } = await supabase
     .from('routines')
     .select(
-      'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, day_of_week, exercises:routine_exercises(id, exercise_id, sets, weight_kg, exercise:exercise_library(name))))',
+      'id, student_id, student:students(full_name, avatar_path), blocks:routine_blocks(id, sort_order, start_date, end_date, days:routine_days(id, day_name, muscle_focus, sort_order, day_of_week, exercises:routine_exercises(id, exercise_id, sets, weight_kg, rest_seconds, sort_order, exercise:exercise_library(name))))',
     )
     .eq('owner_id', ownerId)
     .in('status', ['activa', 'por_vencer'])
@@ -541,20 +615,25 @@ export async function loadMonitorRoutines(ownerId: string): Promise<MonitorRouti
         ...b,
         days: (b.days ?? []).map((d) => ({
           ...d,
-          exercises: (d.exercises ?? []).map((ex) => {
-            const { exercise, ...rest } = ex as MonitorExercise & { exercise?: { name: string | null } | null }
-            return { ...rest, name: exercise?.name ?? rest.name ?? null }
-          }),
+          exercises: [...(d.exercises ?? [])]
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .map((ex) => {
+              const { exercise, ...rest } = ex as MonitorExercise & { exercise?: { name: string | null } | null }
+              return { ...rest, name: exercise?.name ?? rest.name ?? null }
+            }),
         })),
       })),
     }))
 }
 
 /** Lo anotado por los alumnos en esas rutinas. Sin las tablas (faltan las migraciones) devuelve vacío. */
-export async function loadMonitorLogs(routineIds: string[]): Promise<{ setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[] }> {
-  if (routineIds.length === 0) return { setLogs: [], dayLogs: [] }
+export async function loadMonitorLogs(routineIds: string[]): Promise<{ setLogs: MonitorSetLog[]; dayLogs: MonitorDayLog[]; feedback: MonitorFeedback[] }> {
+  if (routineIds.length === 0) return { setLogs: [], dayLogs: [], feedback: [] }
   const since = new Date(Date.now() - MONITOR_LOOKBACK_DAYS * 86_400_000).toISOString()
-  const [setLogs, dayLogs] = await Promise.all([
+  // Solo interesa lo de hoy: desde la medianoche local.
+  const now = new Date()
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+  const [setLogs, dayLogs, feedback] = await Promise.all([
     fetchAllPages<MonitorSetLog>((from, to) =>
       supabase
         .from('routine_exercise_logs')
@@ -565,10 +644,24 @@ export async function loadMonitorLogs(routineIds: string[]): Promise<{ setLogs: 
         .range(from, to),
     ),
     fetchAllPages<MonitorDayLog>((from, to) =>
-      supabase.from('routine_day_logs').select('routine_day_id, status, status_date, missed_reason, updated_at').in('routine_id', routineIds).order('routine_day_id').range(from, to),
+      supabase
+        .from('routine_day_logs')
+        .select('routine_day_id, status, status_date, missed_reason, updated_at, sleep, energy, stress, soreness, checkin_note, checkin_at, effort')
+        .in('routine_id', routineIds)
+        .order('routine_day_id')
+        .range(from, to),
+    ),
+    fetchAllPages<MonitorFeedback>((from, to) =>
+      supabase
+        .from('routine_exercise_feedback')
+        .select('routine_exercise_id, note, effort, updated_at')
+        .in('routine_id', routineIds)
+        .gte('updated_at', midnight)
+        .order('routine_exercise_id')
+        .range(from, to),
     ),
   ])
-  return { setLogs, dayLogs }
+  return { setLogs, dayLogs, feedback }
 }
 
 /** Días hacia atrás que mira el monitor: hoy, la semana en curso y la anterior (para comparar cargas). */

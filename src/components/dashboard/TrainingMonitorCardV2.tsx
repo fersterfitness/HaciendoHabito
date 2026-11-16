@@ -82,7 +82,7 @@ export function useTrainingMonitor(ownerId: string, opts: { refreshMs?: number; 
   }, [opts.realtime, ownerId, routineIds.length, logsKey, queryClient])
 
   const input = useMemo(
-    () => ({ routines: routinesQ.data ?? [], setLogs: logsQ.data?.setLogs ?? [], dayLogs: logsQ.data?.dayLogs ?? [], now }),
+    () => ({ routines: routinesQ.data ?? [], setLogs: logsQ.data?.setLogs ?? [], dayLogs: logsQ.data?.dayLogs ?? [], feedback: logsQ.data?.feedback ?? [], now }),
     [routinesQ.data, logsQ.data, now],
   )
   const rows = useMemo(() => buildTrainingMonitor(input), [input])

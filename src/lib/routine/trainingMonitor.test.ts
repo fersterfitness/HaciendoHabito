@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-import { monitorFeed, weekMatrix, buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
+import { checkinFlags, monitorFeed, weekMatrix, buildTrainingMonitor, fetchAllPages, monitorSummary, weekActivity, type MonitorDayLog, type MonitorRoutine, type MonitorSetLog } from './trainingMonitor'
 
 const NOW = new Date(2026, 10, 16, 18, 0, 0) // lunes 16/11/2026, 18:00 hora local
 const TODAY = '2026-11-16'
@@ -193,13 +193,39 @@ describe('ejercicio en curso', () => {
       ...sets('a-w1-d0-remo', 2, 30, minsAgo(3)).map((l, i) => ({ ...l, reps: 8, updated_at: minsAgo(3 - i) })),
     ]
     const [row] = run([routine('a', 'Juan')], setLogs)
-    expect(row!.current).toEqual({ exerciseId: 'a-w1-d0-remo', name: 'Ejercicio', setsDone: 2, setsPlanned: 3, weightKg: 30, reps: 8, plannedKg: null })
+    expect(row!.current).toEqual({ exerciseId: 'a-w1-d0-remo', name: 'Ejercicio', setsDone: 2, setsPlanned: 3, weightKg: 30, reps: 8, plannedKg: null, restSeconds: null, effort: null, note: '' })
     expect(row!.exercises?.map((e) => [e.exerciseId, e.setsDone])).toEqual([
       ['a-w1-d0-press', 3],
       ['a-w1-d0-remo', 2],
     ])
     const [press] = run([routine('a', 'Juan')], sets('a-w1-d0-press', 1, 35, minsAgo(2)))
     expect(press!.current).toMatchObject({ setsDone: 1, setsPlanned: 3, weightKg: 35, plannedKg: 40 })
+  })
+
+  it('suma inicio de sesión, descanso planificado, feedback y chequeo de hoy', () => {
+    const r = routine('a', 'Juan')
+    r.blocks[1]!.days[0]!.exercises[0]!.rest_seconds = 90
+    const setLogs = [...sets('a-w1-d0-press', 1, 40, minsAgo(30)), ...sets('a-w1-d0-press', 2, 40, minsAgo(2)).slice(1)]
+    const feedback = [
+      { routine_exercise_id: 'a-w1-d0-press', note: ' me molestó el hombro ', effort: 9, updated_at: minsAgo(1) },
+      // De otra sesión: no cuenta.
+      { routine_exercise_id: 'a-w1-d0-remo', note: 'viejo', effort: 5, updated_at: '2026-11-09T20:00:00.000Z' },
+    ]
+    const dayLogs: MonitorDayLog[] = [
+      { routine_day_id: 'a-w1-d0', status: null, status_date: null, missed_reason: '', sleep: 2, energy: 4, stress: 3, soreness: 5, checkin_note: 'dormí poco', checkin_at: minsAgo(35) },
+    ]
+    const [row] = buildTrainingMonitor({ routines: [r], setLogs, dayLogs, feedback, now: NOW })
+    expect(row).toMatchObject({ state: 'live', startedAt: minsAgo(30) })
+    expect(row!.current).toMatchObject({ restSeconds: 90, effort: 9, note: 'me molestó el hombro' })
+    expect(row!.exercises![1]).toMatchObject({ effort: null, note: '' })
+    expect(row!.checkin).toEqual({ sleep: 2, energy: 4, stress: 3, soreness: 5, note: 'dormí poco' })
+    expect(checkinFlags(row!.checkin!)).toEqual(['sleep', 'soreness'])
+  })
+
+  it('un chequeo de otro día no se muestra', () => {
+    const dayLogs: MonitorDayLog[] = [{ routine_day_id: 'a-w1-d0', status: null, status_date: null, missed_reason: '', sleep: 1, checkin_at: '2026-11-09T12:00:00.000Z' }]
+    const [row] = run([routine('a', 'Juan')], sets('a-w1-d0-press', 1, 40, minsAgo(2)), dayLogs)
+    expect(row!.checkin).toBeUndefined()
   })
 
   it('las series que quedaron de otra sesión no cuentan para el avance de hoy', () => {
