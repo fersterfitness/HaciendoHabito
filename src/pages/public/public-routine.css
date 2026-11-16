@@ -23,6 +23,8 @@
 .hhr-state h1 { margin: 0; font-size: 22px; color: var(--ink); letter-spacing: -0.02em; }
 .hhr-state p { margin: 0; max-width: 36ch; }
 .hhr-state .hhr-state-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; margin-top: 18px; text-decoration: none; }
+.hhr-mascot { display: block; height: 200px; width: auto; margin: 0 auto 14px; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.12)); }
+.hhr-mascot-sm { height: 150px; margin-bottom: 8px; }
 .hhr-skeleton { display: grid; gap: 16px; max-width: 520px; margin: 0 auto; padding-top: 12px; }
 .hhr-sk { display: block; border-radius: var(--r-lg); background: linear-gradient(90deg, #EAEAE7 0%, #F5F5F3 50%, #EAEAE7 100%); background-size: 200% 100%; animation: hhr-sh 1.3s ease-in-out infinite; }
 .hhr-sk-title { height: 48px; width: 62%; border-radius: 16px; }

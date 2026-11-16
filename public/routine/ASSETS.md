@@ -9,3 +9,7 @@ Prompt: Create a single photographic asset sheet for a premium monochrome fitnes
 ## training-hero.webp
 
 Prompt: Premium sports editorial photograph for a fitness app banner, wide landscape 1536x1024. Athletic adult woman wearing black sports bra and black leggings, dark hair tied back, doing a powerful running high knee pose, three quarter view, positioned entirely in the RIGHT HALF of the composition. Full body visible. Black seamless studio backdrop with subtle charcoal geometric shadows, cinematic rim lighting on skin and clothing, rich natural skin tones. Entire LEFT HALF stays very dark almost black and empty for later overlay of white website text. Stylish high end athletic brand campaign, realistic photography. No text no logos no watermark.
+
+## mascots/*.webp
+
+Personajes ilustrados que aportó el usuario (descargados el 2026-11-16), recortados y pasados a webp de 560 px de alto. Se usan en el link del alumno cuando la rutina no está activa: `*-pause` (en pausa), `*-done` (terminada), `*-coach` (sin rutina activa o todavía sin cargar). Uno por sexo (`female`/`male`); sin sexo cargado se muestra el ícono de siempre. Ojo: la ropa tiene el logo de Nike.

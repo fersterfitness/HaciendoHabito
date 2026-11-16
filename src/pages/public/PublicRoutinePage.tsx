@@ -162,6 +162,13 @@ function Art({ name, fallback, className }: { name: ArtName; fallback: ReactNode
   return <img className={className ?? 'hhr-art'} src={`/icons/3dicons/kpi/${asset}.png`} alt="" loading="lazy" onError={() => setFailed(true)} />
 }
 
+/** Personaje según el sexo del alumno: en pausa (descansando), terminada (festejando) o sin rutina (con la planilla). */
+function Mascot({ athlete, mood, className }: { athlete: Athlete; mood: 'pause' | 'done' | 'coach'; className?: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
+  return <img className={className ?? 'hhr-mascot'} src={`/routine/mascots/${athlete}-${mood}.webp`} alt="" onError={() => setFailed(true)} />
+}
+
 export function PublicRoutinePage() {
   const { token = '' } = useParams()
   const [state, setState] = useState<{ status: 'loading' } | { status: 'error' } | { status: 'ok'; data: SharedRoutine | null }>({
@@ -308,12 +315,18 @@ export function PublicRoutinePage() {
     const wa = normalizePhoneForWhatsApp(data.professional_phone)
     const pro = data.professional_name && !data.professional_name.includes('@') ? niceCase(data.professional_name.trim().split(/\s+/)[0]) : ''
     const title = inactiveStatus === 'completada' ? 'Terminaste esta rutina' : inactiveStatus === 'pausada' ? 'Tu rutina está en pausa' : 'No tenés una rutina activa'
+    const who = routineAthlete(data.student_gender ?? data.feedback?.gender)
+    const mood = inactiveStatus === 'completada' ? 'done' : inactiveStatus === 'pausada' ? 'pause' : 'coach'
     return (
       <Shell>
         <div className="hhr-state">
-          <span className="hhr-state-icon" aria-hidden>
-            <Art name="general" className="hhr-art-lg" fallback={<Dumbbell size={26} strokeWidth={1.8} />} />
-          </span>
+          {who ? (
+            <Mascot athlete={who} mood={mood} />
+          ) : (
+            <span className="hhr-state-icon" aria-hidden>
+              <Art name="general" className="hhr-art-lg" fallback={<Dumbbell size={26} strokeWidth={1.8} />} />
+            </span>
+          )}
           <h1>{title}</h1>
           <p>
             {inactiveStatus === 'completada'
@@ -529,9 +542,13 @@ export function PublicRoutinePage() {
 
           {!routine || blocks.length === 0 ? (
             <div className="hhr-card hhr-empty-card">
-              <span className="hhr-tile" aria-hidden>
-                <Art name="general" fallback={<Dumbbell size={24} strokeWidth={1.8} />} />
-              </span>
+              {athlete ? (
+                <Mascot athlete={athlete} mood="coach" className="hhr-mascot hhr-mascot-sm" />
+              ) : (
+                <span className="hhr-tile" aria-hidden>
+                  <Art name="general" fallback={<Dumbbell size={24} strokeWidth={1.8} />} />
+                </span>
+              )}
               <b>Tu rutina todavía no está cargada</b>
               <p>Cuando {proLabel} la arme, la vas a ver en este mismo link.</p>
             </div>
